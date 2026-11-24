@@ -3,12 +3,12 @@
 - **Status:** Accepted
 - **Date:** 2026-11-24
 - **Deciders:** Adrián Montes Linares (@aMonteSl)
-- **Context issues:** epic #7, evaluations #8 (Code-OSS fork), #9 (Eclipse Theia), #10 (Electron + Monaco)
-- **Follow-up:** epic "Build the Code-XR IDE on Electron + Monaco" and its user stories
+- **Context issues:** epic #7 "Choose the platform for the Code-XR IDE", evaluations #8 (Code-OSS fork), #9 (Eclipse Theia), #10 (Electron + Monaco)
+- **Follow-up:** epic #11 "Migrate Code-XR from a VS Code extension to its own IDE (Electron + Monaco)" and its user stories
 
 ## Context
 
-Code-XR ships today as a VS Code extension. Its roadmap (change prediction over Git history, a local LLM that explains risk, voice interaction inside XR) needs more control over the user interface and the runtime than the VS Code extension API gives: webviews, a sidebar tree and commands. Epic #7 set out to move Code-XR to an IDE of its own and compared three candidate platforms against five shared criteria.
+Code-XR ships today as a VS Code extension. Its roadmap (change prediction over Git history, a local LLM that explains risk, voice interaction inside XR) needs more control over the user interface and the runtime than the VS Code extension API gives: webviews, a sidebar tree and commands. Epic #7 chose the platform for that IDE, comparing three candidate platforms against five shared criteria.
 
 What the current codebase brings to the decision:
 
