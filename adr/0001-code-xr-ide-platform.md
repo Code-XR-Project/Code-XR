@@ -8,7 +8,7 @@
 
 ## Context
 
-Code-XR ships today as a VS Code extension. Its roadmap (change prediction over Git history, a local LLM that explains risk, voice interaction inside XR) needs more control over the user interface and the runtime than the VS Code extension API gives: webviews, a sidebar tree and commands. Epic #7 chose the platform for that IDE, comparing three candidate platforms against five shared criteria.
+Code-XR ships today as a VS Code extension. Its roadmap (change prediction over Git history, a local LLM that explains risk, voice interaction inside XR) needs more control over the user interface and the runtime than the VS Code extension API gives: webviews, a sidebar tree and commands. To get that control, Code-XR moves to an IDE of its own; epic #7 chose its platform, comparing three candidate platforms against five shared criteria.
 
 What the current codebase brings to the decision:
 
