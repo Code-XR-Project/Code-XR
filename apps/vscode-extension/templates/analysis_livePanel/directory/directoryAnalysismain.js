@@ -241,104 +241,20 @@ function loadAnalysisData(data) {
 }
 
 /**
- * Initialize Server-Sent Events for live updates
+ * Live updates over SSE: the shared client in panelShell.js dispatches every
+ * message type; on a re-analysis this panel also shows its update notification.
  */
 function initializeSSE() {
-  console.log('DIRECTORY_ANALYSIS: Initializing SSE for live updates...');
-  
-  try {
-    // Connect to the /events endpoint on the current server
-    const eventSource = new EventSource('/events');
-    
-    eventSource.onopen = function(event) {
-      console.log('DIRECTORY_ANALYSIS: SSE connection opened');
-      showSSEStatus('connected');
-    };
-    
-    eventSource.onmessage = function(event) {
-      console.log('DIRECTORY_ANALYSIS: Raw SSE message received:', event);
-      console.log('DIRECTORY_ANALYSIS: Event data type:', typeof event.data);
-      console.log('DIRECTORY_ANALYSIS: Event data content:', event.data);
-      
-      try {
-        const data = JSON.parse(event.data);
-        console.log('DIRECTORY_ANALYSIS: Parsed SSE data:', data);
-        handleSSEMessage(data);
-      } catch (error) {
-        console.error('DIRECTORY_ANALYSIS: Error parsing SSE message:', error);
-        console.error('DIRECTORY_ANALYSIS: Unparseable data:', event.data);
-      }
-    };
-    
-    eventSource.onerror = function(event) {
-      console.error('DIRECTORY_ANALYSIS: SSE connection error:', event);
-      showSSEStatus('error');
-      
-      // Note: EventSource will automatically try to reconnect
-    };
-    
-    // Store reference for potential cleanup
-    window.analysisSSE = eventSource;
-    
-  } catch (error) {
-    console.error('DIRECTORY_ANALYSIS: Failed to initialize SSE:', error);
-    showSSEStatus('error');
-  }
-}
-
-/**
- * Handle incoming SSE messages
- */
-function handleSSEMessage(data) {
-  console.log('DIRECTORY_ANALYSIS: Handling SSE message, data.type:', data.type);
-  console.log('DIRECTORY_ANALYSIS: Full data object:', data);
-  
-  // Check if we have nested data (EnhancedSSEManager format)
-  const messageType = data.type || (data.data && data.data.type);
-  console.log('DIRECTORY_ANALYSIS: Determined message type:', messageType);
-  
-  switch (messageType) {
-    case 'connected':
-      console.log('DIRECTORY_ANALYSIS: SSE connected for file:', data.fileUri || data.data?.fileUri);
-      showSSEStatus('connected');
-      break;
-      
-    case 'analysis-updated':
-      console.log('DIRECTORY_ANALYSIS: Analysis updated for file:', data.fileUri || data.data?.fileUri);
-      console.log('DIRECTORY_ANALYSIS: Triggering data reload...');
-      flashSSEStatus('New data received');
+  createLivePanelSse({
+    label: 'DIRECTORY_ANALYSIS',
+    trace: (...args) => console.log(...args),
+    onAnalysisUpdated: () => {
       showUpdateNotification();
       reloadAnalysisData();
-      break;
-
-    case 'dependency-updated':
-      // The server recomputed the dependency graph as part of the re-analysis;
-      // reload the freshly written artifact.
-      console.log('DIRECTORY_ANALYSIS: Dependency data updated, reloading summary...');
-      flashSSEStatus('New data received');
-      loadDependencySummary();
-      break;
-
-    case 'historical-progress':
-      // Comparison progress from the server (analyzing left/right versions).
-      historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-      break;
-
-    case 'historical-updated':
-      // A comparison finished (or its working-copy side was re-analyzed).
-      flashSSEStatus('New data received');
-      historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-      break;
-
-    case 'heartbeat':
-      console.log('DIRECTORY_ANALYSIS: Heartbeat received');
-      // Keep-alive message, no action needed
-      break;
-      
-    default:
-      console.log('DIRECTORY_ANALYSIS: Unknown SSE message type:', messageType);
-      console.log('DIRECTORY_ANALYSIS: Full data:', data);
-  }
+    },
+    onDependencyUpdated: () => loadDependencySummary(),
+    historicalPanel: historicalPanel,
+  });
 }
 
 /**

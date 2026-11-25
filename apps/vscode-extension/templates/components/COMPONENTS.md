@@ -175,5 +175,5 @@ vector and coerces with `Number()`, collaboration and virtual screen return
 Files under `livepanel/` are bundled by `LivePanelParser` (alphabetical order)
 ahead of each LivePanel template's own script/stylesheet: `charts.js|css`,
 `dataTable.js|css`, `dependencySummaryPanel.js`, `historicalPanel.js|css`, and
-`panelShell.js|css` (theme toggle, SSE status indicator, notifications, the
-DataTable registry and shared formatters).
+`panelShell.js|css` (theme toggle, the SSE client `createLivePanelSse` and its
+status indicator, notifications, the DataTable registry and shared formatters).

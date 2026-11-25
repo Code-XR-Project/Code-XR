@@ -103,6 +103,99 @@ function flashSSEStatus(message) {
 }
 
 /**
+ * Connect a panel to its server's `/events` stream (SSE) and dispatch every
+ * message type. Both LivePanel templates use this; what differs per panel is
+ * passed in. EventSource reconnects on its own, so an error only updates the
+ * status indicator. Messages arrive flat (`{ type }`) or nested in the
+ * EnhancedSSEManager envelope (`{ data: { type } }`).
+ *
+ * @param {Object} options
+ * @param {string} options.label                Log prefix, e.g. 'FILE_ANALYSIS'.
+ * @param {() => void} options.onAnalysisUpdated   The panel's data was re-analyzed.
+ * @param {() => void} options.onDependencyUpdated The dependency dataset was rewritten.
+ * @param {{handleSseMessage: (message: Object) => void}} options.historicalPanel
+ * @param {(...args: unknown[]) => void} [options.trace]  Verbose diagnostics (default: none).
+ * @returns {EventSource|null} also kept on `window.analysisSSE`.
+ */
+function createLivePanelSse(options) {
+  const label = options.label;
+  const trace = typeof options.trace === 'function' ? options.trace : function () {};
+
+  function handleMessage(data) {
+    const messageType = data.type || (data.data && data.data.type);
+    trace(`${label}: Handling SSE message:`, messageType, data);
+
+    switch (messageType) {
+      case 'connected':
+        showSSEStatus('connected');
+        break;
+
+      case 'analysis-updated':
+        flashSSEStatus('New data received');
+        options.onAnalysisUpdated();
+        break;
+
+      case 'dependency-updated':
+        // The server recomputed the dependency dataset as part of re-analysis.
+        flashSSEStatus('New data received');
+        options.onDependencyUpdated();
+        break;
+
+      case 'historical-progress':
+        // Comparison progress from the server (analyzing left/right versions).
+        options.historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
+        break;
+
+      case 'historical-updated':
+        // A comparison finished (or its working-copy side was re-analyzed).
+        flashSSEStatus('New data received');
+        options.historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
+        break;
+
+      case 'heartbeat':
+        // Keep-alive message, no action needed.
+        break;
+
+      default:
+        console.log(`${label}: Unknown SSE message type:`, messageType);
+    }
+  }
+
+  trace(`${label}: Initializing SSE for live updates...`);
+  try {
+    const eventSource = new EventSource('/events');
+
+    eventSource.onopen = function () {
+      trace(`${label}: SSE connection opened`);
+      showSSEStatus('connected');
+    };
+
+    eventSource.onmessage = function (event) {
+      trace(`${label}: Raw SSE message received:`, event.data);
+      try {
+        handleMessage(JSON.parse(event.data));
+      } catch (error) {
+        console.error(`${label}: Error parsing SSE message:`, error);
+        trace(`${label}: Unparseable data:`, event.data);
+      }
+    };
+
+    eventSource.onerror = function (event) {
+      // EventSource retries automatically; just reflect the state.
+      trace(`${label}: SSE connection error:`, event);
+      showSSEStatus('error');
+    };
+
+    window.analysisSSE = eventSource;
+    return eventSource;
+  } catch (error) {
+    console.error(`${label}: Failed to initialize SSE:`, error);
+    showSSEStatus('error');
+    return null;
+  }
+}
+
+/**
  * Show update notification
  */
 function showUpdateNotification() {

@@ -678,7 +678,10 @@ test('directory LivePanel script loads the dependency artifact same-origin and r
   assert.match(panel, /fetch\('\.\/dependency-graph\.json/);
   assert.doesNotMatch(main, /\/api\/dependency-graph\/summary/);
   assert.doesNotMatch(panel, /\/api\/dependency-graph\/summary/);
-  assert.match(main, /case 'dependency-updated':/);
+  // The SSE switch lives in the shared page shell since 1.2.1 (R04); the
+  // template hands it the dependency reload.
+  assert.match(main, /onDependencyUpdated: \(\) => loadDependencySummary\(\)/);
+  assert.match(main + '\n' + read('templates/components/livepanel/panelShell.js'), /case 'dependency-updated':/);
   assert.match(main, /loadDependencySummary\(\)/);
   assert.doesNotMatch(main, /http:\/\/localhost/);
   assert.doesNotMatch(main, /window\.location\.origin \+ '\/api/);
