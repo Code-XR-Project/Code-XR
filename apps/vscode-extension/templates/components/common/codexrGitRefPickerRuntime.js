@@ -15,11 +15,11 @@
   }
 
   function createEntity(tag, attributes) {
-    var document = doc();
+    const document = doc();
     if (!document || !document.createElement) {
       return null;
     }
-    var el = document.createElement(tag);
+    const el = document.createElement(tag);
     Object.keys(attributes || {}).forEach(function (key) {
       el.setAttribute(key, attributes[key]);
     });
@@ -39,8 +39,8 @@
   }
 
   function compact(value, limit) {
-    var textValue = String(value == null ? '' : value);
-    var max = Math.max(1, Number(limit) || 48);
+    const textValue = String(value == null ? '' : value);
+    const max = Math.max(1, Number(limit) || 48);
     return textValue.length > max ? textValue.slice(0, Math.max(1, max - 3)) + '...' : textValue;
   }
 
@@ -48,7 +48,7 @@
   // One source of truth for how a Git source reads on screen, replacing the
   // per-analysis copies of splitSourceDescription / sourceTypeLabel / colors.
 
-  var TYPE_COLORS = {
+  const TYPE_COLORS = {
     LIVE: '#06b6d4',
     BRANCH: '#22c55e',
     TAG: '#a78bfa',
@@ -96,18 +96,18 @@
   // sends one, else the day-granular YYYY-MM-DD date (which ties every
   // same-day ref). Sources with neither sort last regardless of direction.
   function sortKey(source) {
-    var timestamp = Number(source && source.timestamp);
+    const timestamp = Number(source && source.timestamp);
     if (Number.isFinite(timestamp) && timestamp > 0) { return timestamp * 1000; }
-    var date = String((describeSource(source).date || ''));
-    var parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? Date.parse(date) : NaN;
+    const date = String((describeSource(source).date || ''));
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? Date.parse(date) : NaN;
     return Number.isFinite(parsed) ? parsed : null;
   }
 
   function sortByTime(sources, direction) {
-    var dir = direction === 'asc' ? 1 : -1;
+    const dir = direction === 'asc' ? 1 : -1;
     return sources.slice().sort(function (a, b) {
-      var ka = sortKey(a);
-      var kb = sortKey(b);
+      const ka = sortKey(a);
+      const kb = sortKey(b);
       if (ka === null && kb === null) { return 0; }
       if (ka === null) { return 1; }
       if (kb === null) { return -1; }
@@ -119,13 +119,13 @@
     if (!source) {
       return { id: '', label: 'Not selected', date: '', subject: '', typeLabel: 'REF', typeColor: TYPE_COLORS.REF, category: 'commit', isLive: false };
     }
-    var label = String(source.label || source.refName || source.id || 'unknown');
-    var description = String(source.description || '').trim();
-    var explicitDate = String(source.date || '').trim();
-    var match = description.match(/^(\d{4}-\d{2}-\d{2})\s*(.*)$/);
-    var date = explicitDate || (match ? match[1] : '');
-    var subject = match ? match[2] : description;
-    var isLive = source.kind === 'workingCopy' || source.revisionType === 'working-copy';
+    const label = String(source.label || source.refName || source.id || 'unknown');
+    const description = String(source.description || '').trim();
+    const explicitDate = String(source.date || '').trim();
+    const match = description.match(/^(\d{4}-\d{2}-\d{2})\s*(.*)$/);
+    let date = explicitDate || (match ? match[1] : '');
+    const subject = match ? match[2] : description;
+    const isLive = source.kind === 'workingCopy' || source.revisionType === 'working-copy';
     if (isLive && !date) {
       date = 'Working copy';
     }
@@ -152,7 +152,7 @@
   // subject in the middle, a coloured type chip and an optional order badge.
 
   function createPoolRow(rowClass, onRowClick) {
-    var row = createEntity('a-plane', {
+    const row = createEntity('a-plane', {
       width: 5.7,
       height: 0.31,
       material: 'color: #1e293b; opacity: 0.95; shader: flat',
@@ -196,8 +196,8 @@
 
   function updatePoolRow(row, source, rowState, y) {
     if (!row) { return; }
-    var parts = describeSource(source);
-    var state = rowState || {};
+    const parts = describeSource(source);
+    const state = rowState || {};
     row.__source = source;
     row.setAttribute('position', '0 ' + y + ' 0');
     setRowVisible(row, true);
@@ -211,7 +211,7 @@
     // Attribute AND object3D: A-Frame 1.7.1 caches the visible attribute on
     // reused nodes, so a pooled row handed to another source kept the previous
     // source's order badge painted.
-    var hasOrder = !!state.orderLabel;
+    const hasOrder = !!state.orderLabel;
     row.__order.setAttribute('value', hasOrder ? String(state.orderLabel) : '');
     row.__order.setAttribute('visible', hasOrder ? 'true' : 'false');
     if (row.__order.object3D) {
@@ -229,8 +229,8 @@
   // the evolution panels). `options` lets a caller keep its own marker class or
   // label wrapping without forking the factory.
   function buildButton(label, position, width, height, color, onClick, textWidth, options) {
-    var opts = options || {};
-    var button = createEntity('a-plane', {
+    const opts = options || {};
+    const button = createEntity('a-plane', {
       position: position,
       width: width || 1,
       height: height || 0.3,
@@ -248,7 +248,7 @@
   }
 
   function setButtonLabel(button, value, color) {
-    var target = button && button._codexrLabel;
+    const target = button && button._codexrLabel;
     if (!target) { return; }
     target.setAttribute('value', String(value == null ? '' : value));
     if (color) { target.setAttribute('color', color); }
@@ -257,13 +257,13 @@
   // ── Embeddable picker ─────────────────────────────────────────────────────
 
   function createPicker(options) {
-    var opts = options || {};
-    var mode = opts.mode === 'sequence' ? 'sequence' : 'compare';
-    var pageSize = Math.max(1, Number(opts.pageSize) || 5);
-    var rowGap = opts.rowGap || 0.34;
-    var listTopY = opts.listTopY == null ? 0.3 : opts.listTopY;
+    const opts = options || {};
+    const mode = opts.mode === 'sequence' ? 'sequence' : 'compare';
+    const pageSize = Math.max(1, Number(opts.pageSize) || 5);
+    const rowGap = opts.rowGap || 0.34;
+    const listTopY = opts.listTopY == null ? 0.3 : opts.listTopY;
 
-    var pickerState = {
+    const pickerState = {
       references: null,
       category: opts.defaultCategory || 'all',
       sortDir: opts.defaultSortDir === 'asc' ? 'asc' : 'desc',
@@ -271,19 +271,19 @@
       activeSlot: (opts.slots && opts.slots[0] && opts.slots[0].id) || 'left'
     };
 
-    var el = createEntity('a-entity', { position: opts.position || '0 0 0.02' });
-    var slotRoot = null;
-    var slotButtons = {};
-    var tabRoot = null;
-    var listRoot = createEntity('a-entity', { position: '0 ' + (opts.listY == null ? 0.92 : opts.listY) + ' 0' });
-    var pagerRoot = createEntity('a-entity', { position: '0 ' + (opts.pagerY == null ? -1.82 : opts.pagerY) + ' 0' });
-    var pageText = null;
+    const el = createEntity('a-entity', { position: opts.position || '0 0 0.02' });
+    let slotRoot = null;
+    const slotButtons = {};
+    let tabRoot = null;
+    const listRoot = createEntity('a-entity', { position: '0 ' + (opts.listY == null ? 0.92 : opts.listY) + ' 0' });
+    const pagerRoot = createEntity('a-entity', { position: '0 ' + (opts.pagerY == null ? -1.82 : opts.pagerY) + ' 0' });
+    let pageText = null;
 
-    var slots = opts.slots || [
+    const slots = opts.slots || [
       { id: 'left', label: 'LEFT', color: '#164e63', activeColor: '#67e8f9' },
       { id: 'right', label: 'RIGHT', color: '#166534', activeColor: '#6ee7b7' }
     ];
-    var categories = opts.categories || [
+    const categories = opts.categories || [
       { id: 'all', label: 'All' },
       { id: 'branch', label: 'Branch' },
       { id: 'tag', label: 'Tags' },
@@ -295,13 +295,13 @@
     // compare-mode feature: any analysis browsing the same reference list wants
     // them (project evolution has hundreds of commits to page through). They
     // default to on for 'compare' and are opt-in for 'sequence'.
-    var showTabs = opts.tabs == null ? (mode === 'compare') : !!opts.tabs;
-    var showSortToggle = opts.sortToggle == null ? (mode === 'compare') : !!opts.sortToggle;
+    const showTabs = opts.tabs == null ? (mode === 'compare') : !!opts.tabs;
+    const showSortToggle = opts.sortToggle == null ? (mode === 'compare') : !!opts.sortToggle;
 
     if (mode === 'compare') {
       slotRoot = createEntity('a-entity', { position: '0 ' + (opts.slotsY == null ? 2.18 : opts.slotsY) + ' 0' });
       slots.forEach(function (slot, index) {
-        var button = buildButton(
+        const button = buildButton(
           slot.label,
           (index === 0 ? -1.48 : 1.48) + ' 0 0',
           2.75, 0.48, slot.color,
@@ -321,15 +321,15 @@
     if (el && listRoot) { el.appendChild(listRoot); }
 
     // Fixed row pool: created once, reused on every render (attribute-only).
-    var rowPool = [];
-    for (var poolIndex = 0; poolIndex < pageSize; poolIndex += 1) {
-      var poolRow = createPoolRow(opts.rowClass, function (source) { handleRowClick(source); });
+    const rowPool = [];
+    for (let poolIndex = 0; poolIndex < pageSize; poolIndex += 1) {
+      const poolRow = createPoolRow(opts.rowClass, function (source) { handleRowClick(source); });
       if (poolRow) { rowPool.push(poolRow); if (listRoot) { listRoot.appendChild(poolRow); } }
     }
 
     // Time-order toggle (compare mode): newest-first by default, flips to
     // oldest-first. Built once; render only refreshes its label.
-    var sortButton = null;
+    let sortButton = null;
     if (showSortToggle) {
       sortButton = buildButton('', '-2.32 0 0', 1.2, 0.3, '#0e7490', function () { toggleSort(); }, 1.55);
       if (pagerRoot && sortButton) { pagerRoot.appendChild(sortButton); }
@@ -340,11 +340,11 @@
     pagerRoot && pagerRoot.appendChild(buildButton('>', '1.05 0 0', 0.5, 0.3, '#334155', function () { setPage(pickerState.page + 1); }));
     if (el && pagerRoot) { el.appendChild(pagerRoot); }
     // Tabs (compare mode) are built once; render only restyles the active one.
-    var tabButtons = {};
+    const tabButtons = {};
     buildTabs();
 
     function allSources() {
-      var sources = pickerState.references && pickerState.references.sources;
+      const sources = pickerState.references && pickerState.references.sources;
       return Array.isArray(sources) ? sources : [];
     }
 
@@ -356,11 +356,11 @@
     function visibleSources() {
       if (mode === 'compare') {
         // Category slice, time-sorted, with Live (working copy) always first.
-        var categorySources = sortByTime(
+        const categorySources = sortByTime(
           filterByCategory(allSources(), pickerState.category),
           pickerState.sortDir
         );
-        var live = workingCopySource();
+        const live = workingCopySource();
         return live ? [live].concat(categorySources) : categorySources;
       }
       // Same category filter and time order as compare mode. The auto-suggested
@@ -368,14 +368,14 @@
       // per page they used to occupy whole pages in fixed order, which made the
       // Oldest/Newest toggle look broken. Their membership is communicated by
       // the numbered badges (resolveRowState), not by list position.
-      var pool = sortByTime(
+      const pool = sortByTime(
         filterByCategory(allSources(), pickerState.category),
         pickerState.sortDir
       );
       // Live (working copy) is pinned first, exactly like compare mode:
       // filterByCategory leaves it out by design, so a category filter must not
       // make the current branch disappear from the list.
-      var live = workingCopySource();
+      const live = workingCopySource();
       return live ? [live].concat(pool) : pool;
     }
 
@@ -384,7 +384,7 @@
     }
 
     function setPage(page) {
-      var count = visibleSources().length;
+      const count = visibleSources().length;
       pickerState.page = Math.max(0, Math.min(maxPage(count), Number(page) || 0));
       render();
     }
@@ -403,12 +403,12 @@
 
     function buildTabs() {
       if (!tabRoot) { return; }
-      var count = categories.length;
-      var pitch = count > 3 ? 1.12 : 1.9;
-      var tabWidth = count > 3 ? 1.04 : 1.7;
-      var startX = -((count - 1) / 2) * pitch;
+      const count = categories.length;
+      const pitch = count > 3 ? 1.12 : 1.9;
+      const tabWidth = count > 3 ? 1.04 : 1.7;
+      const startX = -((count - 1) / 2) * pitch;
       categories.forEach(function (category, index) {
-        var button = buildButton(
+        const button = buildButton(
           category.label,
           (startX + (index * pitch)) + ' 0 0',
           tabWidth, 0.3,
@@ -436,7 +436,7 @@
     function updateTabStyles() {
       if (!tabRoot) { return; }
       categories.forEach(function (category) {
-        var button = tabButtons[category.id];
+        const button = tabButtons[category.id];
         if (button) {
           button.setAttribute('material', 'color: ' + (pickerState.category === category.id ? '#0e7490' : '#1e293b') + '; opacity: 0.96; shader: flat');
         }
@@ -446,11 +446,11 @@
     function renderSlots() {
       if (mode !== 'compare') { return; }
       slots.forEach(function (slot) {
-        var selectedId = typeof opts.slotSelection === 'function' ? opts.slotSelection(slot.id) : null;
+        const selectedId = typeof opts.slotSelection === 'function' ? opts.slotSelection(slot.id) : null;
         // Hard-compacted so the summary stays inside the slot and never bleeds
         // into its neighbour or off the panel edge.
-        var summary = compact(describeSource(findSource(selectedId)).label, 18);
-        var active = pickerState.activeSlot === slot.id;
+        const summary = compact(describeSource(findSource(selectedId)).label, 18);
+        const active = pickerState.activeSlot === slot.id;
         setButtonLabel(slotButtons[slot.id], slot.label + '\n' + summary, active ? (slot.activeColor || '#ffffff') : '#ffffff');
       });
     }
@@ -463,14 +463,14 @@
     // node is added or removed, so the controller panel's childList observer
     // and the raycaster stay quiet — paging never freezes the scene.
     function render() {
-      var sources = visibleSources();
+      const sources = visibleSources();
       pickerState.page = Math.min(pickerState.page, maxPage(sources.length));
-      var start = pickerState.page * pageSize;
-      var pageSources = sources.slice(start, start + pageSize);
-      for (var i = 0; i < rowPool.length; i += 1) {
+      const start = pickerState.page * pageSize;
+      const pageSources = sources.slice(start, start + pageSize);
+      for (let i = 0; i < rowPool.length; i += 1) {
         if (i < pageSources.length) {
-          var source = pageSources[i];
-          var rowState = typeof opts.resolveRowState === 'function'
+          const source = pageSources[i];
+          const rowState = typeof opts.resolveRowState === 'function'
             ? opts.resolveRowState(source, { activeSlot: pickerState.activeSlot }) || {}
             : {};
           updatePoolRow(rowPool[i], source, rowState, listTopY - (i * rowGap));
@@ -482,7 +482,7 @@
       updateSortButton();
       renderSlots();
       if (pageText) {
-        var label = sources.length
+        const label = sources.length
           ? 'Page ' + (pickerState.page + 1) + ' / ' + Math.max(1, maxPage(sources.length) + 1)
           : (mode === 'compare' ? 'No ' + pickerState.category + ' references' : 'No Git references');
         pageText.setAttribute('value', label);
@@ -540,15 +540,15 @@
   // source a visualization is showing. Shared so every Git analysis labels the
   // table the same way (historical: one per side; evolution: the current frame).
   function buildSourceNameplateText(source) {
-    var described = describeSource(source);
-    var date = described.isLive ? 'Working copy' : described.date;
-    var value = described.label + '  -  ' + date;
+    const described = describeSource(source);
+    const date = described.isLive ? 'Working copy' : described.date;
+    const value = described.label + '  -  ' + date;
     return value.length > 46 ? value.slice(0, 43) + '...' : value;
   }
 
   function createSourceNameplate(source, zone, color) {
-    var zoneDepth = Number(zone.depth || zone.targetDepth) || 3.2;
-    var plate = createEntity('a-entity', {
+    const zoneDepth = Number(zone.depth || zone.targetDepth) || 3.2;
+    const plate = createEntity('a-entity', {
       position: zone.anchorX + ' 1.14 ' + (zone.anchorZ + (zoneDepth / 2) + 0.08),
       rotation: '-28 0 0'
     });
@@ -569,20 +569,20 @@
   }
 
   function setSourceNameplate(plate, source, color) {
-    var label = plate && plate._codexrLabel;
+    const label = plate && plate._codexrLabel;
     if (!label) { return; }
     label.setAttribute('value', buildSourceNameplateText(source));
     if (color) { label.setAttribute('color', color); }
   }
 
   function registerGitGatedMode(options) {
-    var opts = options || {};
-    var modeRuntime = root.CodeXRAnalysisModeRuntime;
+    const opts = options || {};
+    const modeRuntime = root.CodeXRAnalysisModeRuntime;
     if (!modeRuntime || typeof modeRuntime.registerModeOption !== 'function') {
       return function () {};
     }
-    var enabled = opts.capabilities ? opts.capabilities[opts.capabilityKey] === true : opts.enabled === true;
-    var reason = enabled
+    const enabled = opts.capabilities ? opts.capabilities[opts.capabilityKey] === true : opts.enabled === true;
+    const reason = enabled
       ? ''
       : String((opts.capabilities && opts.capabilities[opts.capabilityKey + 'Reason']) || opts.reasonFallback || 'Requires a local Git repository.');
     return modeRuntime.registerModeOption({
@@ -596,10 +596,10 @@
   }
 
   async function resolveCapabilities() {
-    var client = root.CodeXRCollaborationRuntime && root.CodeXRCollaborationRuntime.getClient
+    const client = root.CodeXRCollaborationRuntime && root.CodeXRCollaborationRuntime.getClient
       ? root.CodeXRCollaborationRuntime.getClient(root)
       : null;
-    var sessionInfo = null;
+    let sessionInfo = null;
     try {
       sessionInfo = client && client.getSessionInfoAsync ? await client.getSessionInfoAsync() : null;
     } catch (error) {
@@ -625,7 +625,7 @@
     if (!source.date) {
       return null;
     }
-    var parsed = Date.parse(source.date);
+    const parsed = Date.parse(source.date);
     return isFinite(parsed) ? parsed : null;
   }
 
@@ -637,12 +637,12 @@
   }
 
   function sampleByPosition(sources, maxFrames) {
-    var selected = [];
-    var seen = {};
-    var last = sources.length - 1;
-    var slots = Math.max(2, maxFrames);
-    for (var index = 0; index < slots; index += 1) {
-      var source = sources[Math.round((index / (slots - 1)) * last)];
+    const selected = [];
+    const seen = {};
+    const last = sources.length - 1;
+    const slots = Math.max(2, maxFrames);
+    for (let index = 0; index < slots; index += 1) {
+      const source = sources[Math.round((index / (slots - 1)) * last)];
       if (source && !seen[source.id]) {
         seen[source.id] = true;
         selected.push(source);
@@ -653,24 +653,24 @@
 
   function fillWidestGaps(ordered, selectedIds, limit) {
     while (selectedIds.size < limit) {
-      var bestIndex = -1;
-      var bestGap = -1;
-      for (var index = 0; index < ordered.length; index += 1) {
-        var candidate = ordered[index];
+      let bestIndex = -1;
+      let bestGap = -1;
+      for (let index = 0; index < ordered.length; index += 1) {
+        const candidate = ordered[index];
         if (selectedIds.has(candidate.id)) {
           continue;
         }
-        var previousSelected = index - 1;
+        let previousSelected = index - 1;
         while (previousSelected >= 0 && !selectedIds.has(ordered[previousSelected].id)) {
           previousSelected -= 1;
         }
-        var nextSelected = index + 1;
+        let nextSelected = index + 1;
         while (nextSelected < ordered.length && !selectedIds.has(ordered[nextSelected].id)) {
           nextSelected += 1;
         }
-        var previousTime = sampleRevisionTime(ordered[previousSelected]);
-        var nextTime = sampleRevisionTime(ordered[nextSelected]);
-        var gap = previousTime !== null && nextTime !== null
+        const previousTime = sampleRevisionTime(ordered[previousSelected]);
+        const nextTime = sampleRevisionTime(ordered[nextSelected]);
+        const gap = previousTime !== null && nextTime !== null
           ? nextTime - previousTime
           : nextSelected - previousSelected;
         if (gap > bestGap) {
@@ -686,53 +686,53 @@
   }
 
   function sampleTimeline(timeline, maxFrames, endAnchor) {
-    var ordered = timeline.slice();
+    const ordered = timeline.slice();
     if (endAnchor && !ordered.some(function (source) { return source.id === endAnchor.id; })) {
       ordered.push(endAnchor);
     }
-    var limit = Math.max(1, Math.floor(maxFrames));
+    const limit = Math.max(1, Math.floor(maxFrames));
     if (ordered.length <= limit) {
       return ordered;
     }
 
-    var first = ordered[0];
-    var last = ordered[ordered.length - 1];
-    var firstTime = sampleRevisionTime(first);
-    var lastTime = sampleRevisionTime(last);
+    const first = ordered[0];
+    const last = ordered[ordered.length - 1];
+    const firstTime = sampleRevisionTime(first);
+    let lastTime = sampleRevisionTime(last);
     if (lastTime === null) {
-      for (var back = ordered.length - 1; back >= 0 && lastTime === null; back -= 1) {
+      for (let back = ordered.length - 1; back >= 0 && lastTime === null; back -= 1) {
         lastTime = sampleRevisionTime(ordered[back]);
       }
     }
 
     if (firstTime === null || lastTime === null || lastTime <= firstTime) {
-      var positional = sampleByPosition(ordered, limit);
+      const positional = sampleByPosition(ordered, limit);
       if (positional.length && positional[positional.length - 1].id !== last.id) {
         positional[positional.length - 1] = last;
       }
       return positional;
     }
 
-    var selectedIds = new Set([first.id, last.id]);
-    var span = lastTime - firstTime;
-    var innerSlots = limit - 2;
+    const selectedIds = new Set([first.id, last.id]);
+    const span = lastTime - firstTime;
+    const innerSlots = limit - 2;
 
-    for (var slot = 1; slot <= innerSlots; slot += 1) {
-      var target = firstTime + ((span * slot) / (innerSlots + 1));
-      var halfWindow = span / ((innerSlots + 1) * 2);
-      var best = null;
-      var bestScore = Number.POSITIVE_INFINITY;
-      for (var candidateIndex = 0; candidateIndex < ordered.length; candidateIndex += 1) {
-        var candidate = ordered[candidateIndex];
+    for (let slot = 1; slot <= innerSlots; slot += 1) {
+      const target = firstTime + ((span * slot) / (innerSlots + 1));
+      const halfWindow = span / ((innerSlots + 1) * 2);
+      let best = null;
+      let bestScore = Number.POSITIVE_INFINITY;
+      for (let candidateIndex = 0; candidateIndex < ordered.length; candidateIndex += 1) {
+        const candidate = ordered[candidateIndex];
         if (selectedIds.has(candidate.id)) {
           continue;
         }
-        var time = sampleRevisionTime(candidate);
+        const time = sampleRevisionTime(candidate);
         if (time === null) {
           continue;
         }
-        var distance = Math.abs(time - target);
-        var score = sampleIsMilestone(candidate) && distance <= halfWindow
+        const distance = Math.abs(time - target);
+        const score = sampleIsMilestone(candidate) && distance <= halfWindow
           ? distance - halfWindow
           : distance;
         if (score < bestScore) {
@@ -750,7 +750,7 @@
     return ordered.filter(function (source) { return selectedIds.has(source.id); });
   }
 
-  var api = {
+  const api = {
     describeSource: describeSource,
     sourceCategory: sourceCategory,
     filterByCategory: filterByCategory,

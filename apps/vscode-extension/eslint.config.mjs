@@ -168,6 +168,7 @@ export default [{
     files: [
         "templates/components/codexr/dependency-visual-budget/dependencyVisualBudgetRuntime.js",
         "templates/components/common/codexrCommonRuntime.js",
+        "templates/components/common/codexrGitRefPickerRuntime.js",
         "templates/components/codexr/debug/codexrDebugRuntime.js",
         "templates/components/codexr/render-budget/renderBudgetRuntime.js",
     ],
