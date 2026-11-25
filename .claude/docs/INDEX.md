@@ -58,6 +58,7 @@
 | `docs/cleanup/feature-baseline.md` | EN | Inventory of everything the extension contributes and does (pinned by `test/baseline/`), with the §10 verification checklist |
 | `docs/cleanup/src-layout.md`, `src-move-map.json` | EN | Story #55: the feature-first `src/` layout and the old → new path map |
 | `docs/cleanup/{host-boundary,modernization,sweep-outside-src,w2-revalidation}.md` | EN | Layering, idiom modernization, the sweep outside `src/`, the W2 re-validation |
+| `docs/xr-audit/README.md` (repository root) | EN | **XR environment audit (2026-11-25)**: 102 findings across panels, launcher, charts/containment, project evolution, dependency graph, historical comparison and mode lifecycle, each with evidence, repro status and proposed fix; per-area reports beside it. Read before fixing anything in the XR epic |
 
 ## Task → reading list
 

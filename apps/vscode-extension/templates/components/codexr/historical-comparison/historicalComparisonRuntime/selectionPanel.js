@@ -235,7 +235,7 @@
     });
     refs.companionCard = createEntity('a-plane', {
       position: '0 0 -0.03', width: COMPANION_CARD_W, height: 1,
-      material: 'color: #0e1526; opacity: 0.66; shader: flat'
+      material: 'color: #0e1526; shader: flat'
     });
     refs.companionRoot.appendChild(refs.companionCardBorder);
     refs.companionRoot.appendChild(refs.companionCard);

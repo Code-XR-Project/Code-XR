@@ -66,7 +66,7 @@
       refs.frame = createEntity('a-plane', {
         id: getScopedId('codexrVirtualScreenFrame'),
         color: '#0F172A',
-        material: 'color: #0F172A; opacity: 0.86; transparent: true; shader: flat;',
+        material: 'color: #0F172A; shader: flat;',
         position: '0 0 -0.01',
       });
 
@@ -316,7 +316,9 @@
       refs.headerStrip.setAttribute('height', minimized ? '0.20' : '0.16');
       refs.headerStrip.setAttribute('position', minimized ? '0 0 0.03' : `0 ${headerY} 0.03`);
 
-      refs.status.setAttribute('width', String(Math.max(6, width + 1.4)));
+      // The status line wraps inside the frame: it used to be 1.4 m wider than
+      // the screen, so the idle message spilled over whatever stood beside it.
+      refs.status.setAttribute('width', String(Math.max(1, width - 0.3)));
       // Fixed-content screens keep transient hints (move/resize/lock) above the
       // screen so they never cover the content; broadcast screens keep the
       // classic centered placement over the empty idle surface.
