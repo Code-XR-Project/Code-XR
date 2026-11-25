@@ -36,7 +36,7 @@
     },
     "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 189,
+    "any.total": 175,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
@@ -45,7 +45,7 @@
       "python_env": 5,
       "servers": 12,
       "utils": 14,
-      "views": 42,
+      "views": 28,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -68,13 +68,13 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 49,
-    "complexity.over10": 73,
-    "complexity.over15": 28,
-    "complexity.over20": 8,
+    "complexity.over10": 72,
+    "complexity.over15": 27,
+    "complexity.over20": 7,
     "complexity.over30": 4,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 594,
+    "eslint.maxWarnings": 579,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -83,8 +83,8 @@
   },
   "informational": {
     "src.files": 312,
-    "src.lines": 48073,
-    "src.functions": 2652,
+    "src.lines": 48065,
+    "src.functions": 2654,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -150,16 +150,16 @@
     ],
     "any.topFiles": [
       {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 27
-      },
-      {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "count": 19
       },
       {
         "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts",
         "count": 17
+      },
+      {
+        "file": "src/views/ModularTreeDataProvider.ts",
+        "count": 13
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts",
@@ -254,12 +254,6 @@
         "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
       },
       {
-        "ccn": 21,
-        "lines": 58,
-        "function": "createModularChild",
-        "file": "src/views/ModularTreeDataProvider.ts"
-      },
-      {
         "ccn": 20,
         "lines": 71,
         "function": "applyIncrementalChanges",
@@ -270,6 +264,12 @@
         "lines": 73,
         "function": "sampleTimeline",
         "file": "src/code_analysis/historical/gitTimelineSampler.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 80,
+        "function": "validateMappings",
+        "file": "src/babia_templates/processing/dimensionValidator.ts"
       }
     ],
     "size.largest10": [
@@ -302,12 +302,12 @@
         "lines": 632
       },
       {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "lines": 600
-      },
-      {
         "file": "src/code_analysis/export/exportManifest.ts",
         "lines": 595
+      },
+      {
+        "file": "src/views/ModularTreeDataProvider.ts",
+        "lines": 592
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",

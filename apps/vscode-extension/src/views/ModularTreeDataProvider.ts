@@ -37,12 +37,17 @@ interface SectionItemAdapter {
      * pulls in) before any section is expanded.
      */
     load: () => SectionItemConstructor;
-    /** Bridge properties read for the item type, in order; the first truthy one wins. */
+    /**
+     * Bridge properties read for the item type, in order; the first truthy one
+     * wins. The first key is the section's own discriminator.
+     */
     itemTypeKeys: readonly string[];
     /** Item type used when none of `itemTypeKeys` holds a value. */
     defaultItemType: string;
     /** Bridge properties passed to the item constructor after `contextValue`, in order. */
     constructorExtras: readonly string[];
+    /** Properties copied from a section child onto its ModularTreeItem, after the discriminator. */
+    payloadKeys: readonly string[];
 }
 
 /** One row per section, in sidebar order. */
@@ -52,52 +57,70 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         itemTypeKeys: ['serverItemType'],
         defaultItemType: 'config-option',
         constructorExtras: [],
+        payloadKeys: [],
     }],
     ['activeServers', {
         load: () => require('./active_servers/items/activeServerItems').ActiveServerTreeItem,
         itemTypeKeys: ['activeServerItemType'],
         defaultItemType: 'server-item',
         // Participant rows carry their peer, which context-menu commands
-        // receive instead of explicit arguments.
+        // receive instead of explicit arguments: it must survive both
+        // conversions or the context menu has no target at all.
         constructorExtras: ['activeServer', 'participant'],
+        payloadKeys: ['activeServer', 'participant'],
     }],
     ['babiaExamples', {
         load: () => require('./babia_examples/items/babiaExampleItems').BabiaExampleTreeItem,
         itemTypeKeys: ['babiaItemType'],
         defaultItemType: 'example-item',
         constructorExtras: ['babiaExample'],
+        payloadKeys: ['babiaExample'],
     }],
     ['visualizeData', {
         load: () => require('./visualize_data/items/visualizeDataItems').VisualizeDataModularTreeItem,
         itemTypeKeys: ['visualizeDataItemType'],
         defaultItemType: 'error',
         constructorExtras: ['visualizeDataItem'],
+        payloadKeys: ['visualizeDataItem'],
     }],
     ['analysis', {
         load: () => require('../code_analysis/views/items/analysisItems').CodeAnalysisTreeItem,
         itemTypeKeys: ['analysisItemType', 'type'],
         defaultItemType: 'item',
         constructorExtras: [],
+        payloadKeys: ['originalAnalysisItem'],
     }],
     ['pythonEnv', {
         load: () => require('../python_env/views/items/pythonEnvItems').PythonEnvModularTreeItem,
         itemTypeKeys: ['pythonEnvItemType'],
         defaultItemType: 'info',
         constructorExtras: [],
+        payloadKeys: [],
     }],
     ['visualizationSettings', {
         load: () => require('./visualization_settings/items/visualizationSettingsItems').VisualizationSettingsModularTreeItem,
         itemTypeKeys: ['visualizationSettingsItemType'],
         defaultItemType: 'error',
         constructorExtras: ['originalSettingsItem'],
+        payloadKeys: ['originalSettingsItem'],
     }],
     ['learnMore', {
         load: () => require('./learn_more/items/learnMoreItems').LearnMoreModularTreeItem,
         itemTypeKeys: ['learnMoreItemType'],
         defaultItemType: 'action',
         constructorExtras: [],
+        payloadKeys: ['originalLearnMoreItem'],
     }],
 ]);
+
+/**
+ * The item-type chain of a section child: every section's discriminator in
+ * sidebar order, then a generic `type`. The first truthy one wins.
+ */
+const CHILD_ITEM_TYPE_KEYS: readonly string[] = [
+    ...Array.from(SECTION_ITEM_ADAPTERS.values(), (adapter) => adapter.itemTypeKeys[0]),
+    'type',
+];
 
 function labelText(label: string | vscode.TreeItemLabel | undefined): string {
     return typeof label === 'string' ? label : label?.label || 'Unknown';
@@ -459,19 +482,10 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
     private createModularChild(sectionName: string, child: any): ModularTreeItem {
         const modularItem = new ModularTreeItem(
-            typeof child.label === 'string' ? child.label : child.label?.label || 'Unknown',
+            labelText(child.label),
             child.collapsibleState || vscode.TreeItemCollapsibleState.None,
             sectionName,
-            child.serverItemType ||
-            child.activeServerItemType ||
-            child.babiaItemType ||
-            child.visualizeDataItemType ||
-            child.analysisItemType ||
-            child.pythonEnvItemType ||
-            child.visualizationSettingsItemType ||
-            child.learnMoreItemType ||
-            child.type ||
-            'item',
+            CHILD_ITEM_TYPE_KEYS.map((key) => child[key]).find(Boolean) || 'item',
             child.command,
             child.iconPath,
             child.tooltip,
@@ -479,38 +493,18 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
             child.contextValue,
         );
 
-        if (child.serverItemType) {
-            modularItem.serverItemType = child.serverItemType;
-        }
-        if (child.activeServerItemType) {
-            (modularItem as any).activeServerItemType = child.activeServerItemType;
-            (modularItem as any).activeServer = child.activeServer;
-            // Participant rows carry their peer, which context-menu commands
-            // receive instead of explicit arguments.
-            (modularItem as any).participant = child.participant;
-        }
-        if (child.babiaItemType) {
-            (modularItem as any).babiaItemType = child.babiaItemType;
-            (modularItem as any).babiaExample = child.babiaExample;
-        }
-        if (child.visualizeDataItemType) {
-            (modularItem as any).visualizeDataItemType = child.visualizeDataItemType;
-            (modularItem as any).visualizeDataItem = child.visualizeDataItem;
-        }
-        if (child.analysisItemType) {
-            (modularItem as any).analysisItemType = child.analysisItemType;
-            (modularItem as any).originalAnalysisItem = child.originalAnalysisItem;
-        }
-        if (child.pythonEnvItemType) {
-            (modularItem as any).pythonEnvItemType = child.pythonEnvItemType;
-        }
-        if (child.visualizationSettingsItemType) {
-            (modularItem as any).visualizationSettingsItemType = child.visualizationSettingsItemType;
-            (modularItem as any).originalSettingsItem = child.originalSettingsItem;
-        }
-        if (child.learnMoreItemType) {
-            (modularItem as any).learnMoreItemType = child.learnMoreItemType;
-            (modularItem as any).originalLearnMoreItem = child.originalLearnMoreItem;
+        // Every discriminator the child carries is copied with its payload, so
+        // the item can be rebuilt by convertToSectionItem when it is expanded
+        // or handed to a context-menu command.
+        const bridge = modularItem as unknown as Record<string, unknown>;
+        for (const adapter of SECTION_ITEM_ADAPTERS.values()) {
+            const discriminator = adapter.itemTypeKeys[0];
+            if (child[discriminator]) {
+                bridge[discriminator] = child[discriminator];
+                for (const key of adapter.payloadKeys) {
+                    bridge[key] = child[key];
+                }
+            }
         }
 
         return modularItem;
@@ -594,6 +588,4 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         );
     }
 }
-
-
 
