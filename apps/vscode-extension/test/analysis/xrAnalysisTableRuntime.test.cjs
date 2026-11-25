@@ -877,6 +877,88 @@ test('tabletop anchor lifts geometry that penetrates below the physical table pl
     assert.equal(Number(offset.deltaY.toFixed(6)), 0.324);
 });
 
+test('axes that start below the lowest bubble still rest on the tabletop (CHARTS-14)', () => {
+    const { runtime } = loadRuntimeSandbox();
+    const helpers = runtime.__testing;
+    const data = { anchorX: 0, anchorY: 1, anchorZ: -18, tableTopSurfaceOffsetY: -0.08, targetWidth: 5, targetDepth: 3 };
+    const primary = {
+        size: { x: 2, y: 1, z: 2 },
+        center: { x: 0, y: 1.5, z: -18 },
+        bounds: { min: { x: -1, y: 1.3, z: -19 }, max: { x: 1, y: 1.7, z: -17 } },
+    };
+    // The axes reach 0.38 m below the smallest bubble.
+    const containment = {
+        size: { x: 2.2, y: 1.4, z: 2.2 },
+        center: { x: 0, y: 1.3, z: -18 },
+        bounds: { min: { x: -1.1, y: 0.92, z: -19.1 }, max: { x: 1.1, y: 1.7, z: -16.9 } },
+    };
+    const measurements = { primary, containment, full: containment };
+    const offset = helpers.computeAnchorOffset(measurements, data);
+    assert.equal(Number((containment.bounds.min.y + offset.deltaY).toFixed(6)), helpers.getTableTopY(data));
+    assert.ok(primary.bounds.min.y + offset.deltaY > helpers.getTableTopY(data), 'the bubbles sit above the axes');
+    const diagnostics = helpers.buildTabletopAnchorDiagnostics(measurements, data);
+    assert.equal(diagnostics.deltaY, Number(offset.deltaY.toFixed(6)), 'diagnostics measure the same floor the anchor uses');
+});
+
+test('a data transition hides the chart only while its new rows overflow the table (CHARTS-8)', () => {
+    const { componentDefinition } = loadRuntimeSandbox();
+    function fakeComponent(sizeX) {
+        const calls = [];
+        return {
+            calls,
+            el: { object3D: { visible: true } },
+            data: { targetWidth: 5, targetDepth: 3, tableTopPadding: 0.9, tableEdgeMargin: 0.12 },
+            measureBounds() {
+                return { containment: {
+                    size: { x: sizeX, y: 1, z: 1 },
+                    center: { x: 0, y: 1, z: -18 },
+                    bounds: { min: { x: -sizeX / 2, y: 0.5, z: -18.5 }, max: { x: sizeX / 2, y: 1.5, z: -17.5 } },
+                } };
+            },
+            beginRebuild(reason) { calls.push(reason); },
+        };
+    }
+    const fits = fakeComponent(4);
+    assert.equal(componentDefinition.guardDataTransitionOverflow.call(fits), false);
+    assert.deepEqual(fits.calls, [], 'a frame that still fits stays on screen, so the movie does not blink');
+    const overflows = fakeComponent(16.6);
+    assert.equal(componentDefinition.guardDataTransitionOverflow.call(overflows), true);
+    assert.deepEqual(overflows.calls, ['data-transition-overflow']);
+});
+
+test('an empty source is recognised as "no data", not as a broken mapping (CHARTS-13)', () => {
+    const { runtime } = loadRuntimeSandbox();
+    const { resolveChartSourceRowCount } = runtime.__testing;
+    function chartReading(rows) {
+        const producer = { components: { 'babia-queryjson': { notiBuffer: { data: rows } } } };
+        return {
+            ownerDocument: { getElementById: (id) => (id === 'codexrChartDataSlice__data' ? producer : null) },
+            components: {
+                'babia-bars': { data: { from: 'codexrChartDataSlice__data' } },
+                'codexr-chart-containment': {},
+            },
+        };
+    }
+    assert.equal(resolveChartSourceRowCount(chartReading([])), 0);
+    assert.equal(resolveChartSourceRowCount(chartReading([{ a: 1 }, { a: 2 }])), 2);
+    assert.equal(resolveChartSourceRowCount({ components: {} }), null, 'unknown source: no claim either way');
+});
+
+test('a rebuild keeps the chart hidden until its first fit reveals it', () => {
+    const { componentDefinition } = loadRuntimeSandbox();
+    const component = Object.assign(Object.create(componentDefinition), {
+        el: { object3D: { visible: true } },
+        data: {},
+    });
+    component.ensureRuntimeState = function () {};
+    component.cancelContainmentTransition = function () {};
+    component.beginRebuild('chart-switch:bars');
+    assert.equal(component.el.object3D.visible, false, 'the half-built chart is never drawn at the old scale');
+    assert.equal(component.revealPending, true);
+    component.finishReveal();
+    assert.equal(component.revealPending, false);
+});
+
 test('analysis table runtime exposes tabletop debug plane controls and defers during transitions', () => {
     assert.match(runtimeSource, /showTabletopAnchorPlane = function \(visible\)/);
     assert.match(runtimeSource, /hideTabletopAnchorPlane = function \(\)/);

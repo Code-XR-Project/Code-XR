@@ -137,7 +137,7 @@
       // a rotated one, would not even act on world height): shrink all three
       // axes by the same factor instead.
       if (resolveChartFitMode(this.el) === 'uniform') {
-        var uniformState = computeUniformFitState(measurements, object3D, this.data);
+        var uniformState = computeUniformFitState(measurements, object3D, resolveChartFitData(this.el, this.data));
         if (!uniformState || !uniformState.heightOverflow) {
           return false;
         }

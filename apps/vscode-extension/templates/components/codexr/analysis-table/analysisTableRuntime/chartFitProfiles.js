@@ -75,6 +75,35 @@
     return 0;
   }
 
+  /**
+   * The tallest the chart may stand above the table, in metres, when its
+   * presentation profile overrides the table's height band (the standing pie
+   * and donut: a disc's height IS its diameter, so the band built for bar
+   * heights capped them at ~1.27 m on a 5.6 m table). Null when the band
+   * applies.
+   */
+  function resolveChartMaxHeight(el) {
+    var chartId = el && typeof el.getAttribute === 'function' ? (el.getAttribute('data-codexr-active-chart-id') || '') : '';
+    var mappingRuntime = root.CodeXRMappingUiRuntime;
+    if (chartId && mappingRuntime && typeof mappingRuntime.getChartPresentation === 'function') {
+      var profile = mappingRuntime.getChartPresentation(chartId);
+      if (profile && Number.isFinite(profile.maxHeight) && profile.maxHeight > 0) {
+        return profile.maxHeight;
+      }
+    }
+    return null;
+  }
+
+  /** The containment data with the chart's own height cap folded into the band. */
+  function resolveChartFitData(el, data) {
+    var maxHeight = resolveChartMaxHeight(el);
+    if (!maxHeight || !data || !(data.targetHeight > 0)) {
+      return data;
+    }
+    var ratio = clamp(maxHeight / data.targetHeight, 0.06, 2.5);
+    return Object.assign({}, data, { heightBandMaxRatio: ratio });
+  }
+
   function resolveChartFitMode(el) {
     if (!el) {
       return 'per-axis';

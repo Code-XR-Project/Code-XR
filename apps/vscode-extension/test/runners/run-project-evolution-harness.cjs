@@ -380,7 +380,7 @@ async function runScenario(browser, port) {
   assert.equal(metrics.dataNodeToken, pausedDataToken, 'the datasource survives a chart-type change');
   assert.equal(metrics.treeNodeToken, pausedTreeToken, 'the tree survives a chart-type change');
   assert.deepEqual(metrics.rootChildren, ['codexrProjectEvolutionTree', 'codexrProjectEvolutionChart']);
-  assert.match(metrics.chartHtml, /babia-bars="[^"]*from: codexrProjectEvolutionData/);
+  assert.match(metrics.chartHtml, /babia-bars="[^"]*from: codexrChartDataSlice__codexrProjectEvolutionData/);
   assert.match(metrics.chartHtml, /x_axis: fileName/);
   assert.equal(JSON.stringify(metrics.dataUrl), pausedDataUrl, 'the datasource URL must not refresh');
   assert.deepEqual(readBridgePayload(), pausedBridgePayload, 'data.json must not change');

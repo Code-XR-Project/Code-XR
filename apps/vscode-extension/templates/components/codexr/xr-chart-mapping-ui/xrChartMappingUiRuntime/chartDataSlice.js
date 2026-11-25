@@ -147,12 +147,24 @@
   }
 
   function ensureChartDataSlice(sourceId) {
-    if (chartDataSlices[sourceId]) {
-      return chartDataSlices[sourceId];
-    }
     var document = getDoc();
     var producerEl = document ? document.getElementById(sourceId) : null;
     var producer = producerEl && producerEl.components && producerEl.components['babia-queryjson'];
+    var existing = chartDataSlices[sourceId];
+    if (existing) {
+      // A producer that was removed and rebuilt under the same id (project
+      // evolution re-entry) leaves the record subscribed to a dead buffer:
+      // the slice would never see the new frames. Re-subscribe instead.
+      if (!producer || existing.producer === producer) {
+        return existing;
+      }
+      try {
+        existing.producer?.notiBuffer?.unregister?.(existing.notiBufferId);
+      } catch (_error) {
+        // The old buffer is gone with its entity; nothing to unsubscribe.
+      }
+      delete chartDataSlices[sourceId];
+    }
     if (!producer || !producer.notiBuffer) {
       // Not a queryjson producer (or not initialized yet): nothing to slice.
       return null;
@@ -191,6 +203,22 @@
     record.lastMapping = Object.assign({}, mappingSnapshot || {});
     applyChartDataSliceRows(record);
     return true;
+  }
+
+  // Builds (or refreshes) the slice behind a producer for one chart and
+  // returns the slice entity, so a caller that mounts its own producer can
+  // wait for the slice's babia-queryjson before building the chart on it.
+  // Without that wait the first build falls back to the raw source, which for
+  // project evolution meant every frame rendered every row (CHARTS-8).
+  function prepareChartDataSlice(sourceId, chartId, mappingSnapshot) {
+    if (!sourceId || !getChartPresentation(chartId).rowBudget) {
+      return null;
+    }
+    var underlyingSourceId = getSourceIdFromSliceId(sourceId) || sourceId;
+    if (!updateChartDataSlice(underlyingSourceId, chartId, mappingSnapshot)) {
+      return null;
+    }
+    return chartDataSlices[underlyingSourceId].el;
   }
 
   // Called while building a chart's component data: budgeted charts are

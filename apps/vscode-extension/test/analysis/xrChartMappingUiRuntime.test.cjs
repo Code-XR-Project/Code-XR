@@ -824,6 +824,19 @@ test('chart data slice ranks, filters and de-duplicates rows for budgeted charts
     assert.equal(compute('boats', rows, mapping).length, rows.length);
 });
 
+test('a flat chart keeps the producer it reads instead of falling back to the main dataset (CHARTS-17)', () => {
+    const runtime = loadRuntime();
+    const mapping = { x_axis: 'fileName', height: 'totalLines' };
+    // The evolution frames and a comparison side are their own producers:
+    // building on them must never re-slice the MAIN dataset.
+    assert.equal(runtime.buildRuntimeChartData('bars', { from: 'codexrProjectEvolutionData' }, mapping).from, 'codexrProjectEvolutionData');
+    assert.equal(runtime.buildRuntimeChartData('bars', { from: 'codexrComparisonDataLeft' }, mapping).from, 'codexrComparisonDataLeft');
+    // Leaving a tree chart still swaps the tree for the flat dataset.
+    assert.equal(runtime.buildRuntimeChartData('bars', { from: 'tree' }, mapping).from, 'data');
+    assert.equal(runtime.buildRuntimeChartData('bars', { from: 'codexrProjectEvolutionTree' }, mapping).from, 'data');
+    assert.equal(typeof runtime.prepareChartDataSlice, 'function', 'producers can warm their slice before building on it');
+});
+
 test('chart data slice de-duplicates composite keys without merging neighbouring labels', () => {
     const runtime = loadRuntime();
     const compute = runtime.__testing.computeChartDataSlice;

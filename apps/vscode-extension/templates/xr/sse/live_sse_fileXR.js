@@ -113,8 +113,18 @@
     }
 
     function restoreXrUiState(mappingUiRuntime, mappingUiState, chartDebugRuntime, chartDebugState) {
-      if (mappingUiRuntime && mappingUiState && typeof mappingUiRuntime.restoreState === 'function') {
-        mappingUiRuntime.restoreState(mappingUiState);
+      // Re-applies the mapping on screen to the rebuilt charts. It reads the
+      // mapping NOW, not the copy taken when the update arrived: a remap made
+      // in between (or one still being validated) used to be silently
+      // reverted to the mapping of a moment ago (CHARTS-12).
+      const pendingRemap = mappingUiRuntime
+        && typeof mappingUiRuntime.hasPendingMapping === 'function'
+        && mappingUiRuntime.hasPendingMapping();
+      const currentState = mappingUiRuntime && typeof mappingUiRuntime.getState === 'function'
+        ? mappingUiRuntime.getState()
+        : mappingUiState;
+      if (!pendingRemap && mappingUiRuntime && currentState && typeof mappingUiRuntime.restoreState === 'function') {
+        mappingUiRuntime.restoreState(currentState);
       }
       if (chartDebugRuntime && chartDebugState && typeof chartDebugRuntime.restoreState === 'function') {
         chartDebugRuntime.restoreState(chartDebugState);

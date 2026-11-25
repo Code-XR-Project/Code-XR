@@ -241,3 +241,35 @@ test('generated row-budgeted charts read the slice from their first build; boats
         }
     });
 });
+
+test('no chart grows up from the floor, and pie and donut stand up to 2 m tall (S8)', async () => {
+    await withFakeVscode(createFakeVscode(), async ({ requireOut }) => {
+        const { CHART_PRESENTATION_PROFILES } = requireOut('core/charts/chartPresentation.js');
+        // BabiaXR 1.3.4 defaults these four to `animation: true`: the bars
+        // grow from zero height while containment fits them, which drew 26-32 m
+        // towers on the first build.
+        for (const chartId of ['bars', 'barsmap', 'cyls', 'cylsmap']) {
+            assert.equal(CHART_PRESENTATION_PROFILES[chartId].baseAttributes.animation, false, chartId);
+        }
+        assert.equal(CHART_PRESENTATION_PROFILES.pie.maxHeight, 2);
+        assert.equal(CHART_PRESENTATION_PROFILES.donut.maxHeight, 2);
+    });
+});
+
+test('a declared max height widens the uniform height band, clamped to a sane range', () => {
+    const sandbox = { console: { log() {}, warn() {}, error() {}, table() {} }, setTimeout() { return 1; }, clearTimeout() {} };
+    sandbox.AFRAME = { components: {}, registerComponent() {} };
+    sandbox.window = sandbox;
+    sandbox.CodeXRMappingUiRuntime = {
+        getChartPresentation(chartId) {
+            return chartId === 'pie' ? { maxHeight: 2 } : chartId === 'huge' ? { maxHeight: 100 } : {};
+        },
+    };
+    vm.runInNewContext(runtimeSource, sandbox, { filename: 'analysisTableRuntime.js' });
+    const { resolveChartFitData } = sandbox.CodeXRAnalysisTableRuntime.__testing;
+    const el = (chartId) => ({ getAttribute: (name) => (name === 'data-codexr-active-chart-id' ? chartId : null) });
+    const data = { targetHeight: 1.8, heightBandMaxRatio: 0.68 };
+    assert.equal(Number(resolveChartFitData(el('pie'), data).heightBandMaxRatio.toFixed(4)), Number((2 / 1.8).toFixed(4)));
+    assert.equal(resolveChartFitData(el('huge'), data).heightBandMaxRatio, 2.5);
+    assert.equal(resolveChartFitData(el('bars'), data), data, 'charts without a max height are untouched');
+});

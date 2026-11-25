@@ -1032,9 +1032,18 @@ function loadHistoricalRuntime() {
         },
         CodeXRMappingUiRuntime: {
             getChartPresentation(chartId) {
-                return { rotation: chartId === 'pie' || chartId === 'donut' ? '90 0 0' : '0 0 0' };
+                return {
+                    rotation: chartId === 'pie' || chartId === 'donut' ? '90 0 0' : '0 0 0',
+                    initialScale: chartId === 'boats' ? '0.01 0.05 0.01' : '1.5 1.5 1.5',
+                };
+            },
+            prepareChartDataSlice(sourceId, chartId) {
+                sandbox.preparedSlices.push({ sourceId, chartId });
+                if (chartId === 'boats') { return null; }
+                return { id: 'codexrChartDataSlice__' + sourceId, components: { 'babia-queryjson': { notiBuffer: {} } } };
             },
         },
+        preparedSlices: [],
     };
     sandbox.window = sandbox;
     vm.runInNewContext(runtimeSource, sandbox, { filename: 'historicalComparisonRuntime.js' });
@@ -1077,6 +1086,29 @@ test('comparison clones take their orientation from the chart they carry, not fr
         pieOriginal, 'codexrHistoricalRightChart', 'codexrComparisonRight', zone, 'directory',
     );
     assert.equal(pieClone.getAttribute('rotation'), '90 0 0');
+    assert.equal(pieClone.getAttribute('scale'), '1.5 1.5 1.5', 'a round chart is not squashed by a fixed scale');
+    assert.equal(clone.getAttribute('scale'), '0.01 0.05 0.01', 'boats keeps its own profile scale');
+});
+
+test('each comparison side reads the row-budgeted slice of its own revision', async () => {
+    const runtime = loadHistoricalRuntime();
+    const original = createComparisonFakeEntity({
+        'babia-bars': { from: 'data', x_axis: 'fileName', height: 'totalLines' },
+    });
+    const left = await runtime.__testing.resolveComparisonSliceSource('codexrComparisonDataLeft', 'babia-bars', original);
+    const right = await runtime.__testing.resolveComparisonSliceSource('codexrComparisonDataRight', 'babia-bars', original);
+    assert.equal(left, 'codexrChartDataSlice__codexrComparisonDataLeft');
+    assert.equal(right, 'codexrChartDataSlice__codexrComparisonDataRight');
+
+    const bars = runtime.__testing.createChartFromTemplate(
+        original, 'codexrComparisonChartLeft', left, { id: 'left', anchorX: -1.4, anchorZ: -18, width: 2.6, depth: 3.2 }, 'directory',
+    );
+    assert.equal(bars.getAttribute('babia-bars').from, 'codexrChartDataSlice__codexrComparisonDataLeft');
+
+    // Without a row budget (no slice) the side keeps its raw producer.
+    const boatsOriginal = createComparisonFakeEntity({ 'babia-boats': { from: 'tree' } });
+    const raw = await runtime.__testing.resolveComparisonSliceSource('codexrComparisonDataLeft', 'babia-boats', boatsOriginal);
+    assert.equal(raw, 'codexrComparisonDataLeft');
 });
 
 test('historical inline Babia data remains lossless inside declarative component strings', () => {
