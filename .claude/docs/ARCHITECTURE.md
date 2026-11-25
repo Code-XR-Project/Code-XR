@@ -94,9 +94,9 @@ Note: there is some historical duplication — e.g. `active_servers/views/` **an
 | `test/` | All tests. `.test.cjs` unit suites (Node native runner), Python suites, language fixtures, manual HTML harnesses. See `DEVELOPMENT.md`. |
 | `resources/` | Icons and media (per-language icons, collaboration/comparison/screen assets). |
 | `examples/` | Bundled sample charts + data for the Babia Examples tree section. |
-| `scripts/` | Build utilities: `package-vsix.mjs`, `prepare-dev-extension.mjs`, `report-manual-metrics.py`. |
+| `scripts/` | Build utilities: `package-vsix.mjs`, `prepare-dev-extension.mjs` (the manual-metrics report tool is `backend/scripts/report-manual-metrics.py`). |
 | `docs/` | Human-facing feature docs (**shipped in the VSIX** via package.json `files`). |
-| `manual_test/` | Per-language fixtures for `npm run test:analysis` (see its README). |
+| `backend/manual_test/` | Per-language fixtures for `npm run test:analysis` (see its README); outside this package since 1.2.1. |
 | `pages/` | GitHub Pages redirect page (deployed by the only CI workflow). |
 
 ## How future agents should use this document

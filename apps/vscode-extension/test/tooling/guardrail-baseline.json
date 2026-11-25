@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1564,
+    "console.total": 1507,
     "console.byModule": {
       "active_servers": 120,
       "babia_examples": 49,
       "babia_templates": 72,
-      "code_analysis": 624,
+      "code_analysis": 571,
       "commands": 4,
       "core": 1,
       "python_env": 24,
@@ -32,9 +32,9 @@
       "utils": 40,
       "views": 130,
       "visualization_settings": 83,
-      "visualize_data": 102
+      "visualize_data": 98
     },
-    "catch.consoleOnly": 64,
+    "catch.consoleOnly": 60,
     "catch.emptyNoComment": 0,
     "any.total": 216,
     "any.byModule": {
@@ -68,8 +68,7 @@
       "src/servers/runtime/httpsCustomServer.ts",
       "src/servers/runtime/multiServerLauncher.ts",
       "src/views/ModularTreeDataProvider.ts",
-      "src/views/active_servers/items/activeServerItems.ts",
-      "src/visualize_data/views/interactions/visualizationLauncher.ts"
+      "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 55,
     "complexity.over10": 80,
@@ -77,22 +76,22 @@
     "complexity.over20": 10,
     "complexity.over30": 6,
     "reachability.unreachable": [
+      "src/code_analysis/commands/clean_analysis/index.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts"
     ],
     "templates.consoleLog": 117,
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
-      "pending-removal": 17,
       "programmatic": 2,
       "tree-item": 32
     }
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 50443,
-    "src.functions": 2772,
-    "src.unreachableLines": 39,
+    "src.lines": 50037,
+    "src.functions": 2742,
+    "src.unreachableLines": 46,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -107,15 +106,7 @@
         "count": 46
       },
       {
-        "file": "src/code_analysis/configuration/debugThemeProblem.ts",
-        "count": 46
-      },
-      {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
-        "count": 39
-      },
-      {
-        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
         "count": 39
       },
       {
@@ -125,6 +116,10 @@
       {
         "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 37
+      },
+      {
+        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
+        "count": 35
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
@@ -152,6 +147,10 @@
       },
       {
         "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
+        "count": 25
+      },
+      {
+        "file": "src/code_analysis/engine/utils/saveFiles.ts",
         "count": 25
       }
     ],
@@ -322,5 +321,13 @@
       }
     ]
   },
-  "waivers": []
+  "waivers": [
+    {
+      "metric": "reachability.unreachable",
+      "from": 54,
+      "to": 55,
+      "reason": "W2-47 leaves clean_analysis/index.ts unreachable until W2-05 (#29) deletes it",
+      "date": "2026-11-25"
+    }
+  ]
 }

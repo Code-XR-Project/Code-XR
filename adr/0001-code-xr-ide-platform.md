@@ -34,7 +34,7 @@ Built for making custom IDEs and can run VS Code extensions. But its VS Code API
 - **Full control of the UI**: XR, LivePanel, voice and assistant can be first-class parts of the layout rather than webviews in someone else's workbench.
 - **Licences**: Electron and Monaco are MIT, compatible with Code-XR's GPL-3.0.
 
-A working preview validated the approach before the decision: a real Monaco editor, an A-Frame scene with live metrics, the LivePanel, a command palette and *Enter XR*, split across Electron's main / preload / renderer processes.
+A working preview validated the approach before the decision: a real Monaco editor, an A-Frame scene with live metrics, the LivePanel, a command palette and *Enter XR*, split across Electron's main / preload / renderer processes. Its screenshots, and what in it was real or simulated, are in [`assets/0001-ide-preview/`](assets/0001-ide-preview/README.md).
 
 ### Also discarded: a native shell (e.g. Tauri / Rust)
 

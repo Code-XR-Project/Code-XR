@@ -7,7 +7,7 @@ This folder contains the local validation suite for CodeXR.
 - `test/baseline`: the feature baseline of the cleanup epic (#26): a snapshot of everything a user can see, invoke or rely on, and the register of the only removals the maintainer authorized. `node test/baseline/featureSurface.cjs --write` regenerates it and refuses to drop an unauthorized entry.
 - `test/commands`: command registration contract tests.
 - `test/directory_analysis`: directory watcher and reanalysis data tests.
-- `../../backend/tests` (outside this package): backend Python tests grouped by capability; `test/runners/run-python-tests.cjs` runs them.
+- `../../backend/tests` (outside this package): backend Python tests grouped by capability; `../../backend/scripts/run-python-tests.cjs` runs them (`npm run test:python`).
 - `test/runners`: small runners that make the suite work consistently on Windows.
 
 ## Commands
@@ -15,7 +15,6 @@ This folder contains the local validation suite for CodeXR.
 - `npm run test`: typecheck, lint, compile the TypeScript sources, and run Node-based unit tests.
 - `npm run test:python`: run Python backend tests if a Python interpreter is available.
 - `npm run test:all`: run both the Node and Python suites.
-- `npm run test:integration`: reserved for VS Code extension-host integration tests.
 
 ## How the suites load code
 
