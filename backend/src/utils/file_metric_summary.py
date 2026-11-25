@@ -46,7 +46,8 @@ def build_file_metric_summary(file_analysis: Dict[str, Any], file_path: str, rel
 
 
 def get_file_size(file_path: str) -> int:
+    """File size in bytes, 0 when it cannot be read. Lizard-free on purpose."""
     try:
         return os.path.getsize(file_path)
-    except Exception:
+    except OSError:
         return 0
