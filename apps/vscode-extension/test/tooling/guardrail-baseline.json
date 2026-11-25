@@ -36,7 +36,7 @@
     },
     "catch.consoleOnly": 60,
     "catch.emptyNoComment": 0,
-    "any.total": 216,
+    "any.total": 212,
     "any.byModule": {
       "active_servers": 12,
       "babia_templates": 3,
@@ -45,7 +45,7 @@
       "python_env": 5,
       "servers": 13,
       "utils": 14,
-      "views": 59,
+      "views": 55,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -88,8 +88,8 @@
   },
   "informational": {
     "src.files": 312,
-    "src.lines": 49860,
-    "src.functions": 2737,
+    "src.lines": 49842,
+    "src.functions": 2735,
     "src.unreachableLines": 39,
     "console.topFiles": [
       {
@@ -156,7 +156,7 @@
     "any.topFiles": [
       {
         "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 43
+        "count": 39
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -307,16 +307,16 @@
         "lines": 669
       },
       {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "lines": 634
-      },
-      {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
       {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
+      },
+      {
+        "file": "src/views/ModularTreeDataProvider.ts",
+        "lines": 616
       }
     ]
   },
