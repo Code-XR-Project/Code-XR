@@ -296,12 +296,31 @@ export class GitRepositoryService {
         const rawTree = await this.runGitBuffer(repositoryRoot, [
             ...treeArguments,
         ]);
-        const entries = rawTree.toString('utf8').split('\0').filter(Boolean);
+        const { repositoryPaths, warnings } = this.planDirectorySnapshot(rawTree, targetRelativePath);
+        await this.copyPlannedFiles(repositoryRoot, commitSha, sourceDirectory, repositoryPaths);
 
+        return {
+            targetPath: isRepositoryRoot
+                ? sourceDirectory
+                : path.join(sourceDirectory, ...targetRelativePath.split('/')),
+            missingTarget: false,
+            warnings,
+        };
+    }
+
+    /**
+     * The blobs of an `ls-tree -r -z -l` listing to copy, with the warnings
+     * for the entries skipped. Throws when the snapshot would exceed the file
+     * or byte limit, before anything is written.
+     */
+    private planDirectorySnapshot(
+        rawTree: Buffer,
+        targetRelativePath: string,
+    ): { repositoryPaths: string[]; warnings: string[] } {
         let totalBytes = 0;
         const warnings: string[] = [];
-        const files: Array<{ repositoryPath: string; size: number }> = [];
-        for (const entry of entries) {
+        const repositoryPaths: string[] = [];
+        for (const entry of rawTree.toString('utf8').split('\0').filter(Boolean)) {
             const match = entry.match(/^(\d+)\s+(\w+)\s+([0-9a-f]{40})\s+(-|\d+)\t(.+)$/);
             if (!match) {
                 continue;
@@ -311,10 +330,7 @@ export class GitRepositoryService {
                 warnings.push(`Skipped unsupported Git entry: ${repositoryPath}`);
                 continue;
             }
-            const relativeFromTarget = isRepositoryRoot
-                ? repositoryPath
-                : path.posix.relative(targetRelativePath, repositoryPath);
-            if (!this.shouldMaterializeDirectoryFile(relativeFromTarget)) {
+            if (!this.shouldMaterializeDirectoryFile(relativeToTarget(targetRelativePath, repositoryPath))) {
                 continue;
             }
             const size = Number(rawSize);
@@ -322,40 +338,40 @@ export class GitRepositoryService {
                 warnings.push(`Skipped oversized file: ${repositoryPath}`);
                 continue;
             }
-            if (files.length >= MAX_SNAPSHOT_FILES) {
+            if (repositoryPaths.length >= MAX_SNAPSHOT_FILES) {
                 throw new Error('comparison-snapshot-file-limit');
             }
             totalBytes += size;
             if (totalBytes > MAX_SNAPSHOT_BYTES) {
                 throw new Error('comparison-snapshot-size-limit');
             }
-            files.push({ repositoryPath, size });
+            repositoryPaths.push(repositoryPath);
         }
+        return { repositoryPaths, warnings };
+    }
 
-        for (const file of files) {
-            const relativeFromTarget = isRepositoryRoot
-                ? file.repositoryPath
-                : path.posix.relative(targetRelativePath, file.repositoryPath);
-            if (!relativeFromTarget || relativeFromTarget.startsWith('../')) {
-                continue;
-            }
-            const destination = path.join(sourceDirectory, ...file.repositoryPath.split('/'));
+    /**
+     * Write each planned blob under `sourceDirectory` at its repository path.
+     * The plan only holds paths shouldMaterializeDirectoryFile accepted, so
+     * none is empty or escapes the target; assertInside still guards the
+     * destination.
+     */
+    private async copyPlannedFiles(
+        repositoryRoot: string,
+        commitSha: string,
+        sourceDirectory: string,
+        repositoryPaths: string[],
+    ): Promise<void> {
+        for (const repositoryPath of repositoryPaths) {
+            const destination = path.join(sourceDirectory, ...repositoryPath.split('/'));
             this.assertInside(sourceDirectory, destination);
             const content = await this.runGitBuffer(
                 repositoryRoot,
-                ['show', `${commitSha}:${file.repositoryPath}`],
+                ['show', `${commitSha}:${repositoryPath}`],
             );
             await fs.promises.mkdir(path.dirname(destination), { recursive: true });
             await fs.promises.writeFile(destination, content);
         }
-
-        return {
-            targetPath: isRepositoryRoot
-                ? sourceDirectory
-                : path.join(sourceDirectory, ...targetRelativePath.split('/')),
-            missingTarget: false,
-            warnings,
-        };
     }
 
     private shouldMaterializeDirectoryFile(relativePath: string): boolean {
@@ -573,6 +589,13 @@ export class GitRepositoryService {
         return /^[0-9a-f]{40}$/i.test(value || '');
     }
 
+}
+
+/** A repository path relative to the target folder (`.` is the repository root). */
+function relativeToTarget(targetRelativePath: string, repositoryPath: string): string {
+    return targetRelativePath === '.'
+        ? repositoryPath
+        : path.posix.relative(targetRelativePath, repositoryPath);
 }
 
 /** The non-empty lines of a git command's output, LF or CRLF. */

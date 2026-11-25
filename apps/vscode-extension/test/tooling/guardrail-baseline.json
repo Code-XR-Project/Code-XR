@@ -53,14 +53,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 39,
-    "complexity.over10": 59,
-    "complexity.over15": 14,
+    "functions.over80Lines": 38,
+    "complexity.over10": 58,
+    "complexity.over15": 13,
     "complexity.over20": 1,
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 500,
+    "eslint.maxWarnings": 498,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49427,
-    "src.functions": 3321,
+    "src.lines": 49450,
+    "src.functions": 3324,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -155,12 +155,6 @@
       },
       {
         "ccn": 19,
-        "lines": 87,
-        "function": "materializeDirectory",
-        "file": "src/code_analysis/historical/gitRepositoryService.ts"
-      },
-      {
-        "ccn": 19,
         "lines": 88,
         "function": "handleDependencyGraphStartMessage",
         "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
@@ -200,6 +194,12 @@
         "lines": 98,
         "function": "startBroadcast",
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 55,
+        "function": "updateFromLegacyConfig",
+        "file": "src/servers/storage/serverSettingsManager.ts"
       }
     ],
     "size.largest10": [
@@ -225,7 +225,7 @@
       },
       {
         "file": "src/code_analysis/historical/gitRepositoryService.ts",
-        "lines": 594
+        "lines": 617
       },
       {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
