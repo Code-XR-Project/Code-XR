@@ -118,6 +118,7 @@ export default [{
         "@typescript-eslint/no-unsafe-function-type": "error",
         "@typescript-eslint/no-require-imports": "error",
         "@typescript-eslint/prefer-includes": "error",
+        "@typescript-eslint/prefer-optional-chain": "error",
         "no-restricted-properties": ["error", {
             property: "substr",
             message: "Use slice() (substr is Annex B legacy; slice(start, start + length) for non-negative arguments).",

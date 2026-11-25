@@ -208,6 +208,7 @@ const MODERNIZED_IDIOM_RULES = [
     '@typescript-eslint/no-unsafe-function-type',
     '@typescript-eslint/no-require-imports',
     '@typescript-eslint/prefer-includes',
+    '@typescript-eslint/prefer-optional-chain',
     'no-restricted-properties',
 ];
 

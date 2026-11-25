@@ -80,21 +80,21 @@ export class BabiaExampleClickHandler {
                 break;
                 
             case 'launchExample':
-                if (item.babiaExample && item.babiaExample.isValid) {
+                if (item.babiaExample?.isValid) {
                     logger.debug(`Launching example from context menu: ${item.babiaExample.id}`);
                     await this.handleExampleItemClick(item);
                 }
                 break;
                 
             case 'openInBrowser':
-                if (item.babiaExample && item.babiaExample.isValid) {
+                if (item.babiaExample?.isValid) {
                     logger.debug(`Opening example in browser: ${item.babiaExample.id}`);
                     await this.launchExampleInBrowser(item.babiaExample);
                 }
                 break;
                 
             case 'openInPanel':
-                if (item.babiaExample && item.babiaExample.isValid) {
+                if (item.babiaExample?.isValid) {
                     logger.debug(`Opening example in panel: ${item.babiaExample.id}`);
                     await this.launchExampleInPanel(item.babiaExample);
                 }

@@ -73,7 +73,7 @@ export class SharedDimensionMappingSettingCore {
         }
 
         const chart = this.getChartMetadata(chartType);
-        if (!chart || !chart.dimensions) {
+        if (!chart?.dimensions) {
             return [new CodeAnalysisTreeItem(
                 'No dimensions available',
                 vscode.TreeItemCollapsibleState.None,

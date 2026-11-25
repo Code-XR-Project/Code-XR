@@ -151,11 +151,11 @@ export class ServerWatcherIntegration {
             let matchingServer = servers.find((server: any) => server.metadata && server.metadata.sessionId === sessionId);
 
             if (!matchingServer && session.outputPath) {
-                matchingServer = servers.find((server: any) => server.htmlFile && server.htmlFile.includes(session.outputPath));
+                matchingServer = servers.find((server: any) => server.htmlFile?.includes(session.outputPath));
             }
 
             if (!matchingServer) {
-                matchingServer = servers.find((server: any) => server.customName && server.customName.includes('Analysis'));
+                matchingServer = servers.find((server: any) => server.customName?.includes('Analysis'));
             }
 
             if (matchingServer) {

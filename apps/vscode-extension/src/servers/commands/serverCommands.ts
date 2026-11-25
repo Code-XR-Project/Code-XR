@@ -307,7 +307,7 @@ async function promptForHtmlFile(): Promise<string | undefined> {
     
     const fileUri = await vscode.window.showOpenDialog(options);
     
-    if (fileUri && fileUri[0]) {
+    if (fileUri?.[0]) {
         const filePath = fileUri[0].fsPath;
         logger.debug(() => `User selected file: ${filePath}`);
         

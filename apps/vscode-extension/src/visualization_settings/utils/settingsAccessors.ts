@@ -79,7 +79,7 @@ function resolveColor(field: ColorField, fileSettings: StoredVisualizationSettin
         // Fallback to globalState for backward compatibility
         if (extensionContext) {
             const legacySettings = extensionContext.globalState.get<any>(LEGACY_STORAGE_KEY);
-            if (legacySettings && legacySettings[field]) {
+            if (legacySettings?.[field]) {
                 return legacySettings[field];
             }
         }
