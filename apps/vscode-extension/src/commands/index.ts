@@ -12,7 +12,6 @@ import { getCollaborationCommandRegistrations } from './collaboration/collaborat
 import { ExtensionCommandRegistration, assertUniqueCommandIds } from './shared';
 import { CommandBuilder } from '../utils/commandBuilder';
 import { BabiaExamplesTreeDataProvider } from '../babia_examples/views/babiaExamplesTreeView';
-import { DebugThemeProblem } from '../code_analysis/configuration/debugThemeProblem';
 import { CodeXRLogger } from '../core/logging/logger';
 interface RefreshableTreeProvider {
     refresh(): void;
@@ -50,7 +49,6 @@ export function registerAllCommands(
         ...getVisualizationSettingsCommandRegistrations(context),
         ...getCollaborationCommandRegistrations(context, treeDataProvider),
         ...getLearnMoreCommandRegistrations(context),
-        ...DebugThemeProblem.getCommandRegistrations(context),
         {
             id: 'CodeXR.helloWorld',
             module: 'GENERAL_COMMANDS',

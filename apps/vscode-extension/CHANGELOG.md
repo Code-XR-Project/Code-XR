@@ -21,6 +21,7 @@
 - **Two hidden Files-by-Language commands that were never wired up.** `codeXR.analysis.refreshFilesByLanguage` and `codeXR.analysis.openFileFromLanguageGroup` had no sidebar row, menu entry or palette entry. Clicking a file in the Files by Language list still opens and analyzes it (`runAndAnalyzeFile`), and the list still refreshes on its own.
 - **The hidden `codeXR.analysis.cleanAnalysis` command.** Nothing in the sidebar, the menus or the Command Palette could run it. The automatic cleanup of stale analysis files when the extension starts is unchanged.
 - **The hidden `codeXR.visualizeData.debugState` command.** A troubleshooting command that printed the Visualize Data state to the developer console; nothing in the sidebar, the menus or the Command Palette could run it.
+- **The two hidden theme debugging commands** `codexr.debug.themeConfiguration` and `codexr.debug.themeWorkflow`, together with the diagnostics module behind them. They only wrote to the developer console and nothing could run them. Theme settings are unaffected.
 
 #### Fixed
 

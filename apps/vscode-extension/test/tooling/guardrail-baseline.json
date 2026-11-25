@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1635,
+    "console.total": 1589,
     "console.byModule": {
       "active_servers": 127,
       "babia_examples": 49,
       "babia_templates": 72,
-      "code_analysis": 669,
+      "code_analysis": 623,
       "commands": 4,
       "core": 1,
       "python_env": 26,
@@ -34,7 +34,7 @@
       "visualization_settings": 83,
       "visualize_data": 104
     },
-    "catch.consoleOnly": 65,
+    "catch.consoleOnly": 61,
     "catch.emptyNoComment": 0,
     "any.total": 219,
     "any.byModule": {
@@ -136,15 +136,14 @@
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
-      "pending-removal": 2,
       "programmatic": 2,
       "tree-item": 32
     }
   },
   "informational": {
-    "src.files": 369,
-    "src.lines": 52703,
-    "src.functions": 2839,
+    "src.files": 368,
+    "src.lines": 52540,
+    "src.functions": 2834,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -157,10 +156,6 @@
       },
       {
         "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 46
-      },
-      {
-        "file": "src/code_analysis/configuration/debugThemeProblem.ts",
         "count": 46
       },
       {
@@ -206,6 +201,10 @@
       {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
         "count": 26
+      },
+      {
+        "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
+        "count": 25
       }
     ],
     "any.topFiles": [

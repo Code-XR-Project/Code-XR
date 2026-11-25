@@ -70,8 +70,6 @@ const INTERNAL_COMMAND_IDS = [
     { id: 'codexr.servers.refreshServers', kind: 'legacy-alias', reason: 'published in 1.1.0; zero callers today, kept for users\' keybindings' },
 
     // ---- pending removal: registered, uncontributed, referenced by nothing -----
-    { id: 'codexr.debug.themeConfiguration', kind: 'pending-removal', reason: 'debugThemeProblem.ts: console-only diagnostics nobody can run' },
-    { id: 'codexr.debug.themeWorkflow', kind: 'pending-removal', reason: 'debugThemeProblem.ts: console-only diagnostics nobody can run' },
 ];
 
 module.exports = { INTERNAL_COMMAND_IDS };
