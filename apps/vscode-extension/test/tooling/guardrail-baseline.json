@@ -18,7 +18,7 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1639,
+    "console.total": 1635,
     "console.byModule": {
       "active_servers": 127,
       "babia_examples": 49,
@@ -32,7 +32,7 @@
       "utils": 50,
       "views": 130,
       "visualization_settings": 83,
-      "visualize_data": 108
+      "visualize_data": 104
     },
     "catch.consoleOnly": 65,
     "catch.emptyNoComment": 0,
@@ -68,8 +68,7 @@
       "src/servers/runtime/httpsCustomServer.ts",
       "src/servers/runtime/multiServerLauncher.ts",
       "src/views/ModularTreeDataProvider.ts",
-      "src/views/active_servers/items/activeServerItems.ts",
-      "src/visualize_data/views/interactions/visualizationLauncher.ts"
+      "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 57,
     "complexity.over10": 81,
@@ -137,15 +136,15 @@
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
-      "pending-removal": 3,
+      "pending-removal": 2,
       "programmatic": 2,
       "tree-item": 32
     }
   },
   "informational": {
     "src.files": 369,
-    "src.lines": 52773,
-    "src.functions": 2845,
+    "src.lines": 52703,
+    "src.functions": 2839,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -173,16 +172,16 @@
         "count": 39
       },
       {
-        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
-        "count": 39
-      },
-      {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
         "count": 38
       },
       {
         "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 37
+      },
+      {
+        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
+        "count": 35
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
