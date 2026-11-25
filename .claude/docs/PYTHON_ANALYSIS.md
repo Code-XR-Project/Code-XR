@@ -69,16 +69,16 @@ Python source is also pinned on **quote style and import order** by source-text 
 ## Languages and metrics
 
 - Metrics: cyclomatic complexity (CCN), LOC/comment lines, function/class counts, parameters — primarily via **Lizard**. Dependency relations via **tree-sitter-language-pack** (pinned; confidence levels exact/best-effort/unsupported/ambiguous — see `docs/features/DEPENDENCY_GRAPH_XR.md`).
-- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `test/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/utils/languageMetadata.ts` (TS side) + `python/utils/metric_language_contract.py` (Python side)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
+- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/utils/languageMetadata.ts` (TS side) + `python/utils/metric_language_contract.py` (Python side)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
 
 ## Testing the Python side
 
 | Command | Covers |
 |---|---|
 | `npm run test:python` | pytest-style suites in `test/python/` (dependencies, directory scanning, html_dom protocol, path normalization, xr file analysis, xr schema) |
-| `npm run test:analysis` | End-to-end metric equivalence over `manual_test/` fixtures (one per language); asserts XR and LivePanel produce identical `data.json` |
+| `npm run test:analysis` | End-to-end metric equivalence over `backend/manual_test/` fixtures (one per language); asserts XR and LivePanel produce identical `data.json` |
 | `npm run test:htmlanalysis` | HTML/DOM parser |
-| `test/analysis/manual_metrics_suite.py` | Manual metrics suite (driven by the analysis runner) |
+| `backend/tests/manual_metrics_suite.py` | Manual metrics suite (driven by the analysis runner) |
 
 ## How future agents should use this document
 

@@ -24,7 +24,6 @@
     "test:unit": "npm run test:unit --workspace=code-xr",
     "test:python": "npm run test:python --workspace=code-xr",
     "test:all": "npm run test:all --workspace=code-xr",
-    "test:integration": "npm run test:integration --workspace=code-xr",
     "package:vsix": "npm run package:vsix --workspace=code-xr",
     "test:analysis": "npm run test:analysis --workspace=code-xr",
     "test:htmlanalysis": "npm run test:htmlanalysis --workspace=code-xr",
@@ -35,7 +34,8 @@
     "report:manual-metrics": "npm run report:manual-metrics --workspace=code-xr",
     "guardrails:measure": "npm run guardrails:measure --workspace=code-xr",
     "guardrails:update": "npm run guardrails:update --workspace=code-xr",
-    "test:backend": "npm run test:python --workspace=code-xr"
+    "python:requirements": "npm run python:requirements --workspace=code-xr",
+    "test:backend": "node backend/scripts/run-python-tests.cjs"
   },
   "overrides": {
     "serialize-javascript": "7.0.4"

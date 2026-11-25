@@ -24,9 +24,9 @@
 | `npm run compile-tests` | Removes `out/`, then `tsc -p . --outDir out`. Starting empty matters: tsc never deletes output for a source that is gone, so a module deleted from `src/` would keep a compiled twin the suites still load | Part of `test:basic` |
 | `npm test` = `npm run test:basic` | `typecheck` + `lint` + `compile-tests` (tsc → `out/`) + `test:unit`. Needs **no** webpack build | **The default gate. Run before declaring any change done.** |
 | `npm run test:unit` | `test/runners/run-node-tests.cjs` → first refuses to start if `out/` does not match `src/` (a source newer than its output, an uncompiled source, or a compiled file whose source is gone), then collects `test/**/*.test.cjs` and runs `node --test --test-isolation=none --test-concurrency=1` — **every suite in one process**, so a test must never leave global state behind | Unit/runtime tests only (fast) |
-| `npm run test:python` | `test/runners/run-python-tests.cjs` → `unittest discover` over `test/python/`. A test folder **needs an `__init__.py`** or discovery skips it silently. With no interpreter it skips locally and **fails under `CI`** | After touching `src/code_analysis/python/` |
+| `npm run test:python` (root `test:backend` runs the same file directly) | `backend/scripts/run-python-tests.cjs` → `unittest discover` over `backend/tests/`. A test folder **needs an `__init__.py`** or discovery skips it silently. With no interpreter it skips locally and **fails under `CI`** | After touching `src/code_analysis/python/` |
 | `npm run test:all` | `test:basic` + `test:python` | Pre-release / after cross-language changes |
-| `npm run test:analysis` | `test/runners/run-analysis-tests.cjs` over `manual_test/` fixtures (one per supported language); asserts XR and LivePanel produce the same `data.json`. Its venv installs the **lizard version the extension pins** (read from `pythonPackageManifest.ts`) | After changing analysis output or language support |
+| `npm run test:analysis` | `backend/scripts/run-analysis-tests.cjs` (venv in `backend/artifacts/analysis-test-venv`) over the `backend/manual_test/` fixtures (one per supported language); asserts XR and LivePanel produce the same `data.json`. Its venv installs the **lizard version the extension pins** (read from `backend/requirements.txt`, the generated mirror of `pythonPackageManifest.ts`) | After changing analysis output or language support |
 | `npm run test:htmlanalysis` | HTML/DOM analysis tests | After touching `python/html/html_dom_parser.py` or DOM mode |
 | `npm run test:xr-harness` | `test/runners/run-xr-containment-harness.cjs` (browser harness, uses Playwright) | After touching table/containment runtimes |
 | `npm run test:project-evolution-harness` | Project Evolution playback harness | After touching project-evolution runtime |
@@ -34,12 +34,12 @@
 | `npm run package` | Production webpack build (hidden source maps) | Pre-packaging |
 | `npm run package:vsix` | `package` + `scripts/package-vsix.mjs` → builds the `.vsix` (refuses to package without `dist/extension.js`) | Release preparation |
 | `node scripts/dist-fingerprint.mjs --out <file>` · `node scripts/dist-diff.mjs <before> <after> --expect-identical-bundle` | Hash everything under `dist/` and compare two fingerprints. **H1**: an unreachable file was deleted ⇒ `extension.js` byte-identical (the production build is deterministic). `--allow-removed <path|dir/>` names copied assets that are meant to disappear. **H2**: `--bundle-lines <old> <new>` for a dead declaration removed from a live file | Proving a cleanup commit changed nothing that ships (`cleanup` skill §3) |
-| `npm run test:integration` | `@vscode/test-cli` — **currently targets `out/test/**/*.test.js`, which doesn't exist; the integration layer is unpopulated** | Don't rely on it (needs verification/setup) |
 | `npm run report:manual-metrics` | analysis test runner in report-only mode | Metric reports without assertions |
 | `npm run guardrails:measure` | `test/tooling/measureGuardrails.cjs` — prints the cleanup metrics from the TypeScript AST (~2 s): `console.*` per module, console-only catch blocks, `any`, suppressions, files over 500 lines, functions over 80 lines, CCN over 10/15/20/30, modules unreachable from `src/extension.ts`, `console.log` in `templates/`, the lint `--max-warnings` | Before and after any cleanup item |
 | `npm run guardrails:update` | Same script with `--write`: regenerates `test/tooling/guardrail-baseline.json` | In the **same commit** as a change that moves a metric — the baseline diff is that item's recorded before/after |
+| `npm run python:requirements` | `compile-tests` + `test/tooling/pythonRequirements.cjs --write`: regenerates `backend/requirements.txt` from `CODEXR_PYTHON_PACKAGES` in `src/python_env/runtime/pythonPackageManifest.ts` (the source of truth); `test/python_env/pythonRequirements.test.cjs` fails while the two disagree | In the same commit as any change to the Python package pins |
 
-**Test framework note**: unit tests are **`.test.cjs` files run by Node's native test runner** (`node --test`), *not* Mocha, despite `@types/mocha` being present (that belongs to the unpopulated integration layer). New unit tests go in `test/<area>/*.test.cjs`.
+**Test framework note**: unit tests are **`.test.cjs` files run by Node's native test runner** (`node --test`), *not* Mocha (there is no Mocha in the dependency tree). New unit tests go in `test/<area>/*.test.cjs`.
 
 ## Running the extension (F5)
 
@@ -56,7 +56,6 @@ Manual validation flow for a change: F5 → open a workspace with source files �
 test/
 ├── analysis/            ~33 .test.cjs suites — runtimes (common, boats, visual style, charts,
 │                        tables, mapping), collaboration, historical, dependency graph, watchers…
-│                        + manual_metrics_suite.py
 ├── commands/            commandRegistry.test.cjs (unique-ID checks on synthetic arrays) +
 │                        commandContributions.test.cjs: executes the REAL registerAllCommands under the
 │                        fake vscode and ties it to package.json; internalCommandIds.cjs lists every
@@ -70,12 +69,14 @@ test/
 ├── tooling/             measureGuardrails.cjs + guardrail-baseline.json + the ratchet test
 ├── python/              unittest suites (dependencies + goldens, analyzers, scanning, html_dom,
 │                        xr schema…); backend_sandbox.py scopes a fake lizard to one module
-├── fixtures/dependency-languages/   sample sources in ~25 languages
 ├── manual/              browser-run HTML harnesses (xr-containment, project-evolution-playback…)
-└── runners/             the .cjs runner scripts npm scripts point to
+└── runners/             the .cjs runner scripts npm scripts point to (the two Python-only ones,
+                         run-python-tests and run-analysis-tests, are in backend/scripts/)
 ```
 
-Also `manual_test/` (repo root): per-language fixtures consumed by `npm run test:analysis` (see `manual_test/README.md`).
+The dependency-graph sample sources (~25 languages) live with the backend that reads them: `backend/tests/fixtures/dependency-languages/`.
+
+Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:analysis` (see `backend/manual_test/README.md`); that runner drives `backend/tests/manual_metrics_suite.py` and `backend/scripts/report-manual-metrics.py` (reports land in `backend/artifacts/manual_test_reports/`).
 
 ## Packaging
 
@@ -87,10 +88,8 @@ Also `manual_test/` (repo root): per-language fixtures consumed by `npm run test
 
 - **CI** (`.github/workflows/ci.yml`, since 1.2.1) runs on pull requests to `master`: `npm test` and the Python suites on `windows-latest` and `ubuntu-latest`, plus a job that packages the VSIX and uploads it with its dist fingerprint. It runs exactly the local gates — nothing is CI-only. `ubuntu-latest` reports without blocking until its first LF/POSIX fallout is fixed. The browser harnesses stay local (they need Playwright's Chromium and live CDNs). The other workflow, `deploy-pages-redirect.yml`, only publishes the GitHub Pages redirect.
 - **`esbuild.config.mjs` is unreferenced** by any npm script — webpack is the active bundler. Likely legacy from the 0.0.8-era ESBuild migration. *Needs verification before removal.*
-- **`.vscode-test.mjs` / `test:integration` mismatch**: points to `out/test/**/*.test.js`, but no such tests exist.
 - `tsconfig.json` `outDir` is `out/` (used for `compile-tests`/typecheck output); the shipped bundle goes to `dist/` via webpack. Don't confuse the two.
 - `tsconfig.tsbuildinfo` at root is a build cache — never edit or commit-review it.
-- A leftover `CodeXR.helloWorld` command exists in package.json (scaffolding; see `V1.2.0_STATUS.md` documentation debt).
 
 ## How future agents should use this document
 

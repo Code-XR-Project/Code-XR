@@ -11,8 +11,8 @@ HTML_PARSER = PYTHON_ROOT / 'html' / 'html_dom_parser.py'
 DOM_TEMPLATE = EXTENSION_ROOT / 'templates' / 'xr' / 'html' / 'dom-visualization-template.html'
 
 FIXTURES = {
-    'basic': EXTENSION_ROOT / 'manual_test' / 'html_dom_fixture.html',
-    'advanced': EXTENSION_ROOT / 'manual_test' / 'html_dom_advanced_analysis.html',
+    'basic': PROJECT_ROOT / 'backend' / 'manual_test' / 'html_dom_fixture.html',
+    'advanced': PROJECT_ROOT / 'backend' / 'manual_test' / 'html_dom_advanced_analysis.html',
 }
 
 for extra_path in [PYTHON_ROOT, PYTHON_ROOT / 'utils', PYTHON_ROOT / 'html']:
