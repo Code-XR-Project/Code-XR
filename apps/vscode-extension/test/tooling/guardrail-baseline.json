@@ -24,11 +24,11 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 159,
+    "any.total": 142,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
-      "code_analysis": 80,
+      "code_analysis": 63,
       "commands": 8,
       "python_env": 5,
       "servers": 11,
@@ -60,7 +60,7 @@
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 541,
+    "eslint.maxWarnings": 524,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,7 +69,7 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 48958,
+    "src.lines": 49004,
     "src.functions": 3274,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -79,10 +79,6 @@
       }
     ],
     "any.topFiles": [
-      {
-        "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts",
-        "count": 17
-      },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "count": 12
@@ -138,6 +134,10 @@
       {
         "file": "src/servers/storage/serverSettingsManager.ts",
         "count": 4
+      },
+      {
+        "file": "src/code_analysis/engine/parsers/fileXRParser.ts",
+        "count": 3
       }
     ],
     "complexity.worst10": [
