@@ -82,8 +82,8 @@
     }
   },
   "informational": {
-    "src.files": 312,
-    "src.lines": 48065,
+    "src.files": 313,
+    "src.lines": 48073,
     "src.functions": 2654,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -306,12 +306,12 @@
         "lines": 595
       },
       {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "lines": 592
-      },
-      {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "lines": 590
+      },
+      {
+        "file": "src/servers/runtime/httpServer.ts",
+        "lines": 573
       }
     ]
   },

@@ -13,6 +13,7 @@ import { VenvManager } from '../python_env/runtime/venvManager';
 import { PythonEnvItems } from '../python_env/views/items/pythonEnvItems';
 import { getActiveServerRegistry } from '../active_servers/registry/activeServerRegistry';
 import { CodeXRLogger } from '../core/logging/logger';
+import { createStaticSectionHeader } from './sectionDefinitions';
 
 interface LazySectionDefinition {
     sectionName: string;
@@ -159,7 +160,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
     private initializeSectionDefinitions(): void {
         this.registerSection({
             sectionName: 'SERVERS',
-            createHeader: () => this.createStaticSectionHeader(
+            createHeader: () => createStaticSectionHeader(
                 'SERVERS',
                 'SERVERS',
                 vscode.TreeItemCollapsibleState.Expanded,
@@ -179,7 +180,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
                     ? `ACTIVE SERVERS (${runningCount} running)`
                     : 'ACTIVE SERVERS';
 
-                return this.createStaticSectionHeader(
+                return createStaticSectionHeader(
                     title,
                     'activeServers',
                     vscode.TreeItemCollapsibleState.Expanded,
@@ -195,7 +196,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
         this.registerSection({
             sectionName: 'babiaExamples',
-            createHeader: () => this.createStaticSectionHeader(
+            createHeader: () => createStaticSectionHeader(
                 'BABIA EXAMPLES',
                 'babiaExamples',
                 vscode.TreeItemCollapsibleState.Collapsed,
@@ -210,7 +211,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
         this.registerSection({
             sectionName: 'visualizeData',
-            createHeader: () => this.createStaticSectionHeader(
+            createHeader: () => createStaticSectionHeader(
                 'VISUALIZE DATA',
                 'visualizeData',
                 vscode.TreeItemCollapsibleState.Collapsed,
@@ -225,7 +226,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
         this.registerSection({
             sectionName: 'analysis',
-            createHeader: () => this.createStaticSectionHeader(
+            createHeader: () => createStaticSectionHeader(
                 'ANALYSIS',
                 'analysis',
                 vscode.TreeItemCollapsibleState.Expanded,
@@ -264,7 +265,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
         this.registerSection({
             sectionName: 'visualizationSettings',
-            createHeader: () => this.createStaticSectionHeader(
+            createHeader: () => createStaticSectionHeader(
                 'VISUALIZATION SETTINGS',
                 'visualizationSettings',
                 vscode.TreeItemCollapsibleState.Collapsed,
@@ -279,7 +280,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
         this.registerSection({
             sectionName: 'learnMore',
-            createHeader: () => this.createStaticSectionHeader(
+            createHeader: () => createStaticSectionHeader(
                 'LEARN MORE & SUPPORT',
                 'learnMore',
                 vscode.TreeItemCollapsibleState.Expanded,
@@ -438,29 +439,6 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
         logger.debug(() => `Instantiated lazy section provider for ${sectionName}.`);
         return provider;
-    }
-
-    private createStaticSectionHeader(
-        label: string,
-        sectionType: string,
-        collapsibleState: vscode.TreeItemCollapsibleState,
-        itemType: string,
-        iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri },
-        tooltip?: string,
-        description?: string,
-        contextValue?: string,
-    ): ModularTreeItem {
-        return new ModularTreeItem(
-            label,
-            collapsibleState,
-            sectionType,
-            itemType,
-            undefined,
-            iconPath,
-            tooltip,
-            description,
-            contextValue,
-        );
     }
 
     private cacheSectionHeader(sectionName: string, nextItem: ModularTreeItem): ModularTreeItem {
