@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1480,
+    "console.total": 1471,
     "console.byModule": {
       "active_servers": 120,
       "babia_examples": 49,
       "babia_templates": 68,
-      "code_analysis": 571,
+      "code_analysis": 562,
       "commands": 4,
       "core": 1,
       "python_env": 24,
@@ -36,11 +36,11 @@
     },
     "catch.consoleOnly": 60,
     "catch.emptyNoComment": 0,
-    "any.total": 211,
+    "any.total": 207,
     "any.byModule": {
       "active_servers": 12,
       "babia_templates": 3,
-      "code_analysis": 94,
+      "code_analysis": 90,
       "commands": 8,
       "python_env": 5,
       "servers": 13,
@@ -76,8 +76,7 @@
     "complexity.over20": 10,
     "complexity.over30": 6,
     "reachability.unreachable": [
-      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
-      "src/code_analysis/views/subsections/analysis_settings/chart_type_file/dimensionMappingCleaner.ts"
+      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts"
     ],
     "templates.consoleLog": 117,
     "eslint.maxWarnings": null,
@@ -88,10 +87,10 @@
     }
   },
   "informational": {
-    "src.files": 310,
-    "src.lines": 49490,
-    "src.functions": 2719,
-    "src.unreachableLines": 122,
+    "src.files": 309,
+    "src.lines": 49372,
+    "src.functions": 2708,
+    "src.unreachableLines": 39,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -321,13 +320,5 @@
       }
     ]
   },
-  "waivers": [
-    {
-      "metric": "reachability.unreachable",
-      "from": 1,
-      "to": 2,
-      "reason": "W2-22 drops the unused DimensionMappingCleaner import, orphaning dimensionMappingCleaner.ts until W2-24 (#29) deletes it",
-      "date": "2026-11-25"
-    }
-  ]
+  "waivers": []
 }

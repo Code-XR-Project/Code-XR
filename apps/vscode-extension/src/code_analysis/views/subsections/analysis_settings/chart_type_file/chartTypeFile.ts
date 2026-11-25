@@ -173,39 +173,4 @@ export class ChartTypeFileSetting {
     async getCurrentChartType(): Promise<ChartType> {
         return this.storage.getChartTypeFile();
     }
-
-    /**
-     * Get current chart metadata
-     */
-    async getCurrentChartMetadata(): Promise<ChartMetadata | undefined> {
-        const currentChartType = await this.getCurrentChartType();
-        return this.chartRegistry.getChart(currentChartType);
-    }
-
-    /**
-     * Save configuration
-     */
-    async saveConfiguration(configuration: any): Promise<void> {
-        console.log('CHART_TYPE_FILE: Saving configuration:', configuration);
-        
-        if (configuration.chartType) {
-            await this.setChartType(configuration.chartType);
-        }
-    }
-
-    /**
-     * Load configuration
-     */
-    async loadConfiguration(): Promise<any> {
-        const currentChartType = await this.storage.getChartTypeFile();
-        const currentMode = await this.storage.getAnalysisMode();
-        const chartMetadata = await this.getCurrentChartMetadata();
-        
-        return {
-            chartType: currentChartType,
-            analysisMode: currentMode,
-            chartMetadata: chartMetadata
-        };
-    }
 }
-
