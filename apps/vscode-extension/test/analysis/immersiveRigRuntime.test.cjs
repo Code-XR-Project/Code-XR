@@ -172,6 +172,20 @@ test('remove() detaches the scene listeners', () => {
     assert.equal(rigEl.object3D.position.z, -10.75, 'no reaction after remove');
 });
 
+test('init and remove tolerate an entity without a scene; init resets the saved state', () => {
+    const { component } = createHarness();
+    const orphan = Object.create(Object.getPrototypeOf(component));
+    orphan.el = { sceneEl: null, object3D: null };
+    orphan.data = { arX: 0, arZ: 0, arRecenter: true, autoFly: true };
+    orphan.savedPose = 'stale';
+    orphan.savedFly = 'stale';
+    orphan.init();
+    orphan.remove();
+    assert.equal(orphan.savedPose, null);
+    assert.equal(orphan.savedFly, null);
+    assert.equal(typeof orphan.onExitVR, 'function', 'handlers are still bound');
+});
+
 // --- autoFly: the whole point of flying in VR/AR without any custom vector
 // math is that movement-controls already knows how, once `fly` is true. ---
 
@@ -483,7 +497,9 @@ function fillLightHarness() {
         addEventListener(name, handler) {
             (this.listeners[name] = this.listeners[name] || []).push(handler);
         },
-        removeEventListener() {},
+        removeEventListener(name, handler) {
+            this.listeners[name] = (this.listeners[name] || []).filter((entry) => entry !== handler);
+        },
         emit(name) {
             (this.listeners[name] || []).slice().forEach((handler) => handler({}));
         },
@@ -502,7 +518,7 @@ function fillLightHarness() {
     component.el = lightEl;
     component.data = { intensity: 0.55 };
     component.init();
-    return { sceneEl, lightEl };
+    return { sceneEl, lightEl, component, definition };
 }
 
 test('AR turns the fill light on; exiting turns it back off', () => {
@@ -523,6 +539,29 @@ test('VR never touches the fill light — the environment lights are visible the
     sceneEl.states.add('vr-mode');
     sceneEl.emit('enter-vr');
     assert.equal(lightEl.attrs.light.intensity, 0);
+});
+
+test('fill light: remove() detaches the scene listeners', () => {
+    const { sceneEl, lightEl, component } = fillLightHarness();
+    assert.equal(sceneEl.listeners['enter-vr'].length, 1);
+    assert.equal(sceneEl.listeners['exit-vr'].length, 1);
+    component.remove();
+    assert.deepEqual(sceneEl.listeners['enter-vr'], []);
+    assert.deepEqual(sceneEl.listeners['exit-vr'], []);
+
+    sceneEl.states.add('ar-mode');
+    sceneEl.emit('enter-vr');
+    assert.equal(lightEl.attrs.light.intensity, 0, 'no reaction after remove');
+});
+
+test('fill light: init and remove tolerate an entity without a scene', () => {
+    const { definition } = fillLightHarness();
+    const orphan = Object.create(definition);
+    orphan.el = { sceneEl: null, setAttribute() {} };
+    orphan.data = { intensity: 0.55 };
+    orphan.init();
+    orphan.remove();
+    assert.equal(typeof orphan.onEnterVR, 'function', 'handlers are still bound');
 });
 
 test('the patch is applied exactly once', () => {
