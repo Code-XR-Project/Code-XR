@@ -167,6 +167,7 @@ export default [{
     // stay on `var` until 1.3.0: their parts cannot be linted alone.
     files: [
         "templates/components/codexr/dependency-visual-budget/dependencyVisualBudgetRuntime.js",
+        "templates/components/common/codexrCommonRuntime.js",
         "templates/components/codexr/debug/codexrDebugRuntime.js",
         "templates/components/codexr/render-budget/renderBudgetRuntime.js",
     ],
