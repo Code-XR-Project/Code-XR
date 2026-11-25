@@ -11,8 +11,8 @@ function readProjectFile(...segments) {
 }
 
 test('watcher startup and cleanup go through SessionWatcherManager for XR and VisualizeDOM', () => {
-    const xrLauncher = readProjectFile('src', 'code_analysis', 'engine', 'launchers', 'launcherXRAnalysis.ts');
-    const domLauncher = readProjectFile('src', 'code_analysis', 'engine', 'launchers', 'launcherVisualizeDOM.ts');
+    const xrLauncher = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherXRAnalysis.ts');
+    const domLauncher = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherVisualizeDOM.ts');
     const integration = readProjectFile('src', 'code_analysis', 'services', 'serverWatcherIntegration.ts');
 
     assert.match(xrLauncher, /import \{ SessionWatcherManager \} from '\.\.\/watchers\/sessionWatcherManager';/);
@@ -25,11 +25,11 @@ test('watcher startup and cleanup go through SessionWatcherManager for XR and Vi
 });
 
 test('file and directory watchers use the hybrid stat-plus-hash reanalysis gate', () => {
-    const fileWatcher = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'fileWatcherOrchestrator.ts');
-    const directoryWatcher = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'directoryWatcherOrchestrator.ts');
-    const reAnalysisManager = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'reAnalysisManager.ts');
-    const directoryReAnalyzer = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'directoryReAnalyzer.ts');
-    const executePython = readProjectFile('src', 'code_analysis', 'engine', 'utils', 'executePython.ts');
+    const fileWatcher = readProjectFile('src', 'core', 'analysis', 'watchers', 'fileWatcherOrchestrator.ts');
+    const directoryWatcher = readProjectFile('src', 'core', 'analysis', 'watchers', 'directoryWatcherOrchestrator.ts');
+    const reAnalysisManager = readProjectFile('src', 'core', 'analysis', 'watchers', 'reAnalysisManager.ts');
+    const directoryReAnalyzer = readProjectFile('src', 'core', 'analysis', 'watchers', 'directoryReAnalyzer.ts');
+    const executePython = readProjectFile('src', 'core', 'analysis', 'python', 'executePython.ts');
 
     assert.match(fileWatcher, /this\.lastKnownMtimeMs === statSnapshot\.mtimeMs && this\.lastKnownSize === statSnapshot\.size/);
     assert.match(fileWatcher, /currentHash === this\.lastDetectedHash/);
@@ -124,12 +124,12 @@ test('coding-agent integration surfaces are removed', () => {
 });
 
 test('watcher configuration changes propagate to active sessions and directory rename events trigger partial refresh', () => {
-    const sessionWatcherManager = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'sessionWatcherManager.ts');
+    const sessionWatcherManager = readProjectFile('src', 'core', 'analysis', 'watchers', 'sessionWatcherManager.ts');
     const delayCommands = readProjectFile('src', 'code_analysis', 'commands', 'subsections', 'analysis_settings', 'auto_analysis_delay', 'autoAnalysisDelayCommands.ts');
     const enabledCommands = readProjectFile('src', 'code_analysis', 'commands', 'subsections', 'analysis_settings', 'auto_analysis_enabled', 'autoAnalysisEnabledCommands.ts');
-    const fileWatcher = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'fileWatcherOrchestrator.ts');
-    const directoryWatcher = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'directoryWatcherOrchestrator.ts');
-    const analysisBootstrap = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
+    const fileWatcher = readProjectFile('src', 'core', 'analysis', 'watchers', 'fileWatcherOrchestrator.ts');
+    const directoryWatcher = readProjectFile('src', 'core', 'analysis', 'watchers', 'directoryWatcherOrchestrator.ts');
+    const analysisBootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
 
     assert.match(sessionWatcherManager, /async updateAllWatcherConfigurations\(\): Promise<number>/);
     assert.match(sessionWatcherManager, /static async refreshActiveWatcherConfigurations\(context: vscode\.ExtensionContext\): Promise<number>/);
@@ -154,19 +154,19 @@ test('watcher configuration changes propagate to active sessions and directory r
 
 test('mode activation reconciles watcher hashes without forcing a full analysis', () => {
     const manager = readProjectFile(
-        'src', 'code_analysis', 'engine', 'watchers', 'sessionWatcherManager.ts',
+        'src', 'core', 'analysis', 'watchers', 'sessionWatcherManager.ts',
     );
     const fileWatcher = readProjectFile(
-        'src', 'code_analysis', 'engine', 'watchers', 'fileWatcherOrchestrator.ts',
+        'src', 'core', 'analysis', 'watchers', 'fileWatcherOrchestrator.ts',
     );
     const directoryWatcher = readProjectFile(
-        'src', 'code_analysis', 'engine', 'watchers', 'directoryWatcherOrchestrator.ts',
+        'src', 'core', 'analysis', 'watchers', 'directoryWatcherOrchestrator.ts',
     );
     const server = readProjectFile('src', 'core', 'server', 'httpServer.ts')
         + readProjectFile('src', 'core', 'server', 'analysis', 'historicalComparisonBridge.ts')
         + readProjectFile('src', 'core', 'server', 'analysis', 'projectEvolutionBridge.ts');
     const coordinator = readProjectFile(
-        'src', 'code_analysis', 'refresh', 'analysisRefreshCoordinator.ts',
+        'src', 'core', 'analysis', 'refresh', 'analysisRefreshCoordinator.ts',
     );
 
     assert.match(manager, /static async reconcileSession/);

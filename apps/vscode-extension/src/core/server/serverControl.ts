@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { ActiveServer, ActiveServerRuntime } from './registry/activeServerModel';
-import type { UnifiedAnalysisSession } from '../../code_analysis/engine/core/analysisSession';
+import type { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { getActiveServerRegistry } from './registry/activeServerRegistry';
 import { getPanelManager } from '../../platform/webview/panelManager';
 import { fileToServerMap } from './fileToServerMap';
 import { sseManager } from './sse/SSEManager';
-import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
+import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { handleError, ErrorDomain, ErrorSeverity } from '../../platform/ui/errorHandler';
 import { getLogger } from '../../platform/logging/sink';
 

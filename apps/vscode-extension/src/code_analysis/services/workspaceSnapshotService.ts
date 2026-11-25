@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { getLanguageForFile } from '../../utils/languageMetadata';
+import { getLanguageForFile } from '../../core/analysis/languages/languageMetadata';
 import { CodeXRLogger } from '../../platform/logging/logger';
 import { FilesByLanguage } from '../utils/workspaceFileScanner';
 import { shouldSkipWorkspaceEntry, sortWorkspaceEntries } from './workspaceSnapshotModel';

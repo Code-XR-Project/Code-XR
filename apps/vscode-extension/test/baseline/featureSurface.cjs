@@ -110,7 +110,7 @@ async function collectRuntime() {
 
 function collectSourceContracts() {
     // In-scene analysis modes the XR controller can switch to.
-    const refresh = readText(path.join(projectRoot, 'src', 'code_analysis', 'refresh', 'analysisRefreshCoordinator.ts'));
+    const refresh = readText(path.join(projectRoot, 'src', 'core', 'analysis', 'refresh', 'analysisRefreshCoordinator.ts'));
     const modeUnion = refresh.match(/export type AnalysisRefreshMode\s*=([^;]+);/);
     if (!modeUnion) {
         throw new Error('AnalysisRefreshMode not found: retarget featureSurface.cjs to where it moved');
@@ -148,7 +148,7 @@ function collectSourceContracts() {
 /** Python entry points the extension spawns directly (executePython.ts, gitRevisionExporter.ts). */
 function collectPythonEntryPoints() {
     const sources = [
-        path.join(projectRoot, 'src', 'code_analysis', 'engine', 'utils', 'executePython.ts'),
+        path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'executePython.ts'),
         path.join(projectRoot, 'src', 'core', 'export', 'gitRevisionExporter.ts'),
     ].map(readText).join('\n');
     const scripts = [...sources.matchAll(/['"]([A-Za-z_/]+\.py)['"]/g)].map((m) => m[1]);

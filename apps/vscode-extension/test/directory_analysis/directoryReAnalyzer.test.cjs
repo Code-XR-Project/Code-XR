@@ -14,7 +14,7 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 // clients and shows the status-bar count. Runs the real class from out/ with
 // its Python runner and SSE notification stubbed.
 
-const MODULE = 'code_analysis/engine/watchers/directoryReAnalyzer.js';
+const MODULE = 'core/analysis/watchers/directoryReAnalyzer.js';
 
 function entry(filePath, extra = {}) {
     return { filePath, fileName: path.basename(filePath), status: 'success', totalLines: 10, codeLines: 8, language: 'Python', ...extra };

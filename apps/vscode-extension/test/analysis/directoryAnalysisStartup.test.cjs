@@ -10,7 +10,7 @@ function readProjectFile(...segments) {
 }
 
 test('directory sessions defer recursive discovery and initial hashing until after the first analysis', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'core', 'sessionRegistry.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'session', 'sessionRegistry.ts');
 
     assert.equal(source.includes('filterDirectoriesForAnalysis'), false);
     assert.equal(source.includes('discoverDirectoriesToAnalyze'), false);
@@ -19,15 +19,15 @@ test('directory sessions defer recursive discovery and initial hashing until aft
 });
 
 test('directory python execution avoids passing large --files argument lists', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'utils', 'executePython.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'python', 'executePython.ts');
 
     assert.equal(source.includes("'--files'"), false);
     assert.match(source, /Python coordinator will scan and filter directory contents internally/);
 });
 
 test('directory analysis bootstrap hydrates filesToHash after the initial analysis for XR and LivePanel', () => {
-    const bootstrapSource = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
-    const xrSource = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
+    const bootstrapSource = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
+    const xrSource = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 
     assert.match(bootstrapSource, /const trackedFiles = await this\.buildTrackedFiles\(session, payload\);/);
     assert.match(bootstrapSource, /session\.filesToHash = trackedFiles/);

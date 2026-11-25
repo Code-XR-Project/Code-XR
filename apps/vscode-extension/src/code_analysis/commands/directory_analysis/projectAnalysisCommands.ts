@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
+import { AnalysisOrchestrator } from '../../../core/analysis/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 
 export class ProjectAnalysisCommands {

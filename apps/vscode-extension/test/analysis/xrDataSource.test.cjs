@@ -11,14 +11,14 @@ function readProjectFile(...segments) {
 }
 
 test('file XR parser uses data.json for the XR template data entity', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
 
     assert.match(source, /TemplateProcessor\.generateXRVisualization\([\s\S]*'data\.json'/);
     assert.equal(source.includes('./data.json'), false);
 });
 
 test('directory XR parser keeps using data.json for standard and deep XR analysis', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 
     assert.match(source, /TemplateProcessor\.generateXRVisualization\([\s\S]*'data\.json'/);
 });
@@ -71,7 +71,7 @@ test('local XR server prevents stale runtime script caching', () => {
 });
 
 test('Babia Boats is the default XR file and directory chart while CodeXR Boats remains paused', () => {
-    const config = readProjectFile('src', 'code_analysis', 'configuration', 'models', 'analysisConfiguration.ts');
+    const config = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
     const profile = readProjectFile(
         'src',
         'code_analysis',
@@ -252,8 +252,8 @@ test('XR and DOM templates pin aframe-babia-components to the supported version'
 });
 
 test('XR parsers include CodeXR room runtime in generated assets', () => {
-    const fileParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
-    const directoryParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
+    const fileParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
+    const directoryParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 
     assert.match(fileParser, /copyCodeXrRoomAssetsToOutput/);
     assert.match(fileParser, /copyCodeXrCommonRuntimeToOutput/);
@@ -280,7 +280,7 @@ test('XR parsers include CodeXR room runtime in generated assets', () => {
     assert.doesNotMatch(directoryParser, /\[CODEXR_VISUAL_STYLE_RUNTIME_OUTPUT_NAME, readCodeXrVisualStyleRuntimeContent\]/);
     // The abandoned visual-style feature was deleted in 1.2.1 (W2-55): neither
     // its asset module nor its runtime may come back unwired.
-    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'components', 'customComponents', 'visualStyleComponentAsset.ts')), false);
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'core', 'analysis', 'scene-assets', 'visualStyleComponentAsset.ts')), false);
     assert.equal(fs.existsSync(path.join(projectRoot, 'templates', 'components', 'common', 'codexrVisualStyleRuntime.js')), false);
     assert.doesNotMatch(directoryParser, /\[CODEXR_BOATS_RUNTIME_OUTPUT_NAME, readCodeXrBoatsRuntimeContent\]/);
     assert.doesNotMatch(directoryParser, /codeXrBoatsTextures\.forEach\(\(asset\) => \{/);

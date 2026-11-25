@@ -5,13 +5,13 @@
 
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
-import { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../configuration/models/analysisConfiguration';
+import { AnalysisConfigurationStorage } from '../../../../../core/analysis/configuration/analysisConfigurationStorage';
+import { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../../core/analysis/configuration/analysisConfiguration';
 import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 
-export { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../configuration/models/analysisConfiguration';
+export { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../../core/analysis/configuration/analysisConfiguration';
 
 export class AutoAnalysisDelaySetting {
     private currentDelayConfig: AutoAnalysisDelayConfig = { type: 'RealTime', autoAnalysisEnabled: true };

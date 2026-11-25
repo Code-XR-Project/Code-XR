@@ -183,7 +183,7 @@ test('file scope projection keeps symbols and aggregates other project files', (
 });
 
 test('render budget runtime is packaged before dependency rendering', () => {
-  const parser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+  const parser = read('src/core/analysis/parsers/directoryXRParser.ts');
   const template = read('templates/xr/file/xr-visualization.html');
   const budget = readAssembledRuntime('render-budget', 'renderBudgetRuntime.js');
   assert.match(parser, /RENDER_BUDGET_RUNTIME_OUTPUT_NAME/);
@@ -255,7 +255,7 @@ test('dependency detail override combines with performance conservatively', () =
 
 test('dependency graph keeps density control local and packages diagnostics', () => {
   const runtime = readAssembledRuntime('dependency-graph', 'dependencyGraphRuntime.js');
-  const parser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+  const parser = read('src/core/analysis/parsers/directoryXRParser.ts');
   assert.match(runtime, /Detail: /);
   assert.match(runtime, /setDetailOverride/);
   assert.match(runtime, /CodeXRCommonRuntime\?\.createTooltip/);
@@ -365,7 +365,7 @@ test('dependency metric axes use readable shared scales', () => {
 });
 
 test('directory XR parser packages the dependency runtime', () => {
-  const parser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+  const parser = read('src/core/analysis/parsers/directoryXRParser.ts');
   const template = read('templates/xr/file/xr-visualization.html');
   assert.match(parser, /CODEXR_COMMON_RUNTIME_OUTPUT_NAME/);
   assert.match(parser, /readCodeXrCommonRuntimeContent/);
@@ -375,7 +375,7 @@ test('directory XR parser packages the dependency runtime', () => {
 });
 
 test('file XR parser packages the dependency runtime', () => {
-  const parser = read('src/code_analysis/engine/parsers/fileXRParser.ts');
+  const parser = read('src/core/analysis/parsers/fileXRParser.ts');
   assert.match(parser, /copyCodeXrCommonRuntimeToOutput/);
   assert.match(parser, /CODEXR_COMMON_RUNTIME_OUTPUT_NAME/);
   assert.match(parser, /copyDependencyGraphRuntimeToOutput/);
@@ -626,7 +626,7 @@ test('LivePanel ties the dependency graph into the re-analysis chain as a backgr
 });
 
 test('the refresh coordinator exposes background modes that publishChanges runs while inactive', () => {
-  const coordinator = read('src/code_analysis/refresh/analysisRefreshCoordinator.ts');
+  const coordinator = read('src/core/analysis/refresh/analysisRefreshCoordinator.ts');
   assert.match(coordinator, /backgroundModes: Set<AnalysisRefreshMode>/);
   assert.match(coordinator, /public setBackgroundRefresh\(/);
   assert.match(coordinator, /for \(const backgroundMode of state\.backgroundModes\)/);

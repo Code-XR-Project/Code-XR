@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from '../../../../../core/analysis/configuration/analysisConfigurationStorage';
 import { chartTemplates } from '../../../../../core/charts/templateCharts';
 import { ChartDimension, ChartMetadata } from '../../../../../core/charts/chartModels';
 import { DimensionMappingValidator } from '../dimension_mapping_file/dimensionMappingValidator';
-import { XRFieldDefinition, XRFieldSchemaService, XRSchemaTargetType } from '../../../../services/xrFieldSchemaService';
+import { XRFieldDefinition, XRFieldSchemaService, XRSchemaTargetType } from '../../../../../core/analysis/python/xrFieldSchemaService';
 
 export interface DimensionMappingSettingAdapter {
     targetType: XRSchemaTargetType;

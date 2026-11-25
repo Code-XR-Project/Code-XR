@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../items/analysisItems';
 import { WorkspaceFileScanner } from '../../../utils/workspaceFileScanner';
 import { FilesByLanguageSortingUtils } from '../../../utils/filesByLanguageSortingUtils';
-import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from '../../../../core/analysis/configuration/analysisConfigurationStorage';
 import { WorkspaceSnapshotService } from '../../../services/workspaceSnapshotService';
 import { CodeXRLogger } from '../../../../platform/logging/logger';
 

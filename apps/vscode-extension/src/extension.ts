@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { registerAllCommands } from './commands/index';
 import { initializePythonEnvOnStartup } from './features/python-env/commands/pythonEnvCommandRegistrations';
-import { XRFieldSchemaService } from './code_analysis/services/xrFieldSchemaService';
+import { XRFieldSchemaService } from './core/analysis/python/xrFieldSchemaService';
 import { ModularTreeDataProvider } from './views/ModularTreeDataProvider';
 import { CommonCommands } from './utils/commonCommands';
 import { ServerSettingsManager } from './core/server/serverSettingsManager';
@@ -12,7 +12,7 @@ import { sseManager } from './core/server/sse/SSEManager';
 import { fileToServerMap } from './core/server/fileToServerMap';
 import { ServerWatcherIntegration } from './code_analysis/services/serverWatcherIntegration';
 import { CleanAnalysisCommands } from './code_analysis/commands/clean_analysis/cleanAnalysisCommands';
-import { AnalysisConfigurationStorage } from './code_analysis/configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from './core/analysis/configuration/analysisConfigurationStorage';
 import { handleError, ErrorDomain, ErrorSeverity } from './platform/ui/errorHandler';
 import { initializeExtensionContext } from './platform/extensionContext';
 import { CodeXRLogger } from './platform/logging/logger';

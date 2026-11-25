@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { CodeAnalysisTreeItem } from './items/analysisItems';
 import { CodeAnalysisInteractionHandler } from './interactions/handleAnalysisClicks';
-import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
+import { UnifiedSessionRegistry } from '../../core/analysis/session/sessionRegistry';
 import { AnalysisSettingsSubsectionProvider } from './subsections/analysis_settings/analysisSettingsSubsectionProvider';
 import { ProjectByLanguageSubsectionProvider } from './subsections/project_by_language/projectByLanguageSubsectionProvider';
 import { FilesByLanguageSubsectionProvider } from './subsections/files_by_language/filesByLanguageSubsectionProvider';

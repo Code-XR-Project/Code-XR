@@ -13,7 +13,7 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 
 async function withRouter(snapshots, body) {
     await withFakeVscode(createFakeVscode(), async ({ requireOut }) => {
-        const { analysisRefreshCoordinator } = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
+        const { analysisRefreshCoordinator } = requireOut('core/analysis/refresh/analysisRefreshCoordinator.js');
         const calls = [];
         analysisRefreshCoordinator.setSnapshotAvailable = (...args) => calls.push(['setSnapshotAvailable', ...args]);
         const { AnalysisMessageRouter } = requireOut('core/server/analysis/analysisMessageRouter.js');
@@ -124,7 +124,7 @@ test('router: the wrong snapshot field does not count as available', async () =>
 
 test('router: no room means no snapshot, so the dependency graph falls back to the menu', async () => {
     await withFakeVscode(createFakeVscode(), async ({ requireOut }) => {
-        const { analysisRefreshCoordinator } = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
+        const { analysisRefreshCoordinator } = requireOut('core/analysis/refresh/analysisRefreshCoordinator.js');
         const calls = [];
         analysisRefreshCoordinator.setSnapshotAvailable = (...args) => calls.push(['setSnapshotAvailable', ...args]);
         const { AnalysisMessageRouter } = requireOut('core/server/analysis/analysisMessageRouter.js');

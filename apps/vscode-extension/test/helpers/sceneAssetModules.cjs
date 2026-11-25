@@ -10,7 +10,7 @@
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const SCENE_ASSETS_OUT = path.join(projectRoot, 'out', 'code_analysis', 'engine', 'components', 'customComponents');
+const SCENE_ASSETS_OUT = path.join(projectRoot, 'out', 'core', 'analysis', 'scene-assets');
 
 const SCENE_ASSET_MODULES = [
     'virtualScreenComponentAsset',

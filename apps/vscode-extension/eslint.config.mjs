@@ -158,7 +158,7 @@ export default [{
     // defer a relative import to break a load-time module cycle.
     files: [
         "src/views/ModularTreeDataProvider.ts",
-        "src/code_analysis/engine/watchers/directoryReAnalyzer.ts",
+        "src/core/analysis/watchers/directoryReAnalyzer.ts",
         "src/core/charts/getVisualizationConfiguration.ts",
     ],
     rules: {
@@ -176,7 +176,8 @@ export default [{
         "src/core/server/**/*.ts",
         "src/features/active-servers/**/*.ts",
         "src/platform/webview/**/*.ts",
-        "src/code_analysis/engine/watchers/**/*.ts",
+        "src/core/analysis/python/**/*.ts",
+        "src/core/analysis/watchers/**/*.ts",
         "src/code_analysis/services/**/*.ts",
         "src/code_analysis/views/subsections/active_analyses/**/*.ts",
     ],
@@ -188,6 +189,7 @@ export default [{
         "src/core/server/serverFactory.ts",
         "src/core/server/serverSettingsManager.ts",
         "src/core/server/sse/SSEManager.ts",
+        "src/core/analysis/python/executePython.ts",
         "src/features/active-servers/views/activeServerItems.ts",
     ],
     rules: {

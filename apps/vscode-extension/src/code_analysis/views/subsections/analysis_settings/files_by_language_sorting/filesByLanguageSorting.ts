@@ -5,14 +5,14 @@
 
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from '../../../../../core/analysis/configuration/analysisConfigurationStorage';
 import { 
     FilesByLanguageSortingConfig,
     LanguageGroupSortBy,
     LanguageGroupSortDirection,
     FilesSortBy,
     FilesSortDirection
-} from '../../../../configuration/models/analysisConfiguration';
+} from '../../../../../core/analysis/configuration/analysisConfiguration';
 import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('FILES_BY_LANGUAGE_SORTING');

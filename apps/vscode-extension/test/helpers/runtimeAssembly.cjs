@@ -1,5 +1,5 @@
 /**
- * Test-side mirror of src/.../customComponents/runtimeAssembly.ts.
+ * Test-side mirror of src/core/analysis/scene-assets/runtimeAssembly.ts.
  *
  * Multi-part runtimes live as focused module files under
  * templates/components/codexr/<component>/<runtimeBase>/ with their

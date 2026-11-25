@@ -24,7 +24,7 @@ import { DimensionMappingFileSetting } from '../views/subsections/analysis_setti
 import { DimensionMappingDirectorySetting } from '../views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory';
 import { FilesByLanguageSortingSetting } from '../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
 import { ProfileConfigurationSetting } from '../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
-import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from '../../core/analysis/configuration/analysisConfigurationStorage';
 import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');

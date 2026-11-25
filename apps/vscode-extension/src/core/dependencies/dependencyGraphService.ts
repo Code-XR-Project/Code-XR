@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as vscode from 'vscode';
-import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
-import { ExecutePython } from '../../code_analysis/engine/utils/executePython';
+import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
+import { ExecutePython } from '../analysis/python/executePython';
 import { DependencyGraphDataset, DependencyRefreshRequest } from './dependencyGraphModels';
 
 export class DependencyGraphService {

@@ -16,7 +16,7 @@ import { AutoAnalysisDelaySetting } from './auto_analysis_delay/autoAnalysisDela
 import { AutoAnalysisEnabledSetting } from './auto_analysis_enabled/autoAnalysisEnabled';
 import { FilesByLanguageSortingSetting } from './files_by_language_sorting/filesByLanguageSorting';
 import { ProfileConfigurationSetting } from './profile_configuration/profileConfiguration';
-import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from '../../../../core/analysis/configuration/analysisConfigurationStorage';
 import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');

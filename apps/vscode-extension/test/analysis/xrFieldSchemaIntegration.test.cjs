@@ -69,8 +69,9 @@ test('shared dimension mapping core consumes the schema service instead of hardc
 test('XR schema consumers support text-only dimensions for categorical chart axes', () => {
     const schemaService = readProjectFile(
         'src',
-        'code_analysis',
-        'services',
+        'core',
+        'analysis',
+        'python',
         'xrFieldSchemaService.ts',
     );
     const templateProcessor = readProjectFile(
@@ -101,7 +102,7 @@ test('XR schema consumers support text-only dimensions for categorical chart axe
 });
 
 test('XR launcher validates mappings with schema-provided field types before execution', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'launchers', 'launcherXRAnalysis.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherXRAnalysis.ts');
 
     assert.match(source, /getFieldTypeMap\(analysisType, true\)/);
     assert.match(source, /Python field schema is not available yet/);

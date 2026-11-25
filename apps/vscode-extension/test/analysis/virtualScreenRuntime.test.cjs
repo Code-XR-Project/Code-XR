@@ -241,12 +241,12 @@ test('virtual screen runtime requests screen audio and exposes broadcast-aware s
 });
 
 test('analysis asset pipeline packages collaboration, screen, manager, and DOM shared runtimes together', () => {
-    const fileParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
-    const directoryParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
-    const domParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'visualizeDOMParser.ts');
-    const componentAsset = readProjectFile('src', 'code_analysis', 'engine', 'components', 'customComponents', 'virtualScreenComponentAsset.ts');
-    const collaborationAsset = readProjectFile('src', 'code_analysis', 'engine', 'components', 'customComponents', 'collaborationComponentAsset.ts');
-    const avatarAsset = readProjectFile('src', 'code_analysis', 'engine', 'components', 'customComponents', 'avatarComponentAsset.ts');
+    const fileParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
+    const directoryParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
+    const domParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'visualizeDOMParser.ts');
+    const componentAsset = readProjectFile('src', 'core', 'analysis', 'scene-assets', 'virtualScreenComponentAsset.ts');
+    const collaborationAsset = readProjectFile('src', 'core', 'analysis', 'scene-assets', 'collaborationComponentAsset.ts');
+    const avatarAsset = readProjectFile('src', 'core', 'analysis', 'scene-assets', 'avatarComponentAsset.ts');
 
     assert.match(fileParser, /copyVirtualScreenRuntimeToOutput/);
     assert.match(fileParser, /copyVirtualScreenManagerRuntimeToOutput/);

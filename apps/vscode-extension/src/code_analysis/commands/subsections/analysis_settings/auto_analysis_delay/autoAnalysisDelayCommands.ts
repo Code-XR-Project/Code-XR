@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { AutoAnalysisDelaySetting } from '../../../../views/subsections/analysis_settings/auto_analysis_delay/autoAnalysisDelay';
 import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
-import { SessionWatcherManager } from '../../../../engine/watchers/sessionWatcherManager';
+import { SessionWatcherManager } from '../../../../../core/analysis/watchers/sessionWatcherManager';
 import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');

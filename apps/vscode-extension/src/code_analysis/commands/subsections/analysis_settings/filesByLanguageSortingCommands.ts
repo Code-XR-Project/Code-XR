@@ -6,13 +6,13 @@
 import * as vscode from 'vscode';
 import { CommandRegistration } from './analysis_file_mode/analysisFileModeCommands';
 import { FilesByLanguageSortingSetting } from '../../../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
-import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
+import { AnalysisConfigurationStorage } from '../../../../core/analysis/configuration/analysisConfigurationStorage';
 import {
     LanguageGroupSortBy,
     LanguageGroupSortDirection,
     FilesSortBy,
     FilesSortDirection
-} from '../../../configuration/models/analysisConfiguration';
+} from '../../../../core/analysis/configuration/analysisConfiguration';
 import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');

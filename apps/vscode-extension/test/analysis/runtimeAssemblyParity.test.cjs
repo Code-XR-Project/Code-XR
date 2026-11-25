@@ -24,7 +24,7 @@ const helper = require(helperPath);
 // The production assembler depends on fs and path only (no vscode), so its
 // compiled module loads as is.
 const production = require(path.join(
-    projectRoot, 'out', 'code_analysis', 'engine', 'components', 'customComponents', 'runtimeAssembly.js',
+    projectRoot, 'out', 'core', 'analysis', 'scene-assets', 'runtimeAssembly.js',
 ));
 
 // A floor, not a list: runtimes are discovered from disk, and the floor only
@@ -72,7 +72,7 @@ function assertSameAssembly(tested, shipped, label) {
         + `    helper:     ${excerpt(tested)}\n`
         + `    production: ${excerpt(shipped)}\n`
         + 'The runtime suites would be testing a runtime that users never get: bring the helper back in line with '
-        + 'src/code_analysis/engine/components/customComponents/runtimeAssembly.ts.',
+        + 'src/core/analysis/scene-assets/runtimeAssembly.ts.',
     );
 }
 

@@ -26,8 +26,9 @@
     "catch.emptyNoComment": 0,
     "any.total": 84,
     "any.byModule": {
-      "code_analysis": 18,
+      "code_analysis": 4,
       "commands": 6,
+      "core/analysis": 14,
       "core/charts": 6,
       "core/python-env": 5,
       "core/server": 10,
@@ -43,9 +44,9 @@
     },
     "suppressions.total": 0,
     "size.filesOver500": [
-      "src/code_analysis/engine/utils/executePython.ts",
-      "src/code_analysis/refresh/analysisRefreshCoordinator.ts",
       "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
+      "src/core/analysis/python/executePython.ts",
+      "src/core/analysis/refresh/analysisRefreshCoordinator.ts",
       "src/core/export/exportManifest.ts",
       "src/core/history/gitRepositoryService.ts",
       "src/core/python-env/venvManager.ts",
@@ -87,19 +88,19 @@
     ],
     "any.byFile": {
       "src/code_analysis/commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands.ts": 1,
-      "src/code_analysis/engine/core/analysisSession.ts": 1,
-      "src/code_analysis/engine/parsers/directoryXRParser.ts": 2,
-      "src/code_analysis/engine/parsers/fileXRParser.ts": 3,
-      "src/code_analysis/engine/processors/analysisBootstrap.ts": 2,
-      "src/code_analysis/engine/servers/models/sessionServerModels.ts": 1,
-      "src/code_analysis/engine/servers/serverLaunchOrchestrator.ts": 2,
-      "src/code_analysis/engine/utils/executePython.ts": 2,
-      "src/code_analysis/engine/utils/themeUtils.ts": 1,
       "src/code_analysis/utils/filesByLanguageSortingUtils.ts": 1,
       "src/code_analysis/views/AnalysisSectionProvider.ts": 1,
       "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": 1,
       "src/commands/analysis/AnalysisCommands.ts": 5,
       "src/commands/index.ts": 1,
+      "src/core/analysis/parsers/directoryXRParser.ts": 2,
+      "src/core/analysis/parsers/fileXRParser.ts": 3,
+      "src/core/analysis/processors/analysisBootstrap.ts": 2,
+      "src/core/analysis/python/executePython.ts": 2,
+      "src/core/analysis/session-servers/serverLaunchOrchestrator.ts": 2,
+      "src/core/analysis/session-servers/sessionServerModels.ts": 1,
+      "src/core/analysis/session/analysisSession.ts": 1,
+      "src/core/analysis/utils/themeUtils.ts": 1,
       "src/core/charts/processing/templateProcessor.ts": 2,
       "src/core/charts/settings/settingsAccessors.ts": 1,
       "src/core/charts/settings/settingsStorage.ts": 3,
@@ -159,7 +160,7 @@
         "count": 4
       },
       {
-        "file": "src/code_analysis/engine/parsers/fileXRParser.ts",
+        "file": "src/core/analysis/parsers/fileXRParser.ts",
         "count": 3
       },
       {
@@ -171,19 +172,19 @@
         "count": 3
       },
       {
-        "file": "src/code_analysis/engine/parsers/directoryXRParser.ts",
+        "file": "src/core/analysis/parsers/directoryXRParser.ts",
         "count": 2
       },
       {
-        "file": "src/code_analysis/engine/processors/analysisBootstrap.ts",
+        "file": "src/core/analysis/processors/analysisBootstrap.ts",
         "count": 2
       },
       {
-        "file": "src/code_analysis/engine/servers/serverLaunchOrchestrator.ts",
+        "file": "src/core/analysis/python/executePython.ts",
         "count": 2
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "file": "src/core/analysis/session-servers/serverLaunchOrchestrator.ts",
         "count": 2
       },
       {
@@ -214,7 +215,7 @@
         "ccn": 17,
         "lines": 51,
         "function": "recalculateLivePanelSummary",
-        "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts"
+        "file": "src/core/analysis/watchers/directoryReanalysisData.ts"
       },
       {
         "ccn": 17,
@@ -287,7 +288,7 @@
         "lines": 581
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "file": "src/core/analysis/python/executePython.ts",
         "lines": 567
       },
       {

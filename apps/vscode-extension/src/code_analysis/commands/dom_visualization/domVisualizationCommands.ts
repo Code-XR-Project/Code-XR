@@ -4,8 +4,8 @@
  */
 
 import * as vscode from 'vscode';
-import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
-import { LauncherVisualizeDOM } from '../../engine/launchers/launcherVisualizeDOM';
+import { AnalysisOrchestrator } from '../../../core/analysis/analysisOrchestrator';
+import { LauncherVisualizeDOM } from '../../../core/analysis/launchers/launcherVisualizeDOM';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { getFileSystemPathFromEditorOrInput } from '../../../utils/uriPathConverter';
 import { getLogger } from '../../../platform/logging/sink';

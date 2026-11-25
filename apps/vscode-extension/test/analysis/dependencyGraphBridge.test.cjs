@@ -99,7 +99,7 @@ function createRoomHooks(existingEntity) {
 async function withBridge(body) {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const coordinatorModule = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
+        const coordinatorModule = requireOut('core/analysis/refresh/analysisRefreshCoordinator.js');
         const coordinatorCalls = [];
         const coordinator = coordinatorModule.analysisRefreshCoordinator;
         coordinator.setSnapshotAvailable = (...args) => coordinatorCalls.push(['setSnapshotAvailable', ...args]);

@@ -13,21 +13,21 @@ CodeXR is a VS Code extension (~337 TS files) that analyzes source code with a *
 ```
 User command (context menu / tree / palette)
   └─> src/code_analysis/commands/...            (per-mode command handlers)
-      └─> engine/launchers/launcherXRAnalysis.ts | launcherLivePanel.ts | launcherVisualizeDOM.ts
-          └─> engine/launchers/launchPipeline.ts  → creates a UnifiedAnalysisSession
-              ├─> engine/utils/executePython.ts   → spawns managed venv, runs python/main.py → JSON metrics
+      └─> src/core/analysis/launchers/launcherXRAnalysis.ts | launcherLivePanel.ts | launcherVisualizeDOM.ts
+          └─> launchers/launchPipeline.ts  → creates a UnifiedAnalysisSession
+              ├─> python/executePython.ts   → spawns managed venv, runs python/main.py → JSON metrics
               ├─> src/core/charts/                → validates dimension mapping, fills HTML template
               │     (chart registry + placeholder processing over templates/xr/...)
-              ├─> engine/components/customComponents/*ComponentAsset.ts
+              ├─> scene-assets/*ComponentAsset.ts
               │     → inlines browser runtimes from templates/components/**/*.js into the HTML
-              └─> engine/servers/serverLaunchOrchestrator.ts (+ sessionServerManager)
+              └─> session-servers/serverLaunchOrchestrator.ts (+ sessionServerManager)
                     └─> src/core/server (HTTP/HTTPS) serves the scene
                         └─> registered in src/core/server/registry → shown in sidebar tree (src/features/active-servers)
-Live updates: engine/watchers/* detect file changes → re-run Python →
-  engine/servers/sseNotificationManager.ts → src/core/server/sse/SSEManager.ts → browser reloads data
+Live updates: core/analysis/watchers/* detect file changes → re-run Python →
+  core/analysis/session-servers/sseNotificationManager.ts → src/core/server/sse/SSEManager.ts → browser reloads data
 ```
 
-Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/headset), **LivePanel** (2D webview panel), **DOM visualization** (HTML DOM structure in XR). Each mode has its own launcher and parser (`engine/parsers/`); one shared requirement processor (`engine/processors/FileRequirementProcessor.ts` → `analysisBootstrap.ts`) loads the templates the mode needs.
+Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/headset), **LivePanel** (2D webview panel), **DOM visualization** (HTML DOM structure in XR). Each mode has its own launcher and parser (`core/analysis/parsers/`); one shared requirement processor (`core/analysis/processors/FileRequirementProcessor.ts` → `analysisBootstrap.ts`) loads the templates the mode needs.
 
 ## Activation flow (`src/extension.ts`)
 
@@ -45,13 +45,13 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 
 | Module | Responsibility | Key files |
 |---|---|---|
-| `code_analysis/` | **The core (246 files).** Analysis engine, sessions, watchers, Python backend, dependency + historical analysis | `engine/launchers/launcherXRAnalysis.ts`, `engine/core/analysisSession.ts`, `engine/orchestrator` → `analysisOrchestrator.ts` |
-| `code_analysis/engine/` | Pipeline: launchers, parsers, the requirement processor, session servers, watchers, component-asset injection | `launchPipeline.ts`, `servers/sessionServerManager.ts`, `watchers/sessionWatcherManager.ts`, `utils/executePython.ts` |
+| `code_analysis/` | The analysis sidebar section, its commands and services (moving to `features/analysis/` in B13) | `views/`, `commands/`, `services/` |
+| `core/analysis/` | **The analysis engine.** Pipeline: launchers, parsers, the requirement processor, sessions, session servers, watchers, refresh, the Python bridge, the scene-asset injection, the language tables | `analysisOrchestrator.ts`, `launchers/launchPipeline.ts`, `launchers/launcherXRAnalysis.ts`, `session/analysisSession.ts`, `session/sessionRegistry.ts`, `session-servers/sessionServerManager.ts`, `watchers/sessionWatcherManager.ts`, `python/executePython.ts`, `python/xrFieldSchemaService.ts`, `configuration/analysisConfigurationStorage.ts`, `languages/languageMetadata.ts`, `languages/supportedLanguages.ts` |
 | `code_analysis/python/` | Python analysis backend (see `PYTHON_ANALYSIS.md`) | `main.py`, `tools/lizard_analyzer.py`, `utils/xr_field_schema.py` |
 | `core/dependencies/` | Dependency-graph analysis service (see `docs/features/DEPENDENCY_GRAPH_XR.md`) | `DependencyGraphService` *[inferred name from docs]* |
 | `core/export/` | Analysis export: the manifest, the package transaction and the Git-revision exporter with its Python worker pool | `exportManifest.ts`, `exportPackageTransaction.ts`, `gitRevisionExporter.ts`, `gitRevisionExportCore.ts`, `gitTimelineBlobAnalyzer.ts` |
 | `core/history/` | Git history: comparator + Project Evolution. Both services compose a `GitAnalysisSessionContext` (catalogue, per-commit payload cache, analyze/exclude) and a `SingleJobGate` (one job at a time, last successful request); `gitAnalysisShared.ts` holds the pure helpers the export core shares | `gitRepositoryService.ts`, `historicalComparisonService.ts`, `projectEvolutionService.ts`, `gitAnalysisSessionContext.ts`, `gitAnalysisShared.ts` |
-| `code_analysis/services/` | Cross-cutting services | `xrFieldSchemaService.ts`, `workspaceSnapshotService.ts`, `serverWatcherIntegration.ts` |
+| `code_analysis/services/` | Cross-cutting services | `workspaceSnapshotService.ts`, `serverWatcherIntegration.ts` |
 | `core/charts/` | Chart template system: registry, models, dimension validation, HTML placeholder processing, the visualization configuration read by every launch | `chartRegistry.ts`, `chartModels.ts`, `xrFieldModels.ts`, `templateCharts.ts`, `chartPresentation.ts`, `getVisualizationConfiguration.ts` (lazy `require` of `settings/settingsAccessors.ts`), `processing/dimensionValidator.ts`, `processing/templateHTMLProcessor.ts`, `processing/templateProcessor.ts`, `processing/placeholders/` |
 | `features/examples/` | Bundled BabiaXR demo examples (tree section + launcher) | `services/exampleLauncher.ts`, `commands/babiaExamplesCommands.ts`, `commands/babiaExamplesCommandRegistrations.ts`, `model/babiaExampleModel.ts`, `views/BabiaExamplesSectionProvider.ts`, `views/babiaExamplesTreeView.ts`, `views/{exampleItems,babiaExampleItems}.ts`, `views/{handleExampleClicks,handleBabiaExampleClicks}.ts` (two factories and two click handlers: a duplication recorded for 1.3.0, src-layout.md §2.1) |
 | `core/server/` | Server **infrastructure**: HTTP/HTTPS, ports, self-signed certs, SSE, collaboration/broadcast signaling, server settings, the running-server registry and its control | `httpServer.ts` (façade + composition root), `httpsServerBase.ts` (state, port search, TLS wiring and delegation shared by `httpsCustomServer.ts`/`httpsDefaultServer.ts`; TLS literal in `httpsTlsOptions.ts`), `sse/SSEManager.ts`, `collaboration/collaborationRoomServer.ts`, `multiServerLauncher.ts` (launch orchestration; `serverFactory.ts` picks, builds and starts the server class; the toasts after a launch are in `features/active-servers/views/launchNotifications.ts`, the one allow-listed upward edge), `launchServerWithFile.ts` (was `servers/runtime/index.ts`), `serverControl.ts`, `serverSettingsManager.ts`, `networkUtils.ts`, `fileToServerMap.ts` |
@@ -78,11 +78,11 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports), `commands/commandBuilder.ts`, `tree/baseInterfaces.ts` (the section-provider contract every sidebar section implements), `ui/errorHandler.ts`, `ui/detailDialog.ts`, `webview/panelManager.ts` (the `serverId → WebviewPanel` registry) |
 | `shared/` | Helpers with no VS Code and no domain | `nonceGenerator.ts` |
 | `features/learn-more/` | "Learn more" help section in the tree | `commands/learnMoreCommands.ts`, `commands/learnMoreCommandRegistrations.ts`, `views/LearnMoreSectionProvider.ts`, `views/learnMoreItems.ts`, `views/handleLearnMoreClicks.ts` |
-| `utils/` | Helpers still waiting for their #55 batch | `languageMetadata.ts`, `fileToServerMap.ts`, `sha256Generator.ts` |
+| `utils/` | Helpers still waiting for their #55 batch (B13, B14) | `uriPathConverter.ts`, `commonCommands.ts` |
 
 **Per-feature layout convention** (followed by most modules): `commands/` + `model(s)/` + `runtime/` or `services/` + `views/{items,interactions}` + `registry|storage|state/`. When adding a feature, mirror this pattern.
 
-**Folder dependencies** (stories #42, #55): which folder may import which is data in `test/tooling/folderDependencies.json`, checked by `test/tooling/dependencyDirection.test.cjs` (type imports count). A folder is the first directory under `src/`, or the first two under `core/` and `features/` (`twoLevelAreas`); the same file holds the layer order `app → features → core → platform → shared` (`layers`), which the test enforces (no upward edge, no feature importing another feature) except for the reasoned entries in `layerExceptions`. A new cross-folder direction fails the gate until it is added there; a new two-way pair also needs a written reason. The remaining pairs are each documented in that file (all inside the server/analysis subsystems: `core/server`, `core/remote-access`, `code_analysis` with `core/history` and `core/export`, plus `core/server`/`features/active-servers`, which is the one allow-listed upward edge). `platform/` imports no feature folder, and `core/` none besides that edge.
+**Folder dependencies** (stories #42, #55): which folder may import which is data in `test/tooling/folderDependencies.json`, checked by `test/tooling/dependencyDirection.test.cjs` (type imports count). A folder is the first directory under `src/`, or the first two under `core/` and `features/` (`twoLevelAreas`); the same file holds the layer order `app → features → core → platform → shared` (`layers`), which the test enforces (no upward edge, no feature importing another feature) except for the reasoned entries in `layerExceptions`. A new cross-folder direction fails the gate until it is added there; a new two-way pair also needs a written reason. The remaining pairs are each documented in that file (all inside the server/analysis subsystems: `core/server`, `core/remote-access`, `core/analysis` with `core/history`, plus `core/server`/`features/active-servers`, which is the one allow-listed upward edge). `platform/` imports no feature folder, and `core/` none besides that edge.
 
 **Barrel policy** (decided 2026-09-18, measured): 82% of the relative imports in `src/` (807 of 981) already name a concrete file, and 32 of the 82 `index.ts` barrels have no importer at all. So: **import the concrete file; do not add a barrel "for symmetry"**. An unimported barrel is dead code and keeps otherwise-dead modules looking referenced. Story #55 (batch 0) dissolved every re-export barrel that was left: `src/` has none, and the two `index.ts` files that held code are renamed in the move.
 
@@ -92,10 +92,10 @@ Note: before #55 a feature was split between a feature folder and `views/<featur
 
 ## Cross-module contracts (the seams that matter)
 
-1. **XR field schema**: Python defines analyzable fields in `code_analysis/python/utils/xr_field_schema.py`; TypeScript consumes it via `code_analysis/services/xrFieldSchemaService.ts` (backed by `main.py --mode schema`). Dimension-mapping validation in `core/charts/processing/dimensionValidator.ts` checks user mappings against this schema. **Changing metrics on the Python side requires keeping this schema in sync.**
+1. **XR field schema**: Python defines analyzable fields in `code_analysis/python/utils/xr_field_schema.py`; TypeScript consumes it via `core/analysis/python/xrFieldSchemaService.ts` (backed by `main.py --mode schema`). Dimension-mapping validation in `core/charts/processing/dimensionValidator.ts` checks user mappings against this schema. **Changing metrics on the Python side requires keeping this schema in sync.**
 2. **Chart registry**: `core/charts/chartRegistry.ts` (`BabiaChartRegistry` singleton) is the source of truth for available chart types and their dimension requirements.
 3. **File ↔ server mapping**: `src/core/server/fileToServerMap.ts` links analyzed files to the server instance serving their visualization; SSE clients are keyed by file URI in `SSEManager`.
-4. **Component-asset injection**: TS files in `code_analysis/engine/components/customComponents/*ComponentAsset.ts` read runtime JS from `templates/components/` and inline it into generated HTML. A runtime shipped as one file is a row of the `SINGLE_FILE_RUNTIME_ASSETS` descriptor table in `customComponents/singleFileRuntimeAssets.ts` (output name, folder, refusal label), and its `*ComponentAsset.ts` is a thin wrapper keeping the named exports; multi-part runtimes go through `runtimeAssembly.ts`. The browser runtimes never import TS code; the contract is the injected globals and entity schemas (see `templates/components/COMPONENTS.md`).
+4. **Component-asset injection**: TS files in `core/analysis/scene-assets/*ComponentAsset.ts` read runtime JS from `templates/components/` and inline it into generated HTML. A runtime shipped as one file is a row of the `SINGLE_FILE_RUNTIME_ASSETS` descriptor table in `scene-assets/singleFileRuntimeAssets.ts` (output name, folder, refusal label), and its `*ComponentAsset.ts` is a thin wrapper keeping the named exports; multi-part runtimes go through `runtimeAssembly.ts`. The browser runtimes never import TS code; the contract is the injected globals and entity schemas (see `templates/components/COMPONENTS.md`).
 5. **Command registration**: every module exports a command-registration array consumed by `src/commands/index.ts`. Command IDs use prefixes `codeXR.*` / `codexr.*` (both exist — check before adding).
 
 ## Logging (since 1.2.1)

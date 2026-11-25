@@ -6,8 +6,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CommandRegistration } from '../analysis_settings/analysis_file_mode/analysisFileModeCommands';
-import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
-import { AnalysisOrchestrator } from '../../../engine/analysisOrchestrator';
+import { AnalysisConfigurationStorage } from '../../../../core/analysis/configuration/analysisConfigurationStorage';
+import { AnalysisOrchestrator } from '../../../../core/analysis/analysisOrchestrator';
 import { CodeXRLogger } from '../../../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('FILES_BY_LANGUAGE_COMMANDS');

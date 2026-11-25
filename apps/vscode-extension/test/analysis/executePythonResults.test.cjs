@@ -48,7 +48,7 @@ async function run(call, backend = {}, { python, silentConsole = true } = {}) {
     const silence = silentConsole ? muteConsole() : { restore() {} };
     try {
         return await withFakeVscode(fake, async ({ requireOut }) => {
-            const { ExecutePython } = requireOut('code_analysis/engine/utils/executePython.js');
+            const { ExecutePython } = requireOut('core/analysis/python/executePython.js');
             const executor = new ExecutePython(context);
             const interpreter = typeof python === 'function' ? python(extensionPath) : process.execPath;
             executor.venvManager = { getPythonExecutablePath: () => interpreter };

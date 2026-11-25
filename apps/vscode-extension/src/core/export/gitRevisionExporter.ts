@@ -10,7 +10,7 @@ import {
 } from './gitExportOptions';
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
 import { VenvManager } from '../python-env/venvManager';
-import { resolveBackendScriptPath } from '../../code_analysis/engine/utils/backendScriptPath';
+import { resolveBackendScriptPath } from '../analysis/python/backendScriptPath';
 
 /**
  * VS Code-side wrapper for the export-time Git analysis. It resolves the

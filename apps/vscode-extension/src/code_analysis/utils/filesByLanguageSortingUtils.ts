@@ -9,7 +9,7 @@ import {
     FilesByLanguageSortingConfig,
     LanguageGroupSortBy,
     LanguageGroupSortDirection
-} from '../configuration/models/analysisConfiguration';
+} from '../../core/analysis/configuration/analysisConfiguration';
 import { FilesByLanguage } from './workspaceFileScanner';
 import { getLogger } from '../../platform/logging/sink';
 

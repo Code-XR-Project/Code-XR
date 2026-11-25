@@ -43,8 +43,8 @@ const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetMod
  * the F5 flow (open a file analysis and a directory analysis in XR).
  */
 
-const FILE_XR_PARSER = 'src/code_analysis/engine/parsers/fileXRParser.ts';
-const DIRECTORY_XR_PARSER = 'src/code_analysis/engine/parsers/directoryXRParser.ts';
+const FILE_XR_PARSER = 'src/core/analysis/parsers/fileXRParser.ts';
+const DIRECTORY_XR_PARSER = 'src/core/analysis/parsers/directoryXRParser.ts';
 
 const RUNTIME_ASSETS_COPIED_BY_FILE_XR = [
     'analysisModeRuntime.js',

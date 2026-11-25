@@ -196,13 +196,13 @@ async function withServices(options, body) {
     const sessions = new Map((options.sessions || []).map((session) => [session.id, session]));
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { UnifiedSessionRegistry } = requireOut('code_analysis/engine/core/sessionRegistry.js');
+            const { UnifiedSessionRegistry } = requireOut('core/analysis/session/sessionRegistry.js');
             UnifiedSessionRegistry.getInstance = () => ({ getSession: (id) => sessions.get(id) });
-            const { ExecutePython } = requireOut('code_analysis/engine/utils/executePython.js');
+            const { ExecutePython } = requireOut('core/analysis/python/executePython.js');
             ExecutePython.prototype.executeAnalysis = function stubbedAnalysis(session) {
                 return analyzer.run(session);
             };
-            const { AnalysisConfigurationStorage } = requireOut('code_analysis/configuration/analysisConfigurationStorage.js');
+            const { AnalysisConfigurationStorage } = requireOut('core/analysis/configuration/analysisConfigurationStorage.js');
             AnalysisConfigurationStorage.getInstance = () => ({
                 getDimensionMappingFile: async () => ({ height: 'ccn', area: '', color: 7 }),
                 getDimensionMappingDirectory: async () => ({ height: 'totalLines', width: 'totalLines', color: '' }),
@@ -913,7 +913,7 @@ async function settle() {
 async function withBridges(body) {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const coordinatorModule = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
+        const coordinatorModule = requireOut('core/analysis/refresh/analysisRefreshCoordinator.js');
         const coordinatorCalls = [];
         const coordinator = coordinatorModule.analysisRefreshCoordinator;
         coordinator.setRefreshEnabled = (...args) => coordinatorCalls.push(['setRefreshEnabled', ...args]);

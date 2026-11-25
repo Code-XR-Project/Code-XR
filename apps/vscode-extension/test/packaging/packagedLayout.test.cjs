@@ -235,18 +235,18 @@ test('the compiled resolvers find what they need in a materialized packaged layo
     try {
         const { pythonEntryPoints } = await collectSurface();
         const result = await withFakeVscode(createFakeVscode(), async ({ requireOut }) => {
-            const { resolveBackendScriptPath } = requireOut('code_analysis/engine/utils/backendScriptPath.js');
+            const { resolveBackendScriptPath } = requireOut('core/analysis/python/backendScriptPath.js');
             const scripts = pythonEntryPoints.map((entry) => resolveBackendScriptPath(context, entry.split(' | ')[0]));
 
             const { assertCodeXrCommonRuntimeSourceExists } = requireOut(
-                'code_analysis/engine/components/customComponents/commonComponentAsset.js',
+                'core/analysis/scene-assets/commonComponentAsset.js',
             );
             const commonRuntime = assertCodeXrCommonRuntimeSourceExists(extensionRoot);
 
             const { ExampleLauncher } = requireOut('features/examples/services/exampleLauncher.js');
             const examples = await new ExampleLauncher(context).scanExamples();
 
-            const { SaveFiles } = requireOut('code_analysis/engine/utils/saveFiles.js');
+            const { SaveFiles } = requireOut('core/analysis/utils/saveFiles.js');
             const outputDirectory = await new SaveFiles().saveFilesToStorage(
                 new Map([['index.html', '<!doctype html>']]),
                 'fileAnalysis',

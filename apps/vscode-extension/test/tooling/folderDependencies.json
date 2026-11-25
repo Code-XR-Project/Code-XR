@@ -20,6 +20,7 @@
     "(root)": [
       "code_analysis",
       "commands",
+      "core/analysis",
       "core/collaboration",
       "core/remote-access",
       "core/server",
@@ -30,13 +31,11 @@
       "views"
     ],
     "code_analysis": [
+      "core/analysis",
       "core/charts",
       "core/export",
-      "core/history",
-      "core/python-env",
       "core/server",
       "platform",
-      "shared",
       "utils"
     ],
     "commands": [
@@ -52,22 +51,30 @@
       "platform",
       "utils"
     ],
+    "core/analysis": [
+      "core/charts",
+      "core/history",
+      "core/python-env",
+      "core/server",
+      "platform",
+      "shared"
+    ],
     "core/charts": [
       "platform",
       "shared"
     ],
     "core/collaboration": [],
     "core/dependencies": [
-      "code_analysis"
+      "core/analysis"
     ],
     "core/export": [
-      "code_analysis",
+      "core/analysis",
       "core/history",
       "core/python-env",
       "platform"
     ],
     "core/history": [
-      "code_analysis"
+      "core/analysis"
     ],
     "core/python-env": [
       "platform"
@@ -78,7 +85,7 @@
       "platform"
     ],
     "core/server": [
-      "code_analysis",
+      "core/analysis",
       "core/collaboration",
       "core/dependencies",
       "core/history",
@@ -146,9 +153,8 @@
     ]
   },
   "twoWayPairs": {
-    "code_analysis<->core/export": "Transitional (#55 B11 -> B13): before B11 both sides were inside code_analysis. The exporter reads the backend script path and the default controller view from the engine (core/export -> code_analysis/engine, code_analysis/refresh), and the Active Analyses export command drives the exporter (code_analysis/views/subsections/active_analyses -> core/export). B13 moves that command into features/analysis, which turns the second edge into a downward one and removes the pair.",
-    "code_analysis<->core/history": "Was inside code_analysis before #55 B11. The Git history services compose the analysis session, the session registry, ExecutePython, the configuration storage and the analysis file policy (core/history -> code_analysis/engine, code_analysis/configuration), while the re-analysis watchers publish on analysisUpdateEvents (code_analysis/engine/watchers -> core/history/analysisUpdateEvents.ts). B12 renames the analysis side to core/analysis; moving the event bus next to the watchers would remove the pair.",
-    "code_analysis<->core/server": "The analysis<->server pair of docs/cleanup/src-layout.md \u00a73.5. The analysis bridges are hosted by the HTTP server (core/server/analysis/* -> code_analysis historical, dependencies, refresh, watchers) and stopping a server closes its analysis session (core/server/serverControl.ts -> sessionRegistry); the analysis engine launches and notifies servers (serverLaunchOrchestrator, SSE) and its watchers follow server removal (serverWatcherIntegration -> the registry and ServerControl). Inverting it means registering the bridges from the analysis side and an event or callback seam for the session (#13).",
+    "core/analysis<->core/history": "Was inside code_analysis before #55. The Git history services compose the analysis session, the session registry, ExecutePython, the configuration storage and the analysis file policy (core/history -> core/analysis), while the re-analysis watchers publish on analysisUpdateEvents (core/analysis/watchers -> core/history/analysisUpdateEvents.ts). Moving that event bus next to the watchers would remove the pair.",
+    "core/analysis<->core/server": "The analysis<->server pair of docs/cleanup/src-layout.md \u00a73.5. The analysis bridges are hosted by the HTTP server (core/server/analysis/* -> core/analysis refresh, watchers and the session registry) and stopping a server closes its analysis session (core/server/serverControl.ts -> core/analysis/session); the analysis engine launches and notifies servers (core/analysis/session-servers -> multiServerLauncher, SSEManager, fileToServerMap, ServerSettingsManager). Inverting it means registering the bridges from the analysis side and an event or callback seam for the session (#13).",
     "core/remote-access<->core/server": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (core/server -> core/remote-access), and RemoteAccessManager watches the running-server registry to stop a tunnel when its server goes and reads and turns off the cross-network setting through ServerSettingsManager (core/remote-access -> core/server). Breaking it needs that setting and the registry events behind an injected accessor (#13).",
     "core/server<->features/active-servers": "The one upward edge of docs/cleanup/src-layout.md \u00a73.5 seen from both sides: core/server/multiServerLauncher.ts shows the post-launch toasts from features/active-servers/views/launchNotifications.ts (#42 item 5 / #39; listed in layerExceptions), while the ACTIVE SERVERS feature drives the registry, ServerControl and the server settings. Moving the toasts behind a callback the feature registers removes the pair."
   },

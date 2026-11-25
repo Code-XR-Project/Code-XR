@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession';
-import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
+import { UnifiedAnalysisSession } from '../../../../../core/analysis/session/analysisSession';
+import { UnifiedSessionRegistry } from '../../../../../core/analysis/session/sessionRegistry';
 import type { CodeAnalysisTreeItem } from '../../../../views/items/analysisItems';
 import { getLogger } from '../../../../../platform/logging/sink';
 

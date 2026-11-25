@@ -5,8 +5,8 @@
 
 import { ChartMetadata } from '../../../../../core/charts/chartModels';
 import { chartTemplates } from '../../../../../core/charts/templateCharts';
-import { DimensionMapping } from '../../../../configuration/models/analysisConfiguration';
-import { XRFieldTypeMap } from '../../../../services/xrFieldSchemaService';
+import { DimensionMapping } from '../../../../../core/analysis/configuration/analysisConfiguration';
+import { XRFieldTypeMap } from '../../../../../core/analysis/python/xrFieldSchemaService';
 import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('DIMENSION_MAPPING_VALIDATOR');

@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { getLanguageForFile, LanguageInfo } from '../../utils/languageMetadata';
+import { getLanguageForFile, LanguageInfo } from '../../core/analysis/languages/languageMetadata';
 import { CodeXRLogger } from '../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('WORKSPACE_FILE_SCANNER');

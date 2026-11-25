@@ -3,7 +3,7 @@ const test = require('node:test');
 
 const {
   AnalysisRefreshCoordinator,
-} = require('../../out/code_analysis/refresh/analysisRefreshCoordinator.js');
+} = require('../../out/core/analysis/refresh/analysisRefreshCoordinator.js');
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 10));
 

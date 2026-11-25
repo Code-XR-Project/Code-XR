@@ -6,9 +6,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { CommandRegistration } from '../analysis_settings/analysis_file_mode/analysisFileModeCommands';
-import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
-import { AnalysisOrchestrator } from '../../../engine/analysisOrchestrator';
-import { getLanguageByExtension } from '../../../../utils/supportedLanguages';
+import { AnalysisConfigurationStorage } from '../../../../core/analysis/configuration/analysisConfigurationStorage';
+import { AnalysisOrchestrator } from '../../../../core/analysis/analysisOrchestrator';
+import { getLanguageByExtension } from '../../../../core/analysis/languages/supportedLanguages';
 import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('PROJECT_STRUCTURE_COMMANDS');

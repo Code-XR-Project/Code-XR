@@ -31,7 +31,7 @@
 
 1. Read: `ARCHITECTURE.md` module map to locate the subsystem; the area doc if the bug touches a contract seam.
 2. **Reproduce first** — via the narrowest test script or the F5 flow. Write a failing test when feasible (`test/<area>/*.test.cjs` or `test/python/`).
-3. Fix at the root cause; do not patch around watchers/session lifecycle without reading `engine/core/analysisSession.ts` + `engine/watchers/` behavior.
+3. Fix at the root cause; do not patch around watchers/session lifecycle without reading `core/analysis/session/analysisSession.ts` + `core/analysis/watchers/` behavior.
 4. Validate: the new/affected test + `npm run test:basic`.
 5. Update CHANGELOG (Fixed) and, if the bug revealed wrong documentation, correct the doc in the same session.
 
@@ -66,7 +66,7 @@ Full procedure lives in the **`cleanup` skill** — invoke it. Summary:
 
 1. Read: `V1.2.1_STATUS.md` (entire file), `v1.2.1/ROADMAP.md` (decisions and exit criteria; `docs/project/ROADMAP_V1.2.0.md` holds the historical 1.2.0 ones), `DEVELOPMENT.md` (packaging).
 2. Resolve every open verification row in `V1.2.1_STATUS.md` (each has a how-to-verify hint).
-3. Reconcile docs: README "What's New" → the release's content; CHANGELOG `[1.2.1]` → its provisional date moved to the real release date; roadmap statuses; language-count claim fixed against `src/utils/languageMetadata.ts`; rename leftovers.
+3. Reconcile docs: README "What's New" → the release's content; CHANGELOG `[1.2.1]` → its provisional date moved to the real release date; roadmap statuses; language-count claim fixed against `src/core/analysis/languages/languageMetadata.ts`; rename leftovers.
 4. Quality gate: `npm run test:all` + `npm run test:analysis` + harnesses for touched runtimes; F5 smoke of the three analysis modes.
 5. Package: `npm run package:vsix`; **inspect the VSIX contents** against the package.json `files` allowlist (no `.vscodeignore` exists — the allowlist is the only control). Verify no unintended files ship and nothing required is missing.
 6. Respect the pre-release sequence a feature release used (1.2.0: `1.2.0-alpha.1` → … → `rc.1` → stable) — do not jump to stable.

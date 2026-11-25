@@ -5,13 +5,13 @@
 
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
-import { ViewTheme } from '../../../../configuration/models/analysisConfiguration';
+import { AnalysisConfigurationStorage } from '../../../../../core/analysis/configuration/analysisConfigurationStorage';
+import { ViewTheme } from '../../../../../core/analysis/configuration/analysisConfiguration';
 import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 
-export { ViewTheme } from '../../../../configuration/models/analysisConfiguration';
+export { ViewTheme } from '../../../../../core/analysis/configuration/analysisConfiguration';
 
 export class ViewThemeSetting {
     private currentTheme: ViewTheme = 'Dark';

@@ -4,9 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const executePythonSource = fs.readFileSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'utils', 'executePython.ts'), 'utf8');
+const executePythonSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'executePython.ts'), 'utf8');
 // executePython and the Git export resolve backend scripts through this helper.
-const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'utils', 'backendScriptPath.ts'), 'utf8');
+const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'backendScriptPath.ts'), 'utf8');
 const pythonPathSources = executePythonSource + backendScriptPathSource;
 const webpackConfigSource = fs.readFileSync(path.join(projectRoot, 'webpack.config.js'), 'utf8');
 
@@ -37,7 +37,7 @@ test('Python analysis uses the Lizard analyzer directly', () => {
 test('analysis configuration uses the active storage module and no legacy storage shims', () => {
     const legacyStoragePath = path.join(projectRoot, 'src', 'utils', 'analysisSettingsStorage.ts');
     const emptyStoragePath = path.join(projectRoot, 'src', 'code_analysis', 'storage');
-    const activeStoragePath = path.join(projectRoot, 'src', 'code_analysis', 'configuration', 'analysisConfigurationStorage.ts');
+    const activeStoragePath = path.join(projectRoot, 'src', 'core', 'analysis', 'configuration', 'analysisConfigurationStorage.ts');
 
     assert.equal(fs.existsSync(legacyStoragePath), false);
     assert.equal(fs.existsSync(emptyStoragePath), false);

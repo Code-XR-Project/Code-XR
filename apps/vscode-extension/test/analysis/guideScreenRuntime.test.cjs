@@ -74,8 +74,8 @@ test('the XR guide screen is interactive, configurable, and safe without A-Frame
 });
 
 test('both XR parsers ship the guide runtime and the served guide.html page', () => {
-    const fileParser = read('src/code_analysis/engine/parsers/fileXRParser.ts');
-    const directoryParser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+    const fileParser = read('src/core/analysis/parsers/fileXRParser.ts');
+    const directoryParser = read('src/core/analysis/parsers/directoryXRParser.ts');
     const sceneTemplate = read('templates/xr/file/xr-visualization.html');
     const guidePage = read('templates/guide/guide.html');
 

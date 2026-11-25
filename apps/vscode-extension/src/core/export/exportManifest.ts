@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { defaultControllerView } from '../../code_analysis/refresh/analysisViewModes';
+import { defaultControllerView } from '../analysis/refresh/analysisViewModes';
 import { ExportGitData } from './gitRevisionExportCore';
 import type { ExportSelection } from './exportModeSelection';
 import { resolveTemplatePath } from '../../platform/templatePaths';

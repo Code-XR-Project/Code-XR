@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
-import type { ChartType, AnalysisFileMode as AnalysisMode } from '../../../../configuration/models/analysisConfiguration';
+import { AnalysisConfigurationStorage } from '../../../../../core/analysis/configuration/analysisConfigurationStorage';
+import type { ChartType, AnalysisFileMode as AnalysisMode } from '../../../../../core/analysis/configuration/analysisConfiguration';
 import { BabiaChartRegistry } from '../../../../../core/charts/chartRegistry';
 import {
     ChartTypeInfo as SharedChartTypeInfo,

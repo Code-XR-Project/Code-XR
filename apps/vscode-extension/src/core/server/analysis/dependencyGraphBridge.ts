@@ -4,7 +4,7 @@ import {
     CollaborationMessage,
     CollaborationRoomServer,
 } from '../collaboration/collaborationRoomServer';
-import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
+import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { getLogger } from '../../../platform/logging/sink';

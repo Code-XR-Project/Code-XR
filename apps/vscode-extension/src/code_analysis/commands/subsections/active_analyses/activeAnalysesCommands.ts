@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { CommandRegistration } from '../analysis_settings/analysis_file_mode/analysisFileModeCommands';
-import { UnifiedSessionRegistry } from '../../../engine/core/sessionRegistry';
+import { UnifiedSessionRegistry } from '../../../../core/analysis/session/sessionRegistry';
 import { ServerWatcherIntegration } from '../../../services/serverWatcherIntegration';
 import { ActiveAnalysesCommands as ActiveAnalysesViewCommands } from '../../../views/subsections/active_analyses/commands/activeAnalysesCommands';
 

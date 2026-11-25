@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { getLanguageForFile } from '../../../utils/languageMetadata';
-import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
+import { getLanguageForFile } from '../../../core/analysis/languages/languageMetadata';
+import { AnalysisOrchestrator } from '../../../core/analysis/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { getLogger } from '../../../platform/logging/sink';
 

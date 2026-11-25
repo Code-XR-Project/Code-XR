@@ -14,7 +14,7 @@ const {
     resolveTrackedSystemPath,
     upsertLivePanelFiles,
     upsertXRFiles,
-} = require('../../out/code_analysis/engine/watchers/directoryReanalysisData.js');
+} = require('../../out/core/analysis/watchers/directoryReanalysisData.js');
 
 function createTempDir(prefix) {
     return fs.mkdtempSync(path.join(os.tmpdir(), prefix));

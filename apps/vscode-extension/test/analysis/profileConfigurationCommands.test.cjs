@@ -19,7 +19,7 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
 const COMMANDS_MODULE = 'code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.js';
-const STORAGE_MODULE = 'code_analysis/configuration/analysisConfigurationStorage.js';
+const STORAGE_MODULE = 'core/analysis/configuration/analysisConfigurationStorage.js';
 
 async function withProfileCommands(body) {
     const fake = createFakeVscode();

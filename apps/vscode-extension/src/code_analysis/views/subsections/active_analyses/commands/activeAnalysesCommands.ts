@@ -6,12 +6,12 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession';
-import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
+import { UnifiedAnalysisSession } from '../../../../../core/analysis/session/analysisSession';
+import { UnifiedSessionRegistry } from '../../../../../core/analysis/session/sessionRegistry';
 import { ServerWatcherIntegration } from '../../../../services/serverWatcherIntegration';
 import { ActiveAnalysesDataService } from '../services/activeAnalysesDataService';
 import { CommandRegistration } from '../../../../commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
-import { analysisRefreshCoordinator } from '../../../../refresh/analysisRefreshCoordinator';
+import { analysisRefreshCoordinator } from '../../../../../core/analysis/refresh/analysisRefreshCoordinator';
 import {
     AnalysisServerCapabilities,
     resolveAnalysisServerCapabilities,
