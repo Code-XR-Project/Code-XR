@@ -11,6 +11,9 @@ import {
     LanguageGroupSortDirection
 } from '../configuration/models/analysisConfiguration';
 import { FilesByLanguage } from './workspaceFileScanner';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('FILES_BY_LANGUAGE_SORTING_UTILS');
 
 export interface LanguageGroupWithMetadata {
     languageName: string;
@@ -92,7 +95,7 @@ export class FilesByLanguageSortingUtils {
                         const stat = await vscode.workspace.fs.stat(fileUri);
                         return { filePath, mtime: stat.mtime };
                     } catch (error) {
-                        console.warn(`Failed to get stat for file: ${filePath}`, error);
+                        logger.warn(`Failed to get stat for file: ${filePath}`, error);
                         return { filePath, mtime: 0 };
                     }
                 })

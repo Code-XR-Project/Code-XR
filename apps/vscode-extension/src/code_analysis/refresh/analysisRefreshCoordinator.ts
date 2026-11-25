@@ -1,4 +1,7 @@
 import { defaultControllerView } from './analysisViewModes';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS_REFRESH_COORDINATOR');
 
 export type AnalysisRefreshMode = 'single' | 'historical-compare' | 'project-evolution' | 'dependency-graph';
 export type AnalysisViewMode = AnalysisRefreshMode | 'selection';
@@ -466,7 +469,7 @@ export class AnalysisRefreshCoordinator {
         } catch (error) {
             this.mergeChanges(pending, batch);
             state.errors[mode] = error instanceof Error ? error.message : String(error);
-            console.error(`[CodeXR][RefreshCoordinator] ${mode} refresh failed:`, error);
+            logger.error(`[CodeXR][RefreshCoordinator] ${mode} refresh failed:`, error);
         } finally {
             delete state.running[mode];
             this.emitState(sessionId, state);

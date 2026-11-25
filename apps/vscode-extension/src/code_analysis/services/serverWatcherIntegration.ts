@@ -21,7 +21,7 @@ export class ServerWatcherIntegration {
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.sessionWatcherManager = new SessionWatcherManager(context);
-        console.log('SERVER_WATCHER_INTEGRATION: Initializing service');
+        logger.debug('Initializing service');
         this.setupServerEventListeners();
     }
 
@@ -53,7 +53,7 @@ export class ServerWatcherIntegration {
             const sessionRegistry = UnifiedSessionRegistry.getInstance(this.context);
             const affectedSessions = sessionRegistry.getAllSessions().filter((session: any) => session.port === server.port);
 
-            console.log(`SERVER_WATCHER_INTEGRATION: Found ${affectedSessions.length} affected sessions for server ${serverId}`);
+            logger.debug(() => `Found ${affectedSessions.length} affected sessions for server ${serverId}`);
             for (const session of affectedSessions) {
                 await this.cleanupSessionAfterServerClosure(session.id, server.port);
             }
@@ -84,13 +84,13 @@ export class ServerWatcherIntegration {
 
     private async stopFileWatcherForSession(sessionId: string, filePath: string): Promise<void> {
         try {
-            console.log(`SERVER_WATCHER_INTEGRATION: Stopping watchers for session ${sessionId}, target: ${filePath}`);
+            logger.debug(() => `Stopping watchers for session ${sessionId}, target: ${filePath}`);
             const sessionWatcherStopped = await this.sessionWatcherManager.stopWatchingSession(sessionId);
 
             if (sessionWatcherStopped) {
-                console.log(`SERVER_WATCHER_INTEGRATION: Stopped session watcher for session ${sessionId}`);
+                logger.debug(() => `Stopped session watcher for session ${sessionId}`);
             } else {
-                console.log(`SERVER_WATCHER_INTEGRATION: No active session watcher found for session ${sessionId}`);
+                logger.debug(() => `No active session watcher found for session ${sessionId}`);
             }
         } catch (error) {
             logger.error(`Error stopping watcher for session ${sessionId}:`, error);
@@ -100,7 +100,7 @@ export class ServerWatcherIntegration {
     private async cleanupAnalysisFiles(outputPath: string): Promise<void> {
         try {
             if (outputPath && fs.existsSync(outputPath)) {
-                console.log(`SERVER_WATCHER_INTEGRATION: Cleaning up analysis files at: ${outputPath}`);
+                logger.debug(() => `Cleaning up analysis files at: ${outputPath}`);
             }
         } catch (error) {
             logger.error('Error cleaning up analysis files:', error);
@@ -126,7 +126,7 @@ export class ServerWatcherIntegration {
             await this.cleanupAnalysisFiles(session.outputPath);
             return sessionRegistry.updateSessionStatus(sessionId, 'closed');
         } catch (error) {
-            console.error('SERVER_WATCHER_INTEGRATION: Error in manual cleanup:', error);
+            logger.error('Error in manual cleanup:', error);
             return false;
         }
     }
@@ -168,6 +168,6 @@ export class ServerWatcherIntegration {
 
     public static initialize(context: vscode.ExtensionContext): void {
         ServerWatcherIntegration.getInstance(context);
-        console.log('SERVER_WATCHER_INTEGRATION: Service initialized');
+        logger.debug('Service initialized');
     }
 }

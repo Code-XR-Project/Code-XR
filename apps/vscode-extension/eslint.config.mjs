@@ -24,6 +24,13 @@ const NO_CONSOLE_FILES = [
     "src/views/**/*.ts",
     "src/utils/**/*.ts",
     "src/babia_examples/**/*.ts",
+    "src/python_env/**/*.ts",
+    "src/code_analysis/refresh/**/*.ts",
+    "src/code_analysis/services/**/*.ts",
+    "src/code_analysis/configuration/**/*.ts",
+    "src/code_analysis/utils/**/*.ts",
+    "src/core/extensionContext.ts",
+    "src/commands/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

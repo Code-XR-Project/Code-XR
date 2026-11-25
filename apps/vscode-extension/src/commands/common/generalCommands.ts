@@ -1,5 +1,8 @@
 import { CommonCommands } from '../../utils/commonCommands';
 import { ExtensionCommandRegistration } from '../shared';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('GENERAL_COMMANDS');
 
 /**
  * General/common commands used throughout the extension.
@@ -11,7 +14,7 @@ export function getGeneralCommandRegistrations(): ExtensionCommandRegistration[]
             module: 'GENERAL_COMMANDS',
             description: 'Tree refresh',
             handler: () => {
-                console.log('GENERAL_COMMANDS: Tree refresh command executed');
+                logger.debug('Tree refresh command executed');
                 CommonCommands.refreshTreeView();
             },
         },
@@ -20,7 +23,7 @@ export function getGeneralCommandRegistrations(): ExtensionCommandRegistration[]
             module: 'GENERAL_COMMANDS',
             description: 'Legacy tree refresh',
             handler: () => {
-                console.log('GENERAL_COMMANDS: Legacy servers refresh command executed, delegating to tree refresh');
+                logger.debug('Legacy servers refresh command executed, delegating to tree refresh');
                 CommonCommands.refreshTreeView();
             },
         },
@@ -29,7 +32,7 @@ export function getGeneralCommandRegistrations(): ExtensionCommandRegistration[]
             module: 'GENERAL_COMMANDS',
             description: 'Legacy server tree refresh alias',
             handler: () => {
-                console.log('GENERAL_COMMANDS: Legacy server refresh alias executed, delegating to tree refresh');
+                logger.debug('Legacy server refresh alias executed, delegating to tree refresh');
                 CommonCommands.refreshTreeView();
             },
         },
@@ -38,7 +41,7 @@ export function getGeneralCommandRegistrations(): ExtensionCommandRegistration[]
             module: 'GENERAL_COMMANDS',
             description: 'Modular tree refresh',
             handler: () => {
-                console.log('GENERAL_COMMANDS: Modular tree refresh command executed');
+                logger.debug('Modular tree refresh command executed');
                 CommonCommands.refreshTreeView();
             },
         },

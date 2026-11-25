@@ -40,9 +40,9 @@ export class PythonEnvStorage {
         this.stateFilePath = path.join(this.pythonEnvPath, PythonEnvStorage.STATE_FILE);
         this.venvPath = path.join(this.pythonEnvPath, PythonEnvStorage.VENV_DIR);
 
-        console.log(`PYTHON_ENV: Storage initialized at ${this.pythonEnvPath}`);
-        console.log(`PYTHON_ENV: Virtual environment path: ${this.venvPath}`);
-        console.log(`PYTHON_ENV: State file path: ${this.stateFilePath}`);
+        logger.debug(() => `Storage initialized at ${this.pythonEnvPath}`);
+        logger.debug(() => `Virtual environment path: ${this.venvPath}`);
+        logger.debug(() => `State file path: ${this.stateFilePath}`);
 
         // Ensure the python-env directory exists
         this.ensurePythonEnvDirectory();
@@ -70,9 +70,9 @@ export class PythonEnvStorage {
             const jsonData = JSON.stringify(metadata, null, 2);
             fs.writeFileSync(this.stateFilePath, jsonData, 'utf-8');
             
-            console.log('PYTHON_ENV: Metadata saved to state file', metadata);
+            logger.debug('Metadata saved to state file', metadata);
         } catch (error) {
-            console.error('PYTHON_ENV: Failed to save metadata:', error);
+            logger.error('Failed to save metadata:', error);
             throw new Error(`Failed to save Python environment metadata: ${error}`);
         }
     }
@@ -83,17 +83,17 @@ export class PythonEnvStorage {
     public loadMetadata(): PythonEnvMetadata | null {
         try {
             if (!fs.existsSync(this.stateFilePath)) {
-                console.log('PYTHON_ENV: No state file found, returning null');
+                logger.debug('No state file found, returning null');
                 return null;
             }
 
             const jsonData = fs.readFileSync(this.stateFilePath, 'utf-8');
             const metadata = JSON.parse(jsonData) as PythonEnvMetadata;
             
-            console.log('PYTHON_ENV: Metadata loaded from state file', metadata);
+            logger.debug('Metadata loaded from state file', metadata);
             return metadata;
         } catch (error) {
-            console.error('PYTHON_ENV: Failed to load metadata:', error);
+            logger.error('Failed to load metadata:', error);
             return null;
         }
     }
@@ -103,7 +103,7 @@ export class PythonEnvStorage {
      */
     public isVenvValid(): boolean {
         const isValid = PythonEnvUtils.isValidVenv(this.venvPath);
-        console.log(`PYTHON_ENV: Virtual environment validation result: ${isValid}`);
+        logger.debug(() => `Virtual environment validation result: ${isValid}`);
         return isValid;
     }
 
@@ -115,18 +115,18 @@ export class PythonEnvStorage {
             // Remove virtual environment directory
             if (fs.existsSync(this.venvPath)) {
                 fs.rmSync(this.venvPath, { recursive: true, force: true });
-                console.log('PYTHON_ENV: Virtual environment directory deleted');
+                logger.debug('Virtual environment directory deleted');
             }
 
             // Remove state file
             if (fs.existsSync(this.stateFilePath)) {
                 fs.unlinkSync(this.stateFilePath);
-                console.log('PYTHON_ENV: State file deleted');
+                logger.debug('State file deleted');
             }
 
-            console.log('PYTHON_ENV: Environment successfully deleted');
+            logger.debug('Environment successfully deleted');
         } catch (error) {
-            console.error('PYTHON_ENV: Failed to delete environment:', error);
+            logger.error('Failed to delete environment:', error);
             throw new Error(`Failed to delete Python environment: ${error}`);
         }
     }
@@ -140,7 +140,7 @@ export class PythonEnvStorage {
             if (metadata) {
                 metadata.lastValidated = new Date().toISOString();
                 await this.saveMetadata(metadata);
-                console.log('PYTHON_ENV: Validation timestamp updated');
+                logger.debug('Validation timestamp updated');
             }
         } catch (error) {
             logger.error('Failed to update validation:', error);
@@ -156,7 +156,7 @@ export class PythonEnvStorage {
             if (metadata) {
                 metadata.dependencies = dependencies;
                 await this.saveMetadata(metadata);
-                console.log(`PYTHON_ENV: Dependencies updated (${dependencies.length} packages)`);
+                logger.debug(() => `Dependencies updated (${dependencies.length} packages)`);
             }
         } catch (error) {
             logger.error('Failed to update dependencies:', error);
@@ -188,7 +188,7 @@ export class PythonEnvStorage {
                 throw new Error(`Failed to create python-env directory at ${this.pythonEnvPath}`);
             }
         } catch (error) {
-            console.error('PYTHON_ENV: Failed to ensure directory exists:', error);
+            logger.error('Failed to ensure directory exists:', error);
             throw error;
         }
     }

@@ -15,6 +15,9 @@
  */
 
 import * as vscode from 'vscode';
+import { getLogger } from './logging/sink';
+
+const logger = getLogger('CORE');
 
 let _context: vscode.ExtensionContext | null = null;
 
@@ -25,7 +28,7 @@ let _context: vscode.ExtensionContext | null = null;
 export function initializeExtensionContext(context: vscode.ExtensionContext): void {
     if (!_context) {
         _context = context;
-        console.log('CORE: Extension context initialized');
+        logger.debug('Extension context initialized');
     }
 }
 
