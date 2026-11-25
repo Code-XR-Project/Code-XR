@@ -24,6 +24,10 @@
 - **The two hidden theme debugging commands** `codexr.debug.themeConfiguration` and `codexr.debug.themeWorkflow`, together with the diagnostics module behind them. They only wrote to the developer console and nothing could run them. Theme settings are unaffected.
 - **The "Hello World" command** (`CodeXR.helloWorld`), a leftover from the extension template that showed a greeting and nothing else. It no longer appears in the Command Palette.
 
+#### Changed
+
+- **"CodeXR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
+
 #### Fixed
 
 - **Historical comparison and project evolution no longer refuse a folder opened through a link.** When the analyzed folder was reached through a symbolic link, a junction, or a shortened Windows path (`C:\Users\JOHNDO~1\...`), Code-XR compared it with the repository path Git reports and wrongly concluded the folder was outside the repository, so the Git-based analyses were unavailable. Both paths are now resolved to their real location before they are compared.

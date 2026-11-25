@@ -732,6 +732,10 @@
         {
           "command": "codeXR.analysis.runLast.visualizeDOM",
           "when": "false"
+        },
+        {
+          "command": "codeXR.pythonEnv.debugFailInstallation",
+          "when": "false"
         }
       ]
     },
