@@ -238,6 +238,36 @@ def _resolve_project_root(file_path: str, project_root: Optional[str]) -> str:
         current = parent
 
 
+def _find_block_end(source_lines: List[str], line_number: int, line: str, language: str) -> int:
+    """Last line of an indentation-delimited body (Python, GDScript); else the start line."""
+    line_end = line_number
+    if language in {"Python", "GDScript"}:
+        function_indent = len(line) - len(line.lstrip())
+        for candidate_number, candidate in enumerate(
+            source_lines[line_number:], start=line_number + 1
+        ):
+            stripped = candidate.strip()
+            if stripped and not stripped.startswith(("#", "@")):
+                indent = len(candidate) - len(candidate.lstrip())
+                if indent <= function_indent:
+                    break
+            line_end = candidate_number
+    return line_end
+
+
+def _lexical_function_entry(name: str, line_start: int, line_end: int) -> Dict[str, object]:
+    return {
+        "functionName": name,
+        "qualifiedName": name,
+        "lineStart": line_start,
+        "lineEnd": line_end,
+        "lineCount": max(1, line_end - line_start + 1),
+        "complexity": 0,
+        "parameters": 0,
+        "maxNestingDepth": 0,
+    }
+
+
 def _build_file_dependency_snapshot(file_path: str, text: str) -> Tuple[Dict[str, object], Optional[str]]:
     try:
         from file_analysis_engine import build_file_snapshot
@@ -255,28 +285,10 @@ def _build_file_dependency_snapshot(file_path: str, text: str) -> Tuple[Dict[str
             )
             if not function_match or (function_match.group(1), line_number) in existing:
                 continue
-            line_end = line_number
-            if language in {"Python", "GDScript"}:
-                function_indent = len(line) - len(line.lstrip())
-                for candidate_number, candidate in enumerate(
-                    source_lines[line_number:], start=line_number + 1
-                ):
-                    stripped = candidate.strip()
-                    if stripped and not stripped.startswith(("#", "@")):
-                        indent = len(candidate) - len(candidate.lstrip())
-                        if indent <= function_indent:
-                            break
-                    line_end = candidate_number
-            snapshot.setdefault("functions", []).append({
-                "functionName": function_match.group(1),
-                "qualifiedName": function_match.group(1),
-                "lineStart": line_number,
-                "lineEnd": line_end,
-                "lineCount": max(1, line_end - line_number + 1),
-                "complexity": 0,
-                "parameters": 0,
-                "maxNestingDepth": 0,
-            })
+            line_end = _find_block_end(source_lines, line_number, line, language)
+            snapshot.setdefault("functions", []).append(
+                _lexical_function_entry(function_match.group(1), line_number, line_end)
+            )
         snapshot["functions"] = sorted(
             snapshot.get("functions", []),
             key=lambda item: (int(item.get("lineStart", 0) or 0), str(item.get("functionName") or "")),
@@ -305,28 +317,8 @@ def _build_file_dependency_snapshot(file_path: str, text: str) -> Tuple[Dict[str
                 line,
             )
             if function_match:
-                line_end = line_number
-                if language in {"Python", "GDScript"}:
-                    function_indent = len(line) - len(line.lstrip())
-                    for candidate_number, candidate in enumerate(
-                        source_lines[line_number:], start=line_number + 1
-                    ):
-                        stripped = candidate.strip()
-                        if stripped and not stripped.startswith(("#", "@")):
-                            indent = len(candidate) - len(candidate.lstrip())
-                            if indent <= function_indent:
-                                break
-                        line_end = candidate_number
-                functions.append({
-                    "functionName": function_match.group(1),
-                    "qualifiedName": function_match.group(1),
-                    "lineStart": line_number,
-                    "lineEnd": line_end,
-                    "lineCount": max(1, line_end - line_number + 1),
-                    "complexity": 0,
-                    "parameters": 0,
-                    "maxNestingDepth": 0,
-                })
+                line_end = _find_block_end(source_lines, line_number, line, language)
+                functions.append(_lexical_function_entry(function_match.group(1), line_number, line_end))
         return {
             "language": language,
             "classes": classes,
