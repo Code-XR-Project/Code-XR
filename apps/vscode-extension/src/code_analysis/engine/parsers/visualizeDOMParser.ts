@@ -1,22 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { TemplateHTMLProcessor, HTMLTemplateData } from '../../../babia_templates/processing/templateHTMLProcessor';
-import {
-    CODEXR_AVATAR_RUNTIME_OUTPUT_NAME,
-    CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME,
-    CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME,
-    readCodeXrAvatarRuntimeContent,
-    readCodeXrCollaborationRuntimeContent,
-    readCodeXrDomSceneCollaborationRuntimeContent,
-    readVirtualScreenManagerRuntimeContent,
-    VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME,
-    readVirtualScreenRuntimeContent,
-    VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME,
-    readPointerPolicyRuntimeContent,
-    POINTER_POLICY_RUNTIME_OUTPUT_NAME,
-    readImmersiveRigRuntimeContent,
-    IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
-} from '../components/customComponents';
+import { CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, readCodeXrAvatarRuntimeContent } from '../components/customComponents/avatarComponentAsset';
+import { CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME, readCodeXrCollaborationRuntimeContent, readCodeXrDomSceneCollaborationRuntimeContent } from '../components/customComponents/collaborationComponentAsset';
+import { readVirtualScreenManagerRuntimeContent, VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, readVirtualScreenRuntimeContent, VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME } from '../components/customComponents/virtualScreenComponentAsset';
+import { readPointerPolicyRuntimeContent, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../components/customComponents/pointerPolicyComponentAsset';
+import { readImmersiveRigRuntimeContent, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/immersiveRigComponentAsset';
 import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('VISUALIZE_DOM_PARSER');

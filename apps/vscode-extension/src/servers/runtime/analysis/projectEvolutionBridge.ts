@@ -2,11 +2,9 @@ import {
     CollaborationApplicationMessageContext,
     CollaborationMessage,
 } from '../collaboration/collaborationRoomServer';
-import {
-    GitAnalysisSourceError,
-    ProjectEvolutionRequest,
-} from '../../../code_analysis/historical';
-import { analysisRefreshCoordinator } from '../../../code_analysis/refresh';
+import { GitAnalysisSourceError } from '../../../code_analysis/historical/gitAnalysisEligibility';
+import { ProjectEvolutionRequest } from '../../../code_analysis/historical/historicalComparisonModels';
+import { analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/sessionWatcherManager';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 import {

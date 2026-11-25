@@ -3,11 +3,9 @@ import {
     CollaborationApplicationMessageContext,
     CollaborationMessage,
 } from '../collaboration/collaborationRoomServer';
-import {
-    GitAnalysisSourceError,
-    HistoricalComparisonRequest,
-} from '../../../code_analysis/historical';
-import { analysisRefreshCoordinator } from '../../../code_analysis/refresh';
+import { GitAnalysisSourceError } from '../../../code_analysis/historical/gitAnalysisEligibility';
+import { HistoricalComparisonRequest } from '../../../code_analysis/historical/historicalComparisonModels';
+import { analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/sessionWatcherManager';
 import { readJsonBody, sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 import { AnalysisFeatureHost } from './analysisFeatureHost';

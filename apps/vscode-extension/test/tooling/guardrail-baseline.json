@@ -68,8 +68,8 @@
     }
   },
   "informational": {
-    "src.files": 299,
-    "src.lines": 49222,
+    "src.files": 291,
+    "src.lines": 49064,
     "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.byFile": {

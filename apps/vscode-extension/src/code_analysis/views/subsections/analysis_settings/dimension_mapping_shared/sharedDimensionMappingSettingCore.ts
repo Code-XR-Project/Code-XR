@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage } from '../../../../configuration';
+import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
 import { chartTemplates } from '../../../../../babia_templates/charts/templateCharts';
 import { ChartDimension, ChartMetadata } from '../../../../../babia_templates/models/chartModels';
 import { DimensionMappingValidator } from '../dimension_mapping_file/dimensionMappingValidator';

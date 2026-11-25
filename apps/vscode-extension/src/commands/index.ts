@@ -3,7 +3,7 @@ import { getServerCommandRegistrations } from './servers/serverCommands';
 import { getActiveServersCommandRegistrations } from './active_servers/activeServersCommands';
 import { getBabiaExamplesCommandRegistrations } from './babia_examples/babiaExamplesCommands';
 import { getVisualizeDataCommandRegistrations } from './visualize_data/visualizeDataCommands';
-import { getAnalysisCommandRegistrations } from './analysis';
+import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';
 import { getPythonEnvCommandRegistrations } from './python_env/pythonEnvCommands';
 import { getVisualizationSettingsCommandRegistrations } from './visualization_settings/visualizationSettingsCommands';
 import { getLearnMoreCommandRegistrations } from './learn_more/learnMoreCommands';

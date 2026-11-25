@@ -3,20 +3,13 @@ import * as path from 'path';
 import { sseManager } from '../sse/SSEManager';
 import { fileToServerMap } from '../../../utils/fileToServerMap';
 import { CollaborationRoomServer } from '../collaboration/collaborationRoomServer';
-import {
-    HistoricalComparisonProgress,
-    HistoricalComparisonService,
-    GitAnalysisSourceCatalog,
-    ProjectEvolutionService,
-    analysisUpdateEvents,
-} from '../../../code_analysis/historical';
-import { DependencyGraphService } from '../../../code_analysis/dependencies';
-import {
-    AnalysisSourceChangeBatch,
-    AnalysisViewState,
-    AnalysisViewMode,
-    analysisRefreshCoordinator,
-} from '../../../code_analysis/refresh';
+import { HistoricalComparisonProgress } from '../../../code_analysis/historical/historicalComparisonModels';
+import { HistoricalComparisonService } from '../../../code_analysis/historical/historicalComparisonService';
+import { GitAnalysisSourceCatalog } from '../../../code_analysis/historical/gitAnalysisEligibility';
+import { ProjectEvolutionService } from '../../../code_analysis/historical/projectEvolutionService';
+import { analysisUpdateEvents } from '../../../code_analysis/historical/analysisUpdateEvents';
+import { DependencyGraphService } from '../../../code_analysis/dependencies/dependencyGraphService';
+import { AnalysisSourceChangeBatch, AnalysisViewState, AnalysisViewMode, analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/sessionWatcherManager';
 import { UnifiedSessionRegistry } from '../../../code_analysis/engine/core/sessionRegistry';
 import { resolveAnalysisServerCapabilities } from '../analysisServerCapabilities';

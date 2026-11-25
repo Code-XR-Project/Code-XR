@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const { projectRoot, readSource } = require('../helpers/sourceText.cjs');
 // The asset family never imports `vscode`, so the compiled barrel loads as it is.
-const components = require('../../out/code_analysis/engine/components/customComponents/index.js');
+const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetModules();
 
 /*
  * fileXRParser.ts copies a run of runtime assets into the scene folder and then

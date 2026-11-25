@@ -5,12 +5,13 @@
 
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
-import { AnalysisConfigurationStorage, AnalysisFileMode } from '../../../../configuration';
+import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
+import { AnalysisFileMode } from '../../../../configuration/models/analysisConfiguration';
 import { getLogger } from '../../../../../core/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 
-export { AnalysisFileMode } from '../../../../configuration';
+export { AnalysisFileMode } from '../../../../configuration/models/analysisConfiguration';
 
 export class AnalysisFileSetting {
     private currentMode: AnalysisFileMode = 'XR'; // Default mode (will be loaded from storage)

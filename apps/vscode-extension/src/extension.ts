@@ -12,7 +12,7 @@ import { sseManager } from './servers/runtime/sse/SSEManager';
 import { fileToServerMap } from './utils/fileToServerMap';
 import { ServerWatcherIntegration } from './code_analysis/services/serverWatcherIntegration';
 import { CleanAnalysisCommands } from './code_analysis/commands/clean_analysis/cleanAnalysisCommands';
-import { AnalysisConfigurationStorage } from './code_analysis/configuration';
+import { AnalysisConfigurationStorage } from './code_analysis/configuration/analysisConfigurationStorage';
 import { handleError, ErrorDomain, ErrorSeverity } from './utils/errorHandler';
 import { initializeExtensionContext } from './core/extensionContext';
 import { CodeXRLogger } from './core/logging/logger';

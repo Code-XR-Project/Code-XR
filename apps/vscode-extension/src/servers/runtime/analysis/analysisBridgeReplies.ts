@@ -1,5 +1,5 @@
 import { CollaborationApplicationMessageContext } from '../collaboration/collaborationRoomServer';
-import { GitAnalysisSourceError } from '../../../code_analysis/historical';
+import { GitAnalysisSourceError } from '../../../code_analysis/historical/gitAnalysisEligibility';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 
 /**

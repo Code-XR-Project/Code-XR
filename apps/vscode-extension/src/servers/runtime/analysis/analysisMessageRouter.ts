@@ -4,7 +4,7 @@ import {
     CollaborationRoomServer,
     SharedEntityState,
 } from '../collaboration/collaborationRoomServer';
-import { AnalysisViewMode, analysisRefreshCoordinator } from '../../../code_analysis/refresh';
+import { AnalysisViewMode, analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
 import { defaultControllerView } from '../../../code_analysis/refresh/analysisViewModes';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { DependencyGraphBridge } from './dependencyGraphBridge';

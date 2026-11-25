@@ -15,53 +15,26 @@ import { XRFieldSchemaService } from '../../services/xrFieldSchemaService';
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { buildTrackedFileSnapshot } from '../watchers/directorySnapshot';
 import { resolveTrackedSystemPath } from '../watchers/directoryReanalysisData';
-import {
-    ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME,
-    ANALYSIS_MODE_RUNTIME_OUTPUT_NAME,
-    HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME,
-    PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME,
-    DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME,
-    GUIDE_SCREEN_RUNTIME_OUTPUT_NAME,
-    GUIDE_PAGE_OUTPUT_NAME,
-    readGuideScreenRuntimeContent,
-    readGuidePageContent,
-    LOGO_RUNTIME_OUTPUT_NAME,
-    readLogoRuntimeContent,
-    RENDER_BUDGET_RUNTIME_OUTPUT_NAME,
-    DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME,
-    CODEXR_DEBUG_RUNTIME_OUTPUT_NAME,
-    CODEXR_COMMON_RUNTIME_OUTPUT_NAME,
-    CODEXR_AVATAR_RUNTIME_OUTPUT_NAME,
-    CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME,
-    CODEXR_ROOM_RUNTIME_OUTPUT_NAME,
-    readAnalysisTableRuntimeContent,
-    readAnalysisModeRuntimeContent,
-    readHistoricalComparisonRuntimeContent,
-    readProjectEvolutionRuntimeContent,
-    readDependencyGraphRuntimeContent,
-    readRenderBudgetRuntimeContent,
-    readDependencyVisualBudgetRuntimeContent,
-    readCodeXrDebugRuntimeContent,
-    readCodeXrCommonRuntimeContent,
-    readCodeXrGitRefPickerContent,
-    CODEXR_GIT_REF_PICKER_OUTPUT_NAME,
-    readCodeXrAvatarRuntimeContent,
-    readCodeXrCollaborationRuntimeContent,
-    readCodeXrRoomRuntimeContent,
-    readCodeXrRoomTextureContents,
-    readVirtualScreenManagerRuntimeContent,
-    VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME,
-    readVirtualScreenRuntimeContent,
-    VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME,
-    readXrChartDebugRuntimeContent,
-    XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME,
-    readXrChartMappingUiRuntimeContent,
-    XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME,
-    readPointerPolicyRuntimeContent,
-    POINTER_POLICY_RUNTIME_OUTPUT_NAME,
-    readImmersiveRigRuntimeContent,
-    IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
-} from '../components/customComponents';
+import { ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME, readAnalysisTableRuntimeContent } from '../components/customComponents/analysisTableComponentAsset';
+import { ANALYSIS_MODE_RUNTIME_OUTPUT_NAME, readAnalysisModeRuntimeContent } from '../components/customComponents/analysisModeComponentAsset';
+import { HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME, readHistoricalComparisonRuntimeContent } from '../components/customComponents/historicalComparisonComponentAsset';
+import { PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME, readProjectEvolutionRuntimeContent } from '../components/customComponents/projectEvolutionComponentAsset';
+import { DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME, readDependencyGraphRuntimeContent } from '../components/customComponents/dependencyGraphComponentAsset';
+import { GUIDE_SCREEN_RUNTIME_OUTPUT_NAME, GUIDE_PAGE_OUTPUT_NAME, readGuideScreenRuntimeContent, readGuidePageContent } from '../components/customComponents/guideScreenComponentAsset';
+import { LOGO_RUNTIME_OUTPUT_NAME, readLogoRuntimeContent } from '../components/customComponents/logoComponentAsset';
+import { RENDER_BUDGET_RUNTIME_OUTPUT_NAME, readRenderBudgetRuntimeContent } from '../components/customComponents/renderBudgetComponentAsset';
+import { DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME, readDependencyVisualBudgetRuntimeContent } from '../components/customComponents/dependencyVisualBudgetComponentAsset';
+import { CODEXR_DEBUG_RUNTIME_OUTPUT_NAME, readCodeXrDebugRuntimeContent } from '../components/customComponents/codexrDebugComponentAsset';
+import { CODEXR_COMMON_RUNTIME_OUTPUT_NAME, readCodeXrCommonRuntimeContent } from '../components/customComponents/commonComponentAsset';
+import { CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, readCodeXrAvatarRuntimeContent } from '../components/customComponents/avatarComponentAsset';
+import { CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, readCodeXrCollaborationRuntimeContent } from '../components/customComponents/collaborationComponentAsset';
+import { CODEXR_ROOM_RUNTIME_OUTPUT_NAME, readCodeXrRoomRuntimeContent, readCodeXrRoomTextureContents } from '../components/customComponents/codexrRoomComponentAsset';
+import { readCodeXrGitRefPickerContent, CODEXR_GIT_REF_PICKER_OUTPUT_NAME } from '../components/customComponents/commonGitRefPickerComponentAsset';
+import { readVirtualScreenManagerRuntimeContent, VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, readVirtualScreenRuntimeContent, VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME } from '../components/customComponents/virtualScreenComponentAsset';
+import { readXrChartDebugRuntimeContent, XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/xrChartDebugComponentAsset';
+import { readXrChartMappingUiRuntimeContent, XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME } from '../components/customComponents/xrChartMappingUiComponentAsset';
+import { readPointerPolicyRuntimeContent, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../components/customComponents/pointerPolicyComponentAsset';
+import { readImmersiveRigRuntimeContent, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/immersiveRigComponentAsset';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 /**

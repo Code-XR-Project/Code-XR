@@ -9,51 +9,26 @@ import { ChartMetadata, DimensionMapping } from '../../../babia_templates/models
 import { TemplateProcessor } from '../../../babia_templates/processing/templateProcessor';
 import { ExecutePython } from '../utils/executePython';
 import { XRFieldSchemaService } from '../../services/xrFieldSchemaService';
-import {
-    ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME,
-    ANALYSIS_MODE_RUNTIME_OUTPUT_NAME,
-    HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME,
-    PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME,
-    CODEXR_COMMON_RUNTIME_OUTPUT_NAME,
-    CODEXR_AVATAR_RUNTIME_OUTPUT_NAME,
-    copyAnalysisTableRuntimeToOutput,
-    copyAnalysisModeRuntimeToOutput,
-    copyHistoricalComparisonRuntimeToOutput,
-    copyProjectEvolutionRuntimeToOutput,
-    copyCodeXrCommonRuntimeToOutput,
-    copyCodeXrGitRefPickerToOutput,
-    CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME,
-    copyCodeXrRoomAssetsToOutput,
-    copyCodeXrAvatarRuntimeToOutput,
-    copyCodeXrCollaborationRuntimeToOutput,
-    CODEXR_ROOM_RUNTIME_OUTPUT_NAME,
-    copyVirtualScreenManagerRuntimeToOutput,
-    copyVirtualScreenRuntimeToOutput,
-    VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME,
-    VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME,
-    copyXrChartDebugRuntimeToOutput,
-    XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME,
-    copyXrChartMappingUiRuntimeToOutput,
-    XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME,
-    copyPointerPolicyRuntimeToOutput,
-    POINTER_POLICY_RUNTIME_OUTPUT_NAME,
-    copyImmersiveRigRuntimeToOutput,
-    IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
-    copyCodeXrDebugRuntimeToOutput,
-    CODEXR_DEBUG_RUNTIME_OUTPUT_NAME,
-    copyRenderBudgetRuntimeToOutput,
-    RENDER_BUDGET_RUNTIME_OUTPUT_NAME,
-    copyDependencyVisualBudgetRuntimeToOutput,
-    DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME,
-    copyDependencyGraphRuntimeToOutput,
-    DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME,
-    copyGuideScreenRuntimeToOutput,
-    copyGuidePageToOutput,
-    GUIDE_SCREEN_RUNTIME_OUTPUT_NAME,
-    GUIDE_PAGE_OUTPUT_NAME,
-    copyLogoRuntimeToOutput,
-    LOGO_RUNTIME_OUTPUT_NAME,
-} from '../components/customComponents';
+import { ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME, copyAnalysisTableRuntimeToOutput } from '../components/customComponents/analysisTableComponentAsset';
+import { ANALYSIS_MODE_RUNTIME_OUTPUT_NAME, copyAnalysisModeRuntimeToOutput } from '../components/customComponents/analysisModeComponentAsset';
+import { HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME, copyHistoricalComparisonRuntimeToOutput } from '../components/customComponents/historicalComparisonComponentAsset';
+import { PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME, copyProjectEvolutionRuntimeToOutput } from '../components/customComponents/projectEvolutionComponentAsset';
+import { CODEXR_COMMON_RUNTIME_OUTPUT_NAME, copyCodeXrCommonRuntimeToOutput } from '../components/customComponents/commonComponentAsset';
+import { CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, copyCodeXrAvatarRuntimeToOutput } from '../components/customComponents/avatarComponentAsset';
+import { copyCodeXrGitRefPickerToOutput } from '../components/customComponents/commonGitRefPickerComponentAsset';
+import { CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, copyCodeXrCollaborationRuntimeToOutput } from '../components/customComponents/collaborationComponentAsset';
+import { copyCodeXrRoomAssetsToOutput, CODEXR_ROOM_RUNTIME_OUTPUT_NAME } from '../components/customComponents/codexrRoomComponentAsset';
+import { copyVirtualScreenManagerRuntimeToOutput, copyVirtualScreenRuntimeToOutput, VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME } from '../components/customComponents/virtualScreenComponentAsset';
+import { copyXrChartDebugRuntimeToOutput, XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/xrChartDebugComponentAsset';
+import { copyXrChartMappingUiRuntimeToOutput, XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME } from '../components/customComponents/xrChartMappingUiComponentAsset';
+import { copyPointerPolicyRuntimeToOutput, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../components/customComponents/pointerPolicyComponentAsset';
+import { copyImmersiveRigRuntimeToOutput, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/immersiveRigComponentAsset';
+import { copyCodeXrDebugRuntimeToOutput, CODEXR_DEBUG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/codexrDebugComponentAsset';
+import { copyRenderBudgetRuntimeToOutput, RENDER_BUDGET_RUNTIME_OUTPUT_NAME } from '../components/customComponents/renderBudgetComponentAsset';
+import { copyDependencyVisualBudgetRuntimeToOutput, DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME } from '../components/customComponents/dependencyVisualBudgetComponentAsset';
+import { copyDependencyGraphRuntimeToOutput, DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME } from '../components/customComponents/dependencyGraphComponentAsset';
+import { copyGuideScreenRuntimeToOutput, copyGuidePageToOutput, GUIDE_SCREEN_RUNTIME_OUTPUT_NAME, GUIDE_PAGE_OUTPUT_NAME } from '../components/customComponents/guideScreenComponentAsset';
+import { copyLogoRuntimeToOutput, LOGO_RUNTIME_OUTPUT_NAME } from '../components/customComponents/logoComponentAsset';
 import { getLogger } from '../../../core/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 

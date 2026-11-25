@@ -18,10 +18,7 @@ import { handleError, ErrorDomain, ErrorSeverity } from '../../../utils/errorHan
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { isRelevantDirectoryEvent, shouldIgnoreDirectoryName } from './analysisFilePolicy';
 import { scanDirectoryScope } from './directorySnapshot';
-import {
-    AnalysisSourceChangeBatch,
-    analysisRefreshCoordinator,
-} from '../../refresh';
+import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../refresh/analysisRefreshCoordinator';
 import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('DIRECTORY_WATCHER_ORCHESTRATOR');
