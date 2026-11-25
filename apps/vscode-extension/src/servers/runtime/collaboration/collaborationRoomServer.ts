@@ -1,7 +1,7 @@
 import * as http from 'http';
 import { EventEmitter } from 'events';
 import { RawData, WebSocket } from 'ws';
-import { CollaborationProfile } from '../../../collaboration/model/collaborationProfile';
+import { AUTO_AVATAR_ID, CollaborationProfile } from '../../../collaboration/model/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import {
     AuthenticatedCollaborationSession,
@@ -30,7 +30,6 @@ import { CollaborationRoomRegistry } from './roomRegistry';
 import * as sharedState from './roomSharedState';
 import {
     applyProfileToParticipant,
-    AUTO_AVATAR_ID,
     createAnonymousName,
     getParticipantPresence,
 } from './participantIdentity';
