@@ -10,7 +10,3 @@ export function getActiveServersCommandRegistrations(
 ): ExtensionCommandRegistration[] {
     return ActiveServersCommands.getCommandRegistrations(treeDataProvider);
 }
-
-export function getActiveServersCommandIds(): Record<string, string> {
-    return ActiveServersCommands.getCommandIds();
-}

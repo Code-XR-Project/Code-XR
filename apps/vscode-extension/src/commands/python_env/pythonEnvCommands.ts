@@ -19,10 +19,6 @@ export async function initializePythonEnvOnStartup(): Promise<void> {
     await pythonEnvCommands.initializeOnStartup();
 }
 
-export function getPythonEnvCommands(): PythonEnvCommands | undefined {
-    return pythonEnvCommands;
-}
-
 export function deactivatePythonEnvCommands(): void {
     pythonEnvCommands = undefined;
 }

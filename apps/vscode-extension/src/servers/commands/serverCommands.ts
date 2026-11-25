@@ -159,13 +159,6 @@ export async function startLocalServer(): Promise<void> {
 }
 
 /**
- * Gets the current server configuration
- */
-export function getCurrentServerConfig(): LegacyServerConfig {
-    return currentServerConfig;
-}
-
-/**
  * Configuration interaction handlers
  */
 export async function configureHttpMode(): Promise<void> {
