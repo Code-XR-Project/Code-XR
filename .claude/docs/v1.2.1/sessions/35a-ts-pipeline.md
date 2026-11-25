@@ -78,7 +78,19 @@ The worst functions this part reshaped, CCN before → after:
 | `relativizeExportArtifacts` | 18 | under 7 |
 | `validateExportPackage` | 16 | 5 |
 
-The worst TS function in the repository is now CCN 22: `handleDependencyGraphSettingsMessage`, a part B row. No function exceeds CCN 30. `gitRevisionExportCore.ts` stays under 500 lines (490), so `size.filesOver500` did not move.
+Before the merge, the worst TS function was CCN 22 (`handleDependencyGraphSettingsMessage`, a part B row). No function exceeded CCN 30.
+
+**After merging `origin/v1.2.1`** (#42 layering, #35 part B), measured on the merged tree:
+
+| Metric | Value |
+|---|---|
+| ESLint warning budget | 204 (v1.2.1 had 261) |
+| `complexity.over10` / `over15` / `over20` / `over30` | 54 / 9 / 0 / 0 |
+| `functions.over80Lines` | 36 |
+| `any.total` | 130 |
+| `npm test` | 1053/1053 |
+
+The worst TS function is now `sampleTimeline`, at CCN 20. `gitRevisionExportCore.ts` stays under 500 lines (490), so `size.filesOver500` did not move.
 
 ## Gates
 
