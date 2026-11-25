@@ -112,6 +112,9 @@ function installNetworkStubs(requireOut, freePort) {
     NetworkUtils.displayNetworkInfo = (port, protocol) => {
         calls.push(['displayNetworkInfo', port === freePort ? '<port>' : port, protocol]);
     };
+    // The requested port (4000) always reads as busy, so the servers take the
+    // search path below whether or not 4000 happens to be free on this machine.
+    PortManager.isPortAvailable = async (port) => port === freePort;
     PortManager.findAvailablePort = async (start, end, host) => {
         calls.push(['findAvailablePort', start, end - start, host]);
         return freePort;
@@ -466,8 +469,15 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
             });
             consoleCapture.setReplacements([[String(port), '<port>'], [customDirectory, '<custom>']]);
             await missing.start();
+            const missingListener = missing.server;
             missing.forceStop();
-            await new Promise((resolve) => missing.server.close(resolve));
+            // forceStop now closes the listener itself and drops the reference.
+            assert.equal(missing.server, null);
+            assert.equal(missing.getListeningPort(), null);
+            // 'close' is emitted asynchronously, so listening for it after
+            // forceStop() still observes the port being released.
+            await new Promise((resolve) => missingListener.once('close', resolve));
+            assert.equal(missingListener.listening, false);
             assert.equal(fake.messages.length, 2);
         });
     } finally {
@@ -536,6 +546,8 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
             const server = new HttpServer({ port, host: '127.0.0.1', staticRoot: templatesRoot() });
             assert.equal(await server.start(), `http://localhost:${port}`);
             assert.equal(server.getServerUrl(), `http://127.0.0.1:${port}`);
+            // The launcher reports this port, so it must be the one actually bound.
+            assert.equal(server.getListeningPort(), port);
             await assert.rejects(server.start(), { message: 'SERVER: HTTP server is already running' });
 
             const status = await new Promise((resolve, reject) => {
@@ -552,6 +564,7 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
             assert.equal(await roomClosed, 4002);
             assert.equal(server.getIsRunning(), false);
             assert.equal(server.getServerUrl(), null);
+            assert.equal(server.getListeningPort(), null);
             await server.stop();
             server.forceStop();
         });
@@ -594,5 +607,25 @@ test('httpsTlsOptions: the shared TLS literal both HTTPS servers listen with', a
         assert.equal(isCertificateRejectedByClient(new Error('certificate unknown')), true);
         assert.equal(isCertificateRejectedByClient(new Error('SSL alert number 46')), true);
         assert.equal(isCertificateRejectedByClient(new Error('certificate expired')), false);
+    });
+});
+
+test('PortManager: a port held on loopback only is reported busy', async () => {
+    const fake = createFakeVscode();
+    await withFakeVscode(fake, async ({ requireOut }) => {
+        const { PortManager } = requireOut('core/server/portManager.js');
+        const holder = net.createServer();
+        await new Promise((resolve) => holder.listen(0, '127.0.0.1', resolve));
+        const heldPort = holder.address().port;
+        try {
+            // A probe of the wildcard alone can succeed here on macOS and
+            // Windows, which then hand the browser's localhost to the other
+            // listener; the host-less check must look at loopback too.
+            assert.equal(await PortManager.isPortFreeEverywhere(heldPort), false);
+            assert.equal(await PortManager.isPortAvailable(heldPort), false);
+        } finally {
+            await new Promise((resolve) => holder.close(resolve));
+        }
+        assert.equal(await PortManager.isPortFreeEverywhere(heldPort), true);
     });
 });

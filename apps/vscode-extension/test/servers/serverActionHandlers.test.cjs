@@ -17,7 +17,8 @@
  * Each scenario yields one normalized transcript, compared whole with the
  * golden file written on the unsplit source (CODEXR_UPDATE_GOLDEN=1 rewrites
  * it). It pins in particular: every unknown-id path, every clipboard string,
- * and stopAllServers as it behaves today (it treats the stopped-server COUNT
+ * and stopAllServers (XR epic S4: it now returns { requested, stopped } and the
+ * handler shows one summary; it used to treat the stopped-server COUNT
  * returned by ServerControl as a success flag, and refreshes the tree even
  * when that count is 0).
  */
@@ -372,9 +373,9 @@ const SCENARIOS = {
     'stop all: none running': {
         run: async (H) => H.call('stopAllServers'),
     },
-    'stop all: as it behaves today (a count read as a flag)': {
+    'stop all: one summary from the returned counts': {
         servers: [HTTP_SERVER, HTTPS_SERVER],
-        control: { stopAllServers: [2, 0, 'throw'] },
+        control: { stopAllServers: [{ requested: 2, stopped: 2 }, { requested: 2, stopped: 1 }, 'throw'] },
         answers: ['Stop All', 'Stop All', 'Stop All', 'Cancel'],
         run: async (H) => {
             for (let i = 0; i < 4; i += 1) {
@@ -385,7 +386,7 @@ const SCENARIOS = {
     'stop all without a remote manager': {
         servers: [HTTP_SERVER],
         remoteManager: 'missing',
-        control: { stopAllServers: [1] },
+        control: { stopAllServers: [{ requested: 1, stopped: 1 }] },
         answers: ['Stop All'],
         run: async (H) => H.call('stopAllServers'),
     },
@@ -579,11 +580,11 @@ test('server actions: the clipboard strings and stopAll, stated outright', () =>
     assert.equal(transcripts['remote access through the manager'].clipboard, SHARED_STATE.invitationUrl);
     assert.equal(transcripts['remote access started but not shared: no clipboard'].clipboard, '');
 
-    const stopAll = transcripts['stop all: as it behaves today (a count read as a flag)'];
+    const stopAll = transcripts['stop all: one summary from the returned counts'];
     const toasts = stopAll.ui.filter((entry) => entry.kind !== 'warning' || !entry.message.startsWith('Stop all'));
     assert.deepEqual(toasts.map((entry) => entry.message), [
-        'Stopped all 2 servers',
-        'Some servers may not have stopped properly',
+        'Stopped 2 server(s)',
+        'Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the CodeXR output.',
         'Error stopping servers: stopAllServers exploded',
     ]);
     // The tree is refreshed after a "partial" stop too, never after a throw.

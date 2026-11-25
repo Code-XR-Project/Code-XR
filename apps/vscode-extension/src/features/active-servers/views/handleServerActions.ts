@@ -420,17 +420,19 @@ export class ServerActionHandlers {
      */
     public static async stopAllServers(): Promise<void> {
         logger.debug('Stopping all servers');
-        
+
+        // Count what "Stop all" will actually stop: the running servers. The
+        // prompt used to count every entry, whatever its status.
         const registry = getActiveServerRegistry();
-        const allServers = registry.getAllServers();
-        
-        if (allServers.length === 0) {
+        const runningCount = registry.getServersByStatus('running').length;
+
+        if (runningCount === 0) {
             void vscode.window.showInformationMessage('No servers are currently running');
             return;
         }
 
         const response = await vscode.window.showWarningMessage(
-            `Stop all ${allServers.length} server(s)?`,
+            `Stop all ${runningCount} server(s)?`,
             'Stop All',
             'Cancel'
         );
@@ -438,17 +440,19 @@ export class ServerActionHandlers {
         if (response === 'Stop All') {
             try {
                 await RemoteAccessManager.getInstance()?.stopAll();
-                logger.debug(() => `Stopping ${allServers.length} servers`);
-                const success = await ServerControl.stopAllServers();
-                
-                if (success) {
+                logger.debug(() => `Stopping ${runningCount} servers`);
+                const { requested, stopped } = await ServerControl.stopAllServers();
+
+                if (stopped === requested) {
                     logger.debug('Successfully stopped all servers');
-                    void vscode.window.showInformationMessage(`Stopped all ${allServers.length} servers`);
+                    void vscode.window.showInformationMessage(`Stopped ${stopped} server(s)`);
                 } else {
-                    logger.error('Failed to stop some servers');
-                    void vscode.window.showWarningMessage('Some servers may not have stopped properly');
+                    logger.error(`Stopped ${stopped} of ${requested} servers`);
+                    void vscode.window.showWarningMessage(
+                        `Stopped ${stopped} of ${requested} server(s). The others were removed from the list but did not shut down cleanly; see the CodeXR output.`
+                    );
                 }
-                
+
                 // Refresh the tree view
                 void vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
             } catch (error) {

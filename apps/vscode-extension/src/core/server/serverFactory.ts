@@ -203,7 +203,9 @@ export async function launchServerByType(
             success: true,
             serverUrl,
             serverType,
-            port,
+            // Report the port the listener is bound to, which is what every
+            // URL, tree entry and session must use.
+            port: server.getListeningPort?.() ?? port,
             serverInstance: server
         };
 
