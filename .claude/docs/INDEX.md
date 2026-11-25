@@ -62,8 +62,8 @@
 | **New feature** | `ARCHITECTURE.md` → `V1.2.1_STATUS.md` → area doc(s) → `AI_WORKFLOWS.md` §feature. **Note: features are out of scope for 1.2.1** | per module convention |
 | **Bug fix** | `ARCHITECTURE.md` (module map) → `AI_WORKFLOWS.md` §bug fix; area doc if a contract seam is involved | the one module |
 | **Refactor** | `ARCHITECTURE.md` (contracts!) → `AI_WORKFLOWS.md` §refactor | crossing modules |
-| **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/core/charts/`, `engine/components/` |
-| **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `src/code_analysis/python/`, `engine/`, `src/core/analysis/languages/languageMetadata.ts` |
+| **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/core/charts/`, `src/core/analysis/scene-assets/` |
+| **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `backend/src/`, `src/core/analysis/`, `src/core/analysis/languages/languageMetadata.ts` |
 | **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `core/dependencies/`, graph runtime |
 | **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `core/history/`, `core/export/` |
 | **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/core/server/`, `src/features/servers/`, `src/features/active-servers/`, `core/collaboration/`, `features/collaboration/`, `core/remote-access/` |

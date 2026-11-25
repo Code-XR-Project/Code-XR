@@ -1,6 +1,6 @@
 # `src/` layout: analysis and move plan (story #55)
 
-> **Status:** analysis only, 2026-11-25, measured on `v1.2.1` at `e16b95e8` (after PRs #44–#57, #40 included). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
+> **Status:** executed by story #55 on 2026-11-25; the result is in [§7](#7-result-story-55-executed-2026-11-25). The analysis below is kept as written: analysis only, 2026-11-25, measured on `v1.2.1` at `e16b95e8` (after PRs #44–#57, #40 included). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
 > **Update from #42 (layering):** three rows of the move map are already done at their destination here: `commands/shared/commandRegistry.ts` → `platform/commands/commandRegistry.ts` (the `commands/shared` barrel is deleted), `views/common/baseInterfaces.ts` → `platform/tree/baseInterfaces.ts`, and the new `platform/templatePaths.ts` (`resolveTemplatePath`; the `__dirname`-depth constraint in §3.4 is gone). Two of the five `core/` pairs of §3.5 are broken: `analysis↔charts` (the XR field types moved to `babia_templates/models/xrFieldModels.ts`) and `collaboration↔remote-access` (`CollaborationClientKind` declared in `collaboration/model/connectedParticipant.ts`). The folder matrix is data in `test/tooling/folderDependencies.json` (#42's direction test): rewrite it with each batch.
 > Paths are relative to `apps/vscode-extension/` (so `src/…` is the extension source) unless stated otherwise. Every number below comes from the scripts in the [appendix](#appendix-scripts) and can be re-run.
 
@@ -874,6 +874,36 @@ The bundle cannot be byte-identical. In `npm run compile` (webpack `mode: 'none'
 2. **Same bundle contents.** `npm run package` before and after: identical module **count** in webpack's stats (`--json`), and `scripts/dist-fingerprint.mjs` / `dist-diff.mjs` showing every non-bundle file in `dist/` identical (the Python copy). The bundle size may differ only by the length of path strings.
 3. **Same user surface.** `test/baseline/featureBaseline.test.cjs` green, with **no** `--write`: commands, menus, views, settings, persisted keys, shipped files, chart types, in-scene modes and Python CLI are unchanged. The command set is also pinned by `assertUniqueCommandIds` at activation.
 4. **All gates:** `npm test`, `npm run lint` (warning budget unchanged), `npm run typecheck`, the reachability guardrail (`unreachable = 0`), plus the batch's specialised suites (§5.3). The maintainer runs one F5 smoke after B9, B12 and B14 (open the sidebar, run one XR analysis, start and stop a server).
+
+## 7. Result (story #55 executed, 2026-11-25)
+
+The move ran on branch `claude/project-thread-n2s3q6-src-layout`, from `v1.2.1` at `41cfc523`: the map refresh (§4.1, `cbcd9d24`), the tooling commit (`992f84b2`: `measureGuardrails.cjs --renamed`, two-level units under `core/` and `features/`, the layer test), batch 0 in four commits, then B1–B14 in table order, one commit each, and a closing commit with the layout guard (`test/tooling/srcLayout.test.cjs`). The session log is `.claude/docs/v1.2.1/sessions/55-src-layout.md`.
+
+**Files per batch** (moved with `git mv`; batch 0 deletes): B0 46 barrels · B1 9 · B2 5 · B3 9 · B4 13 · B5 12 · B6 10 · B7 11 · B8 11 · B9 44 · B10 16 · B11 21 · B12 64 · B13 55 · B14 7. Total: 287 moved, 46 deleted, 4 already in place (`extension.ts` and the three `platform/` files of #42).
+
+**H3 for every batch** (§6): `compare-out.mjs` 291 of 291 compiled modules equivalent, 0 problems (batch 0: 311 → 291 modules with its barrel-aware variant, 0 problems); webpack (mode none) 512 modules / 279 `src` modules after every move batch; `featureBaseline` green without `--write`; `npm test` 1,059 of 1,059 and lint at the 158-warning budget after every commit; guardrails re-keyed with `--renamed`, ratcheted metrics unchanged, waivers still 6. B3, B11 and B12 also ran `test:python` and `test:analysis`; B7, B9 and B12 the XR harness (B7 and B12 the immersive harness too).
+
+**Package** (`npm run package:vsix`, against the same build of `41cfc523`): the same 199 files. Every file is byte-identical except `CHANGELOG.md` (the story's line), `dist/extension.js` (1,194,937 → 1,173,899 bytes: the 46 barrel modules are gone from the bundle) and the lazy `get-port` chunk, renamed `756.extension.js` → `515.extension.js` by webpack's deterministic ids. Its contents are identical apart from the id.
+
+**Shape** (A.7, `treestats.mjs`):
+
+| Metric | Before (`41cfc523`) | After |
+|---|---:|---:|
+| `.ts` files | 337 | 291 |
+| lines | 49,226 | 48,773 |
+| folders | 172 | 99 |
+| top-level entries of `src/` | 16 folders + `extension.ts` | 5 layers + `extension.ts` |
+| snake_case / camelCase folder names | 57 / 1 | 0 / 0 |
+| kebab-case folder names | 0 | 23 |
+| single-file leaf folders | 70 | 9 |
+| `index.ts` files (re-export barrels) | 48 (46) | 0 (0) |
+| max depth below `src/` | 5 | 5 |
+| folder units in `folderDependencies.json` / allowed edges | 17 / 78 | 22 / 73 |
+| two-way folder pairs | 5 | 4 |
+
+The four pairs left are all inside the server/analysis subsystems, each with its reason in `folderDependencies.json`: `core/analysis<->core/history`, `core/analysis<->core/server`, `core/remote-access<->core/server`, and `core/server<->features/active-servers`. The last one is the one upward edge (§3.5). The other `layerExceptions` entry is the cross-feature edge `features/active-servers -> features/collaboration` (the nested COLLABORATION group).
+
+**Left as found:** `templates/components/COMPONENTS.md` still says `src/.../customComponents/runtimeAssembly.ts` (now `src/core/analysis/scene-assets/runtimeAssembly.ts`). `templates/` ships, and this story changes no shipped file. Historical docs (`V1.2.0_STATUS.md`, the session logs, `AUDIT.md`, the ROADMAP tables) keep the old paths. The bootstrap `vscodeFreeFloor` was lowered 109 → 106 in batch 0, only because three vscode-free barrels were deleted.
 
 ## Appendix: scripts
 

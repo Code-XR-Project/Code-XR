@@ -76,7 +76,8 @@ test/
 │                        lintContract (what lint/typecheck cover and how strict), npmScripts
 │                        (every script target exists; every test:* script is documented here),
 │                        dependencyDirection (the folder import matrix and its two-way pairs,
-│                        data in folderDependencies.json; `node test/tooling/folderDependencies.cjs`)
+│                        data in folderDependencies.json; `node test/tooling/folderDependencies.cjs`),
+│                        srcLayout (src/ = five layers + extension.ts, kebab-case folders, no barrels)
 ├── manual/              browser-run HTML harnesses (xr-containment, project-evolution-playback…)
 └── runners/             the .cjs runner scripts npm scripts point to (the two Python-only ones,
                          run-python-tests and run-analysis-tests, are in backend/scripts/)

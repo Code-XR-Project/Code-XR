@@ -14,6 +14,7 @@
 - **Tests that cannot give a false green.** The test build now starts from a clean slate, refuses to run against stale output, and measures the per-language analysis fixtures with exactly the analyzer version the extension installs for you.
 - **Continuous integration.** The same gates a developer runs locally now run on Windows and Linux for every pull request.
 - **A repository ready to grow.** The source repository is now organized as a monorepo: the extension, its Python analysis backend and the space for the upcoming Code-XR IDE live side by side, and continuous integration also runs on macOS. The packaged extension is the same: no file was added to or removed from it.
+- **Changed (internal): `src/` reorganized feature-first; no behaviour change.** Each sidebar section's commands, tree and services now sit together in one folder, the shared engine (analysis, servers, charts, history, export) in another, and the host plumbing in a third, with every folder named the same way; a check now keeps it that way. Only files moved: the compiled modules were compared one by one before and after, and the packaged extension holds the same files.
 
 #### Removed
 

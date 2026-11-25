@@ -6,7 +6,7 @@
 
 ## The one-paragraph summary
 
-CodeXR is a VS Code extension (~337 TS files) that analyzes source code with a **Python backend** (Lizard metrics, run in a managed virtual environment) and renders the results as **BabiaXR/A-Frame XR scenes** served by **local HTTP/HTTPS servers** with **SSE live-reload**. The extension side is TypeScript; the in-scene runtime is plain JavaScript living in `templates/components/` and injected into generated HTML.
+CodeXR is a VS Code extension (291 TS files under `src/`, in five layers since #55) that analyzes source code with a **Python backend** (Lizard metrics, run in a managed virtual environment) and renders the results as **BabiaXR/A-Frame XR scenes** served by **local HTTP/HTTPS servers** with **SSE live-reload**. The extension side is TypeScript; the in-scene runtime is plain JavaScript living in `templates/components/` and injected into generated HTML.
 
 ## Main data flow (the pipeline)
 
@@ -76,7 +76,9 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `shared/` | Helpers with no VS Code and no domain | `nonceGenerator.ts` |
 | `features/learn-more/` | "Learn more" help section in the tree | `commands/learnMoreCommands.ts`, `commands/learnMoreCommandRegistrations.ts`, `views/LearnMoreSectionProvider.ts`, `views/learnMoreItems.ts`, `views/handleLearnMoreClicks.ts` |
 
-**Per-feature layout convention** (followed by most modules): `commands/` + `model(s)/` + `runtime/` or `services/` + `views/{items,interactions}` + `registry|storage|state/`. When adding a feature, mirror this pattern.
+**Layout** (story #55, `docs/cleanup/src-layout.md` §3; pinned by `test/tooling/srcLayout.test.cjs`): `src/` holds `extension.ts` and five layers, `app/` (composition root) → `features/` (one folder per sidebar section) → `core/` (the engine, one folder per domain) → `platform/` (VS Code host plumbing, no feature knowledge) → `shared/` (no VS Code, no domain). Folder names are kebab-case; `core/` and `features/` hold folders only; there are no re-export barrels.
+
+**Per-feature layout convention**: `features/<section>/` has `commands/` (`<x>Commands.ts`, the handlers, and `<x>CommandRegistrations.ts`, the registration array `app/commands/registerAllCommands.ts` collects), `views/` (the `*SectionProvider.ts`, item factories and click handlers, flat), and where needed `services/`, `model/`, `runtime/`. A section with subsections nests them under `sections/<subsection>/` (see `features/analysis/`). Engine code that more than one feature, the servers or the analysis pipeline uses goes in `core/<domain>/`, not in a feature. When adding a feature, mirror this pattern.
 
 **Folder dependencies** (stories #42, #55): which folder may import which is data in `test/tooling/folderDependencies.json`, checked by `test/tooling/dependencyDirection.test.cjs` (type imports count). A folder is the first directory under `src/`, or the first two under `core/` and `features/` (`twoLevelAreas`); the same file holds the layer order `app → features → core → platform → shared` (`layers`), which the test enforces (no upward edge, no feature importing another feature) except for the reasoned entries in `layerExceptions`. A new cross-folder direction fails the gate until it is added there; a new two-way pair also needs a written reason. The remaining pairs are each documented in that file (all inside the server/analysis subsystems: `core/server`, `core/remote-access`, `core/analysis` with `core/history`, plus `core/server`/`features/active-servers`, which is the one allow-listed upward edge). `platform/` imports no feature folder, and `core/` none besides that edge.
 
