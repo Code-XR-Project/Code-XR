@@ -63,7 +63,7 @@
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 155,
+    "eslint.maxWarnings": 154,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
