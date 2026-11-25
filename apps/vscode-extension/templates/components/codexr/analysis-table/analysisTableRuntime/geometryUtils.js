@@ -496,10 +496,12 @@
       0.05,
       0.95
     );
+    // Above 1 only for a chart whose profile sets its own maxHeight
+    // (resolveChartFitData): the table's own band stays below targetHeight.
     var maxRatio = clamp(
       Number.isFinite(data.heightBandMaxRatio) ? data.heightBandMaxRatio : DEFAULTS.heightBandMaxRatio,
       minRatio + 0.01,
-      0.99
+      2.5
     );
 
     return {

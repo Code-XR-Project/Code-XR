@@ -149,7 +149,9 @@
         } else if (this.baseScale) {
           this.resetToBaseScale();
         }
-        this.el.object3D.visible = true;
+        if (!this.revealPending && !this.emptyState) {
+          this.el.object3D.visible = true;
+        }
       }
       this.tryNormalize(reason || 'manual-renormalize', generation);
     },
@@ -172,6 +174,18 @@
 
       this.ensureBaseScale();
       var previousTransform = cloneTransform(el.object3D) || this.lastStableTransform;
+      // An empty source is a state, not a failure to retry: Babia leaves the
+      // previous axes behind, which read as "invalid axis values".
+      if (resolveChartSourceRowCount(el) === 0) {
+        this.enterEmptyState(reason, generation);
+        return;
+      }
+      if (this.emptyState) {
+        this.emptyState = false;
+        if (!this.revealPending) {
+          el.object3D.visible = true;
+        }
+      }
       var axisIssue = this.inspectAxisIssue();
       if (axisIssue) {
         resizeTrace('invalid-axis-length-detected', {
@@ -255,7 +269,10 @@
       // requests can be skipped instead of re-running the whole fit.
       this.normalizedSignature = this.lastMeasurementSignature;
       var finalTransform = cloneTransform(el.object3D);
-      if (finalTransform && shouldAnimateContainmentTransform(reason, previousTransform, finalTransform, this.data)) {
+      // A chart that was hidden until this fit appears in place: animating
+      // from its unfitted (raw-scale) transform was the giant flash.
+      var revealingNow = this.revealPending;
+      if (finalTransform && !revealingNow && shouldAnimateContainmentTransform(reason, previousTransform, finalTransform, this.data)) {
         restoreTransform(el.object3D, previousTransform);
         this.syncTransformAttributes();
         this.startContainmentTransition(previousTransform, finalTransform, reason || 'normalize');
@@ -263,7 +280,11 @@
         this.captureStableTransform();
       }
       this.deactivateSteadyController();
-      el.object3D.visible = true;
+      if (revealingNow) {
+        this.finishReveal();
+      } else {
+        el.object3D.visible = true;
+      }
 
       var finalMeasurements = this.measureBounds();
       if (finalMeasurements) {

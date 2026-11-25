@@ -118,6 +118,13 @@ export interface ChartPresentationProfile {
      */
     surfaceLift?: number;
     /**
+     * Tallest the chart may stand above the table, in metres, replacing the
+     * table's height band for this chart. Only the standing pie and donut set
+     * it: a standing disc's height IS its diameter, so the band sized for bar
+     * heights held them to ~1.27 m across on a 5.6 m table (CHARTS-15).
+     */
+    maxHeight?: number;
+    /**
      * Component attributes the chart always needs beyond the mapped fields
      * (normalization caps, title placement, boats construction). Merged under
      * the mapping on every build — generated scene and live switch alike.
@@ -125,7 +132,15 @@ export interface ChartPresentationProfile {
     baseAttributes: Record<string, string | number | boolean>;
 }
 
+// Pie and donut stand on the table as discs up to 2 m across: large enough to
+// read the slices from the table's edge, low enough that the top stays near
+// eye height for a standing user (decision recorded for epic #72, story S8).
+const STANDING_DISC_MAX_HEIGHT = 2;
+
 export const CHART_PRESENTATION_PROFILES: Record<string, ChartPresentationProfile> = {
+    // The row charts are built with Babia's grow animation OFF. Bars and
+    // cylinders default to growing from 0 over 2 s, and containment fitted
+    // them mid-growth: towers 25-36 m tall for ~3 s on every build (CHARTS-5).
     bars: {
         rotation: '0 0 0',
         initialScale: '1.5 1.5 1.5',
@@ -133,7 +148,7 @@ export const CHART_PRESENTATION_PROFILES: Record<string, ChartPresentationProfil
         rowBudget: 20,
         orderBy: 'height',
         keyBy: ['x_axis'],
-        baseAttributes: {},
+        baseAttributes: { animation: false },
     },
     barsmap: {
         rotation: '0 0 0',
@@ -141,7 +156,7 @@ export const CHART_PRESENTATION_PROFILES: Record<string, ChartPresentationProfil
         rowBudget: 30,
         orderBy: 'height',
         keyBy: ['x_axis', 'z_axis'],
-        baseAttributes: {},
+        baseAttributes: { animation: false },
     },
     cyls: {
         rotation: '0 0 0',
@@ -150,7 +165,7 @@ export const CHART_PRESENTATION_PROFILES: Record<string, ChartPresentationProfil
         rowBudget: 20,
         orderBy: 'height',
         keyBy: ['x_axis'],
-        baseAttributes: { radiusMax: 1 },
+        baseAttributes: { radiusMax: 1, animation: false },
     },
     cylsmap: {
         rotation: '0 0 0',
@@ -159,12 +174,13 @@ export const CHART_PRESENTATION_PROFILES: Record<string, ChartPresentationProfil
         rowBudget: 30,
         orderBy: 'height',
         keyBy: ['x_axis', 'z_axis'],
-        baseAttributes: { radiusMax: 1 },
+        baseAttributes: { radiusMax: 1, animation: false },
     },
     pie: {
         rotation: '90 0 0',
         initialScale: '1.5 1.5 1.5',
         fit: 'uniform',
+        maxHeight: STANDING_DISC_MAX_HEIGHT,
         rowBudget: 12,
         orderBy: 'size',
         keyBy: ['key'],
@@ -174,6 +190,7 @@ export const CHART_PRESENTATION_PROFILES: Record<string, ChartPresentationProfil
         rotation: '90 0 0',
         initialScale: '1.5 1.5 1.5',
         fit: 'uniform',
+        maxHeight: STANDING_DISC_MAX_HEIGHT,
         rowBudget: 12,
         orderBy: 'size',
         keyBy: ['key'],

@@ -193,8 +193,37 @@
       : '';
   }
 
+  // The dimensions Babia keys its elements by changed (x_axis of bars, for
+  // one): elements are matched by the OLD key while the new one is applied,
+  // which left ghost bars behind (CHARTS-7). Such a remap rebuilds the chart.
+  function mappingChangesElementKeys(chartEntity, componentName, chartId, mappingSnapshot) {
+    var keyBy = getChartPresentation(chartId).keyBy;
+    if (!Array.isArray(keyBy) || !keyBy.length || !componentName) {
+      return false;
+    }
+    var currentData = chartEntity && typeof chartEntity.getAttribute === 'function'
+      ? chartEntity.getAttribute(componentName)
+      : null;
+    if (!currentData || typeof currentData !== 'object') {
+      return false;
+    }
+    return keyBy.some(function (dimensionId) {
+      return Object.prototype.hasOwnProperty.call(mappingSnapshot || {}, dimensionId)
+        && String(currentData[dimensionId] ?? '') !== String((mappingSnapshot || {})[dimensionId] ?? '');
+    });
+  }
+
   function applyMappingToCharts(chartEntities, componentName, mappingSnapshot) {
     var activeChartId = state.activeChartId;
+    // Slice first: the chart must read rows ranked, filtered and de-duplicated
+    // for the NEW mapping when its component changes, not rebuild once more
+    // over the old slice with the new fields (CHARTS-7).
+    refreshChartDataSlicesForMapping(
+      chartEntities,
+      componentName,
+      activeChartId,
+      mappingSnapshot
+    );
     chartEntities.forEach(function (chartEntity) {
       var entityChartId = getEntityChartId(chartEntity);
       // Stamping the new component onto an entity still wearing the previous
@@ -207,6 +236,10 @@
         applyChartTypeToEntity(chartEntity, activeChartId, mappingSnapshot);
         return;
       }
+      if (activeChartId && mappingChangesElementKeys(chartEntity, componentName, activeChartId, mappingSnapshot)) {
+        applyChartTypeToEntity(chartEntity, activeChartId, mappingSnapshot);
+        return;
+      }
       setDeclarativeAttribute(
         chartEntity,
         componentName,
@@ -215,14 +248,6 @@
         )
       );
     });
-    // A re-mapping changes the fields that rank and filter the top-N slice:
-    // recompute slice content for every entity reading from one.
-    refreshChartDataSlicesForMapping(
-      chartEntities,
-      componentName,
-      state.activeChartId,
-      mappingSnapshot
-    );
   }
 
   function isHierarchicalChart(chartId) {
@@ -254,12 +279,12 @@
     // attributes beyond the mapped fields, and how many data rows the chart
     // can express legibly (applied as a top-N slice by chartDataSlice.js).
     presentation: {
-      bars: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'planar-uniform', rowBudget: 20, orderBy: 'height', keyBy: ['x_axis'], baseAttributes: {} },
-      barsmap: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', rowBudget: 30, orderBy: 'height', keyBy: ['x_axis', 'z_axis'], baseAttributes: {} },
-      cyls: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'planar-uniform', rowBudget: 20, orderBy: 'height', keyBy: ['x_axis'], baseAttributes: { radiusMax: 1 } },
-      cylsmap: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'planar-uniform', rowBudget: 30, orderBy: 'height', keyBy: ['x_axis', 'z_axis'], baseAttributes: { radiusMax: 1 } },
-      pie: { rotation: '90 0 0', initialScale: '1.5 1.5 1.5', fit: 'uniform', rowBudget: 12, orderBy: 'size', keyBy: ['key'], baseAttributes: { titlePosition: '2.5 0 -3' } },
-      donut: { rotation: '90 0 0', initialScale: '1.5 1.5 1.5', fit: 'uniform', rowBudget: 12, orderBy: 'size', keyBy: ['key'], baseAttributes: { titlePosition: '2.5 0 -3' } },
+      bars: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'planar-uniform', rowBudget: 20, orderBy: 'height', keyBy: ['x_axis'], baseAttributes: { animation: false } },
+      barsmap: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', rowBudget: 30, orderBy: 'height', keyBy: ['x_axis', 'z_axis'], baseAttributes: { animation: false } },
+      cyls: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'planar-uniform', rowBudget: 20, orderBy: 'height', keyBy: ['x_axis'], baseAttributes: { radiusMax: 1, animation: false } },
+      cylsmap: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'planar-uniform', rowBudget: 30, orderBy: 'height', keyBy: ['x_axis', 'z_axis'], baseAttributes: { radiusMax: 1, animation: false } },
+      pie: { rotation: '90 0 0', initialScale: '1.5 1.5 1.5', fit: 'uniform', maxHeight: 2, rowBudget: 12, orderBy: 'size', keyBy: ['key'], baseAttributes: { titlePosition: '2.5 0 -3' } },
+      donut: { rotation: '90 0 0', initialScale: '1.5 1.5 1.5', fit: 'uniform', maxHeight: 2, rowBudget: 12, orderBy: 'size', keyBy: ['key'], baseAttributes: { titlePosition: '2.5 0 -3' } },
       bubbles: { rotation: '0 0 0', initialScale: '1.5 1.5 1.5', fit: 'uniform', rowBudget: 12, orderBy: 'height', keyBy: ['x_axis', 'z_axis'], surfaceLift: 0.03, baseAttributes: { heightMax: 5, radiusMax: 1.5 } },
       boats: {
         rotation: '0 0 0',
@@ -327,7 +352,12 @@
         }
         return 'tree';
       }
-      if (/Comparison/i.test(fromValue) && !/Tree/i.test(fromValue)) {
+      // A flat chart keeps the flat producer it already reads (the main
+      // `data`, its slice, a comparison side, the evolution frames). Only a
+      // tree source has to be swapped for the flat one. This used to fall
+      // back to `data` for anything unrecognised, so building the evolution
+      // chart silently re-sliced the MAIN dataset (CHARTS-17).
+      if (!/Tree/i.test(fromValue) && fromValue !== 'tree') {
         return fromValue;
       }
     }
@@ -447,7 +477,11 @@
     var mapping = settings.mapping || {};
     var data = buildRuntimeChartData(chartId, existingData, mapping);
     var ordered = {
-      from: existingData.from,
+      // The resolved source: the row-budgeted slice for a budgeted chart once
+      // it is live, the raw producer otherwise (boats, or a slice still
+      // initialising). Keeping the raw `existingData.from` here is what made
+      // evolution frames bypass the slice (CHARTS-8).
+      from: data.from,
       title: data.title,
       palette: data.palette
     };
@@ -702,6 +736,10 @@
     }
     var existingData = readCurrentChartData(chartEntity);
     var presentation = getChartPresentation(chartId);
+    // Hidden until containment has fitted the new chart: Babia first draws it
+    // at its raw scale, which flashed a building-sized chart around the user
+    // on every switch (CHARTS-4).
+    chartEntity.components?.['codexr-chart-containment']?.beginRebuild?.('chart-switch:' + chartId);
     clearChartComponents(chartEntity);
     clearChartGeneratedChildren(chartEntity);
     // An explicit chart-type change starts a new Babia instance. Reset its

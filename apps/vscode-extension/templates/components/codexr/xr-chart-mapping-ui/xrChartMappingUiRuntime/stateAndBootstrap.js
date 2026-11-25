@@ -109,6 +109,11 @@
   var runtime = {
     autoInit: autoInit,
     getState: getState,
+    // A remap still being validated. Live reload must not overwrite it with
+    // the last confirmed mapping (CHARTS-12).
+    hasPendingMapping: function () {
+      return !!state.pendingMapping;
+    },
     restoreState: restoreState,
     selectChart: selectChart,
     // The chart the XR scene was generated with, immune to later selector
@@ -183,6 +188,7 @@
     buildDeclarativeTreeEntity: buildDeclarativeTreeEntity,
     buildDeclarativeChartEntity: buildDeclarativeChartEntity,
     configureDeclarativeChartEntity: configureDeclarativeChartEntity,
+    prepareChartDataSlice: prepareChartDataSlice,
     serializeDeclarativeComponentData: serializeDeclarativeComponentData,
     setDeclarativeAttribute: setDeclarativeAttribute,
     registerPanelView: registerPanelView,

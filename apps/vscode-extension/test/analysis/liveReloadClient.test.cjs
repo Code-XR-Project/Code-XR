@@ -204,6 +204,35 @@ test('XR live reload: cache busting keeps query parameters and skips sources wit
     assert.deepEqual(slice.emitted, []);
 });
 
+test('XR live reload: a remap made after the update arrived is not reverted (CHARTS-12)', () => {
+    const data = createDataEntity('data', { url: './data.json' });
+    const { context, sources, timers } = loadXrClient({ dataEntities: [data] });
+    const restored = [];
+    let current = { chartId: 'bars', lastKnownGoodMapping: { x_axis: 'fileName', height: 'totalLines' } };
+    let pending = false;
+    context.CodeXRMappingUiRuntime = {
+        getState: () => JSON.parse(JSON.stringify(current)),
+        hasPendingMapping: () => pending,
+        restoreState: (snapshot) => restored.push(snapshot),
+    };
+    sources[0].open();
+    sources[0].dispatch('analysis-updated');
+    // The visitor remaps while the charts rebuild.
+    current = { chartId: 'bars', lastKnownGoodMapping: { x_axis: 'fileName', height: 'functionCount' } };
+    timers.runAll();
+    assert.ok(restored.length >= 1);
+    for (const snapshot of restored) {
+        assert.equal(snapshot.lastKnownGoodMapping.height, 'functionCount', 'the mapping on screen now is the one kept');
+    }
+
+    // A remap still being validated is left alone entirely.
+    restored.length = 0;
+    pending = true;
+    sources[0].dispatch('analysis-updated');
+    timers.runAll();
+    assert.deepEqual(restored, []);
+});
+
 test('XR live reload: an offline export never opens a connection', () => {
     const { sources, statuses } = loadXrClient({ offlineExport: true });
     assert.equal(sources.length, 0);

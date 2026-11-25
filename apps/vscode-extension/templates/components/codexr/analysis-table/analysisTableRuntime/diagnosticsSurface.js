@@ -82,7 +82,15 @@
   }
 
   function getVisibleContainmentCharts(doc) {
-    return getContainmentCharts(doc).filter(isEntityVisible);
+    // An empty chart hides itself, but its "no data" state is still what the
+    // table should report, as long as its analysis is on screen.
+    return getContainmentCharts(doc).filter(function (chart) {
+      if (isEntityVisible(chart)) {
+        return true;
+      }
+      var containment = chart && chart.components && chart.components[COMPONENT_NAME];
+      return !!(containment && containment.emptyState && isEntityVisible(chart.parentNode));
+    });
   }
 
   function getVisibleDependencyGraphRoots(doc) {
@@ -158,6 +166,13 @@
         level: 'warning',
         reason: 'chart-status-unavailable',
         message: 'No chart detected'
+      };
+    }
+    if (status.empty) {
+      return {
+        level: 'warning',
+        reason: 'no-data',
+        message: status.message || 'No files to show for this mapping.'
       };
     }
     if (status.ready === false) {

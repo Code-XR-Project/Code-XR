@@ -32,7 +32,7 @@
         }
       }
 
-      var fit = computeUniformFitState(measurements, object3D, this.data);
+      var fit = computeUniformFitState(measurements, object3D, resolveChartFitData(this.el, this.data));
       if (!fit) {
         return null;
       }

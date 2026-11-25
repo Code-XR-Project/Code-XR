@@ -116,6 +116,46 @@
     return true;
   }
 
+  var CHART_SOURCE_PRODUCER_COMPONENTS = ['babia-queryjson', 'babia-treebuilder', 'babia-filter'];
+
+  /**
+   * Rows the chart's data source currently holds: 0 when the producer has an
+   * empty array, null when it cannot tell (no producer yet, no data yet, or a
+   * shape it does not know). Containment uses it to tell an empty dataset
+   * (nothing to draw: say so) from geometry that is still being built.
+   */
+  function resolveChartSourceRowCount(el) {
+    var components = el && el.components;
+    if (!components) {
+      return null;
+    }
+    var names = Object.keys(components);
+    for (var i = 0; i < names.length; i += 1) {
+      var name = names[i];
+      if (name.indexOf('babia-') !== 0 || CHART_SOURCE_PRODUCER_COMPONENTS.indexOf(name) !== -1) {
+        continue;
+      }
+      var from = components[name] && components[name].data && components[name].data.from;
+      if (!from || typeof from !== 'string') {
+        continue;
+      }
+      var doc = el.ownerDocument || root.document;
+      var producerEl = doc && typeof doc.getElementById === 'function' ? doc.getElementById(from) : null;
+      if (!producerEl || !producerEl.components) {
+        return null;
+      }
+      for (var j = 0; j < CHART_SOURCE_PRODUCER_COMPONENTS.length; j += 1) {
+        var producer = producerEl.components[CHART_SOURCE_PRODUCER_COMPONENTS[j]];
+        var buffered = producer && producer.notiBuffer ? producer.notiBuffer.data : undefined;
+        if (Array.isArray(buffered)) {
+          return buffered.length;
+        }
+      }
+      return null;
+    }
+    return null;
+  }
+
   installBabiaAxisLineCompat(AFRAME);
   installBabiaQueryJsonCompat(AFRAME);
 
