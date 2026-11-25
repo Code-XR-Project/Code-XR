@@ -70,43 +70,6 @@ export interface DimensionMapping {
 }
 
 /**
- * Visualization configuration
- */
-export interface VisualizationConfig {
-    /** Selected chart type ID */
-    chartType: string;
-    
-    /** Path to the JSON data file */
-    dataFilePath: string;
-    
-    /** Dimension mappings */
-    dimensionMappings: DimensionMapping[];
-    
-    /** Visualization title */
-    title: string;
-    
-    /** Additional configuration options */
-    options?: Record<string, any>;
-}
-
-/**
- * Template processing result
- */
-export interface TemplateProcessingResult {
-    /** Whether processing was successful */
-    success: boolean;
-    
-    /** Generated HTML content */
-    html?: string;
-    
-    /** Error message if processing failed */
-    error?: string;
-    
-    /** Validation warnings */
-    warnings?: string[];
-}
-
-/**
  * Chart validation result
  */
 export interface ChartValidationResult {
