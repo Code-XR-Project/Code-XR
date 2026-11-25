@@ -29,6 +29,20 @@ let multiServerLauncher: MultiServerLauncher | null = null;
 let extensionContext: vscode.ExtensionContext | null = null;
 
 /**
+ * The single "no extension context yet" refusal: shows the toast and narrows
+ * the module-level context for the caller when it is set.
+ */
+function requireExtensionContext(
+    context: vscode.ExtensionContext | null
+): context is vscode.ExtensionContext {
+    if (!context) {
+        vscode.window.showErrorMessage('SERVER: Extension context not available');
+        return false;
+    }
+    return true;
+}
+
+/**
  * Opens server configuration panel
  */
 export async function configureServer(): Promise<void> {
@@ -85,8 +99,7 @@ export async function startLocalServer(): Promise<void> {
         logger.debug(() => `Selected HTML file: ${selectedFile}`);
         
         // Step 2: Get extension context and initialize multi-server launcher
-        if (!extensionContext) {
-            vscode.window.showErrorMessage('SERVER: Extension context not available');
+        if (!requireExtensionContext(extensionContext)) {
             return;
         }
         
@@ -181,8 +194,7 @@ export async function configureOpenMode(): Promise<void> {
 }
 
 export async function configureRemoteAccess(): Promise<void> {
-    if (!extensionContext) {
-        vscode.window.showErrorMessage('SERVER: Extension context not available');
+    if (!requireExtensionContext(extensionContext)) {
         return;
     }
     const settingsManager = ServerSettingsManager.getInstance(extensionContext);
@@ -244,8 +256,7 @@ export async function resetToDefault(): Promise<void> {
     }
     
     try {
-        if (!extensionContext) {
-            vscode.window.showErrorMessage('SERVER: Extension context not available');
+        if (!requireExtensionContext(extensionContext)) {
             return;
         }
         

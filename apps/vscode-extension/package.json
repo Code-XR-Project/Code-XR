@@ -752,7 +752,7 @@
     "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit --incremental false -p tsconfig.check.json && node ../../node_modules/typescript/bin/tsc --incremental false -p tsconfig.tooling.json",
     "compile-tests": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\" && node ../../node_modules/typescript/bin/tsc -p . --outDir out",
     "watch-tests": "node ../../node_modules/typescript/bin/tsc -p . -w --outDir out",
-    "lint": "node ../../node_modules/eslint/bin/eslint.js src test scripts templates webpack.config.js eslint.config.mjs --max-warnings 547",
+    "lint": "node ../../node_modules/eslint/bin/eslint.js src test scripts templates webpack.config.js eslint.config.mjs --max-warnings 545",
     "test": "npm run test:basic",
     "test:basic": "npm run typecheck && npm run lint && npm run compile-tests && npm run test:unit",
     "test:unit": "node test/runners/run-node-tests.cjs",
