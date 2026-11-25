@@ -26,7 +26,7 @@ export interface GitExportSystemResources {
 const WORKER_MEMORY_BYTES = 128 * 1024 * 1024;
 const MAXIMUM_WORKERS = 32;
 
-export function readGitExportSystemResources(): GitExportSystemResources {
+function readGitExportSystemResources(): GitExportSystemResources {
     const parallelism = typeof os.availableParallelism === 'function'
         ? os.availableParallelism()
         : os.cpus().length;

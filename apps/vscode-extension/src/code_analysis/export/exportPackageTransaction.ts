@@ -3,6 +3,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import type { ExportSelection } from './exportModeSelection';
 import type { ExportManifest } from './exportManifest';
+import { GIT_REVISIONS_FOLDER } from './gitRevisionExportCore';
 
 export interface ExportPackageTransaction {
     sourcePath: string;
@@ -89,7 +90,7 @@ export async function pruneExportPackage(
         removeArtifact(stagingPath, 'README-EXPORT.md'),
         // Always regenerated when a git-backed mode was selected. Removing it
         // first prevents a failed export from inheriting an older timeline.
-        removeArtifact(stagingPath, 'git-revisions'),
+        removeArtifact(stagingPath, GIT_REVISIONS_FOLDER),
         ...(selection.dependencyGraph
             ? []
             : [
