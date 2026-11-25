@@ -8,13 +8,10 @@ import { LauncherLivePanel } from './launchers/launcherLivePanel';
 import { LauncherXRAnalysis } from './launchers/launcherXRAnalysis';
 import { LauncherVisualizeDOM } from './launchers/launcherVisualizeDOM';
 import { UnifiedSessionRegistry } from './core/sessionRegistry';
-import { UnifiedAnalysisSession } from './core/analysisSession';
+import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './core/analysisSession';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
-
-export type AnalysisMode = 'LivePanel' | 'XR' | 'VisualizeDOM';
-export type TargetType = 'file' | 'directory';
 
 export class AnalysisOrchestrator {
     
