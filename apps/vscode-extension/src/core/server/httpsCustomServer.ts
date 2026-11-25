@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { NetworkUtils } from '../utils/networkUtils';
+import { NetworkUtils } from './networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
 import { isCertificateRejectedByClient } from './httpsTlsOptions';

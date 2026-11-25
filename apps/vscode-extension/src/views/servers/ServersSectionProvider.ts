@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
 import { ServerTreeItem, ServerItemFactory } from './items/serverItems';
-import { ServerSettingsManager } from '../../servers/storage/serverSettingsManager';
+import { ServerSettingsManager } from '../../core/server/serverSettingsManager';
 import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SERVERS');

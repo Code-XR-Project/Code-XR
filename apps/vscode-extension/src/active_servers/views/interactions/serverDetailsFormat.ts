@@ -1,6 +1,6 @@
 import * as path from 'path';
-import type { ActiveServer } from '../../model/activeServerModel';
-import { NetworkUtils } from '../../../servers/utils/networkUtils';
+import type { ActiveServer } from '../../../core/server/registry/activeServerModel';
+import { NetworkUtils } from '../../../core/server/networkUtils';
 import { formatDetailSections, formatDuration } from '../../../platform/ui/detailDialog';
 
 /*

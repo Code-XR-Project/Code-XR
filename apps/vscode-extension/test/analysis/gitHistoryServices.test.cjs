@@ -4,8 +4,8 @@
  *
  *   src/code_analysis/historical/historicalComparisonService.ts
  *   src/code_analysis/historical/projectEvolutionService.ts
- *   src/servers/runtime/analysis/historicalComparisonBridge.ts
- *   src/servers/runtime/analysis/projectEvolutionBridge.ts
+ *   src/core/server/analysis/historicalComparisonBridge.ts
+ *   src/core/server/analysis/projectEvolutionBridge.ts
  *
  * Until this suite the four files were pinned only by regexes over their own
  * text, which blocks every behaviour-neutral reshaping. Everything here runs
@@ -35,8 +35,8 @@ const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.
 
 const HISTORICAL_MODULE = 'code_analysis/historical/historicalComparisonService.js';
 const EVOLUTION_MODULE = 'code_analysis/historical/projectEvolutionService.js';
-const HISTORICAL_BRIDGE_MODULE = 'servers/runtime/analysis/historicalComparisonBridge.js';
-const EVOLUTION_BRIDGE_MODULE = 'servers/runtime/analysis/projectEvolutionBridge.js';
+const HISTORICAL_BRIDGE_MODULE = 'core/server/analysis/historicalComparisonBridge.js';
+const EVOLUTION_BRIDGE_MODULE = 'core/server/analysis/projectEvolutionBridge.js';
 
 // ------------------------------------------------------------------ fixture repo
 

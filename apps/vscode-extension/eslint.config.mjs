@@ -141,11 +141,11 @@ export default [{
     files: [
         // historicalComparison.test.cjs pins `source.kind === 'workingCopy') || null` here (S pin).
         "src/code_analysis/historical/projectEvolutionService.ts",
-        "src/servers/runtime/analysis/dependencyGraphBridge.ts",
-        "src/servers/runtime/analysis/projectEvolutionBridge.ts",
-        "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "src/servers/runtime/collaboration/roomSharedState.ts",
-        "src/servers/storage/serverSettingsManager.ts",
+        "src/core/server/analysis/dependencyGraphBridge.ts",
+        "src/core/server/analysis/projectEvolutionBridge.ts",
+        "src/core/server/collaboration/collaborationRoomServer.ts",
+        "src/core/server/collaboration/roomSharedState.ts",
+        "src/core/server/serverSettingsManager.ts",
         "src/features/visualize-data/model/visualizeDataState.ts",
         "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts",
     ],
@@ -167,13 +167,26 @@ export default [{
 }, {
     // Folders whose `any`s were typed away (story #56, modernization.md §7):
     // there no-explicit-any is an error, not a budget warning. A folder joins
-    // the list in the commit that brings it to zero.
+    // the list in the commit that brings it to zero. When #55 moved a locked
+    // file into a folder that also holds files with `any`, the lock moved to
+    // that whole folder and those files are listed in `ignores` (each leaves
+    // the list when it is typed).
     name: "codexr/any-free-folders",
     files: [
         "src/active_servers/**/*.ts",
+        "src/core/server/**/*.ts",
         "src/code_analysis/engine/watchers/**/*.ts",
         "src/code_analysis/services/**/*.ts",
         "src/code_analysis/views/subsections/active_analyses/**/*.ts",
+    ],
+    ignores: [
+        "src/core/server/http/httpRespond.ts",
+        "src/core/server/httpsTlsOptions.ts",
+        "src/core/server/launchServerWithFile.ts",
+        "src/core/server/multiServerLauncher.ts",
+        "src/core/server/serverFactory.ts",
+        "src/core/server/serverSettingsManager.ts",
+        "src/core/server/sse/SSEManager.ts",
     ],
     rules: {
         "@typescript-eslint/no-explicit-any": "error",

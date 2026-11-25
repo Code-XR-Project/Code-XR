@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { ActiveServer } from '../../model/activeServerModel';
-import { getActiveServerRegistry } from '../../registry/activeServerRegistry';
-import { ServerControl } from '../../runtime/serverControl';
+import { ActiveServer } from '../../../core/server/registry/activeServerModel';
+import { getActiveServerRegistry } from '../../../core/server/registry/activeServerRegistry';
+import { ServerControl } from '../../../core/server/serverControl';
 import { openServerInBrowser, openServerInPanel } from '../../services/serverOpenActions';
 import { withServer } from '../../services/withServer';
-import { NetworkUtils } from '../../../servers/utils/networkUtils';
+import { NetworkUtils } from '../../../core/server/networkUtils';
 import { RemoteAccessManager } from '../../../core/remote-access/remoteAccessManager';
-import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
+import { ServerSettingsManager } from '../../../core/server/serverSettingsManager';
 import { COLLABORATION_AVATARS } from '../../../core/collaboration/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
 import type { PairingRequestSummary } from '../../../core/remote-access/remoteSessionAuthority';

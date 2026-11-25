@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { RemoteSessionAuthority } from '../../../core/remote-access/remoteSessionAuthority';
+import { RemoteSessionAuthority } from '../../remote-access/remoteSessionAuthority';
 
 /**
  * The only paths a remote guest may reach without a session cookie: the

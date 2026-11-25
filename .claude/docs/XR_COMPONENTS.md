@@ -51,7 +51,7 @@ Browser-console APIs (`CodeXR.help()`, `CodeXRDebug`, `CodeXRChartDebug`, `CodeX
 
 ## Collaboration & remote layer (summary only)
 
-- Collaborative rooms: WebSocket signaling in `src/servers/runtime/collaboration/collaborationRoomServer.ts` + broadcast signaling for virtual screens; server-authoritative admin operations (host/guest roles, host transfer) — v1.2.0's "Collaboration 2.0".
+- Collaborative rooms: WebSocket signaling in `src/core/server/collaboration/collaborationRoomServer.ts` + broadcast signaling for virtual screens; server-authoritative admin operations (host/guest roles, host transfer) — v1.2.0's "Collaboration 2.0".
 - Cross-network access: opt-in Cloudflare Quick Tunnel per server (pinned `cloudflared`, token invites, pairing codes, revocation) — see `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` (Spanish) for limits and the authorization flow.
 
 ## How future agents should use this document

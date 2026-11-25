@@ -35,7 +35,7 @@ function makeServer(overrides) {
 async function withNetwork(body) {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { NetworkUtils } = requireOut('servers/utils/networkUtils.js');
+        const { NetworkUtils } = requireOut('core/server/networkUtils.js');
         NetworkUtils.getLocalIPAddress = () => '192.0.2.7';
         await body({ fake, requireOut });
     });
@@ -44,7 +44,7 @@ async function withNetwork(body) {
 test('the "Local network address" row: protocol from certMode, the local IP and the port', async () => {
     await withNetwork(async ({ requireOut }) => {
         const { ActiveServerItemFactory } = requireOut('views/active_servers/items/activeServerItems.js');
-        const { ServerSettingsManager } = requireOut('servers/storage/serverSettingsManager.js');
+        const { ServerSettingsManager } = requireOut('core/server/serverSettingsManager.js');
         ServerSettingsManager.getInstance = () => ({ getServerSettings: () => ({ remoteAccess: { enabled: false } }) });
         const cases = [
             [{ certMode: 'http', url: 'http://localhost:5555' }, 'http://192.0.2.7:5555'],
@@ -71,7 +71,7 @@ test('the details "Network" line: protocol from certMode', async () => {
 
 test('Copy Network URL: protocol from the server URL scheme', async () => {
     await withNetwork(async ({ fake, requireOut }) => {
-        const { getActiveServerRegistry } = requireOut('active_servers/registry/activeServerRegistry.js');
+        const { getActiveServerRegistry } = requireOut('core/server/registry/activeServerRegistry.js');
         const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
         const registry = getActiveServerRegistry();
         const originalGetServer = registry.getServer;

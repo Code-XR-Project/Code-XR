@@ -1,11 +1,11 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { ActiveServer } from '../../../active_servers/model/activeServerModel';
+import { ActiveServer } from '../../../core/server/registry/activeServerModel';
 import { COLLABORATION_AVATARS } from '../../../core/collaboration/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
-import { NetworkUtils } from '../../../servers/utils/networkUtils';
+import { NetworkUtils } from '../../../core/server/networkUtils';
 import { CollaborationTreeItem } from '../../../features/collaboration/views/collaborationItems';
-import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
+import { ServerSettingsManager } from '../../../core/server/serverSettingsManager';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS');

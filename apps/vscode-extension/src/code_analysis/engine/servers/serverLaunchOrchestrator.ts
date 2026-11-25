@@ -6,9 +6,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MultiServerLauncher } from '../../../servers/runtime/multiServerLauncher';
-import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
-import { fileToServerMap } from '../../../utils/fileToServerMap';
+import { MultiServerLauncher } from '../../../core/server/multiServerLauncher';
+import { ServerSettingsManager } from '../../../core/server/serverSettingsManager';
+import { fileToServerMap } from '../../../core/server/fileToServerMap';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import {
     ServerLaunchRequest,

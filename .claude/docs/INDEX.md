@@ -66,7 +66,7 @@
 | **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `src/code_analysis/python/`, `engine/`, `src/utils/languageMetadata.ts` |
 | **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `code_analysis/dependencies/`, graph runtime |
 | **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `code_analysis/historical/` |
-| **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/servers/`, `active_servers/`, `core/collaboration/`, `features/collaboration/`, `core/remote-access/` |
+| **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/core/server/`, `src/servers/`, `active_servers/`, `core/collaboration/`, `features/collaboration/`, `core/remote-access/` |
 | **Build / test / tooling** | `DEVELOPMENT.md` | `scripts/`, configs |
 | **Docs update** | `AI_WORKFLOWS.md` §docs → `V1.2.1_STATUS.md` §carried-over debt → `V1.2.0_STATUS.md` §documentation debt | `docs/`, `.claude/docs/` |
 | **Release preparation** | `V1.2.1_STATUS.md` (all) → `AI_WORKFLOWS.md` §release → `DEVELOPMENT.md` §packaging; `docs/project/ROADMAP_V1.2.0.md` only for historical exit criteria | everything user-visible |

@@ -1,4 +1,4 @@
-import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
+import { ConnectedParticipantSummary } from '../../collaboration/connectedParticipant';
 import { resolveRoomId, send } from './roomMessageCodec';
 import {
     CollaborationPeer,

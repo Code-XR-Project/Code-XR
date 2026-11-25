@@ -10,12 +10,12 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 // guards on "the room" read all of them, so code moving between them cannot
 // slip past a guard.
 const ROOM_SERVER_FILES = [
-    'src/servers/runtime/collaboration/collaborationRoomServer.ts',
-    'src/servers/runtime/collaboration/roomTypes.ts',
-    'src/servers/runtime/collaboration/roomMessageCodec.ts',
-    'src/servers/runtime/collaboration/participantIdentity.ts',
-    'src/servers/runtime/collaboration/roomRegistry.ts',
-    'src/servers/runtime/collaboration/roomSharedState.ts',
+    'src/core/server/collaboration/collaborationRoomServer.ts',
+    'src/core/server/collaboration/roomTypes.ts',
+    'src/core/server/collaboration/roomMessageCodec.ts',
+    'src/core/server/collaboration/participantIdentity.ts',
+    'src/core/server/collaboration/roomRegistry.ts',
+    'src/core/server/collaboration/roomSharedState.ts',
 ];
 
 function readProjectFile(...parts) {
@@ -23,7 +23,7 @@ function readProjectFile(...parts) {
 }
 
 test('remote access defaults to enabled, with a one-shot migration for older settings files', () => {
-    const settings = readProjectFile('src', 'servers', 'storage', 'serverSettingsManager.ts');
+    const settings = readProjectFile('src', 'core', 'server', 'serverSettingsManager.ts');
     const model = readProjectFile('src', 'core', 'remote-access', 'remoteAccessModel.ts');
     const items = readProjectFile('src', 'views', 'servers', 'items', 'serverItems.ts');
     assert.match(settings, /remoteAccess: \{ \.\.\.DEFAULT_REMOTE_ACCESS_SETTINGS \}/);
@@ -40,7 +40,7 @@ test('remote access defaults to enabled, with a one-shot migration for older set
 
 test('invitation links carry no TTL and the download consent is asked once', () => {
     const authority = readProjectFile('src', 'core', 'remote-access', 'remoteSessionAuthority.ts');
-    const pairingApi = readProjectFile('src', 'servers', 'runtime', 'remote', 'remotePairingApi.ts');
+    const pairingApi = readProjectFile('src', 'core', 'server', 'remote', 'remotePairingApi.ts');
     const binaryManager = readProjectFile('src', 'core', 'remote-access', 'cloudflaredBinaryManager.ts');
     // The 30-minute invitation TTL made the sidebar's address die while the
     // tunnel stayed up. Invitations now live until revocation.
@@ -58,21 +58,21 @@ test('invitation links carry no TTL and the download consent is asked once', () 
 });
 
 test('remote HTTP and WebSocket access require server-issued sessions', () => {
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'httpServer.ts');
     // Cookie policy and the pairing endpoints live in the extracted remote/ modules.
-    const accessPolicy = readProjectFile('src', 'servers', 'runtime', 'remote', 'remoteAccessPolicy.ts');
-    const pairingApi = readProjectFile('src', 'servers', 'runtime', 'remote', 'remotePairingApi.ts');
+    const accessPolicy = readProjectFile('src', 'core', 'server', 'remote', 'remoteAccessPolicy.ts');
+    const pairingApi = readProjectFile('src', 'core', 'server', 'remote', 'remotePairingApi.ts');
     const roomServer = readProjectFile(
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'collaboration',
         'collaborationRoomServer.ts',
     );
     const broadcastServer = readProjectFile(
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'broadcast',
         'screenBroadcastSignalingServer.ts',
     );
@@ -139,7 +139,7 @@ test('active servers exposes expandable information, participants, and condition
 });
 
 test('external browser pairing selects identity before requesting the code', () => {
-    const pairingPage = readProjectFile('src', 'servers', 'runtime', 'remote', 'pairingPage.ts');
+    const pairingPage = readProjectFile('src', 'core', 'server', 'remote', 'pairingPage.ts');
     const authority = readProjectFile(
         'src',
         'core',
@@ -154,7 +154,7 @@ test('external browser pairing selects identity before requesting the code', () 
 });
 
 test('guest pairing pages stay self-contained for the response CSP', () => {
-    const pairingPage = readProjectFile('src', 'servers', 'runtime', 'remote', 'pairingPage.ts');
+    const pairingPage = readProjectFile('src', 'core', 'server', 'remote', 'pairingPage.ts');
     // No img-src directive is sent, and an unpaired guest cannot fetch static
     // assets, so external references and data: images would break the page.
     assert.doesNotMatch(pairingPage, /<link\b/);
@@ -217,8 +217,8 @@ test('the host can remove a guest from the participant modal and the tree contex
 });
 
 test('participant removal is server-authoritative and revokes remote sessions', () => {
-    const room = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationRoomServer.ts');
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
+    const room = readProjectFile('src', 'core', 'server', 'collaboration', 'collaborationRoomServer.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'httpServer.ts');
     const authority = readProjectFile('src', 'core', 'remote-access', 'remoteSessionAuthority.ts');
 
     // Both kick paths share one wire format, so browsers cannot tell them apart.

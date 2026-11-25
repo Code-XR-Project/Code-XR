@@ -264,7 +264,7 @@ export class DirectoryReAnalyzer {
 
     async sendSSENotification(session: UnifiedAnalysisSession): Promise<void> {
         try {
-            const { SSEManager } = require('../../../servers/runtime/sse/SSEManager');
+            const { SSEManager } = require('../../../core/server/sse/SSEManager');
             const sseManager = SSEManager.getInstance();
 
             if (session.analysisMode === 'XR') {

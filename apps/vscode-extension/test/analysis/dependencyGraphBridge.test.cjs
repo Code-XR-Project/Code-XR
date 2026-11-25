@@ -1,6 +1,6 @@
 /**
  * Behavioural characterization of the dependency-graph room bridge
- * (src/servers/runtime/analysis/dependencyGraphBridge.ts), written before
+ * (src/core/server/analysis/dependencyGraphBridge.ts), written before
  * ROADMAP T29 (hoisted vocabularies and sanitizeDependencyScope) and T30 (the
  * start-message defaults table) reshaped it. Until this suite the two
  * handlers were pinned only by regexes over their own text.
@@ -25,7 +25,7 @@ const path = require('node:path');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
-const BRIDGE_MODULE = 'servers/runtime/analysis/dependencyGraphBridge.js';
+const BRIDGE_MODULE = 'core/server/analysis/dependencyGraphBridge.js';
 
 function createMessageContext() {
     const context = {

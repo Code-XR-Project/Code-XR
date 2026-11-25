@@ -20,8 +20,8 @@ function loadCapabilitiesModule() {
     const sourcePath = path.join(
         projectRoot,
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'analysisServerCapabilities.ts',
     );
     const source = fs.readFileSync(sourcePath, 'utf8');
@@ -102,7 +102,7 @@ test('resolveAnalysisServerCapabilities returns an independent object per call (
 });
 
 test('the analysis host resolves capabilities from the session mode and gates every optional service behind them', () => {
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
 
     // Uses the single shared capability resolver, keyed off the real session mode.
     assert.match(httpServer, /import \{ resolveAnalysisServerCapabilities \} from '\.\.\/analysisServerCapabilities';/);
@@ -116,7 +116,7 @@ test('the analysis host resolves capabilities from the session mode and gates ev
 });
 
 test('the analysis host no longer constructs the XR-only feature services unconditionally', () => {
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
 
     // The historical/project-evolution services must never be reachable without
     // first passing their capability gate — otherwise a non-XR launch throws.

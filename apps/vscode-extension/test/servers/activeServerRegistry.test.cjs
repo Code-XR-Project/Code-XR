@@ -2,7 +2,7 @@
 
 /**
  * Characterization of the active-server registry's change event
- * (active_servers/registry/activeServerRegistry.ts), through compiled out/
+ * (core/server/registry/activeServerRegistry.ts), through compiled out/
  * code. Three consumers subscribe to `onRegistryChange` (the ACTIVE SERVERS
  * tree, the analysis watcher integration and the remote-access manager) and
  * rely on the VS Code `Event` contract: `(listener, thisArgs?, disposables?)`
@@ -16,7 +16,7 @@ const path = require('node:path');
 
 const { createFakeVscode, withFakeVscode } = require('../helpers/fakeVscode.cjs');
 
-const REGISTRY = 'active_servers/registry/activeServerRegistry.js';
+const REGISTRY = 'core/server/registry/activeServerRegistry.js';
 const projectRoot = path.resolve(__dirname, '..', '..');
 
 function loadRegistry(callback) {

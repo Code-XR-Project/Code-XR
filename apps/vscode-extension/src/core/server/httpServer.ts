@@ -1,13 +1,13 @@
 import * as http from 'http';
 import * as vscode from 'vscode';
 import { sseManager } from './sse/SSEManager';
-import { fileToServerMap } from '../../utils/fileToServerMap';
-import { NetworkUtils } from '../utils/networkUtils';
+import { fileToServerMap } from './fileToServerMap';
+import { NetworkUtils } from './networkUtils';
 import { ScreenBroadcastSignalingServer } from './broadcast/screenBroadcastSignalingServer';
 import { CollaborationRoomServer } from './collaboration/collaborationRoomServer';
-import { CollaborationProfileManager } from '../../core/collaboration/collaborationProfileManager';
-import { ConnectedParticipantSummary } from '../../core/collaboration/connectedParticipant';
-import { RemoteSessionAuthority } from '../../core/remote-access/remoteSessionAuthority';
+import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
+import { ConnectedParticipantSummary } from '../collaboration/connectedParticipant';
+import { RemoteSessionAuthority } from '../remote-access/remoteSessionAuthority';
 import { addCorsHeaders, sendErrorResponse, sendJsonResponse } from './http/httpRespond';
 import { StaticAssetServer } from './http/staticAssets';
 import { RemoteAccessPolicy } from './remote/remoteAccessPolicy';

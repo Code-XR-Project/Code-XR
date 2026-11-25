@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import { ActiveServer, ActiveServerMetadata, ActiveServerRuntime, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from '../model/activeServerModel';
-import { RemoteAccessState } from '../../core/remote-access/remoteAccessModel';
-import { getLogger } from '../../platform/logging/sink';
+import { ActiveServer, ActiveServerMetadata, ActiveServerRuntime, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from './activeServerModel';
+import { RemoteAccessState } from '../../remote-access/remoteAccessModel';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS');
 

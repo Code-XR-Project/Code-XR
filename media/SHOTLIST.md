@@ -174,7 +174,7 @@ XR, not just how it looks. JPEG ~1600 px, 115-152 KB each.
 
 The two sides of the joining flow, used by the README's cross-network tutorial. One folder per role, because every shot belongs to exactly one of them.
 
-**`invited_user/`** is what the person joining sees in their browser. Rendered from the **real production page** (`src/servers/runtime/remote/pairingPage.ts`, compiled and served as-is, so the HTML, CSS and client script are exactly what a guest gets) with only the three endpoints it calls stubbed: a faithful capture would otherwise need a live Cloudflare tunnel and a second machine. The alias and the code shown are therefore invented, and nothing else is. Captured at 640 px wide, `deviceScaleFactor: 2`, dark scheme. Retaken after the page adopted the product site's design tokens (slate surfaces, steel-blue accent, no glass or neon glow), so **whenever that styling changes these four must be retaken together** with the script that produced them.
+**`invited_user/`** is what the person joining sees in their browser. Rendered from the **real production page** (`src/core/server/remote/pairingPage.ts`, compiled and served as-is, so the HTML, CSS and client script are exactly what a guest gets) with only the three endpoints it calls stubbed: a faithful capture would otherwise need a live Cloudflare tunnel and a second machine. The alias and the code shown are therefore invented, and nothing else is. Captured at 640 px wide, `deviceScaleFactor: 2`, dark scheme. Retaken after the page adopted the product site's design tokens (slate surfaces, steel-blue accent, no glass or neon glow), so **whenever that styling changes these four must be retaken together** with the script that produced them.
 
 | File | Size | What it shows |
 |---|---|---|

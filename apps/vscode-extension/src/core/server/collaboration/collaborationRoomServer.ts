@@ -1,11 +1,11 @@
 import * as http from 'http';
 import { EventEmitter } from 'events';
 import { RawData, WebSocket } from 'ws';
-import { AUTO_AVATAR_ID, CollaborationProfile } from '../../../core/collaboration/collaborationProfile';
-import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
+import { AUTO_AVATAR_ID, CollaborationProfile } from '../../collaboration/collaborationProfile';
+import { ConnectedParticipantSummary } from '../../collaboration/connectedParticipant';
 import {
     AuthenticatedCollaborationSession,
-} from '../../../core/remote-access/remoteAccessModel';
+} from '../../remote-access/remoteAccessModel';
 import { attachWebSocketEndpoint, WebSocketEndpoint } from '../ws/webSocketEndpoint';
 import {
     CollaborationMessage,

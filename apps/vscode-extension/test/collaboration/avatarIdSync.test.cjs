@@ -121,7 +121,7 @@ function joinRoom(socket, roomId) {
 
 /** Runs `body` against a live room server and always tears the sockets and the listener down. */
 async function withRoomServer(options, body) {
-    const { CollaborationRoomServer } = requireOut('servers/runtime/collaboration/collaborationRoomServer.js');
+    const { CollaborationRoomServer } = requireOut('core/server/collaboration/collaborationRoomServer.js');
     const server = http.createServer((_req, res) => {
         res.writeHead(200);
         res.end('ok');

@@ -30,12 +30,13 @@
       "commands": 6,
       "core/charts": 6,
       "core/python-env": 5,
+      "core/server": 10,
       "features/examples": 3,
       "features/learn-more": 1,
       "features/visualization-settings": 3,
       "features/visualize-data": 10,
       "platform": 12,
-      "servers": 11,
+      "servers": 1,
       "utils": 3,
       "views": 6
     },
@@ -50,9 +51,9 @@
       "src/core/python-env/venvManager.ts",
       "src/core/remote-access/remoteAccessManager.ts",
       "src/core/remote-access/remoteSessionAuthority.ts",
-      "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-      "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-      "src/servers/runtime/httpServer.ts",
+      "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
+      "src/core/server/collaboration/collaborationRoomServer.ts",
+      "src/core/server/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 36,
@@ -102,6 +103,13 @@
       "src/core/charts/settings/settingsAccessors.ts": 1,
       "src/core/charts/settings/settingsStorage.ts": 3,
       "src/core/python-env/venvManager.ts": 5,
+      "src/core/server/http/httpRespond.ts": 1,
+      "src/core/server/httpsTlsOptions.ts": 1,
+      "src/core/server/launchServerWithFile.ts": 1,
+      "src/core/server/multiServerLauncher.ts": 1,
+      "src/core/server/serverFactory.ts": 1,
+      "src/core/server/serverSettingsManager.ts": 4,
+      "src/core/server/sse/SSEManager.ts": 1,
       "src/features/examples/views/handleBabiaExampleClicks.ts": 3,
       "src/features/learn-more/views/handleLearnMoreClicks.ts": 1,
       "src/features/visualization-settings/views/VisualizationSettingsSectionProvider.ts": 2,
@@ -114,13 +122,6 @@
       "src/platform/commands/commandBuilder.ts": 5,
       "src/platform/commands/commandRegistry.ts": 2,
       "src/platform/tree/baseInterfaces.ts": 5,
-      "src/servers/runtime/http/httpRespond.ts": 1,
-      "src/servers/runtime/httpsTlsOptions.ts": 1,
-      "src/servers/runtime/index.ts": 1,
-      "src/servers/runtime/multiServerLauncher.ts": 1,
-      "src/servers/runtime/serverFactory.ts": 1,
-      "src/servers/runtime/sse/SSEManager.ts": 1,
-      "src/servers/storage/serverSettingsManager.ts": 4,
       "src/servers/views/items/configurationItems.ts": 1,
       "src/utils/commonCommands.ts": 2,
       "src/utils/uriPathConverter.ts": 1,
@@ -153,7 +154,7 @@
         "count": 5
       },
       {
-        "file": "src/servers/storage/serverSettingsManager.ts",
+        "file": "src/core/server/serverSettingsManager.ts",
         "count": 4
       },
       {
@@ -200,7 +201,7 @@
         "ccn": 19,
         "lines": 50,
         "function": "handleMessage",
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts"
+        "file": "src/core/server/collaboration/collaborationRoomServer.ts"
       },
       {
         "ccn": 18,
@@ -218,31 +219,31 @@
         "ccn": 17,
         "lines": 44,
         "function": "handleCollaborationMessage",
-        "file": "src/servers/runtime/analysis/analysisMessageRouter.ts"
+        "file": "src/core/server/analysis/analysisMessageRouter.ts"
       },
       {
         "ccn": 17,
         "lines": 98,
         "function": "startBroadcast",
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts"
+        "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts"
       },
       {
         "ccn": 17,
         "lines": 55,
         "function": "updateFromLegacyConfig",
-        "file": "src/servers/storage/serverSettingsManager.ts"
+        "file": "src/core/server/serverSettingsManager.ts"
       },
       {
         "ccn": 16,
         "lines": 31,
         "function": "validateConfig",
-        "file": "src/active_servers/services/serverRegistrar.ts"
+        "file": "src/core/server/registry/serverRegistrar.ts"
       },
       {
         "ccn": 15,
         "lines": 81,
         "function": "closeAssociatedAnalysisSession",
-        "file": "src/active_servers/runtime/serverControl.ts"
+        "file": "src/core/server/serverControl.ts"
       },
       {
         "ccn": 15,
@@ -277,11 +278,11 @@
         "lines": 617
       },
       {
-        "file": "src/servers/runtime/httpServer.ts",
+        "file": "src/core/server/httpServer.ts",
         "lines": 582
       },
       {
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
+        "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
         "lines": 581
       },
       {

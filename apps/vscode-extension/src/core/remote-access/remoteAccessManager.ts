@@ -3,9 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
-import { ActiveServer } from '../../active_servers/model/activeServerModel';
-import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
-import { ServerSettingsManager } from '../../servers/storage/serverSettingsManager';
+import { ActiveServer } from '../server/registry/activeServerModel';
+import { getActiveServerRegistry } from '../server/registry/activeServerRegistry';
+import { ServerSettingsManager } from '../server/serverSettingsManager';
 import { DEFAULT_REMOTE_ACCESS_STATE, RemoteAccessState } from './remoteAccessModel';
 import {
     PairingFailureEvent,

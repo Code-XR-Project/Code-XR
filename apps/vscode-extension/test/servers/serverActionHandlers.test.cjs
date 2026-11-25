@@ -474,9 +474,9 @@ async function runScenario(scenario) {
                     throw new Error('no browser available');
                 }
             };
-            const { NetworkUtils } = loaded('servers/utils/networkUtils.js');
+            const { NetworkUtils } = loaded('core/server/networkUtils.js');
             NetworkUtils.getLocalIPAddress = () => localIp;
-            const { ServerSettingsManager } = loaded('servers/storage/serverSettingsManager.js');
+            const { ServerSettingsManager } = loaded('core/server/serverSettingsManager.js');
             ServerSettingsManager.getInstance = () => ({
                 getServerSettings: () => ({ remoteAccess: { enabled: scenario.remoteEnabled === true } }),
             });
@@ -496,7 +496,7 @@ async function runScenario(scenario) {
                     transcript.calls.push(['stopAll']);
                 },
             });
-            const { ServerControl } = loaded('active_servers/runtime/serverControl.js');
+            const { ServerControl } = loaded('core/server/serverControl.js');
             const control = { stopServer: [...((scenario.control || {}).stopServer || [])], stopAllServers: [...((scenario.control || {}).stopAllServers || [])] };
             for (const method of ['stopServer', 'stopAllServers']) {
                 ServerControl[method] = async (...args) => {
@@ -510,7 +510,7 @@ async function runScenario(scenario) {
             }
 
             Date.now = () => NOW;
-            const { getActiveServerRegistry } = loaded('active_servers/registry/activeServerRegistry.js');
+            const { getActiveServerRegistry } = loaded('core/server/registry/activeServerRegistry.js');
             const registry = getActiveServerRegistry();
             const ids = [];
             for (const config of scenario.servers || []) {

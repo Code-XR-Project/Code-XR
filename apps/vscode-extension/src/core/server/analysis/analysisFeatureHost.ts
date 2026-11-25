@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { sseManager } from '../sse/SSEManager';
-import { fileToServerMap } from '../../../utils/fileToServerMap';
+import { fileToServerMap } from '../fileToServerMap';
 import { CollaborationRoomServer } from '../collaboration/collaborationRoomServer';
 import { HistoricalComparisonProgress } from '../../../code_analysis/historical/historicalComparisonModels';
 import { HistoricalComparisonService } from '../../../code_analysis/historical/historicalComparisonService';

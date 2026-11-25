@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { ExecutePython } from '../utils/executePython';
-import { SSEManager } from '../../../servers/runtime/sse/SSEManager';
+import { SSEManager } from '../../../core/server/sse/SSEManager';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
 import { analysisUpdateEvents } from '../../historical/analysisUpdateEvents';

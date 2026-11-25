@@ -1,6 +1,6 @@
-import { ActiveServer, ActiveServerMetadata, ActiveServerRuntime, LaunchMode, CertMode } from '../model/activeServerModel';
-import { registerActiveServer } from '../registry/activeServerRegistry';
-import { getLogger } from '../../platform/logging/sink';
+import { ActiveServer, ActiveServerMetadata, ActiveServerRuntime, LaunchMode, CertMode } from './activeServerModel';
+import { registerActiveServer } from './activeServerRegistry';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SERVER_REGISTRAR');
 

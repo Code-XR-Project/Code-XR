@@ -22,7 +22,7 @@ function readProjectFile(...segments) {
 }
 
 test('the capability table grants LivePanel historical comparison while project evolution stays XR-only', () => {
-    const capabilities = readProjectFile('src', 'servers', 'runtime', 'analysisServerCapabilities.ts');
+    const capabilities = readProjectFile('src', 'core', 'server', 'analysisServerCapabilities.ts');
     const livePanelEntry = capabilities.match(/LivePanel: \{[\s\S]*?\},/)?.[0] || '';
     assert.match(livePanelEntry, /dependencyGraph: true/);
     assert.match(livePanelEntry, /historicalComparison: true/);
@@ -37,8 +37,8 @@ test('the historical comparison service admits LivePanel sessions and still thro
 
 test('HttpServer exposes LivePanel REST endpoints for references and async compare', () => {
     // Routing stays in the façade; the handlers live in the historical bridge.
-    const routing = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
-    const server = readProjectFile('src', 'servers', 'runtime', 'analysis', 'historicalComparisonBridge.ts');
+    const routing = readProjectFile('src', 'core', 'server', 'httpServer.ts');
+    const server = readProjectFile('src', 'core', 'server', 'analysis', 'historicalComparisonBridge.ts');
     assert.match(routing, /case '\/historical\/references':/);
     assert.match(routing, /case '\/historical\/compare':/);
     assert.match(server, /public async handleHistoricalReferences\(/);
@@ -51,7 +51,7 @@ test('HttpServer exposes LivePanel REST endpoints for references and async compa
 });
 
 test('the analysis host pushes historical progress and results to LivePanel over SSE', () => {
-    const server = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     assert.match(server, /public notifyLivePanelHistoricalProgress\(/);
     assert.match(server, /public notifyLivePanelHistoricalUpdated\(/);
     assert.match(server, /type: 'historical-progress'/);
@@ -62,7 +62,7 @@ test('the analysis host pushes historical progress and results to LivePanel over
 });
 
 test('a live comparison refreshes after every incremental re-analysis and republishes over SSE', () => {
-    const server = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     // LivePanel sessions schedule the refresh straight from analysisUpdateEvents
     // (no XR view-mode gate); the schedule itself no-ops without a live source.
     assert.match(server, /if \(this\.analysisMode === 'LivePanel'\) \{[\s\S]*?this\.scheduleHistoricalComparisonRefresh\(\);[\s\S]*?return;/);
@@ -117,7 +117,7 @@ test('file comparisons analyze only the analyzed file itself, at function scope'
 });
 
 test('LivePanel dependency seeding covers file sessions as well as directories', () => {
-    const server = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     // The old directory-only guard is gone; any LivePanel session seeds and
     // background-refreshes its dependency dataset (the service resolves the
     // project root for file targets).

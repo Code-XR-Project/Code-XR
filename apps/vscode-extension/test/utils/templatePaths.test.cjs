@@ -51,7 +51,7 @@ test('from the bundle layout (dist/), the server default static root is still <e
     const extensionRoot = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-bundle-layout-')));
     try {
         withFakeVscode(createFakeVscode(), () => {
-            const { HttpServer } = loadAsBundled('servers/runtime/httpServer.js', extensionRoot);
+            const { HttpServer } = loadAsBundled('core/server/httpServer.js', extensionRoot);
             const server = new HttpServer({ port: 0, extensionContext: { extensionPath: extensionRoot, subscriptions: [] } });
             assert.equal(server.getConfig().staticRoot, path.join(extensionRoot, 'templates'));
         });
@@ -62,7 +62,7 @@ test('from the bundle layout (dist/), the server default static root is still <e
 
 test('an HttpServer with neither a static root nor an extension context is refused', () => {
     withFakeVscode(createFakeVscode(), ({ requireOut }) => {
-        const { HttpServer } = requireOut('servers/runtime/httpServer.js');
+        const { HttpServer } = requireOut('core/server/httpServer.js');
         assert.throws(() => new HttpServer({ port: 0 }), { message: 'SERVER: HttpServer needs a staticRoot or an extension context' });
     });
 });

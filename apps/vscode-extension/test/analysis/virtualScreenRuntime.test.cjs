@@ -10,19 +10,19 @@ const { assertAbsent, readConcatenated } = require(path.join(projectRoot, 'test'
 // guards on "the room" read all of them, so code moving between them cannot
 // slip past a guard.
 const ROOM_SERVER_FILES = [
-    'src/servers/runtime/collaboration/collaborationRoomServer.ts',
-    'src/servers/runtime/collaboration/roomTypes.ts',
-    'src/servers/runtime/collaboration/roomMessageCodec.ts',
-    'src/servers/runtime/collaboration/participantIdentity.ts',
-    'src/servers/runtime/collaboration/roomRegistry.ts',
-    'src/servers/runtime/collaboration/roomSharedState.ts',
+    'src/core/server/collaboration/collaborationRoomServer.ts',
+    'src/core/server/collaboration/roomTypes.ts',
+    'src/core/server/collaboration/roomMessageCodec.ts',
+    'src/core/server/collaboration/participantIdentity.ts',
+    'src/core/server/collaboration/roomRegistry.ts',
+    'src/core/server/collaboration/roomSharedState.ts',
 ];
 // The screen broadcast server and the modules split out of it (same reason).
 const BROADCAST_SERVER_FILES = [
-    'src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts',
-    'src/servers/runtime/broadcast/mediaFrame.ts',
-    'src/servers/runtime/broadcast/relayPolicy.ts',
-    'src/servers/runtime/broadcast/broadcastTypes.ts',
+    'src/core/server/broadcast/screenBroadcastSignalingServer.ts',
+    'src/core/server/broadcast/mediaFrame.ts',
+    'src/core/server/broadcast/relayPolicy.ts',
+    'src/core/server/broadcast/broadcastTypes.ts',
 ];
 const runtimeSource = readAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 const runtimeModule = requireAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
@@ -70,10 +70,10 @@ test('virtual screen runtime includes WebRTC broadcasting primitives and shared-
     const multiScreenManagerSource = readProjectFile('templates', 'components', 'codexr', 'virtual-screen', 'codexrMultiScreenManagerRuntime.js');
     const collaborationRuntimeSource = readAssembledRuntime('collaboration', 'codexrCollaborationRuntime.js');
     const avatarRuntimeSource = readProjectFile('templates', 'components', 'codexr', 'avatar', 'codexrAvatarRuntime.js');
-    const httpServerSource = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
-    const sessionApiSource = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationSessionApi.ts');
-    const broadcastServerSource = readProjectFile('src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts');
-    const runtimeIndexSource = readProjectFile('src', 'servers', 'runtime', 'index.ts');
+    const httpServerSource = readProjectFile('src', 'core', 'server', 'httpServer.ts');
+    const sessionApiSource = readProjectFile('src', 'core', 'server', 'collaboration', 'collaborationSessionApi.ts');
+    const broadcastServerSource = readProjectFile('src', 'core', 'server', 'broadcast', 'screenBroadcastSignalingServer.ts');
+    const runtimeIndexSource = readProjectFile('src', 'core', 'server', 'launchServerWithFile.ts');
 
     assert.match(runtimeSource, /broadcastEnabled: true/);
     assert.match(runtimeSource, /signalingPath: '\/codexr-broadcast'/);
@@ -524,7 +524,7 @@ test('a controller drag claims its stick and owns the pointer for its duration',
 test('the relay wire format matches the one the server relays and validates', () => {
     // The server side is the compiled frame module the relay runs, not its
     // source text: its constants are compared with the runtime's own.
-    const frameModule = require(path.join(projectRoot, 'out', 'servers', 'runtime', 'broadcast', 'mediaFrame.js'));
+    const frameModule = require(path.join(projectRoot, 'out', 'core', 'server', 'broadcast', 'mediaFrame.js'));
     const runtimeConstant = (name) => {
         const match = runtimeSource.match(new RegExp(`const ${name} = (0x[0-9a-f]+|\\d+);`));
         assert.ok(match, `${name} not found in the runtime`);
@@ -661,7 +661,7 @@ test('no viewer is ever refused: the capacity rejection is gone from both ends',
     // Congestion is handled by thinning per viewer instead.
     // The compiled relay policy is asked directly: a viewer is thinned by its
     // own backlog, the top layer first, every delta past the second threshold.
-    const { shouldThinFrame } = require(path.join(projectRoot, 'out', 'servers', 'runtime', 'broadcast', 'relayPolicy.js'));
+    const { shouldThinFrame } = require(path.join(projectRoot, 'out', 'core', 'server', 'broadcast', 'relayPolicy.js'));
     assert.equal(shouldThinFrame(512 * 1024, 1), false);
     assert.equal(shouldThinFrame(512 * 1024 + 1, 1), true);
     assert.equal(shouldThinFrame(512 * 1024 + 1, 0), false);
@@ -718,7 +718,7 @@ test('a viewer only reaches live through its own first frame, never the sender s
     assert.match(runtimeSource, /const alreadyLiveViewer = state\.broadcastRole === 'viewer' && state\.broadcastStatus === 'live';/);
     // The server, for its part, parks early viewers instead of refusing them.
     const serverSource = readProjectFile(
-        'src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts',
+        'src', 'core', 'server', 'broadcast', 'screenBroadcastSignalingServer.ts',
     );
     assert.match(serverSource, /private parkViewer\(/);
     assert.match(serverSource, /type: 'viewer-waiting'/);
@@ -740,7 +740,7 @@ test('sharing over someone else\'s live broadcast is refused up front, with no d
     assert.match(runtimeSource, /case 'broadcast-denied':/);
     assert.doesNotMatch(runtimeSource, /broadcast-replaced/);
     const serverSource = readProjectFile(
-        'src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts',
+        'src', 'core', 'server', 'broadcast', 'screenBroadcastSignalingServer.ts',
     );
     assert.match(serverSource, /type: 'broadcast-denied'/);
     assertAbsent(readConcatenated(BROADCAST_SERVER_FILES), /broadcast-replaced/, { canary: /type: 'broadcast-denied'/ });

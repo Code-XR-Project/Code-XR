@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
 import { CollaborationSectionProvider } from '../../features/collaboration/views/CollaborationSectionProvider';
-import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
-import { ActiveServer } from '../../active_servers/model/activeServerModel';
+import { getActiveServerRegistry } from '../../core/server/registry/activeServerRegistry';
+import { ActiveServer } from '../../core/server/registry/activeServerModel';
 import { ConnectedParticipantSummary } from '../../core/collaboration/connectedParticipant';
 import { getLogger } from '../../platform/logging/sink';
 

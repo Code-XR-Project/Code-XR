@@ -15,7 +15,7 @@ import { analysisRefreshCoordinator } from '../../../../refresh/analysisRefreshC
 import {
     AnalysisServerCapabilities,
     resolveAnalysisServerCapabilities,
-} from '../../../../../servers/runtime/analysisServerCapabilities';
+} from '../../../../../core/server/analysisServerCapabilities';
 import {
     buildExportManifest,
     configureOfflineExportHtml,

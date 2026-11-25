@@ -6,11 +6,11 @@
 import * as vscode from 'vscode';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
 import { SessionWatcherManager } from '../engine/watchers/sessionWatcherManager';
-import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
-import { ServerControl } from '../../active_servers/runtime/serverControl';
+import { getActiveServerRegistry } from '../../core/server/registry/activeServerRegistry';
+import { ServerControl } from '../../core/server/serverControl';
 import * as fs from 'fs';
 import { getLogger } from '../../platform/logging/sink';
-import type { ActiveServer, RegistryEvent } from '../../active_servers/model/activeServerModel';
+import type { ActiveServer, RegistryEvent } from '../../core/server/registry/activeServerModel';
 import type { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 
 const logger = getLogger('SERVER_WATCHER_INTEGRATION');

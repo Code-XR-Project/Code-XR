@@ -16,7 +16,7 @@ async function withRouter(snapshots, body) {
         const { analysisRefreshCoordinator } = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
         const calls = [];
         analysisRefreshCoordinator.setSnapshotAvailable = (...args) => calls.push(['setSnapshotAvailable', ...args]);
-        const { AnalysisMessageRouter } = requireOut('servers/runtime/analysis/analysisMessageRouter.js');
+        const { AnalysisMessageRouter } = requireOut('core/server/analysis/analysisMessageRouter.js');
         const host = {
             sessionId: 'session-1',
             historicalComparisonService: undefined,
@@ -127,7 +127,7 @@ test('router: no room means no snapshot, so the dependency graph falls back to t
         const { analysisRefreshCoordinator } = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
         const calls = [];
         analysisRefreshCoordinator.setSnapshotAvailable = (...args) => calls.push(['setSnapshotAvailable', ...args]);
-        const { AnalysisMessageRouter } = requireOut('servers/runtime/analysis/analysisMessageRouter.js');
+        const { AnalysisMessageRouter } = requireOut('core/server/analysis/analysisMessageRouter.js');
         const host = {
             sessionId: 's',
             changeAnalysisViewMode: (...args) => calls.push(['change', ...args]),

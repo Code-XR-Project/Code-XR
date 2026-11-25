@@ -17,7 +17,7 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 test('both server-config readers answer the legacy config of the settings manager, read at call time', async () => {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { ServerSettingsManager } = requireOut('servers/storage/serverSettingsManager.js');
+        const { ServerSettingsManager } = requireOut('core/server/serverSettingsManager.js');
         const { ServerItemFactory } = requireOut('views/servers/items/serverItems.js');
         const configurationItems = requireOut('servers/views/items/configurationItems.js');
 

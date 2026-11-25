@@ -4,7 +4,7 @@
  */
 
 import { SessionServerInfo, SSENotification } from './models/sessionServerModels';
-import { SSEManager } from '../../../servers/runtime/sse/SSEManager';
+import { SSEManager } from '../../../core/server/sse/SSEManager';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SSE_NOTIFICATION_MANAGER');

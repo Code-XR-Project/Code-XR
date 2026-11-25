@@ -1,9 +1,9 @@
 import type * as vscode from 'vscode';
 import { PortManager } from './portManager';
-import { ServerSettingsManager } from '../storage/serverSettingsManager';
-import { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
-import { getServerRegistrar } from '../../active_servers/services/serverRegistrar';
-import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../views/interactions/launchNotifications';
+import { ServerSettingsManager } from './serverSettingsManager';
+import { LaunchMode, CertMode } from './registry/activeServerModel';
+import { getServerRegistrar } from './registry/serverRegistrar';
+import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../../servers/views/interactions/launchNotifications';
 import {
     determineCertMode,
     determineLaunchMode,

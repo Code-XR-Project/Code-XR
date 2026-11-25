@@ -1,4 +1,4 @@
-import { ServerSettingsManager } from '../../storage/serverSettingsManager';
+import { ServerSettingsManager } from '../../../core/server/serverSettingsManager';
 
 /**
  * Ensure persisted server configuration has been loaded.

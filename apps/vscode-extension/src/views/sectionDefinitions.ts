@@ -12,7 +12,7 @@ import type { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiStat
 import type { VenvManager } from '../core/python-env/venvManager';
 import { PythonEnvItems } from '../features/python-env/views/pythonEnvItems';
 import type { SectionChild } from './common/sectionChild';
-import { getActiveServerRegistry } from '../active_servers/registry/activeServerRegistry';
+import { getActiveServerRegistry } from '../core/server/registry/activeServerRegistry';
 
 /**
  * One root section of the sidebar tree. The header is rebuilt on every

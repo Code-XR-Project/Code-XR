@@ -7,7 +7,7 @@ import { JsonFieldAnalyzer } from './jsonFieldAnalyzer';
 import { DimensionMapping } from '../../../core/charts/chartModels';
 import { generateNonce } from '../../../shared/nonceGenerator';
 import { TemplateProcessor } from '../../../core/charts/processing/templateProcessor';
-import { launchServerWithFile } from '../../../servers/runtime/index';
+import { launchServerWithFile } from '../../../core/server/launchServerWithFile';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_LAUNCHER');
