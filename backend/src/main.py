@@ -18,9 +18,8 @@ from dependency_analysis_engine import analyze_dependencies, analyze_file_depend
 
 LIVEPANELS_DIR = Path(__file__).resolve().parent / 'livePanels'
 XR_DIR = Path(__file__).resolve().parent / 'XR'
-HTML_DIR = Path(__file__).resolve().parent / 'html'
 
-for module_dir in (LIVEPANELS_DIR, XR_DIR, HTML_DIR):
+for module_dir in (LIVEPANELS_DIR, XR_DIR):
     if str(module_dir) not in sys.path:
         sys.path.insert(0, str(module_dir))
 
