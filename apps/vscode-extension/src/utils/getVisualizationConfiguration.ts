@@ -28,7 +28,7 @@ export async function getVisualizationConfiguration(): Promise<TemplateVisualiza
             getSelectedEnvironment,
             getSelectedBackgroundColor,
             getSelectedGroundColor
-        } = require('../visualization_settings/utils/settingsAccessors');
+        } = require('../core/charts/settings/settingsAccessors');
 
         const settings = {
             palette: await getSelectedPalette(),

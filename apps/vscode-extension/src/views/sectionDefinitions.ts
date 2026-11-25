@@ -6,7 +6,7 @@ import { BabiaExamplesSectionProvider } from './babia_examples/BabiaExamplesSect
 import { VisualizeDataSectionProvider } from './visualize_data/VisualizeDataSectionProvider';
 import { PythonEnvSectionProvider } from '../features/python-env/views/PythonEnvSectionProvider';
 import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
-import { VisualizationSettingsSectionProvider } from './visualization_settings/VisualizationSettingsSectionProvider';
+import { VisualizationSettingsSectionProvider } from '../features/visualization-settings/views/VisualizationSettingsSectionProvider';
 import { LearnMoreSectionProvider } from '../features/learn-more/views/LearnMoreSectionProvider';
 import type { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiState';
 import type { VenvManager } from '../core/python-env/venvManager';

@@ -86,7 +86,7 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: [],
     }],
     ['visualizationSettings', {
-        load: () => require('./visualization_settings/items/visualizationSettingsItems').VisualizationSettingsModularTreeItem,
+        load: () => require('../features/visualization-settings/views/visualizationSettingsSectionItems').VisualizationSettingsModularTreeItem,
         itemTypeKeys: ['visualizationSettingsItemType'],
         defaultItemType: 'error',
         constructorExtras: ['originalSettingsItem'],

@@ -8,10 +8,10 @@ import {
     EnvironmentPreset,
     ChartPalette,
     DEFAULT_VISUALIZATION_SETTINGS
-} from '../../model/settingsModel';
-import { VisualizationSettingsStorage } from '../../storage/settingsStorage';
-import { ColorPickerUtils, ColorPickerOptions } from '../../utils/colorPickerUtils';
-import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
+} from '../../../core/charts/settings/settingsModel';
+import { VisualizationSettingsStorage } from '../../../core/charts/settings/settingsStorage';
+import { ColorPickerUtils, ColorPickerOptions } from './colorPickerUtils';
+import { DynamicColorIconGenerator } from './dynamicColorIconGenerator';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('HANDLE_SETTINGS_INTERACTION');

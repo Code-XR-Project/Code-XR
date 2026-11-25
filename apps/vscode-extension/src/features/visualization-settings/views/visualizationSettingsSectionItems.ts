@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { VisualizationSettingsTreeItem, VisualizationSettingsItemFactory } from '../../../visualization_settings/views/items/visualizationSettingsItems';
-import { VisualizationSettings } from '../../../visualization_settings/model/settingsModel';
+import { VisualizationSettingsTreeItem, VisualizationSettingsItemFactory } from './visualizationSettingsItems';
+import { VisualizationSettings } from '../../../core/charts/settings/settingsModel';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_SETTINGS_MODULAR');

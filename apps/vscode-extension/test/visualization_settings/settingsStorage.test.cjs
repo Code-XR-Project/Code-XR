@@ -101,9 +101,9 @@ async function withSettings(callback, options = {}) {
 
     try {
         await withQuietConsole(() => withFakeVscode(fake, ({ requireOut }) => {
-            const { DEFAULT_VISUALIZATION_SETTINGS } = requireOut('visualization_settings/model/settingsModel.js');
-            const { VisualizationSettingsStorage } = requireOut('visualization_settings/storage/settingsStorage.js');
-            const accessors = requireOut('visualization_settings/utils/settingsAccessors.js');
+            const { DEFAULT_VISUALIZATION_SETTINGS } = requireOut('core/charts/settings/settingsModel.js');
+            const { VisualizationSettingsStorage } = requireOut('core/charts/settings/settingsStorage.js');
+            const accessors = requireOut('core/charts/settings/settingsAccessors.js');
 
             if (options.initializeAccessors !== false) {
                 accessors.initializeSettingsAccessors(context);

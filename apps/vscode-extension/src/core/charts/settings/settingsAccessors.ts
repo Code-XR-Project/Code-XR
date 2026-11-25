@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { DEFAULT_VISUALIZATION_SETTINGS } from '../model/settingsModel';
+import { DEFAULT_VISUALIZATION_SETTINGS } from './settingsModel';
 import {
     LEGACY_STORAGE_KEY,
     StoredVisualizationSettingsJson,
     getVisualizationSettingsFilePath,
-} from '../storage/settingsFile';
-import { getLogger } from '../../platform/logging/sink';
+} from './settingsFile';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SETTINGS_ACCESSORS');
 

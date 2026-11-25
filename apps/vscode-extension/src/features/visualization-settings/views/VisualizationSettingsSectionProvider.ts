@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { SectionProvider } from '../../platform/tree/baseInterfaces';
-import { VisualizationSettingsModularTreeItem, VisualizationSettingsModularItemFactory } from './items/visualizationSettingsItems';
-import { VisualizationSettingsClickHandler } from './interactions/handleVisualizationSettingsClicks';
-import { VisualizationSettingsStorage } from '../../visualization_settings/storage/settingsStorage';
-import { getLogger } from '../../platform/logging/sink';
+import { SectionProvider } from '../../../platform/tree/baseInterfaces';
+import { VisualizationSettingsModularTreeItem, VisualizationSettingsModularItemFactory } from './visualizationSettingsSectionItems';
+import { VisualizationSettingsClickHandler } from './handleVisualizationSettingsClicks';
+import { VisualizationSettingsStorage } from '../../../core/charts/settings/settingsStorage';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_SETTINGS_MODULAR');
 

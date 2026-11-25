@@ -61,12 +61,15 @@
       "collaboration",
       "features/learn-more",
       "features/python-env",
+      "features/visualization-settings",
       "platform",
       "remote_access",
       "servers",
       "utils",
-      "visualization_settings",
       "visualize_data"
+    ],
+    "core/charts": [
+      "platform"
     ],
     "core/python-env": [
       "platform"
@@ -77,6 +80,10 @@
     ],
     "features/python-env": [
       "core/python-env",
+      "platform"
+    ],
+    "features/visualization-settings": [
+      "core/charts",
       "platform"
     ],
     "platform": [],
@@ -97,8 +104,8 @@
     ],
     "shared": [],
     "utils": [
-      "platform",
-      "visualization_settings"
+      "core/charts",
+      "platform"
     ],
     "views": [
       "active_servers",
@@ -108,13 +115,10 @@
       "core/python-env",
       "features/learn-more",
       "features/python-env",
+      "features/visualization-settings",
       "platform",
       "servers",
-      "visualization_settings",
       "visualize_data"
-    ],
-    "visualization_settings": [
-      "platform"
     ],
     "visualize_data": [
       "active_servers",

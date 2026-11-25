@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { VisualizationSettingsInteractionHandler } from '../views/interactions/handleSettingsInteraction';
-import { initializeSettingsAccessors } from '../utils/settingsAccessors';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
+import { VisualizationSettingsInteractionHandler } from '../views/handleSettingsInteraction';
+import { initializeSettingsAccessors } from '../../../core/charts/settings/settingsAccessors';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
 
 export class VisualizationSettingsCommands {
     private interactionHandler: VisualizationSettingsInteractionHandler;

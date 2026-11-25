@@ -5,7 +5,7 @@ import { getBabiaExamplesCommandRegistrations } from './babia_examples/babiaExam
 import { getVisualizeDataCommandRegistrations } from './visualize_data/visualizeDataCommands';
 import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';
 import { getPythonEnvCommandRegistrations } from '../features/python-env/commands/pythonEnvCommandRegistrations';
-import { getVisualizationSettingsCommandRegistrations } from './visualization_settings/visualizationSettingsCommands';
+import { getVisualizationSettingsCommandRegistrations } from '../features/visualization-settings/commands/visualizationSettingsCommandRegistrations';
 import { getLearnMoreCommandRegistrations } from '../features/learn-more/commands/learnMoreCommandRegistrations';
 import { getGeneralCommandRegistrations } from './common/generalCommands';
 import { getCollaborationCommandRegistrations } from './collaboration/collaborationCommands';

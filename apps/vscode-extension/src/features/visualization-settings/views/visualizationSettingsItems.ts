@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { VisualizationSettings, SETTING_FIELDS, SettingField } from '../../model/settingsModel';
-import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
+import { VisualizationSettings, SETTING_FIELDS, SettingField } from '../../../core/charts/settings/settingsModel';
+import { DynamicColorIconGenerator } from './dynamicColorIconGenerator';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_SETTINGS_ITEMS');
