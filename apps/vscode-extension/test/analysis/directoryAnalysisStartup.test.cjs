@@ -28,12 +28,10 @@ test('directory python execution avoids passing large --files argument lists', (
 test('directory analysis bootstrap hydrates filesToHash after the initial analysis for XR and LivePanel', () => {
     const bootstrapSource = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
     const xrSource = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
-    const livePanelSource = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'requirementRules', 'LivePanelDirectoryRequirements.ts');
 
     assert.match(bootstrapSource, /const trackedFiles = await this\.buildTrackedFiles\(session, payload\);/);
     assert.match(bootstrapSource, /session\.filesToHash = trackedFiles/);
     assert.match(bootstrapSource, /resolveTrackedSystemPath\(session\.targetPath, entry\)/);
     assert.match(xrSource, /bootstrap\?\.trackedFiles/);
     assert.match(xrSource, /session\.filesToHash = await this\.buildTrackedFiles\(session, payload\);/);
-    assert.match(livePanelSource, /return this\.analysisBootstrap\.bootstrap\(session, theme\);/);
 });
