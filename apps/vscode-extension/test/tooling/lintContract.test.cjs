@@ -207,6 +207,8 @@ const MODERNIZED_IDIOM_RULES = [
     '@typescript-eslint/no-namespace',
     '@typescript-eslint/no-unsafe-function-type',
     '@typescript-eslint/no-require-imports',
+    '@typescript-eslint/prefer-includes',
+    'no-restricted-properties',
 ];
 
 test('the modernized idioms stay locked over src/', async () => {
