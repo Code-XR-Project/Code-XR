@@ -143,10 +143,7 @@ export class ServerActionHandlers {
     }
 
     public static async startRemoteAccess(serverId: string): Promise<void> {
-        const manager = RemoteAccessManager.getInstance();
-        if (!manager) {
-            throw new Error('The remote access manager is not initialized.');
-        }
+        const manager = this.requireRemoteManager();
         const state = await manager.startSharing(serverId);
         if (state.status === 'shared' && state.invitationUrl) {
             await vscode.env.clipboard.writeText(state.invitationUrl);
@@ -157,18 +154,12 @@ export class ServerActionHandlers {
     }
 
     public static async copyRemoteInvitation(serverId: string): Promise<void> {
-        const manager = RemoteAccessManager.getInstance();
-        if (!manager) {
-            throw new Error('The remote access manager is not initialized.');
-        }
+        const manager = this.requireRemoteManager();
         await manager.copyInvitation(serverId);
     }
 
     public static async stopRemoteAccess(serverId: string): Promise<void> {
-        const manager = RemoteAccessManager.getInstance();
-        if (!manager) {
-            throw new Error('The remote access manager is not initialized.');
-        }
+        const manager = this.requireRemoteManager();
         await manager.stopSharing(serverId);
     }
 
@@ -263,6 +254,15 @@ export class ServerActionHandlers {
                 ? `${participant.displayName} was removed. Their remote session was revoked.`
                 : `${participant.displayName} was removed from the session.`,
         );
+    }
+
+    /** The remote access manager, or the error every remote action has always thrown without one. */
+    private static requireRemoteManager(): RemoteAccessManager {
+        const manager = RemoteAccessManager.getInstance();
+        if (!manager) {
+            throw new Error('The remote access manager is not initialized.');
+        }
+        return manager;
     }
 
     private static getParticipantHostRuntime(serverId: string): ParticipantHostRuntime | undefined {
