@@ -94,7 +94,6 @@
       "src/code_analysis/config/analysisConfigurationManager.ts",
       "src/code_analysis/configuration/configurationManager.ts",
       "src/code_analysis/configuration/configurationManagerExample.ts",
-      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
       "src/code_analysis/engine/components/index.ts",
       "src/code_analysis/engine/core/index.ts",
       "src/code_analysis/engine/index.ts",
@@ -132,7 +131,7 @@
       "src/visualize_data/views/browseVisualizationsTreeView.ts",
       "src/visualize_data/views/index.ts"
     ],
-    "templates.consoleLog": 117,
+    "templates.consoleLog": 31,
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
@@ -141,10 +140,10 @@
     }
   },
   "informational": {
-    "src.files": 369,
-    "src.lines": 52582,
-    "src.functions": 2835,
-    "src.unreachableLines": 2324,
+    "src.files": 368,
+    "src.lines": 52543,
+    "src.functions": 2831,
+    "src.unreachableLines": 2285,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",

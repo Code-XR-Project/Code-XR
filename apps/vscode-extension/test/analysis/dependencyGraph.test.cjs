@@ -678,7 +678,10 @@ test('directory LivePanel script loads the dependency artifact same-origin and r
   assert.match(panel, /fetch\('\.\/dependency-graph\.json/);
   assert.doesNotMatch(main, /\/api\/dependency-graph\/summary/);
   assert.doesNotMatch(panel, /\/api\/dependency-graph\/summary/);
-  assert.match(main, /case 'dependency-updated':/);
+  // The SSE switch lives in the shared page shell since 1.2.1 (R04); the
+  // template hands it the dependency reload.
+  assert.match(main, /onDependencyUpdated: \(\) => loadDependencySummary\(\)/);
+  assert.match(main + '\n' + read('templates/components/livepanel/panelShell.js'), /case 'dependency-updated':/);
   assert.match(main, /loadDependencySummary\(\)/);
   assert.doesNotMatch(main, /http:\/\/localhost/);
   assert.doesNotMatch(main, /window\.location\.origin \+ '\/api/);
@@ -963,4 +966,415 @@ test('every mode runtime keeps its shared-state application passive (mode-entity
   // The old hijack: an unconditional activate pushed the whole room (and any
   // exported copy) into evolution the moment the entity arrived.
   assert.doesNotMatch(evolutionPart, /sendMessage\?\.\('analysis-mode-activate'/);
+});
+
+// Characterization of the dependency runtime's applySharedState (W5-52):
+// every branch driven through the exported entry point, with a scripted
+// fetch, recording what it stored, what it fetched and whether it released
+// the transition lock. Lets the staleness checks and the project-dataset
+// fetch be extracted with proof that the behaviour is unchanged.
+async function runDependencySharedState(scenario) {
+  const source = readAssembledRuntime('dependency-graph', 'dependencyGraphRuntime.js');
+  const fetched = [];
+  const context = { setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {}, info() {}, debug() {} } };
+  context.CodeXRAnalysisModeRuntime = { getState: () => ({ mode: scenario.mode || 'dependency-graph' }) };
+  vm.runInNewContext(source, context);
+  const runtime = context.CodeXRDependencyGraphRuntime;
+  const state = runtime.getState();
+  state.active = scenario.active !== false;
+  state.transitionLocked = true;
+  context.fetch = async (url) => {
+    fetched.push(url);
+    const reply = scenario.replies[fetched.length - 1] || { ok: false };
+    if (reply.before) { reply.before(state); }
+    return { ok: reply.ok, json: async () => JSON.parse(JSON.stringify(reply.body || null)) };
+  };
+  await runtime.applySharedState(scenario.snapshot);
+  return JSON.parse(JSON.stringify({
+    fetched,
+    snapshot: state.snapshot,
+    dataset: state.dataset ? state.dataset.id : null,
+    projectDataset: state.projectDataset ? state.projectDataset.id : null,
+    fileDatasets: Object.keys(state.fileDatasets || {}).map((key) => `${key}=${state.fileDatasets[key].id}`),
+    transitionLocked: state.transitionLocked,
+  }));
+}
+
+const readyDirectory = { status: 'ready', datasetUrl: './dependencies/d.json', revision: 3 };
+const readyFile = {
+  status: 'ready', datasetUrl: './dependencies/f.json', revision: 4,
+  scope: { kind: 'file', relativePath: './src\\a.ts' },
+  projectDatasetUrl: './dependencies/p.json', sourceRevision: '7',
+};
+const directoryBody = { id: 'dir', targetType: 'directory' };
+const fileBody = { id: 'file', targetType: 'file', targetRelativePath: '' };
+const projectBody = { id: 'project', targetType: 'directory' };
+
+// Note 'project after snapshot replaced': the project-dataset fetch does NOT
+// re-check snapshot identity (the dataset fetch does). Pinned as it behaves
+// today; whether to add the clause is a 1.3.0 decision.
+const DEPENDENCY_SHARED_STATE_CHARACTERIZATION = {
+  "null snapshot": {
+    "fetched": [],
+    "snapshot": null,
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "mode not active": {
+    "fetched": [],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./x.json"
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "analyzing": {
+    "fetched": [],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "analyzing",
+      "message": "busy"
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "error status": {
+    "fetched": [],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "error",
+      "message": "boom"
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": false
+  },
+  "ready without url": {
+    "fetched": [],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready"
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "ready directory": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/d.json",
+      "revision": 3
+    },
+    "dataset": "dir",
+    "projectDataset": "dir",
+    "fileDatasets": [],
+    "transitionLocked": false
+  },
+  "ready file + project": {
+    "fetched": [
+      "./dependencies/f.json?revision=4",
+      "./dependencies/p.json?sourceRevision=7"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "file",
+        "relativePath": "./src\\a.ts"
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/f.json",
+      "revision": 4,
+      "projectDatasetUrl": "./dependencies/p.json",
+      "sourceRevision": "7"
+    },
+    "dataset": "file",
+    "projectDataset": "project",
+    "fileDatasets": [
+      "src/a.ts=file"
+    ],
+    "transitionLocked": false
+  },
+  "project fetch not ok": {
+    "fetched": [
+      "./dependencies/f.json?revision=4",
+      "./dependencies/p.json?sourceRevision=7"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "file",
+        "relativePath": "./src\\a.ts"
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/f.json",
+      "revision": 4,
+      "projectDatasetUrl": "./dependencies/p.json",
+      "sourceRevision": "7"
+    },
+    "dataset": "file",
+    "projectDataset": null,
+    "fileDatasets": [
+      "src/a.ts=file"
+    ],
+    "transitionLocked": false
+  },
+  "project not a directory": {
+    "fetched": [
+      "./dependencies/f.json?revision=4",
+      "./dependencies/p.json?sourceRevision=7"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "file",
+        "relativePath": "./src\\a.ts"
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/f.json",
+      "revision": 4,
+      "projectDatasetUrl": "./dependencies/p.json",
+      "sourceRevision": "7"
+    },
+    "dataset": "file",
+    "projectDataset": null,
+    "fileDatasets": [
+      "src/a.ts=file"
+    ],
+    "transitionLocked": false
+  },
+  "dataset fetch not ok": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/d.json",
+      "revision": 3
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": false
+  },
+  "stale: newer load started": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/d.json",
+      "revision": 3
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "stale: view changed": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/d.json",
+      "revision": 3
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "stale: snapshot replaced": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "status": "ready"
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "stale: deactivated": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/d.json",
+      "revision": 3
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "inactive view": {
+    "fetched": [
+      "./dependencies/d.json?revision=3"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "directory",
+        "relativePath": ""
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/d.json",
+      "revision": 3
+    },
+    "dataset": null,
+    "projectDataset": null,
+    "fileDatasets": [],
+    "transitionLocked": true
+  },
+  "project stale: view changed": {
+    "fetched": [
+      "./dependencies/f.json?revision=4",
+      "./dependencies/p.json?sourceRevision=7"
+    ],
+    "snapshot": {
+      "edgeEncoding": "relation-type",
+      "flowSize": "m",
+      "flowSpeed": "x1",
+      "scope": {
+        "kind": "file",
+        "relativePath": "./src\\a.ts"
+      },
+      "status": "ready",
+      "datasetUrl": "./dependencies/f.json",
+      "revision": 4,
+      "projectDatasetUrl": "./dependencies/p.json",
+      "sourceRevision": "7"
+    },
+    "dataset": "file",
+    "projectDataset": null,
+    "fileDatasets": [
+      "src/a.ts=file"
+    ],
+    "transitionLocked": false
+  },
+  "project after snapshot replaced": {
+    "fetched": [
+      "./dependencies/f.json?revision=4",
+      "./dependencies/p.json?sourceRevision=7"
+    ],
+    "snapshot": {
+      "status": "ready"
+    },
+    "dataset": "file",
+    "projectDataset": "project",
+    "fileDatasets": [
+      "src/a.ts=file"
+    ],
+    "transitionLocked": false
+  }
+};
+
+test('dependency applySharedState: every branch behaves as before (characterization)', async () => {
+  const cases = {
+    'null snapshot': { snapshot: null, replies: [] },
+    'mode not active': { mode: 'single', snapshot: { status: 'ready', datasetUrl: './x.json' }, replies: [] },
+    'analyzing': { snapshot: { status: 'analyzing', message: 'busy' }, replies: [] },
+    'error status': { snapshot: { status: 'error', message: 'boom' }, replies: [] },
+    'ready without url': { snapshot: { status: 'ready' }, replies: [] },
+    'ready directory': { snapshot: readyDirectory, replies: [{ ok: true, body: directoryBody }] },
+    'ready file + project': { snapshot: readyFile, replies: [{ ok: true, body: fileBody }, { ok: true, body: projectBody }] },
+    'project fetch not ok': { snapshot: readyFile, replies: [{ ok: true, body: fileBody }, { ok: false }] },
+    'project not a directory': { snapshot: readyFile, replies: [{ ok: true, body: fileBody }, { ok: true, body: { id: 'p2', targetType: 'file' } }] },
+    'dataset fetch not ok': { snapshot: readyDirectory, replies: [{ ok: false }] },
+    'stale: newer load started': { snapshot: readyDirectory, replies: [{ ok: true, body: directoryBody, before: (s) => { s.datasetLoadGeneration += 1; } }] },
+    'stale: view changed': { snapshot: readyDirectory, replies: [{ ok: true, body: directoryBody, before: (s) => { s.viewGeneration += 1; } }] },
+    'stale: snapshot replaced': { snapshot: readyDirectory, replies: [{ ok: true, body: directoryBody, before: (s) => { s.snapshot = { status: 'ready' }; } }] },
+    'stale: deactivated': { snapshot: readyDirectory, replies: [{ ok: true, body: directoryBody, before: (s) => { s.active = false; } }] },
+    'inactive view': { active: false, snapshot: readyDirectory, replies: [{ ok: true, body: directoryBody }] },
+    'project stale: view changed': { snapshot: readyFile, replies: [{ ok: true, body: fileBody }, { ok: true, body: projectBody, before: (s) => { s.viewGeneration += 1; } }] },
+    'project after snapshot replaced': { snapshot: readyFile, replies: [{ ok: true, body: fileBody }, { ok: true, body: projectBody, before: (s) => { s.snapshot = { status: 'ready' }; } }] },
+  };
+  const results = {};
+  for (const [name, scenario] of Object.entries(cases)) {
+    results[name] = await runDependencySharedState(scenario);
+  }
+  assert.deepEqual(results, DEPENDENCY_SHARED_STATE_CHARACTERIZATION);
 });

@@ -3,14 +3,25 @@
  * Manages live updates for HTML DOM visualization in both standard and XR modes
  */
 
-console.log('Setting up EventSource for HTML live reload...');
+// Debug mode - set to true to trace live reload in the browser console.
+// Same convention as the LivePanel scripts (DEBUG_MODE + debugLog), with
+// page-unique names: this is a classic script sharing the page's global scope.
+const LIVE_RELOAD_DEBUG_MODE = false;
+
+function liveReloadDebugLog(...args) {
+  if (LIVE_RELOAD_DEBUG_MODE) {
+    console.log(...args);
+  }
+}
+
+liveReloadDebugLog('Setting up EventSource for HTML live reload...');
 
 const eventSource = new EventSource('/events');
 let isXRMode = false;
 
 function checkXRMode() {
   isXRMode = !!document.querySelector('a-scene');
-  console.log(isXRMode ? 'XR mode detected' : 'Standard mode detected');
+  liveReloadDebugLog(isXRMode ? 'XR mode detected' : 'Standard mode detected');
   return isXRMode;
 }
 
@@ -37,14 +48,14 @@ function applyBabiaHtmlComponent(entity, htmlContent, distanceLevels) {
 document.addEventListener('DOMContentLoaded', checkXRMode);
 
 eventSource.onopen = function () {
-  console.log('HTML EventSource connection established');
-  console.log('DOM Visualization live reload ready - file changes will update automatically');
+  liveReloadDebugLog('HTML EventSource connection established');
+  liveReloadDebugLog('DOM Visualization live reload ready - file changes will update automatically');
 };
 
 eventSource.onerror = function (err) {
   console.error('HTML EventSource error:', err);
   setTimeout(() => {
-    console.log('Attempting to reconnect HTML EventSource...');
+    liveReloadDebugLog('Attempting to reconnect HTML EventSource...');
     eventSource.close();
     location.reload();
   }, 3000);
@@ -53,10 +64,10 @@ eventSource.onerror = function (err) {
 eventSource.addEventListener('message', function(event) {
     try {
         const data = JSON.parse(event.data);
-        console.log('SSE received:', data);
+        liveReloadDebugLog('SSE received:', data);
         
         if (data.type === 'htmlUpdated' && data.action === 'reload-html') {
-            console.log('HTML content updated, updating babia-html component...');
+            liveReloadDebugLog('HTML content updated, updating babia-html component...');
             
             let entity = document.querySelector('#htmlDOM');
             if (!entity) {
@@ -74,7 +85,7 @@ eventSource.addEventListener('message', function(event) {
             updateBabiaHtmlComponent(entity, data.htmlContent);
             
         } else if (data.type === 'analysis-updated' && data.action === 'reload-data') {
-            console.log('Analysis data updated, refreshing...');
+            liveReloadDebugLog('Analysis data updated, refreshing...');
             location.reload();
         }
     } catch (error) {
@@ -84,13 +95,13 @@ eventSource.addEventListener('message', function(event) {
 
 function updateBabiaHtmlComponent(entity, htmlContent) {
     try {
-        console.log('Updating babia-html component with new content...');
+        liveReloadDebugLog('Updating babia-html component with new content...');
         const distanceLevels = getCurrentDistanceLevel(entity);
         applyBabiaHtmlComponent(entity, htmlContent, distanceLevels);
-        console.log('babia-html component updated successfully');
+        liveReloadDebugLog('babia-html component updated successfully');
     } catch (error) {
         console.error('Failed to update babia-html component:', error);
-        console.log('Falling back to page reload...');
+        liveReloadDebugLog('Falling back to page reload...');
         location.reload();
     }
 }

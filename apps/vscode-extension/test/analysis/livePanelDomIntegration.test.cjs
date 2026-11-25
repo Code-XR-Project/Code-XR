@@ -182,15 +182,17 @@ test('LivePanel directory template and script expose unified directory aggregate
     assert.match(html, /id="max-function-nesting"/);
     // The file table is now a shared DataTable whose columns are declared in JS.
     assert.match(html, /<div id="file-details-table"><\/div>/);
-    assert.match(js, /label: 'Comment %'/);
-    assert.match(js, /label: 'Avg Params'/);
-    assert.match(js, /label: 'Critical CCN Fns'/);
+    // Column labels and cell rendering are pinned behaviourally by the
+    // characterization in directoryLivePanelUi.test.cjs; these only check the
+    // columns are still declared here.
+    assert.match(js, /numericColumn\('commentRatio', 'Comment %'/);
+    assert.match(js, /numericColumn\('averageFunctionParameters', 'Avg Params'/);
+    assert.match(js, /numericColumn\('criticalComplexityFunctions', 'Critical CCN Fns'\)/);
 
     assert.match(js, /summary\.highComplexityFunctions/);
     assert.match(js, /summary\.averageFunctionParameters/);
     assert.match(js, /summary\.averageFunctionNestingDepth/);
-    assert.match(js, /formatRatio\(file\.commentRatio \|\| 0\)/);
-    assert.match(js, /file\.criticalComplexityFunctions \|\| 0/);
+    assert.match(js, /numericColumn\('commentRatio', 'Comment %', \{ format: formatRatio \}\)/);
 });
 
 // ── LivePanel server launch regression: extension-path resolution ──────────

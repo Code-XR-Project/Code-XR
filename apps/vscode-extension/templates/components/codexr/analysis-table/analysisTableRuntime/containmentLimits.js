@@ -69,8 +69,34 @@
     };
   }
 
+  // Every size and the current scale must be finite and positive, and a
+  // target band must exist, before a planar target can be computed.
+  function hasUsableContainmentInputs(primarySize, containmentSize, currentScale, containmentLimitSize, range) {
+    return Number.isFinite(primarySize) && Number.isFinite(containmentSize) && Number.isFinite(currentScale) && Number.isFinite(containmentLimitSize)
+      && primarySize > 0 && containmentSize > 0 && currentScale > 0 && containmentLimitSize > 0
+      && !!range;
+  }
+
+  // Where the chart sits against its band, with hysteresis on the band edges:
+  // a chart already accepted as fitted must leave the band by a real margin
+  // (one tolerance) before it is corrected.
+  function computeBandState(ratio, range, resolvedToleranceRatio, containmentSize, containmentLimitSize, allowUnderflowCorrection) {
+    var containmentTolerance = containmentLimitSize * resolvedToleranceRatio;
+    var correctUnderflow = allowUnderflowCorrection !== false;
+    var underflowing = ratio < range.min * (1 - resolvedToleranceRatio);
+    var overflowing = containmentSize > (containmentLimitSize + containmentTolerance);
+    var underflowAllowed = underflowing && !correctUnderflow && !overflowing;
+    var withinBand = (ratio >= range.min * (1 - resolvedToleranceRatio) && ratio <= range.max * (1 + resolvedToleranceRatio)) || underflowAllowed;
+    return {
+      underflowing: underflowing,
+      overflowing: overflowing,
+      underflowAllowed: underflowAllowed,
+      withinBand: withinBand
+    };
+  }
+
   function computePlanarAxisTargetScale(primarySize, containmentSize, currentScale, containmentLimitSize, range, toleranceRatio, allowUnderflowCorrection) {
-    if (!Number.isFinite(primarySize) || !Number.isFinite(containmentSize) || !Number.isFinite(currentScale) || !Number.isFinite(containmentLimitSize) || primarySize <= 0 || containmentSize <= 0 || currentScale <= 0 || containmentLimitSize <= 0 || !range) {
+    if (!hasUsableContainmentInputs(primarySize, containmentSize, currentScale, containmentLimitSize, range)) {
       return null;
     }
 
@@ -81,7 +107,6 @@
       0,
       0.25
     );
-    var containmentTolerance = containmentLimitSize * resolvedToleranceRatio;
     // The scale ceiling aims INSIDE the limit (half a tolerance of margin), not
     // at the exact edge: an equilibrium sitting on the edge meant any
     // measurement noise flipped it across and triggered a correction — the
@@ -91,13 +116,11 @@
       maxAllowedScale = currentScale;
     }
 
-    var correctUnderflow = allowUnderflowCorrection !== false;
-    // Hysteresis on the band edges: a chart already accepted as fitted must
-    // leave the band by a real margin (one tolerance) before it is corrected.
-    var underflowing = ratio < range.min * (1 - resolvedToleranceRatio);
-    var overflowing = containmentSize > (containmentLimitSize + containmentTolerance);
-    var underflowAllowed = underflowing && !correctUnderflow && !overflowing;
-    var withinBand = (ratio >= range.min * (1 - resolvedToleranceRatio) && ratio <= range.max * (1 + resolvedToleranceRatio)) || underflowAllowed;
+    var band = computeBandState(ratio, range, resolvedToleranceRatio, containmentSize, containmentLimitSize, allowUnderflowCorrection);
+    var underflowing = band.underflowing;
+    var overflowing = band.overflowing;
+    var underflowAllowed = band.underflowAllowed;
+    var withinBand = band.withinBand;
     var desiredScale = currentScale;
     var reason = 'within-band';
 

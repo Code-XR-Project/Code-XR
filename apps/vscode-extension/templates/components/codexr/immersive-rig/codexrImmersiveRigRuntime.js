@@ -149,6 +149,28 @@
     };
   }
 
+  // Both components below follow the scene's immersive session the same way:
+  // bind onEnterVR/onExitVR to the component once, then (un)subscribe them to
+  // the scene's enter-vr/exit-vr. An entity without a scene subscribes nothing.
+  function bindImmersiveSessionLifecycle(component) {
+    component.onEnterVR = component.onEnterVR.bind(component);
+    component.onExitVR = component.onExitVR.bind(component);
+    const sceneEl = component.el.sceneEl;
+    if (!sceneEl) {
+      return;
+    }
+    sceneEl.addEventListener('enter-vr', component.onEnterVR);
+    sceneEl.addEventListener('exit-vr', component.onExitVR);
+  }
+
+  function unbindImmersiveSessionLifecycle(component) {
+    const sceneEl = component.el.sceneEl;
+    if (sceneEl) {
+      sceneEl.removeEventListener('enter-vr', component.onEnterVR);
+      sceneEl.removeEventListener('exit-vr', component.onExitVR);
+    }
+  }
+
   // AR loses the environment's lights: aframe-environment-component parents
   // its hemisphere + directional lights under #env, #env carries
   // hide-on-enter-ar, and three.js does not descend into invisible nodes —
@@ -168,22 +190,11 @@
       },
 
       init: function () {
-        this.onEnterVR = this.onEnterVR.bind(this);
-        this.onExitVR = this.onExitVR.bind(this);
-        const sceneEl = this.el.sceneEl;
-        if (!sceneEl) {
-          return;
-        }
-        sceneEl.addEventListener('enter-vr', this.onEnterVR);
-        sceneEl.addEventListener('exit-vr', this.onExitVR);
+        bindImmersiveSessionLifecycle(this);
       },
 
       remove: function () {
-        const sceneEl = this.el.sceneEl;
-        if (sceneEl) {
-          sceneEl.removeEventListener('enter-vr', this.onEnterVR);
-          sceneEl.removeEventListener('exit-vr', this.onExitVR);
-        }
+        unbindImmersiveSessionLifecycle(this);
       },
 
       onEnterVR: function () {
@@ -220,22 +231,11 @@
       init: function () {
         this.savedPose = null;
         this.savedFly = null;
-        this.onEnterVR = this.onEnterVR.bind(this);
-        this.onExitVR = this.onExitVR.bind(this);
-        const sceneEl = this.el.sceneEl;
-        if (!sceneEl) {
-          return;
-        }
-        sceneEl.addEventListener('enter-vr', this.onEnterVR);
-        sceneEl.addEventListener('exit-vr', this.onExitVR);
+        bindImmersiveSessionLifecycle(this);
       },
 
       remove: function () {
-        const sceneEl = this.el.sceneEl;
-        if (sceneEl) {
-          sceneEl.removeEventListener('enter-vr', this.onEnterVR);
-          sceneEl.removeEventListener('exit-vr', this.onExitVR);
-        }
+        unbindImmersiveSessionLifecycle(this);
       },
 
       onEnterVR: function () {
