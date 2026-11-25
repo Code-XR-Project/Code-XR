@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
 
 /** Official CodeXR site. */
 const CODEXR_WEBSITE_URL = 'https://code-xr.adrianmonteslinares.com/';

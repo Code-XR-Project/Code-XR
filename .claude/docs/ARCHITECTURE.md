@@ -71,7 +71,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `core/` | Startup coordination (moves to `app/` in #55 B14) | `startup/startupCoordinator.ts` |
 | `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports), `commands/commandBuilder.ts`, `tree/baseInterfaces.ts` (the section-provider contract every sidebar section implements), `ui/errorHandler.ts`, `ui/detailDialog.ts`, `webview/panelManager.ts` (the `serverId → WebviewPanel` registry) |
 | `shared/` | Helpers with no VS Code and no domain | `nonceGenerator.ts` |
-| `learn_more/` | "Learn more" help section in the tree | commands + views |
+| `features/learn-more/` | "Learn more" help section in the tree | `commands/learnMoreCommands.ts`, `commands/learnMoreCommandRegistrations.ts`, `views/LearnMoreSectionProvider.ts`, `views/learnMoreItems.ts`, `views/handleLearnMoreClicks.ts` |
 | `utils/` | Helpers still waiting for their #55 batch | `languageMetadata.ts`, `fileToServerMap.ts`, `sha256Generator.ts` |
 
 **Per-feature layout convention** (followed by most modules): `commands/` + `model(s)/` + `runtime/` or `services/` + `views/{items,interactions}` + `registry|storage|state/`. When adding a feature, mirror this pattern.

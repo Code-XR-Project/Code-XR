@@ -93,7 +93,7 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: ['originalSettingsItem'],
     }],
     ['learnMore', {
-        load: () => require('./learn_more/items/learnMoreItems').LearnMoreModularTreeItem,
+        load: () => require('../features/learn-more/views/learnMoreItems').LearnMoreModularTreeItem,
         itemTypeKeys: ['learnMoreItemType'],
         defaultItemType: 'action',
         constructorExtras: [],

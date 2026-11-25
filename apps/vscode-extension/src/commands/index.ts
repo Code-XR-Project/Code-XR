@@ -6,7 +6,7 @@ import { getVisualizeDataCommandRegistrations } from './visualize_data/visualize
 import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';
 import { getPythonEnvCommandRegistrations } from './python_env/pythonEnvCommands';
 import { getVisualizationSettingsCommandRegistrations } from './visualization_settings/visualizationSettingsCommands';
-import { getLearnMoreCommandRegistrations } from './learn_more/learnMoreCommands';
+import { getLearnMoreCommandRegistrations } from '../features/learn-more/commands/learnMoreCommandRegistrations';
 import { getGeneralCommandRegistrations } from './common/generalCommands';
 import { getCollaborationCommandRegistrations } from './collaboration/collaborationCommands';
 import { ExtensionCommandRegistration, assertUniqueCommandIds } from '../platform/commands/commandRegistry';

@@ -58,7 +58,7 @@
       "babia_examples",
       "code_analysis",
       "collaboration",
-      "learn_more",
+      "features/learn-more",
       "platform",
       "python_env",
       "remote_access",
@@ -68,7 +68,7 @@
       "visualize_data"
     ],
     "core/startup": [],
-    "learn_more": [
+    "features/learn-more": [
       "platform"
     ],
     "platform": [],
@@ -100,6 +100,7 @@
       "babia_examples",
       "code_analysis",
       "collaboration",
+      "features/learn-more",
       "platform",
       "python_env",
       "servers",

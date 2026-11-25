@@ -7,7 +7,7 @@ import { VisualizeDataSectionProvider } from './visualize_data/VisualizeDataSect
 import { PythonEnvSectionProvider } from './python_env/PythonEnvSectionProvider';
 import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
 import { VisualizationSettingsSectionProvider } from './visualization_settings/VisualizationSettingsSectionProvider';
-import { LearnMoreSectionProvider } from './learn_more/LearnMoreSectionProvider';
+import { LearnMoreSectionProvider } from '../features/learn-more/views/LearnMoreSectionProvider';
 import type { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
 import type { VenvManager } from '../python_env/runtime/venvManager';
 import { PythonEnvItems } from '../python_env/views/items/pythonEnvItems';

@@ -4,10 +4,10 @@
  */
 
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
-import { LearnMoreModularTreeItem, LearnMoreModularItemFactory } from './items/learnMoreItems';
-import { LearnMoreClickHandler } from './interactions/handleLearnMoreClicks';
-import { getLogger } from '../../platform/logging/sink';
+import { BaseSectionProvider } from '../../../platform/tree/baseInterfaces';
+import { LearnMoreModularTreeItem, LearnMoreModularItemFactory } from './learnMoreItems';
+import { LearnMoreClickHandler } from './handleLearnMoreClicks';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LEARN_MORE');
 
