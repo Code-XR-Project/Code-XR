@@ -24,7 +24,7 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 132,
+    "any.total": 131,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
@@ -32,7 +32,7 @@
       "commands": 8,
       "python_env": 5,
       "servers": 11,
-      "utils": 14,
+      "utils": 13,
       "views": 20,
       "visualization_settings": 6,
       "visualize_data": 2
@@ -54,13 +54,13 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 42,
-    "complexity.over10": 64,
+    "complexity.over10": 63,
     "complexity.over15": 20,
     "complexity.over20": 4,
     "complexity.over30": 2,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 509,
+    "eslint.maxWarnings": 508,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49078,
-    "src.functions": 3282,
+    "src.lines": 49117,
+    "src.functions": 3288,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
