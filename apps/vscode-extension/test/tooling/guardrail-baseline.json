@@ -53,14 +53,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 45,
-    "complexity.over10": 68,
-    "complexity.over15": 24,
+    "functions.over80Lines": 44,
+    "complexity.over10": 67,
+    "complexity.over15": 23,
     "complexity.over20": 5,
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 552,
+    "eslint.maxWarnings": 551,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 48994,
-    "src.functions": 3282,
+    "src.lines": 49031,
+    "src.functions": 3285,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -197,9 +197,9 @@
       },
       {
         "ccn": 19,
-        "lines": 88,
-        "function": "handleDependencyGraphStartMessage",
-        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
+        "lines": 50,
+        "function": "handleMessage",
+        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts"
       }
     ],
     "size.largest10": [

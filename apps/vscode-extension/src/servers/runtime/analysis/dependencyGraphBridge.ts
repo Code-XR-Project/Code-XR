@@ -64,6 +64,50 @@ function pickAllowed(field: string, value: unknown, allowed: ReadonlySet<string>
     return allowed.has(String(value)) ? { [field]: value } : {};
 }
 
+// The room entity a dependency-graph-start writes when the room has no
+// earlier value for a field. Copied on every use: an entity never shares
+// these objects with another start.
+const DEFAULT_RELATION_FILTERS: Readonly<Record<string, boolean>> = {
+    import: true,
+    include: true,
+    require: true,
+    inheritance: true,
+    implementation: true,
+    call: false,
+    contains: true,
+};
+const DEFAULT_MAPPING: Readonly<Record<string, string>> = {
+    size: 'degree',
+    height: 'fanIn',
+    color: 'language',
+    x: 'fanOut',
+    z: 'fanIn',
+};
+
+/**
+ * The persisted settings of a dependency-graph-start: each field the room
+ * already holds (truthy; `showExternal` when boolean) wins over its default.
+ * The scalar defaults mirror the runtime's FLOW_DEFAULTS and layout catalogue.
+ * The initial scope is read only when the room holds none.
+ */
+function restoreDependencyEntityState(
+    existingDependencyState: Record<string, unknown> | null | undefined,
+    getInitialScope: () => { kind: 'file' | 'directory'; relativePath: string },
+): Record<string, unknown> {
+    return {
+        layout: existingDependencyState?.layout || 'force-3d',
+        showExternal: typeof existingDependencyState?.showExternal === 'boolean'
+            ? existingDependencyState.showExternal
+            : false,
+        edgeEncoding: existingDependencyState?.edgeEncoding || 'relation-type',
+        flowSize: existingDependencyState?.flowSize || 'm',
+        flowSpeed: existingDependencyState?.flowSpeed || 'x1',
+        relationFilters: existingDependencyState?.relationFilters || { ...DEFAULT_RELATION_FILTERS },
+        mapping: existingDependencyState?.mapping || { ...DEFAULT_MAPPING },
+        scope: existingDependencyState?.scope || { ...getInitialScope() },
+    };
+}
+
 /** Room access shared by every analysis bridge. */
 export interface AnalysisBridgeRoomHooks {
     getRoom(): CollaborationRoomServer | null;
@@ -206,29 +250,8 @@ export class DependencyGraphBridge {
         messageContext: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
     ): Promise<boolean> {
-        if (!this.dependencyGraphService) {
-            // Answer instead of silently dropping: the scene shows the reason
-            // and the extension host log names the misconfiguration.
-            logger.warn(`[Code-XR Fix][Server] dependency-graph-start received but no dependency service is attached (mode: ${this.host.analysisMode})`);
-            messageContext.send({
-                type: 'dependency-graph-error',
-                payload: { message: 'Dependency analysis is not attached to this analysis server.' },
-            });
-            return true;
-        }
-        const availability = this.dependencyGraphService.getAvailability();
-        if (!availability.enabled) {
-            messageContext.send({
-                type: 'dependency-graph-error',
-                payload: { message: availability.reason },
-            });
-            return true;
-        }
-        if (this.dependencyGraphService.isBusy()) {
-            messageContext.send({
-                type: 'dependency-graph-error',
-                payload: { message: 'A dependency analysis is already running.' },
-            });
+        const dependencyGraphService = this.acceptDependencyGraphStart(messageContext);
+        if (!dependencyGraphService) {
             return true;
         }
         const existingDependencyState = this.room.getRoom()?.getServerEntity(
@@ -239,6 +262,7 @@ export class DependencyGraphBridge {
         const hasCachedDataset = typeof existingDependencyState?.datasetUrl === 'string'
             && existingDependencyState.datasetUrl.length > 0;
         const forceFullRefresh = message.payload?.forceFull === true;
+        const restoring = hasCachedDataset && !forceFullRefresh;
         logger.debug(() => `[Code-XR Fix][Server] dependency-graph-start accepted (cached: ${hasCachedDataset}, forceFull: ${forceFullRefresh})`);
         analysisRefreshCoordinator.setSnapshotAvailable(
             this.host.sessionId,
@@ -250,38 +274,16 @@ export class DependencyGraphBridge {
             entityKind: 'dependency-graph',
             entityId: 'main',
             mode: 'dependency-graph',
-            status: hasCachedDataset && !forceFullRefresh ? 'ready' : 'analyzing',
-            message: hasCachedDataset && !forceFullRefresh
+            status: restoring ? 'ready' : 'analyzing',
+            message: restoring
                 ? 'Restoring dependency graph...'
                 : 'Scanning project dependencies...',
-            layout: existingDependencyState?.layout || 'force-3d',
-            showExternal: typeof existingDependencyState?.showExternal === 'boolean'
-                ? existingDependencyState.showExternal
-                : false,
-            edgeEncoding: existingDependencyState?.edgeEncoding || 'relation-type',
-            flowSize: existingDependencyState?.flowSize || 'm',
-            flowSpeed: existingDependencyState?.flowSpeed || 'x1',
-            relationFilters: existingDependencyState?.relationFilters || {
-                import: true,
-                include: true,
-                require: true,
-                inheritance: true,
-                implementation: true,
-                call: false,
-                contains: true,
-            },
-            mapping: existingDependencyState?.mapping || {
-                size: 'degree',
-                height: 'fanIn',
-                color: 'language',
-                x: 'fanOut',
-                z: 'fanIn',
-            },
-            scope: existingDependencyState?.scope || {
-                ...this.dependencyGraphService.getInitialScope(),
-            },
+            ...restoreDependencyEntityState(
+                existingDependencyState,
+                () => dependencyGraphService.getInitialScope(),
+            ),
         });
-        if (!hasCachedDataset || forceFullRefresh) {
+        if (!restoring) {
             logger.debug('[Code-XR Fix][Server] dependency-graph refresh requested for session', this.host.sessionId);
             analysisRefreshCoordinator.requestRefresh(
                 this.host.sessionId,
@@ -289,6 +291,41 @@ export class DependencyGraphBridge {
             );
         }
         return true;
+    }
+
+    /**
+     * The service when a dependency-graph-start may run; otherwise the
+     * requester gets the reason (no service, unavailable, busy) and null.
+     */
+    private acceptDependencyGraphStart(
+        messageContext: CollaborationApplicationMessageContext,
+    ): NonNullable<AnalysisFeatureHost['dependencyGraphService']> | null {
+        if (!this.dependencyGraphService) {
+            // Answer instead of silently dropping: the scene shows the reason
+            // and the extension host log names the misconfiguration.
+            logger.warn(`[Code-XR Fix][Server] dependency-graph-start received but no dependency service is attached (mode: ${this.host.analysisMode})`);
+            messageContext.send({
+                type: 'dependency-graph-error',
+                payload: { message: 'Dependency analysis is not attached to this analysis server.' },
+            });
+            return null;
+        }
+        const availability = this.dependencyGraphService.getAvailability();
+        if (!availability.enabled) {
+            messageContext.send({
+                type: 'dependency-graph-error',
+                payload: { message: availability.reason },
+            });
+            return null;
+        }
+        if (this.dependencyGraphService.isBusy()) {
+            messageContext.send({
+                type: 'dependency-graph-error',
+                payload: { message: 'A dependency analysis is already running.' },
+            });
+            return null;
+        }
+        return this.dependencyGraphService;
     }
 
     /**
