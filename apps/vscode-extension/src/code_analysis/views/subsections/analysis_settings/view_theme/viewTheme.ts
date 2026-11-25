@@ -13,7 +13,7 @@ export class ViewThemeSetting {
     private currentTheme: ViewTheme = 'Dark';
     private storage: AnalysisConfigurationStorage;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedTheme();
     }

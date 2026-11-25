@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 
 export class LearnMoreClickHandler {
     
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('LEARN_MORE: Initializing Learn More click handler');
     }
     

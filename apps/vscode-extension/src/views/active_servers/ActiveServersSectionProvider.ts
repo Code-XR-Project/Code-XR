@@ -28,7 +28,7 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
     private readonly collaborationProvider: CollaborationSectionProvider;
     private readonly collaborationSubscription: vscode.Disposable;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('ACTIVE_SERVERS_MODULAR: Initializing Active Servers section provider');
 
         // Collaboration lives as a nested group inside this section; its provider

@@ -1,0 +1,10 @@
+{
+	// Strictness flags for `npm run typecheck` only. compile, compile-tests and
+	// webpack's ts-loader keep using tsconfig.json, so a transient unused symbol
+	// never breaks the F5 build, while the gate (`npm test` runs typecheck
+	// first) still fails on it. ROADMAP section E, rows W2-22 / W2-23.
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noUnusedLocals": true
+	}
+}

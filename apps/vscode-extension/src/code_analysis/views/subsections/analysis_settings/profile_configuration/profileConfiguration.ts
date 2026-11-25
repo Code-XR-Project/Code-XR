@@ -10,7 +10,7 @@ import { AnalysisConfigurationStorage } from '../../../../configuration/analysis
 export class ProfileConfigurationSetting {
 
     constructor(
-        private context: vscode.ExtensionContext,
+        context: vscode.ExtensionContext,
         private storage: AnalysisConfigurationStorage
     ) {
         console.log('PROFILE_CONFIGURATION: Initializing Profile Configuration setting');

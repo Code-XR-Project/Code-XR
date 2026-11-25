@@ -97,7 +97,7 @@ export class GitTimelineBlobIndex {
     private disposed = false;
 
     public constructor(
-        private readonly repositoryRoot: string,
+        repositoryRoot: string,
         private readonly targetRelativePath: string,
         private readonly targetType: string,
         private readonly recursive: boolean,

@@ -13,7 +13,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
     private exampleLauncher: ExampleLauncher;
     private isLoading: boolean = false;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         this.exampleLauncher = new ExampleLauncher(context);
         console.log('EXAMPLES_UI: Babia examples tree data provider initialized for direct example display');
     }

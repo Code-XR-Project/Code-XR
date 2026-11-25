@@ -8,7 +8,7 @@ import { ExampleLauncher } from '../../../babia_examples/runtime/exampleLauncher
 export class BabiaExampleClickHandler {
     private exampleLauncher: ExampleLauncher;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         this.exampleLauncher = new ExampleLauncher(context);
     }
 

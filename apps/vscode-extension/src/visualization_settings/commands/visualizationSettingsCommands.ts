@@ -6,7 +6,7 @@ import { ExtensionCommandRegistration } from '../../commands/shared';
 export class VisualizationSettingsCommands {
     private interactionHandler: VisualizationSettingsInteractionHandler;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         initializeSettingsAccessors(context);
         this.interactionHandler = new VisualizationSettingsInteractionHandler(context);
     }

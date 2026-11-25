@@ -19,7 +19,7 @@
 | `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python`, `templates/`, `examples/` into `dist/`) | Before F5 "workspace direct"; quick build check |
 | `npm run compile:dev-host` | `compile` + `scripts/prepare-dev-extension.mjs` → stages an isolated dev copy under `.vscode-test/dev-extension` | Used automatically by the primary F5 launch config |
 | `npm run watch` | webpack watch mode | Iterating on TS changes |
-| `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project | Fast correctness gate; part of `test:basic` |
+| `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project with `tsconfig.check.json`, which extends `tsconfig.json` and adds `noUnusedLocals`. `compile`, `compile-tests` and webpack stay on `tsconfig.json`, so an unused symbol fails the gate but never the F5 build | Fast correctness gate; part of `test:basic` |
 | `npm run lint` | ESLint (flat config, `eslint.config.mjs`) over `src/` | Part of `test:basic`; rules are mostly "warn"; `@typescript-eslint/no-unused-vars` (imports and locals) is an error |
 | `npm run compile-tests` | Removes `out/`, then `tsc -p . --outDir out`. Starting empty matters: tsc never deletes output for a source that is gone, so a module deleted from `src/` would keep a compiled twin the suites still load | Part of `test:basic` |
 | `npm test` = `npm run test:basic` | `typecheck` + `lint` + `compile-tests` (tsc → `out/`) + `test:unit`. Needs **no** webpack build | **The default gate. Run before declaring any change done.** |

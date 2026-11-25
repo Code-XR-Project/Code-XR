@@ -31,7 +31,7 @@ import { ProfileConfigurationCommands } from './profile_configuration';
 
 export class AnalysisSettingsCommands {
 
-    constructor(private context: vscode.ExtensionContext) {}
+    constructor(context: vscode.ExtensionContext) {}
 
     /**
      * Get all analysis settings command registrations (nested dolls pattern)

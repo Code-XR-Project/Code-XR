@@ -13,7 +13,7 @@ export class AnalysisFileSetting {
     private currentMode: AnalysisFileMode = 'XR'; // Default mode (will be loaded from storage)
     private storage: AnalysisConfigurationStorage;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('ANALYSIS: Initializing Analysis File setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedMode();

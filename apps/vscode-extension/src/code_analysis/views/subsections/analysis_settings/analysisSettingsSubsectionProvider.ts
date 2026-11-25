@@ -31,7 +31,7 @@ export class AnalysisSettingsSubsectionProvider {
     private filesByLanguageSortingSetting: FilesByLanguageSortingSetting;
     private profileConfigurationSetting: ProfileConfigurationSetting;
     
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('ANALYSIS: Initializing Analysis Settings subsection provider');
         
         // Initialize setting components
