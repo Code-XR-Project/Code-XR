@@ -54,13 +54,13 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 42,
-    "complexity.over10": 66,
-    "complexity.over15": 22,
+    "complexity.over10": 65,
+    "complexity.over15": 21,
     "complexity.over20": 4,
     "complexity.over30": 2,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 511,
+    "eslint.maxWarnings": 510,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49017,
-    "src.functions": 3276,
+    "src.lines": 49049,
+    "src.functions": 3281,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -179,12 +179,6 @@
       },
       {
         "ccn": 19,
-        "lines": 80,
-        "function": "validateMappings",
-        "file": "src/babia_templates/processing/dimensionValidator.ts"
-      },
-      {
-        "ccn": 19,
         "lines": 87,
         "function": "materializeDirectory",
         "file": "src/code_analysis/historical/gitRepositoryService.ts"
@@ -200,6 +194,12 @@
         "lines": 50,
         "function": "handleMessage",
         "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts"
+      },
+      {
+        "ccn": 18,
+        "lines": 61,
+        "function": "relativizeExportArtifacts",
+        "file": "src/code_analysis/export/exportManifest.ts"
       }
     ],
     "size.largest10": [
