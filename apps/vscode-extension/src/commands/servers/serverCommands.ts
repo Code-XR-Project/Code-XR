@@ -10,7 +10,7 @@ import {
     resetToDefault,
     setExtensionContext
 } from '../../servers/commands/serverCommands';
-import { ExtensionCommandRegistration } from '../shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 
 /**
  * Server command declarations for centralized registration.

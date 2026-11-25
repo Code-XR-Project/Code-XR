@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../common/baseInterfaces';
+import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
 import { VenvManager } from '../../python_env/runtime/venvManager';
 import { PythonEnvUiStateService } from '../../python_env/runtime/pythonEnvUiState';
 import { PythonEnvItems, PythonEnvModularTreeItem } from '../../python_env/views/items/pythonEnvItems';

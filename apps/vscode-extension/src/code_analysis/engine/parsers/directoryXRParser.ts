@@ -62,6 +62,7 @@ import {
     readImmersiveRigRuntimeContent,
     IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
 } from '../components/customComponents';
+import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 export interface DirectoryXRParsingResult {
     success: boolean;
@@ -133,7 +134,7 @@ export class DirectoryXRParser {
             const htmlContent = await fs.promises.readFile(tempHtmlPath, 'utf8');
             await fs.promises.rm(tempOutputPath, { recursive: true, force: true });
 
-            const jsFilePath = path.join(context.extensionPath, 'templates', 'xr', 'sse', 'live_sse_fileXR.js');
+            const jsFilePath = resolveTemplatePath(context.extensionPath, 'xr', 'sse', 'live_sse_fileXR.js');
             if (!fs.existsSync(jsFilePath)) {
                 return {
                     success: false,

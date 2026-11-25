@@ -5,7 +5,7 @@ import { CollaborationProfile } from '../../../collaboration/model/collaboration
 import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import {
     AuthenticatedCollaborationSession,
-} from '../../../remote_access';
+} from '../../../remote_access/model/remoteAccessModel';
 import { attachWebSocketEndpoint, WebSocketEndpoint } from '../ws/webSocketEndpoint';
 import {
     CollaborationMessage,

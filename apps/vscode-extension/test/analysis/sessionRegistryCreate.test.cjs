@@ -6,7 +6,8 @@
  * and for a directory (ids, output paths, hash, tracked-file lists), the
  * three refusals (no workspace storage, a file that cannot be hashed, a
  * directory target that is not a directory), and the duplicate detection
- * with its three warnings and the "Open Active Analyses" action.
+ * (reported as a result; its warnings are the orchestrator's, see
+ * analysisOrchestratorDuplicate.test.cjs).
  */
 
 const test = require('node:test');
@@ -54,7 +55,8 @@ test('a file session gets a nonce id, its output folder under fileAnalysis and t
         const target = path.join(workRoot, 'sample.module.ts');
         fs.writeFileSync(target, 'export const answer = 42;\n');
 
-        const session = await registry.createSession({ targetPath: target, analysisMode: 'XR', targetType: 'file', context });
+        const { kind, session } = await registry.createSession({ targetPath: target, analysisMode: 'XR', targetType: 'file', context });
+        assert.equal(kind, 'created');
 
         assert.match(session.id, /^[0-9a-f]{32}$/);
         assert.equal(session.targetPath, target);
@@ -87,7 +89,8 @@ test('a directory session has no hash, lives under directoryAnalysis and starts 
         const target = path.join(workRoot, 'my.project');
         fs.mkdirSync(target);
 
-        const session = await registry.createSession({ targetPath: target, analysisMode: 'LivePanel', targetType: 'directory', isDeep: true, context });
+        const { kind, session } = await registry.createSession({ targetPath: target, analysisMode: 'LivePanel', targetType: 'directory', isDeep: true, context });
+        assert.equal(kind, 'created');
 
         assert.equal(session.isDeep, true);
         assert.equal(session.hash256, '');
@@ -128,62 +131,42 @@ test('createSession refuses without workspace storage, an unreadable file, or a 
     });
 });
 
-test('a duplicate session is refused with a status-specific warning and re-announced', async () => {
+test('a duplicate session is refused, reported as such and re-announced, with no UI from the registry', async () => {
     await withRegistry(async ({ registry, fired, fake, context, workRoot }) => {
         const target = path.join(workRoot, 'dup.ts');
         fs.writeFileSync(target, 'let a = 1;\n');
         const params = { targetPath: target, analysisMode: 'XR', targetType: 'file', context };
 
-        const original = await registry.createSession(params);
+        const { session: original } = await registry.createSession(params);
         fired.length = 0;
 
-        // creating / analyzing: in progress.
-        assert.equal(await registry.createSession(params), null);
+        // creating / analyzing / monitoring: the live session is the duplicate.
+        assert.deepEqual(await registry.createSession(params), { kind: 'duplicate', existing: original });
         registry.updateSessionStatus(original.id, 'analyzing');
         fired.length = 0;
-        assert.equal(await registry.createSession({ ...params, isDeep: false }), null);
-
-        // monitoring: done, with an action that opens the CodeXR view.
+        assert.deepEqual(await registry.createSession({ ...params, isDeep: false }), { kind: 'duplicate', existing: original });
         registry.updateSessionStatus(original.id, 'monitoring');
         fired.length = 0;
-        fake.queueAnswer('Open Active Analyses');
-        assert.equal(await registry.createSession(params), null);
+        assert.deepEqual(await registry.createSession(params), { kind: 'duplicate', existing: original });
         await new Promise((resolve) => setImmediate(resolve));
 
-        assert.deepEqual(fake.messages, [
-            { kind: 'warning', message: 'Analysis for "dup.ts" is already in progress (creating)...', items: [] },
-            { kind: 'warning', message: 'Analysis for "dup.ts" is already in progress (analyzing)...', items: [] },
-            { kind: 'warning', message: 'Analysis already complete for "dup.ts". Use Active Analyses panel to view results.', items: ['Open Active Analyses'] },
-        ]);
-        assert.deepEqual(fake.executedCommands.map((entry) => entry.id), ['workbench.view.extension.codeXRView']);
+        // The warnings are the caller's (analysisOrchestratorDuplicate.test.cjs).
+        assert.deepEqual(fake.messages, []);
+        assert.deepEqual(fake.executedCommands, []);
         assert.deepEqual(fired, [original]);
         assert.equal(registry.getAllSessions().length, 1);
 
         // Another mode, another depth, another type: not duplicates.
         const live = await registry.createSession({ ...params, analysisMode: 'LivePanel' });
         const deep = await registry.createSession({ ...params, isDeep: true });
-        assert.ok(live && deep);
+        assert.equal(live.kind, 'created');
+        assert.equal(deep.kind, 'created');
 
         // A closed or failed session does not block a new one.
         registry.updateSessionStatus(original.id, 'closed');
         const again = await registry.createSession(params);
-        assert.ok(again && again.id !== original.id);
-        registry.updateSessionStatus(again.id, 'error');
-        assert.ok(await registry.createSession(params));
-    });
-});
-
-test('a monitoring duplicate dismissed without the action runs no command', async () => {
-    await withRegistry(async ({ registry, fake, context, workRoot }) => {
-        const target = path.join(workRoot, 'done.ts');
-        fs.writeFileSync(target, 'let b = 2;\n');
-        const params = { targetPath: target, analysisMode: 'VisualizeDOM', targetType: 'file', context };
-        const original = await registry.createSession(params);
-        registry.updateSessionStatus(original.id, 'monitoring');
-
-        assert.equal(await registry.createSession(params), null);
-        await new Promise((resolve) => setImmediate(resolve));
-        assert.equal(fake.messages.length, 1);
-        assert.deepEqual(fake.executedCommands, []);
+        assert.ok(again.kind === 'created' && again.session.id !== original.id);
+        registry.updateSessionStatus(again.session.id, 'error');
+        assert.equal((await registry.createSession(params)).kind, 'created');
     });
 });

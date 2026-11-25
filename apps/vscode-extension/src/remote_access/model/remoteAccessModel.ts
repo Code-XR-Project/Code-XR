@@ -1,8 +1,10 @@
 import { CollaborationProfile } from '../../collaboration/model/collaborationProfile';
+import type { CollaborationClientKind } from '../../collaboration/model/connectedParticipant';
+
+export type { CollaborationClientKind };
 
 export type RemoteAccessProvider = 'cloudflare-quick';
 export type RemoteAccessStatus = 'stopped' | 'starting' | 'shared' | 'error';
-export type CollaborationClientKind = 'codexr' | 'browser';
 
 export interface RemoteAccessSettings {
     enabled: boolean;

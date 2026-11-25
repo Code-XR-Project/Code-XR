@@ -1,4 +1,5 @@
-import type { CollaborationClientKind } from '../../remote_access/model/remoteAccessModel';
+/** Which client joined a collaborative session: the CodeXR extension or a plain browser. */
+export type CollaborationClientKind = 'codexr' | 'browser';
 
 export interface ConnectedParticipantSummary {
     peerId: string;

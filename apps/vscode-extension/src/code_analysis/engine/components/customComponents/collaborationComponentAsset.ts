@@ -2,20 +2,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { assembleRuntimeContent, writeAssembledRuntimeToOutput } from './runtimeAssembly';
 import { assertSourceExists } from './singleFileRuntimeAssets';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 export const CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME = 'codexrCollaborationRuntime.js';
 export const CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME = 'codexrDomSceneCollaborationRuntime.js';
 
-const CODEXR_DOM_SCENE_COLLAB_RUNTIME_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'dom-scene',
-    CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME,
-] as const;
-
 function resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_DOM_SCENE_COLLAB_RUNTIME_SOURCE_SEGMENTS);
+    return resolveTemplatePath(extensionPath, 'components', 'codexr', 'dom-scene', CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME);
 }
 
 function assertCodeXrDomSceneCollaborationRuntimeSourceExists(extensionPath: string): string {

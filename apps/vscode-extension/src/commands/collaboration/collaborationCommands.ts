@@ -7,7 +7,7 @@ import {
     sanitizeCollaborationName,
 } from '../../collaboration';
 import { formatDetailSections } from '../../utils/detailDialog';
-import { ExtensionCommandRegistration } from '../shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { RemoteAccessManager } from '../../remote_access';
 
 interface RefreshableTreeProvider {

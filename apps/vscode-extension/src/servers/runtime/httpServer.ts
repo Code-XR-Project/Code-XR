@@ -1,13 +1,13 @@
 import * as http from 'http';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { sseManager } from './sse/SSEManager';
 import { fileToServerMap } from '../../utils/fileToServerMap';
 import { NetworkUtils } from '../utils/networkUtils';
 import { ScreenBroadcastSignalingServer } from './broadcast/screenBroadcastSignalingServer';
 import { CollaborationRoomServer } from './collaboration/collaborationRoomServer';
-import { CollaborationProfileManager, ConnectedParticipantSummary } from '../../collaboration';
-import { RemoteSessionAuthority } from '../../remote_access';
+import { CollaborationProfileManager } from '../../collaboration/services/collaborationProfileManager';
+import { ConnectedParticipantSummary } from '../../collaboration/model/connectedParticipant';
+import { RemoteSessionAuthority } from '../../remote_access/security/remoteSessionAuthority';
 import { addCorsHeaders, sendErrorResponse, sendJsonResponse } from './http/httpRespond';
 import { StaticAssetServer } from './http/staticAssets';
 import { RemoteAccessPolicy } from './remote/remoteAccessPolicy';
@@ -19,6 +19,7 @@ import { DependencyGraphBridge } from './analysis/dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './analysis/historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './analysis/projectEvolutionBridge';
 import { getLogger } from '../../core/logging/sink';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('SERVER');
 
@@ -75,14 +76,19 @@ export class HttpServer {
         
         this.config = {
             host: '0.0.0.0',  //  Listen on all network interfaces for VR/mobile access
-            staticRoot: path.join(__dirname, '../../../templates'),
+            staticRoot: cleanConfig.extensionContext
+                ? resolveTemplatePath(cleanConfig.extensionContext.extensionPath)
+                : undefined,
             enableCors: true,
             allowedOrigins: ['*'],
             ...cleanConfig
         };
+        if (!this.config.staticRoot) {
+            throw new Error('SERVER: HttpServer needs a staticRoot or an extension context');
+        }
 
         this.staticAssets = new StaticAssetServer({
-            staticRoot: this.config.staticRoot!,
+            staticRoot: this.config.staticRoot,
             mainFile: this.config.mainFile,
             port: this.config.port,
             host: this.config.host,

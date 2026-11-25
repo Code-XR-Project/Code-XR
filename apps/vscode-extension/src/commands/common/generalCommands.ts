@@ -1,5 +1,5 @@
 import { CommonCommands } from '../../utils/commonCommands';
-import { ExtensionCommandRegistration } from '../shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('GENERAL_COMMANDS');

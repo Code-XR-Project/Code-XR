@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertUniqueCommandIds } = require('../../out/commands/shared/commandRegistry.js');
+const { assertUniqueCommandIds } = require('../../out/platform/commands/commandRegistry.js');
 
 test('assertUniqueCommandIds accepts unique command identifiers', () => {
     assert.doesNotThrow(() => {

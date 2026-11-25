@@ -17,6 +17,8 @@ This epic executes the v1.2.1 cleanup programme approved on 2026-09-18 (`.claude
 | [`w2-revalidation.md`](w2-revalidation.md) | The W2 deletion rows of the roadmap re-checked against the monorepo tree: 57 valid, 16 need amendments, 1 partly invalid (W2-29). |
 | [`sweep-outside-src.md`](sweep-outside-src.md) | Sweep of everything the original audit did not cover: root config, `.github/`, `.claude/`, `adr/`, `docs/`, `media/`, `pages/`, scripts, fixtures and the monorepo seams. |
 | [`host-boundary.md`](host-boundary.md) | How the code depends on `vscode`, how templates are resolved and which folders form cycles: the layering work that prepares the IDE without starting it. |
+| [`src-layout.md`](src-layout.md) | Story #55: the measured `src/` tree, its problems, the feature-first target tree (`app/ → features/ → core/ → platform/ → shared/`), the complete old → new move map (table and JSON), the batch plan and the H3 proof for a move. |
+| [`modernization.md`](modernization.md) | Story #56: measured inventory of outdated idioms in TypeScript, the browser runtimes and Python, what to modernize, what to leave and the commit plan. |
 
 Operational rules stay where they were: `.claude/skills/cleanup/SKILL.md` (how), `.claude/docs/v1.2.1/ROADMAP.md` (what and in which order), `.claude/docs/v1.2.1/AUDIT.md` (the 220 original findings). Per-story session logs go to `.claude/docs/v1.2.1/sessions/`.
 

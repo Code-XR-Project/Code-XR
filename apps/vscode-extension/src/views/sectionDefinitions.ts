@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SectionProvider, ModularTreeItem } from './common/baseInterfaces';
+import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterfaces';
 import { ServersSectionProvider } from './servers';
 import { ActiveServersSectionProvider } from './active_servers';
 import { BabiaExamplesSectionProvider } from './babia_examples';

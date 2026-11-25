@@ -6,6 +6,7 @@ import {
     assertSourceExists,
     resolveRuntimeAssetSourcePath,
 } from './singleFileRuntimeAssets';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 const ROOM_RUNTIME = SINGLE_FILE_RUNTIME_ASSETS.room;
 
@@ -22,7 +23,7 @@ export function resolveCodeXrRoomRuntimeSourcePath(extensionPath: string): strin
 }
 
 export function resolveCodeXrRoomTextureSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, 'templates', 'components', ...ROOM_RUNTIME.folder, 'textures');
+    return resolveTemplatePath(extensionPath, 'components', ...ROOM_RUNTIME.folder, 'textures');
 }
 
 /** The runtime is checked first, then the texture directory; every entry point needs both. */

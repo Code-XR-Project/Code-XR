@@ -6,9 +6,9 @@ import {
     XR_BOATS_TREE_FIELDS,
 } from '../../charts/chartPresentation';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { getLogger } from '../../../core/logging/sink';
+import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('CREATE_STRUCTURE');
 
@@ -122,7 +122,7 @@ export class CreateStructure {
                     return '';
             }
 
-            const scriptPath = path.join(context.extensionPath, 'templates', 'xr', 'sse', scriptFileName);
+            const scriptPath = resolveTemplatePath(context.extensionPath, 'xr', 'sse', scriptFileName);
 
             if (!fs.existsSync(scriptPath)) {
                 logger.warn(`SSE script not found at: ${scriptPath}`);

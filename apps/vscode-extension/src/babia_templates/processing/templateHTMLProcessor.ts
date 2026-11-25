@@ -5,11 +5,11 @@
  */
 
 import * as vscode from 'vscode';
-import * as path from 'path';
 import * as fs from 'fs';
 import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../../utils/getVisualizationConfiguration';
 import { generateNonce } from '../../utils/nonceGenerator';
 import { getLogger } from '../../core/logging/sink';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('TEMPLATE_HTML_PROCESSOR');
 
@@ -121,9 +121,8 @@ export class TemplateHTMLProcessor {
      */
     private static async loadDOMTemplate(context: vscode.ExtensionContext): Promise<string | null> {
         try {
-            const templatePath = path.join(
+            const templatePath = resolveTemplatePath(
                 context.extensionPath,
-                'templates',
                 'xr',
                 'html',
                 'dom-visualization-template.html'
@@ -153,9 +152,8 @@ export class TemplateHTMLProcessor {
      */
     private static async loadHTMLLiveReloadJS(context: vscode.ExtensionContext): Promise<string | null> {
         try {
-            const jsPath = path.join(
+            const jsPath = resolveTemplatePath(
                 context.extensionPath,
-                'templates',
                 'xr',
                 'sse',
                 'live_sse_fileDOM.js'
