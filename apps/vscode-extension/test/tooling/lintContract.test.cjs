@@ -10,7 +10,7 @@ const { pathToFileURL } = require('node:url');
 const projectRoot = path.resolve(__dirname, '..', '..');
 
 // Each flag lands with its fallout fixes in one commit (ROADMAP W3-03..05).
-const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch'];
+const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch', 'noImplicitReturns'];
 
 async function loadEslintConfig() {
     const configUrl = pathToFileURL(path.join(projectRoot, 'eslint.config.mjs')).href;

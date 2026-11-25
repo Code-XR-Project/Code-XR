@@ -6,6 +6,7 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"noUnusedLocals": true,
-		"noFallthroughCasesInSwitch": true
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true
 	}
 }
