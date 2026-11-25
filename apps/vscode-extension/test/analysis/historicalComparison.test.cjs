@@ -446,17 +446,22 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(service, /Analyzing \$\{sources\.length\} project revisions with \$\{concurrency\} workers/);
     assert.match(service, /references\.sources\.filter\(\(source\) => source\.kind === 'gitRef'\)/);
     assert.match(service, /'project-evolution'/);
-    assert.match(service, /path\.join\(this\.staticRoot, 'evolution'\)/);
+    assert.match(service, /path\.resolve\(staticRoot, 'evolution'\)/);
     assert.match(service, /path\.join\(evolutionDirectory, `revision-\$\{revision\}`\)/);
     assert.match(service, /const fileName = `data\$\{index \+ 1\}\.json`/);
-    assert.match(service, /bridgeUrl: `\/evolution\/revision-\$\{revision\}\/data\.json`/);
-    assert.match(service, /path\.join\(revisionDirectory, 'data\.json'\)/);
-    assert.match(service, /applyFrameToBridge/);
-    assert.match(service, /copyFileAtomically/);
+    // EVO-5: no shared data.json bridge; a frame is resolved to its own file.
+    assert.doesNotMatch(service, /bridgeUrl: `/);
+    assert.doesNotMatch(service, /'data\.json'/);
+    assert.doesNotMatch(service, /copyFileAtomically|applyFrameToBridge/);
+    assert.match(service, /public resolveFrame\(/);
+    assert.match(service, /frameUrl: `\/evolution\/revision-\$\{safeRevision\}\/data\$\{safeFrameIndex \+ 1\}\.json`/);
+    // EVO-11: one movie on disk.
+    assert.match(service, /removeOtherEvolutionRevisions\(evolutionDirectory, revision\)/);
     assert.match(service, /manifest\.json/);
     assert.match(service, /Project evolution ready\./);
     assert.match(service, /clearGeneratedMovie/);
     assert.match(service, /fs\.promises\.rm\(revisionDirectory, \{ recursive: true, force: true \}\)/);
+    assert.match(service, /fs\.promises\.rm\(this\.resolveEvolutionDirectory\(\), \{ recursive: true, force: true \}\)/);
     assert.match(service, /cancelAndWait/);
     // Frame selection is the shared sampler (even spacing in time, milestones
     // preferred), and the movie always ends on the current state of the branch —
@@ -489,7 +494,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(server, /removeSharedEntity\('project-evolution', 'main'\)/);
     assert.match(server, /type: 'project-evolution-cleared'/);
     assert.match(server, /message\.type === 'project-evolution-apply-frame'/);
-    assert.match(server, /projectEvolutionService\.applyFrameToBridge/);
+    assert.match(server, /projectEvolutionService\.resolveFrame\(revision, frameIndex\)/);
     assert.match(server, /type: 'project-evolution-frame-applied'/);
     assert.match(server, /message\.type === 'project-evolution-start'/);
     assert.match(server, /changeAnalysisViewMode\('project-evolution', 'project-evolution'\);/);

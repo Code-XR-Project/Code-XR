@@ -14,9 +14,12 @@ import {
 } from './gitAnalysisEligibility';
 import { sampleTimeline } from './gitTimelineSampler';
 import {
-    copyFileAtomically,
     describeRevisionType,
+    evolutionDirectoryOf,
+    listEvolutionRevisions,
     mergeEvolutionSources,
+    removeOtherEvolutionRevisions,
+    resolveEvolutionFrame,
     writeEvolutionRevision,
 } from './projectEvolutionArtifacts';
 import {
@@ -50,6 +53,8 @@ export class ProjectEvolutionService {
         timeoutMs: PROJECT_EVOLUTION_JOB_TIMEOUT_MS,
     });
     private revision = 0;
+    /** Frames of the current movie (`revision`), for resolveFrame. */
+    private frameCount = 0;
 
     public constructor(
         private readonly context: vscode.ExtensionContext,
@@ -162,40 +167,22 @@ export class ProjectEvolutionService {
         await this.jobs.cancelAndWait('cancelled');
         this.jobs.forgetLastRequest();
         this.analysis.cache.clear();
-        if (this.revision < 1) {
-            return;
-        }
-        const evolutionDirectory = path.resolve(this.staticRoot, 'evolution');
-        const revisionDirectory = path.resolve(evolutionDirectory, `revision-${this.revision}`);
-        const staticRoot = path.resolve(this.staticRoot);
-        if (!revisionDirectory.startsWith(staticRoot + path.sep) && revisionDirectory !== staticRoot) {
-            throw new Error('project-evolution-clear-outside-static-root');
-        }
-        await fs.promises.rm(revisionDirectory, { recursive: true, force: true });
+        // The whole folder, not only the newest revision (EVO-11): an older
+        // movie left behind was what a later export shipped.
+        await fs.promises.rm(this.resolveEvolutionDirectory(), { recursive: true, force: true });
+        this.frameCount = 0;
     }
 
-    public async applyFrameToBridge(
+    /**
+     * Validates a frame of the current movie and returns its own URL. No file
+     * is copied (EVO-5): each frame is an immutable `dataN.json`, so players
+     * seeking at once can no longer race on a shared bridge file.
+     */
+    public resolveFrame(
         revision: number,
         frameIndex: number,
-    ): Promise<{ revision: number; frameIndex: number; bridgeUrl: string }> {
-        const safeRevision = Math.floor(Number(revision));
-        const safeFrameIndex = Math.floor(Number(frameIndex));
-        if (!Number.isFinite(safeRevision) || safeRevision < 1 || safeRevision !== this.revision) {
-            throw new Error('project-evolution-invalid-revision');
-        }
-        if (!Number.isFinite(safeFrameIndex) || safeFrameIndex < 0) {
-            throw new Error('project-evolution-invalid-frame');
-        }
-        const revisionDirectory = this.resolveRevisionDirectory(safeRevision);
-        const sourcePath = path.join(revisionDirectory, `data${safeFrameIndex + 1}.json`);
-        const bridgePath = path.join(revisionDirectory, 'data.json');
-        await fs.promises.access(sourcePath, fs.constants.R_OK);
-        await copyFileAtomically(sourcePath, bridgePath);
-        return {
-            revision: safeRevision,
-            frameIndex: safeFrameIndex,
-            bridgeUrl: `/evolution/revision-${safeRevision}/data.json`,
-        };
+    ): { revision: number; frameIndex: number; frameUrl: string } {
+        return resolveEvolutionFrame(revision, frameIndex, this.revision, this.frameCount);
     }
 
     private async executeEvolution(
@@ -261,6 +248,7 @@ export class ProjectEvolutionService {
             message: `Analyzing ${sources.length} project revisions with ${concurrency} workers...`,
             frameIndex: 0,
             frameCount: sources.length,
+            completed: 0,
         });
 
         const workers = Array.from({ length: concurrency }, async () => {
@@ -273,6 +261,7 @@ export class ProjectEvolutionService {
                     message: `Analyzing frame ${index + 1} / ${sources.length} (${describeRevisionType(source)}): ${source.label}`,
                     frameIndex: index,
                     frameCount: sources.length,
+                    completed,
                 });
                 try {
                     const payload = await this.analysis.analyzeSource(source, this.getSession());
@@ -309,6 +298,7 @@ export class ProjectEvolutionService {
                         : `Analyzed ${completed} / ${sources.length} project revisions. Last completed: ${describeRevisionType(source)} ${source.label}`,
                     frameIndex: index,
                     frameCount: sources.length,
+                    completed,
                 });
             }
         });
@@ -322,7 +312,7 @@ export class ProjectEvolutionService {
         return { analyzed, exclusionsByIndex };
     }
 
-    /** Phase 4: a new revision folder with dataN.json per frame, the data.json bridge and the manifest. */
+    /** Phase 4: a new revision folder with dataN.json per frame and the manifest; older ones are removed. */
     private async writeEvolutionArtifacts(
         valid: Array<{ payload: CachedPayload; source: ComparisonSource }>,
         excludedSources: GitAnalysisExclusion[],
@@ -334,8 +324,11 @@ export class ProjectEvolutionService {
         if (signal.aborted) {
             throw new Error('project-evolution-cancelled');
         }
-        const revision = this.revision + 1;
-        const evolutionDirectory = path.join(this.staticRoot, 'evolution');
+        const evolutionDirectory = this.resolveEvolutionDirectory();
+        // Never reuse a number a folder on disk already has: a new service
+        // starts at 0, and revision-1 of a previous one would be overwritten
+        // under a URL the scene may have cached (EVO-11).
+        const revision = Math.max(this.revision, ...await listEvolutionRevisions(evolutionDirectory)) + 1;
         const revisionDirectory = path.join(evolutionDirectory, `revision-${revision}`);
         try {
             const result = await writeEvolutionRevision(revision, revisionDirectory, valid, excludedSources);
@@ -343,6 +336,8 @@ export class ProjectEvolutionService {
                 throw new Error('project-evolution-cancelled');
             }
             this.revision = revision;
+            this.frameCount = result.frames.length;
+            await removeOtherEvolutionRevisions(evolutionDirectory, revision).catch(() => undefined);
             return result;
         } catch (error) {
             await fs.promises.rm(revisionDirectory, { recursive: true, force: true }).catch(() => undefined);
@@ -355,9 +350,14 @@ export class ProjectEvolutionService {
         const maxFrames = Math.max(1, Math.min(96, Math.floor(Number(request.maxFrames || DEFAULT_MAX_FRAMES))));
         let candidates: ComparisonSource[];
         if (mode === 'manual' && Array.isArray(request.sourceIds) && request.sourceIds.length) {
-            candidates = await this.gitService.resolveSourcesInChronologicalOrder(
-                request.sourceIds.slice(0, maxFrames),
-            );
+            // Picks past the limit used to be dropped without a word (EVO-13).
+            if (request.sourceIds.length > maxFrames) {
+                throw new Error(
+                    `A manual movie has at most ${maxFrames} frames and ${request.sourceIds.length} were picked. `
+                    + `Remove ${request.sourceIds.length - maxFrames} and generate again.`,
+                );
+            }
+            candidates = await this.gitService.resolveSourcesInChronologicalOrder(request.sourceIds);
         } else {
             candidates = await this.resolveAutomaticOrRangeSources(request);
         }
@@ -476,14 +476,8 @@ export class ProjectEvolutionService {
         }));
     }
 
-    private resolveRevisionDirectory(revision: number): string {
-        const evolutionDirectory = path.resolve(this.staticRoot, 'evolution');
-        const revisionDirectory = path.resolve(evolutionDirectory, `revision-${revision}`);
-        const staticRoot = path.resolve(this.staticRoot);
-        if (!revisionDirectory.startsWith(staticRoot + path.sep) && revisionDirectory !== staticRoot) {
-            throw new Error('project-evolution-revision-outside-static-root');
-        }
-        return revisionDirectory;
+    private resolveEvolutionDirectory(): string {
+        return evolutionDirectoryOf(this.staticRoot);
     }
 
     private getSession(): UnifiedAnalysisSession {

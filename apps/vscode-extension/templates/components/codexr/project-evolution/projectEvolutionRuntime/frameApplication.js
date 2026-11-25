@@ -37,7 +37,7 @@
     if (!isEvolutionViewCurrent(viewGeneration)) {
       return;
     }
-    void applyBridgeFrameToChart(frames[state.frameIndex], payload.bridgeUrl, viewGeneration).then(function (applied) {
+    void applyBridgeFrameToChart(frames[state.frameIndex], payload.frameUrl || payload.bridgeUrl, viewGeneration).then(function (applied) {
       if (!applied || !isEvolutionViewCurrent(viewGeneration)) {
         return;
       }
@@ -67,9 +67,16 @@
       return;
     }
     var previousRevision = Number(state.result?.revision || 0);
+    var sameMovie = previousRevision > 0 && previousRevision === Number(shared.result.revision || 0);
     state.result = shared.result;
     state.jobRunning = false;
-    state.frameIndex = 0;
+    state.generating = false;
+    renderGenerationProgress({ state: 'idle' });
+    // A replay of the same movie (a reconnect, a room snapshot) keeps the
+    // frame on screen instead of jumping back to frame 1 (EVO-15).
+    if (!sameMovie) {
+      state.frameIndex = 0;
+    }
     if (previousRevision && previousRevision !== Number(shared.result.revision || 0)) {
       releaseEvolutionVisualization();
     }
@@ -82,7 +89,7 @@
     // the view, so the local transition and the server echo cannot disagree.
     var transition = changeToEvolutionAnalysis({ reason: 'project-evolution-ready' });
     void Promise.resolve(transition).then(function () {
-      return seek(0);
+      return seek(state.frameIndex);
     });
   }
 

@@ -1,6 +1,8 @@
 /**
- * The files of one generated project-evolution movie: `dataN.json` per frame,
- * the `data.json` bridge the scene reads, and the manifest.
+ * The files of one generated project-evolution movie: `dataN.json` per frame
+ * and the manifest. Every file is written once and never changed: the scene
+ * loads each frame by its own URL (EVO-5), so there is no shared bridge file
+ * for concurrent players to race on.
  *
  * Pure helpers split out of ProjectEvolutionService: the service owns WHEN a
  * revision becomes current (only once these files are written and the job is
@@ -21,7 +23,7 @@ export interface EvolutionFrameInput {
     source: ComparisonSource;
 }
 
-/** Phase 4: a fresh revision folder with dataN.json per frame, the data.json bridge and the manifest. */
+/** Phase 4: a fresh revision folder with dataN.json per frame and the manifest. */
 export async function writeEvolutionRevision(
     revision: number,
     revisionDirectory: string,
@@ -57,13 +59,8 @@ export async function writeEvolutionRevision(
         frames,
         generatedAt: new Date().toISOString(),
         manifestUrl: `/evolution/revision-${revision}/manifest.json`,
-        bridgeUrl: `/evolution/revision-${revision}/data.json`,
         excludedSources,
     };
-    await copyFileAtomically(
-        path.join(revisionDirectory, 'data1.json'),
-        path.join(revisionDirectory, 'data.json'),
-    );
     await fs.promises.writeFile(
         path.join(revisionDirectory, 'manifest.json'),
         JSON.stringify(result, null, 2),
@@ -79,11 +76,67 @@ export function extractSourceDate(source: ComparisonSource): string | undefined 
     return match ? match[1] : undefined;
 }
 
-/** Copy through a temp file + rename, so a reader never sees half a file. */
-export async function copyFileAtomically(sourcePath: string, destinationPath: string): Promise<void> {
-    const tempPath = `${destinationPath}.${process.pid}.${Date.now()}.tmp`;
-    await fs.promises.copyFile(sourcePath, tempPath);
-    await fs.promises.rename(tempPath, destinationPath);
+/** `<staticRoot>/evolution`, refusing anything that would escape the static root. */
+export function evolutionDirectoryOf(staticRootPath: string): string {
+    const staticRoot = path.resolve(staticRootPath);
+    const evolutionDirectory = path.resolve(staticRoot, 'evolution');
+    if (!evolutionDirectory.startsWith(staticRoot + path.sep)) {
+        throw new Error('project-evolution-outside-static-root');
+    }
+    return evolutionDirectory;
+}
+
+/**
+ * Validates a frame of the current movie and returns its own URL. No file is
+ * copied (EVO-5): each frame is an immutable `dataN.json`, so players seeking
+ * at once can no longer race on a shared bridge file.
+ */
+export function resolveEvolutionFrame(
+    revision: number,
+    frameIndex: number,
+    currentRevision: number,
+    frameCount: number,
+): { revision: number; frameIndex: number; frameUrl: string } {
+    const safeRevision = Math.floor(Number(revision));
+    const safeFrameIndex = Math.floor(Number(frameIndex));
+    if (!Number.isFinite(safeRevision) || safeRevision < 1 || safeRevision !== currentRevision) {
+        throw new Error('project-evolution-invalid-revision');
+    }
+    if (!Number.isFinite(safeFrameIndex) || safeFrameIndex < 0 || safeFrameIndex >= frameCount) {
+        throw new Error('project-evolution-invalid-frame');
+    }
+    return {
+        revision: safeRevision,
+        frameIndex: safeFrameIndex,
+        frameUrl: `/evolution/revision-${safeRevision}/data${safeFrameIndex + 1}.json`,
+    };
+}
+
+/** The revision numbers of the `revision-N` folders under `evolutionDirectory`. */
+export async function listEvolutionRevisions(evolutionDirectory: string): Promise<number[]> {
+    let names: string[];
+    try {
+        names = await fs.promises.readdir(evolutionDirectory);
+    } catch {
+        return [];
+    }
+    return names
+        .map((name) => /^revision-(\d+)$/.exec(name))
+        .filter((match): match is RegExpExecArray => !!match)
+        .map((match) => Number(match[1]))
+        .filter((value) => Number.isSafeInteger(value) && value > 0);
+}
+
+/**
+ * Removes every `revision-N` folder but `keep` (EVO-11): one movie on disk,
+ * so an export can only ship the movie the room is looking at.
+ */
+export async function removeOtherEvolutionRevisions(evolutionDirectory: string, keep: number): Promise<void> {
+    for (const revision of await listEvolutionRevisions(evolutionDirectory)) {
+        if (revision !== keep) {
+            await fs.promises.rm(path.join(evolutionDirectory, `revision-${revision}`), { recursive: true, force: true });
+        }
+    }
 }
 
 /** How a frame's revision is named in progress messages. */

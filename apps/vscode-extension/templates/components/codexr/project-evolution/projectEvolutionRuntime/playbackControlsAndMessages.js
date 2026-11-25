@@ -153,6 +153,12 @@
       if (state.manualSourceIds.includes(source.id)) {
         state.manualSourceIds = state.manualSourceIds.filter(function (id) { return id !== source.id; });
       } else {
+        // The limit is said, not applied silently (EVO-13).
+        var limit = Number(state.references?.maxFrames) || 24;
+        if (state.manualSourceIds.length >= limit) {
+          setStatus('A manual movie has at most ' + limit + ' frames. Remove one to add another.', 'error');
+          return;
+        }
         state.manualSourceIds.push(source.id);
       }
       render();

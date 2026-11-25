@@ -87,6 +87,15 @@
   - A double click on Generate or Compare, or two participants starting at once, no longer shows an error to everyone while the first job runs: "already running" goes only to the person who asked. A participant who joins mid-job sees it running.
   - A cancelled analysis is no longer recorded as "this revision has no data", which hid that commit from both Git pickers until the session ended.
   - Git-history exports no longer wait forever on one file: a file analysis is stopped after 2 minutes and retried once, and a Python worker that is slow to start (antivirus on Windows) reduces the number of workers instead of failing the export.
+- **Project evolution is more reliable.**
+  - Two people moving through the movie at the same time no longer get errors that stop playback for the whole room, or a frame shown under another frame's title. Each frame is now loaded from its own file instead of being copied over a shared one, and a frame that cannot be shown is reported only to the person who asked for it.
+  - A movie whose first frame could not be built (a component slow to load on a headset, for example) no longer makes the mode impossible to open again until a new movie is generated. The half-built frame is removed and rebuilt, and slow components get 4 s instead of 1.2 s.
+  - The progress bar now counts finished revisions, so it only moves forward and reaches the end. Before, it jumped back and forth between parallel analyses.
+  - Generating a movie no longer opens one VS Code notification per revision, and each revision's temporary copy of the project is deleted as soon as it is analyzed instead of staying on disk (up to about 100 MB each) until VS Code closed.
+  - Only the current movie is kept on disk. Before, every movie generated stayed, **Clear movie** removed only the newest one, and a later export could ship an older movie that had been replaced and cleared.
+  - **Play** on the last frame starts the movie over instead of stopping at once, and reconnecting to the room keeps the frame you were on instead of jumping back to frame 1.
+  - Manual movies always play from oldest to newest, as exported movies already did, whatever order the commits were picked in. A 25th pick is refused with a message instead of being dropped without notice.
+  - The commit picker no longer lists the remote's default-branch alias as a branch named "origin".
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

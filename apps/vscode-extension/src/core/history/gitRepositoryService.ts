@@ -207,7 +207,26 @@ export class GitRepositoryService {
         if (!Array.isArray(sourceIds) || sourceIds.length === 0) {
             return [];
         }
-        return Promise.all(sourceIds.map((sourceId) => this.resolveSource(sourceId)));
+        const resolved = await Promise.all(sourceIds.map((sourceId) => this.resolveSource(sourceId)));
+        // Oldest first, like the offline export (EVO-13): a movie plays in
+        // history order whatever order the commits were picked in. Dated refs
+        // by committer time, then undated ones in pick order, and the working
+        // copy (the present) last.
+        const group = (source: ComparisonSource): number => {
+            if (source.kind === 'workingCopy') {
+                return 2;
+            }
+            return typeof source.timestamp === 'number' ? 0 : 1;
+        };
+        const time = (source: ComparisonSource): number => (
+            source.kind === 'gitRef' && typeof source.timestamp === 'number' ? source.timestamp : 0
+        );
+        return resolved
+            .map((source, index) => ({ source, index }))
+            .sort((a, b) => group(a.source) - group(b.source)
+                || time(a.source) - time(b.source)
+                || a.index - b.index)
+            .map((entry) => entry.source);
     }
 
     public async materialize(source: ComparisonSource): Promise<MaterializedGitTarget> {
@@ -231,6 +250,16 @@ export class GitRepositoryService {
         return targetStat.isDirectory()
             ? this.materializeDirectory(repositoryRoot, source.commitSha, targetRelativePath, sourceDirectory)
             : this.materializeFile(repositoryRoot, source.commitSha, targetRelativePath, destinationPath);
+    }
+
+    /** Deletes one revision's snapshot once its analysis is done (EVO-8). */
+    public async releaseSnapshot(source: ComparisonSource): Promise<void> {
+        if (source.kind !== 'gitRef' || !this.isCommitSha(source.commitSha)) {
+            return;
+        }
+        const sourceDirectory = path.join(this.snapshotRoot, this.safeSnapshotName(source.commitSha));
+        this.assertInside(this.snapshotRoot, sourceDirectory);
+        await fs.promises.rm(sourceDirectory, { recursive: true, force: true });
     }
 
     public async dispose(): Promise<void> {
@@ -430,7 +459,9 @@ export class GitRepositoryService {
         const sources: ComparisonSource[] = [];
         for (const line of splitGitLines(stdout)) {
             const [fullRef, commitSha, shortName, committerDate, committerUnix] = line.split('\0');
-            if (!fullRef || !this.isCommitSha(commitSha) || !shortName || shortName.endsWith('/HEAD')) {
+            // `%(refname:short)` of refs/remotes/origin/HEAD is just "origin",
+            // so the alias is recognised by its full ref (EVO-18).
+            if (!fullRef || !this.isCommitSha(commitSha) || !shortName || fullRef.endsWith('/HEAD')) {
                 continue;
             }
             if (headName && fullRef === `refs/heads/${headName}`) {

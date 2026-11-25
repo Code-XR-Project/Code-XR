@@ -102,8 +102,9 @@ function createAnalyzer() {
         calls: [],
         killed: [],
         respond: null,
-        async run(session) {
+        async run(session, options) {
             analyzer.calls.push({
+                silent: options?.silent === true,
                 id: session.id,
                 targetPath: session.targetPath,
                 targetName: session.targetName,
@@ -206,8 +207,8 @@ async function withServices(options, body) {
             const { ExecutePython } = requireOut('core/analysis/python/executePython.js');
             // Like the real spawner, the stub "kills" its analysis when the
             // job (or revision watchdog) signal it runs under aborts.
-            ExecutePython.prototype.executeAnalysis = function stubbedAnalysis(session) {
-                const work = analyzer.run(session);
+            ExecutePython.prototype.executeAnalysis = function stubbedAnalysis(session, options) {
+                const work = analyzer.run(session, options);
                 const signal = launch.currentLaunchSignal();
                 if (!signal) {
                     return work;
@@ -665,7 +666,7 @@ test('S6: cancelling a movie kills its analyses, discards it, frees the job and 
 
         // No second revision was written; the first movie is still current.
         assert.deepEqual(fs.readdirSync(path.join(session.staticRoot, 'evolution')), ['revision-1']);
-        const applied = await evolution.applyFrameToBridge(1, 0);
+        const applied = evolution.resolveFrame(1, 0);
         assert.equal(applied.revision, 1);
         // A killed analysis is never recorded as a fact about the revision.
         assert.deepEqual((await evolution.getReferences()).eligibility?.excludedSources || [], []);
@@ -687,9 +688,10 @@ test('S6: Clear during a generation cancels it and waits, so no late movie lands
         analyzer.respond = () => new Promise(() => {});
         const movie = evolution.generate({ mode: 'manual', sourceIds: [c2, 'working-copy'] }, () => {});
         await waitFor(() => analyzer.calls.length > 0);
+        const outcome = assert.rejects(movie, JobCancelledError);
         await evolution.clearGeneratedMovie();
         assert.equal(evolution.isBusy(), false, 'Clear returned only once the job had ended');
-        await assert.rejects(movie, JobCancelledError);
+        await outcome;
         const evolutionDirectory = path.join(session.staticRoot, 'evolution');
         assert.deepEqual(fs.existsSync(evolutionDirectory) ? fs.readdirSync(evolutionDirectory) : [], []);
         await evolution.dispose();
@@ -789,7 +791,8 @@ test('evolution generate (file): missing target cached and excluded per frame, p
             [2, result.frames[2].source.label, '/evolution/revision-1/data3.json', 1, false, ''],
         ]);
         assert.equal(result.manifestUrl, '/evolution/revision-1/manifest.json');
-        assert.equal(result.bridgeUrl, '/evolution/revision-1/data.json');
+        // EVO-5: no shared bridge file; every frame is loaded by its own url.
+        assert.equal(result.bridgeUrl, undefined);
         assert.deepEqual(result.excludedSources, [{
             id: commit(fixture.shas.c1).id,
             label: commit(fixture.shas.c1).label,
@@ -800,7 +803,7 @@ test('evolution generate (file): missing target cached and excluded per frame, p
         }]);
 
         const directory = path.join(session.staticRoot, 'evolution', 'revision-1');
-        assert.deepEqual(fs.readdirSync(directory).sort(), ['data.json', 'data1.json', 'data2.json', 'data3.json', 'manifest.json']);
+        assert.deepEqual(fs.readdirSync(directory).sort(), ['data1.json', 'data2.json', 'data3.json', 'manifest.json']);
         assert.deepEqual(readJson(path.join(directory, 'data1.json')), [
             { functionName: 'run', parameters: 1, ccn: 2, evolutionKey: 'function:run' },
             { functionName: 'run', parameters: 1, ccn: 1, evolutionKey: 'function:run' },
@@ -808,10 +811,13 @@ test('evolution generate (file): missing target cached and excluded per frame, p
             { name: 'NamedOnly', ccn: 1, evolutionKey: 'function:namedonly' },
         ]);
         assert.deepEqual(readJson(path.join(directory, 'data3.json')), [{ functionName: 'Live', parameters: 0, evolutionKey: 'function:live' }]);
-        assert.deepEqual(readJson(path.join(directory, 'data.json')), readJson(path.join(directory, 'data1.json')));
         assert.deepEqual(readJson(path.join(directory, 'manifest.json')), JSON.parse(JSON.stringify(result)));
 
         assert.equal(progress[0].message, 'Resolving project timeline...');
+        // EVO-14: `completed` only grows and reaches the revision count.
+        const completedSeen = progress.filter((entry) => entry.completed !== undefined).map((entry) => entry.completed);
+        assert.deepEqual(completedSeen, [...completedSeen].sort((a, b) => a - b));
+        assert.equal(Math.max(...completedSeen), 4);
         assert.equal(progress[1].message, 'Analyzing 4 project revisions with 4 workers...');
         assert.ok(progress.some((entry) => entry.message === `Discarded ${commit(fixture.shas.c1).label}: The analyzed target does not exist in this revision.`));
         assert.match(progress.at(-1).jobId, /^job-/);
@@ -831,12 +837,17 @@ test('evolution generate (file): missing target cached and excluded per frame, p
         assert.ok(analyzer.calls.every((call) => 'projectEvolutionSource' in call.metadata));
         assert.ok(analyzer.calls.every((call) => posix(call.targetPath).startsWith(posix(path.join(context.storageUri.fsPath, 'project-evolution', 'sess-file', 'snapshots')))));
         assert.deepEqual([...materialized].sort(), [fixture.shas.c1, fixture.shas.c2, fixture.shas.c3].sort());
+        // EVO-8: no VS Code notification per revision, and no snapshot is
+        // left on disk once its revision is analyzed.
+        assert.ok(analyzer.calls.every((call) => call.silent), 'revision analyses run silently');
+        const snapshotRoot = path.join(context.storageUri.fsPath, 'project-evolution', 'sess-file', 'snapshots');
+        assert.deepEqual(fs.existsSync(snapshotRoot) ? fs.readdirSync(snapshotRoot) : [], []);
 
-        // The frame bridge copies dataN.json over data.json for the current revision only.
-        assert.deepEqual(await service.applyFrameToBridge(1, 1), { revision: 1, frameIndex: 1, bridgeUrl: '/evolution/revision-1/data.json' });
-        assert.deepEqual(readJson(path.join(directory, 'data.json')), readJson(path.join(directory, 'data2.json')));
-        await assert.rejects(service.applyFrameToBridge(2, 0), /^Error: project-evolution-invalid-revision$/);
-        await assert.rejects(service.applyFrameToBridge(1, -1), /^Error: project-evolution-invalid-frame$/);
+        // EVO-5: a frame resolves to its own file; nothing is copied.
+        assert.deepEqual(service.resolveFrame(1, 1), { revision: 1, frameIndex: 1, frameUrl: '/evolution/revision-1/data2.json' });
+        assert.throws(() => service.resolveFrame(2, 0), /^Error: project-evolution-invalid-revision$/);
+        assert.throws(() => service.resolveFrame(1, -1), /^Error: project-evolution-invalid-frame$/);
+        assert.throws(() => service.resolveFrame(1, 3), /^Error: project-evolution-invalid-frame$/);
 
         // Second run: every commit (including the missing one) is cached.
         const second = await service.generate({ mode: 'manual', sourceIds: ids }, () => {});
@@ -846,10 +857,12 @@ test('evolution generate (file): missing target cached and excluded per frame, p
         assert.equal(second.excludedSources.length, 1);
         assert.deepEqual((await service.getReferences()).activeRequest, { mode: 'manual', sourceIds: ids });
 
-        // Clearing removes the current revision folder and the cache.
+        // EVO-11: one movie on disk, so an export ships the current one.
+        assert.deepEqual(fs.readdirSync(path.join(session.staticRoot, 'evolution')), ['revision-2']);
+
+        // Clearing removes every movie and the cache.
         await service.clearGeneratedMovie();
-        assert.equal(fs.existsSync(path.join(session.staticRoot, 'evolution', 'revision-2')), false);
-        assert.equal(fs.existsSync(path.join(session.staticRoot, 'evolution', 'revision-1')), true);
+        assert.equal(fs.existsSync(path.join(session.staticRoot, 'evolution')), false);
         assert.equal((await service.getReferences()).activeRequest, null);
         await service.generate({ mode: 'manual', sourceIds: ids }, () => {});
         assert.equal(analyzer.calls.length, 4, 'the cache was cleared');
@@ -1296,11 +1309,11 @@ test('evolution bridge: a cancelled movie is silent; clear and apply-frame repor
                     throw new JobCancelledError('cancelled', 'project-evolution-cancelled');
                 },
                 async clearGeneratedMovie() {},
-                async applyFrameToBridge(revision, frameIndex) {
+                resolveFrame(revision, frameIndex) {
                     if (frameIndex < 0) {
                         throw new Error('project-evolution-invalid-frame');
                     }
-                    return { revision, frameIndex, bridgeUrl: 'u' };
+                    return { revision, frameIndex, frameUrl: 'u' };
                 },
             }),
         });
@@ -1320,8 +1333,10 @@ test('evolution bridge: a cancelled movie is silent; clear and apply-frame repor
         await bridge.handleProjectEvolutionApplyFrameMessage(applied, { payload: { revision: '2', frameIndex: 1, requestId: 'r1' } });
         await bridge.handleProjectEvolutionApplyFrameMessage(applied, { payload: { revision: 2, frameIndex: -1, requestId: 7 } });
         assert.deepEqual(applied.log, [
-            ['broadcast', { type: 'project-evolution-frame-applied', payload: { revision: 2, frameIndex: 1, bridgeUrl: 'u', requestId: 'r1' } }],
-            ['broadcast', { type: 'project-evolution-error', payload: { code: 'project-evolution-invalid-frame', message: 'project-evolution-invalid-frame' } }],
+            // The room follows the seek; 1.2.0 scenes read bridgeUrl.
+            ['broadcast', { type: 'project-evolution-frame-applied', payload: { revision: 2, frameIndex: 1, frameUrl: 'u', bridgeUrl: 'u', requestId: 'r1' } }],
+            // A bad seek is the requester's alone (EVO-5): it no longer stops the room.
+            ['send', { type: 'project-evolution-error', payload: { code: 'project-evolution-invalid-frame', message: 'project-evolution-invalid-frame' } }],
         ]);
 
         coordinatorCalls.length = 0;
@@ -1360,4 +1375,59 @@ test('S6 bridges: Cancel stops the job for the whole room, or tells only the req
         ]);
         assert.equal(new ProjectEvolutionBridge(createHost({})).handleProjectEvolutionCancelMessage(room), false);
     });
+});
+
+test('S10: manual picks play oldest first, and more than the frame limit is refused out loud (EVO-13)', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, context, analyzer }) => {
+        analyzer.respond = () => [{ filePath: 'main.js', totalLines: 1 }];
+        const evolution = new ProjectEvolutionService(context, session.id, session.staticRoot, createCatalog());
+        const refs = await evolution.getReferences();
+        const commitId = (sha) => refs.sources.find((s) => s.kind === 'gitRef' && s.commitSha === sha && s.refType === 'commit').id;
+        // Picked newest first, with the working copy in the middle.
+        const movie = await evolution.generate({
+            mode: 'manual',
+            sourceIds: [commitId(fixture.shas.c3), 'working-copy', commitId(fixture.shas.c2)],
+        }, () => {});
+        assert.deepEqual(
+            movie.frames.map((frame) => (frame.source.kind === 'workingCopy' ? 'working-copy' : frame.source.commitSha)),
+            [fixture.shas.c2, fixture.shas.c3, 'working-copy'],
+        );
+        const tooMany = Array.from({ length: 25 }, () => commitId(fixture.shas.c2));
+        await assert.rejects(
+            evolution.generate({ mode: 'manual', sourceIds: tooMany, maxFrames: 24 }, () => {}),
+            /A manual movie has at most 24 frames and 25 were picked\. Remove 1 and generate again\./,
+        );
+        await evolution.dispose();
+    });
+});
+
+test('S10: the remote HEAD alias is not offered as a branch named after the remote (EVO-18)', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-remote-head-'));
+    try {
+        const repo = path.join(root, 'repo');
+        fs.mkdirSync(repo, { recursive: true });
+        runGit(repo, ['init', '--quiet']);
+        runGit(repo, ['config', 'user.name', 'CodeXR Tests']);
+        runGit(repo, ['config', 'user.email', 'codexr-tests@example.invalid']);
+        runGit(repo, ['config', 'commit.gpgsign', 'false']);
+        fs.writeFileSync(path.join(repo, 'main.js'), 'export const main = 1;\n');
+        runGit(repo, ['add', '.']);
+        runGit(repo, ['commit', '--quiet', '-m', 'first']);
+        const head = runGit(repo, ['rev-parse', 'HEAD']);
+        runGit(repo, ['update-ref', 'refs/remotes/origin/main', head]);
+        runGit(repo, ['symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main']);
+        const { GitRepositoryService } = require(path.join(projectRoot, 'out', 'core', 'history', 'gitRepositoryService.js'));
+        const service = new GitRepositoryService(path.join(repo, 'main.js'), path.join(root, 'snapshots'));
+        const branches = (await service.listReferences()).sources
+            .filter((source) => source.kind === 'gitRef' && source.refType === 'branch')
+            .map((source) => source.refName);
+        assert.ok(branches.includes('refs/remotes/origin/main'), JSON.stringify(branches));
+        // Its short name is just "origin", which the old filter let through.
+        assert.ok(!branches.some((refName) => refName.endsWith('/HEAD')), JSON.stringify(branches));
+        await service.dispose();
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
 });
