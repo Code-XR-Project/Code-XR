@@ -55,12 +55,12 @@
     ],
     "functions.over80Lines": 42,
     "complexity.over10": 63,
-    "complexity.over15": 19,
+    "complexity.over15": 18,
     "complexity.over20": 4,
     "complexity.over30": 2,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 508,
+    "eslint.maxWarnings": 507,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49136,
-    "src.functions": 3292,
+    "src.lines": 49143,
+    "src.functions": 3293,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
