@@ -31,13 +31,13 @@ export class LivePanelParser {
      * Load and process template files for a LivePanel analysis session.
      *
      * @param targetType  - `'file'` or `'directory'` (determines the template subfolder)
-     * @param analysisMode - Analysis mode label (e.g. `'LivePanel'`)
+     * @param _analysisMode - Analysis mode label (e.g. `'LivePanel'`); unused, kept for the callers' signature
      * @param theme        - Optional theme override (`'Dark'` | `'Light'`)
      * @returns A Map of `fileName → processedContent`
      */
     public async loadTemplateFiles(
         targetType: string,
-        analysisMode: string,
+        _analysisMode: string,
         theme?: string,
     ): Promise<Map<string, string>> {
         const templatePath = this.getTemplatePath(targetType);

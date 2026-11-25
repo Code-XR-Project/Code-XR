@@ -39,21 +39,21 @@ export class CodeAnalysisInteractionHandler {
     /**
      * TODO: Handle context menu actions
      */
-    static async handleContextMenuAction(action: string, item: CodeAnalysisTreeItem): Promise<void> {
+    static async handleContextMenuAction(_action: string, _item: CodeAnalysisTreeItem): Promise<void> {
         // TODO: Implementation
     }
 
     /**
      * TODO: Handle double-click actions
      */
-    static async handleDoubleClick(item: CodeAnalysisTreeItem): Promise<void> {
+    static async handleDoubleClick(_item: CodeAnalysisTreeItem): Promise<void> {
         // TODO: Implementation
     }
 
     /**
      * TODO: Get hover information for item
      */
-    static getHoverInfo(item: CodeAnalysisTreeItem): vscode.MarkdownString | undefined {
+    static getHoverInfo(_item: CodeAnalysisTreeItem): vscode.MarkdownString | undefined {
         // TODO: Implementation
         return undefined;
     }

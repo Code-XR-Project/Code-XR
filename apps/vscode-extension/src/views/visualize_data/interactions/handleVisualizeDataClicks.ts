@@ -5,7 +5,7 @@ import { VisualizeDataModularTreeItem } from '../items/visualizeDataItems';
  * Handler for Visualize Data section interactions
  */
 export class VisualizeDataClickHandler {
-    constructor(context: vscode.ExtensionContext) {}
+    constructor(_context: vscode.ExtensionContext) {}
 
     /**
      * Handle clicks on visualize data items

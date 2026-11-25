@@ -66,12 +66,12 @@ export class StaticAssetServer {
 
     /**
      * Serve static files
-     * @param req - HTTP request
+     * @param _req - HTTP request (unused)
      * @param res - HTTP response
      * @param url - Request URL
      */
     public async serveStaticFile(
-        req: http.IncomingMessage,
+        _req: http.IncomingMessage,
         res: http.ServerResponse,
         url: string
     ): Promise<void> {

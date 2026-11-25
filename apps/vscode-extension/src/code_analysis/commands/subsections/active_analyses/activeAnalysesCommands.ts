@@ -10,7 +10,7 @@ import { ServerWatcherIntegration } from '../../../services/serverWatcherIntegra
 import { ActiveAnalysesCommands as ActiveAnalysesViewCommands } from '../../../views/subsections/active_analyses/commands/activeAnalysesCommands';
 
 export class ActiveAnalysesCommands {
-    constructor(context: vscode.ExtensionContext) {}
+    constructor(_context: vscode.ExtensionContext) {}
 
     static getCommandRegistrations(
         context: vscode.ExtensionContext,

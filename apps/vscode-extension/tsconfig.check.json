@@ -7,6 +7,9 @@
 	"compilerOptions": {
 		"noUnusedLocals": true,
 		"noFallthroughCasesInSwitch": true,
-		"noImplicitReturns": true
+		"noImplicitReturns": true,
+		// A parameter kept for a signature but never read is named with a
+		// leading underscore (`_context`), which this flag exempts.
+		"noUnusedParameters": true
 	}
 }

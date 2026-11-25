@@ -93,7 +93,7 @@ export class VisualizeDataModularItemFactory {
     /**
      * Create dimension mapping sub-items
      */
-    static createDimensionMappingItems(context: vscode.ExtensionContext, state?: VisualizeDataState): VisualizeDataModularTreeItem[] {
+    static createDimensionMappingItems(_context: vscode.ExtensionContext, state?: VisualizeDataState): VisualizeDataModularTreeItem[] {
         console.log('VISUALIZE_DATA_MODULAR: Creating dimension mapping items');
         
         try {

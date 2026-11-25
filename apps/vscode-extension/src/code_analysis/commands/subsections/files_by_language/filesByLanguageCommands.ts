@@ -13,7 +13,7 @@ import { CodeXRLogger } from '../../../../core/logging/logger';
 const logger = CodeXRLogger.getLogger('FILES_BY_LANGUAGE_COMMANDS');
 
 export class FilesByLanguageCommands {
-    constructor(context: vscode.ExtensionContext) {}
+    constructor(_context: vscode.ExtensionContext) {}
 
     /**
      * Get files by language command registrations (nested dolls pattern)
