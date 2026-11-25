@@ -1,4 +1,4 @@
-import { DimensionMapping } from '../models/chartModels';
+import { ChartMetadata, DimensionDataType, DimensionMapping, DimensionValueRule } from '../models/chartModels';
 import { chartTemplates } from '../charts/templateCharts';
 import { getVisualizationConfiguration, VisualizationSettings } from '../../utils/getVisualizationConfiguration';
 import { CreateChart } from './placeholders/createChart';
@@ -250,14 +250,7 @@ export class TemplateProcessor {
             return { componentHtml: '', scriptHtml: '' };
         }
 
-        const schemaFieldEntries = Object.entries(options.fieldTypeMap);
-        const numericFields = schemaFieldEntries
-            .filter(([, fieldType]) => fieldType === 'numeric')
-            .map(([fieldName]) => fieldName);
-        const textFields = schemaFieldEntries
-            .filter(([, fieldType]) => fieldType === 'text')
-            .map(([fieldName]) => fieldName);
-        const anyFields = schemaFieldEntries.map(([fieldName]) => fieldName);
+        const pools = buildSchemaFieldPools(options.fieldTypeMap);
 
         const selectedFieldByDimension = new Map<string, string>();
         for (const mapping of mappings) {
@@ -266,155 +259,8 @@ export class TemplateProcessor {
             }
         }
 
-        const dimensions: Array<{
-            id: string;
-            label: string;
-            dataType: 'numeric' | 'text' | 'any';
-            valueRule?: 'text-non-empty' | 'numeric-finite' | 'numeric-positive';
-            currentField: string;
-            fields: string[];
-            hidden: boolean;
-        }> = [];
-
-        // Candidates for a dimension: its own data type first, every field as the
-        // fallback. Dropping a dimension when its strict pool is empty published
-        // an INCOMPLETE contract (e.g. barsmap without z_axis) while still
-        // offering the chart — Babia then built axes with non-finite lengths and
-        // the table reported "invalid axis". Every declared dimension always gets
-        // a candidate list now; the best available field beats no field at all.
-        const candidateFieldsFor = (dataType: 'numeric' | 'text' | 'any'): string[] => {
-            const strictFields = dataType === 'numeric'
-                ? numericFields
-                : (dataType === 'text' ? textFields : anyFields);
-            return strictFields.length > 0 ? strictFields : anyFields;
-        };
-
-        const buildDimensionsForChart = (chart: typeof chartMetadata, selectedFields: Map<string, string>) => {
-            const result: typeof dimensions = [];
-            for (const dimension of chart.dimensions) {
-                const candidateFields = candidateFieldsFor(dimension.dataType);
-                if (candidateFields.length === 0) {
-                    continue;
-                }
-
-                const selectedField = selectedFields.get(dimension.name);
-                const orderedFields = selectedField && candidateFields.includes(selectedField)
-                    ? [selectedField, ...candidateFields.filter((fieldName) => fieldName !== selectedField)]
-                    : candidateFields;
-
-                result.push({
-                    id: dimension.name,
-                    label: dimension.label,
-                    dataType: dimension.dataType,
-                    valueRule: dimension.valueRule,
-                    currentField: orderedFields[0],
-                    fields: orderedFields,
-                    hidden: false,
-                });
-            }
-            return result;
-        };
-
-        const pickDefaultField = (
-            dimensionName: string,
-            dimensionDataType: 'numeric' | 'text' | 'any',
-            preferredFields: string[],
-        ): string => {
-            const candidateFields = candidateFieldsFor(dimensionDataType);
-            for (const preferredField of preferredFields) {
-                if (candidateFields.includes(preferredField)) {
-                    return preferredField;
-                }
-            }
-            if (candidateFields.includes(dimensionName)) {
-                return dimensionName;
-            }
-            return candidateFields[0] ?? '';
-        };
-
-        const getDefaultMappingsForChart = (chart: typeof chartMetadata): Record<string, string> => {
-            const preferredByDimension: Record<string, string[]> = isDirectoryAnalysis
-                ? {
-                    area: ['functionCount', 'totalFunctions', 'fileCount', 'codeLines', 'totalLines'],
-                    height: ['totalLines', 'codeLines', 'functionCount', 'cyclomaticComplexityNumber'],
-                    color: ['cyclomaticComplexityNumber', 'language', 'fileName', 'relativePath'],
-                    x_axis: ['fileName', 'relativePath', 'language'],
-                    y_axis: ['totalLines', 'codeLines', 'functionCount'],
-                    // z prefers a LOW-cardinality category: babia allots every
-                    // distinct z label its own grid row, and 40+ rows of
-                    // near-empty depth shrank the map charts to nothing.
-                    z_axis: ['language', 'cyclomaticComplexityNumber', 'functionCount'],
-                    // Radius prefers average complexity: per-file counts are
-                    // Zipf-distributed (one vendored file dwarfs the rest) and
-                    // babia maps radius linearly, so count-based radii render
-                    // every typical file as an invisible speck.
-                    radius: ['cyclomaticComplexityNumber', 'functionCount', 'totalLines'],
-                    size: ['functionCount', 'totalLines', 'fileSizeBytes'],
-                    heightmap: ['totalLines', 'codeLines', 'functionCount'],
-                    key: ['fileName', 'relativePath', 'language'],
-                    value: ['totalLines', 'functionCount', 'codeLines'],
-                }
-                // Field-analysis schema (XR_FILE_FIELDS): text fields are
-                // functionName/complexityBand/filePath/fileName/treePath and
-                // numerics lineCount/complexity/parameters/… — the old list
-                // named fields that do not exist there (`name`, `longName`,
-                // `codeLines`), so defaults silently fell back to whatever
-                // came first in the pool.
-                : {
-                    area: ['parameters', 'lineCount', 'complexity'],
-                    height: ['lineCount', 'spanLines', 'complexity'],
-                    color: ['complexity', 'complexityBand', 'functionName'],
-                    x_axis: ['functionName', 'fileName', 'complexityBand'],
-                    y_axis: ['lineCount', 'spanLines', 'complexity'],
-                    z_axis: ['complexityBand', 'complexity', 'parameters'],
-                    radius: ['parameters', 'lineCount', 'complexity'],
-                    size: ['lineCount', 'parameters', 'complexity'],
-                    heightmap: ['lineCount', 'spanLines', 'complexity'],
-                    key: ['functionName', 'fileName'],
-                    value: ['lineCount', 'complexity', 'parameters'],
-                };
-            const defaults: Record<string, string> = {};
-            for (const dimension of chart.dimensions) {
-                const field = pickDefaultField(
-                    dimension.name,
-                    dimension.dataType,
-                    preferredByDimension[dimension.name] ?? [dimension.name],
-                );
-                // Every declared dimension gets a key: an omitted one reached
-                // Babia as a missing axis, which is the "invalid axis" failure.
-                // `field` is only empty when the analysis has no fields at all.
-                if (field) {
-                    defaults[dimension.name] = field;
-                }
-            }
-            return defaults;
-        };
-
-        const dimensionsByChart: Record<string, typeof dimensions> = {};
-        const defaultMappingsByChart: Record<string, Record<string, string>> = {};
-        const availableCharts = chartTemplates.map((chart) => {
-            const defaults = chart.id === chartId
-                ? Object.assign(getDefaultMappingsForChart(chart), Object.fromEntries(selectedFieldByDimension))
-                : getDefaultMappingsForChart(chart);
-            const selectedFields = new Map<string, string>(Object.entries(defaults));
-            const chartDimensions = buildDimensionsForChart(chart, selectedFields);
-            dimensionsByChart[chart.id] = chartDimensions;
-            defaultMappingsByChart[chart.id] = defaults;
-            return {
-                id: chart.id,
-                name: chart.name,
-                category: chart.category,
-                dimensions: chart.dimensions.map((dimension) => ({
-                    id: dimension.name,
-                    label: dimension.label,
-                    dataType: dimension.dataType,
-                    valueRule: dimension.valueRule,
-                    required: dimension.required,
-                })),
-            };
-        }).filter((chart) => (dimensionsByChart[chart.id] ?? []).length > 0);
-
-        dimensions.push(...buildDimensionsForChart(chartMetadata, selectedFieldByDimension));
+        const { availableCharts, dimensionsByChart, defaultMappingsByChart } = buildChartCatalog(chartId, selectedFieldByDimension, isDirectoryAnalysis, pools);
+        const dimensions = buildDimensionsForChart(chartMetadata, selectedFieldByDimension, pools);
 
         if (dimensions.length === 0) {
             return { componentHtml: '', scriptHtml: '' };
@@ -422,26 +268,6 @@ export class TemplateProcessor {
 
         const targetType: XRSchemaTargetType = options.xrTargetType ?? (isDirectoryAnalysis ? 'directory' : 'file');
         const panelVisibleByDefault = options?.babiaUiVisibleByDefault !== false;
-        const panelId = 'codexrMappingUiPanel';
-        const toggleId = 'codexrMappingUiToggle';
-        const uiScale = 0.165;
-        const position = '3.35 1.24 -15.78';
-        const rotation = '-28 -138 0';
-        const adaptiveCorner = {
-            table: {
-                anchorX: 0,
-                anchorY: 1.24,
-                anchorZ: -18,
-                width: 5.614,
-                depth: 3.218,
-            },
-            marginX: 0.62,
-            marginZ: 0.52,
-            panelLift: 0.0,
-            panelForwardOffset: 0.16,
-            switchThreshold: 0.35,
-            switchCooldownMs: 480,
-        };
 
         const model = {
             chartId,
@@ -453,15 +279,15 @@ export class TemplateProcessor {
             normalEntityIds: ['codexrNormalAnalysisRoot'],
             normalDataEntityIds: ['data'],
             targetType,
-            panelId,
-            toggleId,
+            panelId: 'codexrMappingUiPanel',
+            toggleId: 'codexrMappingUiToggle',
             sceneSelector: '#scene',
-            panelPosition: position,
-            panelRotation: rotation,
-            panelScale: uiScale,
+            panelPosition: '3.35 1.24 -15.78',
+            panelRotation: '-28 -138 0',
+            panelScale: 0.165,
             panelVisible: panelVisibleByDefault,
             hideOnEnterAr: false,
-            adaptiveCorner,
+            adaptiveCorner: MAPPING_UI_ADAPTIVE_CORNER,
             togglePosition: targetType === 'directory' ? '6.8 1.1 -5.6' : '6.2 1 -7.5',
             dimensions,
             availableCharts,
@@ -474,4 +300,194 @@ export class TemplateProcessor {
 
         return { componentHtml: '', scriptHtml };
     }
+}
+
+// ---- The in-scene mapping UI model: pure helpers behind buildBabiaUiPlaceholders.
+
+/** One dimension row of the mapping UI: its candidate fields, the current one first. */
+interface MappingUiDimension {
+    id: string;
+    label: string;
+    dataType: DimensionDataType;
+    valueRule?: DimensionValueRule;
+    currentField: string;
+    fields: string[];
+    hidden: boolean;
+}
+
+/** The analysis schema's field names, grouped by the dimension data type they can fill. */
+interface SchemaFieldPools {
+    numericFields: string[];
+    textFields: string[];
+    anyFields: string[];
+}
+
+/** Where the mapping panel docks next to the analysis table, and how it switches corners. */
+const MAPPING_UI_ADAPTIVE_CORNER = {
+    table: { anchorX: 0, anchorY: 1.24, anchorZ: -18, width: 5.614, depth: 3.218 },
+    marginX: 0.62,
+    marginZ: 0.52,
+    panelLift: 0.0,
+    panelForwardOffset: 0.16,
+    switchThreshold: 0.35,
+    switchCooldownMs: 480,
+};
+
+/** Preferred default fields per dimension, directory-analysis schema (XR_DIRECTORY_FIELDS). */
+const DIRECTORY_PREFERRED_FIELDS: Record<string, string[]> = {
+    area: ['functionCount', 'totalFunctions', 'fileCount', 'codeLines', 'totalLines'],
+    height: ['totalLines', 'codeLines', 'functionCount', 'cyclomaticComplexityNumber'],
+    color: ['cyclomaticComplexityNumber', 'language', 'fileName', 'relativePath'],
+    x_axis: ['fileName', 'relativePath', 'language'],
+    y_axis: ['totalLines', 'codeLines', 'functionCount'],
+    // z prefers a LOW-cardinality category: babia allots every
+    // distinct z label its own grid row, and 40+ rows of
+    // near-empty depth shrank the map charts to nothing.
+    z_axis: ['language', 'cyclomaticComplexityNumber', 'functionCount'],
+    // Radius prefers average complexity: per-file counts are
+    // Zipf-distributed (one vendored file dwarfs the rest) and
+    // babia maps radius linearly, so count-based radii render
+    // every typical file as an invisible speck.
+    radius: ['cyclomaticComplexityNumber', 'functionCount', 'totalLines'],
+    size: ['functionCount', 'totalLines', 'fileSizeBytes'],
+    heightmap: ['totalLines', 'codeLines', 'functionCount'],
+    key: ['fileName', 'relativePath', 'language'],
+    value: ['totalLines', 'functionCount', 'codeLines'],
+};
+
+/**
+ * Preferred default fields per dimension, field-analysis schema
+ * (XR_FILE_FIELDS): text fields are functionName/complexityBand/filePath/
+ * fileName/treePath and numerics lineCount/complexity/parameters/… — the old
+ * list named fields that do not exist there (`name`, `longName`,
+ * `codeLines`), so defaults silently fell back to whatever came first in the
+ * pool.
+ */
+const FILE_PREFERRED_FIELDS: Record<string, string[]> = {
+    area: ['parameters', 'lineCount', 'complexity'],
+    height: ['lineCount', 'spanLines', 'complexity'],
+    color: ['complexity', 'complexityBand', 'functionName'],
+    x_axis: ['functionName', 'fileName', 'complexityBand'],
+    y_axis: ['lineCount', 'spanLines', 'complexity'],
+    z_axis: ['complexityBand', 'complexity', 'parameters'],
+    radius: ['parameters', 'lineCount', 'complexity'],
+    size: ['lineCount', 'parameters', 'complexity'],
+    heightmap: ['lineCount', 'spanLines', 'complexity'],
+    key: ['functionName', 'fileName'],
+    value: ['lineCount', 'complexity', 'parameters'],
+};
+
+function buildSchemaFieldPools(fieldTypeMap: XRFieldTypeMap): SchemaFieldPools {
+    const schemaFieldEntries = Object.entries(fieldTypeMap);
+    return {
+        numericFields: schemaFieldEntries.filter(([, fieldType]) => fieldType === 'numeric').map(([fieldName]) => fieldName),
+        textFields: schemaFieldEntries.filter(([, fieldType]) => fieldType === 'text').map(([fieldName]) => fieldName),
+        anyFields: schemaFieldEntries.map(([fieldName]) => fieldName),
+    };
+}
+
+// Candidates for a dimension: its own data type first, every field as the
+// fallback. Dropping a dimension when its strict pool is empty published
+// an INCOMPLETE contract (e.g. barsmap without z_axis) while still
+// offering the chart — Babia then built axes with non-finite lengths and
+// the table reported "invalid axis". Every declared dimension always gets
+// a candidate list now; the best available field beats no field at all.
+function candidateFieldsFor(dataType: DimensionDataType, pools: SchemaFieldPools): string[] {
+    const { numericFields, textFields, anyFields } = pools;
+    const strictFields = dataType === 'numeric'
+        ? numericFields
+        : (dataType === 'text' ? textFields : anyFields);
+    return strictFields.length > 0 ? strictFields : anyFields;
+}
+
+function buildDimensionsForChart(chart: ChartMetadata, selectedFields: Map<string, string>, pools: SchemaFieldPools): MappingUiDimension[] {
+    const result: MappingUiDimension[] = [];
+    for (const dimension of chart.dimensions) {
+        const candidateFields = candidateFieldsFor(dimension.dataType, pools);
+        if (candidateFields.length === 0) {
+            continue;
+        }
+
+        const selectedField = selectedFields.get(dimension.name);
+        const orderedFields = selectedField && candidateFields.includes(selectedField)
+            ? [selectedField, ...candidateFields.filter((fieldName) => fieldName !== selectedField)]
+            : candidateFields;
+
+        result.push({
+            id: dimension.name,
+            label: dimension.label,
+            dataType: dimension.dataType,
+            valueRule: dimension.valueRule,
+            currentField: orderedFields[0],
+            fields: orderedFields,
+            hidden: false,
+        });
+    }
+    return result;
+}
+
+function pickDefaultField(dimensionName: string, dimensionDataType: DimensionDataType, preferredFields: string[], pools: SchemaFieldPools): string {
+    const candidateFields = candidateFieldsFor(dimensionDataType, pools);
+    for (const preferredField of preferredFields) {
+        if (candidateFields.includes(preferredField)) {
+            return preferredField;
+        }
+    }
+    if (candidateFields.includes(dimensionName)) {
+        return dimensionName;
+    }
+    return candidateFields[0] ?? '';
+}
+
+function getDefaultMappingsForChart(chart: ChartMetadata, isDirectoryAnalysis: boolean, pools: SchemaFieldPools): Record<string, string> {
+    const preferredByDimension = isDirectoryAnalysis ? DIRECTORY_PREFERRED_FIELDS : FILE_PREFERRED_FIELDS;
+    const defaults: Record<string, string> = {};
+    for (const dimension of chart.dimensions) {
+        const field = pickDefaultField(
+            dimension.name,
+            dimension.dataType,
+            preferredByDimension[dimension.name] ?? [dimension.name],
+            pools,
+        );
+        // Every declared dimension gets a key: an omitted one reached
+        // Babia as a missing axis, which is the "invalid axis" failure.
+        // `field` is only empty when the analysis has no fields at all.
+        if (field) {
+            defaults[dimension.name] = field;
+        }
+    }
+    return defaults;
+}
+
+/**
+ * The chart switcher's catalogue: every chart that can be filled from this
+ * schema, with its dimensions and default mappings. The current chart's
+ * defaults are overlaid with the user's own mappings.
+ */
+function buildChartCatalog(chartId: string, selectedFieldByDimension: Map<string, string>, isDirectoryAnalysis: boolean, pools: SchemaFieldPools) {
+    const dimensionsByChart: Record<string, MappingUiDimension[]> = {};
+    const defaultMappingsByChart: Record<string, Record<string, string>> = {};
+    const availableCharts = chartTemplates.map((chart) => {
+        const defaults = chart.id === chartId
+            ? Object.assign(getDefaultMappingsForChart(chart, isDirectoryAnalysis, pools), Object.fromEntries(selectedFieldByDimension))
+            : getDefaultMappingsForChart(chart, isDirectoryAnalysis, pools);
+        const selectedFields = new Map<string, string>(Object.entries(defaults));
+        const chartDimensions = buildDimensionsForChart(chart, selectedFields, pools);
+        dimensionsByChart[chart.id] = chartDimensions;
+        defaultMappingsByChart[chart.id] = defaults;
+        return {
+            id: chart.id,
+            name: chart.name,
+            category: chart.category,
+            dimensions: chart.dimensions.map((dimension) => ({
+                id: dimension.name,
+                label: dimension.label,
+                dataType: dimension.dataType,
+                valueRule: dimension.valueRule,
+                required: dimension.required,
+            })),
+        };
+    }).filter((chart) => (dimensionsByChart[chart.id] ?? []).length > 0);
+
+    return { availableCharts, dimensionsByChart, defaultMappingsByChart };
 }

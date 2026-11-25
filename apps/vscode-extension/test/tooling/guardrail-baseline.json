@@ -66,14 +66,14 @@
       "src/servers/runtime/multiServerLauncher.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 49,
+    "functions.over80Lines": 48,
     "complexity.over10": 72,
     "complexity.over15": 27,
     "complexity.over20": 7,
     "complexity.over30": 4,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 570,
+    "eslint.maxWarnings": 569,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -82,8 +82,8 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48121,
-    "src.functions": 2654,
+    "src.lines": 48137,
+    "src.functions": 2656,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
