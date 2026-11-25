@@ -49,6 +49,14 @@ export default [{
         // --max-warnings, which was raised to the measured count when the rule
         // landed and may only come down (guardrail baseline, eslint.maxWarnings).
         "@typescript-eslint/no-explicit-any": "warn",
+        // Size and complexity ceilings (ROADMAP section C distributions;
+        // max-lines 600 so a file split to ~500 lines is not one change away
+        // from tripping it).
+        complexity: ["warn", 15],
+        "max-depth": ["warn", 4],
+        "max-params": ["warn", 5],
+        "max-lines-per-function": ["warn", { max: 80, skipBlankLines: true, skipComments: true }],
+        "max-lines": ["warn", { max: 600, skipBlankLines: true, skipComments: true }],
 
         curly: "error",
         eqeqeq: "error",

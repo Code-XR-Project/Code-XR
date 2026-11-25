@@ -16,6 +16,11 @@ const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch', 
 // (ROADMAP W3-08..10). Each landed with the budget raised to its measured count.
 const WARN_BUDGET_RULES = [
     '@typescript-eslint/no-explicit-any',
+    'complexity',
+    'max-depth',
+    'max-params',
+    'max-lines-per-function',
+    'max-lines',
 ];
 
 async function loadEslintConfig() {
