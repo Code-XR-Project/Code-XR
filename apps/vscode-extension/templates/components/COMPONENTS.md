@@ -32,6 +32,7 @@ its parts directory. Manual harnesses load assembled copies from
   - Shared Git-reference facility for the controller: the detection vocabulary (`describeSource`, `sourceCategory`, `filterByCategory`, type label/color) and an embeddable picker (`createPicker`) with two modes — `compare` (two slots + category tabs, e.g. historical comparison) and `sequence` (ordered multi-select with click-order badges, e.g. project evolution). Also `registerGitGatedMode` for the shared "disabled unless inside a Git repo" mode option. Historical comparison and project evolution both embed it.
   - Loads after `codexrCommonRuntime.js` and before the historical/project-evolution runtimes that consume it.
   - Keep graph-specific semantics, data models and protocol handling in the owning component.
+  - Deliberately standalone: it keeps its own `doc()`/`createEntity()` instead of borrowing them from `codexrCommonRuntime.js`, although the load order would allow it. It must stay loadable in a bare `vm` sandbox that provides only `window` + `document` (the shape every `createPicker` test in `test/analysis/gitRefPickerRuntime.test.cjs` uses) and `require()`-able from Node for the sampler parity test. Do not de-duplicate those two helpers.
 
 ## CodeXR Runtimes
 
@@ -53,6 +54,10 @@ its parts directory. Manual harnesses load assembled copies from
   - Uses `CodeXRCommonRuntime` for tooltip presentation and billboard behavior.
 - `codexr/historical-comparison/historicalComparisonRuntime.js`
   - Owns historical Git source selection and two-zone comparison rendering.
+- `codexr/project-evolution/projectEvolutionRuntime.js`
+  - Owns the project-evolution "movie": timeline source selection (embedding the shared picker in `sequence` mode), frame playback, the movie overlay and panel, and offline movie generation from an export's `gitData`.
+  - Loads right after the historical-comparison runtime (both embed `CodeXRGitRefPickerRuntime`).
+  - Measured complexity exception: `framePlaybackEngine.js` `applyBridgeFrameToChart` (CCN about 20) is a linear chain of async steps, each followed by a view-generation guard (`isEvolutionViewCurrent`). The count is guard depth, not branching; splitting it would scatter the guards. Leave it as it is.
 - `codexr/virtual-screen/virtualScreenRuntime.js`
   - Owns a shared virtual screen and screen broadcast interaction. Also the base for screen subtypes: `contentKind: 'fixed'` + `registerContentProvider(id, build)` hosts immutable locally-rendered content (no video surface, no share button) while inheriting chrome, drag/resize, follow and the shared `screen` entity.
   - Collision bumpers: look-at, drag and resize stop at the room shell (bounds derived from the `codexr-room` entity, `collisionBounds` override) and at other screens; dragging slides along obstacles. `collisionEnabled: false` opts out. **In `ar-mode` the room-derived bounds are skipped entirely** (checked live, before the cache, so desktop/VR keep the cached shell exactly as before and an explicit `collisionBounds` override still applies): screens move freely in the user's own space instead of bumping into invisible walls. Screen-vs-screen obstacles stay on in every mode.
@@ -146,12 +151,24 @@ its parts directory. Manual harnesses load assembled copies from
 2. `common/codexrCommonRuntime.js`, then `common/codexrGitRefPickerRuntime.js` (before the Git analyses that embed it).
 3. `codexr/pointer-policy/codexrPointerPolicyRuntime.js` (scene-level pointer arbitration, before anything that assumes pointers), then `codexr/immersive-rig/codexrImmersiveRigRuntime.js` (fly toggle + pose save/restore + AR recenter + the gamepad-connected compatibility patch; must be registered before the user can enter an immersive session).
 4. CodeXR charts, mapping UI, chart debug and analysis table.
-5. Analysis mode and mode-specific runtimes.
+5. Analysis mode and mode-specific runtimes (historical comparison, then project evolution).
 6. Render budgets before visualizations that consume them.
 7. Dependency graph and other CodeXR graphs.
 8. Debug runtimes last.
 
 Generated scene filenames are intentionally flat (`codexrCommonRuntime.js`, `dependencyGraphRuntime.js`, etc.) so existing analysis output remains simple and self-contained — multi-part runtimes are assembled back into these flat names at injection time.
+
+## The DOM scene does not load `common/`
+
+`templates/xr/html/dom-visualization-template.html` loads exactly seven runtime
+scripts: avatar, collaboration, virtual screen, multi-screen manager, pointer
+policy, immersive rig and DOM-scene collaboration. `codexrCommonRuntime.js` is
+not among them, so those runtimes must stay self-contained and must not call
+`CodeXRCommonRuntime`. This is why `cloneVector` exists in four runtimes
+(avatar, collaboration, DOM scene, virtual screen) — and the four copies are
+not interchangeable anyway: avatar takes a fallback, DOM scene returns a zero
+vector and coerces with `Number()`, collaboration and virtual screen return
+`null` and keep only finite numbers. Leave them separate.
 
 ## Shared LivePanel components (`livepanel/`)
 
