@@ -48,7 +48,6 @@
   "main": "./dist/extension.js",
   "files": [
     "dist/**/*",
-    "resources/favicon.ico",
     "resources/icon.png",
     "resources/icon.svg",
     "resources/avatars/**/*",
@@ -57,7 +56,6 @@
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "CHANGELOG.md",
-    "docs/**/*",
     "templates/**/*",
     "examples/**/*"
   ],
