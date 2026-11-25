@@ -20,7 +20,7 @@ export class DynamicColorIconGenerator {
         // Ensure the color is properly formatted
         const cleanColor = hexColor.startsWith('#') ? hexColor : `#${hexColor}`;
         
-        console.log(`COLOR-PICKER: Generating SVG for color ${cleanColor}`);
+        logger.debug(() => `COLOR-PICKER: Generating SVG for color ${cleanColor}`);
         
         return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${this.ICON_SIZE}" height="${this.ICON_SIZE}" viewBox="0 0 ${this.ICON_SIZE} ${this.ICON_SIZE}" xmlns="http://www.w3.org/2000/svg">
@@ -46,7 +46,7 @@ export class DynamicColorIconGenerator {
         const globalStorageUri = context.globalStorageUri;
         const colorIconsPath = path.join(globalStorageUri.fsPath, this.VISUALIZATION_CONFIG_DIR);
         
-        console.log(`COLOR-PICKER: Visualization configuration directory: ${colorIconsPath}`);
+        logger.debug(() => `COLOR-PICKER: Visualization configuration directory: ${colorIconsPath}`);
         return colorIconsPath;
     }
     
@@ -58,11 +58,11 @@ export class DynamicColorIconGenerator {
         
         try {
             if (!fs.existsSync(configPath)) {
-                console.log(`COLOR-PICKER: Creating visualization configuration directory: ${configPath}`);
+                logger.debug(() => `COLOR-PICKER: Creating visualization configuration directory: ${configPath}`);
                 fs.mkdirSync(configPath, { recursive: true });
             }
         } catch (error) {
-            console.error(`COLOR-PICKER: Error creating visualization configuration directory:`, error);
+            logger.error(`COLOR-PICKER: Error creating visualization configuration directory:`, error);
             throw new Error(`Failed to create visualization configuration directory: ${error}`);
         }
     }
@@ -84,7 +84,7 @@ export class DynamicColorIconGenerator {
         settingKey: string,
         hexColor: string
     ): Promise<vscode.Uri> {
-        console.log(`COLOR-PICKER: Generating color icon for ${settingKey} with color ${hexColor}`);
+        logger.debug(() => `COLOR-PICKER: Generating color icon for ${settingKey} with color ${hexColor}`);
         
         try {
             // Ensure directory exists
@@ -100,16 +100,16 @@ export class DynamicColorIconGenerator {
             
             // Write SVG file
             fs.writeFileSync(iconPath, svgContent, 'utf8');
-            console.log(`COLOR-PICKER: Color icon saved to: ${iconPath}`);
+            logger.debug(() => `COLOR-PICKER: Color icon saved to: ${iconPath}`);
             
             // Return VS Code URI
             const iconUri = vscode.Uri.file(iconPath);
-            console.log(`COLOR-PICKER: Color icon URI: ${iconUri.toString()}`);
+            logger.debug(() => `COLOR-PICKER: Color icon URI: ${iconUri.toString()}`);
             
             return iconUri;
             
         } catch (error) {
-            console.error(`COLOR-PICKER: Error generating color icon for ${settingKey}:`, error);
+            logger.error(`COLOR-PICKER: Error generating color icon for ${settingKey}:`, error);
             throw new Error(`Failed to generate color icon: ${error}`);
         }
     }
@@ -122,7 +122,7 @@ export class DynamicColorIconGenerator {
         settingKey: string,
         hexColor: string
     ): Promise<vscode.Uri> {
-        console.log(`COLOR-PICKER: Getting or creating color icon for ${settingKey} with color ${hexColor}`);
+        logger.debug(() => `COLOR-PICKER: Getting or creating color icon for ${settingKey} with color ${hexColor}`);
         
         try {
             const configPath = this.getColorIconsDirectory(context);
@@ -130,15 +130,15 @@ export class DynamicColorIconGenerator {
             const iconPath = path.join(configPath, filename);
             
             if (fs.existsSync(iconPath)) {
-                console.log(`COLOR-PICKER: Using existing color icon: ${iconPath}`);
+                logger.debug(() => `COLOR-PICKER: Using existing color icon: ${iconPath}`);
                 return vscode.Uri.file(iconPath);
             } else {
-                console.log(`COLOR-PICKER: Creating new color icon for ${settingKey}`);
+                logger.debug(() => `COLOR-PICKER: Creating new color icon for ${settingKey}`);
                 return await this.generateColorIcon(context, settingKey, hexColor);
             }
             
         } catch (error) {
-            console.error(`COLOR-PICKER: Error getting/creating color icon:`, error);
+            logger.error(`COLOR-PICKER: Error getting/creating color icon:`, error);
             throw error;
         }
     }
@@ -151,7 +151,7 @@ export class DynamicColorIconGenerator {
         settingKey: string,
         currentHexColor: string
     ): void {
-        console.log(`COLOR-PICKER: Cleaning up old color icons for ${settingKey}`);
+        logger.debug(() => `COLOR-PICKER: Cleaning up old color icons for ${settingKey}`);
         
         try {
             const configPath = this.getColorIconsDirectory(context);
@@ -171,7 +171,7 @@ export class DynamicColorIconGenerator {
                     try {
                         fs.unlinkSync(oldIconPath);
                         cleanedCount++;
-                        console.log(`COLOR-PICKER: Removed old color icon: ${file}`);
+                        logger.debug(() => `COLOR-PICKER: Removed old color icon: ${file}`);
                     } catch (error) {
                         logger.warn(`COLOR-PICKER: Failed to remove old icon ${file}:`, error);
                     }
@@ -179,7 +179,7 @@ export class DynamicColorIconGenerator {
             });
             
             if (cleanedCount > 0) {
-                console.log(`COLOR-PICKER: Cleaned up ${cleanedCount} old color icons for ${settingKey}`);
+                logger.debug(() => `COLOR-PICKER: Cleaned up ${cleanedCount} old color icons for ${settingKey}`);
             }
             
         } catch (error) {

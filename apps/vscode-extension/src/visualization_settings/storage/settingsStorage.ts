@@ -18,7 +18,7 @@ export class VisualizationSettingsStorage {
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
-        console.log('VISUALIZATION-SETTINGS: Storage manager initialized with file-based storage');
+        logger.debug('VISUALIZATION-SETTINGS: Storage manager initialized with file-based storage');
     }
 
     /**
@@ -44,11 +44,11 @@ export class VisualizationSettingsStorage {
         
         try {
             if (!fs.existsSync(configDir)) {
-                console.log(`VISUALIZATION-SETTINGS: Creating configuration directory: ${configDir}`);
+                logger.debug(() => `VISUALIZATION-SETTINGS: Creating configuration directory: ${configDir}`);
                 fs.mkdirSync(configDir, { recursive: true });
             }
         } catch (error) {
-            console.error('VISUALIZATION-SETTINGS: Error creating configuration directory:', error);
+            logger.error('VISUALIZATION-SETTINGS: Error creating configuration directory:', error);
             throw new Error(`Failed to create configuration directory: ${error}`);
         }
     }
@@ -63,7 +63,7 @@ export class VisualizationSettingsStorage {
             );
 
             if (legacySettings && !fs.existsSync(this.getSettingsFilePath())) {
-                console.log('VISUALIZATION-SETTINGS: Migrating legacy settings to file system');
+                logger.debug('VISUALIZATION-SETTINGS: Migrating legacy settings to file system');
                 
                 const settingsFilePath = this.getSettingsFilePath();
                 const jsonSettings = {
@@ -74,7 +74,7 @@ export class VisualizationSettingsStorage {
                 };
 
                 fs.writeFileSync(settingsFilePath, JSON.stringify(jsonSettings, null, 2), 'utf8');
-                console.log('VISUALIZATION-SETTINGS: Legacy settings migration completed with all settings');
+                logger.debug('VISUALIZATION-SETTINGS: Legacy settings migration completed with all settings');
             }
         } catch (error) {
             logger.error('VISUALIZATION-SETTINGS: Error during legacy migration:', error);
@@ -110,14 +110,14 @@ export class VisualizationSettingsStorage {
                     chartPalette: jsonSettings.palette as any
                 };
                 
-                console.log('VISUALIZATION-SETTINGS: Loaded settings from file', settings);
+                logger.debug('VISUALIZATION-SETTINGS: Loaded settings from file', settings);
                 return settings;
             }
         } catch (error) {
             logger.error('VISUALIZATION-SETTINGS: Failed to load settings from file:', error);
         }
 
-        console.log('VISUALIZATION-SETTINGS: Using default settings');
+        logger.debug('VISUALIZATION-SETTINGS: Using default settings');
         return { ...DEFAULT_VISUALIZATION_SETTINGS };
     }
 
@@ -147,9 +147,9 @@ export class VisualizationSettingsStorage {
                 settings
             );
             
-            console.log('VISUALIZATION-SETTINGS: Settings saved to file and globalState', settings);
+            logger.debug('VISUALIZATION-SETTINGS: Settings saved to file and globalState', settings);
         } catch (error) {
-            console.error('VISUALIZATION-SETTINGS: Failed to save settings:', error);
+            logger.error('VISUALIZATION-SETTINGS: Failed to save settings:', error);
             throw new Error(`Failed to save visualization settings: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -168,7 +168,7 @@ export class VisualizationSettingsStorage {
         };
 
         await this.saveSettings(updatedSettings);
-        console.log(`VISUALIZATION-SETTINGS: Updated ${key} to '${value}'`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Updated ${key} to '${value}'`);
     }
 
     /**
@@ -176,7 +176,7 @@ export class VisualizationSettingsStorage {
      */
     public async resetSettings(): Promise<void> {
         await this.saveSettings({ ...DEFAULT_VISUALIZATION_SETTINGS });
-        console.log('VISUALIZATION-SETTINGS: Settings reset to defaults');
+        logger.debug('VISUALIZATION-SETTINGS: Settings reset to defaults');
     }
 
     /**

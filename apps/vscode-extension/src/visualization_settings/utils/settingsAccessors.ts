@@ -20,7 +20,7 @@ let extensionContext: vscode.ExtensionContext | null = null;
  */
 export function initializeSettingsAccessors(context: vscode.ExtensionContext): void {
     extensionContext = context;
-    console.log('VISUALIZATION-SETTINGS: Settings accessors initialized');
+    logger.debug('VISUALIZATION-SETTINGS: Settings accessors initialized');
 }
 
 /**
@@ -63,7 +63,7 @@ function readSettingsFromFile(): {
                 palette: string 
             };
             
-            console.log('VISUALIZATION-SETTINGS: Read settings from file:', jsonSettings);
+            logger.debug('VISUALIZATION-SETTINGS: Read settings from file:', jsonSettings);
             return jsonSettings;
         }
     } catch (error) {
@@ -128,9 +128,9 @@ async function getGroundColorFromStorage(): Promise<string> {
  * @returns Promise<string> Hex color value (e.g., "#B10DC9")
  */
 export async function getSelectedBackgroundColor(): Promise<string> {
-    console.log('VISUALIZATION-SETTINGS: Getting selected background color');
+    logger.debug('VISUALIZATION-SETTINGS: Getting selected background color');
     const color = await getBackgroundColorFromStorage();
-    console.log(`VISUALIZATION-SETTINGS: Background color: ${color}`);
+    logger.debug(() => `VISUALIZATION-SETTINGS: Background color: ${color}`);
     return color;
 }
 
@@ -139,9 +139,9 @@ export async function getSelectedBackgroundColor(): Promise<string> {
  * @returns Promise<string> Hex color value (e.g., "#FFFFFF")
  */
 export async function getSelectedGroundColor(): Promise<string> {
-    console.log('VISUALIZATION-SETTINGS: Getting selected ground color');
+    logger.debug('VISUALIZATION-SETTINGS: Getting selected ground color');
     const color = await getGroundColorFromStorage();
-    console.log(`VISUALIZATION-SETTINGS: Ground color: ${color}`);
+    logger.debug(() => `VISUALIZATION-SETTINGS: Ground color: ${color}`);
     return color;
 }
 
@@ -150,12 +150,12 @@ export async function getSelectedGroundColor(): Promise<string> {
  * @returns Promise<string> Environment preset name (e.g., "forest")
  */
 export async function getSelectedEnvironment(): Promise<string> {
-    console.log('VISUALIZATION-SETTINGS: Getting selected environment');
+    logger.debug('VISUALIZATION-SETTINGS: Getting selected environment');
     
     const settings = readSettingsFromFile();
     const environment = settings?.environment || DEFAULT_VISUALIZATION_SETTINGS.environmentPreset;
     
-    console.log(`VISUALIZATION-SETTINGS: Environment: ${environment}`);
+    logger.debug(() => `VISUALIZATION-SETTINGS: Environment: ${environment}`);
     return environment;
 }
 
@@ -164,12 +164,12 @@ export async function getSelectedEnvironment(): Promise<string> {
  * @returns Promise<string> Chart palette name (e.g., "ubuntu")
  */
 export async function getSelectedPalette(): Promise<string> {
-    console.log('VISUALIZATION-SETTINGS: Getting selected chart palette');
+    logger.debug('VISUALIZATION-SETTINGS: Getting selected chart palette');
     
     const settings = readSettingsFromFile();
     const palette = settings?.palette || DEFAULT_VISUALIZATION_SETTINGS.chartPalette;
     
-    console.log(`VISUALIZATION-SETTINGS: Palette: ${palette}`);
+    logger.debug(() => `VISUALIZATION-SETTINGS: Palette: ${palette}`);
     return palette;
 }
 
@@ -183,7 +183,7 @@ export async function getAllSelectedSettings(): Promise<{
     environment: string;
     palette: string;
 }> {
-    console.log('VISUALIZATION-SETTINGS: Getting all selected settings');
+    logger.debug('VISUALIZATION-SETTINGS: Getting all selected settings');
     
     const [backgroundColor, groundColor] = await Promise.all([
         getSelectedBackgroundColor(),
@@ -201,6 +201,6 @@ export async function getAllSelectedSettings(): Promise<{
         palette
     };
     
-    console.log('VISUALIZATION-SETTINGS: All settings:', allSettings);
+    logger.debug('VISUALIZATION-SETTINGS: All settings:', allSettings);
     return allSettings;
 }

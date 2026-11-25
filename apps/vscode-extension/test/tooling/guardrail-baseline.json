@@ -18,7 +18,7 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 781,
+    "console.total": 708,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
@@ -29,8 +29,7 @@
       "python_env": 20,
       "servers": 284,
       "utils": 38,
-      "views": 107,
-      "visualization_settings": 73
+      "views": 107
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
@@ -81,8 +80,8 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48505,
-    "src.functions": 2875,
+    "src.lines": 48511,
+    "src.functions": 2915,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -107,10 +106,6 @@
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
-        "count": 29
-      },
-      {
-        "file": "src/visualization_settings/views/interactions/handleSettingsInteraction.ts",
         "count": 29
       },
       {
@@ -143,6 +138,10 @@
       },
       {
         "file": "src/babia_templates/processing/placeholders/createStructure.ts",
+        "count": 17
+      },
+      {
+        "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
         "count": 17
       }
     ],
