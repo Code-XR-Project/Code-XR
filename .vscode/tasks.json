@@ -4,6 +4,7 @@
     {
       "type": "npm",
       "script": "compile",
+      "path": "apps/vscode-extension",
       "problemMatcher": [],
       "label": "CodeXR: compile",
       "detail": "Compile CodeXR before launching the Extension Host"
@@ -11,6 +12,7 @@
     {
       "type": "npm",
       "script": "compile:dev-host",
+      "path": "apps/vscode-extension",
       "problemMatcher": [],
       "label": "CodeXR: compile:dev-host",
       "detail": "Compile CodeXR and prepare an isolated Extension Host copy"
