@@ -4,6 +4,7 @@ import * as path from 'path';
 import {
     ComparisonSource,
     GitAnalysisExclusion,
+    GitAnalysisExclusionCode,
     HistoricalComparisonReferences,
 } from '../historical/historicalComparisonModels';
 import {
@@ -144,6 +145,29 @@ export function decorateRevisionPayload(
             evolutionKey: `function:${functionName.toLocaleLowerCase()}`,
         };
     });
+}
+
+/**
+ * The exclusion code and stage of a revision whose analysis threw `reason`.
+ * The two are matched independently and disagree for some messages (for
+ * example "git-revision-target-missing" is a target-missing failure at the
+ * analysis stage); `gitRevisionExportPhases.test.cjs` pins the table.
+ * Distinct from the live catalogue's classifyIndexedRevision, which works on
+ * indexed revisions rather than error messages.
+ */
+function classifyExportRevisionFailure(reason: string): {
+    code: GitAnalysisExclusionCode;
+    stage: GitAnalysisExclusion['stage'];
+} {
+    const code: GitAnalysisExclusionCode = /target does not exist|target-missing/i.test(reason)
+        ? 'target-missing'
+        : /no analyzable|no data records|no-analyzable-content/i.test(reason)
+            ? 'no-analyzable-content'
+            : /(?:file|size)-limit|exceeds the configured/i.test(reason)
+                ? 'limit-exceeded'
+                : 'analysis-failed';
+    const stage = /no analyzable|target does not exist|limit/i.test(reason) ? 'index' : 'analysis';
+    return { code, stage };
 }
 
 function payloadFileNameForSha(commitSha: string): string {
@@ -295,23 +319,10 @@ export async function runGitRevisionExport(
                     itemCountBySourceId.set(member.id, decorated.length);
                 }
             } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                const { code, stage } = classifyExportRevisionFailure(reason);
                 for (const member of group) {
-                    const reason = error instanceof Error ? error.message : String(error);
-                    const code = /target does not exist|target-missing/i.test(reason)
-                        ? 'target-missing'
-                        : /no analyzable|no data records|no-analyzable-content/i.test(reason)
-                            ? 'no-analyzable-content'
-                            : /(?:file|size)-limit|exceeds the configured/i.test(reason)
-                                ? 'limit-exceeded'
-                                : 'analysis-failed';
-                    skippedRevisions.push(createGitAnalysisExclusion(
-                        member,
-                        code,
-                        /no analyzable|target does not exist|limit/i.test(reason)
-                            ? 'index'
-                            : 'analysis',
-                        reason,
-                    ));
+                    skippedRevisions.push(createGitAnalysisExclusion(member, code, stage, reason));
                 }
             }
             completed += 1;

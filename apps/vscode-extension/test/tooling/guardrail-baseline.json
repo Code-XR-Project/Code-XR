@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49300,
-    "src.functions": 3308,
+    "src.lines": 49311,
+    "src.functions": 3309,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -142,8 +142,8 @@
     ],
     "complexity.worst10": [
       {
-        "ccn": 46,
-        "lines": 240,
+        "ccn": 42,
+        "lines": 227,
         "function": "runGitRevisionExport",
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
