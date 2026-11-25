@@ -90,7 +90,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      # The runners only use Node builtins, so no npm ci here. With CI set, a
+      # The first two runners only use Node builtins, so they need no npm ci. With CI set, a
       # runner that finds no interpreter fails instead of skipping.
       - name: Backend unit suites
         run: node apps/vscode-extension/test/runners/run-python-tests.cjs
@@ -101,6 +101,14 @@ jobs:
       # measures the per-language fixtures with it.
       - name: Per-language analysis fixtures
         run: node apps/vscode-extension/test/runners/run-analysis-tests.cjs
+
+      # This suite also loads the compiled LivePanelParser from out/, which the
+      # steps above never needed: install and compile the tests first.
+      - name: Install
+        run: npm ci
+
+      - name: Compile tests
+        run: npm run compile-tests
 
       - name: HTML DOM analysis
         run: node apps/vscode-extension/test/runners/run-html-analysis-tests.cjs
