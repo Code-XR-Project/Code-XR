@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 from directory_scan_utils import is_analyzable_file_path, scan_directory_files_for_analysis
-from metric_language_contract import get_metric_language
+from metric_language_contract import get_metric_language, get_metric_language_names
 
 RELATIONS = ("import", "include", "require", "inheritance", "implementation", "call", "contains")
 CACHE_VERSION = 3
@@ -29,12 +29,7 @@ CAPABILITIES = {
         )
         for relation in RELATIONS
     }
-    for language in (
-        "Python", "Ruby", "Java", "C", "C++", "C#", "Erlang", "Fortran",
-        "GDScript", "Go", "JavaScript", "Kotlin", "Lua", "Objective-C",
-        "PHP", "Perl", "Scala", "Solidity", "Swift", "TypeScript", "TTCN-3",
-        "Vue", "Zig",
-    )
+    for language in get_metric_language_names()
 }
 
 IMPORT_PATTERNS = [
