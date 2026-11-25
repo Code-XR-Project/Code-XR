@@ -28,11 +28,11 @@ export async function readVirtualScreenRuntimeContent(extensionPath: string): Pr
     return assembleRuntimeContent(extensionPath, 'virtual-screen', VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME);
 }
 
-export function resolveVirtualScreenManagerRuntimeSourcePath(extensionPath: string): string {
+function resolveVirtualScreenManagerRuntimeSourcePath(extensionPath: string): string {
     return path.join(extensionPath, ...VIRTUAL_SCREEN_MANAGER_RUNTIME_SOURCE_SEGMENTS);
 }
 
-export function assertVirtualScreenManagerRuntimeSourceExists(extensionPath: string): string {
+function assertVirtualScreenManagerRuntimeSourceExists(extensionPath: string): string {
     const runtimePath = resolveVirtualScreenManagerRuntimeSourcePath(extensionPath);
     if (!fs.existsSync(runtimePath)) {
         throw new Error(`Virtual screen manager runtime not found at ${runtimePath}`);

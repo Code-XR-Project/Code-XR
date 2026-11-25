@@ -21,7 +21,7 @@ interface RuntimePartsManifest {
     parts: string[];
 }
 
-export function resolveRuntimePartsDir(
+function resolveRuntimePartsDir(
     extensionPath: string,
     componentFolder: string,
     outputName: string,
@@ -42,7 +42,7 @@ function readManifest(partsDir: string): RuntimePartsManifest {
     return manifest;
 }
 
-export function listRuntimePartFiles(partsDir: string): string[] {
+function listRuntimePartFiles(partsDir: string): string[] {
     const manifest = readManifest(partsDir);
     const partPaths = manifest.parts.map((name) => path.join(partsDir, name));
     for (const partPath of partPaths) {

@@ -20,11 +20,11 @@ function assertSourceExists(sourcePath: string, label: string): string {
     return sourcePath;
 }
 
-export function resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath: string): string {
+function resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath: string): string {
     return path.join(extensionPath, ...CODEXR_DOM_SCENE_COLLAB_RUNTIME_SOURCE_SEGMENTS);
 }
 
-export function assertCodeXrDomSceneCollaborationRuntimeSourceExists(extensionPath: string): string {
+function assertCodeXrDomSceneCollaborationRuntimeSourceExists(extensionPath: string): string {
     return assertSourceExists(
         resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath),
         'CodeXR DOM scene collaboration runtime',
