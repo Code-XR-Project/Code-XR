@@ -453,14 +453,14 @@ test('analysis mode coordinator disposes an activation superseded while it is lo
   assert.equal(runtime.getState().mode, 'single');
 });
 
-test('normal analysis restores its cached chart immediately and refreshes its revision in place', async () => {
+async function runNormalRefreshScenario(initialDataSource) {
   const source = readAssembledRuntime('analysis-mode', 'analysisModeRuntime.js');
   const attributes = new Map([['visible', true]]);
   const chart = {
     setAttribute(name, value) { attributes.set(name, value); },
     getAttribute(name) { return attributes.get(name); },
   };
-  let dataSource = { url: 'data.json' };
+  let dataSource = initialDataSource;
   const dataEntity = {
     getAttribute(name) {
       return name === 'babia-queryjson' ? dataSource : null;
@@ -547,11 +547,25 @@ test('normal analysis restores its cached chart immediately and refreshes its re
   await new Promise(resolve => setTimeout(resolve, 520));
   assert.equal(attributes.get('visible'), true);
   assert.equal(context.CodeXRAnalysisModeRuntime.getState().mode, 'single');
-  const refreshedDataSource = typeof dataSource === 'string' ? dataSource : dataSource.url;
-  assert.match(refreshedDataSource, /^url: data\.json/);
-  assert.match(refreshedDataSource, /codexrModeRevision=1/);
   assert.deepEqual(activeChartIds, ['normalChart']);
   assert.equal(restoredMapping.lastKnownGoodMapping.area, 'totalLines');
+  return typeof dataSource === 'string' ? dataSource : dataSource.url;
+}
+
+test('normal analysis restores its cached chart immediately and refreshes its revision in place', async () => {
+  const refreshedDataSource = await runNormalRefreshScenario({ url: 'data.json' });
+  assert.match(refreshedDataSource, /^url: data\.json/);
+  assert.match(refreshedDataSource, /codexrModeRevision=1/);
+});
+
+// XR epic, story S2 (audit LIFECYCLE-7): before A-Frame initialises the data
+// component, getAttribute returns the raw declaration "url: ./data.json", and
+// reading it as the url produced "url: url: ./data.json?..." for good.
+test('normal refresh reads the raw declaration form and heals a corrupted url', async () => {
+  for (const initial of ['url: ./data.json', 'url: ./data.json; from: tree', { url: 'url: url: ./data.json?t=1' }]) {
+    const refreshed = await runNormalRefreshScenario(initial);
+    assert.match(refreshed, /^url: \.\/data\.json\?codexrModeRevision=1&t=\d+$/, JSON.stringify(initial));
+  }
 });
 
 test('XR SSE signals normal analysis readiness after Babia stabilization', () => {
