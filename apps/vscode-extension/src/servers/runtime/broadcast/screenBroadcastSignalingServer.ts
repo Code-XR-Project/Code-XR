@@ -1,6 +1,7 @@
 import * as http from 'http';
 import { WebSocket, RawData } from 'ws';
 import { attachWebSocketEndpoint, DEFAULT_ROOM_ID, WebSocketEndpoint } from '../ws/webSocketEndpoint';
+import { readFrameHeader, toFrameBuffer } from './mediaFrame';
 
 type BroadcastRole = 'none' | 'sender' | 'viewer';
 
@@ -47,22 +48,6 @@ interface BroadcastMessage {
     candidate?: unknown;
 }
 
-/**
- * Media frame wire format, mirrored by the runtime relay transport. The kind
- * byte packs both values: low nibble the frame kind, high nibble the temporal
- * layer the encoder put it in, so one encoded stream can be thinned per viewer
- * without ever encoding it twice.
- */
-const FRAME_HEADER_BYTES = 12;
-const FRAME_MAGIC_0 = 0x43; // 'C'
-const FRAME_MAGIC_1 = 0x58; // 'X'
-const FRAME_KIND_OFFSET = 3;
-const FRAME_KIND_MASK = 0x0f;
-const FRAME_LAYER_SHIFT = 4;
-/** Delta video frames are droppable; keyframes, audio and config never are. */
-const FRAME_KIND_VIDEO_DELTA = 2;
-/** A single frame larger than this is a bug or an attack, not a screen. */
-const MAX_FRAME_BYTES = 4 * 1024 * 1024;
 /**
  * Backlog thresholds per viewer socket. A viewer that falls behind loses the
  * top temporal layer first (fewer frames per second, still a moving picture)
@@ -502,7 +487,7 @@ export class ScreenBroadcastSignalingServer {
      * its header: this server is a pipe, not a transcoder.
      */
     private forwardMediaFrame(client: BroadcastClient, raw: RawData): void {
-        const frame = this.toFrameBuffer(raw);
+        const frame = toFrameBuffer(raw);
         if (!frame) {
             return;
         }
@@ -512,9 +497,7 @@ export class ScreenBroadcastSignalingServer {
             return;
         }
 
-        const kindByte = frame[FRAME_KIND_OFFSET];
-        const droppable = (kindByte & FRAME_KIND_MASK) === FRAME_KIND_VIDEO_DELTA;
-        const temporalLayer = kindByte >> FRAME_LAYER_SHIFT;
+        const { droppable, temporalLayer } = readFrameHeader(frame);
 
         for (const viewerId of screen.relayViewers) {
             const viewer = this.clients.get(viewerId);
@@ -539,22 +522,6 @@ export class ScreenBroadcastSignalingServer {
             return true;
         }
         return backlog > RELAY_THIN_TOP_LAYER_BYTES && temporalLayer > 0;
-    }
-
-    private toFrameBuffer(raw: RawData): Buffer | null {
-        const frame = Array.isArray(raw)
-            ? Buffer.concat(raw)
-            : Buffer.isBuffer(raw)
-                ? raw
-                : Buffer.from(raw as ArrayBufferLike);
-
-        if (frame.length < FRAME_HEADER_BYTES || frame.length > MAX_FRAME_BYTES) {
-            return null;
-        }
-        if (frame[0] !== FRAME_MAGIC_0 || frame[1] !== FRAME_MAGIC_1) {
-            return null;
-        }
-        return frame;
     }
 
     private removeRelayViewer(screen: BroadcastScreenState, clientId: string): void {

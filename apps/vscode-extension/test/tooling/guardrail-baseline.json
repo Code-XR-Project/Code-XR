@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 320,
-    "src.lines": 48177,
-    "src.functions": 2645,
+    "src.files": 321,
+    "src.lines": 48194,
+    "src.functions": 2646,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -287,7 +287,7 @@
       },
       {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 759
+        "lines": 726
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",

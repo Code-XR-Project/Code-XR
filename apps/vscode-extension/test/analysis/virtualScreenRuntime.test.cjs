@@ -17,6 +17,11 @@ const ROOM_SERVER_FILES = [
     'src/servers/runtime/collaboration/roomRegistry.ts',
     'src/servers/runtime/collaboration/roomSharedState.ts',
 ];
+// The screen broadcast server and the modules split out of it (same reason).
+const BROADCAST_SERVER_FILES = [
+    'src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts',
+    'src/servers/runtime/broadcast/mediaFrame.ts',
+];
 const runtimeSource = readAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 const runtimeModule = requireAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 
@@ -515,28 +520,48 @@ test('a controller drag claims its stick and owns the pointer for its duration',
 // ── Relay transport: media for viewers peer-to-peer cannot reach ─────────────
 
 test('the relay wire format matches the one the server relays and validates', () => {
-    const serverSource = readProjectFile(
-        'src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts',
-    );
+    // The server side is the compiled frame module the relay runs, not its
+    // source text: its constants are compared with the runtime's own.
+    const frameModule = require(path.join(projectRoot, 'out', 'servers', 'runtime', 'broadcast', 'mediaFrame.js'));
+    const runtimeConstant = (name) => {
+        const match = runtimeSource.match(new RegExp(`const ${name} = (0x[0-9a-f]+|\\d+);`));
+        assert.ok(match, `${name} not found in the runtime`);
+        return Number(match[1]);
+    };
 
     // Header layout has to agree on both ends or every frame is dropped.
     assert.match(runtimeSource, /const RELAY_HEADER_BYTES = 12;/);
-    assert.match(serverSource, /const FRAME_HEADER_BYTES = 12;/);
+    assert.equal(frameModule.FRAME_HEADER_BYTES, runtimeConstant('RELAY_HEADER_BYTES'));
     assert.match(runtimeSource, /const RELAY_MAGIC_0 = 0x43;/);
-    assert.match(serverSource, /const FRAME_MAGIC_0 = 0x43;/);
+    assert.equal(frameModule.FRAME_MAGIC_0, runtimeConstant('RELAY_MAGIC_0'));
     assert.match(runtimeSource, /const RELAY_MAGIC_1 = 0x58;/);
-    assert.match(serverSource, /const FRAME_MAGIC_1 = 0x58;/);
+    assert.equal(frameModule.FRAME_MAGIC_1, runtimeConstant('RELAY_MAGIC_1'));
     // The server only ever drops delta video under backpressure, and the
     // runtime must be numbering its kinds the same way for that to be true.
     assert.match(runtimeSource, /videoDelta: 2,/);
-    assert.match(serverSource, /const FRAME_KIND_VIDEO_DELTA = 2;/);
-    assert.match(serverSource, /\(kindByte & FRAME_KIND_MASK\) === FRAME_KIND_VIDEO_DELTA/);
+    assert.equal(frameModule.FRAME_KIND_VIDEO_DELTA, 2);
     // Both ends pack the temporal layer into the same nibble of the same byte.
     assert.match(runtimeSource, /const RELAY_VERSION = 2;/);
     assert.match(runtimeSource, /const RELAY_LAYER_SHIFT = 4;/);
-    assert.match(serverSource, /const FRAME_LAYER_SHIFT = 4;/);
+    assert.equal(frameModule.FRAME_LAYER_SHIFT, runtimeConstant('RELAY_LAYER_SHIFT'));
+    assert.equal(frameModule.FRAME_KIND_MASK, runtimeConstant('RELAY_KIND_MASK'));
     assert.match(runtimeSource, /\(layer << RELAY_LAYER_SHIFT\) \| \(kind & RELAY_KIND_MASK\)/);
-    assert.match(serverSource, /const temporalLayer = kindByte >> FRAME_LAYER_SHIFT;/);
+    assert.match(runtimeSource, /frame\[3\] = \(layer << RELAY_LAYER_SHIFT\)/);
+    assert.equal(frameModule.FRAME_KIND_OFFSET, 3);
+
+    // A frame packed the way the runtime packs it reads back the same on the
+    // server: every kind and every layer of the nibble.
+    for (let kind = 1; kind <= 5; kind += 1) {
+        for (let layer = 0; layer <= 15; layer += 1) {
+            const frame = Buffer.alloc(runtimeConstant('RELAY_HEADER_BYTES') + 1);
+            frame[0] = runtimeConstant('RELAY_MAGIC_0');
+            frame[1] = runtimeConstant('RELAY_MAGIC_1');
+            frame[2] = runtimeConstant('RELAY_VERSION');
+            frame[3] = (layer << runtimeConstant('RELAY_LAYER_SHIFT')) | (kind & runtimeConstant('RELAY_KIND_MASK'));
+            assert.equal(frameModule.toFrameBuffer(frame), frame);
+            assert.deepEqual(frameModule.readFrameHeader(frame), { droppable: kind === 2, temporalLayer: layer });
+        }
+    }
 });
 
 test('the relay picks WebCodecs when available and whole images when not', () => {
@@ -630,8 +655,9 @@ test('no viewer is ever refused: the capacity rejection is gone from both ends',
     const serverSource = readProjectFile(
         'src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts',
     );
-    assert.doesNotMatch(serverSource, /MAX_RELAY_VIEWERS/);
-    assert.doesNotMatch(serverSource, /relay-capacity/);
+    const broadcastSources = readConcatenated(BROADCAST_SERVER_FILES);
+    assertAbsent(broadcastSources, /MAX_RELAY_VIEWERS/, { canary: /RELAY_THIN_ALL_DELTAS_BYTES/ });
+    assertAbsent(broadcastSources, /relay-capacity/, { canary: /RELAY_THIN_ALL_DELTAS_BYTES/ });
     assert.doesNotMatch(runtimeSource, /relayCapacity/);
     // Congestion is handled by thinning per viewer instead.
     assert.match(serverSource, /private shouldThinFrame\(viewer: BroadcastClient, temporalLayer: number\): boolean/);
@@ -690,7 +716,7 @@ test('a viewer only reaches live through its own first frame, never the sender s
     );
     assert.match(serverSource, /private parkViewer\(/);
     assert.match(serverSource, /type: 'viewer-waiting'/);
-    assert.doesNotMatch(serverSource, /'no-signal'/);
+    assertAbsent(readConcatenated(BROADCAST_SERVER_FILES), /'no-signal'/, { canary: /type: 'viewer-waiting'/ });
 });
 
 // ── Role-aware screen controls: join / share / leave, without accidents ──────
@@ -711,7 +737,7 @@ test('sharing over someone else\'s live broadcast is refused up front, with no d
         'src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts',
     );
     assert.match(serverSource, /type: 'broadcast-denied'/);
-    assert.doesNotMatch(serverSource, /broadcast-replaced/);
+    assertAbsent(readConcatenated(BROADCAST_SERVER_FILES), /broadcast-replaced/, { canary: /type: 'broadcast-denied'/ });
     assert.match(serverSource, /previousBroadcaster\.socket\.readyState === WebSocket\.OPEN/);
 });
 
