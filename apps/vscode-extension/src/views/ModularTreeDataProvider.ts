@@ -1,13 +1,17 @@
 import * as vscode from 'vscode';
 import { SectionProvider, ModularTreeItem } from './common/baseInterfaces';
 import { createSectionDefinitions, LazySectionDefinition } from './sectionDefinitions';
+import type { SectionChild } from './common/sectionChild';
 import { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
 import { VenvManager } from '../python_env/runtime/venvManager';
 import { CodeXRLogger } from '../core/logging/logger';
 
 const logger = CodeXRLogger.getLogger('MODULAR_TREE');
 
-type SectionItemConstructor = new (...args: any[]) => vscode.TreeItem;
+type SectionItemConstructor = new (...args: any[]) => SectionChild;
+
+/** Bridge properties are read and written by name, so items are viewed as plain records. */
+type BridgeView = Record<string, unknown>;
 
 /**
  * How one section's items cross the bridge between the generic ModularTreeItem
@@ -122,7 +126,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
     private readonly sectionDefinitions = new Map<string, LazySectionDefinition>();
     private readonly sectionOrder: string[] = [];
-    private readonly sectionProviders = new Map<string, SectionProvider<any>>();
+    private readonly sectionProviders = new Map<string, SectionProvider<SectionChild>>();
     private readonly sectionSubscriptions = new Map<string, vscode.Disposable>();
     private readonly sectionHeaders = new Map<string, ModularTreeItem>();
     private readonly pythonEnvUiState = PythonEnvUiStateService.getInstance();
@@ -164,7 +168,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         this.scheduleRefresh(sectionName);
     }
 
-    public getSectionProvider(sectionName: string): SectionProvider<any> | undefined {
+    public getSectionProvider(sectionName: string): SectionProvider<SectionChild> | undefined {
         return this.ensureSectionProvider(sectionName);
     }
 
@@ -244,13 +248,15 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         }
 
         try {
-            let sectionElement: any = undefined;
+            let sectionElement: SectionChild | undefined = undefined;
             if (element.itemType !== 'section') {
-                sectionElement = this.convertToSectionItem(element);
+                // Only a section with an adapter has a provider (checked above), so
+                // the conversion never hands back the ModularTreeItem itself here.
+                sectionElement = this.convertToSectionItem(element) as SectionChild;
             }
 
             const sectionChildren = await provider.getChildren(sectionElement);
-            return sectionChildren.map((child: any) => this.createModularChild(sectionName, child));
+            return sectionChildren.map((child) => this.createModularChild(sectionName, child));
         } catch (error) {
             logger.error(() => `Error getting children for section ${sectionName}.`, error);
             return [new ModularTreeItem(
@@ -265,7 +271,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         }
     }
 
-    private ensureSectionProvider(sectionName: string): SectionProvider<any> | undefined {
+    private ensureSectionProvider(sectionName: string): SectionProvider<SectionChild> | undefined {
         const existingProvider = this.sectionProviders.get(sectionName);
         if (existingProvider) {
             return existingProvider;
@@ -307,12 +313,12 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         return cachedItem;
     }
 
-    private createModularChild(sectionName: string, child: any): ModularTreeItem {
+    private createModularChild(sectionName: string, child: SectionChild): ModularTreeItem {
         const modularItem = new ModularTreeItem(
             labelText(child.label),
             child.collapsibleState || vscode.TreeItemCollapsibleState.None,
             sectionName,
-            CHILD_ITEM_TYPE_KEYS.map((key) => child[key]).find(Boolean) || 'item',
+            (CHILD_ITEM_TYPE_KEYS.map((key) => (child as unknown as BridgeView)[key]).find(Boolean) as string | undefined) || 'item',
             child.command,
             child.iconPath,
             child.tooltip,
@@ -323,13 +329,13 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         // Every discriminator the child carries is copied with its payload, so
         // the item can be rebuilt by convertToSectionItem when it is expanded
         // or handed to a context-menu command.
-        const bridge = modularItem as unknown as Record<string, unknown>;
+        const bridge = modularItem as unknown as BridgeView;
         for (const adapter of SECTION_ITEM_ADAPTERS.values()) {
             const discriminator = adapter.itemTypeKeys[0];
-            if (child[discriminator]) {
-                bridge[discriminator] = child[discriminator];
+            if ((child as unknown as BridgeView)[discriminator]) {
+                bridge[discriminator] = (child as unknown as BridgeView)[discriminator];
                 for (const key of adapter.payloadKeys) {
-                    bridge[key] = child[key];
+                    bridge[key] = (child as unknown as BridgeView)[key];
                 }
             }
         }
@@ -337,13 +343,13 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         return modularItem;
     }
 
-    private convertToSectionItem(element: ModularTreeItem): any {
+    private convertToSectionItem(element: ModularTreeItem): SectionChild | ModularTreeItem {
         const adapter = SECTION_ITEM_ADAPTERS.get(element.sectionType);
         if (!adapter) {
             return element;
         }
 
-        const bridge = element as unknown as Record<string, unknown>;
+        const bridge = element as unknown as BridgeView;
         const itemType = adapter.itemTypeKeys.map((key) => bridge[key]).find(Boolean) || adapter.defaultItemType;
         const SectionItem = adapter.load();
         return new SectionItem(

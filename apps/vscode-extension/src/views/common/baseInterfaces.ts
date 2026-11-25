@@ -69,9 +69,9 @@ export class ModularTreeItem extends vscode.TreeItem {
         public readonly sectionType: string,
         public readonly itemType: string,
         command?: vscode.Command,
-        iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri },
-        tooltip?: string,
-        description?: string,
+        iconPath?: vscode.TreeItem['iconPath'],
+        tooltip?: string | vscode.MarkdownString,
+        description?: string | boolean,
         contextValue?: string
     ) {
         super(label, collapsibleState);

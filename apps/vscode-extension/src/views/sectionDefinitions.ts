@@ -11,6 +11,7 @@ import { LearnMoreSectionProvider } from './learn_more';
 import type { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
 import type { VenvManager } from '../python_env/runtime/venvManager';
 import { PythonEnvItems } from '../python_env/views/items/pythonEnvItems';
+import type { SectionChild } from './common/sectionChild';
 import { getActiveServerRegistry } from '../active_servers/registry/activeServerRegistry';
 
 /**
@@ -20,7 +21,7 @@ import { getActiveServerRegistry } from '../active_servers/registry/activeServer
 export interface LazySectionDefinition {
     sectionName: string;
     createHeader: () => ModularTreeItem;
-    createProvider: () => SectionProvider<any>;
+    createProvider: () => SectionProvider<SectionChild>;
     /** Stays usable while the Python environment setup locks the rest of the UI. */
     interactiveWhenRestricted?: boolean;
 }
