@@ -1,6 +1,6 @@
 # Code-XR deep cleanup (epic #26)
 
-> **Status:** in progress since 2026-11-25. **Tracking:** [epic #26](https://github.com/Code-XR-Project/Code-XR/issues/26) on the TFM board.
+> **Status:** done 2026-11-25: every story merged into `v1.2.1` (PRs #44-#65); the final verification, measurements and maintainer checklist are in [`REPORT.md`](REPORT.md) (#43). **Tracking:** [epic #26](https://github.com/Code-XR-Project/Code-XR/issues/26) on the TFM board.
 > **Branch policy:** one pull request per story, always against `v1.2.1`; nothing reaches `master` until the maintainer promotes the release.
 
 ## Why
@@ -13,6 +13,7 @@ This epic executes the v1.2.1 cleanup programme approved on 2026-09-18 (`.claude
 
 | Document | What it is |
 |---|---|
+| [`REPORT.md`](REPORT.md) | **Final report** (#43): findings by area, every story and pull request, the behaviour-neutrality evidence, the ROADMAP §5 exit criteria, the deferrals for 1.3.0, the automated E2E of the packaged VSIX and the consolidated maintainer F5 checklist. |
 | [`feature-baseline.md`](feature-baseline.md) | Exhaustive inventory of everything the extension has and does before the cleanup, with automated and manual verification steps (§10). The reference for "nothing was lost". |
 | [`w2-revalidation.md`](w2-revalidation.md) | The W2 deletion rows of the roadmap re-checked against the monorepo tree: 57 valid, 16 need amendments, 1 partly invalid (W2-29). |
 | [`sweep-outside-src.md`](sweep-outside-src.md) | Sweep of everything the original audit did not cover: root config, `.github/`, `.claude/`, `adr/`, `docs/`, `media/`, `pages/`, scripts, fixtures and the monorepo seams. |

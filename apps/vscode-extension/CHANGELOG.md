@@ -4,12 +4,12 @@
 
 ### CodeXR 1.2.1: Internal Code Quality
 
-**This release adds no features.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way, with the same results. What changed is on the inside: the code of the plugin itself was audited end to end and is being cleaned up so that the next versions can grow on solid ground. If you upgrade, you should notice nothing, and that is the goal.
+**This release adds no features.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way, with the same results. What changed is on the inside: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. If you upgrade, you should notice nothing, and that is the goal.
 
 #### Internal improvements
 
 - **The whole codebase was audited before anything was touched.** Every module was measured (real cyclomatic complexity, duplicated code, modules nothing imports, commands nothing can reach) and each finding was checked twice by independent reviewers before being accepted. The result is a ranked, evidence-backed cleanup plan instead of a hunch.
-- **A much larger safety net.** The automated suite went from 554 to 708 checks on the extension side and from 29 to 52 on the Python analysis backend, and a large part of it now *executes* the plugin's code instead of only reading it. New checks cover the command surface against `package.json`, the logger, the language tables, the XR scene assets, the collaboration avatars, the offline historical comparison and the dependency engine, whose full output is now pinned by golden snapshots.
+- **A much larger safety net.** The automated suite went from 554 to 1,064 checks on the extension side and from 29 to 73 on the Python analysis backend, and a large part of it now *executes* the plugin's code instead of only reading it. New checks cover the command surface against `package.json`, the logger, the language tables, the XR scene assets, the collaboration avatars, the offline historical comparison and the dependency engine, whose full output is now pinned by golden snapshots.
 - **Proof, not promises, that nothing was lost.** The shipped bundle is built deterministically and fingerprinted, so an internal change can be shown to leave it byte-for-byte identical. Code-health metrics (complexity, unused modules, leftover debug logging, loose typing) are measured automatically and can only improve from here: a change that makes any of them worse fails the build.
 - **Tests that cannot give a false green.** The test build now starts from a clean slate, refuses to run against stale output, and measures the per-language analysis fixtures with exactly the analyzer version the extension installs for you.
 - **Continuous integration.** The same gates a developer runs locally now run on Windows and Linux for every pull request.
@@ -24,12 +24,13 @@
 - **The hidden `codeXR.visualizeData.debugState` command.** A troubleshooting command that printed the Visualize Data state to the developer console; nothing in the sidebar, the menus or the Command Palette could run it.
 - **The two hidden theme debugging commands** `codexr.debug.themeConfiguration` and `codexr.debug.themeWorkflow`, together with the diagnostics module behind them. They only wrote to the developer console and nothing could run them. Theme settings are unaffected.
 - **The "Hello World" command** (`CodeXR.helloWorld`), a leftover from the extension template that showed a greeting and nothing else. It no longer appears in the Command Palette.
+- **Four unused sample datasets** under `examples/data/` (`gdp.json`, `simple_sales.json`, `temperatures.json`, `test_functions.json`) that no BabiaXR example ever loaded. Every example in the BabiaXR Examples view opens and renders exactly as before.
 
 #### Changed
 
-- **Smaller package.** The extension download shrinks from 6.44 MB to 4.21 MB (352 to 203 files): the scene templates and chart examples are no longer packaged twice, the `docs/` guides are no longer packaged (the README links them online, as before), a duplicate copy of the icon is gone, and the three largest icons were losslessly recompressed (pixel-identical). Every saved analysis folder also carries a 150 KB lighter page icon. Nothing you see or use changes.
+- **Smaller package.** The extension download shrinks from 6.45 MB to 4.20 MB (360 to 199 files): the scene templates and chart examples are no longer packaged twice, the `docs/` guides are no longer packaged (the README links them online, as before), a duplicate copy of the icon is gone, and the three largest icons were losslessly recompressed (pixel-identical). Every saved analysis folder also carries a 150 KB lighter page icon. Nothing you see or use changes.
 - **"CodeXR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
-- **Diagnostics now go to the "CodeXR" output channel instead of the developer console.** Open *View → Output* and pick **CodeXR** to read them. Warnings and errors are always written there; step-by-step detail (which includes file paths) is written only when `codeXR.debug.verboseLogs` is on, as that setting already promised. Messages logged while the extension is still starting are no longer lost: they appear in the channel as soon as it opens.
+- **Diagnostics now go to the "CodeXR" output channel instead of the developer console.** Open *View → Output* and pick **CodeXR** to read them. Warnings and errors are always written there; step-by-step detail (which includes file paths) is written only when `codeXR.debug.verboseLogs` is on, as that setting already promised. Messages logged while the extension is still starting are no longer lost: they appear in the channel as soon as it opens. The generated XR and DOM scenes and the directory LivePanel page also stop printing their routine loading and live-reload messages to the browser console; their warnings and errors are still printed there.
 
 #### Fixed
 
@@ -37,10 +38,6 @@
 - **The installed extension only ever runs the Python analysis scripts it ships with.** If its bundled copy of an analysis script was missing (a damaged or partially deleted install), Code-XR fell back to a developer location two folders above the extension, which in an installed copy is your home folder, and could have run a file found there. That fallback is now limited to development builds; an installed extension reports the missing script instead.
 - **The analysis backend loads again on Python 3.8 and 3.9.** One type annotation in the line-metrics module used syntax that only exists from Python 3.10, so on 3.8 or 3.9 every analysis failed as soon as the backend loaded, although the extension asks only for Python 3.7 or newer. The annotation now uses the older spelling; results on newer Python versions are unchanged.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
-
-#### Removed
-
-- Four sample datasets under `examples/data/` (`gdp.json`, `simple_sales.json`, `temperatures.json`, `test_functions.json`) that no BabiaXR example ever loaded. Every example in the BabiaXR Examples view opens and renders exactly as before; the package carries 8 fewer files.
 
 ## [1.2.0] - 2026-07-30
 
