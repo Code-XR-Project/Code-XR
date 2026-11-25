@@ -4,6 +4,7 @@ import * as cp from 'child_process';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { VenvManager } from '../../../python_env/runtime/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
+import { classifyStderrLine } from './pythonStderrStream';
 import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
@@ -480,74 +481,16 @@ export class ExecutePython {
                     const stderrLine = data.toString();
                     stderrData += stderrLine;
 
-                    const lines = stderrLine.split('\n');
-                    for (const line of lines) {
-                        if (!line.trim()) {
+                    for (const line of stderrLine.split('\n')) {
+                        const classified = classifyStderrLine(line);
+                        if (!classified) {
                             continue;
                         }
-
-                        try {
-                            const parsed = JSON.parse(line.trim());
-                            if (parsed.progress) {
-                                const current = parsed.progress.current || 0;
-                                const total = parsed.progress.total || 0;
-                                const percentage = parsed.progress.percentage || 0;
-                                const fileName = parsed.progress.fileName || parsed.progress.file || parsed.progress.current_file || 'Processing file...';
-                                const message = parsed.progress.message || 'Processing';
-
-                                console.log(`EXECUTE_PYTHON:  PROGRESS [${current}/${total}] (${percentage}%) - ${message}`);
-                                console.log(`EXECUTE_PYTHON:  Current file: ${fileName}`);
-
-                                if (progress && total > 0) {
-                                    const increment = percentage > 0 ? 100 / total : 0;
-                                    const displayFileName = fileName.includes('/') ? fileName.split('/').pop() : fileName;
-                                    progress.report({
-                                        message: `${current}/${total} (${percentage}%) - ${displayFileName}`,
-                                        increment,
-                                    });
-                                }
-
-                                if (parsed.progress.operation) {
-                                    console.log(`EXECUTE_PYTHON:   Operation: ${parsed.progress.operation}`);
-                                }
-                                if (parsed.progress.estimatedTime) {
-                                    console.log(`EXECUTE_PYTHON:   Estimated time remaining: ${parsed.progress.estimatedTime}`);
-                                }
-                            } else if (parsed.debug) {
-                                console.log(`EXECUTE_PYTHON:  DEBUG: ${parsed.debug}`);
-                            } else if (parsed.info) {
-                                console.log(`EXECUTE_PYTHON:   INFO: ${parsed.info}`);
-                                if (progress) {
-                                    progress.report({ message: parsed.info });
-                                }
-                            } else if (parsed.warning) {
-                                console.log(`EXECUTE_PYTHON:   WARNING: ${parsed.warning}`);
-                            } else if (parsed.error) {
-                                console.log(`EXECUTE_PYTHON:  ERROR: ${parsed.error}`);
-                            }
-                        } catch {
-                            const cleanLine = line.trim();
-                            if (!cleanLine) {
-                                continue;
-                            }
-
-                            if (cleanLine.includes('Analyzing') || cleanLine.includes('Processing')) {
-                                console.log(`EXECUTE_PYTHON:  ${cleanLine}`);
-                                if (progress) {
-                                    progress.report({ message: cleanLine });
-                                }
-                            } else if (cleanLine.includes('Progress:') || cleanLine.includes('%')) {
-                                console.log(`EXECUTE_PYTHON:  ${cleanLine}`);
-                                if (progress) {
-                                    progress.report({ message: cleanLine });
-                                }
-                            } else if (cleanLine.includes('ERROR') || cleanLine.includes('Error')) {
-                                console.log(`EXECUTE_PYTHON:  ${cleanLine}`);
-                            } else if (cleanLine.includes('WARNING') || cleanLine.includes('Warning')) {
-                                console.log(`EXECUTE_PYTHON:   ${cleanLine}`);
-                            } else {
-                                console.log(`EXECUTE_PYTHON:  ${cleanLine}`);
-                            }
+                        for (const logLine of classified.logLines) {
+                            console.log(`EXECUTE_PYTHON:  ${logLine}`);
+                        }
+                        if (classified.report && progress) {
+                            progress.report(classified.report);
                         }
                     }
                 });

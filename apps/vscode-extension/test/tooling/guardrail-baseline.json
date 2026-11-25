@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1361,
+    "console.total": 1349,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
       "babia_templates": 68,
-      "code_analysis": 511,
+      "code_analysis": 499,
       "commands": 4,
       "core": 3,
       "python_env": 20,
@@ -68,12 +68,12 @@
     ],
     "functions.over80Lines": 50,
     "complexity.over10": 74,
-    "complexity.over15": 29,
-    "complexity.over20": 9,
-    "complexity.over30": 5,
+    "complexity.over15": 28,
+    "complexity.over20": 8,
+    "complexity.over30": 4,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 608,
+    "eslint.maxWarnings": 607,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -81,14 +81,14 @@
     }
   },
   "informational": {
-    "src.files": 313,
-    "src.lines": 48344,
-    "src.functions": 2652,
+    "src.files": 314,
+    "src.lines": 48396,
+    "src.functions": 2656,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 125
+        "count": 113
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
@@ -235,12 +235,6 @@
         "file": "src/code_analysis/engine/parsers/fileXRParser.ts"
       },
       {
-        "ccn": 34,
-        "lines": 75,
-        "function": "<anonymous>",
-        "file": "src/code_analysis/engine/utils/executePython.ts"
-      },
-      {
         "ccn": 26,
         "lines": 100,
         "function": "listReferences",
@@ -269,6 +263,12 @@
         "lines": 71,
         "function": "applyIncrementalChanges",
         "file": "src/code_analysis/engine/watchers/directoryReAnalyzer.ts"
+      },
+      {
+        "ccn": 20,
+        "lines": 73,
+        "function": "sampleTimeline",
+        "file": "src/code_analysis/historical/gitTimelineSampler.ts"
       }
     ],
     "size.largest10": [
@@ -293,10 +293,6 @@
         "lines": 782
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 635
-      },
-      {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
       },
@@ -311,6 +307,10 @@
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "lines": 593
+      },
+      {
+        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "lines": 578
       }
     ]
   },
