@@ -39,7 +39,7 @@ src/code_analysis/python/
 ├── livePanels/             LivePanel coordinators (file/directory, deep)
 ├── XR/                     xr_file_analysis_coordinator.py, xr_directory_analysis_coordinator.py
 ├── html/                   html_dom_parser.py (DOM visualization backend)
-└── examples/, sumaryFiles/ progress/reanalysis coordinators
+└── sumaryFiles/            file reanalysis coordinator (watcher re-analysis)
 ```
 
 ## The field-schema contract (critical seam)
