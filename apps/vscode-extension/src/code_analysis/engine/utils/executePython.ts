@@ -236,36 +236,12 @@ export class ExecutePython {
             });
 
             if (result?.success === false && result?.rawOutput && result?.error?.includes('JSON markers not found')) {
-                logger.debug('XR_ANALYSIS: JSON markers missing, attempting to parse rawOutput directly...');
-                logger.debug(() => `XR_ANALYSIS: Raw output preview: ${result.rawOutput.substring(0, 200)}${result.rawOutput.length > 200 ? '...' : ''}`);
-
-                try {
-                    const parsedData = JSON.parse(result.rawOutput);
-                    logger.debug('XR_ANALYSIS: Successfully parsed rawOutput as direct JSON!');
-                    logger.debug('XR_ANALYSIS: Parsed data type:', typeof parsedData);
-                    logger.debug('XR_ANALYSIS: Is array:', Array.isArray(parsedData));
-
-                    if (Array.isArray(parsedData)) {
-                        logger.debug(() => `XR_ANALYSIS: Generated ${parsedData.length} XR function records`);
-                        if (parsedData.length > 0) {
-                            logger.debug('XR_ANALYSIS: Sample function data:', {
-                                functionName: parsedData[0].functionName,
-                                complexity: parsedData[0].complexity,
-                                parameters: parsedData[0].parameters,
-                                lineCount: parsedData[0].lineCount,
-                                fileName: parsedData[0].fileName,
-                            });
-                        }
-                        logger.debug(() => `XR_ANALYSIS: Successfully completed analysis for ${session.targetPath}`);
-                    }
-
-                    progress?.report({ message: 'XR analysis completed!' });
-                    return parsedData;
-                } catch (parseError) {
-                    logger.error('XR_ANALYSIS: Failed to parse rawOutput as JSON:', parseError);
-                    logger.error('XR_ANALYSIS: Raw output content:', result.rawOutput);
-                    throw new Error(`XR analysis failed: Unable to parse result - ${result.error}`);
-                }
+                // parsePythonOutput already tried the trimmed stdout as bare JSON. JSON.parse
+                // accepts only JSON whitespace around a value, and trim() removes all of it,
+                // so the untrimmed rawOutput can never parse where the trimmed one failed.
+                logger.error('XR_ANALYSIS: Failed to parse rawOutput as JSON');
+                logger.error('XR_ANALYSIS: Raw output content:', result.rawOutput);
+                throw new Error(`XR analysis failed: Unable to parse result - ${result.error}`);
             }
 
             if (result && result.success !== false) {

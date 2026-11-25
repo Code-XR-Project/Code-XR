@@ -322,3 +322,20 @@ test('interpreter and script resolution failures', async () => {
     assert.match(unspawnable.result.error, /^Failed to start Python process: Error: spawn /);
     assert.equal(unspawnable.result.rawOutput, '');
 });
+
+test('precondition of the collapsed XR recovery: stdout that fails trimmed cannot parse untrimmed', async () => {
+    // parsePythonOutput parses stdout.trim(); the old XR recovery re-parsed the
+    // untrimmed stdout. JSON.parse tolerates only JSON whitespace around a value
+    // and trim() strips a superset of it, so the second parse can never succeed.
+    const samples = ['', ' ', '\n\t\r ', 'x', '[1', '﻿[1', ' {"a":1} ', '\v1', '=== JSON_START ===\n[1]'];
+    for (const sample of samples) {
+        let trimmedParses = true;
+        try { JSON.parse(sample.trim()); } catch { trimmedParses = false; }
+        if (!trimmedParses) {
+            assert.throws(() => JSON.parse(sample), SyntaxError, JSON.stringify(sample));
+        }
+    }
+    // Wrappers that trim() removes but JSON.parse would reject resolve through the first parse.
+    const bom = await run(session('XR', 'file'), { script: MAIN, stdout: '﻿[{"functionName":"h"}] ' });
+    assert.deepEqual(bom.result, [{ functionName: 'h' }]);
+});

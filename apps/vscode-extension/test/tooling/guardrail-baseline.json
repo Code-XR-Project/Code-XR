@@ -56,11 +56,11 @@
     "functions.over80Lines": 45,
     "complexity.over10": 69,
     "complexity.over15": 25,
-    "complexity.over20": 6,
+    "complexity.over20": 5,
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 553,
+    "eslint.maxWarnings": 551,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 48974,
-    "src.functions": 3279,
+    "src.lines": 48950,
+    "src.functions": 3276,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -166,16 +166,16 @@
         "file": "src/code_analysis/historical/gitRepositoryService.ts"
       },
       {
-        "ccn": 23,
-        "lines": 110,
-        "function": "executeXRAnalysis",
-        "file": "src/code_analysis/engine/utils/executePython.ts"
-      },
-      {
         "ccn": 22,
         "lines": 61,
         "function": "handleDependencyGraphSettingsMessage",
         "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
+      },
+      {
+        "ccn": 20,
+        "lines": 86,
+        "function": "executeXRAnalysis",
+        "file": "src/code_analysis/engine/utils/executePython.ts"
       },
       {
         "ccn": 20,
@@ -232,16 +232,16 @@
         "lines": 576
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 572
-      },
-      {
         "file": "src/remote_access/services/remoteAccessManager.ts",
         "lines": 567
       },
       {
         "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
         "lines": 562
+      },
+      {
+        "file": "src/code_analysis/historical/gitRepositoryService.ts",
+        "lines": 560
       }
     ]
   },
