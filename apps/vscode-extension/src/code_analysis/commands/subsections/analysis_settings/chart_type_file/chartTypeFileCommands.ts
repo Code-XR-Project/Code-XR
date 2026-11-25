@@ -6,54 +6,31 @@
 import * as vscode from 'vscode';
 import { ChartTypeFileSetting } from '../../../../views/subsections/analysis_settings/chart_type_file';
 import { CommandRegistration } from '../analysis_file_mode';
+import { createChartTypeCommands } from '../chart_type_shared/chartTypeCommandFactory';
 import { getLogger } from '../../../../../core/logging/sink';
 
 const logger = getLogger('CHART_TYPE_FILE_COMMANDS');
 
 export class ChartTypeFileCommands {
-
-    constructor(
-        _context: vscode.ExtensionContext,
-        private chartTypeFileSetting: ChartTypeFileSetting
-    ) {}
-
     /**
      * Get command registrations (don't register them yet)
      * This follows the "nested dolls" architecture pattern
      */
     static getCommandRegistrations(
-        context: vscode.ExtensionContext, 
+        _context: vscode.ExtensionContext,
         chartTypeFileSetting: ChartTypeFileSetting,
         refreshCallback: () => void
     ): CommandRegistration[] {
-        const commands = new ChartTypeFileCommands(context, chartTypeFileSetting);
-
-        return [
-            {
-                commandId: 'codeXR.analysis.selectChartTypeFile',
-                callback: async () => {
-                    await commands.selectChartType();
-                    refreshCallback();
-                },
-                description: 'Select chart type for file analysis visualization'
-            }
-        ];
-    }
-
-    /**
-     * Show chart type selection from quick pick menu
-     * Shows different chart types available for XR and LivePanel modes
-     */
-    private async selectChartType(): Promise<void> {
-        logger.debug('Chart type selection command executed');
-        
-        try {
-            // Use the chart type setting's built-in selection dialog
-            await this.chartTypeFileSetting.showChartTypeSelection();
-            
-        } catch (error) {
-            logger.error('Error selecting chart type:', error);
-            vscode.window.showErrorMessage(`Failed to select chart type: ${error}`);
-        }
+        return createChartTypeCommands({
+            commandId: 'codeXR.analysis.selectChartTypeFile',
+            description: 'Select chart type for file analysis visualization',
+            showSelection: () => chartTypeFileSetting.showChartTypeSelection(),
+            refreshCallback,
+            logger,
+            reportError: (error) => {
+                logger.error('Error selecting chart type:', error);
+                vscode.window.showErrorMessage(`Failed to select chart type: ${error}`);
+            },
+        });
     }
 }
