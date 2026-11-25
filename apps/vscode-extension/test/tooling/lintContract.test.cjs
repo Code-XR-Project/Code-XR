@@ -13,7 +13,7 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch', 'noImplicitReturns', 'noUnusedParameters'];
 
 // What `npm run lint` covers (ROADMAP W3-11/12).
-const LINT_ROOTS = ['src', 'test', 'scripts', 'webpack.config.js', 'eslint.config.mjs'];
+const LINT_ROOTS = ['src', 'test', 'scripts', 'templates', 'webpack.config.js', 'eslint.config.mjs'];
 
 // Rules that count toward the --max-warnings budget instead of failing outright
 // (ROADMAP W3-08..10). Each landed with the budget raised to its measured count.
@@ -98,6 +98,32 @@ test('the lint script names its roots explicitly and every root exists', () => {
     assert.deepEqual(roots, LINT_ROOTS);
     for (const root of roots) {
         assert.ok(fs.existsSync(path.join(projectRoot, root)), `${root} exists`);
+    }
+});
+
+test('the template directories the lint ignores are multi-part runtimes, nothing else', () => {
+    // The global ignore `templates/components/codexr/*/*Runtime/**` exists
+    // because a part does not parse alone. A standalone runtime dropped into
+    // such a directory would silently escape the lint: every matched directory
+    // must be a manifest-driven parts directory.
+    const codexrRoot = path.join(projectRoot, 'templates', 'components', 'codexr');
+    const partDirectories = [];
+    for (const component of fs.readdirSync(codexrRoot, { withFileTypes: true })) {
+        if (!component.isDirectory()) {
+            continue;
+        }
+        for (const entry of fs.readdirSync(path.join(codexrRoot, component.name), { withFileTypes: true })) {
+            if (entry.isDirectory() && entry.name.endsWith('Runtime')) {
+                partDirectories.push(path.join(codexrRoot, component.name, entry.name));
+            }
+        }
+    }
+
+    assert.ok(partDirectories.length > 0, 'canary: the pattern matches the multi-part runtimes');
+    for (const directory of partDirectories) {
+        const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'manifest.json'), 'utf8'));
+        const scripts = fs.readdirSync(directory).filter((name) => name.endsWith('.js')).sort();
+        assert.deepEqual(scripts, [...manifest.parts].sort(), `${path.basename(directory)} holds only its listed parts`);
     }
 });
 

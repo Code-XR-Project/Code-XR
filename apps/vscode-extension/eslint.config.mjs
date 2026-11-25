@@ -27,6 +27,9 @@ export default [{
         "examples/**",
         "docs/**",
         "resources/**",
+        // Multi-part runtimes: each part is a fragment of one function body,
+        // concatenated in manifest.json order, and does not parse on its own.
+        "templates/components/codexr/*/*Runtime/**",
     ],
 }, {
     files: ["**/*.ts"],
@@ -119,4 +122,44 @@ export default [{
         globals: { ...globals.node },
     },
     rules: NODE_JS_RULES,
+}, {
+    // The standalone browser runtimes under templates/ (the multi-part ones are
+    // in the global ignores above). Relaxed on purpose: these are classic
+    // scripts, so a top-level declaration is a page global another script
+    // reads (no-unused-vars checks locals only), and `x == null` is the
+    // null-or-undefined idiom they rely on (eqeqeq "smart"). No source change
+    // was needed to land this block, and none should be made to satisfy it
+    // without the browser harnesses.
+    files: ["templates/**/*.js"],
+    languageOptions: {
+        ecmaVersion: 2022,
+        sourceType: "script",
+        // `module` is read behind a typeof guard by the UMD footers.
+        globals: { ...globals.browser, module: "readonly" },
+    },
+    rules: {
+        "no-undef": "error",
+        "no-unused-vars": ["error", { vars: "local", args: "none", caughtErrors: "none" }],
+        curly: "error",
+        eqeqeq: ["error", "smart"],
+        "no-throw-literal": "error",
+        "no-eval": "error",
+        semi: "error",
+    },
+}, {
+    // The LivePanel webview loads its scripts into one page scope: these are the
+    // names panelShell.js, dataTable.js, charts.js and the two panels define for
+    // the *main.js scripts (and each other), plus the webview's own API.
+    files: ["templates/analysis_livePanel/**/*.js", "templates/components/livepanel/**/*.js"],
+    languageOptions: {
+        globals: Object.fromEntries([
+            "acquireVsCodeApi", "vscode",
+            "applyTheme", "getStoredTheme", "toggleTheme", "createLivePanelSse",
+            "showUpdateNotification", "showReloadNotification", "upsertDataTable",
+            "escapeHtml", "formatMetricValue", "formatRatio", "codexrSeriesClass",
+            "numericColumn", "DataTable",
+            "CodexrBarChart", "CodexrDonutChart", "CodexrPairedBarChart",
+            "CodexrDependencySummaryPanel", "CodexrHistoricalPanel",
+        ].map((name) => [name, "readonly"])),
+    },
 }];
