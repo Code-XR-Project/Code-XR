@@ -16,7 +16,7 @@ Language support spans two worlds that must change together. The **source of tru
 2. **Field schema impact**: if any metric field is added/renamed, it must flow through `python/utils/xr_field_schema.py` → `--mode schema` → `xrFieldSchemaService.ts` → `dimensionValidator.ts`. A mismatch surfaces as dimension-mapping failures or empty charts. See `.claude/docs/PYTHON_ANALYSIS.md` §field-schema contract.
 3. **TS metadata**: mirror the language in `src/utils/languageMetadata.ts` (extensions, display name, capabilities).
 4. **Fixtures**:
-   - `manual_test/<language>/` — per-language fixture consumed by `npm run test:analysis` (see `manual_test/README.md`).
+   - `backend/manual_test/<lang>_metrics.<ext>` (flat, one or more files per language; `deep/` holds the recursive-directory extras) — consumed by `npm run test:analysis` (see `backend/manual_test/README.md`).
    - `backend/tests/fixtures/dependency-languages/` — sample source for dependency-graph tests.
 5. **Venv dependencies**: if a new Python package is needed, it goes through the managed venv manifest in `src/python_env/` (`venvManager.ts`) — never assume system Python, never add an implicit download (no downloads without explicit user consent).
 

@@ -76,9 +76,9 @@ Python source is also pinned on **quote style and import order** by source-text 
 | Command | Covers |
 |---|---|
 | `npm run test:python` | pytest-style suites in `test/python/` (dependencies, directory scanning, html_dom protocol, path normalization, xr file analysis, xr schema) |
-| `npm run test:analysis` | End-to-end metric equivalence over `manual_test/` fixtures (one per language); asserts XR and LivePanel produce identical `data.json` |
+| `npm run test:analysis` | End-to-end metric equivalence over `backend/manual_test/` fixtures (one per language); asserts XR and LivePanel produce identical `data.json` |
 | `npm run test:htmlanalysis` | HTML/DOM parser |
-| `test/analysis/manual_metrics_suite.py` | Manual metrics suite (driven by the analysis runner) |
+| `backend/tests/manual_metrics_suite.py` | Manual metrics suite (driven by the analysis runner) |
 
 ## How future agents should use this document
 

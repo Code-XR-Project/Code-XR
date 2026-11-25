@@ -8,8 +8,8 @@ import shutil
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PYTHON_ROOT = PROJECT_ROOT.parents[1] / 'backend' / 'src'
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_ROOT = BACKEND_ROOT / 'src'
 for extra_path in [
     PYTHON_ROOT,
     PYTHON_ROOT / 'utils',
@@ -28,8 +28,8 @@ from metric_language_contract import get_metric_language
 from xr_directory_analysis_coordinator import analyze_directory_xr
 from xr_file_analysis_coordinator import analyze_file_for_xr
 
-MANUAL_TEST_ROOT = PROJECT_ROOT / 'manual_test'
-REPORT_ROOT = PROJECT_ROOT / 'artifacts' / 'manual_test_reports'
+MANUAL_TEST_ROOT = BACKEND_ROOT / 'manual_test'
+REPORT_ROOT = BACKEND_ROOT / 'artifacts' / 'manual_test_reports'
 HTML_FIXTURE = MANUAL_TEST_ROOT / 'html_dom_fixture.html'
 
 

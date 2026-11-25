@@ -26,7 +26,7 @@
 | `npm run test:unit` | `test/runners/run-node-tests.cjs` → first refuses to start if `out/` does not match `src/` (a source newer than its output, an uncompiled source, or a compiled file whose source is gone), then collects `test/**/*.test.cjs` and runs `node --test --test-isolation=none --test-concurrency=1` — **every suite in one process**, so a test must never leave global state behind | Unit/runtime tests only (fast) |
 | `npm run test:python` | `test/runners/run-python-tests.cjs` → `unittest discover` over `test/python/`. A test folder **needs an `__init__.py`** or discovery skips it silently. With no interpreter it skips locally and **fails under `CI`** | After touching `src/code_analysis/python/` |
 | `npm run test:all` | `test:basic` + `test:python` | Pre-release / after cross-language changes |
-| `npm run test:analysis` | `test/runners/run-analysis-tests.cjs` over `manual_test/` fixtures (one per supported language); asserts XR and LivePanel produce the same `data.json`. Its venv installs the **lizard version the extension pins** (read from `pythonPackageManifest.ts`) | After changing analysis output or language support |
+| `npm run test:analysis` | `test/runners/run-analysis-tests.cjs` over the `backend/manual_test/` fixtures (one per supported language); asserts XR and LivePanel produce the same `data.json`. Its venv installs the **lizard version the extension pins** (read from `pythonPackageManifest.ts`) | After changing analysis output or language support |
 | `npm run test:htmlanalysis` | HTML/DOM analysis tests | After touching `python/html/html_dom_parser.py` or DOM mode |
 | `npm run test:xr-harness` | `test/runners/run-xr-containment-harness.cjs` (browser harness, uses Playwright) | After touching table/containment runtimes |
 | `npm run test:project-evolution-harness` | Project Evolution playback harness | After touching project-evolution runtime |
@@ -56,7 +56,6 @@ Manual validation flow for a change: F5 → open a workspace with source files �
 test/
 ├── analysis/            ~33 .test.cjs suites — runtimes (common, boats, visual style, charts,
 │                        tables, mapping), collaboration, historical, dependency graph, watchers…
-│                        + manual_metrics_suite.py
 ├── commands/            commandRegistry.test.cjs (unique-ID checks on synthetic arrays) +
 │                        commandContributions.test.cjs: executes the REAL registerAllCommands under the
 │                        fake vscode and ties it to package.json; internalCommandIds.cjs lists every
@@ -76,7 +75,7 @@ test/
 
 The dependency-graph sample sources (~25 languages) live with the backend that reads them: `backend/tests/fixtures/dependency-languages/`.
 
-Also `manual_test/` (repo root): per-language fixtures consumed by `npm run test:analysis` (see `manual_test/README.md`).
+Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:analysis` (see `backend/manual_test/README.md`); that runner drives `backend/tests/manual_metrics_suite.py` and `backend/scripts/report-manual-metrics.py` (reports land in `backend/artifacts/manual_test_reports/`).
 
 ## Packaging
 

@@ -3,6 +3,8 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
+// The manual_test corpus, its suite and its report tool belong to the backend.
+const backendRoot = path.join(projectRoot, '..', '..', 'backend');
 const artifactsRoot = path.join(projectRoot, 'artifacts');
 const venvRoot = path.join(artifactsRoot, 'analysis-test-venv');
 const isWindows = process.platform === 'win32';
@@ -102,10 +104,10 @@ function main() {
     installDependencies();
 
     if (!reportOnly) {
-        run(venvPython, ['test/analysis/manual_metrics_suite.py']);
+        run(venvPython, [path.join(backendRoot, 'tests', 'manual_metrics_suite.py')]);
     }
 
-    run(venvPython, ['scripts/report-manual-metrics.py']);
+    run(venvPython, [path.join(backendRoot, 'scripts', 'report-manual-metrics.py')]);
 }
 
 if (require.main === module) {

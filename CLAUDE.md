@@ -12,13 +12,14 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 
 | Path | Content |
 |---|---|
-| `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` (shipped), `package.json`, README/CHANGELOG |
-| `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`) |
+| `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (shipped), `package.json`, README/CHANGELOG |
+| `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`), with their fixtures (`backend/tests/fixtures/`) |
+| `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (`report-manual-metrics.py`) |
 | `apps/ide/` | Code-XR IDE (Electron + Monaco) — placeholder only, epic #11 |
 | `packages/` | Planned shared workspaces (`core`, `xr-scenes`) — empty, see `packages/README.md` |
 | root | `package.json` (workspaces + mirrored scripts), the only `package-lock.json`, `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `docs/` |
 
-**Path convention for everything in `.claude/` written before the move:** `src/…`, `test/…`, `templates/…`, `scripts/…`, `docs/…` mean `apps/vscode-extension/<same>`; `src/code_analysis/python/…` means `backend/src/…`; `test/python/…` means `backend/tests/…`. Run `npm ci` and the commands below from the repository root; each script delegates to the extension workspace.
+**Path convention for everything in `.claude/` written before the move:** `src/…`, `test/…`, `templates/…`, `scripts/…`, `docs/…` mean `apps/vscode-extension/<same>`; `src/code_analysis/python/…` means `backend/src/…`; `test/python/…` means `backend/tests/…`; `manual_test/…` means `backend/manual_test/…` and `test/fixtures/dependency-languages/` means `backend/tests/fixtures/dependency-languages/` (both moved in 1.2.1). Run `npm ci` and the commands below from the repository root; each script delegates to the extension workspace.
 
 ## Context system — read this first
 

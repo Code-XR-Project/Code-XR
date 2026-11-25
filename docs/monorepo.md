@@ -11,7 +11,9 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 │   └── ide/                the Code-XR IDE, placeholder only
 ├── backend/
 │   ├── src/                Python analysis backend
-│   └── tests/              its unittest suites, goldens and fixtures
+│   ├── tests/              its unittest suites, goldens and fixtures
+│   ├── manual_test/        per-language analysis corpus (npm run test:analysis)
+│   └── scripts/            backend tools (manual-metrics report)
 ├── packages/               shared workspaces, planned (see packages/README.md)
 ├── docs/                   repository-level docs (this file)
 ├── media/                  release screenshots, GIFs, video index (not shipped)
@@ -27,13 +29,14 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 
 | Before | After |
 |---|---|
-| `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` | `apps/vscode-extension/<same name>/` |
+| `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` | `apps/vscode-extension/<same name>/` (`manual_test/` then moved on to `backend/`, see below) |
 | `package.json`, `tsconfig.json`, `webpack.config.js`, `eslint.config.mjs`, `esbuild.config.mjs`, `.vscode-test.mjs` | `apps/vscode-extension/` |
 | `README.md`, `CHANGELOG.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md` | `apps/vscode-extension/` (they ship in the VSIX). The root has its own `README.md` and a copy of `LICENSE`. |
 | `src/code_analysis/python/` | `backend/src/` |
 | `test/python/` | `backend/tests/` |
 | `package-lock.json` | stays at the root (workspace lockfile) |
 | `apps/vscode-extension/test/fixtures/dependency-languages/` (moved in 1.2.1: only the backend suites read it) | `backend/tests/fixtures/dependency-languages/` |
+| `apps/vscode-extension/manual_test/`, `test/analysis/manual_metrics_suite.py`, `scripts/report-manual-metrics.py` (moved in 1.2.1: they only exercise the backend) | `backend/manual_test/`, `backend/tests/manual_metrics_suite.py`, `backend/scripts/report-manual-metrics.py` |
 | `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `.nvmrc`, `.mcp.json`, `CLAUDE.md` | unchanged, at the root |
 
 Inside `apps/vscode-extension/` every relative path is the same as it was at the old repository root. Documents and skills written before the move that say `src/...`, `test/...` or `templates/...` mean `apps/vscode-extension/src/...` and so on; `src/code_analysis/python/` means `backend/src/` and `test/python/` means `backend/tests/`.
