@@ -18,6 +18,12 @@ const STOP_TIMEOUT_MS = 4000;
  * Server Control
  * Runtime operations for managing active servers
  */
+/** What a bulk stop did: how many running servers it tried, and how many stopped cleanly. */
+export interface StopAllServersResult {
+    requested: number;
+    stopped: number;
+}
+
 export class ServerControl {
     private static extensionContext: vscode.ExtensionContext;
     
@@ -31,7 +37,7 @@ export class ServerControl {
     /**
      * Stop an active server
      */
-    public static async stopServer(serverId: string): Promise<boolean> {
+    public static async stopServer(serverId: string, options: { silent?: boolean } = {}): Promise<boolean> {
         logger.debug(() => `DEBUG - Attempting to stop server ${serverId}`);
         
         const registry = getActiveServerRegistry();
@@ -97,7 +103,7 @@ export class ServerControl {
             }
 
             logger.debug(() => `Stopped server ${serverId} (${server.url}), clean: ${cleanShutdown}`);
-            if (cleanShutdown) {
+            if (cleanShutdown && !options.silent) {
                 void vscode.window.showInformationMessage(`Server stopped: ${server.url}`);
             }
 
@@ -155,24 +161,26 @@ export class ServerControl {
     }
 
     /**
-     * Stop all active servers
+     * Stop every running server. Shows no message of its own: the caller
+     * reports one summary from the returned counts. (It used to return a bare
+     * count that its caller read as a yes/no, and both layers toasted, so a
+     * partial failure showed "Stopped 2/3" followed by "Stopped all 3".)
      */
-    public static async stopAllServers(): Promise<number> {
+    public static async stopAllServers(): Promise<StopAllServersResult> {
         logger.debug('Stopping all active servers');
-        
+
         const registry = getActiveServerRegistry();
         const runningServers = registry.getServersByStatus('running');
-        
+
         if (runningServers.length === 0) {
             logger.debug('No running servers to stop');
-            void vscode.window.showInformationMessage('No active servers to stop');
-            return 0;
+            return { requested: 0, stopped: 0 };
         }
 
         // First, close all lateral panels for servers that have them
         const panelManager = getPanelManager();
         const lateralPanelServers = runningServers.filter(server => server.launchMode === 'lateralPanel');
-        
+
         if (lateralPanelServers.length > 0) {
             logger.debug(() => `ACTIVE_SERVER_PANEL: Closing ${lateralPanelServers.length} lateral panels before stopping servers`);
             const serverIdsWithPanels = lateralPanelServers.map(server => server.id);
@@ -180,28 +188,13 @@ export class ServerControl {
             logger.debug(() => `ACTIVE_SERVER_PANEL: Closed ${closedPanelCount}/${lateralPanelServers.length} lateral panels`);
         }
 
-        let stoppedCount = 0;
-        const stopPromises = runningServers.map(async (server) => {
-            const success = await this.stopServer(server.id);
-            if (success) {
-                stoppedCount++;
-            }
-            return success;
-        });
+        const results = await Promise.all(
+            runningServers.map(server => this.stopServer(server.id, { silent: true })),
+        );
+        const stopped = results.filter(Boolean).length;
 
-        await Promise.all(stopPromises);
-
-        logger.debug(() => `Stopped ${stoppedCount}/${runningServers.length} servers`);
-        
-        if (stoppedCount === runningServers.length) {
-            void vscode.window.showInformationMessage(`All ${stoppedCount} servers stopped successfully`);
-        } else {
-            void vscode.window.showWarningMessage(
-                `Stopped ${stoppedCount}/${runningServers.length} servers. Some servers may require manual intervention.`
-            );
-        }
-
-        return stoppedCount;
+        logger.debug(() => `Stopped ${stopped}/${runningServers.length} servers`);
+        return { requested: runningServers.length, stopped };
     }
 
     /**

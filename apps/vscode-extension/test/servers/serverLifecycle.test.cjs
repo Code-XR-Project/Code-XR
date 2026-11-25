@@ -375,6 +375,7 @@ test('HttpsDefaultServer: generated pair, TLS surface, VR toast and dispose-befo
         'log: SERVER: Validating generated local certificates...',
         'log: SERVER: Certificate path:',
         'log: SERVER: Key path:',
+        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: SSL certificates loaded successfully',
@@ -466,8 +467,15 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
             });
             consoleCapture.setReplacements([[String(port), '<port>'], [customDirectory, '<custom>']]);
             await missing.start();
+            const missingListener = missing.server;
             missing.forceStop();
-            await new Promise((resolve) => missing.server.close(resolve));
+            // forceStop now closes the listener itself and drops the reference.
+            assert.equal(missing.server, null);
+            assert.equal(missing.getListeningPort(), null);
+            // 'close' is emitted asynchronously, so listening for it after
+            // forceStop() still observes the port being released.
+            await new Promise((resolve) => missingListener.once('close', resolve));
+            assert.equal(missingListener.listening, false);
             assert.equal(fake.messages.length, 2);
         });
     } finally {
@@ -478,6 +486,7 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
     assert.deepEqual(consoleCapture.lines, [
         'log: SERVER: HTTP server initialized with config:',
         'log: SERVER: HTTPS server (custom certificates) initialized with config:',
+        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: Custom SSL certificates loaded successfully',
@@ -498,6 +507,7 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
         'log: SERVER: HTTPS server (custom certificates) initialized with config:',
         'warn: SERVER: Custom certificate pair failed validation and will use generated fallback:',
         'warn: SERVER: Falling back to generated local certificates because the custom pair is missing or invalid',
+        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: Custom SSL certificates loaded successfully',
@@ -513,6 +523,7 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
         `warn: SERVER: Custom certificate file not found: <custom>${sep}absent-cert.pem`,
         `warn: SERVER: Custom key file not found: <custom>${sep}absent-key.pem`,
         'warn: SERVER: Falling back to generated local certificates because the custom pair is missing or invalid',
+        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: Custom SSL certificates loaded successfully',
@@ -536,6 +547,8 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
             const server = new HttpServer({ port, host: '127.0.0.1', staticRoot: templatesRoot() });
             assert.equal(await server.start(), `http://localhost:${port}`);
             assert.equal(server.getServerUrl(), `http://127.0.0.1:${port}`);
+            // The launcher reports this port, so it must be the one actually bound.
+            assert.equal(server.getListeningPort(), port);
             await assert.rejects(server.start(), { message: 'SERVER: HTTP server is already running' });
 
             const status = await new Promise((resolve, reject) => {
@@ -552,6 +565,7 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
             assert.equal(await roomClosed, 4002);
             assert.equal(server.getIsRunning(), false);
             assert.equal(server.getServerUrl(), null);
+            assert.equal(server.getListeningPort(), null);
             await server.stop();
             server.forceStop();
         });
@@ -594,5 +608,25 @@ test('httpsTlsOptions: the shared TLS literal both HTTPS servers listen with', a
         assert.equal(isCertificateRejectedByClient(new Error('certificate unknown')), true);
         assert.equal(isCertificateRejectedByClient(new Error('SSL alert number 46')), true);
         assert.equal(isCertificateRejectedByClient(new Error('certificate expired')), false);
+    });
+});
+
+test('PortManager: a port held on loopback only is reported busy', async () => {
+    const fake = createFakeVscode();
+    await withFakeVscode(fake, async ({ requireOut }) => {
+        const { PortManager } = requireOut('core/server/portManager.js');
+        const holder = net.createServer();
+        await new Promise((resolve) => holder.listen(0, '127.0.0.1', resolve));
+        const heldPort = holder.address().port;
+        try {
+            // A probe of the wildcard alone can succeed here on macOS and
+            // Windows, which then hand the browser's localhost to the other
+            // listener; the host-less check must look at loopback too.
+            assert.equal(await PortManager.isPortFreeEverywhere(heldPort), false);
+            assert.equal(await PortManager.isPortAvailable(heldPort), false);
+        } finally {
+            await new Promise((resolve) => holder.close(resolve));
+        }
+        assert.equal(await PortManager.isPortFreeEverywhere(heldPort), true);
     });
 });
