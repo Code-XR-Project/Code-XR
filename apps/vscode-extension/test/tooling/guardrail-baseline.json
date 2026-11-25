@@ -18,7 +18,7 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1432,
+    "console.total": 1423,
     "console.byModule": {
       "active_servers": 120,
       "babia_examples": 49,
@@ -28,13 +28,13 @@
       "core": 1,
       "python_env": 24,
       "remote_access": 1,
-      "servers": 301,
+      "servers": 292,
       "utils": 38,
       "views": 107,
       "visualization_settings": 83,
       "visualize_data": 98
     },
-    "catch.consoleOnly": 57,
+    "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
     "any.total": 206,
     "any.byModule": {
@@ -87,8 +87,8 @@
   },
   "informational": {
     "src.files": 309,
-    "src.lines": 48433,
-    "src.functions": 2650,
+    "src.lines": 48345,
+    "src.functions": 2643,
     "src.unreachableLines": 39,
     "console.topFiles": [
       {
@@ -96,12 +96,12 @@
         "count": 126
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 54
-      },
-      {
         "file": "src/active_servers/runtime/serverControl.ts",
         "count": 46
+      },
+      {
+        "file": "src/servers/runtime/multiServerLauncher.ts",
+        "count": 45
       },
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
@@ -298,10 +298,6 @@
         "lines": 686
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "lines": 678
-      },
-      {
         "file": "src/code_analysis/historical/projectEvolutionService.ts",
         "lines": 669
       },
@@ -316,6 +312,10 @@
       {
         "file": "src/views/ModularTreeDataProvider.ts",
         "lines": 616
+      },
+      {
+        "file": "src/code_analysis/export/exportManifest.ts",
+        "lines": 609
       }
     ]
   },

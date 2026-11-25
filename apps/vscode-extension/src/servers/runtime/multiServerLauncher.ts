@@ -5,7 +5,6 @@ import { HttpsDefaultServer } from './httpsDefaultServer';
 import { HttpsCustomServer } from './httpsCustomServer';
 import { PortManager } from './portManager';
 import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
-import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
 import { ServerActionHandlers } from '../../active_servers/views/interactions/handleServerActions';
 import { getServerRegistrar } from '../../active_servers/services/serverRegistrar';
@@ -228,93 +227,6 @@ export class MultiServerLauncher {
                 error: `Failed to launch server: ${error instanceof Error ? error.message : String(error)}`
             };
         }
-    }
-
-    /**
-     * Stop a specific server by ID
-     * @param serverId Server ID to stop
-     * @returns Promise<boolean>
-     */
-    public async stopServer(serverId: string): Promise<boolean> {
-        const serverInfo = this.servers.get(serverId);
-        if (!serverInfo) {
-            console.log(`SERVER: Server ${serverId} not found or already stopped`);
-            return true;
-        }
-
-        try {
-            console.log(`SERVER: Stopping server ${serverId} (${serverInfo.serverType}) on port ${serverInfo.port}...`);
-            await serverInfo.server.stop();
-            
-            // Unregister from active servers registry
-            if (serverInfo.activeServerId) {
-                try {
-                    const registry = getActiveServerRegistry();
-                    registry.unregisterServer(serverInfo.activeServerId);
-                    console.log(`SERVER: Unregistered server ${serverInfo.activeServerId} from registry`);
-                } catch (error) {
-                    console.error('SERVER: Failed to unregister server from registry:', error);
-                }
-            }
-            
-            this.servers.delete(serverId);
-            console.log(`SERVER: Server ${serverId} stopped successfully. ${this.servers.size} server(s) remaining`);
-            return true;
-        } catch (error) {
-            console.error(`SERVER: Error stopping server ${serverId}:`, error);
-            return false;
-        }
-    }
-
-    /**
-     * Stop all running servers
-     * @returns Promise<boolean>
-     */
-    public async stopAllServers(): Promise<boolean> {
-        console.log(`SERVER: Stopping all ${this.servers.size} servers...`);
-        
-        const stopPromises = Array.from(this.servers.keys()).map(serverId => 
-            this.stopServer(serverId)
-        );
-        
-        const results = await Promise.all(stopPromises);
-        const allStopped = results.every(result => result === true);
-        
-        if (allStopped) {
-            console.log('SERVER: All servers stopped successfully');
-        } else {
-            console.error('SERVER: Some servers failed to stop properly');
-        }
-        
-        return allStopped;
-    }
-
-    /**
-     * Get information about all running servers
-     * @returns Array of server info
-     */
-    public getRunningServers(): Array<{
-        id: string;
-        serverType: ServerType;
-        port: number;
-        htmlFile?: string;
-        isRunning: boolean;
-    }> {
-        return Array.from(this.servers.values()).map(serverInfo => ({
-            id: serverInfo.id,
-            serverType: serverInfo.serverType,
-            port: serverInfo.port,
-            htmlFile: serverInfo.htmlFile,
-            isRunning: serverInfo.server.getIsRunning()
-        }));
-    }
-
-    /**
-     * Check if any servers are running
-     * @returns boolean
-     */
-    public hasRunningServers(): boolean {
-        return this.servers.size > 0;
     }
 
     /**
