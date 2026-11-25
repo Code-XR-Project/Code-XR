@@ -238,30 +238,10 @@ export class ServerControl {
                 }
             }
             
-            // If not found, try to find by matching output directory or static root
-            if (!associatedSession) {
-                const serverRoot = server.metadata?.staticRoot || server.htmlFile;
-                logger.debug(() => `DEBUG - Trying to find session by server root: ${serverRoot}`);
-                
-                for (const session of allSessions) {
-                    logger.debug(() => `DEBUG - Checking session ${session.id} with outputPath: ${session.outputPath}`);
-                    
-                    if (session.outputPath && serverRoot && (
-                        session.outputPath === serverRoot ||
-                        serverRoot.includes(session.outputPath) ||
-                        session.outputPath.includes(serverRoot)
-                    )) {
-                        associatedSession = session;
-                        logger.debug(() => `Found session by output directory match: ${session.id}`);
-                        break;
-                    }
-                }
-                
-                if (!associatedSession) {
-                    logger.debug(`No session found by directory matching`);
-                }
-            }
-            
+            // Only by session id: matching output paths by substring in both
+            // directions closed sessions that belonged to other servers
+            // (LAUNCHER-8).
+
             // If found, close the session
             if (associatedSession) {
                 logger.debug(() => `DEBUG - Closing associated analysis session ${associatedSession.id}`);

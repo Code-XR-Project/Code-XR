@@ -8,6 +8,7 @@ import { UnifiedSessionRegistry } from '../../../core/analysis/session/sessionRe
 import { SessionWatcherManager } from '../../../core/analysis/watchers/sessionWatcherManager';
 import { getActiveServerRegistry } from '../../../core/server/registry/activeServerRegistry';
 import { ServerControl } from '../../../core/server/serverControl';
+import { LaunchControl } from '../../../core/analysis/launch/launchControl';
 import * as fs from 'fs';
 import { getLogger } from '../../../platform/logging/sink';
 import type { ActiveServer, RegistryEvent } from '../../../core/server/registry/activeServerModel';
@@ -53,7 +54,12 @@ export class ServerWatcherIntegration {
     private async handleServerRemoved(serverId: string, server: ActiveServer): Promise<void> {
         try {
             const sessionRegistry = UnifiedSessionRegistry.getInstance(this.context);
-            const affectedSessions = sessionRegistry.getAllSessions().filter((session: UnifiedAnalysisSession) => session.port === server.port);
+            // By session id only: ports are reused, and a port match closed
+            // sessions that belonged to another server (LAUNCHER-8).
+            const ownerSessionId = server.metadata?.sessionId;
+            const affectedSessions = ownerSessionId
+                ? sessionRegistry.getAllSessions().filter((session: UnifiedAnalysisSession) => session.id === ownerSessionId)
+                : [];
 
             logger.debug(() => `Found ${affectedSessions.length} affected sessions for server ${serverId}`);
             for (const session of affectedSessions) {
@@ -68,10 +74,16 @@ export class ServerWatcherIntegration {
         try {
             const sessionRegistry = UnifiedSessionRegistry.getInstance(this.context);
             const session = sessionRegistry.getSession(sessionId);
-            if (!session) {
+            // Only a session that was being served: a launch rolling back (or
+            // one already being closed) undoes its own resources and reports
+            // once, without a second "cleaned up" message.
+            if (!session || session.status !== 'monitoring') {
                 return;
             }
 
+            // The server is already gone; this releases the launch record and
+            // stops its watcher (teardown steps are idempotent).
+            await LaunchControl.getInstance().close(sessionId);
             await this.stopFileWatcherForSession(sessionId, session.targetPath);
             await this.cleanupAnalysisFiles(session.outputPath);
             sessionRegistry.updateSessionStatus(sessionId, 'closed');
@@ -117,13 +129,13 @@ export class ServerWatcherIntegration {
                 return false;
             }
 
-            const sessionPort = session.assignedPort;
-            if (sessionPort) {
-                await this.stopServerByPort(sessionPort);
-            } else {
-                await this.findAndStopServerForSession(sessionId, session);
-            }
-
+            // Aborts a launch still in progress (Python is killed, no server
+            // or watcher is started afterwards) and undoes what a finished
+            // launch started (LAUNCHER-7). Mark it closed first so the
+            // server-removed listener does not announce a second cleanup.
+            sessionRegistry.updateSessionStatus(sessionId, 'closed');
+            await LaunchControl.getInstance().close(sessionId);
+            await this.stopServerForSession(sessionId);
             await this.stopFileWatcherForSession(sessionId, session.targetPath);
             await this.cleanupAnalysisFiles(session.outputPath);
             return sessionRegistry.updateSessionStatus(sessionId, 'closed');
@@ -133,38 +145,22 @@ export class ServerWatcherIntegration {
         }
     }
 
-    private async stopServerByPort(port: number): Promise<void> {
+    /**
+     * Stops the server that was started for this session, matched by the
+     * session id it was launched with and by nothing else. The old fallbacks
+     * (any server whose name contained "Analysis", or whose file path
+     * contained the output path) stopped unrelated servers (LAUNCHER-8).
+     */
+    private async stopServerForSession(sessionId: string): Promise<void> {
         try {
             const serverRegistry = getActiveServerRegistry();
-            const serverToStop = serverRegistry.getAllServers().find((server: ActiveServer) => server.port === port);
-            if (serverToStop) {
-                await ServerControl.stopServer(serverToStop.id);
-            }
-        } catch (error) {
-            logger.error(`Error stopping server by port ${port}:`, error);
-        }
-    }
-
-    private async findAndStopServerForSession(sessionId: string, session: UnifiedAnalysisSession): Promise<void> {
-        try {
-            const serverRegistry = getActiveServerRegistry();
-            const servers = serverRegistry.getAllServers();
-
-            let matchingServer = servers.find((server: ActiveServer) => server.metadata && server.metadata.sessionId === sessionId);
-
-            if (!matchingServer && session.outputPath) {
-                matchingServer = servers.find((server: ActiveServer) => server.htmlFile?.includes(session.outputPath));
-            }
-
-            if (!matchingServer) {
-                matchingServer = servers.find((server: ActiveServer) => server.customName?.includes('Analysis'));
-            }
-
+            const matchingServer = serverRegistry.getAllServers()
+                .find((server: ActiveServer) => server.metadata?.sessionId === sessionId);
             if (matchingServer) {
-                await ServerControl.stopServer(matchingServer.id);
+                await ServerControl.stopServer(matchingServer.id, { silent: true });
             }
         } catch (error) {
-            logger.error(`Error finding and stopping server for session ${sessionId}:`, error);
+            logger.error(`Error stopping the server of session ${sessionId}:`, error);
         }
     }
 

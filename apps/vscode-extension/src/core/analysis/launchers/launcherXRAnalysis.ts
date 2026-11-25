@@ -17,6 +17,7 @@ import { DimensionValidator } from '../../charts/processing/dimensionValidator';
 import { BabiaChartRegistry } from '../../charts/chartRegistry';
 import { DimensionMapping } from '../../charts/chartModels';
 import { executeLaunchPipeline } from './launchPipeline';
+import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { XRFieldSchemaService } from '../python/xrFieldSchemaService';
 import { getLogger } from '../../../platform/logging/sink';
 
@@ -154,7 +155,7 @@ export class LauncherXRAnalysis {
 
         await executeLaunchPipeline(session, context, {
             logPrefix: LOG_PREFIX,
-            folderName: 'fileAnalysis',
+            folderName: ANALYSIS_STORAGE_FOLDERS.file,
             progress: { process: 30, save: 50, watcherOrServer: 70, serverOrWatcher: 90, done: 100 },
 
             preValidation: async () => {
@@ -180,7 +181,7 @@ export class LauncherXRAnalysis {
 
         await executeLaunchPipeline(session, context, {
             logPrefix: LOG_PREFIX,
-            folderName: 'directoryAnalysis',
+            folderName: ANALYSIS_STORAGE_FOLDERS.directory,
             progress: { process: 30, save: 50, watcherOrServer: 80, serverOrWatcher: 90, done: 100 },
 
             preValidation: async () => {

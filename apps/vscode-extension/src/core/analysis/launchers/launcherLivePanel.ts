@@ -13,6 +13,7 @@ import { FileRequirementProcessor, ProcessedRequirements } from '../processors/F
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { executeLaunchPipeline } from './launchPipeline';
+import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LAUNCHER_LIVE_PANEL');
@@ -54,7 +55,7 @@ export class LauncherLivePanel {
 
         await executeLaunchPipeline(session, context, {
             logPrefix: LOG_PREFIX,
-            folderName: 'fileAnalysis',
+            folderName: ANALYSIS_STORAGE_FOLDERS.file,
             progress: { process: 20, save: 40, watcherOrServer: 60, serverOrWatcher: 80, done: 100 },
 
             preValidation: async () => {
@@ -82,7 +83,7 @@ export class LauncherLivePanel {
 
         await executeLaunchPipeline(session, context, {
             logPrefix: LOG_PREFIX,
-            folderName: 'directoryAnalysis',
+            folderName: ANALYSIS_STORAGE_FOLDERS.directory,
             progress: { process: 20, save: 40, watcherOrServer: 60, serverOrWatcher: 80, done: 100 },
 
             preValidation: async () => {

@@ -122,6 +122,12 @@ export async function launchServerByType(
     htmlFile?: string,
     additionalMetadata?: Record<string, any>,
 ): Promise<ServerFactoryResult> {
+    // Hoisted so the catch can release it: the constructor already built the
+    // analysis feature host (refresh handler, listeners, for LivePanel a
+    // background dependency scan) and start() may have attached the room
+    // sockets. A failed start used to leave all of that wired to the session
+    // (LAUNCHER-6).
+    let created: ServerInstance | undefined;
     try {
         let server: ServerInstance;
         let serverUrl: string;
@@ -196,6 +202,7 @@ export async function launchServerByType(
         }
 
         // Start the server
+        created = server;
         logger.debug(() => `Starting ${serverType} server...`);
         serverUrl = await server.start();
 
@@ -211,10 +218,22 @@ export async function launchServerByType(
 
     } catch (error) {
         logger.error(`Error launching ${serverType} server:`, error);
+        releaseFailedServer(created);
         return {
             success: false,
             error: error instanceof Error ? error.message : String(error),
             serverType
         };
+    }
+}
+
+/** Drops the features and sockets of a server whose start() failed (LAUNCHER-6). */
+function releaseFailedServer(server: ServerInstance | undefined): void {
+    try {
+        if (server && typeof server.forceStop === 'function') {
+            server.forceStop();
+        }
+    } catch (disposeError) {
+        logger.error('Error releasing a server that failed to start:', disposeError);
     }
 }

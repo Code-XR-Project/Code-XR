@@ -94,7 +94,8 @@ export class CollaborationSessionApi {
         return {
             roomId: `codexr-session:${activeServerId}`,
             activeServerId,
-            fileUri: fileUri || null,
+            // The map is keyed by session id; the analysed path is the entry's fileUri.
+            fileUri: mapping?.fileUri || null,
             capabilities: {
                 collaboration: true,
                 presence: true,

@@ -335,14 +335,15 @@ export class AnalysisFeatureHost {
 
     /**
      * LivePanel pages have no collaboration room; feature updates reach them
-     * over SSE, keyed by the analysis file this server serves. Returns null
-     * for every other mode so the notify helpers are safe to call anywhere.
+     * over SSE, on the channel of the session this server serves (channels
+     * are keyed by session id). Returns null for every other mode so the
+     * notify helpers are safe to call anywhere.
      */
     private getLivePanelSseTarget(): string | null {
         if (this.analysisMode !== 'LivePanel') {
             return null;
         }
-        return fileToServerMap.findFileByPort(this.config.port);
+        return this.config.analysisSessionId || fileToServerMap.findFileByPort(this.config.port);
     }
 
     public notifyLivePanelDependencyUpdated(revision: number): void {

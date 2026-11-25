@@ -40,7 +40,7 @@ export class ServerLaunchOrchestrator {
 
             const serverSettings = this.serverSettingsManager.getServerSettings();
             const serverType = this.getDefaultServerType(serverSettings);
-            const tempDir = session?.savedFilesPath || this.getTempDirForSession(request.sessionId);
+            const tempDir = session?.savedFilesPath;
 
             if (!tempDir || !fs.existsSync(tempDir)) {
                 return {
@@ -80,7 +80,11 @@ export class ServerLaunchOrchestrator {
                     startedAt: new Date(),
                 };
 
-                fileToServerMap.registerMapping(request.targetPath, {
+                // Keyed by SESSION, not target path: a second session on the
+                // same target (another mode, or XR-deep) used to overwrite the
+                // first one's entry, so the first page's /events returned 404
+                // and refreshes were cross-wired between the two (LAUNCHER-3).
+                fileToServerMap.registerMapping(request.sessionId, {
                     port: launchResult.port,
                     tempDir,
                     fileUri: request.targetPath,
@@ -109,25 +113,8 @@ export class ServerLaunchOrchestrator {
         }
     }
 
-    async stopServerForSession(sessionId: string, targetPath: string): Promise<boolean> {
-        try {
-            fileToServerMap.unregisterMapping(targetPath);
-            logger.debug(() => `Stopped server for session ${sessionId}`);
-            return true;
-        } catch (error) {
-            logger.error('Error stopping server:', error);
-            return false;
-        }
-    }
-
     private getDefaultServerType(_serverSettings: any): 'http' | 'https-default' | 'https-custom' {
         return 'http';
-    }
-
-    private getTempDirForSession(sessionId: string): string {
-        const workspaceStorage = this.context.storageUri?.fsPath || '';
-        const analysisDir = path.join(workspaceStorage, 'analysis', sessionId);
-        return analysisDir;
     }
 
     private findMainHtmlFile(baseDir: string, preferredFileName?: string): string | undefined {

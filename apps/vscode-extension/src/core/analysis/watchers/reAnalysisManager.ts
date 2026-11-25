@@ -52,9 +52,9 @@ export class ReAnalysisManager {
 
             if (options.notifyClients !== false) {
                 if (session.analysisMode === 'XR') {
-                    this.sseManager.sendDataRefresh(session.targetPath);
+                    this.sseManager.sendDataRefresh(session.id);
                 } else {
-                    this.sseManager.sendUpdate(session.targetPath);
+                    this.sseManager.sendUpdate(session.id);
                 }
             }
 
@@ -94,7 +94,7 @@ export class ReAnalysisManager {
             }
 
             const htmlContent = this.extractVisualizeDOMHtmlContent(session, processedFiles.loadedFiles);
-            this.sseManager.sendCustomMessage(session.targetPath, {
+            this.sseManager.sendCustomMessage(session.id, {
                 type: 'htmlUpdated',
                 htmlContent,
                 action: 'reload-html',

@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const ts = require('typescript');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 
@@ -11,33 +10,13 @@ function readProjectFile(...segments) {
 }
 
 /**
- * Transpiles and executes the real `analysisServerCapabilities.ts` module. It has
- * no imports (in particular no `vscode`), so it can run directly under node with
- * a plain CommonJS transpile — this exercises the actual shipped resolver logic,
- * not a re-implementation of it.
+ * Loads the real compiled `analysisServerCapabilities` module from `out/`
+ * (npm test compiles first). Its only dependency is the pure analysis-type
+ * descriptor list, so no `vscode` stub is needed: this exercises the shipped
+ * resolver, derived from the descriptors, not a re-implementation of it.
  */
 function loadCapabilitiesModule() {
-    const sourcePath = path.join(
-        projectRoot,
-        'src',
-        'core',
-        'server',
-        'analysisServerCapabilities.ts',
-    );
-    const source = fs.readFileSync(sourcePath, 'utf8');
-    const transpiled = ts.transpileModule(source, {
-        compilerOptions: {
-            module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES2022,
-            esModuleInterop: true,
-        },
-        fileName: sourcePath,
-    }).outputText;
-
-    const moduleExports = {};
-    const moduleWrapper = new Function('exports', 'require', 'module', '__filename', '__dirname', transpiled);
-    moduleWrapper(moduleExports, require, { exports: moduleExports }, sourcePath, path.dirname(sourcePath));
-    return moduleExports;
+    return require(path.join(projectRoot, 'out', 'core', 'server', 'analysisServerCapabilities.js'));
 }
 
 // ── Common server-launch capability gating ─────────────────────────────────

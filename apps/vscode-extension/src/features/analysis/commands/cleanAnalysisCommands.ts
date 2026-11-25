@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CodeXRLogger } from '../../../platform/logging/logger';
+import { getSweptStorageFolders } from '../../../core/analysis/launch/storageFolders';
 
 const logger = CodeXRLogger.getLogger('CLEAN_ANALYSIS');
 
@@ -24,43 +25,44 @@ export class CleanAnalysisCommands {
     }
 
     /**
-     * Clean analysis artifacts that were already present before activation completed.
+     * Clean analysis artifacts that were already present before activation
+     * completed. Sessions live in memory only, so every folder written before
+     * this activation belongs to a session that no longer exists. Sweeps the
+     * folders the launchers actually write (LAUNCHER-14); it used to sweep
+     * `storage/analysis`, which nothing writes.
      */
     private static async cleanStaleAnalysisArtifacts(
         context: vscode.ExtensionContext,
         activationStartedAt: number,
     ): Promise<boolean> {
-        try {
-            const analysisPath = this.getAnalysisPath(context);
-            if (!analysisPath || !fs.existsSync(analysisPath)) {
-                return true;
-            }
-
-            const entries = fs.readdirSync(analysisPath, { withFileTypes: true });
-            for (const entry of entries) {
-                const entryPath = path.join(analysisPath, entry.name);
-                const stats = fs.statSync(entryPath);
-                if (stats.mtimeMs >= activationStartedAt) {
+        if (!context.storageUri) {
+            return true;
+        }
+        let clean = true;
+        for (const folderName of getSweptStorageFolders()) {
+            const analysisPath = path.join(context.storageUri.fsPath, folderName);
+            try {
+                if (!fs.existsSync(analysisPath)) {
                     continue;
                 }
+                const entries = fs.readdirSync(analysisPath, { withFileTypes: true });
+                for (const entry of entries) {
+                    const entryPath = path.join(analysisPath, entry.name);
+                    const stats = fs.statSync(entryPath);
+                    if (stats.mtimeMs >= activationStartedAt) {
+                        continue;
+                    }
 
-                await this.deletePathRecursive(entryPath);
+                    await this.deletePathRecursive(entryPath);
+                }
+
+                this.removeDirectoryIfEmpty(analysisPath);
+            } catch (error) {
+                logger.warn(`Error cleaning startup analysis artifacts in ${folderName}.`, error);
+                clean = false;
             }
-
-            this.removeDirectoryIfEmpty(analysisPath);
-            return true;
-        } catch (error) {
-            logger.warn('Error cleaning startup analysis artifacts.', error);
-            return false;
         }
-    }
-
-    private static getAnalysisPath(context: vscode.ExtensionContext): string | null {
-        if (!context.storageUri) {
-            return null;
-        }
-
-        return path.join(context.storageUri.fsPath, 'analysis');
+        return clean;
     }
 
     private static async deletePathRecursive(targetPath: string): Promise<void> {

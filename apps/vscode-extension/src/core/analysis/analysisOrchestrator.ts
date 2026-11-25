@@ -4,9 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { LauncherLivePanel } from './launchers/launcherLivePanel';
-import { LauncherXRAnalysis } from './launchers/launcherXRAnalysis';
-import { LauncherVisualizeDOM } from './launchers/launcherVisualizeDOM';
+import { resolveLauncher } from './launch/launchKinds';
 import { UnifiedSessionRegistry } from './session/sessionRegistry';
 import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './session/analysisSession';
 import { getLogger } from '../../platform/logging/sink';
@@ -99,79 +97,22 @@ export class AnalysisOrchestrator {
                 status: session.status
             });
             
-            // Send session to appropriate launcher
-            switch (analysisMode) {
-                case 'LivePanel':
-                    await this.orchestrateLivePanelAnalysis(session, context);
-                    break;
-                    
-                case 'XR':
-                    await this.orchestrateXRAnalysis(session, context);
-                    break;
-                    
-                case 'VisualizeDOM':
-                    await this.orchestrateVisualizeDOMAnalysis(session, context);
-                    break;
-                    
-                default:
-                    throw new Error(`Unknown analysis mode: ${analysisMode}`);
+            // One table of launch kinds (launch/launchKinds.ts) instead of a
+            // switch per mode and target type. Resolved before anything runs,
+            // so an unsupported combination is refused, not half-launched.
+            let launch: ReturnType<typeof resolveLauncher>;
+            try {
+                launch = resolveLauncher(analysisMode, session.targetType);
+            } catch (unsupported) {
+                registry.removeSession(session.id);
+                throw unsupported;
             }
-            
+            await launch(session, context);
+
         } catch (error) {
             logger.error('Error orchestrating analysis:', error);
             throw error;
         }
-    }
-    
-    /**
-     * Orchestrate Live Panel analysis with session
-     */
-    private static async orchestrateLivePanelAnalysis(session: UnifiedAnalysisSession, context: vscode.ExtensionContext): Promise<void> {
-        switch (session.targetType) {
-            case 'file':
-                logger.debug('Launching Live Panel analysis for file:', session.targetPath);
-                await LauncherLivePanel.launchFileLivePanelAnalysis(session, context);
-                break;
-                
-            case 'directory':
-                logger.debug('Launching Live Panel analysis for directory:', session.targetPath);
-                await LauncherLivePanel.launchDirectoryLivePanelAnalysis(session, context);
-                break;
-                
-            default:
-                throw new Error(`Unknown target type: ${session.targetType}`);
-        }
-    }
-    
-    /**
-     * Orchestrate XR analysis with session
-     */
-    private static async orchestrateXRAnalysis(session: UnifiedAnalysisSession, context: vscode.ExtensionContext): Promise<void> {
-        switch (session.targetType) {
-            case 'file':
-                await LauncherXRAnalysis.launchFileXRAnalysis(session, context);
-                break;
-                
-            case 'directory':
-                await LauncherXRAnalysis.launchDirectoryXRAnalysis(session, context);
-                break;
-                
-            default:
-                throw new Error(`Unknown target type: ${session.targetType}`);
-        }
-    }
-    
-    /**
-     * Orchestrate VisualizeDOM analysis with session
-     */
-    private static async orchestrateVisualizeDOMAnalysis(session: UnifiedAnalysisSession, context: vscode.ExtensionContext): Promise<void> {
-        // VisualizeDOM only supports files (HTML files specifically)
-        if (session.targetType !== 'file') {
-            throw new Error(`VisualizeDOM analysis only supports files, not ${session.targetType}`);
-        }
-        
-        logger.debug('Launching VisualizeDOM analysis for file:', session.targetPath);
-        await LauncherVisualizeDOM.launchVisualizeDOMAnalysis(session, context);
     }
     
     /**

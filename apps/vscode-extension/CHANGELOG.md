@@ -60,6 +60,15 @@
   - The table fit checked the chart's size but not its position: centring the bars could push the axis off one side. The axes are now kept on the table, and a chart that still sticks out is no longer reported as fitted.
   - The fit could measure a cached, outdated size of a line that had just changed. Sizes are now re-read when the geometry changes.
   - Generated scenes first built every chart over all files and only then switched to the top 20/30 shown. They now build once, from the files that are shown.
+- **Launching an analysis is one transaction that can be stopped.** Every analysis kind (XR, LivePanel, DOM visualization) now runs through the same launcher, and several problems it had are fixed:
+  - Closing an analysis while it is still analysing stops it: the Python analysis is killed and no server or file watcher is started afterwards. Before, the launch went on and left a server and a watcher running that nothing could reach.
+  - If the server cannot start, the file watcher is not left running, and you get one error message instead of two. The server now starts before the watcher for every kind.
+  - A launch that takes more than 10 minutes is stopped and reported instead of waiting forever.
+  - Two quick launches of the same file, or the same file spelled differently (`C:\proj\a.ts` and `c:\proj\a.ts` on Windows, a trailing slash on a folder), no longer create two sessions.
+  - Two analyses of the same file no longer share one live-reload channel, and closing one analysis no longer stops the server of another whose path merely contains the same text.
+  - Startup cleanup now removes the old generated files of file, folder and DOM analyses. It used to clean a folder nothing wrote to, so the real ones grew without limit.
+  - Analysis output with non-ASCII characters (accented file names, for example) is read correctly on Windows.
+  - Internally, the analysis types and launch kinds are declared once and the tables that repeated them are derived; `docs/adding-an-analysis-type.md` explains how to add one.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

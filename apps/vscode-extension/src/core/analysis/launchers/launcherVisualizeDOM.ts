@@ -8,6 +8,7 @@ import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { executeLaunchPipeline } from './launchPipeline';
+import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LAUNCHER_VISUALIZE_DOM');
@@ -24,9 +25,8 @@ export class LauncherVisualizeDOM {
 
         await executeLaunchPipeline(session, context, {
             logPrefix: LOG_PREFIX,
-            folderName: 'visualizeDOMAnalysis',
+            folderName: ANALYSIS_STORAGE_FOLDERS.visualizeDOM,
             progress: { process: 20, save: 40, watcherOrServer: 60, serverOrWatcher: 80, done: 100 },
-            startServerBeforeWatcher: true,
             setEndTime: true,
             rethrowErrors: true,
 
