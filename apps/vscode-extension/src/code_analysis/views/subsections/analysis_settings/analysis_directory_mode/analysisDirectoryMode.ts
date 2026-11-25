@@ -19,7 +19,7 @@ export class AnalysisDirectorySetting {
     constructor(context: vscode.ExtensionContext) {
         logger.debug('Initializing Analysis Directory setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
-        this.loadSavedMode();
+        void this.loadSavedMode();
     }
 
     /**

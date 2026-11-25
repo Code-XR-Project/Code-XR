@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ExtensionCommandRegistration } from '../../commands/shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 
 /** Official CodeXR site. */
 const CODEXR_WEBSITE_URL = 'https://code-xr.adrianmonteslinares.com/';
@@ -43,30 +43,30 @@ export class LearnMoreCommands {
     private static handleLearnMore(): void {
         const websiteUrl = CODEXR_WEBSITE_URL;
 
-        vscode.window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             'Opening CodeXR Documentation Website...',
             'Open Website'
         ).then(selection => {
             if (selection === 'Open Website') {
-                vscode.env.openExternal(vscode.Uri.parse(websiteUrl));
+                void vscode.env.openExternal(vscode.Uri.parse(websiteUrl));
             }
         });
 
-        vscode.env.openExternal(vscode.Uri.parse(websiteUrl));
+        void vscode.env.openExternal(vscode.Uri.parse(websiteUrl));
     }
 
     private static handleSupportDeveloper(): void {
         const coffeeUrl = SUPPORT_URL;
 
-        vscode.window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             'Thank you for supporting CodeXR development! Opening Buy Me a Coffee...',
             'Open Page'
         ).then(selection => {
             if (selection === 'Open Page') {
-                vscode.env.openExternal(vscode.Uri.parse(coffeeUrl));
+                void vscode.env.openExternal(vscode.Uri.parse(coffeeUrl));
             }
         });
 
-        vscode.env.openExternal(vscode.Uri.parse(coffeeUrl));
+        void vscode.env.openExternal(vscode.Uri.parse(coffeeUrl));
     }
 }

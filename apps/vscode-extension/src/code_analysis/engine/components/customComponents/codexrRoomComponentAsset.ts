@@ -3,8 +3,10 @@ import * as fs from 'fs';
 import {
     SINGLE_FILE_RUNTIME_ASSETS,
     assertRuntimeAssetSourceExists,
+    assertSourceExists,
     resolveRuntimeAssetSourcePath,
 } from './singleFileRuntimeAssets';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 const ROOM_RUNTIME = SINGLE_FILE_RUNTIME_ASSETS.room;
 
@@ -21,17 +23,16 @@ export function resolveCodeXrRoomRuntimeSourcePath(extensionPath: string): strin
 }
 
 export function resolveCodeXrRoomTextureSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, 'templates', 'components', ...ROOM_RUNTIME.folder, 'textures');
+    return resolveTemplatePath(extensionPath, 'components', ...ROOM_RUNTIME.folder, 'textures');
 }
 
 /** The runtime is checked first, then the texture directory; every entry point needs both. */
 export function assertCodeXrRoomAssetsExist(extensionPath: string): { runtimePath: string; textureDirectory: string } {
     const runtimePath = assertRuntimeAssetSourceExists(ROOM_RUNTIME, extensionPath);
-    const textureDirectory = resolveCodeXrRoomTextureSourcePath(extensionPath);
-
-    if (!fs.existsSync(textureDirectory)) {
-        throw new Error(`CodeXR room texture directory not found at ${textureDirectory}`);
-    }
+    const textureDirectory = assertSourceExists(
+        resolveCodeXrRoomTextureSourcePath(extensionPath),
+        'CodeXR room texture directory',
+    );
 
     return { runtimePath, textureDirectory };
 }

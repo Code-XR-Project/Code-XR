@@ -97,12 +97,12 @@ export class FilesByLanguageSortingCommands {
             if (currentSecondarySortBy && currentSecondarySortBy === newPrimarySortBy) {
                 logger.debug('Primary conflicts with secondary, resetting secondary to None');
                 await setting.updateLanguageGroupSecondarySorting(undefined, undefined);
-                vscode.window.showInformationMessage(`Secondary sorting reset to None to avoid conflict with primary sorting`);
+                void vscode.window.showInformationMessage(`Secondary sorting reset to None to avoid conflict with primary sorting`);
             }
 
             await setting.updateLanguageGroupPrimarySorting(picked.sortBy, picked.direction);
             refreshCallback();
-            vscode.window.showInformationMessage(`Language groups primary sorting changed to: ${picked.label}`);
+            void vscode.window.showInformationMessage(`Language groups primary sorting changed to: ${picked.label}`);
         }
     }
 
@@ -150,7 +150,7 @@ export class FilesByLanguageSortingCommands {
             const message = picked.sortBy ? 
                 `Language groups secondary sorting changed to: ${picked.label}` :
                 'Language groups secondary sorting disabled';
-            vscode.window.showInformationMessage(message);
+            void vscode.window.showInformationMessage(message);
         }
     }
 
@@ -178,7 +178,7 @@ export class FilesByLanguageSortingCommands {
         if (picked) {
             await setting.updateFilesSorting(picked.sortBy, picked.direction);
             refreshCallback();
-            vscode.window.showInformationMessage(`Files sorting changed to: ${picked.label}`);
+            void vscode.window.showInformationMessage(`Files sorting changed to: ${picked.label}`);
         }
     }
 }

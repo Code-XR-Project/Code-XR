@@ -159,7 +159,7 @@ export async function executeLaunchPipeline(
             session.endTime = new Date();
         }
 
-        vscode.window.showErrorMessage(
+        void vscode.window.showErrorMessage(
             `Failed to start analysis: ${error instanceof Error ? error.message : String(error)}`,
         );
 

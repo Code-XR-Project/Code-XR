@@ -1,4 +1,4 @@
-import { VisualizationSettings } from '../../../utils/getVisualizationConfiguration';
+import { TemplateVisualizationSettings } from '../../../utils/getVisualizationConfiguration';
 import { generateNonce } from '../../../utils/nonceGenerator';
 import {
     BOATS_BASE_COMPONENT_ATTRIBUTES,
@@ -6,9 +6,9 @@ import {
     XR_BOATS_TREE_FIELDS,
 } from '../../charts/chartPresentation';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { getLogger } from '../../../core/logging/sink';
+import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('CREATE_STRUCTURE');
 
@@ -26,7 +26,7 @@ export class CreateStructure {
     public static createStructuralPlaceholders(
         title: string,
         dataSource: string,
-        visualizationSettings: VisualizationSettings,
+        visualizationSettings: TemplateVisualizationSettings,
         analysisType: 'xr' | 'dom' | 'none' = 'none',
         context: vscode.ExtensionContext,
         chartType?: string,
@@ -122,7 +122,7 @@ export class CreateStructure {
                     return '';
             }
 
-            const scriptPath = path.join(context.extensionPath, 'templates', 'xr', 'sse', scriptFileName);
+            const scriptPath = resolveTemplatePath(context.extensionPath, 'xr', 'sse', scriptFileName);
 
             if (!fs.existsSync(scriptPath)) {
                 logger.warn(`SSE script not found at: ${scriptPath}`);
@@ -200,7 +200,7 @@ export class CreateStructure {
      * Create environment-specific placeholders
      */
     public static createEnvironmentPlaceholders(
-        visualizationSettings: VisualizationSettings
+        visualizationSettings: TemplateVisualizationSettings
     ): Map<string, string> {
         const placeholders = new Map<string, string>();
 

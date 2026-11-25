@@ -256,25 +256,25 @@ export class ActiveAnalysesCommands {
         await vscode.commands.executeCommand('codeXR.analysis.activeAnalyses.refresh');
 
         if (cleanupSuccess && removed) {
-            vscode.window.showInformationMessage('Analysis closed successfully');
+            void vscode.window.showInformationMessage('Analysis closed successfully');
             return;
         }
 
         if (!cleanupSuccess && removed) {
-            vscode.window.showWarningMessage(
+            void vscode.window.showWarningMessage(
                 'Analysis was removed from Active Analyses, but server or watcher cleanup may not have completed fully.',
             );
             return;
         }
 
         if (cleanupSuccess && !removed) {
-            vscode.window.showWarningMessage(
+            void vscode.window.showWarningMessage(
                 'Analysis resources were cleaned up, but the session entry could not be removed from Active Analyses.',
             );
             return;
         }
 
-        vscode.window.showErrorMessage('Failed to close the analysis session cleanly');
+        void vscode.window.showErrorMessage('Failed to close the analysis session cleanly');
     }
 
     private async viewInBrowser(arg?: ActiveAnalysisItem | string | any): Promise<void> {
@@ -285,13 +285,13 @@ export class ActiveAnalysesCommands {
         const { session } = selected;
 
         if (!session.serverUrl && !session.assignedPort) {
-            vscode.window.showErrorMessage('No server URL available for this analysis');
+            void vscode.window.showErrorMessage('No server URL available for this analysis');
             return;
         }
 
         const url = session.serverUrl || `http://localhost:${session.assignedPort}`;
         if (!url) {
-            vscode.window.showErrorMessage('Could not determine server URL for this analysis');
+            void vscode.window.showErrorMessage('Could not determine server URL for this analysis');
             return;
         }
 
@@ -307,7 +307,7 @@ export class ActiveAnalysesCommands {
 
         const sourcePath = this.resolveExportSourcePath(session);
         if (!sourcePath) {
-            vscode.window.showErrorMessage('No analysis output folder is available to export');
+            void vscode.window.showErrorMessage('No analysis output folder is available to export');
             return;
         }
 
@@ -360,7 +360,7 @@ export class ActiveAnalysesCommands {
         try {
             const preflight = await inspectGitRevisionExport(this.extensionContext, session);
             if (preflight.commitCount < 1) {
-                vscode.window.showErrorMessage(
+                void vscode.window.showErrorMessage(
                     'Historical comparison and Project evolution need at least one Git commit to export.',
                 );
                 return { kind: 'cancelled' };
@@ -402,7 +402,7 @@ export class ActiveAnalysesCommands {
             }
             return { kind: 'request', request: { scope, performanceProfile: performanceItem.profile } };
         } catch (error) {
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 `The Git timeline cannot be exported: ${error instanceof Error ? error.message : String(error)}`,
             );
             return { kind: 'cancelled' };
@@ -496,7 +496,7 @@ export class ActiveAnalysesCommands {
         const destinationPath = path.join(selectedFolder[0].fsPath, exportFolderName);
 
         if (fs.existsSync(destinationPath)) {
-            vscode.window.showWarningMessage(
+            void vscode.window.showWarningMessage(
                 `The destination folder already exists: ${destinationPath}. Choose a different location or remove the existing folder first.`,
             );
             return undefined;
@@ -545,11 +545,11 @@ export class ActiveAnalysesCommands {
         } catch (error) {
             await abortExportPackage(transaction);
             if (error instanceof ExportCancelledError) {
-                vscode.window.showInformationMessage(
+                void vscode.window.showInformationMessage(
                     'Analysis export cancelled. No partial folder was published.',
                 );
             } else {
-                vscode.window.showErrorMessage(
+                void vscode.window.showErrorMessage(
                     `Failed to export analysis folder: ${error instanceof Error ? error.message : String(error)}`,
                 );
             }
@@ -645,9 +645,9 @@ export class ActiveAnalysesCommands {
         const completionMessage = `Analysis folder exported to ${destinationPath}.${revisionsNote}${partialNote} `
             + 'Serve it with any static HTTP server (e.g. "npx serve") to open it outside VS Code.';
         if (partialGitSources) {
-            vscode.window.showWarningMessage(completionMessage);
+            void vscode.window.showWarningMessage(completionMessage);
         } else {
-            vscode.window.showInformationMessage(completionMessage);
+            void vscode.window.showInformationMessage(completionMessage);
         }
     }
 
@@ -705,13 +705,13 @@ export class ActiveAnalysesCommands {
     ): { sessionId: string; session: UnifiedAnalysisSession } | undefined {
         const sessionId = this.extractSessionId(arg);
         if (!sessionId) {
-            vscode.window.showErrorMessage('No analysis selected');
+            void vscode.window.showErrorMessage('No analysis selected');
             return undefined;
         }
 
         const session = this.sessionRegistry.getSession(sessionId);
         if (!session) {
-            vscode.window.showErrorMessage('Analysis session not found');
+            void vscode.window.showErrorMessage('Analysis session not found');
             return undefined;
         }
         return { sessionId, session };

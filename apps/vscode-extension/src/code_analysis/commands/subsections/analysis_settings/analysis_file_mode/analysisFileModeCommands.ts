@@ -45,12 +45,12 @@ export class AnalysisFileModeCommands {
     private async toggleAnalysisFileMode(refreshCallback: () => void): Promise<void> {
         try {
             const newMode = await this.analysisFileSetting.toggleMode();
-            vscode.window.showInformationMessage(`Analysis File mode switched to: ${newMode}`, { modal: false });
+            void vscode.window.showInformationMessage(`Analysis File mode switched to: ${newMode}`, { modal: false });
             refreshCallback();
             logger.debug(() => `Command executed - Analysis file mode: ${newMode}`);
         } catch (error) {
             logger.error('Error toggling analysis file mode:', error);
-            vscode.window.showErrorMessage(`Failed to toggle analysis file mode: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to toggle analysis file mode: ${error}`);
         }
     }
 }

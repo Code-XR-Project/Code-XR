@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 import { VisualizationSettings, DEFAULT_VISUALIZATION_SETTINGS } from '../model/settingsModel';
+import {
+    LEGACY_STORAGE_KEY,
+    StoredVisualizationSettingsJson,
+    getVisualizationConfigDirectory,
+    getVisualizationSettingsFilePath,
+} from './settingsFile';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('SETTINGS_STORAGE');
@@ -11,9 +16,6 @@ const logger = getLogger('SETTINGS_STORAGE');
  * Manages persistent storage and retrieval of visualization configuration using file system
  */
 export class VisualizationSettingsStorage {
-    private static readonly VISUALIZATION_CONFIG_DIR = 'visualization-configuration';
-    private static readonly SETTINGS_FILE = 'visualization-settings.json';
-    private static readonly LEGACY_STORAGE_KEY = 'visualizationSettings'; // For migration
     private context: vscode.ExtensionContext;
 
     constructor(context: vscode.ExtensionContext) {
@@ -25,15 +27,14 @@ export class VisualizationSettingsStorage {
      * Get the visualization configuration directory path
      */
     private getConfigDirectory(): string {
-        const globalStorageUri = this.context.globalStorageUri;
-        return path.join(globalStorageUri.fsPath, VisualizationSettingsStorage.VISUALIZATION_CONFIG_DIR);
+        return getVisualizationConfigDirectory(this.context.globalStorageUri);
     }
 
     /**
      * Get the settings file path
      */
     private getSettingsFilePath(): string {
-        return path.join(this.getConfigDirectory(), VisualizationSettingsStorage.SETTINGS_FILE);
+        return getVisualizationSettingsFilePath(this.context.globalStorageUri);
     }
 
     /**
@@ -59,7 +60,7 @@ export class VisualizationSettingsStorage {
     private migrateLegacySettings(): void {
         try {
             const legacySettings = this.context.globalState.get<VisualizationSettings>(
-                VisualizationSettingsStorage.LEGACY_STORAGE_KEY
+                LEGACY_STORAGE_KEY
             );
 
             if (legacySettings && !fs.existsSync(this.getSettingsFilePath())) {
@@ -95,12 +96,7 @@ export class VisualizationSettingsStorage {
             
             if (fs.existsSync(settingsFilePath)) {
                 const fileContent = fs.readFileSync(settingsFilePath, 'utf8');
-                const jsonSettings = JSON.parse(fileContent) as { 
-                    backgroundColor?: string; 
-                    groundColor?: string;
-                    environment: string; 
-                    palette: string 
-                };
+                const jsonSettings = JSON.parse(fileContent) as StoredVisualizationSettingsJson;
 
                 // Build complete settings from JSON with fallbacks to defaults
                 const settings: VisualizationSettings = {
@@ -143,7 +139,7 @@ export class VisualizationSettingsStorage {
             
             // Also save complete settings to globalState for backward compatibility
             await this.context.globalState.update(
-                VisualizationSettingsStorage.LEGACY_STORAGE_KEY,
+                LEGACY_STORAGE_KEY,
                 settings
             );
             

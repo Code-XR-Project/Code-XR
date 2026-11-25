@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getLogger } from '../../core/logging/sink';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('COLOR_PICKER_UTILS');
 
@@ -11,8 +12,6 @@ export interface ColorPickerOptions {
 }
 
 export class ColorPickerUtils {
-    private static readonly TEMPLATE_PATH = 'templates/utils/color-picker.html';
-    
     /**
      * Load and process the color picker HTML template
      */
@@ -21,7 +20,7 @@ export class ColorPickerUtils {
         options: ColorPickerOptions
     ): Promise<string> {
         try {
-            const templatePath = path.join(context.extensionPath, this.TEMPLATE_PATH);
+            const templatePath = resolveTemplatePath(context.extensionPath, 'utils', 'color-picker.html');
             let templateContent = fs.readFileSync(templatePath, 'utf8');
             
             // Replace placeholders
@@ -51,7 +50,7 @@ export class ColorPickerUtils {
                 enableScripts: true,
                 retainContextWhenHidden: true,
                 localResourceRoots: [
-                    vscode.Uri.file(path.join(context.extensionPath, 'templates'))
+                    vscode.Uri.file(resolveTemplatePath(context.extensionPath))
                 ]
             }
         );

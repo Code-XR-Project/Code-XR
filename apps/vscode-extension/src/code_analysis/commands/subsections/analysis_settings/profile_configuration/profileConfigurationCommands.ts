@@ -13,6 +13,13 @@ import { getLogger } from '../../../../../core/logging/sink';
 
 const logger = getLogger('PROFILE_CONFIGURATION_COMMANDS');
 
+interface StoredProfileItem {
+    label: string;
+    description: string;
+    detail: string;
+    profilePath: string;
+}
+
 export class ProfileConfigurationCommands {
 
     constructor(
@@ -99,7 +106,7 @@ export class ProfileConfigurationCommands {
             
         } catch (error) {
             logger.error('Error resetting to defaults:', error);
-            vscode.window.showErrorMessage(`Failed to reset to defaults: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to reset to defaults: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -171,11 +178,11 @@ export class ProfileConfigurationCommands {
             fs.writeFileSync(profilePath, JSON.stringify(profileData, null, 2));
             
             logger.debug(() => `Profile "${profileName}" saved successfully`);
-            vscode.window.showInformationMessage(`Configuration profile "${profileName}" saved successfully`);
+            void vscode.window.showInformationMessage(`Configuration profile "${profileName}" saved successfully`);
             
         } catch (error) {
             logger.error('Error saving profile:', error);
-            vscode.window.showErrorMessage(`Failed to save profile: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to save profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -186,43 +193,10 @@ export class ProfileConfigurationCommands {
         logger.debug('Loading profile');
         
         try {
-            const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
-            
-            // Check if profiles directory exists
-            if (!fs.existsSync(profilesDir)) {
-                vscode.window.showInformationMessage('No saved profiles found');
+            const profileItems = this.listStoredProfiles();
+            if (!profileItems) {
                 return;
             }
-
-            // Get list of saved profiles
-            const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
-            
-            if (profileFiles.length === 0) {
-                vscode.window.showInformationMessage('No saved profiles found');
-                return;
-            }
-
-            // Create quick pick items
-            const profileItems = profileFiles.map(file => {
-                const profilePath = path.join(profilesDir, file);
-                try {
-                    const profileData = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
-                    const savedDate = new Date(profileData.savedAt).toLocaleString();
-                    return {
-                        label: profileData.name || file.replace('.json', ''),
-                        description: `Saved: ${savedDate}`,
-                        detail: `Version: ${profileData.version || 'Unknown'}`,
-                        profilePath: profilePath
-                    };
-                } catch {
-                    return {
-                        label: file.replace('.json', ''),
-                        description: 'Invalid profile data',
-                        detail: 'This profile may be corrupted',
-                        profilePath: profilePath
-                    };
-                }
-            });
 
             // Show profile selection
             const selectedProfile = await vscode.window.showQuickPick(profileItems, {
@@ -256,11 +230,11 @@ export class ProfileConfigurationCommands {
             await storage.updateConfiguration(profileData.configuration);
             
             logger.debug(() => `Profile "${selectedProfile.label}" loaded successfully`);
-            vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" loaded successfully`);
+            void vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" loaded successfully`);
             
         } catch (error) {
             logger.error('Error loading profile:', error);
-            vscode.window.showErrorMessage(`Failed to load profile: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to load profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -271,43 +245,10 @@ export class ProfileConfigurationCommands {
         logger.debug('Deleting profile');
         
         try {
-            const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
-            
-            // Check if profiles directory exists
-            if (!fs.existsSync(profilesDir)) {
-                vscode.window.showInformationMessage('No saved profiles found');
+            const profileItems = this.listStoredProfiles();
+            if (!profileItems) {
                 return;
             }
-
-            // Get list of saved profiles
-            const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
-            
-            if (profileFiles.length === 0) {
-                vscode.window.showInformationMessage('No saved profiles found');
-                return;
-            }
-
-            // Create quick pick items
-            const profileItems = profileFiles.map(file => {
-                const profilePath = path.join(profilesDir, file);
-                try {
-                    const profileData = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
-                    const savedDate = new Date(profileData.savedAt).toLocaleString();
-                    return {
-                        label: profileData.name || file.replace('.json', ''),
-                        description: `Saved: ${savedDate}`,
-                        detail: `Version: ${profileData.version || 'Unknown'}`,
-                        profilePath: profilePath
-                    };
-                } catch {
-                    return {
-                        label: file.replace('.json', ''),
-                        description: 'Invalid profile data',
-                        detail: 'This profile may be corrupted',
-                        profilePath: profilePath
-                    };
-                }
-            });
 
             // Show profile selection
             const selectedProfile = await vscode.window.showQuickPick(profileItems, {
@@ -335,11 +276,55 @@ export class ProfileConfigurationCommands {
             fs.unlinkSync(selectedProfile.profilePath);
             
             logger.debug(() => `Profile "${selectedProfile.label}" deleted successfully`);
-            vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" deleted successfully`);
+            void vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" deleted successfully`);
             
         } catch (error) {
             logger.error('Error deleting profile:', error);
-            vscode.window.showErrorMessage(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    /**
+     * The saved profiles as quick-pick items (a corrupt file is listed as
+     * such), or undefined after telling the user there are none.
+     */
+    private listStoredProfiles(): StoredProfileItem[] | undefined {
+        const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
+
+        // Check if profiles directory exists
+        if (!fs.existsSync(profilesDir)) {
+            void vscode.window.showInformationMessage('No saved profiles found');
+            return undefined;
+        }
+
+        // Get list of saved profiles
+        const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
+
+        if (profileFiles.length === 0) {
+            void vscode.window.showInformationMessage('No saved profiles found');
+            return undefined;
+        }
+
+        // Create quick pick items
+        return profileFiles.map(file => {
+            const profilePath = path.join(profilesDir, file);
+            try {
+                const profileData = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+                const savedDate = new Date(profileData.savedAt).toLocaleString();
+                return {
+                    label: profileData.name || file.replace('.json', ''),
+                    description: `Saved: ${savedDate}`,
+                    detail: `Version: ${profileData.version || 'Unknown'}`,
+                    profilePath: profilePath
+                };
+            } catch {
+                return {
+                    label: file.replace('.json', ''),
+                    description: 'Invalid profile data',
+                    detail: 'This profile may be corrupted',
+                    profilePath: profilePath
+                };
+            }
+        });
     }
 }

@@ -135,7 +135,7 @@ export class VenvManager {
 
             this.logInfo('PYTHON_ENV: Virtual environment created successfully');
             this.uiState.setReady('Python virtual environment is ready.');
-            vscode.window.showInformationMessage('Python virtual environment created successfully!');
+            void vscode.window.showInformationMessage('Python virtual environment created successfully!');
         } catch (error) {
             const detail = this.getErrorDetails(error);
             if (this.isPermissionError(detail) && os.platform() === 'win32') {
@@ -276,10 +276,10 @@ export class VenvManager {
 
             this.uiState.setIdle('Python virtual environment deleted.');
             this.logInfo('PYTHON_ENV: Environment deleted successfully');
-            vscode.window.showInformationMessage('Python virtual environment deleted successfully!');
+            void vscode.window.showInformationMessage('Python virtual environment deleted successfully!');
         } catch (error) {
             this.logError('PYTHON_ENV: Failed to delete environment:', error);
-            vscode.window.showErrorMessage(`Failed to delete environment: ${this.getErrorDetails(error)}`);
+            void vscode.window.showErrorMessage(`Failed to delete environment: ${this.getErrorDetails(error)}`);
         }
     }
 
@@ -308,10 +308,10 @@ export class VenvManager {
             });
 
             this.logInfo(`PYTHON_ENV: Package ${packageName} installed successfully`);
-            vscode.window.showInformationMessage(`Package ${packageName} installed successfully!`);
+            void vscode.window.showInformationMessage(`Package ${packageName} installed successfully!`);
         } catch (error) {
             this.logError(`PYTHON_ENV: Failed to install package ${packageName}:`, error);
-            vscode.window.showErrorMessage(`Failed to install package ${packageName}: ${this.getErrorDetails(error)}`);
+            void vscode.window.showErrorMessage(`Failed to install package ${packageName}: ${this.getErrorDetails(error)}`);
         }
     }
 

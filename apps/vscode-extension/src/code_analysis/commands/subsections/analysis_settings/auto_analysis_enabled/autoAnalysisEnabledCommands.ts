@@ -57,7 +57,7 @@ export class AutoAnalysisEnabledCommands {
             
         } catch (error) {
             logger.error('Error toggling auto-analysis enabled state:', error);
-            vscode.window.showErrorMessage(`Failed to toggle auto-analysis state: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to toggle auto-analysis state: ${error}`);
         }
     }
 }

@@ -1,28 +1,23 @@
 import * as vscode from 'vscode';
 import { DimensionDataType } from '../../babia_templates/models/chartModels';
+import type {
+    XRFieldDefinition,
+    XRFieldSchema,
+    XRFieldTypeMap,
+    XRSchemaTargetType,
+} from '../../babia_templates/models/xrFieldModels';
 import { ExecutePython } from '../engine/utils/executePython';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('XR_FIELD_SCHEMA');
 
-export type XRSchemaTargetType = 'file' | 'directory';
-export type XRFieldValueType = 'numeric' | 'text';
-
-export interface XRFieldDefinition {
-    id: string;
-    label: string;
-    description: string;
-    valueType: XRFieldValueType;
-}
-
-export interface XRFieldSchema {
-    schemaVersion: number;
-    analysisMode: 'xr';
-    targetType: XRSchemaTargetType;
-    fields: XRFieldDefinition[];
-}
-
-export type XRFieldTypeMap = Record<string, XRFieldValueType>;
+export type {
+    XRFieldDefinition,
+    XRFieldSchema,
+    XRFieldTypeMap,
+    XRFieldValueType,
+    XRSchemaTargetType,
+} from '../../babia_templates/models/xrFieldModels';
 
 interface GetSchemaOptions {
     allowCacheFallback?: boolean;

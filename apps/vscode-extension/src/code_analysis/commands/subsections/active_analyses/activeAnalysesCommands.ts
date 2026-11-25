@@ -9,7 +9,7 @@ import { UnifiedSessionRegistry } from '../../../engine/core/sessionRegistry';
 import { ServerWatcherIntegration } from '../../../services/serverWatcherIntegration';
 import { ActiveAnalysesCommands as ActiveAnalysesViewCommands } from '../../../views/subsections/active_analyses/commands/activeAnalysesCommands';
 
-export class ActiveAnalysesCommands {
+export class ActiveAnalysesCommandRegistrations {
     constructor(_context: vscode.ExtensionContext) {}
 
     static getCommandRegistrations(

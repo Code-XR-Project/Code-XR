@@ -90,12 +90,12 @@ export async function handleHttpModeClick(): Promise<void> {
             });
             
             logger.debug(() => `HTTP mode changed to ${selected} with custom certificates`);
-            vscode.window.showInformationMessage(`SERVER: HTTPS mode updated with custom certificates`);
+            void vscode.window.showInformationMessage(`SERVER: HTTPS mode updated with custom certificates`);
         } else {
             // Handle HTTP and HTTPS with generated local certificates
             await updateServerConfig({ httpMode: selected });
             logger.debug(() => `HTTP mode changed to ${selected}`);
-            vscode.window.showInformationMessage(`SERVER: HTTP mode updated to ${selected}`);
+            void vscode.window.showInformationMessage(`SERVER: HTTP mode updated to ${selected}`);
         }
     }
 }
@@ -125,7 +125,7 @@ export async function handlePortClick(): Promise<void> {
         const port = parseInt(input);
         await updateServerConfig({ port });
         logger.debug(() => `Port changed to ${port}`);
-        vscode.window.showInformationMessage(`SERVER: Port updated to ${port}`);
+        void vscode.window.showInformationMessage(`SERVER: Port updated to ${port}`);
     }
 }
 
@@ -143,7 +143,7 @@ export async function handleAutoOpenClick(): Promise<void> {
     logger.debug(() => `Auto-Open toggled to ${newValue ? 'Yes' : 'No'}`);
     
     const message = newValue ? 'Auto-Open enabled' : 'Auto-Open disabled';
-    vscode.window.showInformationMessage(`SERVER: ${message}`);
+    void vscode.window.showInformationMessage(`SERVER: ${message}`);
 }
 
 /**
@@ -158,6 +158,6 @@ export async function handleOpenModeClick(): Promise<void> {
     
     await updateServerConfig({ openMode: newMode });
     logger.debug(() => `Open Mode changed to ${newMode}`);
-    vscode.window.showInformationMessage(`SERVER: Open Mode set to ${newMode}`);
+    void vscode.window.showInformationMessage(`SERVER: Open Mode set to ${newMode}`);
 }
 

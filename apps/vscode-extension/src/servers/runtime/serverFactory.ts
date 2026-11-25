@@ -6,13 +6,14 @@ import { HttpsCustomServer } from './httpsCustomServer';
 import type { ServerSettings } from '../storage/serverSettingsManager';
 import type { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
 import { getLogger } from '../../core/logging/sink';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('SERVER');
 
 /*
  * The server factory behind MultiServerLauncher: which server class a set of
- * settings asks for, and building and starting it. It stays in runtime/
- * because the no-scene static root is resolved from this file's __dirname.
+ * settings asks for, and building and starting it. With no scene file the
+ * static root is the extension's templates folder (resolveTemplatePath).
  */
 
 /**
@@ -126,7 +127,7 @@ export async function launchServerByType(
         let serverUrl: string;
 
         // Default server configuration
-        const staticRoot = htmlFile ? path.dirname(htmlFile) : path.join(__dirname, '../../../templates');
+        const staticRoot = htmlFile ? path.dirname(htmlFile) : resolveTemplatePath(context.extensionPath);
         const mainFile = htmlFile ? path.basename(htmlFile) : undefined;
         const enableCors = true;
         const allowedOrigins = ['*'];

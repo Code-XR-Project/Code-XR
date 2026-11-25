@@ -375,7 +375,8 @@ export class VisualizeDataStateManager {
      */
     private saveState(): void {
         try {
-            this.context.workspaceState.update('visualizeDataState', this.state);
+            // 1.3.0: the surrounding catch never sees this write fail; await it.
+            void this.context.workspaceState.update('visualizeDataState', this.state);
             logger.debug('BABIA-TEMPLATES: State saved to workspace storage');
         } catch (error) {
             logger.error('BABIA-TEMPLATES: Failed to save state:', error);

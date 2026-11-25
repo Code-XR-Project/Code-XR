@@ -24,17 +24,18 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 131,
+    "any.total": 130,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
       "code_analysis": 53,
-      "commands": 8,
+      "commands": 6,
+      "platform": 7,
       "python_env": 5,
       "servers": 11,
       "utils": 13,
-      "views": 20,
-      "visualization_settings": 6,
+      "views": 15,
+      "visualization_settings": 5,
       "visualize_data": 2
     },
     "suppressions.total": 0,
@@ -53,14 +54,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 38,
-    "complexity.over10": 56,
-    "complexity.over15": 11,
-    "complexity.over20": 1,
+    "functions.over80Lines": 36,
+    "complexity.over10": 54,
+    "complexity.over15": 9,
+    "complexity.over20": 0,
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 496,
+    "eslint.maxWarnings": 204,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -68,9 +69,9 @@
     }
   },
   "informational": {
-    "src.files": 334,
-    "src.lines": 49466,
-    "src.functions": 3330,
+    "src.files": 337,
+    "src.lines": 49505,
+    "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -100,6 +101,10 @@
         "count": 5
       },
       {
+        "file": "src/platform/tree/baseInterfaces.ts",
+        "count": 5
+      },
+      {
         "file": "src/python_env/runtime/venvManager.ts",
         "count": 5
       },
@@ -109,10 +114,6 @@
       },
       {
         "file": "src/utils/jsonFieldAnalyzer.ts",
-        "count": 5
-      },
-      {
-        "file": "src/views/common/baseInterfaces.ts",
         "count": 5
       },
       {
@@ -142,22 +143,10 @@
     ],
     "complexity.worst10": [
       {
-        "ccn": 22,
-        "lines": 61,
-        "function": "handleDependencyGraphSettingsMessage",
-        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
-      },
-      {
         "ccn": 20,
         "lines": 73,
         "function": "sampleTimeline",
         "file": "src/code_analysis/historical/gitTimelineSampler.ts"
-      },
-      {
-        "ccn": 19,
-        "lines": 88,
-        "function": "handleDependencyGraphStartMessage",
-        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
       },
       {
         "ccn": 19,
@@ -200,6 +189,18 @@
         "lines": 81,
         "function": "closeAssociatedAnalysisSession",
         "file": "src/active_servers/runtime/serverControl.ts"
+      },
+      {
+        "ccn": 16,
+        "lines": 31,
+        "function": "validateConfig",
+        "file": "src/active_servers/services/serverRegistrar.ts"
+      },
+      {
+        "ccn": 15,
+        "lines": 88,
+        "function": "startLocalServer",
+        "file": "src/servers/commands/serverCommands.ts"
       }
     ],
     "size.largest10": [
@@ -213,7 +214,7 @@
       },
       {
         "file": "src/code_analysis/export/exportManifest.ts",
-        "lines": 745
+        "lines": 746
       },
       {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
@@ -228,12 +229,12 @@
         "lines": 617
       },
       {
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 581
+        "file": "src/servers/runtime/httpServer.ts",
+        "lines": 582
       },
       {
-        "file": "src/servers/runtime/httpServer.ts",
-        "lines": 576
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 581
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -272,6 +273,20 @@
       "from": 1,
       "to": 2,
       "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1 at e16b95e8)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 0,
+      "to": 2,
+      "reason": "#42: commandRegistry.ts moved from commands/shared/ to platform/commands/; its two any move with it (commands 8 -> 6, total unchanged)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 2,
+      "to": 7,
+      "reason": "#42: views/common/baseInterfaces.ts moved to platform/tree/ (its src-layout.md destination); its any moves with it (views and platform shift by the same count, total unchanged)",
       "date": "2026-11-25"
     }
   ]

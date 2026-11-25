@@ -83,7 +83,7 @@ export async function showChartTypeSelection<Mode extends string>(adapter: Chart
 
         if (availableCharts.length === 0) {
             logger.error(`${prefix}: No chart types found`);
-            vscode.window.showErrorMessage('No chart templates available');
+            void vscode.window.showErrorMessage('No chart templates available');
             return;
         }
 
@@ -105,12 +105,12 @@ export async function showChartTypeSelection<Mode extends string>(adapter: Chart
             await adapter.setChartType(selectedChart.id);
 
             logger.debug(() => `${prefix}: Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
-            vscode.window.showInformationMessage(adapter.confirmation(selectedChart.name, currentMode));
+            void vscode.window.showInformationMessage(adapter.confirmation(selectedChart.name, currentMode));
         } else {
             logger.debug(() => `${prefix}: Chart type selection cancelled`);
         }
     } catch (error) {
         logger.error(`${prefix}: Error in chart type selection:`, error);
-        vscode.window.showErrorMessage(`Failed to select chart type: ${error instanceof Error ? error.message : String(error)}`);
+        void vscode.window.showErrorMessage(`Failed to select chart type: ${error instanceof Error ? error.message : String(error)}`);
     }
 }

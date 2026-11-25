@@ -21,13 +21,13 @@ const logger = getLogger('SERVER');
  */
 export function warnHttpsOverriddenForPanel(): void {
     // Show non-blocking warning to user with actionable information
-    vscode.window.showWarningMessage(
+    void vscode.window.showWarningMessage(
         'Launching in HTTP mode due to VS Code limitations: lateral panel views do not support HTTPS content. Use browser mode to preserve HTTPS.',
         'Change to Browser Mode'
     ).then(action => {
         if (action === 'Change to Browser Mode') {
             // Open the configuration to change open mode
-            vscode.commands.executeCommand('codexr.server.config.openMode');
+            void vscode.commands.executeCommand('codexr.server.config.openMode');
         }
     });
 }
@@ -36,7 +36,7 @@ export function warnHttpsOverriddenForPanel(): void {
  * Tell the user the configured port was busy and which one is used instead.
  */
 export function notifyPortChanged(requestedPort: number, finalPort: number): void {
-    vscode.window.showInformationMessage(
+    void vscode.window.showInformationMessage(
         `Port ${requestedPort} was busy, launching server on port ${finalPort} instead.`
     );
 }
@@ -75,23 +75,23 @@ export async function handleAutoOpening(
             }
         }
         
-        vscode.window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             notificationMessage,
             'Open Now', 'Copy Network URL'
         ).then(action => {
             if (action === 'Open Now') {
                 // Use the active server action handler to respect the configured mode
                 if (launchMode === 'browser') {
-                    openLaunchedServerInBrowser(activeServerId);
+                    void openLaunchedServerInBrowser(activeServerId);
                 } else {
-                    openLaunchedServerInPanel(activeServerId);
+                    void openLaunchedServerInPanel(activeServerId);
                 }
             } else if (action === 'Copy Network URL' && port) {
                 const localIP = NetworkUtils.getLocalIPAddress();
                 if (localIP !== 'localhost') {
                     const networkUrl = `${protocol}://${localIP}:${port}`;
-                    vscode.env.clipboard.writeText(networkUrl);
-                    vscode.window.showInformationMessage('Network URL copied to clipboard');
+                    void vscode.env.clipboard.writeText(networkUrl);
+                    void vscode.window.showInformationMessage('Network URL copied to clipboard');
                 }
             }
         });
@@ -109,21 +109,25 @@ export async function handleAutoOpening(
         }
     } catch (error) {
         logger.error('Error during auto-opening:', error);
-        vscode.window.showWarningMessage(
+        void vscode.window.showWarningMessage(
             `Server launched but failed to auto-open: ${error instanceof Error ? error.message : String(error)}`,
             'Open Manually'
         ).then(action => {
             if (action === 'Open Manually') {
                 if (launchMode === 'browser') {
-                    openLaunchedServerInBrowser(activeServerId);
+                    void openLaunchedServerInBrowser(activeServerId);
                 } else {
-                    openLaunchedServerInPanel(activeServerId);
+                    void openLaunchedServerInPanel(activeServerId);
                 }
             }
         });
     }
 }
 
+// 1.3.0: the toast callbacks above start these two helpers with `void`, but
+// they log and rethrow, so a failed open there is an unhandled rejection;
+// await and report it instead. The "Copy Network URL" action likewise
+// confirms the copy without awaiting clipboard.writeText.
 /**
  * Open server in browser using shared handler
  */

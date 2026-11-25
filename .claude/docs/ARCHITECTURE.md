@@ -69,10 +69,13 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `visualize_data/` | User-driven "visualize your own JSON" flow | commands + launcher |
 | `visualization_settings/` | Visualization settings (colors, chart config) + color picker | storage + model |
 | `core/` | Extension context, logging, startup coordination | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `startup/startupCoordinator.ts` |
+| `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports), `tree/baseInterfaces.ts` (the section-provider contract every sidebar section implements) |
 | `learn_more/` | "Learn more" help section in the tree | commands + views |
 | `utils/` | Shared helpers | `languageMetadata.ts`, `fileToServerMap.ts`, `commandBuilder.ts`, `errorHandler.ts`, `nonceGenerator.ts` |
 
 **Per-feature layout convention** (followed by most modules): `commands/` + `model(s)/` + `runtime/` or `services/` + `views/{items,interactions}` + `registry|storage|state/`. When adding a feature, mirror this pattern.
+
+**Folder dependencies** (story #42): which top-level folder may import which is data in `test/tooling/folderDependencies.json`, checked by `test/tooling/dependencyDirection.test.cjs` (type imports count). A new cross-folder direction fails the gate until it is added there; a new two-way pair also needs a written reason. Five pairs remain, each documented in that file (all inside the server/analysis subsystems: `active_servers`, `servers`, `remote_access`, `code_analysis`). `platform/` and `core/` import no feature folder.
 
 **Barrel policy** (decided 2026-09-18, measured): 82% of the relative imports in `src/` (807 of 981) already name a concrete file, and 32 of the 82 `index.ts` barrels have no importer at all. So: **import the concrete file; do not add a barrel "for symmetry"**. A barrel earns its place only with real fan-in (e.g. `src/views/index.ts`, `src/commands/shared/index.ts`, `engine/components/customComponents/index.ts`). An unimported barrel is dead code and keeps otherwise-dead modules looking referenced.
 
@@ -101,7 +104,7 @@ Every diagnostic of the extension host goes through `src/core/logging`. A module
 
 | Path | What it is |
 |---|---|
-| `templates/` | Raw HTML templates + **browser-side JS runtimes**. `xr/` (scene templates + SSE client scripts), `analysis_livePanel/` (webview panels), `components/` (A-Frame component runtimes — see `templates/components/COMPONENTS.md`; `components/livepanel/` holds shared 2D LivePanel components such as `dataTable.{js,css}` that `LivePanelParser` bundles ahead of each panel's own `main.js`/`style.css`), `utils/color-picker.html`. Read in place at `<extensionPath>/templates` and shipped by the `files` allowlist; not copied into `dist/` since 1.2.1. |
+| `templates/` | Raw HTML templates + **browser-side JS runtimes**. `xr/` (scene templates + SSE client scripts), `analysis_livePanel/` (webview panels), `components/` (A-Frame component runtimes — see `templates/components/COMPONENTS.md`; `components/livepanel/` holds shared 2D LivePanel components such as `dataTable.{js,css}` that `LivePanelParser` bundles ahead of each panel's own `main.js`/`style.css`), `utils/color-picker.html`. Read in place at `<extensionPath>/templates` and shipped by the `files` allowlist; not copied into `dist/` since 1.2.1. Source code builds every template path with `resolveTemplatePath(extensionPath, …)` (`src/platform/templatePaths.ts`), never from `__dirname` (wrong from the bundle); tests use `test/helpers/templatesRoot.cjs`. |
 | `test/` | All tests. `.test.cjs` unit suites (Node native runner), Python suites, language fixtures, manual HTML harnesses. See `DEVELOPMENT.md`. |
 | `resources/` | Icons and media (per-language icons, collaboration/comparison/screen assets). |
 | `examples/` | Bundled sample charts + data for the Babia Examples tree section. |

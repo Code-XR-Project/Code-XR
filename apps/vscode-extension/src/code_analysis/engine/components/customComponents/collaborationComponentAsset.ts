@@ -1,30 +1,17 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { assembleRuntimeContent, writeAssembledRuntimeToOutput } from './runtimeAssembly';
+import { assertSourceExists } from './singleFileRuntimeAssets';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 export const CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME = 'codexrCollaborationRuntime.js';
 export const CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME = 'codexrDomSceneCollaborationRuntime.js';
 
-const CODEXR_DOM_SCENE_COLLAB_RUNTIME_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'dom-scene',
-    CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME,
-] as const;
-
-function assertSourceExists(sourcePath: string, label: string): string {
-    if (!fs.existsSync(sourcePath)) {
-        throw new Error(`${label} not found at ${sourcePath}`);
-    }
-    return sourcePath;
+function resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath: string): string {
+    return resolveTemplatePath(extensionPath, 'components', 'codexr', 'dom-scene', CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME);
 }
 
-export function resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_DOM_SCENE_COLLAB_RUNTIME_SOURCE_SEGMENTS);
-}
-
-export function assertCodeXrDomSceneCollaborationRuntimeSourceExists(extensionPath: string): string {
+function assertCodeXrDomSceneCollaborationRuntimeSourceExists(extensionPath: string): string {
     return assertSourceExists(
         resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath),
         'CodeXR DOM scene collaboration runtime',

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SectionProvider } from '../common/baseInterfaces';
+import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { VisualizationSettingsModularTreeItem, VisualizationSettingsModularItemFactory } from './items/visualizationSettingsItems';
 import { VisualizationSettingsClickHandler } from './interactions/handleVisualizationSettingsClicks';
 import { VisualizationSettingsStorage } from '../../visualization_settings/storage/settingsStorage';

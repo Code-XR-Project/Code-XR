@@ -29,6 +29,20 @@ let multiServerLauncher: MultiServerLauncher | null = null;
 let extensionContext: vscode.ExtensionContext | null = null;
 
 /**
+ * The single "no extension context yet" refusal: shows the toast and narrows
+ * the module-level context for the caller when it is set.
+ */
+function requireExtensionContext(
+    context: vscode.ExtensionContext | null
+): context is vscode.ExtensionContext {
+    if (!context) {
+        void vscode.window.showErrorMessage('SERVER: Extension context not available');
+        return false;
+    }
+    return true;
+}
+
+/**
  * Opens server configuration panel
  */
 export async function configureServer(): Promise<void> {
@@ -60,10 +74,10 @@ export async function configureServer(): Promise<void> {
         }
         
         logger.debug(() => `Configuration changed to ${currentServerConfig.mode}`);
-        vscode.window.showInformationMessage(`SERVER: Configuration updated to ${currentServerConfig.mode}`);
+        void vscode.window.showInformationMessage(`SERVER: Configuration updated to ${currentServerConfig.mode}`);
         
         // Refresh the tree view
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
     }
 }
 
@@ -85,8 +99,7 @@ export async function startLocalServer(): Promise<void> {
         logger.debug(() => `Selected HTML file: ${selectedFile}`);
         
         // Step 2: Get extension context and initialize multi-server launcher
-        if (!extensionContext) {
-            vscode.window.showErrorMessage('SERVER: Extension context not available');
+        if (!requireExtensionContext(extensionContext)) {
             return;
         }
         
@@ -118,7 +131,7 @@ export async function startLocalServer(): Promise<void> {
         const runningCount = multiServerLauncher.getRunningServerCount();
         if (runningCount > 0) {
             logger.debug(() => `${runningCount} server(s) already running, launching additional server with dynamic port allocation`);
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `Launching additional server (${runningCount} servers already running)`
             );
         }
@@ -129,7 +142,7 @@ export async function startLocalServer(): Promise<void> {
         
         if (!result.success) {
             logger.error('Failed to launch server:', result.error);
-            vscode.window.showErrorMessage(`Failed to start server: ${result.error}`);
+            void vscode.window.showErrorMessage(`Failed to start server: ${result.error}`);
             return;
         }
         
@@ -137,27 +150,27 @@ export async function startLocalServer(): Promise<void> {
         
         // Provide detailed messages based on port allocation and HTTPS override
         if (result.portChanged && result.httpsOverridden) {
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `Server started at ${result.serverUrl} (Port changed from ${result.originalPort} to ${result.port}, HTTP mode - HTTPS overridden for lateral panel compatibility)`
             );
         } else if (result.portChanged) {
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `Server started at ${result.serverUrl} (Port changed from ${result.originalPort} to ${result.port})`
             );
         } else if (result.httpsOverridden) {
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `Server started at ${result.serverUrl} (HTTP mode - HTTPS overridden for lateral panel compatibility)`
             );
         } else {
-            vscode.window.showInformationMessage(`Server started at ${result.serverUrl}`);
+            void vscode.window.showInformationMessage(`Server started at ${result.serverUrl}`);
         }
         
         // Refresh the tree view to show server status
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
         
     } catch (error) {
         logger.error('Error in startLocalServer:', error);
-        vscode.window.showErrorMessage(`Failed to start server: ${error instanceof Error ? error.message : String(error)}`);
+        void vscode.window.showErrorMessage(`Failed to start server: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
@@ -181,8 +194,7 @@ export async function configureOpenMode(): Promise<void> {
 }
 
 export async function configureRemoteAccess(): Promise<void> {
-    if (!extensionContext) {
-        vscode.window.showErrorMessage('SERVER: Extension context not available');
+    if (!requireExtensionContext(extensionContext)) {
         return;
     }
     const settingsManager = ServerSettingsManager.getInstance(extensionContext);
@@ -244,8 +256,7 @@ export async function resetToDefault(): Promise<void> {
     }
     
     try {
-        if (!extensionContext) {
-            vscode.window.showErrorMessage('SERVER: Extension context not available');
+        if (!requireExtensionContext(extensionContext)) {
             return;
         }
         
@@ -253,14 +264,14 @@ export async function resetToDefault(): Promise<void> {
         await settingsManager.resetSettings();
         
         logger.debug('Configuration reset to defaults successfully');
-        vscode.window.showInformationMessage('Server configuration reset to default values');
+        void vscode.window.showInformationMessage('Server configuration reset to default values');
         
         // Refresh the tree view to show updated configuration
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
         
     } catch (error) {
         logger.error('Error resetting configuration to defaults:', error);
-        vscode.window.showErrorMessage(
+        void vscode.window.showErrorMessage(
             `Failed to reset configuration: ${error instanceof Error ? error.message : String(error)}`
         );
     }
@@ -306,7 +317,7 @@ async function promptForHtmlFile(): Promise<string | undefined> {
             return filePath;
         } catch (error) {
             logger.error(`Cannot read selected file: ${error}`);
-            vscode.window.showErrorMessage(`Cannot read the selected file: ${path.basename(filePath)}`);
+            void vscode.window.showErrorMessage(`Cannot read the selected file: ${path.basename(filePath)}`);
             return undefined;
         }
     }
@@ -327,12 +338,12 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
     
     if (!certPath || !keyPath) {
         logger.debug('Custom certificate paths not configured');
-        vscode.window.showErrorMessage(
+        void vscode.window.showErrorMessage(
             'Custom certificates are not configured. Please configure certificate paths in server settings.',
             'Configure'
         ).then(action => {
             if (action === 'Configure') {
-                vscode.commands.executeCommand('codexr.server.configure');
+                void vscode.commands.executeCommand('codexr.server.configure');
             }
         });
         return false;
@@ -341,12 +352,12 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
     // Check if certificate file exists
     if (!fs.existsSync(certPath)) {
         logger.debug(() => `Certificate file not found: ${certPath}`);
-        vscode.window.showErrorMessage(
+        void vscode.window.showErrorMessage(
             `Certificate file not found: ${path.basename(certPath)}`,
             'Configure'
         ).then(action => {
             if (action === 'Configure') {
-                vscode.commands.executeCommand('codexr.server.configure');
+                void vscode.commands.executeCommand('codexr.server.configure');
             }
         });
         return false;
@@ -355,12 +366,12 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
     // Check if key file exists
     if (!fs.existsSync(keyPath)) {
         logger.debug(() => `Private key file not found: ${keyPath}`);
-        vscode.window.showErrorMessage(
+        void vscode.window.showErrorMessage(
             `Private key file not found: ${path.basename(keyPath)}`,
             'Configure'
         ).then(action => {
             if (action === 'Configure') {
-                vscode.commands.executeCommand('codexr.server.configure');
+                void vscode.commands.executeCommand('codexr.server.configure');
             }
         });
         return false;
@@ -374,7 +385,7 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
         return true;
     } catch (error) {
         logger.error(`Cannot read certificate files: ${error}`);
-        vscode.window.showErrorMessage('Cannot read certificate files. Check file permissions.');
+        void vscode.window.showErrorMessage('Cannot read certificate files. Check file permissions.');
         return false;
     }
 }

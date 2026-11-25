@@ -8,13 +8,35 @@ import { LauncherLivePanel } from './launchers/launcherLivePanel';
 import { LauncherXRAnalysis } from './launchers/launcherXRAnalysis';
 import { LauncherVisualizeDOM } from './launchers/launcherVisualizeDOM';
 import { UnifiedSessionRegistry } from './core/sessionRegistry';
-import { UnifiedAnalysisSession } from './core/analysisSession';
+import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './core/analysisSession';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
 
-export type AnalysisMode = 'LivePanel' | 'XR' | 'VisualizeDOM';
-export type TargetType = 'file' | 'directory';
+/**
+ * Tells the user why a duplicate request was refused. A finished analysis
+ * offers to open the Active Analyses view.
+ */
+function warnAboutDuplicateSession(duplicateSession: UnifiedAnalysisSession): void {
+    if (duplicateSession.status === 'monitoring') {
+        void vscode.window.showWarningMessage(
+            `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
+            'Open Active Analyses'
+        ).then(choice => {
+            if (choice === 'Open Active Analyses') {
+                void vscode.commands.executeCommand('workbench.view.extension.codeXRView');
+            }
+        });
+    } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
+        void vscode.window.showWarningMessage(
+            `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
+        );
+    } else {
+        void vscode.window.showWarningMessage(
+            `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
+        );
+    }
+}
 
 export class AnalysisOrchestrator {
     
@@ -33,7 +55,7 @@ export class AnalysisOrchestrator {
         try {
             // Create unified session first - CENTRALIZED SESSION CREATION
             const registry = UnifiedSessionRegistry.getInstance(context);
-            let session: UnifiedAnalysisSession | null;
+            let session: UnifiedAnalysisSession;
             
             try {
                 logger.debug(`DEBUG - Creating session with parameters:`, {
@@ -43,7 +65,7 @@ export class AnalysisOrchestrator {
                     isDeep
                 });
                 
-                session = await registry.createSession({
+                const creation = await registry.createSession({
                     targetPath,
                     targetType,
                     analysisMode,
@@ -51,17 +73,18 @@ export class AnalysisOrchestrator {
                     context
                 });
                 
-                // Check if session creation was skipped due to duplicate
-                if (!session) {
+                if (creation.kind === 'duplicate') {
                     logger.debug(`Session creation skipped (duplicate detected) - stopping orchestration`);
-                    return; // Stop here if duplicate was detected
+                    warnAboutDuplicateSession(creation.existing);
+                    return;
                 }
+                session = creation.session;
                 
             } catch (sessionError) {
                 // Handle session creation errors (e.g., unsupported file types)
                 logger.error(`Session creation failed:`, sessionError);
                 const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
-                vscode.window.showErrorMessage(`CodeXR Analysis Error: ${errorMessage}`);
+                void vscode.window.showErrorMessage(`CodeXR Analysis Error: ${errorMessage}`);
                 throw sessionError;
             }
             

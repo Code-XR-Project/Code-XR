@@ -1,17 +1,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { assembleRuntimeContent, writeAssembledRuntimeToOutput } from './runtimeAssembly';
+import { assertSourceExists } from './singleFileRuntimeAssets';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 export const VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME = 'virtualScreenRuntime.js';
 export const VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME = 'codexrMultiScreenManagerRuntime.js';
-
-const VIRTUAL_SCREEN_MANAGER_RUNTIME_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'virtual-screen',
-    VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME,
-] as const;
 
 // The virtual screen runtime is a multi-part runtime (see runtimeAssembly.ts):
 // its source lives as ordered parts under virtual-screen/virtualScreenRuntime/.
@@ -28,16 +22,15 @@ export async function readVirtualScreenRuntimeContent(extensionPath: string): Pr
     return assembleRuntimeContent(extensionPath, 'virtual-screen', VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME);
 }
 
-export function resolveVirtualScreenManagerRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...VIRTUAL_SCREEN_MANAGER_RUNTIME_SOURCE_SEGMENTS);
+function resolveVirtualScreenManagerRuntimeSourcePath(extensionPath: string): string {
+    return resolveTemplatePath(extensionPath, 'components', 'codexr', 'virtual-screen', VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME);
 }
 
-export function assertVirtualScreenManagerRuntimeSourceExists(extensionPath: string): string {
-    const runtimePath = resolveVirtualScreenManagerRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(runtimePath)) {
-        throw new Error(`Virtual screen manager runtime not found at ${runtimePath}`);
-    }
-    return runtimePath;
+function assertVirtualScreenManagerRuntimeSourceExists(extensionPath: string): string {
+    return assertSourceExists(
+        resolveVirtualScreenManagerRuntimeSourcePath(extensionPath),
+        'Virtual screen manager runtime',
+    );
 }
 
 export async function copyVirtualScreenManagerRuntimeToOutput(

@@ -24,7 +24,6 @@ export class HistoricalComparisonService {
     private readonly gitService: GitRepositoryService;
     private readonly analysis: GitAnalysisSessionContext;
     private readonly jobs = new SingleJobGate<HistoricalComparisonRequest, HistoricalComparisonResult>('comparison-busy');
-    private references: HistoricalComparisonReferences | null = null;
     private revision = 0;
 
     public constructor(
@@ -68,13 +67,12 @@ export class HistoricalComparisonService {
             targetRelativePath: references.targetRelativePath,
             sources: references.sources,
         });
-        this.references = {
+        return {
             ...references,
             sources: filtered.sources,
             eligibility: filtered.eligibility,
             activeRequest: this.activeRequest ? { ...this.activeRequest } : null,
         };
-        return this.references;
     }
 
     public getAvailability(): Promise<{ enabled: boolean; reason: string | null }> {

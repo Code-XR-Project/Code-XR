@@ -102,7 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
         startupLogger.info('CodeXR activation completed. Deferred startup tasks queued.');
     } catch (error) {
         startupLogger.error('Extension activation failed.', error);
-        vscode.window.showErrorMessage(`CodeXR activation failed: ${error}`);
+        void vscode.window.showErrorMessage(`CodeXR activation failed: ${error}`);
     }
 }
 

@@ -1,9 +1,23 @@
-import * as vscode from 'vscode';
+import { EventEmitter } from 'events';
 import { ActiveServer, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from '../model/activeServerModel';
 import { RemoteAccessState } from '../../remote_access/model/remoteAccessModel';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS');
+
+const REGISTRY_CHANGE = 'change';
+
+/** What a subscription returns: structurally a `vscode.Disposable`. */
+export interface RegistrySubscription {
+    dispose(): void;
+}
+
+/** Same call shape as `vscode.Event<RegistryEvent>`, without depending on vscode. */
+export type RegistryChangeEvent = (
+    listener: (event: RegistryEvent) => unknown,
+    thisArgs?: unknown,
+    disposables?: RegistrySubscription[],
+) => RegistrySubscription;
 
 /**
  * Active Server Registry
@@ -12,12 +26,37 @@ const logger = getLogger('ACTIVE_SERVERS');
 export class ActiveServerRegistry {
     private static instance: ActiveServerRegistry | null = null;
     private servers: Map<string, ActiveServer> = new Map();
-    private eventEmitter: vscode.EventEmitter<RegistryEvent> = new vscode.EventEmitter<RegistryEvent>();
-    
-    /** Event fired when registry changes */
-    public readonly onRegistryChange: vscode.Event<RegistryEvent> = this.eventEmitter.event;
+    private readonly eventEmitter = new EventEmitter();
+    private disposed = false;
+
+    /**
+     * Event fired when registry changes. Keeps the `vscode.Event` contract:
+     * listeners run in subscription order, a throwing listener is reported and
+     * does not stop the others, and nothing is delivered after `dispose()`.
+     */
+    public readonly onRegistryChange: RegistryChangeEvent = (listener, thisArgs, disposables) => {
+        const bound = (event: RegistryEvent): void => {
+            try {
+                listener.call(thisArgs, event);
+            } catch (error) {
+                logger.error('Registry change listener failed:', error);
+            }
+        };
+        if (!this.disposed) {
+            this.eventEmitter.on(REGISTRY_CHANGE, bound);
+        }
+        const subscription: RegistrySubscription = {
+            dispose: () => {
+                this.eventEmitter.off(REGISTRY_CHANGE, bound);
+            },
+        };
+        disposables?.push(subscription);
+        return subscription;
+    };
 
     private constructor() {
+        // No leak warning: the tree, the watcher integration and remote access subscribe once each.
+        this.eventEmitter.setMaxListeners(0);
         logger.debug('Registry initialized');
     }
 
@@ -256,7 +295,8 @@ export class ActiveServerRegistry {
      * Dispose of the registry
      */
     public dispose(): void {
-        this.eventEmitter.dispose();
+        this.disposed = true;
+        this.eventEmitter.removeAllListeners();
         this.clearAll();
         logger.debug('Registry disposed');
     }
@@ -281,7 +321,7 @@ export class ActiveServerRegistry {
             timestamp: Date.now()
         };
         
-        this.eventEmitter.fire(event);
+        this.eventEmitter.emit(REGISTRY_CHANGE, event);
     }
 }
 

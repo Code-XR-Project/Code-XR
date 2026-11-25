@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../common/baseInterfaces';
+import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
 import { LearnMoreModularTreeItem, LearnMoreModularItemFactory } from './items/learnMoreItems';
 import { LearnMoreClickHandler } from './interactions/handleLearnMoreClicks';
 import { getLogger } from '../../core/logging/sink';

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { BABIA_EXAMPLE_LIBRARIES, BabiaExample } from '../model/babiaExampleModel';
 import { ExampleClickHandler } from '../views/interactions/handleExampleClicks';
 import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
-import { ExtensionCommandRegistration } from '../../commands/shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { DetailRow, formatDetailSections } from '../../utils/detailDialog';
 import { getLogger } from '../../core/logging/sink';
 
@@ -83,13 +83,13 @@ export class BabiaExamplesCommands {
                 description: 'Refresh Babia examples',
                 handler: async () => {
                     if (!treeDataProvider) {
-                        vscode.window.showInformationMessage('Babia examples view is not ready yet.');
+                        void vscode.window.showInformationMessage('Babia examples view is not ready yet.');
                         return;
                     }
 
                     logger.debug('Refresh command triggered');
                     await treeDataProvider.rescan();
-                    vscode.window.showInformationMessage('Babia examples refreshed');
+                    void vscode.window.showInformationMessage('Babia examples refreshed');
                 },
                 errorMessage: 'Failed to refresh Babia examples'
             },
@@ -100,7 +100,7 @@ export class BabiaExamplesCommands {
                 handler: async () => {
                     const workspaceRoots = vscode.workspace.workspaceFolders;
                     if (!workspaceRoots || workspaceRoots.length === 0) {
-                        vscode.window.showWarningMessage('No workspace folder is open');
+                        void vscode.window.showWarningMessage('No workspace folder is open');
                         return;
                     }
 

@@ -1,9 +1,45 @@
 import * as vscode from 'vscode';
 import { ServerActionHandlers } from '../views/interactions/handleServerActions';
-import { ExtensionCommandRegistration } from '../../commands/shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVER');
+
+/** A command whose only argument is a server, as a tree item or a bare id. */
+interface ServerIdCommand {
+    id: string;
+    description: string;
+    action: ServerIdAction;
+    errorMessage: string;
+}
+
+type ServerIdAction =
+    | 'openInBrowser'
+    | 'openInPanel'
+    | 'copyUrl'
+    | 'copyLanUrl'
+    | 'startRemoteAccess'
+    | 'copyRemoteInvitation'
+    | 'stopRemoteAccess'
+    | 'showRemoteStatus'
+    | 'stopServer'
+    | 'showServerDetails'
+    | 'regeneratePairingCode';
+
+/** In registration order, between showActions and showParticipantDetails. */
+const SERVER_ID_COMMANDS: readonly ServerIdCommand[] = [
+    { id: 'codeXR.activeServers.openInBrowser', description: 'Open active server in browser', action: 'openInBrowser', errorMessage: 'Failed to open active server in browser' },
+    { id: 'codeXR.activeServers.openInPanel', description: 'Open active server in panel', action: 'openInPanel', errorMessage: 'Failed to open active server in panel' },
+    { id: 'codeXR.activeServers.copyUrl', description: 'Copy active server URL', action: 'copyUrl', errorMessage: 'Failed to copy active server URL' },
+    { id: 'codeXR.activeServers.copyLanUrl', description: 'Copy active server LAN URL', action: 'copyLanUrl', errorMessage: 'Failed to copy active server LAN URL' },
+    { id: 'codeXR.activeServers.startRemoteAccess', description: 'Start remote access', action: 'startRemoteAccess', errorMessage: 'Failed to start remote access' },
+    { id: 'codeXR.activeServers.copyRemoteInvitation', description: 'Copy remote invitation', action: 'copyRemoteInvitation', errorMessage: 'Failed to copy remote invitation' },
+    { id: 'codeXR.activeServers.stopRemoteAccess', description: 'Stop remote access', action: 'stopRemoteAccess', errorMessage: 'Failed to stop remote access' },
+    { id: 'codeXR.activeServers.showRemoteStatus', description: 'Show remote access status', action: 'showRemoteStatus', errorMessage: 'Failed to show remote access status' },
+    { id: 'codeXR.activeServers.stopServer', description: 'Stop active server', action: 'stopServer', errorMessage: 'Failed to stop active server' },
+    { id: 'codeXR.activeServers.showDetails', description: 'Show active server details', action: 'showServerDetails', errorMessage: 'Failed to show active server details' },
+    { id: 'codeXR.activeServers.regeneratePairingCode', description: 'Generate a new pairing code', action: 'regeneratePairingCode', errorMessage: 'Failed to generate a new pairing code' },
+];
 
 /**
  * Active Servers Commands
@@ -25,138 +61,7 @@ export class ActiveServersCommands {
                 },
                 errorMessage: 'Failed to show server actions'
             },
-            {
-                id: 'codeXR.activeServers.openInBrowser',
-                module: 'ACTIVE_SERVER',
-                description: 'Open active server in browser',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.openInBrowser(serverId);
-                    }
-                },
-                errorMessage: 'Failed to open active server in browser'
-            },
-            {
-                id: 'codeXR.activeServers.openInPanel',
-                module: 'ACTIVE_SERVER',
-                description: 'Open active server in panel',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.openInPanel(serverId);
-                    }
-                },
-                errorMessage: 'Failed to open active server in panel'
-            },
-            {
-                id: 'codeXR.activeServers.copyUrl',
-                module: 'ACTIVE_SERVER',
-                description: 'Copy active server URL',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.copyUrl(serverId);
-                    }
-                },
-                errorMessage: 'Failed to copy active server URL'
-            },
-            {
-                id: 'codeXR.activeServers.copyLanUrl',
-                module: 'ACTIVE_SERVER',
-                description: 'Copy active server LAN URL',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.copyLanUrl(serverId);
-                    }
-                },
-                errorMessage: 'Failed to copy active server LAN URL'
-            },
-            {
-                id: 'codeXR.activeServers.startRemoteAccess',
-                module: 'ACTIVE_SERVER',
-                description: 'Start remote access',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.startRemoteAccess(serverId);
-                    }
-                },
-                errorMessage: 'Failed to start remote access',
-            },
-            {
-                id: 'codeXR.activeServers.copyRemoteInvitation',
-                module: 'ACTIVE_SERVER',
-                description: 'Copy remote invitation',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.copyRemoteInvitation(serverId);
-                    }
-                },
-                errorMessage: 'Failed to copy remote invitation',
-            },
-            {
-                id: 'codeXR.activeServers.stopRemoteAccess',
-                module: 'ACTIVE_SERVER',
-                description: 'Stop remote access',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.stopRemoteAccess(serverId);
-                    }
-                },
-                errorMessage: 'Failed to stop remote access',
-            },
-            {
-                id: 'codeXR.activeServers.showRemoteStatus',
-                module: 'ACTIVE_SERVER',
-                description: 'Show remote access status',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.showRemoteStatus(serverId);
-                    }
-                },
-                errorMessage: 'Failed to show remote access status',
-            },
-            {
-                id: 'codeXR.activeServers.stopServer',
-                module: 'ACTIVE_SERVER',
-                description: 'Stop active server',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.stopServer(serverId);
-                    }
-                },
-                errorMessage: 'Failed to stop active server'
-            },
-            {
-                id: 'codeXR.activeServers.showDetails',
-                module: 'ACTIVE_SERVER',
-                description: 'Show active server details',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.showServerDetails(serverId);
-                    }
-                },
-                errorMessage: 'Failed to show active server details'
-            },
-            {
-                id: 'codeXR.activeServers.regeneratePairingCode',
-                module: 'ACTIVE_SERVER',
-                description: 'Generate a new pairing code',
-                handler: async (treeItem: unknown) => {
-                    const serverId = this.extractServerIdFromTreeItem(treeItem);
-                    if (serverId) {
-                        await ServerActionHandlers.regeneratePairingCode(serverId);
-                    }
-                },
-                errorMessage: 'Failed to generate a new pairing code',
-            },
+            ...SERVER_ID_COMMANDS.map((command) => this.serverIdCommand(command)),
             {
                 id: 'codeXR.activeServers.showParticipantDetails',
                 module: 'ACTIVE_SERVER',
@@ -179,7 +84,7 @@ export class ActiveServersCommands {
                     if (!participantTarget) {
                         // Never fail silently: an unresolvable target used to
                         // look exactly like a command that did nothing.
-                        vscode.window.showWarningMessage(
+                        void vscode.window.showWarningMessage(
                             'Could not tell which participant to remove. Refresh the view and try again.',
                         );
                         return;
@@ -226,6 +131,22 @@ export class ActiveServersCommands {
                 errorMessage: 'Failed to open active servers view'
             }
         ];
+    }
+
+    /** The registration of a table row: resolve the server id, then run the action (nothing when unresolvable). */
+    private static serverIdCommand(command: ServerIdCommand): ExtensionCommandRegistration {
+        return {
+            id: command.id,
+            module: 'ACTIVE_SERVER',
+            description: command.description,
+            handler: async (treeItem: unknown) => {
+                const serverId = this.extractServerIdFromTreeItem(treeItem);
+                if (serverId) {
+                    await ServerActionHandlers[command.action](serverId);
+                }
+            },
+            errorMessage: command.errorMessage,
+        };
     }
 
     private static extractParticipantFromTreeItem(

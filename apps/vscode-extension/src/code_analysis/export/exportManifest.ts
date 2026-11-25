@@ -3,6 +3,7 @@ import * as path from 'path';
 import { defaultControllerView } from '../refresh/analysisViewModes';
 import { ExportGitData } from './gitRevisionExportCore';
 import type { ExportSelection } from './exportModeSelection';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 /**
  * Self-contained export support.
@@ -635,7 +636,7 @@ export async function refreshRuntimeCopies(
     destinationPath: string,
     extensionPath: string,
 ): Promise<string[]> {
-    const componentsRoot = path.join(extensionPath, 'templates', 'components', 'codexr');
+    const componentsRoot = resolveTemplatePath(extensionPath, 'components', 'codexr');
     if (!fs.existsSync(componentsRoot)) {
         return [];
     }
@@ -678,7 +679,7 @@ export async function refreshRuntimeCopies(
     // a main.js, and clobbering that one would kill the whole panel).
     const mainJsPath = path.join(destinationPath, 'main.js');
     if (isXrSceneFolder(destinationPath) && fs.existsSync(mainJsPath)) {
-        const sseSource = path.join(extensionPath, 'templates', 'xr', 'sse', 'live_sse_fileXR.js');
+        const sseSource = resolveTemplatePath(extensionPath, 'xr', 'sse', 'live_sse_fileXR.js');
         if (fs.existsSync(sseSource)) {
             await fs.promises.copyFile(sseSource, mainJsPath);
             refreshed.push('main.js');

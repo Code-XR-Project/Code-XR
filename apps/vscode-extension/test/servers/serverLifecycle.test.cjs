@@ -32,6 +32,7 @@ const WebSocket = require('ws');
 
 const { createFakeVscode, fakeExtensionContext, withFakeVscode } = require('../helpers/fakeVscode.cjs');
 const { observeLogsAsConsole } = require('../helpers/logCapture.cjs');
+const { templatesRoot } = require('../helpers/templatesRoot.cjs');
 
 const ALLOWED_CIPHERS = [
     'ECDHE-RSA-AES128-GCM-SHA256',
@@ -532,7 +533,7 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
             installNetworkStubs(requireOut, port);
             const { HttpServer } = requireOut('servers/runtime/httpServer.js');
             consoleCapture.setReplacements([[String(port), '<port>']]);
-            const server = new HttpServer({ port, host: '127.0.0.1' });
+            const server = new HttpServer({ port, host: '127.0.0.1', staticRoot: templatesRoot() });
             assert.equal(await server.start(), `http://localhost:${port}`);
             assert.equal(server.getServerUrl(), `http://127.0.0.1:${port}`);
             await assert.rejects(server.start(), { message: 'SERVER: HTTP server is already running' });

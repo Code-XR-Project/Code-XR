@@ -100,7 +100,7 @@ export class VisualizationRestorer {
 
         } catch (error) {
             logger.error('BROWSE-VISUALIZATIONS: Error scanning visualizations:', error);
-            vscode.window.showErrorMessage(`Failed to scan visualizations: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to scan visualizations: ${error instanceof Error ? error.message : String(error)}`);
         }
 
         logger.debug(() => `BROWSE-VISUALIZATIONS: Scan completed, found ${visualizations.length} visualizations`);
@@ -130,7 +130,7 @@ export class VisualizationRestorer {
 
             if (alreadyActive) {
                 logger.debug(() => `BROWSE-VISUALIZATIONS: Visualization "${visualization.name}" is already active`);
-                vscode.window.showInformationMessage(`Visualization "${visualization.name}" is already running`);
+                void vscode.window.showInformationMessage(`Visualization "${visualization.name}" is already running`);
                 return;
             }
 
@@ -144,11 +144,11 @@ export class VisualizationRestorer {
             );
 
             logger.debug(() => `BROWSE-VISUALIZATIONS: Successfully launched visualization "${visualization.name}"`);
-            vscode.window.showInformationMessage(`Launched visualization: ${visualization.name}`);
+            void vscode.window.showInformationMessage(`Launched visualization: ${visualization.name}`);
 
         } catch (error) {
             logger.error(`BROWSE-VISUALIZATIONS: Error launching visualization "${visualization.name}":`, error);
-            vscode.window.showErrorMessage(`Failed to launch visualization "${visualization.name}": ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to launch visualization "${visualization.name}": ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -170,7 +170,7 @@ export class VisualizationRestorer {
 
             if (folders.length === 0) {
                 logger.debug('BROWSE-VISUALIZATIONS: No visualizations to reset');
-                vscode.window.showInformationMessage('No stored visualizations to reset');
+                void vscode.window.showInformationMessage('No stored visualizations to reset');
                 return;
             }
 
@@ -200,14 +200,14 @@ export class VisualizationRestorer {
             }
 
             logger.debug(() => `BROWSE-VISUALIZATIONS: Reset completed, deleted ${folders.length} visualizations`);
-            vscode.window.showInformationMessage(`Deleted ${folders.length} stored visualizations`);
+            void vscode.window.showInformationMessage(`Deleted ${folders.length} stored visualizations`);
 
             // Trigger refresh of the tree view
-            vscode.commands.executeCommand('codexr.servers.refresh');
+            void vscode.commands.executeCommand('codexr.servers.refresh');
 
         } catch (error) {
             logger.error('BROWSE-VISUALIZATIONS: Error during reset:', error);
-            vscode.window.showErrorMessage(`Failed to reset visualizations: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to reset visualizations: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
