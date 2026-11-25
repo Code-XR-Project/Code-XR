@@ -325,11 +325,17 @@ def _add_graph_metrics(nodes: List[Dict[str, object]], edges: List[Dict[str, obj
     node_by_id = {str(node["id"]): node for node in nodes}
     adjacency: Dict[str, Set[str]] = defaultdict(set)
     reverse: Dict[str, Set[str]] = defaultdict(set)
+    relation_counts: Dict[object, int] = defaultdict(int)
     for edge in edges:
         source = str(edge["source"])
         target = str(edge["target"])
         adjacency[source].add(target)
         reverse[target].add(source)
+        # An edge touches its source and its target; a self-edge counts once,
+        # exactly like the per-node `source == id or target == id` test it replaces.
+        relation_counts[edge["source"]] += 1
+        if edge["target"] != edge["source"]:
+            relation_counts[edge["target"]] += 1
     internal_ids = [str(node["id"]) for node in nodes if not node.get("external")]
     components = _tarjan(internal_ids, adjacency)
     cycle_sizes = {
@@ -346,10 +352,7 @@ def _add_graph_metrics(nodes: List[Dict[str, object]], edges: List[Dict[str, obj
             "degree": len(incoming | outgoing),
             "dependentCount": len(incoming),
             "cycleSize": cycle_sizes.get(node_id, 0),
-            "relationCount": sum(
-                1 for edge in edges
-                if edge["source"] == node_id or edge["target"] == node_id
-            ),
+            "relationCount": relation_counts.get(node_id, 0),
         })
 
 
