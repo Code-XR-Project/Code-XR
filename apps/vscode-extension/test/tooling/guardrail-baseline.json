@@ -54,13 +54,13 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 45,
-    "complexity.over10": 69,
-    "complexity.over15": 25,
-    "complexity.over20": 6,
+    "complexity.over10": 68,
+    "complexity.over15": 24,
+    "complexity.over20": 5,
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 553,
+    "eslint.maxWarnings": 552,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 48974,
-    "src.functions": 3279,
+    "src.lines": 48994,
+    "src.functions": 3282,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -172,12 +172,6 @@
         "file": "src/code_analysis/engine/utils/executePython.ts"
       },
       {
-        "ccn": 22,
-        "lines": 61,
-        "function": "handleDependencyGraphSettingsMessage",
-        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
-      },
-      {
         "ccn": 20,
         "lines": 71,
         "function": "applyIncrementalChanges",
@@ -200,6 +194,12 @@
         "lines": 87,
         "function": "materializeDirectory",
         "file": "src/code_analysis/historical/gitRepositoryService.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 88,
+        "function": "handleDependencyGraphStartMessage",
+        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
       }
     ],
     "size.largest10": [

@@ -11,6 +11,59 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('DEPENDENCY_GRAPH_BRIDGE');
 
+// Vocabularies a dependency-graph-settings message may write into the shared
+// room entity; anything else is dropped. Immutable, so built once per module.
+const allowedLayouts = new Set(['force-3d', 'hierarchical', 'metric-space']);
+const allowedRelations = new Set([
+    'import', 'include', 'require', 'inheritance', 'implementation', 'call', 'contains',
+]);
+const allowedMetrics = new Set([
+    'degree', 'fanIn', 'fanOut', 'totalLines', 'relationCount',
+    'cycleSize', 'language',
+]);
+const allowedEdgeEncodings = new Set([
+    'relation-type', 'intensity-color', 'intensity-width', 'intensity-combined',
+]);
+// Flow-particle preferences are room-shared; ids mirror the runtime's
+// FLOW_SIZE_OPTIONS / FLOW_SPEED_OPTIONS catalogues.
+const allowedFlowSizes = new Set(['s', 'm', 'l', 'xl']);
+const allowedFlowSpeeds = new Set(['x05', 'x1', 'x2', 'x3']);
+
+/**
+ * The scope a settings message asks for, or null when it is not a safe
+ * relative directory/file path: backslashes become slashes, then absolute
+ * paths, `..` segments and paths over 1024 characters are refused.
+ */
+function sanitizeDependencyScope(
+    requested: unknown,
+): { kind: 'directory' | 'file'; relativePath: string } | null {
+    if (!requested || typeof requested !== 'object') {
+        return null;
+    }
+    const requestedScope = requested as Record<string, unknown>;
+    if (requestedScope.kind !== 'directory' && requestedScope.kind !== 'file') {
+        return null;
+    }
+    if (typeof requestedScope.relativePath !== 'string') {
+        return null;
+    }
+    const relativePath = requestedScope.relativePath.replace(/\\/g, '/');
+    return isSafeRelativePath(relativePath)
+        ? { kind: requestedScope.kind, relativePath }
+        : null;
+}
+
+function isSafeRelativePath(relativePath: string): boolean {
+    return relativePath.length <= 1024
+        && !relativePath.startsWith('/')
+        && !relativePath.split('/').includes('..');
+}
+
+/** `{ [field]: value }` when String(value) is in the vocabulary, else `{}`. */
+function pickAllowed(field: string, value: unknown, allowed: ReadonlySet<string>): Record<string, unknown> {
+    return allowed.has(String(value)) ? { [field]: value } : {};
+}
+
 /** Room access shared by every analysis bridge. */
 export interface AnalysisBridgeRoomHooks {
     getRoom(): CollaborationRoomServer | null;
@@ -86,39 +139,8 @@ export class DependencyGraphBridge {
         messageContext: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
     ): boolean {
-        const allowedLayouts = new Set(['force-3d', 'hierarchical', 'metric-space']);
-        const allowedRelations = new Set([
-            'import', 'include', 'require', 'inheritance', 'implementation', 'call', 'contains',
-        ]);
-        const allowedMetrics = new Set([
-            'degree', 'fanIn', 'fanOut', 'totalLines', 'relationCount',
-            'cycleSize', 'language',
-        ]);
-        const allowedEdgeEncodings = new Set([
-            'relation-type', 'intensity-color', 'intensity-width', 'intensity-combined',
-        ]);
-        // Flow-particle preferences are room-shared; ids mirror the runtime's
-        // FLOW_SIZE_OPTIONS / FLOW_SPEED_OPTIONS catalogues.
-        const allowedFlowSizes = new Set(['s', 'm', 'l', 'xl']);
-        const allowedFlowSpeeds = new Set(['x05', 'x1', 'x2', 'x3']);
         const payload = message.payload || {};
-        const requestedScope = payload.scope && typeof payload.scope === 'object'
-            ? payload.scope as Record<string, unknown>
-            : null;
-        const requestedRelativePath = typeof requestedScope?.relativePath === 'string'
-            ? requestedScope.relativePath.replace(/\\/g, '/')
-            : null;
-        const scope = requestedScope
-            && (requestedScope.kind === 'directory' || requestedScope.kind === 'file')
-            && requestedRelativePath !== null
-            && requestedRelativePath.length <= 1024
-            && !requestedRelativePath.startsWith('/')
-            && !requestedRelativePath.split('/').includes('..')
-            ? {
-                kind: requestedScope.kind,
-                relativePath: requestedRelativePath,
-            }
-            : null;
+        const scope = sanitizeDependencyScope(payload.scope);
         const relationFilters = Object.fromEntries(
             Object.entries(payload.relationFilters || {})
                 .filter(([key, value]) => allowedRelations.has(key) && typeof value === 'boolean'),
@@ -130,13 +152,11 @@ export class DependencyGraphBridge {
         messageContext.upsertSharedEntity({
             entityKind: 'dependency-graph',
             entityId: 'main',
-            ...(allowedLayouts.has(String(payload.layout)) ? { layout: payload.layout } : {}),
+            ...pickAllowed('layout', payload.layout, allowedLayouts),
             ...(typeof payload.showExternal === 'boolean' ? { showExternal: payload.showExternal } : {}),
-            ...(allowedEdgeEncodings.has(String(payload.edgeEncoding))
-                ? { edgeEncoding: payload.edgeEncoding }
-                : {}),
-            ...(allowedFlowSizes.has(String(payload.flowSize)) ? { flowSize: payload.flowSize } : {}),
-            ...(allowedFlowSpeeds.has(String(payload.flowSpeed)) ? { flowSpeed: payload.flowSpeed } : {}),
+            ...pickAllowed('edgeEncoding', payload.edgeEncoding, allowedEdgeEncodings),
+            ...pickAllowed('flowSize', payload.flowSize, allowedFlowSizes),
+            ...pickAllowed('flowSpeed', payload.flowSpeed, allowedFlowSpeeds),
             ...(Object.keys(relationFilters).length ? { relationFilters } : {}),
             ...(Object.keys(mapping).length ? { mapping } : {}),
             ...(scope ? { scope } : {}),
