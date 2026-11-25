@@ -308,3 +308,25 @@ test('manual XR mode harness loads common runtime before component runtimes that
     assert.ok(harness.indexOf('templates/components/common/codexrCommonRuntime.js') < harness.indexOf('historicalComparisonRuntime.js'));
     assert.ok(harness.indexOf('templates/components/common/codexrCommonRuntime.js') < harness.indexOf('dependencyGraphRuntime.js'));
 });
+
+// XR epic, story S1 (audit PANELS-1 and PANELS-4). A-Frame 1.7.1 draws
+// transparent objects in DOM order, not by distance, so a card whose surfaces
+// skip the depth test is painted over by every screen behind it; and a card
+// the pointer ray cannot hit lets clicks fall through to the screen behind it.
+test('tooltip cards are depth-tested, opaque and absorb the pointer ray', () => {
+    const runtime = loadRuntime().CodeXRCommonRuntime;
+    const host = createElement('a-entity');
+    const tooltip = runtime.createTooltip({ accentColor: '#22d3ee', width: 3.6 });
+    host.appendChild(tooltip.root);
+    runtime.updateTooltip(tooltip, { title: 'dependentium', rows: [{ label: 'Fan-in', value: '46' }] },
+        { x: 0, y: 0, z: 0 }, { connectorTarget: { x: 0, y: -1, z: 0 } });
+
+    for (const name of ['border', 'background', 'accent', 'divider', 'connectorMarker']) {
+        assert.doesNotMatch(String(tooltip[name].getAttribute('material')), /depthTest\s*:\s*false/, name);
+    }
+    const background = String(tooltip.background.getAttribute('material'));
+    assert.doesNotMatch(background, /opacity/);
+    assert.doesNotMatch(background, /transparent\s*:\s*true/);
+    assert.equal(tooltip.background.getAttribute('class'), 'babiaxraycasterclass');
+    assert.equal(runtime.createTooltip({ raycastClass: '' }).background.getAttribute('class'), '');
+});

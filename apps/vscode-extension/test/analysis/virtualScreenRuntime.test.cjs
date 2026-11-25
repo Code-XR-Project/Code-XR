@@ -896,9 +896,12 @@ const foreignBroadcast = {
 };
 
 // [transcript lines, sha256 of the transcript] per screen kind.
+// Re-recorded for the XR epic's panel fix: the only differences from the
+// previous recording are the opaque frame material and the status line width
+// (frame width - 0.3 instead of frame width + 1.4).
 const SCREEN_CHROME_CHARACTERIZATION = {
-    broadcast: [2454, '07402aa5766f39fb0e88a8b0f72d609153e3635634345ac3c6754ebdfa02d20b'],
-    fixed: [972, 'f0765c01e853932d327596bc75ac6377dc78082ad1d75d09183cbc08655e699b'],
+    broadcast: [2454, '4af95d19788758a83c0ea0967a81f3b5dff008cece0723815cfe47c902790761'],
+    fixed: [972, '27f4b8e685155cb6f82dc7fd8cf097a3b9262be1db35f2230ab75690e3af4194'],
 };
 
 test('the screen chrome renders identically through every state (characterization)', () => {

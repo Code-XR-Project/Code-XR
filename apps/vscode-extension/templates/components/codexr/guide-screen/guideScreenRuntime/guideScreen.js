@@ -203,7 +203,7 @@
   function buildGuideContent(slotRoot) {
     slotRoot.appendChild(guideEntity('a-plane', {
       width: SCREEN.width, height: SCREEN.height,
-      material: 'color: #0b1220; opacity: .97; shader: flat; side: double'
+      material: 'color: #0b1220; shader: flat; side: double'
     }));
     slotRoot.appendChild(guideEntity('a-plane', {
       position: '0 ' + (SCREEN.height / 2 - 0.24) + ' 0.01', width: SCREEN.width, height: 0.44,
