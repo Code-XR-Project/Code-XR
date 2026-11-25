@@ -1,0 +1,204 @@
+import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
+import type * as vscode from 'vscode';
+import type { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
+import type { ConnectedParticipantSummary } from '../../collaboration';
+import { PortManager } from './portManager';
+import { GeneratedHttpsCertificateManager } from './generatedHttpsCertificateManager';
+import type { RemoteSessionAuthority } from '../../remote_access';
+
+/** The config shape both HTTPS servers share; each narrows it in its own interface. */
+export interface HttpsServerBaseConfig extends Omit<HttpServerConfig, 'port'> {
+    port: number;
+    certPath?: string;
+    keyPath?: string;
+    extensionContext?: vscode.ExtensionContext;
+}
+
+/**
+ * State and plumbing shared by HttpsCustomServer and HttpsDefaultServer: the
+ * embedded HttpServer that answers every request and upgrade, the port
+ * search, the TLS server wiring and the public delegation surface.
+ *
+ * Each subclass keeps what genuinely differs: its constructor guards (run
+ * before super(), in their own order), its constructor log, the start()
+ * orchestration with its listening and TLS-error handlers, where the
+ * certificate pair comes from, and getConfig() (the custom server redacts).
+ * Subclasses must not redeclare a field declared here: with ES2022 class
+ * fields a redeclaration resets it to undefined after this constructor ran.
+ *
+ * This module imports httpServer for types only, and each subclass hands in
+ * the HttpServer factory. httpServer.ts reaches the HTTPS subclasses again
+ * through an import cycle (analysis host -> watchers -> server launcher), and
+ * a runtime import here would let a subclass evaluate `extends` while this
+ * module is still half-loaded.
+ */
+export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
+    protected server: https.Server | null = null;
+    protected config: TConfig;
+    protected isRunning = false;
+    protected httpHandler: HttpServer;
+    protected readonly certificateManager: GeneratedHttpsCertificateManager;
+
+    /** Callers have already checked that `config.extensionContext` is set. */
+    protected constructor(config: TConfig, createHttpServer: (httpConfig: HttpServerConfig) => HttpServer) {
+        this.certificateManager = new GeneratedHttpsCertificateManager(config.extensionContext!);
+        // staticRoot is __dirname-relative: this file must stay beside httpServer.ts.
+        this.config = {
+            host: '0.0.0.0',
+            staticRoot: path.join(__dirname, '../../../templates'),
+            enableCors: true,
+            allowedOrigins: ['*'],
+            ...config,
+        };
+
+        this.httpHandler = createHttpServer({
+            port: this.config.port,
+            host: this.config.host,
+            staticRoot: this.config.staticRoot,
+            enableCors: this.config.enableCors,
+            allowedOrigins: this.config.allowedOrigins,
+            mainFile: this.config.mainFile,
+            extensionContext: this.config.extensionContext,
+            analysisSessionId: this.config.analysisSessionId,
+        });
+    }
+
+    public abstract start(): Promise<string>;
+
+    public abstract getConfig(): TConfig;
+
+    public getIsRunning(): boolean {
+        return this.isRunning;
+    }
+
+    public getServerUrl(): string | null {
+        if (!this.isRunning) {
+            return null;
+        }
+        return `https://${this.config.host}:${this.config.port}`;
+    }
+
+    public createAuthenticatedBrowserUrl(baseUrl: string): string {
+        return this.httpHandler.createAuthenticatedBrowserUrl(baseUrl);
+    }
+
+    public createInvitation(): string {
+        return this.httpHandler.createInvitation();
+    }
+
+    public setRemotePublicUrl(publicUrl: string | null): void {
+        this.httpHandler.setRemotePublicUrl(publicUrl);
+    }
+
+    public getRemoteSessionAuthority(): RemoteSessionAuthority {
+        return this.httpHandler.getRemoteSessionAuthority();
+    }
+
+    public getConnectedParticipants(): ConnectedParticipantSummary[] {
+        return this.httpHandler.getConnectedParticipants();
+    }
+
+    public removeParticipant(peerId: string): ParticipantRemovalOutcome {
+        return this.httpHandler.removeParticipant(peerId);
+    }
+
+    public onConnectedParticipantsChanged(
+        listener: (participants: ConnectedParticipantSummary[]) => void,
+    ): () => void {
+        return this.httpHandler.onConnectedParticipantsChanged(listener);
+    }
+
+    protected assertNotRunning(): void {
+        if (this.isRunning) {
+            throw new Error('SERVER: HTTPS server is already running');
+        }
+    }
+
+    /** Finds a free port from the configured one upwards and adopts it. */
+    protected async resolveListeningPort(): Promise<void> {
+        console.log(`SERVER: Looking for available port starting from ${this.config.port} on host ${this.config.host}...`);
+        const availablePort = await PortManager.findAvailablePort(this.config.port, this.config.port + 100, this.config.host);
+
+        if (availablePort !== this.config.port) {
+            console.log(`SERVER: Port ${this.config.port} was busy, using ${availablePort} instead on host ${this.config.host}`);
+            this.config.port = availablePort;
+        } else {
+            console.log(`SERVER: Port ${this.config.port} is available on host ${this.config.host}`);
+        }
+    }
+
+    /**
+     * Runs start()'s listen step: creates the TLS server, hands its requests
+     * and upgrades to HttpServer, handles 'close' and listen errors, and lets
+     * `wire` add the subclass's own 'listening' and 'tlsClientError' handlers
+     * and call listen(). A throw (for instance while loading the certificate
+     * pair) rejects start().
+     */
+    protected listenWithTls(
+        loadSslOptions: () => https.ServerOptions,
+        wire: (server: https.Server, resolve: (url: string) => void) => void,
+    ): Promise<string> {
+        return new Promise((resolve, reject) => {
+            try {
+                const server = https.createServer(loadSslOptions(), (req, res) => {
+                    this.httpHandler.handleRequest(req, res);
+                });
+                this.server = server;
+                this.httpHandler.attachToNodeServer(server);
+
+                server.on('error', (error: NodeJS.ErrnoException) => this.rejectStart(error, reject));
+
+                server.on('close', () => {
+                    console.log('SERVER: HTTPS server closed');
+                    this.isRunning = false;
+                });
+
+                wire(server, resolve);
+            } catch (error) {
+                console.error('SERVER: Error starting HTTPS server:', error);
+                reject(error);
+            }
+        });
+    }
+
+    /** The listen 'error' handler; `describeStartError` lets a subclass add an arm. */
+    private rejectStart(error: NodeJS.ErrnoException, reject: (reason: Error) => void): void {
+        console.error('SERVER: HTTPS server error:', error);
+        this.isRunning = false;
+
+        if (error.code === 'EADDRINUSE') {
+            reject(new Error(`SERVER: Port ${this.config.port} is already in use`));
+        } else if (error.code === 'EACCES') {
+            reject(new Error(`SERVER: Permission denied. May need to run as administrator for port ${this.config.port}`));
+        } else {
+            reject(this.describeStartError(error) || new Error(`SERVER: Failed to start HTTPS server: ${error.message}`));
+        }
+    }
+
+    protected describeStartError(_error: NodeJS.ErrnoException): Error | undefined {
+        return undefined;
+    }
+
+    /** Both files exist and are readable; throws the first problem found. */
+    protected async assertCertificatePairReadable(certPath: string, keyPath: string): Promise<void> {
+        if (!fs.existsSync(certPath)) {
+            throw new Error(`SERVER: Certificate file not found: ${certPath}`);
+        }
+
+        if (!fs.existsSync(keyPath)) {
+            throw new Error(`SERVER: Private key file not found: ${keyPath}`);
+        }
+
+        await fs.promises.access(certPath, fs.constants.R_OK);
+        await fs.promises.access(keyPath, fs.constants.R_OK);
+    }
+
+    protected readCertificatePair(): { cert: string; key: string } {
+        return {
+            cert: fs.readFileSync(this.config.certPath!, 'utf8'),
+            key: fs.readFileSync(this.config.keyPath!, 'utf8'),
+        };
+    }
+}

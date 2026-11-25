@@ -1,28 +1,18 @@
-import * as https from 'https';
 import * as fs from 'fs';
-import * as path from 'path';
+import * as https from 'https';
 import * as vscode from 'vscode';
-import { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
-import { ConnectedParticipantSummary } from '../../collaboration';
 import { NetworkUtils } from '../utils/networkUtils';
-import { PortManager } from './portManager';
-import { GeneratedHttpsCertificateManager } from './generatedHttpsCertificateManager';
-import { RemoteSessionAuthority } from '../../remote_access';
+import { HttpServer } from './httpServer';
+import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
+import { buildTlsServerOptions, isCertificateRejectedByClient } from './httpsTlsOptions';
 
-export interface HttpsCustomServerConfig extends Omit<HttpServerConfig, 'port'> {
-    port: number;
+export interface HttpsCustomServerConfig extends HttpsServerBaseConfig {
     certPath: string;
     keyPath: string;
-    extensionContext?: vscode.ExtensionContext;
 }
 
-export class HttpsCustomServer {
-    private server: https.Server | null = null;
-    private config: HttpsCustomServerConfig;
-    private isRunning = false;
-    private httpHandler: HttpServer;
+export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> {
     private usingFallbackCerts = false;
-    private readonly certificateManager: GeneratedHttpsCertificateManager;
 
     constructor(config: HttpsCustomServerConfig) {
         if (!config.certPath || !config.keyPath) {
@@ -33,25 +23,7 @@ export class HttpsCustomServer {
             throw new Error('SERVER: Extension context is required for HTTPS certificate fallback.');
         }
 
-        this.certificateManager = new GeneratedHttpsCertificateManager(config.extensionContext);
-        this.config = {
-            host: '0.0.0.0',
-            staticRoot: path.join(__dirname, '../../../templates'),
-            enableCors: true,
-            allowedOrigins: ['*'],
-            ...config,
-        };
-
-        this.httpHandler = new HttpServer({
-            port: this.config.port,
-            host: this.config.host,
-            staticRoot: this.config.staticRoot,
-            enableCors: this.config.enableCors,
-            allowedOrigins: this.config.allowedOrigins,
-            mainFile: this.config.mainFile,
-            extensionContext: this.config.extensionContext,
-            analysisSessionId: this.config.analysisSessionId,
-        });
+        super(config, (httpConfig) => new HttpServer(httpConfig));
 
         console.log('SERVER: HTTPS server (custom certificates) initialized with config:', {
             ...this.config,
@@ -61,99 +33,52 @@ export class HttpsCustomServer {
     }
 
     public async start(): Promise<string> {
-        if (this.isRunning) {
-            throw new Error('SERVER: HTTPS server is already running');
-        }
+        this.assertNotRunning();
 
         await this.resolveCertificatePaths();
         await this.validateCertificates();
+        await this.resolveListeningPort();
 
-        console.log(`SERVER: Looking for available port starting from ${this.config.port} on host ${this.config.host}...`);
-        const availablePort = await PortManager.findAvailablePort(this.config.port, this.config.port + 100, this.config.host);
+        return this.listenWithTls(() => this.loadSslOptions(), (server, resolve) => {
+            server.on('listening', () => {
+                const port = this.config.port;
+                const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
 
-        if (availablePort !== this.config.port) {
-            console.log(`SERVER: Port ${this.config.port} was busy, using ${availablePort} instead on host ${this.config.host}`);
-            this.config.port = availablePort;
-        } else {
-            console.log(`SERVER: Port ${this.config.port} is available on host ${this.config.host}`);
-        }
+                console.log(`SERVER: HTTPS server listening on port ${port}`);
+                if (this.usingFallbackCerts) {
+                    console.warn('SERVER: Using generated local certificates instead of custom certificates');
+                    void vscode.window.showWarningMessage(
+                        'HTTPS server started with generated local certificates because the custom certificate pair was missing or invalid.',
+                        'Configure Certificates',
+                    ).then((action) => {
+                        if (action === 'Configure Certificates') {
+                            void vscode.commands.executeCommand('codexr.server.configure');
+                        }
+                    });
+                } else {
+                    console.log('SERVER: Using custom certificates');
+                }
 
-        return new Promise((resolve, reject) => {
-            try {
-                const sslOptions = this.loadSslOptions();
+                NetworkUtils.displayNetworkInfo(port, 'https');
+                console.log(`SERVER: Primary external URL: ${primaryExternalUrl}`);
 
-                this.server = https.createServer(sslOptions, (req, res) => {
-                    this.httpHandler.handleRequest(req, res);
-                });
-                this.httpHandler.attachToNodeServer(this.server);
+                this.isRunning = true;
+                resolve(NetworkUtils.getLocalhostUrl(port, 'https'));
+            });
 
-                this.server.on('error', (error: NodeJS.ErrnoException) => {
-                    console.error('SERVER: HTTPS server error:', error);
-                    this.isRunning = false;
+            server.on('tlsClientError', (err) => {
+                if (isCertificateRejectedByClient(err)) {
+                    console.warn('SERVER: Client rejected the certificate - this may be expected');
+                    console.warn('SERVER: Open the server URL in a browser first and accept the certificate');
+                    console.warn(`SERVER: Navigate to https://${this.config.host}:${this.config.port} and proceed manually`);
+                } else if (err.message.includes('certificate')) {
+                    console.warn('SERVER: Certificate-related TLS error:', err.message);
+                } else {
+                    console.warn('SERVER: TLS client error (non-critical):', err.message);
+                }
+            });
 
-                    if (error.code === 'EADDRINUSE') {
-                        reject(new Error(`SERVER: Port ${this.config.port} is already in use`));
-                    } else if (error.code === 'EACCES') {
-                        reject(new Error(`SERVER: Permission denied. May need to run as administrator for port ${this.config.port}`));
-                    } else if (error.code === 'ENOENT') {
-                        reject(new Error('SERVER: Certificate file not found. Please check your certificate paths.'));
-                    } else {
-                        reject(new Error(`SERVER: Failed to start HTTPS server: ${error.message}`));
-                    }
-                });
-
-                this.server.on('listening', () => {
-                    const port = this.config.port;
-                    const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
-
-                    console.log(`SERVER: HTTPS server listening on port ${port}`);
-                    if (this.usingFallbackCerts) {
-                        console.warn('SERVER: Using generated local certificates instead of custom certificates');
-                        void vscode.window.showWarningMessage(
-                            'HTTPS server started with generated local certificates because the custom certificate pair was missing or invalid.',
-                            'Configure Certificates',
-                        ).then((action) => {
-                            if (action === 'Configure Certificates') {
-                                void vscode.commands.executeCommand('codexr.server.configure');
-                            }
-                        });
-                    } else {
-                        console.log('SERVER: Using custom certificates');
-                    }
-
-                    NetworkUtils.displayNetworkInfo(port, 'https');
-                    console.log(`SERVER: Primary external URL: ${primaryExternalUrl}`);
-
-                    this.isRunning = true;
-                    resolve(NetworkUtils.getLocalhostUrl(port, 'https'));
-                });
-
-                this.server.on('close', () => {
-                    console.log('SERVER: HTTPS server closed');
-                    this.isRunning = false;
-                });
-
-                this.server.on('tlsClientError', (err) => {
-                    if (
-                        err.message.includes('SSLV3_ALERT_CERTIFICATE_UNKNOWN') ||
-                        err.message.includes('certificate unknown') ||
-                        err.message.includes('SSL alert number 46')
-                    ) {
-                        console.warn('SERVER: Client rejected the certificate - this may be expected');
-                        console.warn('SERVER: Open the server URL in a browser first and accept the certificate');
-                        console.warn(`SERVER: Navigate to https://${this.config.host}:${this.config.port} and proceed manually`);
-                    } else if (err.message.includes('certificate')) {
-                        console.warn('SERVER: Certificate-related TLS error:', err.message);
-                    } else {
-                        console.warn('SERVER: TLS client error (non-critical):', err.message);
-                    }
-                });
-
-                this.server.listen(this.config.port, this.config.host);
-            } catch (error) {
-                console.error('SERVER: Error starting HTTPS server:', error);
-                reject(error);
-            }
+            server.listen(this.config.port, this.config.host);
         });
     }
 
@@ -192,53 +117,12 @@ export class HttpsCustomServer {
         this.isRunning = false;
     }
 
-    public getIsRunning(): boolean {
-        return this.isRunning;
-    }
-
     public getConfig(): HttpsCustomServerConfig {
         return {
             ...this.config,
             certPath: '***REDACTED***',
             keyPath: '***REDACTED***',
         };
-    }
-
-    public getServerUrl(): string | null {
-        if (!this.isRunning) {
-            return null;
-        }
-        return `https://${this.config.host}:${this.config.port}`;
-    }
-
-    public createAuthenticatedBrowserUrl(baseUrl: string): string {
-        return this.httpHandler.createAuthenticatedBrowserUrl(baseUrl);
-    }
-
-    public createInvitation(): string {
-        return this.httpHandler.createInvitation();
-    }
-
-    public setRemotePublicUrl(publicUrl: string | null): void {
-        this.httpHandler.setRemotePublicUrl(publicUrl);
-    }
-
-    public getRemoteSessionAuthority(): RemoteSessionAuthority {
-        return this.httpHandler.getRemoteSessionAuthority();
-    }
-
-    public getConnectedParticipants(): ConnectedParticipantSummary[] {
-        return this.httpHandler.getConnectedParticipants();
-    }
-
-    public removeParticipant(peerId: string): ParticipantRemovalOutcome {
-        return this.httpHandler.removeParticipant(peerId);
-    }
-
-    public onConnectedParticipantsChanged(
-        listener: (participants: ConnectedParticipantSummary[]) => void,
-    ): () => void {
-        return this.httpHandler.onConnectedParticipantsChanged(listener);
     }
 
     private async resolveCertificatePaths(): Promise<void> {
@@ -283,16 +167,7 @@ export class HttpsCustomServer {
     }
 
     private async validateCertificatePair(certPath: string, keyPath: string): Promise<void> {
-        if (!fs.existsSync(certPath)) {
-            throw new Error(`SERVER: Certificate file not found: ${certPath}`);
-        }
-
-        if (!fs.existsSync(keyPath)) {
-            throw new Error(`SERVER: Private key file not found: ${keyPath}`);
-        }
-
-        await fs.promises.access(certPath, fs.constants.R_OK);
-        await fs.promises.access(keyPath, fs.constants.R_OK);
+        await this.assertCertificatePairReadable(certPath, keyPath);
 
         const certContent = await fs.promises.readFile(certPath, 'utf8');
         const keyContent = await fs.promises.readFile(keyPath, 'utf8');
@@ -310,35 +185,19 @@ export class HttpsCustomServer {
         }
     }
 
+    protected describeStartError(error: NodeJS.ErrnoException): Error | undefined {
+        return error.code === 'ENOENT'
+            ? new Error('SERVER: Certificate file not found. Please check your certificate paths.')
+            : undefined;
+    }
+
     private loadSslOptions(): https.ServerOptions {
         try {
-            const cert = fs.readFileSync(this.config.certPath, 'utf8');
-            const key = fs.readFileSync(this.config.keyPath, 'utf8');
+            const { cert, key } = this.readCertificatePair();
 
             console.log('SERVER: Custom SSL certificates loaded successfully');
 
-            return {
-                cert,
-                key,
-                rejectUnauthorized: false,
-                requestCert: false,
-                secureProtocol: 'TLS_method',
-                honorCipherOrder: false,
-                ciphers: [
-                    'ECDHE-RSA-AES128-GCM-SHA256',
-                    'ECDHE-RSA-AES256-GCM-SHA384',
-                    'ECDHE-RSA-AES128-SHA256',
-                    'ECDHE-RSA-AES256-SHA384',
-                    'DHE-RSA-AES128-GCM-SHA256',
-                    'DHE-RSA-AES256-GCM-SHA384',
-                    'AES128-GCM-SHA256',
-                    'AES256-GCM-SHA384',
-                ].join(':'),
-                secureOptions: 0,
-                SNICallback: (_servername: string, callback: (err: Error | null, ctx?: any) => void) => {
-                    callback(null);
-                },
-            };
+            return buildTlsServerOptions(cert, key);
         } catch (error) {
             throw new Error(`SERVER: Failed to load custom SSL certificates: ${error}`);
         }

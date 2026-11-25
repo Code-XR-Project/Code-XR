@@ -18,7 +18,7 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1416,
+    "console.total": 1410,
     "console.byModule": {
       "active_servers": 113,
       "babia_examples": 49,
@@ -28,7 +28,7 @@
       "core": 1,
       "python_env": 24,
       "remote_access": 1,
-      "servers": 292,
+      "servers": 286,
       "utils": 38,
       "views": 107,
       "visualization_settings": 83,
@@ -36,14 +36,14 @@
     },
     "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 201,
+    "any.total": 200,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
       "code_analysis": 87,
       "commands": 8,
       "python_env": 5,
-      "servers": 12,
+      "servers": 11,
       "utils": 14,
       "views": 54,
       "visualization_settings": 6,
@@ -67,7 +67,7 @@
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 50,
+    "functions.over80Lines": 48,
     "complexity.over10": 74,
     "complexity.over15": 29,
     "complexity.over20": 9,
@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 312,
-    "src.lines": 48089,
-    "src.functions": 2641,
+    "src.files": 314,
+    "src.lines": 48044,
+    "src.functions": 2644,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -112,10 +112,6 @@
         "count": 35
       },
       {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
-        "count": 34
-      },
-      {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
         "count": 34
       },
@@ -126,6 +122,10 @@
       {
         "file": "src/babia_templates/processing/templateHTMLProcessor.ts",
         "count": 30
+      },
+      {
+        "file": "src/servers/runtime/httpsDefaultServer.ts",
+        "count": 28
       },
       {
         "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",

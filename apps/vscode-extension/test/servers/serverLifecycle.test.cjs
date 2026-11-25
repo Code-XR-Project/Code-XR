@@ -555,3 +555,29 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
         'log: SERVER: HTTP server is not running',
     ]);
 });
+
+test('httpsTlsOptions: the shared TLS literal both HTTPS servers listen with', async () => {
+    const fake = createFakeVscode();
+    await withFakeVscode(fake, async ({ requireOut }) => {
+        const { HTTPS_CIPHER_SUITES, buildTlsServerOptions, isCertificateRejectedByClient } = requireOut('servers/runtime/httpsTlsOptions.js');
+        assert.deepEqual([...HTTPS_CIPHER_SUITES], ALLOWED_CIPHERS);
+        const { SNICallback, ...literal } = buildTlsServerOptions('CERT', 'KEY');
+        assert.deepEqual(literal, {
+            cert: 'CERT',
+            key: 'KEY',
+            rejectUnauthorized: false,
+            requestCert: false,
+            secureProtocol: 'TLS_method',
+            honorCipherOrder: false,
+            ciphers: ALLOWED_CIPHERS.join(':'),
+            secureOptions: 0,
+        });
+        const answers = [];
+        SNICallback('host', (...args) => answers.push(args));
+        assert.deepEqual(answers, [[null]]);
+        assert.equal(isCertificateRejectedByClient(new Error('x SSLV3_ALERT_CERTIFICATE_UNKNOWN y')), true);
+        assert.equal(isCertificateRejectedByClient(new Error('certificate unknown')), true);
+        assert.equal(isCertificateRejectedByClient(new Error('SSL alert number 46')), true);
+        assert.equal(isCertificateRejectedByClient(new Error('certificate expired')), false);
+    });
+});
