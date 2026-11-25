@@ -18,9 +18,9 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1423,
+    "console.total": 1416,
     "console.byModule": {
-      "active_servers": 120,
+      "active_servers": 113,
       "babia_examples": 49,
       "babia_templates": 68,
       "code_analysis": 538,
@@ -36,9 +36,9 @@
     },
     "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 206,
+    "any.total": 205,
     "any.byModule": {
-      "active_servers": 12,
+      "active_servers": 11,
       "babia_templates": 3,
       "code_analysis": 90,
       "commands": 8,
@@ -87,8 +87,8 @@
   },
   "informational": {
     "src.files": 309,
-    "src.lines": 48345,
-    "src.functions": 2643,
+    "src.lines": 48176,
+    "src.functions": 2634,
     "src.unreachableLines": 39,
     "console.topFiles": [
       {
@@ -96,12 +96,12 @@
         "count": 126
       },
       {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 46
-      },
-      {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "count": 45
+      },
+      {
+        "file": "src/active_servers/runtime/serverControl.ts",
+        "count": 39
       },
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
@@ -182,10 +182,6 @@
         "count": 7
       },
       {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 5
-      },
-      {
         "file": "src/commands/analysis/AnalysisCommands.ts",
         "count": 5
       },
@@ -207,6 +203,10 @@
       },
       {
         "file": "src/active_servers/registry/activeServerRegistry.ts",
+        "count": 4
+      },
+      {
+        "file": "src/active_servers/runtime/serverControl.ts",
         "count": 4
       },
       {
