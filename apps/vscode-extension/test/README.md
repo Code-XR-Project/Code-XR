@@ -4,6 +4,7 @@ This folder contains the local validation suite for CodeXR.
 
 ## Structure
 
+- `test/baseline`: the feature baseline of the cleanup epic (#26): a snapshot of everything a user can see, invoke or rely on, and the register of the only removals the maintainer authorized. `node test/baseline/featureSurface.cjs --write` regenerates it and refuses to drop an unauthorized entry.
 - `test/commands`: command registration contract tests.
 - `test/directory_analysis`: directory watcher and reanalysis data tests.
 - `../../backend/tests` (outside this package): backend Python tests grouped by capability; `test/runners/run-python-tests.cjs` runs them.
