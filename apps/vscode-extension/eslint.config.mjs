@@ -159,12 +159,19 @@ export default [{
         "no-throw-literal": "error",
         "no-eval": "error",
         semi: "error",
+        // No linted template script declares `var` any more (story #56,
+        // docs/cleanup/modernization.md §6). A new `var` at the top level of a
+        // classic script would also be a page global, which `let`/`const` are not.
+        // The multi-part runtimes are linted by nothing (global ignores) and stay
+        // on `var` until 1.3.0.
+        "no-var": "error",
     },
 }, {
     // Standalone runtimes converted from `var` to `let`/`const` (story #56,
     // docs/cleanup/modernization.md §2.3), one runtime per commit. Each is one
-    // IIFE, so no top-level binding was a page global. The multi-part runtimes
-    // stay on `var` until 1.3.0: their parts cannot be linted alone.
+    // IIFE, so no top-level binding was a page global. `no-var` covers every
+    // linted template (above); prefer-const is kept to these files, the ones
+    // whose declarations were reviewed one by one.
     files: [
         "templates/components/codexr/dependency-visual-budget/dependencyVisualBudgetRuntime.js",
         "templates/components/common/codexrCommonRuntime.js",
@@ -173,7 +180,6 @@ export default [{
         "templates/components/codexr/render-budget/renderBudgetRuntime.js",
     ],
     rules: {
-        "no-var": "error",
         "prefer-const": "error",
     },
 }, {
