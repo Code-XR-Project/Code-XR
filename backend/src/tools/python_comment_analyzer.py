@@ -15,12 +15,9 @@ from io import BytesIO
 
 
 def analyze_comments(file_path):
-    print(json.dumps({"debug": f"Analyzing file: {file_path}"}), file=sys.stderr)
-
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
-            print(json.dumps({"debug": f"File loaded, size: {len(content)} bytes"}), file=sys.stderr)
     except Exception as e:
         print(json.dumps({"debug": f"Error reading file: {str(e)}"}), file=sys.stderr)
         return {
@@ -30,7 +27,6 @@ def analyze_comments(file_path):
         }
 
     _, ext = os.path.splitext(file_path.lower())
-    print(json.dumps({"debug": f"File extension: {ext}"}), file=sys.stderr)
     comment_lines = set()
 
     if ext == '.py':
@@ -51,8 +47,6 @@ def analyze_comments(file_path):
         comment_lines = analyze_erlang_comments(content)
     else:
         print(json.dumps({"debug": f"Extension '{ext}' not supported"}), file=sys.stderr)
-
-    print(json.dumps({"debug": f"Found {len(comment_lines)} comment lines"}), file=sys.stderr)
 
     return {
         "file": file_path,
