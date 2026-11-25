@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1349,
+    "console.total": 1236,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
       "babia_templates": 68,
-      "code_analysis": 499,
+      "code_analysis": 386,
       "commands": 4,
       "core": 3,
       "python_env": 20,
@@ -67,7 +67,7 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 50,
-    "complexity.over10": 74,
+    "complexity.over10": 73,
     "complexity.over15": 28,
     "complexity.over20": 8,
     "complexity.over30": 4,
@@ -82,14 +82,10 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48396,
-    "src.functions": 2656,
+    "src.lines": 48390,
+    "src.functions": 2700,
     "src.unreachableLines": 0,
     "console.topFiles": [
-      {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 113
-      },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "count": 44
@@ -144,6 +140,10 @@
       },
       {
         "file": "src/servers/runtime/httpsCustomServer.ts",
+        "count": 24
+      },
+      {
+        "file": "src/servers/runtime/sse/SSEManager.ts",
         "count": 24
       }
     ],
@@ -241,7 +241,7 @@
         "file": "src/code_analysis/historical/gitRepositoryService.ts"
       },
       {
-        "ccn": 24,
+        "ccn": 23,
         "lines": 110,
         "function": "executeXRAnalysis",
         "file": "src/code_analysis/engine/utils/executePython.ts"
@@ -309,8 +309,8 @@
         "lines": 593
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 578
+        "file": "src/servers/runtime/httpServer.ts",
+        "lines": 573
       }
     ]
   },
