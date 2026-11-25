@@ -1,7 +1,6 @@
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
-import { X509Certificate } from 'crypto';
 import * as vscode from 'vscode';
 import { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
 import { ConnectedParticipantSummary } from '../../collaboration';
@@ -226,27 +225,6 @@ export class HttpsDefaultServer {
         return this.httpHandler.onConnectedParticipantsChanged(listener);
     }
 
-    public getCertificateInfo(): {
-        certPath: string;
-        keyPath: string;
-        certExists: boolean;
-        keyExists: boolean;
-        isValid: boolean;
-    } {
-        const certPath = this.config.certPath ?? '';
-        const keyPath = this.config.keyPath ?? '';
-        const certExists = certPath ? fs.existsSync(certPath) : false;
-        const keyExists = keyPath ? fs.existsSync(keyPath) : false;
-
-        return {
-            certPath,
-            keyPath,
-            certExists,
-            keyExists,
-            isValid: certExists && keyExists,
-        };
-    }
-
     private async ensureGeneratedCertificates(): Promise<void> {
         const paths = await this.certificateManager.ensureDefaultCertificatePair();
         this.config.certPath = paths.certPath;
@@ -308,69 +286,6 @@ export class HttpsDefaultServer {
             };
         } catch (error) {
             throw new Error(`SERVER: Failed to load SSL certificates: ${error}`);
-        }
-    }
-
-    public getDetailedStatus(): {
-        isRunning: boolean;
-        url: string | null;
-        config: HttpsDefaultServerConfig;
-        certificates: {
-            certPath: string;
-            keyPath: string;
-            certExists: boolean;
-            keyExists: boolean;
-            isValid: boolean;
-        };
-        uptime?: number;
-    } {
-        return {
-            isRunning: this.isRunning,
-            url: this.getServerUrl(),
-            config: this.getConfig(),
-            certificates: this.getCertificateInfo(),
-            uptime: this.isRunning ? process.uptime() : undefined,
-        };
-    }
-
-    public async testCertificates(): Promise<boolean> {
-        try {
-            await this.ensureGeneratedCertificates();
-            await this.validateCertificates();
-            this.loadSslOptions();
-            console.log('SERVER: Certificate test passed');
-            return true;
-        } catch (error) {
-            console.error('SERVER: Certificate test failed:', error);
-            return false;
-        }
-    }
-
-    public async getCertificateExpiration(): Promise<{
-        notBefore?: Date;
-        notAfter?: Date;
-        isExpired?: boolean;
-        daysUntilExpiry?: number;
-    } | null> {
-        try {
-            await this.ensureGeneratedCertificates();
-            const cert = fs.readFileSync(this.config.certPath!, 'utf8');
-            const certificate = new X509Certificate(cert);
-            const notBefore = new Date(certificate.validFrom);
-            const notAfter = new Date(certificate.validTo);
-            const now = new Date();
-            const isExpired = now > notAfter;
-            const daysUntilExpiry = Math.ceil((notAfter.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-            return {
-                notBefore,
-                notAfter,
-                isExpired,
-                daysUntilExpiry,
-            };
-        } catch (error) {
-            console.error('SERVER: Error parsing certificate expiration:', error);
-            return null;
         }
     }
 
