@@ -78,7 +78,6 @@
     "complexity.over30": 6,
     "reachability.unreachable": [
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
-      "src/learn_more/views.ts",
       "src/visualize_data/views/browseVisualizationsTreeView.ts"
     ],
     "templates.consoleLog": 117,
@@ -91,10 +90,10 @@
     }
   },
   "informational": {
-    "src.files": 316,
-    "src.lines": 50563,
+    "src.files": 315,
+    "src.lines": 50554,
     "src.functions": 2780,
-    "src.unreachableLines": 142,
+    "src.unreachableLines": 133,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
