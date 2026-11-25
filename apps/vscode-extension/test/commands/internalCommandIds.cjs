@@ -70,8 +70,6 @@ const INTERNAL_COMMAND_IDS = [
     { id: 'codexr.servers.refreshServers', kind: 'legacy-alias', reason: 'published in 1.1.0; zero callers today, kept for users\' keybindings' },
 
     // ---- pending removal: registered, uncontributed, referenced by nothing -----
-    { id: 'codeXR.analysis.refreshFilesByLanguage', kind: 'pending-removal', reason: 'never wired to a tree item or a menu' },
-    { id: 'codeXR.analysis.openFileFromLanguageGroup', kind: 'pending-removal', reason: 'never wired to a tree item or a menu' },
     { id: 'codeXR.analysis.cleanAnalysis', kind: 'pending-removal', reason: 'startup cleanup runs on its own; the command has no caller' },
     { id: 'codeXR.visualizeData.debugState', kind: 'pending-removal', reason: 'debug command with no caller' },
     { id: 'codexr.debug.themeConfiguration', kind: 'pending-removal', reason: 'debugThemeProblem.ts: console-only diagnostics nobody can run' },

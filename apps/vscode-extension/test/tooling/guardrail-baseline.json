@@ -136,15 +136,15 @@
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
-      "pending-removal": 6,
+      "pending-removal": 4,
       "programmatic": 2,
       "tree-item": 32
     }
   },
   "informational": {
     "src.files": 369,
-    "src.lines": 52868,
-    "src.functions": 2851,
+    "src.lines": 52850,
+    "src.functions": 2849,
     "src.unreachableLines": 2317,
     "console.topFiles": [
       {

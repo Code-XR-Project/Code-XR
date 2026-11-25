@@ -70,7 +70,7 @@ export class CodeAnalysisCommands {
         ));
         registrations.push(...ActiveAnalysesCommands.getCommandRegistrations(context, defaultRefreshCallback));
         registrations.push(...ProjectByLanguageCommands.getCommandRegistrations(context, defaultRefreshCallback));
-        registrations.push(...FilesByLanguageCommands.getCommandRegistrations(context, defaultRefreshCallback));
+        registrations.push(...FilesByLanguageCommands.getCommandRegistrations(context));
         registrations.push(...FileAnalysisCommands.getCommandRegistrations(context));
         registrations.push(...DirectoryAnalysisCommands.getCommandRegistrations(context));
         registrations.push(...ProjectAnalysisCommands.getCommandRegistrations(context));

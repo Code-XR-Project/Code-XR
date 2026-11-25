@@ -18,6 +18,7 @@
 #### Removed
 
 - **Eleven hidden settings commands that nothing could run.** `codeXR.analysis.setAnalysisFileModeXR`, `setAnalysisFileModeHivePanel`, `setViewThemeDark`, `setViewThemeLight`, `enableAutoAnalysis`, `disableAutoAnalysis` and the five `setAutoAnalysisDelay…` variants were registered but never appeared in the Command Palette, a menu or the sidebar. The sidebar rows that change these settings (`toggleAnalysisFileMode`, `toggleViewTheme`, `toggleAutoAnalysisEnabled`, `selectAutoAnalysisDelay`) work exactly as before.
+- **Two hidden Files-by-Language commands that were never wired up.** `codeXR.analysis.refreshFilesByLanguage` and `codeXR.analysis.openFileFromLanguageGroup` had no sidebar row, menu entry or palette entry. Clicking a file in the Files by Language list still opens and analyzes it (`runAndAnalyzeFile`), and the list still refreshes on its own.
 
 #### Fixed
 
