@@ -1,15 +1,8 @@
 import * as vscode from 'vscode';
-import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
+import { getServerConfig } from '../../../servers/views/items/configurationItems';
 import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('SERVERS');
-
-/**
- * Get current server configuration for dynamic item creation
- */
-function getServerConfig() {
-    return ServerSettingsManager.getInstance().getLegacyConfig();
-}
 
 /**
  * Server tree items for the Servers section
