@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 import { DEFAULT_VISUALIZATION_SETTINGS } from '../model/settingsModel';
+import {
+    LEGACY_STORAGE_KEY,
+    StoredVisualizationSettingsJson,
+    getVisualizationSettingsFilePath,
+} from '../storage/settingsFile';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('SETTINGS_ACCESSORS');
@@ -24,44 +28,25 @@ export function initializeSettingsAccessors(context: vscode.ExtensionContext): v
 }
 
 /**
- * Get the visualization configuration directory path
+ * Get the settings file path (the storage's own location, see settingsFile.ts)
  */
-function getConfigDirectory(): string {
+function getSettingsFilePath(): string {
     if (!extensionContext) {
         throw new Error('Settings accessors not initialized. Call initializeSettingsAccessors() first.');
     }
-    
-    const globalStorageUri = extensionContext.globalStorageUri;
-    return path.join(globalStorageUri.fsPath, 'visualization-configuration');
-}
-
-/**
- * Get the settings file path
- */
-function getSettingsFilePath(): string {
-    return path.join(getConfigDirectory(), 'visualization-settings.json');
+    return getVisualizationSettingsFilePath(extensionContext.globalStorageUri);
 }
 
 /**
  * Read settings from the JSON file
  */
-function readSettingsFromFile(): { 
-    backgroundColor?: string; 
-    groundColor?: string; 
-    environment: string; 
-    palette: string 
-} | null {
+function readSettingsFromFile(): StoredVisualizationSettingsJson | null {
     try {
         const settingsFilePath = getSettingsFilePath();
         
         if (fs.existsSync(settingsFilePath)) {
             const fileContent = fs.readFileSync(settingsFilePath, 'utf8');
-            const jsonSettings = JSON.parse(fileContent) as { 
-                backgroundColor?: string; 
-                groundColor?: string; 
-                environment: string; 
-                palette: string 
-            };
+            const jsonSettings = JSON.parse(fileContent) as StoredVisualizationSettingsJson;
             
             logger.debug('VISUALIZATION-SETTINGS: Read settings from file:', jsonSettings);
             return jsonSettings;
@@ -86,7 +71,7 @@ async function getBackgroundColorFromStorage(): Promise<string> {
         
         // Fallback to globalState for backward compatibility
         if (extensionContext) {
-            const legacySettings = extensionContext.globalState.get<any>('visualizationSettings');
+            const legacySettings = extensionContext.globalState.get<any>(LEGACY_STORAGE_KEY);
             if (legacySettings && legacySettings.backgroundColor) {
                 return legacySettings.backgroundColor;
             }
@@ -111,7 +96,7 @@ async function getGroundColorFromStorage(): Promise<string> {
         
         // Fallback to globalState for backward compatibility
         if (extensionContext) {
-            const legacySettings = extensionContext.globalState.get<any>('visualizationSettings');
+            const legacySettings = extensionContext.globalState.get<any>(LEGACY_STORAGE_KEY);
             if (legacySettings && legacySettings.groundColor) {
                 return legacySettings.groundColor;
             }
