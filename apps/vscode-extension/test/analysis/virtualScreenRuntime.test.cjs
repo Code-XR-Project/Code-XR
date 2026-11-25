@@ -15,6 +15,7 @@ const ROOM_SERVER_FILES = [
     'src/servers/runtime/collaboration/roomMessageCodec.ts',
     'src/servers/runtime/collaboration/participantIdentity.ts',
     'src/servers/runtime/collaboration/roomRegistry.ts',
+    'src/servers/runtime/collaboration/roomSharedState.ts',
 ];
 const runtimeSource = readAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 const runtimeModule = requireAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
@@ -401,7 +402,7 @@ test('well-known screen ids are reserved at script load and survive materializat
     assert.match(managerSource, /aspectRatio: Number\(options\?\.aspectRatio\) > 0/);
 
     // Server never resurrects an entity from a bare transform.
-    const serverSource = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationRoomServer.ts');
+    const serverSource = readConcatenated(ROOM_SERVER_FILES);
     assert.match(serverSource, /Never resurrect an entity from a bare transform/);
     assertAbsent(readConcatenated(ROOM_SERVER_FILES), /room\.entities\.get\(key\) \|\| \{ entityKind, entityId \}/, {
         canary: /Never resurrect an entity from a bare transform/,

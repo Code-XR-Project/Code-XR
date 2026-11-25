@@ -16,20 +16,18 @@ import {
     ParticipantRemovalResult,
     ParticipantState,
     SharedEntityState,
-    SharedPresenceState,
 } from './roomTypes';
 import {
     createId,
     getEntityKey,
-    normalizeEntityState,
     normalizeId,
-    normalizeTransform,
     parseMessage,
     resolveRoomId,
     send,
     sendError,
 } from './roomMessageCodec';
 import { CollaborationRoomRegistry } from './roomRegistry';
+import * as sharedState from './roomSharedState';
 import {
     applyProfileToParticipant,
     AUTO_AVATAR_ID,
@@ -231,31 +229,31 @@ export class CollaborationRoomServer {
                 this.kickParticipant(peer, message.payload || {});
                 return;
             case 'presenter-started':
-                this.startPresenter(peer);
+                sharedState.startPresenter(this.registry, peer);
                 return;
             case 'presenter-stopped':
-                this.stopPresenter(peer, message.payload || {});
+                sharedState.stopPresenter(this.registry, peer, message.payload || {});
                 return;
             case 'presence-update':
-                this.updatePresence(peer, message.payload || {});
+                sharedState.updatePresence(this.registry, peer, message.payload || {});
                 return;
             case 'entity-added':
-                this.upsertEntity(peer, message, 'entity-added');
+                sharedState.upsertEntity(this.registry, peer, message, 'entity-added');
                 return;
             case 'entity-updated':
-                this.upsertEntity(peer, message, 'entity-updated');
+                sharedState.upsertEntity(this.registry, peer, message, 'entity-updated');
                 return;
             case 'entity-transform':
-                this.updateEntityTransform(peer, message);
+                sharedState.updateEntityTransform(this.registry, peer, message);
                 return;
             case 'entity-removed':
-                this.removeEntity(peer, message);
+                sharedState.removeEntity(this.registry, peer, message);
                 return;
             case 'entity-lock':
-                this.updateEntityLock(peer, message, true);
+                sharedState.updateEntityLock(this.registry, peer, message, true);
                 return;
             case 'entity-unlock':
-                this.updateEntityLock(peer, message, false);
+                sharedState.updateEntityLock(this.registry, peer, message, false);
                 return;
             default:
                 console.log('[Code-XR Fix][Room] application message received:', message.type, '(peer:', peer.id, ')');
@@ -313,25 +311,7 @@ export class CollaborationRoomServer {
         entity: SharedEntityState,
         peerId: string,
     ): void {
-        const normalized = normalizeEntityState(entity);
-        if (!normalized) {
-            throw new Error('invalid-authoritative-entity');
-        }
-        const key = getEntityKey(normalized.entityKind, normalized.entityId);
-        const nextEntity = {
-            ...(room.entities.get(key) || {}),
-            ...normalized,
-            updatedAt: new Date().toISOString(),
-        };
-        room.entities.set(key, nextEntity);
-        room.revision += 1;
-        this.registry.broadcast(room, {
-            type: 'entity-updated',
-            peerId,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextEntity,
-        });
+        sharedState.upsertAuthoritativeEntity(this.registry, room, entity, peerId);
     }
 
     private joinRoom(peer: CollaborationPeer, message: CollaborationMessage): void {
@@ -466,240 +446,13 @@ export class CollaborationRoomServer {
         targetPeer.socket.close(4001, 'Removed by room host');
     }
 
-    private startPresenter(peer: CollaborationPeer): void {
-        const room = this.registry.getRoomForPeer(peer);
-        const participant = room?.participants.get(peer.id);
-        if (!room || !participant) {
-            return;
-        }
-        if (room.presenterPeerId === peer.id) {
-            return;
-        }
-
-        if (room.presenterPeerId) {
-            const previous = room.participants.get(room.presenterPeerId);
-            if (previous) {
-                previous.isPresenter = false;
-                room.revision += 1;
-                this.broadcastPresenterEvent(room, 'presenter-stopped', previous);
-            }
-        }
-
-        participant.isPresenter = true;
-        room.presenterPeerId = peer.id;
-        room.revision += 1;
-        this.broadcastPresenterEvent(room, 'presenter-started', participant);
-    }
-
-    private stopPresenter(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        const room = this.registry.getRoomForPeer(peer);
-        const actor = room?.participants.get(peer.id);
-        if (!room || !actor || !room.presenterPeerId) {
-            return;
-        }
-
-        const requestedPeerId = normalizeId(payload.peerId || payload.targetPeerId);
-        const targetPeerId = requestedPeerId || peer.id;
-        if (targetPeerId !== room.presenterPeerId) {
-            return;
-        }
-        if (targetPeerId !== peer.id && actor.role !== 'host') {
-            sendError(peer, 'forbidden', 'Only the host can stop another participant presentation.');
-            return;
-        }
-
-        const presenter = room.participants.get(room.presenterPeerId);
-        room.presenterPeerId = null;
-        if (presenter) {
-            presenter.isPresenter = false;
-            room.revision += 1;
-            this.broadcastPresenterEvent(room, 'presenter-stopped', presenter);
-        }
-    }
-
-    private updatePresence(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        const room = this.registry.getRoomForPeer(peer);
-        const participant = room?.participants.get(peer.id);
-        if (!room || !participant) {
-            return;
-        }
-
-        const previous = room.presence.get(peer.id) || null;
-        const nextPresence: SharedPresenceState = {
-            ...(previous || {}),
-            ...payload,
-            ...getParticipantPresence(participant),
-            peerId: peer.id,
-            lastSeenAt: new Date().toISOString(),
-        };
-
-        room.presence.set(peer.id, nextPresence);
-        room.revision += 1;
-        this.registry.broadcast(room, {
-            type: previous ? 'presence-updated' : 'presence-joined',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextPresence,
-        }, peer.id);
-    }
-
-    private upsertEntity(
-        peer: CollaborationPeer,
-        message: CollaborationMessage,
-        eventType: 'entity-added' | 'entity-updated',
-    ): void {
-        const room = this.registry.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        const entity = normalizeEntityState(message.payload || message);
-        if (!entity) {
-            sendError(peer, 'invalid-entity', 'Entity updates require entityKind and entityId.');
-            return;
-        }
-
-        const key = getEntityKey(entity.entityKind, entity.entityId);
-        const previous = room.entities.get(key) || null;
-        const nextEntity: SharedEntityState = {
-            ...(previous || {}),
-            ...entity,
-            entityKind: entity.entityKind,
-            entityId: entity.entityId,
-            updatedAt: new Date().toISOString(),
-        };
-
-        room.entities.set(key, nextEntity);
-        room.revision += 1;
-        this.registry.broadcast(room, {
-            type: eventType,
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextEntity,
-        }, peer.id);
-    }
-
-    private updateEntityTransform(peer: CollaborationPeer, message: CollaborationMessage): void {
-        const room = this.registry.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        const entityKind = normalizeId(message.entityKind || message.payload?.entityKind);
-        const entityId = normalizeId(message.entityId || message.payload?.entityId);
-        if (!entityKind || !entityId) {
-            return;
-        }
-
-        const key = getEntityKey(entityKind, entityId);
-        const previous = room.entities.get(key);
-        if (!previous) {
-            // Never resurrect an entity from a bare transform: the rebuilt
-            // record would lack its typed fields (contentKind, screen config…)
-            // and clients would materialize a broken copy. Entity-added always
-            // precedes transforms in every runtime.
-            return;
-        }
-        const nextEntity: SharedEntityState = {
-            ...previous,
-            entityKind,
-            entityId,
-            transform: normalizeTransform(message.payload?.transform),
-            updatedAt: new Date().toISOString(),
-        };
-
-        room.entities.set(key, nextEntity);
-        room.revision += 1;
-        this.registry.broadcast(room, {
-            type: 'entity-transform',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextEntity,
-        }, peer.id);
-    }
-
-    private removeEntity(peer: CollaborationPeer, message: CollaborationMessage): void {
-        const room = this.registry.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        this.removeAuthoritativeEntity(
-            room,
-            String(message.entityKind || message.payload?.entityKind || ''),
-            String(message.entityId || message.payload?.entityId || ''),
-            peer.id,
-        );
-    }
-
     private removeAuthoritativeEntity(
         room: CollaborationRoomState,
         rawEntityKind: string,
         rawEntityId: string,
         peerId: string,
     ): void {
-        const entityKind = normalizeId(rawEntityKind);
-        const entityId = normalizeId(rawEntityId);
-        if (!entityKind || !entityId || !room.entities.delete(getEntityKey(entityKind, entityId))) {
-            return;
-        }
-
-        room.revision += 1;
-        this.registry.broadcast(room, {
-            type: 'entity-removed',
-            peerId,
-            roomId: room.id,
-            revision: room.revision,
-            payload: { entityKind, entityId },
-        }, peerId);
-    }
-
-    private updateEntityLock(peer: CollaborationPeer, message: CollaborationMessage, isLock: boolean): void {
-        const room = this.registry.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        const entityKind = normalizeId(message.entityKind || message.payload?.entityKind);
-        const entityId = normalizeId(message.entityId || message.payload?.entityId);
-        if (!entityKind || !entityId) {
-            return;
-        }
-
-        const entity = room.entities.get(getEntityKey(entityKind, entityId));
-        if (!entity) {
-            return;
-        }
-
-        const currentOwner = normalizeId(entity.gestureOwnerPeerId);
-        if (isLock) {
-            if (currentOwner && currentOwner !== peer.id) {
-                send(peer, {
-                    type: 'entity-lock-denied',
-                    peerId: peer.id,
-                    roomId: room.id,
-                    revision: room.revision,
-                    payload: { entityKind, entityId, gestureOwnerPeerId: currentOwner },
-                });
-                return;
-            }
-            entity.gestureOwnerPeerId = peer.id;
-        } else if (!currentOwner || currentOwner === peer.id) {
-            entity.gestureOwnerPeerId = null;
-        }
-
-        entity.updatedAt = new Date().toISOString();
-        room.revision += 1;
-        this.registry.broadcast(room, {
-            type: isLock ? 'entity-lock' : 'entity-unlock',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: entity,
-        }, peer.id);
+        sharedState.removeAuthoritativeEntity(this.registry, room, rawEntityKind, rawEntityId, peerId);
     }
 
     private handleDisconnect(peer: CollaborationPeer): void {
@@ -724,7 +477,7 @@ export class CollaborationRoomServer {
             if (participant) {
                 participant.isPresenter = false;
                 room.revision += 1;
-                this.broadcastPresenterEvent(room, 'presenter-stopped', participant);
+                sharedState.broadcastPresenterEvent(this.registry, room, 'presenter-stopped', participant);
             }
         }
 
@@ -732,21 +485,7 @@ export class CollaborationRoomServer {
         room.participants.delete(peer.id);
         this.emitParticipantsChanged(room);
 
-        for (const entity of room.entities.values()) {
-            if (entity.gestureOwnerPeerId !== peer.id) {
-                continue;
-            }
-            entity.gestureOwnerPeerId = null;
-            entity.updatedAt = new Date().toISOString();
-            room.revision += 1;
-            this.registry.broadcast(room, {
-                type: 'entity-unlock',
-                peerId: peer.id,
-                roomId: room.id,
-                revision: room.revision,
-                payload: entity,
-            }, peer.id);
-        }
+        sharedState.releaseEntityLocks(this.registry, room, peer.id);
 
         room.revision += 1;
         this.registry.broadcast(room, {
@@ -786,24 +525,6 @@ export class CollaborationRoomServer {
         }
         this.registry.broadcast(room, {
             type: 'role-updated',
-            peerId: participant.peerId,
-            roomId: room.id,
-            revision: room.revision,
-            payload: participant,
-        });
-    }
-
-    private broadcastPresenterEvent(
-        room: CollaborationRoomState,
-        type: 'presenter-started' | 'presenter-stopped',
-        participant: ParticipantState,
-    ): void {
-        const presence = room.presence.get(participant.peerId);
-        if (presence) {
-            presence.isPresenter = participant.isPresenter;
-        }
-        this.registry.broadcast(room, {
-            type,
             peerId: participant.peerId,
             roomId: room.id,
             revision: room.revision,

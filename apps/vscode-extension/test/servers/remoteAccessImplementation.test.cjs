@@ -15,6 +15,7 @@ const ROOM_SERVER_FILES = [
     'src/servers/runtime/collaboration/roomMessageCodec.ts',
     'src/servers/runtime/collaboration/participantIdentity.ts',
     'src/servers/runtime/collaboration/roomRegistry.ts',
+    'src/servers/runtime/collaboration/roomSharedState.ts',
 ];
 
 function readProjectFile(...parts) {

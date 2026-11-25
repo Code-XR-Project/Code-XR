@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 319,
-    "src.lines": 48131,
-    "src.functions": 2642,
+    "src.files": 320,
+    "src.lines": 48177,
+    "src.functions": 2645,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -278,10 +278,6 @@
         "lines": 852
       },
       {
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 838
-      },
-      {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
         "lines": 816
       },
@@ -312,6 +308,10 @@
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "lines": 590
+      },
+      {
+        "file": "src/servers/runtime/httpServer.ts",
+        "lines": 573
       }
     ]
   },
