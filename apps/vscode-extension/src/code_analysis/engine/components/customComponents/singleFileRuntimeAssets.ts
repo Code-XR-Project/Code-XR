@@ -35,6 +35,8 @@ export const SINGLE_FILE_RUNTIME_ASSETS = {
     pointerPolicy: {
         outputName: 'codexrPointerPolicyRuntime.js', folder: ['codexr', 'pointer-policy'], label: 'CodeXR pointer-policy runtime',
     },
+    /** The room also needs its textures/ folder: see codexrRoomComponentAsset.ts. */
+    room: { outputName: 'codexrRoomRuntime.js', folder: ['codexr', 'xr-room'], label: 'CodeXR room runtime' },
     renderBudget: { outputName: 'renderBudgetRuntime.js', folder: ['codexr', 'render-budget'], label: 'Render budget runtime' },
 } as const satisfies Record<string, SingleFileRuntimeAsset>;
 
