@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { PythonEnvCommands } from '../../python_env/commands/pythonEnvCommands';
-import { ExtensionCommandRegistration } from '../shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 
 let pythonEnvCommands: PythonEnvCommands | undefined;
 

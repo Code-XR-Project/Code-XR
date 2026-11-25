@@ -4,7 +4,7 @@
  */
 import * as vscode from 'vscode';
 import { CodeAnalysisCommands } from '../../code_analysis/commands/analysisCommands';
-import { ExtensionCommandRegistration } from '../shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 
 const LAST_ANALYSIS_STORAGE_KEY = 'codeXR.analysis.lastKind';
 const LAST_ANALYSIS_CONTEXT_KEY = 'codeXR.analysis.lastKind';

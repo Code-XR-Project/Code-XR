@@ -61,7 +61,7 @@ Layering violations:
 3. Delete the zero-byte modules and the configuration example (story #29).
 4. One `resolveTemplatePath()` for the 22 call sites; fix or remove the `__dirname` fallback; a `templatesRoot()` test helper.
 5. UI side effects out of `sessionRegistry.ts` and the `handleServerActions` import out of `multiServerLauncher.ts` (with story #39).
-6. Move the pure `commandRegistry` to `core/`, so feature folders stop importing `commands/shared`.
+6. Move the pure `commandRegistry` to `core/`, so feature folders stop importing `commands/shared`. **Done in #42 as `platform/commands/commandRegistry.ts`** (the place `src-layout.md` maps it, where `core/` means domain logic); the `commands/shared` barrel is gone.
 7. A dependency-direction test that pins the allowed folder edges and fails on a new cycle.
 
 **Belongs to [#13](https://github.com/Code-XR-Project/Code-XR/issues/13) (epic #11) — deliberately not started:** a `HostServices` / ports interface (notifier, configuration, key-value store, asset locator, progress) with a VS Code adapter; injecting `logger.ts` behind a sink port; replacing `ExtensionContext` with narrow parameters in the 37 pass-through files; moving `xrFieldSchemaService` storage behind a port; creating `packages/core` / `packages/xr-scenes` or moving files into them.
