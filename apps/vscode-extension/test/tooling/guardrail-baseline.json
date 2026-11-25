@@ -18,14 +18,14 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1416,
+    "console.total": 1418,
     "console.byModule": {
       "active_servers": 113,
       "babia_examples": 49,
       "babia_templates": 68,
       "code_analysis": 538,
       "commands": 4,
-      "core": 1,
+      "core": 3,
       "python_env": 24,
       "remote_access": 1,
       "servers": 292,
@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 312,
-    "src.lines": 48089,
-    "src.functions": 2641,
+    "src.files": 313,
+    "src.lines": 48248,
+    "src.functions": 2652,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -335,6 +335,20 @@
       "from": 311,
       "to": 608,
       "reason": "W3-10: type-aware no-floating-promises (296) and no-misused-promises (1) land as warn; budget 311 -> 608",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "console.byModule.core",
+      "from": 1,
+      "to": 3,
+      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "console.total",
+      "from": 1416,
+      "to": 1418,
+      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src",
       "date": "2026-11-25"
     }
   ]

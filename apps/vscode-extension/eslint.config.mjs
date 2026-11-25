@@ -2,6 +2,15 @@ import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import globals from "globals";
 
+// Logging programme (ROADMAP W4-L): diagnostics go through the logger
+// (src/core/logging), never straight to the console. Each migrated area is
+// added here as it lands; the sink is the one file allowed to call console.*,
+// because it is the fallback while no output channel is attached.
+const NO_CONSOLE_FILES = [
+    "src/core/logging/**/*.ts",
+];
+const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
+
 const NODE_JS_RULES = {
     "no-undef": "error",
     "no-unused-vars": ["error", { args: "none", caughtErrors: "none", varsIgnorePattern: "^_" }],
@@ -95,6 +104,12 @@ export default [{
     rules: {
         "@typescript-eslint/no-floating-promises": ["warn", { checkThenables: true }],
         "@typescript-eslint/no-misused-promises": "warn",
+    },
+}, {
+    files: NO_CONSOLE_FILES,
+    ignores: CONSOLE_ALLOWLIST,
+    rules: {
+        "no-console": "error",
     },
 }, {
     // Node-side JavaScript: the test suites, the build/packaging scripts and

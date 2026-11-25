@@ -168,3 +168,18 @@ test('the extension project does not type-check against the browser DOM', () => 
     const lib = readTsconfig('tsconfig.json').compilerOptions.lib.map((entry) => entry.toLowerCase());
     assert.ok(!lib.includes('dom'), 'tsconfig.json lib has no DOM');
 });
+
+test('no-console is an error over the migrated sources, and the log sink is the only exception', async () => {
+    // Logging programme (ROADMAP W4-L): every migrated area is added to the
+    // no-console block; the sink falls back to the console while no output
+    // channel is attached, so it is the one file allowed to call it.
+    const config = await loadEslintConfig();
+    const blocks = config.filter((block) => block.rules && block.rules['no-console'] !== undefined);
+
+    assert.equal(blocks.length, 1, 'one no-console block');
+    const [block] = blocks;
+    assert.equal(block.rules['no-console'], 'error');
+    assert.ok(block.files.length > 0 && block.files.every((glob) => glob.startsWith('src/')), 'scoped to src/');
+    assert.deepEqual(block.ignores, ['src/core/logging/sink.ts']);
+    assert.ok(fs.existsSync(path.join(projectRoot, 'src', 'core', 'logging', 'sink.ts')), 'the allowlisted sink exists');
+});
