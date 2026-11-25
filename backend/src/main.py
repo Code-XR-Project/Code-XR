@@ -28,6 +28,9 @@ def main():
     parser.add_argument('--mode', required=True, choices=['livePanel', 'xr', 'schema', 'dependencies'], help='Analysis mode')
     parser.add_argument('--type', required=True, choices=['file', 'directory'], help='Analysis type')
     parser.add_argument('--target', help='Target path to analyze')
+    # --files is deliberately unused by the extension: executePython.ts never passes it, so
+    # args.files is always None and directory modes scan the whole target. It is kept as a
+    # documented hand-run entry (and is part of the pinned CLI surface, test/baseline).
     parser.add_argument('--files', nargs='*', help='Specific files to analyze (directory mode only)')
     parser.add_argument('--deep', action='store_true', help='Enable deep recursive analysis for directories')
     parser.add_argument('--cache', help='Private dependency extraction cache path')
