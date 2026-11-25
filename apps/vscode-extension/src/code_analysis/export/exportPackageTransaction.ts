@@ -110,28 +110,19 @@ function urlToArtifactPath(rootPath: string, url: string): string {
     return artifactPath(rootPath, cleanUrl);
 }
 
-/**
- * Final, filesystem-level invariant check. Browser behavior has its own
- * harness, but a package with a missing entry point or referenced payload
- * must never be published in the first place.
- */
-export async function validateExportPackage(
-    stagingPath: string,
-    manifest: ExportManifest,
-): Promise<void> {
-    const requiredRootFiles = [
-        'index.html',
-        'data.json',
-        'xrChartMappingUiRuntime.js',
-        'codexr-export-manifest.json',
-    ];
-    for (const fileName of requiredRootFiles) {
-        const filePath = artifactPath(stagingPath, fileName);
-        if (!fs.existsSync(filePath) || !(await fs.promises.stat(filePath)).isFile()) {
-            throw new Error(`Export validation failed: missing ${fileName}`);
-        }
+/** Throws `failureMessage` unless `absolutePath` is an existing regular file. */
+async function assertIsFile(absolutePath: string, failureMessage: string): Promise<void> {
+    if (!fs.existsSync(absolutePath) || !(await fs.promises.stat(absolutePath)).isFile()) {
+        throw new Error(failureMessage);
     }
+}
 
+/**
+ * Every payload URL a manifest points at: entity dataset/result URLs, the git
+ * source payloads, and the working-copy payload when a working-copy source
+ * is listed. In first-seen order, without duplicates.
+ */
+function collectManifestPayloadUrls(manifest: ExportManifest): Set<string> {
     const urls = new Set<string>();
     for (const entity of manifest.entities) {
         for (const key of ['datasetUrl', 'resultUrl'] as const) {
@@ -149,11 +140,29 @@ export async function validateExportPackage(
     ) {
         urls.add(manifest.gitData.workingCopyPayloadUrl);
     }
-    for (const url of urls) {
-        const filePath = urlToArtifactPath(stagingPath, url);
-        if (!fs.existsSync(filePath) || !(await fs.promises.stat(filePath)).isFile()) {
-            throw new Error(`Export validation failed: missing payload ${url}`);
-        }
+    return urls;
+}
+
+/**
+ * Final, filesystem-level invariant check. Browser behavior has its own
+ * harness, but a package with a missing entry point or referenced payload
+ * must never be published in the first place.
+ */
+export async function validateExportPackage(
+    stagingPath: string,
+    manifest: ExportManifest,
+): Promise<void> {
+    const requiredRootFiles = [
+        'index.html',
+        'data.json',
+        'xrChartMappingUiRuntime.js',
+        'codexr-export-manifest.json',
+    ];
+    for (const fileName of requiredRootFiles) {
+        await assertIsFile(artifactPath(stagingPath, fileName), `Export validation failed: missing ${fileName}`);
+    }
+    for (const url of collectManifestPayloadUrls(manifest)) {
+        await assertIsFile(urlToArtifactPath(stagingPath, url), `Export validation failed: missing payload ${url}`);
     }
 
     const onDisk = JSON.parse(await fs.promises.readFile(
