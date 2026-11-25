@@ -1,0 +1,26 @@
+{
+	// Type-checks the build and packaging JavaScript (checkJs): the scripts,
+	// webpack.config.js and eslint.config.mjs. Used only by `npm run typecheck`;
+	// nothing is emitted.
+	"compilerOptions": {
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"target": "ES2022",
+		"lib": ["ES2023"],
+		"types": ["node"],
+		"allowJs": true,
+		"checkJs": true,
+		"noEmit": true,
+		"strict": true,
+		// Untyped JavaScript: an unannotated parameter is not an error here.
+		// Everything else strict checks (null safety, unknown in catch, wrong
+		// API usage) still applies.
+		"noImplicitAny": false,
+		"skipLibCheck": true
+	},
+	"include": [
+		"scripts/**/*.mjs",
+		"webpack.config.js",
+		"eslint.config.mjs"
+	]
+}

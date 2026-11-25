@@ -150,6 +150,18 @@ test('typecheck runs the strict flags, and only typecheck does', () => {
     }
 });
 
+test('typecheck also checks the build and packaging JavaScript', () => {
+    const manifest = require(path.join(projectRoot, 'package.json'));
+    assert.match(manifest.scripts.typecheck, /-p tsconfig\.tooling\.json/);
+
+    const tooling = readTsconfig('tsconfig.tooling.json');
+    assert.equal(tooling.compilerOptions.checkJs, true);
+    assert.equal(tooling.compilerOptions.noEmit, true);
+    for (const entry of ['scripts/**/*.mjs', 'webpack.config.js', 'eslint.config.mjs']) {
+        assert.ok(tooling.include.includes(entry), `tsconfig.tooling.json includes ${entry}`);
+    }
+});
+
 test('the extension project does not type-check against the browser DOM', () => {
     // The extension host is Node; a DOM global (window, document, a DOM-typed
     // setTimeout) in src/ would type-check and then fail at runtime.
