@@ -24,7 +24,7 @@
 
 - **22 files build template paths by hand**, almost always `path.join(context.extensionPath, 'templates', …)`; 39 files touch `extensionPath`/`extensionUri` (236 hits). There is no central resolver.
 - **Fallback that could break:** `servers/runtime/{httpServer,httpsDefaultServer,httpsCustomServer,multiServerLauncher}.ts` default `staticRoot` to `path.join(__dirname, '../../../templates')`, which is only right in the unbundled layout. Callers appear to always pass `staticRoot` (to confirm with a test).
-- **Templates ship twice:** webpack copies `templates/` into `dist/templates`, and the `files` allowlist also ships `templates/**` (story #41).
+- **Templates ship once (since story #41):** the `files` allowlist ships `templates/**`; webpack no longer copies it into `dist/templates`.
 - **Moving templates to `packages/xr-scenes`** would need: the copy source changed, a decision on the `files` entry, `scripts/prepare-dev-extension.mjs` and `scripts/dist-fingerprint.mjs` updated, and 38 test files retargeted (11 build `projectRoot/templates` directly; `test/helpers/runtimeAssembly.cjs` and `sourceText.cjs` hardcode it).
 
 ## 4. Folder dependencies and layering

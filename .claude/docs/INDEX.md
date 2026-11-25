@@ -36,7 +36,7 @@
 | `capture-media` | README/website screenshots driven from a real running analysis (`media/SHOTLIST.md`) |
 | `cleanup` | **v1.2.1 default**: dead-code removal, file splits, lint tightening, size optimization — proof-before-delete + measurement ritual |
 
-### Existing project docs (shipped in the VSIX via `docs/**`)
+### Existing project docs (README/CHANGELOG ship in the VSIX; `docs/` does not since 1.2.1 — the README links it on GitHub)
 
 | Document | Language | One-line purpose |
 |---|---|---|

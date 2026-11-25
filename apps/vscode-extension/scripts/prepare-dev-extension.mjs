@@ -15,7 +15,6 @@ const entriesToCopy = [
   'dist',
   'templates',
   'resources',
-  'docs',
   'examples',
 ];
 
