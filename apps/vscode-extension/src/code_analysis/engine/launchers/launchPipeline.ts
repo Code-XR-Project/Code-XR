@@ -17,6 +17,9 @@ import { UnifiedSessionRegistry } from '../core/sessionRegistry';
 import { ProcessedRequirements } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
 import { SessionServerManager } from '../servers/sessionServerManager';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('LAUNCH_PIPELINE');
 
 /** Progress percentages for each pipeline step. */
 export interface ProgressSteps {
@@ -81,8 +84,8 @@ export async function executeLaunchPipeline(
     context: vscode.ExtensionContext,
     config: LaunchPipelineConfig,
 ): Promise<void> {
-    const log = (msg: string) => console.log(`${config.logPrefix}: ${msg}`);
-    const logError = (msg: string) => console.error(`${config.logPrefix}: ${msg}`);
+    const log = (msg: string) => logger.debug(() => `${config.logPrefix}: ${msg}`);
+    const logError = (msg: string) => logger.error(`${config.logPrefix}: ${msg}`);
 
     log(`Starting analysis with session ${session.id}`);
 

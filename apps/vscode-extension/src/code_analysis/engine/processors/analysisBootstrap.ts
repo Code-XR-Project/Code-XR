@@ -9,6 +9,9 @@ import { directoryXRParser, DirectoryXRParsingResult } from '../parsers/director
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { buildTrackedFileSnapshot } from '../watchers/directorySnapshot';
 import { resolveTrackedSystemPath } from '../watchers/directoryReanalysisData';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS_BOOTSTRAP');
 
 export interface BootstrapProcessedRequirements {
     sessionId: string;
@@ -171,9 +174,7 @@ export class AnalysisBootstrap {
         for (const entry of payload) {
             const trackedPath = resolveTrackedSystemPath(session.targetPath, entry);
             if (!trackedPath) {
-                console.warn(
-                    `ANALYSIS_BOOTSTRAP: Could not resolve tracked path for ${entry?.fileName || entry?.relativePath || 'unknown entry'}`,
-                );
+                logger.warn(`Could not resolve tracked path for ${entry?.fileName || entry?.relativePath || 'unknown entry'}`);
                 continue;
             }
 
@@ -182,7 +183,7 @@ export class AnalysisBootstrap {
                 const snapshot = await buildTrackedFileSnapshot(trackedPath, hash);
                 trackedFiles.push(snapshot ?? { filePath: trackedPath, hash });
             } catch (error) {
-                console.error(`ANALYSIS_BOOTSTRAP: Error generating hash for ${trackedPath}:`, error);
+                logger.error(`Error generating hash for ${trackedPath}:`, error);
                 trackedFiles.push({ filePath: trackedPath, hash: '' });
             }
         }

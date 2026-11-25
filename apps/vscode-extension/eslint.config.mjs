@@ -11,6 +11,9 @@ const NO_CONSOLE_FILES = [
     "src/code_analysis/engine/utils/**/*.ts",
     "src/code_analysis/views/**/*.ts",
     "src/code_analysis/commands/**/*.ts",
+    "src/code_analysis/engine/parsers/**/*.ts",
+    "src/code_analysis/engine/launchers/**/*.ts",
+    "src/code_analysis/engine/processors/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

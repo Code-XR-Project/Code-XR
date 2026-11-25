@@ -15,14 +15,17 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { generateNonce } from '../../../utils/nonceGenerator';
 import { ThemeUtils } from '../utils/themeUtils';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('LIVE_PANEL_PARSER');
 
 export class LivePanelParser {
     private context: vscode.ExtensionContext;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('LIVE_PANEL_PARSER: Initializing LivePanelParser...');
+        logger.debug('Initializing LivePanelParser...');
         this.context = context;
-        console.log('LIVE_PANEL_PARSER: LivePanelParser initialized successfully');
+        logger.debug('LivePanelParser initialized successfully');
     }
 
     // ── Public API ───────────────────────────────────────────────────

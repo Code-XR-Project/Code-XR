@@ -8,6 +8,9 @@ import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { executeLaunchPipeline } from './launchPipeline';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('LAUNCHER_VISUALIZE_DOM');
 
 const LOG_PREFIX = 'NEW_LAUNCHER_VISUALIZEDOM_ANALYSIS';
 
@@ -16,8 +19,8 @@ export class LauncherVisualizeDOM {
         session: UnifiedAnalysisSession,
         context: vscode.ExtensionContext,
     ): Promise<void> {
-        console.log(`${LOG_PREFIX}: Target: ${session.targetName} (${session.targetType})`);
-        console.log(`${LOG_PREFIX}: Analysis mode: ${session.analysisMode}`);
+        logger.debug(() => `${LOG_PREFIX}: Target: ${session.targetName} (${session.targetType})`);
+        logger.debug(() => `${LOG_PREFIX}: Analysis mode: ${session.analysisMode}`);
 
         await executeLaunchPipeline(session, context, {
             logPrefix: LOG_PREFIX,
@@ -37,7 +40,7 @@ export class LauncherVisualizeDOM {
                     const watcher = new SessionWatcherManager(context);
                     return watcher.startWatchingSession(session);
                 } catch (watcherError) {
-                    console.error(`${LOG_PREFIX}: Error starting HTML file watcher:`, watcherError);
+                    logger.error(`${LOG_PREFIX}: Error starting HTML file watcher:`, watcherError);
                     return undefined;
                 }
             },
