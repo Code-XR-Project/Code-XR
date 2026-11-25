@@ -94,13 +94,7 @@
       "src/code_analysis/configuration/configurationManager.ts",
       "src/code_analysis/configuration/configurationManagerExample.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
-      "src/code_analysis/engine/components/index.ts",
-      "src/code_analysis/engine/core/index.ts",
-      "src/code_analysis/engine/index.ts",
       "src/code_analysis/engine/interfaces/fileRequirements.ts",
-      "src/code_analysis/engine/launchers/index.ts",
-      "src/code_analysis/engine/parsers/index.ts",
-      "src/code_analysis/engine/processors/index.ts",
       "src/code_analysis/engine/processors/requirementRules/LivePanelDirectoryRequirements.ts",
       "src/code_analysis/engine/processors/requirementRules/LivePanelFileRequirements.ts",
       "src/code_analysis/engine/processors/requirementRules/VisualizeDOMRequirements.ts",
@@ -108,8 +102,6 @@
       "src/code_analysis/engine/processors/requirementRules/XRFileRequirements.ts",
       "src/code_analysis/engine/servers/index.ts",
       "src/code_analysis/engine/utils/directoryFilter.ts",
-      "src/code_analysis/engine/utils/index.ts",
-      "src/code_analysis/engine/watchers/index.ts",
       "src/code_analysis/index.ts",
       "src/code_analysis/views/subsections/active_analyses/activeAnalysesSubsectionProvider.ts",
       "src/code_analysis/views/subsections/active_analyses/index.ts",
@@ -137,10 +129,10 @@
     }
   },
   "informational": {
-    "src.files": 364,
-    "src.lines": 52983,
+    "src.files": 356,
+    "src.lines": 52879,
     "src.functions": 2865,
-    "src.unreachableLines": 2312,
+    "src.unreachableLines": 2208,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
