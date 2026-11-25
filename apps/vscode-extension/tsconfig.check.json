@@ -5,6 +5,7 @@
 	// first) still fails on it. ROADMAP section E, rows W2-22 / W2-23.
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
-		"noUnusedLocals": true
+		"noUnusedLocals": true,
+		"noFallthroughCasesInSwitch": true
 	}
 }

@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
@@ -7,6 +8,9 @@ const { pathToFileURL } = require('node:url');
 // strict it is. A weakened config would otherwise pass silently, because a lint
 // run that checks nothing reports nothing.
 const projectRoot = path.resolve(__dirname, '..', '..');
+
+// Each flag lands with its fallout fixes in one commit (ROADMAP W3-03..05).
+const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch'];
 
 async function loadEslintConfig() {
     const configUrl = pathToFileURL(path.join(projectRoot, 'eslint.config.mjs')).href;
@@ -50,4 +54,27 @@ test('the pre-existing style rules are errors and the lint script has a warning 
 
     const manifest = require(path.join(projectRoot, 'package.json'));
     assert.match(manifest.scripts.lint, /--max-warnings \d+/, 'the lint script carries --max-warnings');
+});
+
+function readTsconfig(fileName) {
+    const ts = require('typescript');
+    const text = fs.readFileSync(path.join(projectRoot, fileName), 'utf8');
+    const { config, error } = ts.parseConfigFileTextToJson(fileName, text);
+    assert.equal(error, undefined, `${fileName} parses`);
+    return config;
+}
+
+test('typecheck runs the strict flags, and only typecheck does', () => {
+    // compile, compile-tests and ts-loader stay on tsconfig.json so a transient
+    // unused symbol never breaks the F5 build (ROADMAP section E, W2-22/23).
+    const manifest = require(path.join(projectRoot, 'package.json'));
+    assert.match(manifest.scripts.typecheck, /-p tsconfig\.check\.json/);
+    assert.doesNotMatch(manifest.scripts['compile-tests'], /tsconfig\.check/);
+
+    const check = readTsconfig('tsconfig.check.json');
+    assert.equal(check.extends, './tsconfig.json');
+    for (const flag of STRICT_TYPECHECK_FLAGS) {
+        assert.equal(check.compilerOptions[flag], true, `tsconfig.check.json enables ${flag}`);
+        assert.equal(readTsconfig('tsconfig.json').compilerOptions[flag], undefined, `tsconfig.json leaves ${flag} to the check config`);
+    }
 });
