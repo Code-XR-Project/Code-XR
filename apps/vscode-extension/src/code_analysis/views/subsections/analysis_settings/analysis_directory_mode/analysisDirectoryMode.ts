@@ -179,13 +179,3 @@ export class AnalysisDirectorySetting {
         }
     }
 }
-
-/**
- * Command registration interface for the nested dolls pattern
- */
-export interface CommandRegistration {
-    commandId: string;
-    callback: (...args: any[]) => any;
-    description?: string;
-}
-

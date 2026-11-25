@@ -3,4 +3,4 @@
  * Exports for analysis directory mode setting
  */
 
-export { AnalysisDirectorySetting, AnalysisDirectoryMode, CommandRegistration } from './analysisDirectoryMode';
+export { AnalysisDirectorySetting, AnalysisDirectoryMode } from './analysisDirectoryMode';
