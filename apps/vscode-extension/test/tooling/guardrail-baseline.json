@@ -82,8 +82,8 @@
     }
   },
   "informational": {
-    "src.files": 317,
-    "src.lines": 48080,
+    "src.files": 318,
+    "src.lines": 48105,
     "src.functions": 2641,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -275,7 +275,7 @@
     "size.largest10": [
       {
         "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 1015
+        "lines": 894
       },
       {
         "file": "src/python_env/runtime/venvManager.ts",

@@ -67,7 +67,7 @@ export function normalizeTransform(value: unknown): TransformState | null {
     };
 }
 
-export function normalizeVector(value: unknown): Vector3Like | null {
+function normalizeVector(value: unknown): Vector3Like | null {
     if (!value || typeof value !== 'object') {
         return null;
     }
@@ -87,7 +87,7 @@ export function normalizeId(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
-export function normalizeOptionalId(value: unknown): string | null {
+function normalizeOptionalId(value: unknown): string | null {
     return normalizeId(value) || null;
 }
 
