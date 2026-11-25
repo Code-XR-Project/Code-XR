@@ -145,7 +145,6 @@
     "docs/**/*",
     "examples/**/*",
     "resources/avatars/**/*",
-    "resources/favicon.ico",
     "resources/icon.png",
     "resources/icon.svg",
     "resources/languages_icons/color/**/*",

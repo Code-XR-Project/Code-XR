@@ -48,7 +48,6 @@
   "main": "./dist/extension.js",
   "files": [
     "dist/**/*",
-    "resources/favicon.ico",
     "resources/icon.png",
     "resources/icon.svg",
     "resources/avatars/**/*",

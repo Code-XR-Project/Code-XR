@@ -139,8 +139,10 @@ export class SaveFiles {
             // Usar el extensionPath para acceder a los recursos de la extensión
             const extensionPath = context.extensionPath;
             
-            // Construir ruta al favicon en el directorio de la extensión
-            const faviconSourcePath = path.join(extensionPath, 'resources', 'favicon.ico');
+            // The pages link ./favicon.ico, and the extension icon is that
+            // favicon: the PNG is copied under the .ico name (browsers sniff
+            // the bytes; the static server types it image/x-icon by name).
+            const faviconSourcePath = path.join(extensionPath, 'resources', 'icon.png');
             const faviconDestPath = path.join(storagePath, 'favicon.ico');
             
             console.log(`SAVE_FILES:  Copying favicon from extension resources: ${faviconSourcePath}`);
