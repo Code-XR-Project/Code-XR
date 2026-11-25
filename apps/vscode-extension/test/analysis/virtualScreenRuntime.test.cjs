@@ -21,6 +21,8 @@ const ROOM_SERVER_FILES = [
 const BROADCAST_SERVER_FILES = [
     'src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts',
     'src/servers/runtime/broadcast/mediaFrame.ts',
+    'src/servers/runtime/broadcast/relayPolicy.ts',
+    'src/servers/runtime/broadcast/broadcastTypes.ts',
 ];
 const runtimeSource = readAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 const runtimeModule = requireAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
@@ -652,17 +654,21 @@ test('temporal layers are only requested when the browser confirms support', () 
 });
 
 test('no viewer is ever refused: the capacity rejection is gone from both ends', () => {
-    const serverSource = readProjectFile(
-        'src', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.ts',
-    );
     const broadcastSources = readConcatenated(BROADCAST_SERVER_FILES);
     assertAbsent(broadcastSources, /MAX_RELAY_VIEWERS/, { canary: /RELAY_THIN_ALL_DELTAS_BYTES/ });
     assertAbsent(broadcastSources, /relay-capacity/, { canary: /RELAY_THIN_ALL_DELTAS_BYTES/ });
     assert.doesNotMatch(runtimeSource, /relayCapacity/);
     // Congestion is handled by thinning per viewer instead.
-    assert.match(serverSource, /private shouldThinFrame\(viewer: BroadcastClient, temporalLayer: number\): boolean/);
-    assert.match(serverSource, /const RELAY_THIN_TOP_LAYER_BYTES/);
-    assert.match(serverSource, /const RELAY_THIN_ALL_DELTAS_BYTES/);
+    // The compiled relay policy is asked directly: a viewer is thinned by its
+    // own backlog, the top layer first, every delta past the second threshold.
+    const { shouldThinFrame } = require(path.join(projectRoot, 'out', 'servers', 'runtime', 'broadcast', 'relayPolicy.js'));
+    assert.equal(shouldThinFrame(512 * 1024, 1), false);
+    assert.equal(shouldThinFrame(512 * 1024 + 1, 1), true);
+    assert.equal(shouldThinFrame(512 * 1024 + 1, 0), false);
+    assert.equal(shouldThinFrame(2 * 1024 * 1024, 0), false);
+    assert.equal(shouldThinFrame(2 * 1024 * 1024 + 1, 0), true);
+    assert.match(broadcastSources, /const RELAY_THIN_TOP_LAYER_BYTES/);
+    assert.match(broadcastSources, /const RELAY_THIN_ALL_DELTAS_BYTES/);
 });
 
 test('viewers never publish broadcast state they do not own', () => {

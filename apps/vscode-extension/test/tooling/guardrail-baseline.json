@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 321,
-    "src.lines": 48194,
-    "src.functions": 2646,
+    "src.files": 323,
+    "src.lines": 48242,
+    "src.functions": 2649,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -286,10 +286,6 @@
         "lines": 784
       },
       {
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 726
-      },
-      {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
@@ -308,6 +304,10 @@
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "lines": 590
+      },
+      {
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 581
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
