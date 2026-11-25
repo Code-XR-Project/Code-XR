@@ -3,7 +3,7 @@ import { chartTemplates } from '../charts/templateCharts';
 import { getVisualizationConfiguration, VisualizationSettings } from '../../utils/getVisualizationConfiguration';
 import { CreateChart } from './placeholders/createChart';
 import { CreateStructure } from './placeholders/createStructure';
-import { XRFieldTypeMap, XRSchemaTargetType } from '../../code_analysis/services/xrFieldSchemaService';
+import { XRFieldTypeMap, XRSchemaTargetType } from '../models/xrFieldModels';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { getLogger } from '../../core/logging/sink';
