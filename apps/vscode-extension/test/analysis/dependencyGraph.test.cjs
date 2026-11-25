@@ -596,7 +596,8 @@ test('dependency server preserves cached datasets and no longer accepts granular
   assert.doesNotMatch(server, /allowedGranularity/);
   assert.doesNotMatch(models, /DependencyGraphGranularity/);
   assert.doesNotMatch(service, /void job\.finally/);
-  assert.match(service, /void job\.then\(clearActiveJob, clearActiveJob\)/);
+  // A start while one runs joins it (S6: the job runner owns the slot).
+  assert.match(service, /this\.jobs\.current\(\)/);
 });
 
 test('python dependency packages are pinned centrally', () => {

@@ -380,7 +380,9 @@ test('historical comparison is authoritative, shared per room, and rejects concu
     assert.match(server, /changeAnalysisViewMode\('historical-compare', 'historical.selection'\);/);
     assert.match(server, /updateAnalysisViewIfCurrent\([\s\S]*'historical.mapping'/);
     assert.doesNotMatch(server, /message\.type === 'historical-comparison-reset'/);
-    assert.match(server, /historicalComparisonService\.isBusy\(\)/);
+    // The job slot is reserved synchronously, before the first await (S6).
+    assert.match(server, /service\.reserveComparison\(request\)/);
+    assert.match(server, /message\.type === 'historical-comparison-cancel'/);
     assert.match(server, /await this\.historicalComparisonService\.getAvailability\(\)/);
     // The capability payload is built by the extracted CollaborationSessionApi.
     assert.match(
@@ -401,12 +403,9 @@ test('project evolution builds a chronological Git movie and publishes shared XR
         + readProjectFile('src', 'core', 'server', 'analysis', 'historicalComparisonBridge.ts')
         + readProjectFile('src', 'core', 'server', 'analysis', 'projectEvolutionBridge.ts')
         + readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
-    const service = readProjectFile(
-        'src',
-        'core',
-        'history',
-        'projectEvolutionService.ts',
-    );
+    // The revision writer was split out of the service (S6); same assertions.
+    const service = readProjectFile('src', 'core', 'history', 'projectEvolutionService.ts')
+        + readProjectFile('src', 'core', 'history', 'projectEvolutionArtifacts.ts');
     const models = readProjectFile(
         'src',
         'core',
@@ -442,7 +441,8 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(service, /DEFAULT_MAX_FRAMES = 24/);
     assert.match(service, /DEFAULT_ANALYSIS_CONCURRENCY = 4/);
     assert.match(service, /sampleSources/);
-    assert.match(service, /Promise\.all\(workers\)/);
+    // Every worker ends before the job does: no orphan after a cancel (S6).
+    assert.match(service, /Promise\.allSettled\(workers\)/);
     assert.match(service, /Analyzing \$\{sources\.length\} project revisions with \$\{concurrency\} workers/);
     assert.match(service, /references\.sources\.filter\(\(source\) => source\.kind === 'gitRef'\)/);
     assert.match(service, /'project-evolution'/);
@@ -457,7 +457,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(service, /Project evolution ready\./);
     assert.match(service, /clearGeneratedMovie/);
     assert.match(service, /fs\.promises\.rm\(revisionDirectory, \{ recursive: true, force: true \}\)/);
-    assert.match(service, /project-evolution-cleared/);
+    assert.match(service, /cancelAndWait/);
     // Frame selection is the shared sampler (even spacing in time, milestones
     // preferred), and the movie always ends on the current state of the branch —
     // the `--all` timeline's last entry can belong to another branch.
@@ -493,7 +493,9 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(server, /type: 'project-evolution-frame-applied'/);
     assert.match(server, /message\.type === 'project-evolution-start'/);
     assert.match(server, /changeAnalysisViewMode\('project-evolution', 'project-evolution'\);/);
-    assert.match(server, /projectEvolutionService\.isBusy\(\)/);
+    assert.match(server, /service\.reserveGeneration\(request\)/);
+    assert.match(server, /message\.type === 'project-evolution-cancel'/);
+    assert.match(server, /type: 'project-evolution-cancelled'/);
     assert.match(server, /entityKind: 'project-evolution'/);
     assert.match(server, /mode: 'project-evolution'/);
     assert.match(runtime, /CodeXRProjectEvolutionRuntime/);
@@ -501,6 +503,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(runtime, /project-evolution-references-request/);
     assert.match(runtime, /project-evolution-clear/);
     assert.match(runtime, /project-evolution-cleared/);
+    assert.match(runtime, /project-evolution-cancel'/);
     assert.match(runtime, /project-evolution-start/);
     assert.match(runtime, /function unwrapPayload\(message\)/);
     assert.match(runtime, /Object\.prototype\.hasOwnProperty\.call\(message, 'payload'\)/);
@@ -690,7 +693,9 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(runtime, /if \(!state\.applyingMapping\) \{[\s\S]{0,120}tryResumePlayback\(\);/);
     // A deliberate pause cancels any pending auto-resume.
     assert.match(runtime, /state\.resumePlayback = false;\s*stop\(\);/);
-    assert.match(runtime, /state\.generating\) \{[\s\S]{0,200}clearMovie\(\);/);
+    // Leaving the mode never clears the movie or stops the room's job (S6, EVO-2).
+    assert.doesNotMatch(runtime, /state\.generating\) \{[\s\S]{0,200}clearMovie\(\);/);
+    assert.match(runtime, /function clearOrCancel\(\)/);
     assert.match(runtime, /function setTimelineMode/);
     assert.match(runtime, /function selectSourceForTimeline/);
     assert.match(runtime, /refs\.picker\?\.getVisibleSources\?\.\(\)/);
@@ -874,7 +879,8 @@ test('XR historical runtime renders two contained charts and restores the single
     assert.match(runtime, /function restoreOriginalChartMapping\(config\)/);
     assert.match(runtime, /mappingRuntime\.switchMappingContext\?\.\('normal-analysis'/);
     assert.match(runtime, /setStatus\('Analyzing historical comparison\. Please wait\.\.\.', 'info'\)/);
-    assert.match(runtime, /function handleProgress\(message\) \{\s*setStatus\(message\?\.payload\?\.message \|\| 'Analyzing\.\.\.', 'info'\);/);
+    assert.match(runtime, /function handleProgress\(message\) \{\s*setComparisonJobRunning\(message\?\.payload\?\.state === 'analyzing'\);\s*setStatus\(message\?\.payload\?\.message \|\| 'Analyzing\.\.\.', 'info'\);/);
+    assert.match(runtime, /historical-comparison-cancel'/);
     assert.match(runtime, /parkOriginalChart\(original\)/);
     assert.match(runtime, /restoreOriginalChart\(\)/);
     assert.match(runtime, /CodeXRAnalysisModeRuntime/);

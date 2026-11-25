@@ -79,6 +79,14 @@
   - Bubble charts rested their smallest bubble on the table and sank their axes up to 0.6 m into it. The lowest of the bubbles and the axes now rests on the table.
   - Pie and donut charts stand up to 2 m tall (they were about 1.3 m), so their sectors and labels are readable from the controller position.
   - A live re-analysis no longer undoes a remap you made while the charts were refreshing, and a second chart change made in project evolution while the first is applied is no longer ignored.
+- **Long analyses can be cancelled, time out, and no longer block a mode for the rest of the session.** Project evolution, historical comparison and the dependency graph now run as jobs that can be stopped:
+  - A movie or a comparison that is generating can be stopped with **Cancel** (the Clear movie / Compare button while it runs). The Git and Python processes it started are killed, its result is discarded, and the previous movie or comparison is kept.
+  - **Clear movie** no longer races a generation: a running generation is cancelled and waited for, so a movie can no longer reappear right after it was cleared.
+  - **Leaving project evolution no longer deletes the movie** or stops a generation started by someone else in the room; only Cancel does.
+  - A revision whose analysis hangs is stopped after 5 minutes and left out of the movie; a single Git command is stopped after 3 minutes; a whole movie after 30 minutes, a comparison after 15 and a dependency analysis after 10. Before, one stuck revision kept the mode "already running" until VS Code was reloaded.
+  - A double click on Generate or Compare, or two participants starting at once, no longer shows an error to everyone while the first job runs: "already running" goes only to the person who asked. A participant who joins mid-job sees it running.
+  - A cancelled analysis is no longer recorded as "this revision has no data", which hid that commit from both Git pickers until the session ended.
+  - Git-history exports no longer wait forever on one file: a file analysis is stopped after 2 minutes and retried once, and a Python worker that is slow to start (antivirus on Windows) reduces the number of workers instead of failing the export.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

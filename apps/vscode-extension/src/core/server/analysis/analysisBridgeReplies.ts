@@ -1,4 +1,5 @@
 import { CollaborationApplicationMessageContext } from '../collaboration/collaborationRoomServer';
+import { JobCancelledError } from '../../analysis/launch/jobRunner';
 import { GitAnalysisSourceError } from '../../history/gitAnalysisEligibility';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 
@@ -67,10 +68,23 @@ export async function replyWithReferences(
  * The error payload of a failed start: a Git source error reports its own
  * code, any other Error its message, anything else the fallback code.
  */
+/** What the room reads when a job is stopped by its deadline. */
+const JOB_TIMEOUT_MESSAGES: Readonly<Record<string, string>> = Object.freeze({
+    'project-evolution-timeout': 'Generating the project evolution movie took more than 30 minutes and was stopped.',
+    'comparison-timeout': 'The historical comparison took more than 15 minutes and was stopped.',
+    'dependency-graph-timeout': 'The dependency analysis took more than 10 minutes and was stopped.',
+});
+
 export function describeBridgeError(
     error: unknown,
     fallbackCode: string,
 ): { code: string; message: string } {
+    if (error instanceof JobCancelledError) {
+        return {
+            code: error.message,
+            message: JOB_TIMEOUT_MESSAGES[error.message] || 'The analysis was stopped.',
+        };
+    }
     return {
         code: error instanceof GitAnalysisSourceError
             ? error.code

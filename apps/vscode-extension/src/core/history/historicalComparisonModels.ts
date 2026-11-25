@@ -107,12 +107,28 @@ export interface HistoricalComparisonReferences {
     pageSize: number;
     activeRequest?: HistoricalComparisonRequest | null;
     eligibility?: GitAnalysisEligibility;
+    /**
+     * The job running (or last run) for this mode, so a client that joins
+     * mid-job shows the same state as everyone else (S6).
+     */
+    job?: AnalysisJobSnapshot | null;
+}
+
+/** What the room sees of a long analysis job (JobRunner's JobStatus). */
+export interface AnalysisJobSnapshot {
+    id: string;
+    state: 'queued' | 'running' | 'cancelled' | 'failed' | 'done';
+    startedAt: string;
+    endedAt?: string;
+    error?: string;
 }
 
 export interface HistoricalComparisonProgress {
     state: 'idle' | 'analyzing' | 'ready' | 'error';
     message: string;
     revision?: number;
+    /** The job this progress belongs to. */
+    jobId?: string;
 }
 
 export interface ProjectEvolutionRequest {
@@ -156,6 +172,8 @@ export interface ProjectEvolutionProgress {
     revision?: number;
     frameIndex?: number;
     frameCount?: number;
+    /** The job this progress belongs to. */
+    jobId?: string;
 }
 
 /**

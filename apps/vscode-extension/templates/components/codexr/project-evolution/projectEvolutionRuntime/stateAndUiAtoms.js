@@ -41,6 +41,9 @@
     // True while the server is building the movie: shows the progress bar and
     // makes the panel reserve room for it.
     generating: false,
+    // A generation job (any phase) is running for the room: the Clear button
+    // then reads "Cancel" and stops the job instead of deleting the movie.
+    jobRunning: false,
     // True while a confirmed chart/axis change is being applied to the current
     // frame: playback and seeking stay locked until it settles.
     applyingMapping: false,

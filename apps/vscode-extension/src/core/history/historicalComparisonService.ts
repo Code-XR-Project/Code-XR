@@ -5,7 +5,8 @@ import { AnalysisConfigurationStorage } from '../analysis/configuration/analysis
 import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { decorateDirectoryEntries } from './gitAnalysisShared';
-import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
+import { CachedPayload, GitAnalysisSessionContext } from './gitAnalysisSessionContext';
+import { JobRunner, JobTicket } from '../analysis/launch/jobRunner';
 import { GitRepositoryService } from './gitRepositoryService';
 import { GitAnalysisSourceCatalog } from './gitAnalysisEligibility';
 import {
@@ -20,10 +21,18 @@ import {
 
 const ANALYZER_CACHE_VERSION = 'historical-v1';
 
+/** A comparison (two revisions) longer than this is cancelled and reported (HIST-7). */
+export const HISTORICAL_COMPARISON_JOB_TIMEOUT_MS = 15 * 60 * 1000;
+
 export class HistoricalComparisonService {
     private readonly gitService: GitRepositoryService;
     private readonly analysis: GitAnalysisSessionContext;
-    private readonly jobs = new SingleJobGate<HistoricalComparisonRequest, HistoricalComparisonResult>('comparison-busy');
+    private readonly jobs = new JobRunner<HistoricalComparisonRequest, HistoricalComparisonResult>({
+        busyCode: 'comparison-busy',
+        cancelledCode: 'comparison-cancelled',
+        timeoutCode: 'comparison-timeout',
+        timeoutMs: HISTORICAL_COMPARISON_JOB_TIMEOUT_MS,
+    });
     private revision = 0;
 
     public constructor(
@@ -72,6 +81,7 @@ export class HistoricalComparisonService {
             sources: filtered.sources,
             eligibility: filtered.eligibility,
             activeRequest: this.activeRequest ? { ...this.activeRequest } : null,
+            job: this.jobs.status,
         };
     }
 
@@ -81,11 +91,44 @@ export class HistoricalComparisonService {
         );
     }
 
-    public async compare(
+    /**
+     * Takes the job slot synchronously (before the caller's first await), or
+     * returns null when a comparison is already running (HIST-9).
+     */
+    public reserveComparison(request: HistoricalComparisonRequest): JobTicket<HistoricalComparisonResult> | null {
+        return this.jobs.tryReserve(request);
+    }
+
+    /** Runs a reserved comparison. Rejects with comparison-cancelled/-timeout when stopped. */
+    public runComparison(
+        ticket: JobTicket<HistoricalComparisonResult>,
         request: HistoricalComparisonRequest,
         onProgress?: (progress: HistoricalComparisonProgress) => void,
     ): Promise<HistoricalComparisonResult> {
-        return this.jobs.run(request, () => this.executeComparison(request, onProgress));
+        const tagged = onProgress
+            ? (progress: HistoricalComparisonProgress) => onProgress({ ...progress, jobId: ticket.id })
+            : undefined;
+        return ticket.execute(() => this.executeComparison(request, tagged));
+    }
+
+    public compare(
+        request: HistoricalComparisonRequest,
+        onProgress?: (progress: HistoricalComparisonProgress) => void,
+    ): Promise<HistoricalComparisonResult> {
+        const ticket = this.reserveComparison(request);
+        if (!ticket) {
+            return Promise.reject(new Error('comparison-busy'));
+        }
+        return this.runComparison(ticket, request, onProgress);
+    }
+
+    /** Stops the running comparison and kills its children. Returns whether one ran. */
+    public cancelComparison(): boolean {
+        return this.jobs.cancel('cancelled');
+    }
+
+    public getJobStatus() {
+        return this.jobs.status;
     }
 
     public isBusy(): boolean {
@@ -106,8 +149,9 @@ export class HistoricalComparisonService {
         return this.compare({ ...this.activeRequest }, onProgress);
     }
 
-    public dispose(): Promise<void> {
-        return this.analysis.dispose();
+    public async dispose(): Promise<void> {
+        await this.jobs.cancelAndWait('disposed');
+        await this.analysis.dispose();
     }
 
     private async executeComparison(

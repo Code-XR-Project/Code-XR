@@ -56,8 +56,8 @@
       "src/features/active-servers/views/handleServerActions.ts",
       "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
     ],
-    "functions.over80Lines": 35,
-    "complexity.over10": 51,
+    "functions.over80Lines": 34,
+    "complexity.over10": 50,
     "complexity.over15": 8,
     "complexity.over20": 0,
     "complexity.over30": 0,
@@ -71,9 +71,9 @@
     }
   },
   "informational": {
-    "src.files": 294,
-    "src.lines": 49299,
-    "src.functions": 3360,
+    "src.files": 296,
+    "src.lines": 50017,
+    "src.functions": 3417,
     "src.unreachableLines": 0,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
@@ -197,6 +197,12 @@
         "file": "src/core/history/gitTimelineSampler.ts"
       },
       {
+        "ccn": 20,
+        "lines": 50,
+        "function": "handleCollaborationMessage",
+        "file": "src/core/server/analysis/analysisMessageRouter.ts"
+      },
+      {
         "ccn": 19,
         "lines": 50,
         "function": "handleMessage",
@@ -213,12 +219,6 @@
         "lines": 51,
         "function": "recalculateLivePanelSummary",
         "file": "src/core/analysis/watchers/directoryReanalysisData.ts"
-      },
-      {
-        "ccn": 17,
-        "lines": 44,
-        "function": "handleCollaborationMessage",
-        "file": "src/core/server/analysis/analysisMessageRouter.ts"
       },
       {
         "ccn": 17,
@@ -265,16 +265,16 @@
         "lines": 746
       },
       {
+        "file": "src/core/history/gitRepositoryService.ts",
+        "lines": 639
+      },
+      {
         "file": "src/core/remote-access/remoteSessionAuthority.ts",
         "lines": 632
       },
       {
         "file": "src/features/active-servers/views/handleServerActions.ts",
         "lines": 628
-      },
-      {
-        "file": "src/core/history/gitRepositoryService.ts",
-        "lines": 617
       },
       {
         "file": "src/core/server/httpServer.ts",

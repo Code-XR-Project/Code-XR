@@ -4,7 +4,8 @@ import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { decorateDirectoryEntries } from './gitAnalysisShared';
-import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
+import { CachedPayload, GitAnalysisSessionContext } from './gitAnalysisSessionContext';
+import { JobRunner, JobTicket } from '../analysis/launch/jobRunner';
 import { GitRepositoryService } from './gitRepositoryService';
 import {
     GitAnalysisSourceCatalog,
@@ -12,6 +13,12 @@ import {
     createGitAnalysisExclusion,
 } from './gitAnalysisEligibility';
 import { sampleTimeline } from './gitTimelineSampler';
+import {
+    copyFileAtomically,
+    describeRevisionType,
+    mergeEvolutionSources,
+    writeEvolutionRevision,
+} from './projectEvolutionArtifacts';
 import {
     ComparisonSource,
     GitAnalysisExclusion,
@@ -25,6 +32,8 @@ const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
 const DEFAULT_MAX_FRAMES = 24;
 const DEFAULT_ANALYSIS_CONCURRENCY = 4;
 const TIMELINE_SCAN_LIMIT = 240;
+/** A whole movie longer than this is cancelled and reported (EVO-3). */
+export const PROJECT_EVOLUTION_JOB_TIMEOUT_MS = 30 * 60 * 1000;
 
 interface ResolvedEvolutionSources {
     sources: ComparisonSource[];
@@ -34,9 +43,13 @@ interface ResolvedEvolutionSources {
 export class ProjectEvolutionService {
     private readonly gitService: GitRepositoryService;
     private readonly analysis: GitAnalysisSessionContext;
-    private readonly jobs = new SingleJobGate<ProjectEvolutionRequest, ProjectEvolutionResult>('project-evolution-busy');
+    private readonly jobs = new JobRunner<ProjectEvolutionRequest, ProjectEvolutionResult>({
+        busyCode: 'project-evolution-busy',
+        cancelledCode: 'project-evolution-cancelled',
+        timeoutCode: 'project-evolution-timeout',
+        timeoutMs: PROJECT_EVOLUTION_JOB_TIMEOUT_MS,
+    });
     private revision = 0;
-    private cancellationRevision = 0;
 
     public constructor(
         private readonly context: vscode.ExtensionContext,
@@ -69,7 +82,7 @@ export class ProjectEvolutionService {
     public async getReferences(): Promise<ProjectEvolutionReferences> {
         const references = await this.gitService.listReferences();
         const timeline = await this.buildAutomaticTimeline(references);
-        const mergedSources = this.mergeSources(references.sources, timeline);
+        const mergedSources = mergeEvolutionSources(references.sources, timeline);
         const filtered = await this.analysis.sourceCatalog.filterSources({
             repositoryRoot: references.repositoryRoot,
             targetRelativePath: references.targetRelativePath,
@@ -84,6 +97,7 @@ export class ProjectEvolutionService {
             sources: filtered.sources,
             eligibility: filtered.eligibility,
             activeRequest: this.jobs.lastRequest ? { ...this.jobs.lastRequest } : null,
+            job: this.jobs.status,
             suggestedSourceIds: suggested,
             maxFrames: DEFAULT_MAX_FRAMES,
         };
@@ -93,19 +107,59 @@ export class ProjectEvolutionService {
         return this.jobs.isBusy();
     }
 
-    public async generate(
+    /**
+     * Takes the job slot synchronously (before the caller's first await), or
+     * returns null when a movie is already being generated.
+     */
+    public reserveGeneration(request: ProjectEvolutionRequest): JobTicket<ProjectEvolutionResult> | null {
+        return this.jobs.tryReserve(request);
+    }
+
+    /** Runs a reserved generation. Rejects with project-evolution-cancelled/-timeout when stopped. */
+    public runGeneration(
+        ticket: JobTicket<ProjectEvolutionResult>,
         request: ProjectEvolutionRequest,
         onProgress: (progress: ProjectEvolutionProgress) => void,
     ): Promise<ProjectEvolutionResult> {
-        return this.jobs.run(request, () => this.executeEvolution(request, onProgress));
+        const tagged = (progress: ProjectEvolutionProgress) => onProgress?.({ ...progress, jobId: ticket.id });
+        return ticket.execute((signal) => this.executeEvolution(request, tagged, signal));
     }
 
-    public dispose(): Promise<void> {
-        return this.analysis.dispose();
+    public generate(
+        request: ProjectEvolutionRequest,
+        onProgress: (progress: ProjectEvolutionProgress) => void,
+    ): Promise<ProjectEvolutionResult> {
+        const ticket = this.reserveGeneration(request);
+        if (!ticket) {
+            return Promise.reject(new Error('project-evolution-busy'));
+        }
+        return this.runGeneration(ticket, request, onProgress);
     }
 
+    /**
+     * Stops the generation in flight: kills its Git and Python children and
+     * discards its result. The movie already generated is kept. Returns
+     * whether a generation was running.
+     */
+    public cancelGeneration(): boolean {
+        return this.jobs.cancel('cancelled');
+    }
+
+    public getJobStatus() {
+        return this.jobs.status;
+    }
+
+    public async dispose(): Promise<void> {
+        await this.jobs.cancelAndWait('disposed');
+        await this.analysis.dispose();
+    }
+
+    /**
+     * Deletes the generated movie. A generation in flight is cancelled and
+     * waited for first, so its late files can never land after the clear.
+     */
     public async clearGeneratedMovie(): Promise<void> {
-        this.cancellationRevision += 1;
+        await this.jobs.cancelAndWait('cancelled');
         this.jobs.forgetLastRequest();
         this.analysis.cache.clear();
         if (this.revision < 1) {
@@ -136,7 +190,7 @@ export class ProjectEvolutionService {
         const sourcePath = path.join(revisionDirectory, `data${safeFrameIndex + 1}.json`);
         const bridgePath = path.join(revisionDirectory, 'data.json');
         await fs.promises.access(sourcePath, fs.constants.R_OK);
-        await this.copyFileAtomically(sourcePath, bridgePath);
+        await copyFileAtomically(sourcePath, bridgePath);
         return {
             revision: safeRevision,
             frameIndex: safeFrameIndex,
@@ -147,9 +201,9 @@ export class ProjectEvolutionService {
     private async executeEvolution(
         request: ProjectEvolutionRequest,
         onProgress: (progress: ProjectEvolutionProgress) => void,
+        signal: AbortSignal,
     ): Promise<ProjectEvolutionResult> {
         onProgress?.({ state: 'analyzing', message: 'Resolving project timeline...' });
-        const cancellationToken = this.cancellationRevision;
         const resolved = await this.resolveTimelineSources(request);
         const sources = resolved.sources;
         if (sources.length < 2) {
@@ -160,7 +214,7 @@ export class ProjectEvolutionService {
             );
         }
 
-        const { analyzed, exclusionsByIndex } = await this.analyzeSources(sources, cancellationToken, onProgress);
+        const { analyzed, exclusionsByIndex } = await this.analyzeSources(sources, signal, onProgress);
         const valid = analyzed
             .map((payload, index) => payload ? { payload, source: sources[index] } : undefined)
             .filter((entry): entry is { payload: CachedPayload; source: ComparisonSource } => !!entry);
@@ -178,7 +232,7 @@ export class ProjectEvolutionService {
             );
         }
 
-        const result = await this.writeEvolutionArtifacts(valid, excludedSources);
+        const result = await this.writeEvolutionArtifacts(valid, excludedSources, signal);
         onProgress?.({
             state: 'ready',
             message: excludedSources.length
@@ -193,7 +247,7 @@ export class ProjectEvolutionService {
     /** Phase 2: a worker pool analyzes every source; a failure becomes that frame's exclusion. */
     private async analyzeSources(
         sources: ComparisonSource[],
-        cancellationToken: number,
+        signal: AbortSignal,
         onProgress: (progress: ProjectEvolutionProgress) => void,
     ): Promise<{ analyzed: (CachedPayload | undefined)[]; exclusionsByIndex: (GitAnalysisExclusion | undefined)[] }> {
         const analyzed = new Array<CachedPayload | undefined>(sources.length);
@@ -210,13 +264,13 @@ export class ProjectEvolutionService {
         });
 
         const workers = Array.from({ length: concurrency }, async () => {
-            while (nextIndex < sources.length && cancellationToken === this.cancellationRevision) {
+            while (nextIndex < sources.length && !signal.aborted) {
                 const index = nextIndex;
                 nextIndex += 1;
                 const source = sources[index];
                 onProgress?.({
                     state: 'analyzing',
-                    message: `Analyzing frame ${index + 1} / ${sources.length} (${this.describeRevisionType(source)}): ${source.label}`,
+                    message: `Analyzing frame ${index + 1} / ${sources.length} (${describeRevisionType(source)}): ${source.label}`,
                     frameIndex: index,
                     frameCount: sources.length,
                 });
@@ -243,8 +297,8 @@ export class ProjectEvolutionService {
                             error instanceof Error ? error.message : String(error),
                         );
                 }
-                if (cancellationToken !== this.cancellationRevision) {
-                    throw new Error('project-evolution-cleared');
+                if (signal.aborted) {
+                    return;
                 }
                 completed += 1;
                 const exclusion = exclusionsByIndex[index];
@@ -252,15 +306,18 @@ export class ProjectEvolutionService {
                     state: 'analyzing',
                     message: exclusion
                         ? `Discarded ${source.label}: ${exclusion.reason}`
-                        : `Analyzed ${completed} / ${sources.length} project revisions. Last completed: ${this.describeRevisionType(source)} ${source.label}`,
+                        : `Analyzed ${completed} / ${sources.length} project revisions. Last completed: ${describeRevisionType(source)} ${source.label}`,
                     frameIndex: index,
                     frameCount: sources.length,
                 });
             }
         });
-        await Promise.all(workers);
-        if (cancellationToken !== this.cancellationRevision) {
-            throw new Error('project-evolution-cleared');
+        // Every worker ends before the job does: a cancelled job leaves no
+        // orphan analysis writing into the cache (EVO-2). The children are
+        // killed by the job signal, so this returns promptly.
+        await Promise.allSettled(workers);
+        if (signal.aborted) {
+            throw new Error('project-evolution-cancelled');
         }
         return { analyzed, exclusionsByIndex };
     }
@@ -269,52 +326,28 @@ export class ProjectEvolutionService {
     private async writeEvolutionArtifacts(
         valid: Array<{ payload: CachedPayload; source: ComparisonSource }>,
         excludedSources: GitAnalysisExclusion[],
+        signal: AbortSignal,
     ): Promise<ProjectEvolutionResult> {
-        const revision = ++this.revision;
+        // The revision becomes current only once every file is written and
+        // the job is still wanted; a cancelled write leaves the previous
+        // movie current and removes its own folder (EVO-4).
+        if (signal.aborted) {
+            throw new Error('project-evolution-cancelled');
+        }
+        const revision = this.revision + 1;
         const evolutionDirectory = path.join(this.staticRoot, 'evolution');
         const revisionDirectory = path.join(evolutionDirectory, `revision-${revision}`);
-        await fs.promises.rm(revisionDirectory, { recursive: true, force: true });
-        await fs.promises.mkdir(revisionDirectory, { recursive: true });
-        const frames: ProjectEvolutionResult['frames'] = [];
-        for (let index = 0; index < valid.length; index += 1) {
-            const entry = valid[index];
-            const fileName = `data${index + 1}.json`;
-            await fs.promises.writeFile(
-                path.join(revisionDirectory, fileName),
-                JSON.stringify(entry.payload.payload, null, 2),
-                'utf8',
-            );
-            frames.push({
-                index,
-                source: entry.source,
-                label: entry.source.label,
-                date: this.extractDate(entry.source) || '',
-                url: `/evolution/revision-${revision}/${fileName}`,
-                itemCount: entry.payload.payload.length,
-                missingTarget: false,
-                warnings: entry.payload.warnings,
-            });
+        try {
+            const result = await writeEvolutionRevision(revision, revisionDirectory, valid, excludedSources);
+            if (signal.aborted) {
+                throw new Error('project-evolution-cancelled');
+            }
+            this.revision = revision;
+            return result;
+        } catch (error) {
+            await fs.promises.rm(revisionDirectory, { recursive: true, force: true }).catch(() => undefined);
+            throw error;
         }
-
-        const result: ProjectEvolutionResult = {
-            revision,
-            mode: 'project-evolution',
-            frames,
-            generatedAt: new Date().toISOString(),
-            manifestUrl: `/evolution/revision-${revision}/manifest.json`,
-            bridgeUrl: `/evolution/revision-${revision}/data.json`,
-            excludedSources,
-        };
-        await this.copyFileAtomically(
-            path.join(revisionDirectory, 'data1.json'),
-            path.join(revisionDirectory, 'data.json'),
-        );
-        await fs.promises.writeFile(
-            path.join(revisionDirectory, 'manifest.json'),
-            JSON.stringify(result, null, 2),
-            'utf8',
-        );
-        return result;
     }
 
     private async resolveTimelineSources(request: ProjectEvolutionRequest): Promise<ResolvedEvolutionSources> {
@@ -427,20 +460,6 @@ export class ProjectEvolutionService {
         return sampleTimeline(sources, maxFrames, sources[sources.length - 1] || null);
     }
 
-    private mergeSources(primary: ComparisonSource[], timeline: ComparisonSource[]): ComparisonSource[] {
-        const merged = new Map<string, ComparisonSource>();
-        for (const source of primary) {
-            merged.set(source.id, source);
-        }
-        for (const source of timeline) {
-            merged.set(source.id, source);
-        }
-        return Array.from(merged.values());
-    }
-
-
-
-
     private decoratePayload(
         payload: Record<string, unknown>[],
         session: UnifiedAnalysisSession,
@@ -457,22 +476,6 @@ export class ProjectEvolutionService {
         }));
     }
 
-    private extractDate(source: ComparisonSource): string | undefined {
-        const description = source.kind === 'gitRef' ? source.description : '';
-        const match = String(description || '').match(/^(\d{4}-\d{2}-\d{2})/);
-        return match ? match[1] : undefined;
-    }
-
-    private describeRevisionType(source: ComparisonSource): string {
-        if (source.kind === 'workingCopy') {
-            return 'working copy';
-        }
-        if (source.revisionType === 'merge') {
-            return 'merge';
-        }
-        return source.revisionType || source.refType || 'commit';
-    }
-
     private resolveRevisionDirectory(revision: number): string {
         const evolutionDirectory = path.resolve(this.staticRoot, 'evolution');
         const revisionDirectory = path.resolve(evolutionDirectory, `revision-${revision}`);
@@ -481,12 +484,6 @@ export class ProjectEvolutionService {
             throw new Error('project-evolution-revision-outside-static-root');
         }
         return revisionDirectory;
-    }
-
-    private async copyFileAtomically(sourcePath: string, destinationPath: string): Promise<void> {
-        const tempPath = `${destinationPath}.${process.pid}.${Date.now()}.tmp`;
-        await fs.promises.copyFile(sourcePath, tempPath);
-        await fs.promises.rename(tempPath, destinationPath);
     }
 
     private getSession(): UnifiedAnalysisSession {

@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { ExecutePython } from '../analysis/python/executePython';
+import { currentLaunchSignal, runWithLaunchSignal } from '../analysis/launch/launchControl';
+import { withTimeout } from '../analysis/launch/jobRunner';
 import {
     GitAnalysisSourceCatalog,
     GitAnalysisSourceError,
@@ -12,6 +14,13 @@ import {
 import { buildAnalyzerCacheKey } from './gitAnalysisShared';
 import { GitRepositoryService } from './gitRepositoryService';
 import { ComparisonSource, GitAnalysisExclusionCode } from './historicalComparisonModels';
+
+/**
+ * One revision's analysis longer than this is killed: in a movie the frame
+ * is discarded, in a comparison the comparison fails with a clear message,
+ * and in both the job is free again (EVO-3, HIST-7).
+ */
+export const REVISION_ANALYSIS_TIMEOUT_MS = 5 * 60 * 1000;
 
 /** One analyzed revision as both Git services cache it. */
 export interface CachedPayload {
@@ -62,6 +71,8 @@ export class GitAnalysisSessionContext {
     public readonly sourceCatalog: GitAnalysisSourceCatalog;
     public readonly cache = new Map<string, CachedPayload>();
     private readonly ownsSourceCatalog: boolean;
+    /** Test seam: the per-revision watchdog. */
+    public revisionTimeoutMs = REVISION_ANALYSIS_TIMEOUT_MS;
 
     public constructor(
         session: UnifiedAnalysisSession,
@@ -128,19 +139,7 @@ export class GitAnalysisSessionContext {
             templatePaths: new Map(),
             metadata: { [this.policy.metadataKey]: source },
         };
-        let analysisResult: unknown;
-        try {
-            analysisResult = await new ExecutePython(this.extensionContext).executeAnalysis(revisionSession);
-        } catch (error) {
-            if (isDeterministicNoDataError(error)) {
-                throw this.excludeSource(
-                    source,
-                    'invalid-payload',
-                    'The analyzer did not produce a readable JSON payload.',
-                );
-            }
-            throw error;
-        }
+        const analysisResult = await this.runRevisionAnalysis(source, revisionSession);
         const result = {
             payload: this.policy.decorate(
                 this.requireUsablePayload(source, analysisResult),
@@ -152,6 +151,53 @@ export class GitAnalysisSessionContext {
         };
         this.cache.set(cacheKey, result);
         return result;
+    }
+
+    /**
+     * Runs one revision's Python analysis under the job's signal plus a
+     * per-revision watchdog. A cancelled job's analysis is never classified
+     * (nor cached) as a fact about the revision.
+     */
+    private async runRevisionAnalysis(
+        source: ComparisonSource,
+        revisionSession: UnifiedAnalysisSession,
+    ): Promise<unknown> {
+        let analysisResult: unknown;
+        const jobSignal = currentLaunchSignal();
+        const watchdog = withTimeout(jobSignal, this.revisionTimeoutMs, 'revision-timeout');
+        try {
+            analysisResult = await runWithLaunchSignal(
+                watchdog.signal,
+                () => new ExecutePython(this.extensionContext).executeAnalysis(revisionSession),
+            );
+        } catch (error) {
+            if (jobSignal?.aborted) {
+                // A killed analysis is not a fact about the revision: never
+                // record it as a deterministic exclusion (EVO-2).
+                throw new Error('revision-analysis-cancelled');
+            }
+            if (watchdog.signal.aborted) {
+                throw new Error(
+                    `revision-analysis-timeout: the analysis of "${source.label}" took more than `
+                    + `${Math.round(this.revisionTimeoutMs / 1000)} s and was stopped.`,
+                );
+            }
+            if (isDeterministicNoDataError(error)) {
+                throw this.excludeSource(
+                    source,
+                    'invalid-payload',
+                    'The analyzer did not produce a readable JSON payload.',
+                );
+            }
+            throw error;
+        } finally {
+            watchdog.dispose();
+        }
+        if (jobSignal?.aborted) {
+            // A cancelled job never caches what its last analysis returned.
+            throw new Error('revision-analysis-cancelled');
+        }
+        return analysisResult;
     }
 
     /** The working copy is never cached: its data.json is the live analysis. */
@@ -225,45 +271,5 @@ export class GitAnalysisSessionContext {
             await this.sourceCatalog.dispose();
         }
         this.cache.clear();
-    }
-}
-
-/**
- * At most one job at a time. A second start while one runs is refused with
- * the caller's busy code; the request of the last job that SUCCEEDED is kept
- * (a copy), so a failed run never replaces what the room is showing.
- */
-export class SingleJobGate<TRequest extends object, TResult> {
-    private activeJob: Promise<TResult> | null = null;
-    private completedRequest: TRequest | null = null;
-
-    public constructor(private readonly busyCode: string) {}
-
-    public isBusy(): boolean {
-        return this.activeJob !== null;
-    }
-
-    /** The request of the last successful job, or null. */
-    public get lastRequest(): TRequest | null {
-        return this.completedRequest;
-    }
-
-    public forgetLastRequest(): void {
-        this.completedRequest = null;
-    }
-
-    public async run(request: TRequest, execute: () => Promise<TResult>): Promise<TResult> {
-        if (this.activeJob) {
-            throw new Error(this.busyCode);
-        }
-        const job = execute();
-        this.activeJob = job;
-        try {
-            const result = await job;
-            this.completedRequest = { ...request };
-            return result;
-        } finally {
-            this.activeJob = null;
-        }
     }
 }

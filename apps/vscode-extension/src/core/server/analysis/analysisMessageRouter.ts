@@ -87,8 +87,14 @@ export class AnalysisMessageRouter {
         if (message.type === 'historical-comparison-start') {
             return this.historicalComparison.handleHistoricalComparisonStartMessage(messageContext, message);
         }
+        if (message.type === 'historical-comparison-cancel') {
+            return this.historicalComparison.handleHistoricalComparisonCancelMessage(messageContext);
+        }
         if (this.projectEvolutionService && message.type === 'project-evolution-references-request') {
             return this.projectEvolution.handleProjectEvolutionReferencesMessage(messageContext);
+        }
+        if (this.projectEvolutionService && message.type === 'project-evolution-cancel') {
+            return this.projectEvolution.handleProjectEvolutionCancelMessage(messageContext);
         }
         if (this.projectEvolutionService && message.type === 'project-evolution-clear') {
             return this.projectEvolution.handleProjectEvolutionClearMessage(messageContext);

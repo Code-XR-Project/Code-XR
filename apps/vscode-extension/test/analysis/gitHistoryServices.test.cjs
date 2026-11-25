@@ -100,6 +100,7 @@ function walkFiles(directory) {
 function createAnalyzer() {
     const analyzer = {
         calls: [],
+        killed: [],
         respond: null,
         async run(session) {
             analyzer.calls.push({
@@ -196,11 +197,33 @@ async function withServices(options, body) {
     const sessions = new Map((options.sessions || []).map((session) => [session.id, session]));
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
+            // Loaded first, so every service shares this signal context and
+            // this JobCancelledError class.
+            const launch = requireOut('core/analysis/launch/launchControl.js');
+            const { JobCancelledError } = requireOut('core/analysis/launch/jobRunner.js');
             const { UnifiedSessionRegistry } = requireOut('core/analysis/session/sessionRegistry.js');
             UnifiedSessionRegistry.getInstance = () => ({ getSession: (id) => sessions.get(id) });
             const { ExecutePython } = requireOut('core/analysis/python/executePython.js');
+            // Like the real spawner, the stub "kills" its analysis when the
+            // job (or revision watchdog) signal it runs under aborts.
             ExecutePython.prototype.executeAnalysis = function stubbedAnalysis(session) {
-                return analyzer.run(session);
+                const work = analyzer.run(session);
+                const signal = launch.currentLaunchSignal();
+                if (!signal) {
+                    return work;
+                }
+                return new Promise((resolve, reject) => {
+                    const kill = () => {
+                        analyzer.killed.push(session.id);
+                        reject(new Error('python-process-killed'));
+                    };
+                    if (signal.aborted) {
+                        kill();
+                        return;
+                    }
+                    signal.addEventListener('abort', kill, { once: true });
+                    work.then(resolve, reject);
+                });
             };
             const { AnalysisConfigurationStorage } = requireOut('core/analysis/configuration/analysisConfigurationStorage.js');
             AnalysisConfigurationStorage.getInstance = () => ({
@@ -226,6 +249,7 @@ async function withServices(options, body) {
                 analyzer,
                 materialized,
                 requireOut,
+                JobCancelledError,
             });
         });
     } finally {
@@ -406,7 +430,10 @@ test('historical compare (directory): decorated payloads, delta, artifacts and t
             `Analyzing ${result.right.source.label}...`,
             'Historical comparison ready.',
         ]);
-        assert.deepEqual(progress.at(-1), { state: 'ready', message: 'Historical comparison ready.', revision: 1 });
+        // Every progress names the job it belongs to (S6).
+        assert.match(progress.at(-1).jobId, /^job-/);
+        assert.ok(progress.every((entry) => entry.jobId === progress.at(-1).jobId));
+        assert.deepEqual({ ...progress.at(-1), jobId: undefined }, { state: 'ready', message: 'Historical comparison ready.', revision: 1, jobId: undefined });
 
         // Second run: same commit, cached analysis (no analyzer call, no
         // materialization); the working copy is re-read every time.
@@ -603,6 +630,126 @@ test('busy codes: one job per service; a second start is refused until the first
     });
 });
 
+async function waitFor(predicate, timeoutMs = 5000) {
+    const started = Date.now();
+    while (!predicate()) {
+        if (Date.now() - started > timeoutMs) {
+            throw new Error('waitFor timed out');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+}
+
+test('S6: cancelling a movie kills its analyses, discards it, frees the job and keeps the previous movie', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, JobCancelledError, context, analyzer }) => {
+        const evolution = new ProjectEvolutionService(context, session.id, session.staticRoot, createCatalog());
+        const refs = await evolution.getReferences();
+        const commitId = (sha) => refs.sources.find((s) => s.kind === 'gitRef' && s.commitSha === sha && s.refType === 'commit').id;
+        const first = await evolution.generate({ mode: 'manual', sourceIds: [commitId(fixture.shas.c1), 'working-copy'] }, () => {});
+        assert.equal(first.revision, 1);
+
+        analyzer.respond = () => new Promise(() => {}); // hangs until killed
+        const progress = [];
+        const callsBefore = analyzer.calls.length;
+        const movie = evolution.generate({ mode: 'manual', sourceIds: [commitId(fixture.shas.c2), commitId(fixture.shas.c3)] }, (entry) => progress.push(entry));
+        await waitFor(() => analyzer.calls.length > callsBefore);
+        assert.equal(evolution.getJobStatus().state, 'running');
+        assert.equal(evolution.cancelGeneration(), true);
+        await assert.rejects(movie, (error) => error instanceof JobCancelledError && error.reason === 'cancelled' && error.message === 'project-evolution-cancelled');
+        assert.ok(analyzer.killed.length >= 1, 'the running analyses were killed');
+        await waitFor(() => !evolution.isBusy());
+        assert.equal(evolution.getJobStatus().state, 'cancelled');
+        assert.equal(evolution.cancelGeneration(), false, 'nothing left to cancel');
+
+        // No second revision was written; the first movie is still current.
+        assert.deepEqual(fs.readdirSync(path.join(session.staticRoot, 'evolution')), ['revision-1']);
+        const applied = await evolution.applyFrameToBridge(1, 0);
+        assert.equal(applied.revision, 1);
+        // A killed analysis is never recorded as a fact about the revision.
+        assert.deepEqual((await evolution.getReferences()).eligibility?.excludedSources || [], []);
+
+        analyzer.respond = null;
+        const again = await evolution.generate({ mode: 'manual', sourceIds: [commitId(fixture.shas.c2), 'working-copy'] }, () => {});
+        assert.equal(again.revision, 2);
+        await evolution.dispose();
+    });
+});
+
+test('S6: Clear during a generation cancels it and waits, so no late movie lands after the clear', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, JobCancelledError, context, analyzer }) => {
+        const evolution = new ProjectEvolutionService(context, session.id, session.staticRoot, createCatalog());
+        const refs = await evolution.getReferences();
+        const c2 = refs.sources.find((s) => s.kind === 'gitRef' && s.commitSha === fixture.shas.c2 && s.refType === 'commit').id;
+        analyzer.respond = () => new Promise(() => {});
+        const movie = evolution.generate({ mode: 'manual', sourceIds: [c2, 'working-copy'] }, () => {});
+        await waitFor(() => analyzer.calls.length > 0);
+        await evolution.clearGeneratedMovie();
+        assert.equal(evolution.isBusy(), false, 'Clear returned only once the job had ended');
+        await assert.rejects(movie, JobCancelledError);
+        const evolutionDirectory = path.join(session.staticRoot, 'evolution');
+        assert.deepEqual(fs.existsSync(evolutionDirectory) ? fs.readdirSync(evolutionDirectory) : [], []);
+        await evolution.dispose();
+    });
+});
+
+test('S6: a revision whose analysis hangs is killed by its watchdog and discarded; the movie still finishes', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, context, analyzer }) => {
+        const evolution = new ProjectEvolutionService(context, session.id, session.staticRoot, createCatalog());
+        evolution.analysis.revisionTimeoutMs = 40;
+        const refs = await evolution.getReferences();
+        const commitId = (sha) => refs.sources.find((s) => s.kind === 'gitRef' && s.commitSha === sha && s.refType === 'commit').id;
+        const hungSha = fixture.shas.c2.slice(0, 8);
+        analyzer.respond = (revisionSession) => (revisionSession.id.endsWith(hungSha)
+            ? new Promise(() => {})
+            : Promise.resolve([{ filePath: 'main.js', totalLines: 1 }]));
+        const result = await evolution.generate({
+            mode: 'manual',
+            sourceIds: [commitId(fixture.shas.c1), commitId(fixture.shas.c2), commitId(fixture.shas.c3)],
+        }, () => {});
+        assert.equal(result.frames.length, 2);
+        const excluded = result.excludedSources.find((entry) => String(entry.reason).includes('revision-analysis-timeout'));
+        assert.ok(excluded, JSON.stringify(result.excludedSources));
+        assert.deepEqual(analyzer.killed, [`${session.id}-evolution-${hungSha}`]);
+        assert.equal(evolution.isBusy(), false);
+        await evolution.dispose();
+    });
+});
+
+test('S6: a historical comparison can be reserved synchronously, cancelled, and its late result is never returned', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    await withServices({ sessions: [session] }, async ({ HistoricalComparisonService, JobCancelledError, context, analyzer }) => {
+        const historical = new HistoricalComparisonService(context, session.id, session.staticRoot, createCatalog());
+        const { bySha } = await sourcesBySha(historical);
+        const request = { leftSourceId: bySha[fixture.shas.c1].id, rightSourceId: 'working-copy' };
+        const ticket = historical.reserveComparison(request);
+        assert.ok(ticket);
+        assert.equal(historical.reserveComparison(request), null, 'the slot is taken before any await');
+        assert.equal(historical.getJobStatus().state, 'queued');
+        ticket.release();
+        assert.equal(historical.isBusy(), false);
+
+        let finish;
+        analyzer.respond = () => new Promise((resolve) => {
+            finish = () => resolve([{ filePath: 'main.js', totalLines: 1 }]);
+        });
+        const running = historical.compare(request);
+        await waitFor(() => typeof finish === 'function');
+        assert.equal(historical.cancelComparison(), true);
+        await assert.rejects(running, (error) => error instanceof JobCancelledError && error.message === 'comparison-cancelled');
+        finish();
+        await waitFor(() => !historical.isBusy());
+        assert.equal((await historical.getReferences()).activeRequest, null, 'a cancelled request never becomes the active one');
+        await historical.dispose();
+    });
+});
+
 test('historical refreshActiveComparison re-runs only a comparison with a live side', async () => {
     const session = makeSession();
     writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
@@ -667,11 +814,13 @@ test('evolution generate (file): missing target cached and excluded per frame, p
         assert.equal(progress[0].message, 'Resolving project timeline...');
         assert.equal(progress[1].message, 'Analyzing 4 project revisions with 4 workers...');
         assert.ok(progress.some((entry) => entry.message === `Discarded ${commit(fixture.shas.c1).label}: The analyzed target does not exist in this revision.`));
-        assert.deepEqual(progress.at(-1), {
+        assert.match(progress.at(-1).jobId, /^job-/);
+        assert.deepEqual({ ...progress.at(-1), jobId: undefined }, {
             state: 'ready',
             message: 'Project evolution ready. 1 revision(s) were discarded because they had no usable data.',
             revision: 1,
             frameCount: 3,
+            jobId: undefined,
         });
 
         assert.equal(analyzer.calls.length, 2);
@@ -900,6 +1049,21 @@ function fakeService(overrides = {}) {
         async getReferences() {
             return { kind: 'references', from: this.name };
         },
+        // The bridges reserve the job slot synchronously, then run it (S6);
+        // the fake maps that pair onto compare()/generate().
+        released: 0,
+        reserveComparison(request) {
+            return this.busy ? null : { id: 'job-h', request, release: () => { this.released += 1; } };
+        },
+        runComparison(ticket, request, onProgress) {
+            return this.compare(request, onProgress);
+        },
+        reserveGeneration(request) {
+            return this.busy ? null : { id: 'job-e', request, release: () => { this.released += 1; } };
+        },
+        runGeneration(ticket, request, onProgress) {
+            return this.generate(request, onProgress);
+        },
         ...overrides,
     };
 }
@@ -922,9 +1086,11 @@ async function withBridges(body) {
             coordinatorCalls.push(['refreshMode', ...args]);
         };
         const { GitAnalysisSourceError } = requireOut('core/history/gitAnalysisEligibility.js');
+        // Loaded before the bridges, so they share this very class.
+        const { JobCancelledError } = requireOut('core/analysis/launch/jobRunner.js');
         const { HistoricalComparisonBridge } = requireOut(HISTORICAL_BRIDGE_MODULE);
         const { ProjectEvolutionBridge } = requireOut(EVOLUTION_BRIDGE_MODULE);
-        await body({ HistoricalComparisonBridge, ProjectEvolutionBridge, GitAnalysisSourceError, coordinatorCalls });
+        await body({ HistoricalComparisonBridge, ProjectEvolutionBridge, GitAnalysisSourceError, JobCancelledError, coordinatorCalls });
     });
 }
 
@@ -1011,9 +1177,10 @@ test('historical bridge start: switches the view, broadcasts progress, shares th
             ['change', 'historical-compare', 'historical.selection'],
             ['update', 'historical-compare', 2, 'historical.mapping'],
         ]);
+        // The refresh flag is set only once the request succeeded (HIST-9).
         assert.deepEqual(coordinatorCalls, [
-            ['setRefreshEnabled', 'sess-1', 'historical-compare', true],
             ['refreshMode', 'sess-1', 'historical-compare'],
+            ['setRefreshEnabled', 'sess-1', 'historical-compare', true],
             ['setSnapshotAvailable', 'sess-1', 'historical-compare', true],
         ]);
         assert.deepEqual(messageContext.log, [
@@ -1121,12 +1288,12 @@ test('bridges: a source error re-broadcasts only the reference lists whose servi
     });
 });
 
-test('evolution bridge: a cleared movie is silent; clear and apply-frame report their own outcomes', async () => {
-    await withBridges(async ({ ProjectEvolutionBridge, coordinatorCalls }) => {
+test('evolution bridge: a cancelled movie is silent; clear and apply-frame report their own outcomes', async () => {
+    await withBridges(async ({ ProjectEvolutionBridge, JobCancelledError, coordinatorCalls }) => {
         const host = createHost({
             evolution: fakeService({
                 async generate() {
-                    throw new Error('project-evolution-cleared');
+                    throw new JobCancelledError('cancelled', 'project-evolution-cancelled');
                 },
                 async clearGeneratedMovie() {},
                 async applyFrameToBridge(revision, frameIndex) {
@@ -1167,5 +1334,30 @@ test('evolution bridge: a cleared movie is silent; clear and apply-frame report 
         ]);
         assert.deepEqual(coordinatorCalls, [['setSnapshotAvailable', 'sess-1', 'project-evolution', false]]);
         assert.deepEqual(host.calls, [['update', 'project-evolution', 4, 'project-evolution']]);
+    });
+});
+
+test('S6 bridges: Cancel stops the job for the whole room, or tells only the requester there is none', async () => {
+    await withBridges(async ({ HistoricalComparisonBridge, ProjectEvolutionBridge }) => {
+        let running = true;
+        const cancelOnce = () => {
+            const was = running;
+            running = false;
+            return was;
+        };
+        const host = createHost({
+            historical: fakeService({ getJobStatus: () => ({ id: 'job-h' }), cancelComparison: cancelOnce }),
+            evolution: fakeService({ getJobStatus: () => ({ id: 'job-e' }), cancelGeneration: cancelOnce }),
+        });
+        const evolution = new ProjectEvolutionBridge(host);
+        const historical = new HistoricalComparisonBridge(host);
+        const room = createMessageContext();
+        assert.equal(evolution.handleProjectEvolutionCancelMessage(room), true);
+        assert.equal(historical.handleHistoricalComparisonCancelMessage(room), true);
+        assert.deepEqual(room.log, [
+            ['broadcast', { type: 'project-evolution-cancelled', payload: { message: 'Project evolution generation cancelled.', jobId: 'job-e' } }],
+            ['send', { type: 'historical-comparison-cancelled', payload: { message: 'No historical comparison is running.', jobId: 'job-h' } }],
+        ]);
+        assert.equal(new ProjectEvolutionBridge(createHost({})).handleProjectEvolutionCancelMessage(room), false);
     });
 });

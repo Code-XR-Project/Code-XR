@@ -5,9 +5,21 @@ import * as vscode from 'vscode';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { ExecutePython } from '../analysis/python/executePython';
 import { DependencyGraphDataset, DependencyRefreshRequest } from './dependencyGraphModels';
+import { JobRunner } from '../analysis/launch/jobRunner';
+import { runWithLaunchSignal } from '../analysis/launch/launchControl';
+
+/** A dependency analysis longer than this is killed and reported (DEPGRAPH-9). */
+export const DEPENDENCY_GRAPH_JOB_TIMEOUT_MS = 10 * 60 * 1000;
 
 export class DependencyGraphService {
-    private activeJob: Promise<DependencyGraphDataset> | null = null;
+    private readonly jobs = new JobRunner<object, DependencyGraphDataset>({
+        busyCode: 'dependency-graph-busy',
+        cancelledCode: 'dependency-graph-cancelled',
+        timeoutCode: 'dependency-graph-timeout',
+        timeoutMs: DEPENDENCY_GRAPH_JOB_TIMEOUT_MS,
+    });
+    /** Cancels the file-scope analysis in flight when the service is disposed. */
+    private readonly disposal = new AbortController();
     private revision = 0;
     private generated = false;
     private readonly extractionCachePath: string;
@@ -40,7 +52,7 @@ export class DependencyGraphService {
     }
 
     public isBusy(): boolean {
-        return this.activeJob !== null;
+        return this.jobs.isBusy();
     }
 
     public getInitialScope(): { kind: 'file' | 'directory'; relativePath: string } {
@@ -54,22 +66,27 @@ export class DependencyGraphService {
         request?: DependencyRefreshRequest,
         onProgress?: (message: string) => void,
     ): Promise<DependencyGraphDataset> {
-        if (this.activeJob) {
-            return this.activeJob;
+        // A start while one runs joins it rather than being refused.
+        const running = this.jobs.current();
+        if (running) {
+            return running;
         }
-        const job = this.executeAnalysis(request, onProgress);
-        this.activeJob = job;
-        const clearActiveJob = () => {
-            if (this.activeJob === job) {
-                this.activeJob = null;
-            }
-        };
-        void job.then(clearActiveJob, clearActiveJob);
-        return job;
+        const ticket = this.jobs.tryReserve({});
+        if (!ticket) {
+            // Reserved but not executing yet: impossible here (reserve and
+            // execute are synchronous together), kept as a typed guard.
+            return Promise.reject(new Error('dependency-graph-busy'));
+        }
+        return ticket.execute(() => this.executeAnalysis(request, onProgress));
     }
 
+    /**
+     * Disposing (the session ends) kills the Python analysis in flight
+     * instead of leaving it running with nobody to read it (DEPGRAPH-9).
+     */
     public async dispose(): Promise<void> {
-        this.activeJob = null;
+        this.disposal.abort('disposed');
+        await this.jobs.cancelAndWait('disposed');
         this.fileScopeCache.clear();
     }
 
@@ -93,14 +110,14 @@ export class DependencyGraphService {
             return dataset;
         }
         onProgress?.('Analyzing symbols and calls in the selected file...');
-        const result = await new ExecutePython(this.context).executeDependencyAnalysis(
+        const result = await runWithLaunchSignal(this.disposal.signal, () => new ExecutePython(this.context).executeDependencyAnalysis(
             targetPath,
             'file',
             false,
             undefined,
             undefined,
             this.resolveProjectRoot(targetPath),
-        );
+        ));
         if (!result || result.error === true || !Array.isArray(result.nodes) || !Array.isArray(result.edges)) {
             throw new Error(String(result?.message || 'File dependency analysis returned an invalid dataset.'));
         }

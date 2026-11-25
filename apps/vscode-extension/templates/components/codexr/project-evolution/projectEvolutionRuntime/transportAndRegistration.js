@@ -145,17 +145,13 @@
     }
   }
 
-  // Leaving the mode, per scenario: a generation in flight is CANCELLED and
-  // everything cleaned (the server aborts its workers on project-evolution-clear
-  // and broadcasts -cleared, which resets the local state too); a generated
-  // movie is paused, remembering whether it was playing so re-entry resumes it.
+  // Leaving the mode never changes the server's state (EVO-2): a generation
+  // in flight keeps running for the room (only Cancel stops it) and its movie
+  // arrives as the shared entity; a generated movie is paused, remembering
+  // whether it was playing so re-entry resumes it.
   function releaseEvolutionOnLeave() {
     invalidateEvolutionView('project-evolution-view-released');
-    if (state.generating) {
-      state.generating = false;
-      renderGenerationProgress({ state: 'idle' });
-      clearMovie();
-    } else {
+    if (!state.generating) {
       state.resumePlayback = state.resumePlayback || state.playing;
     }
     stop();
@@ -177,6 +173,7 @@
     state.disposables.push(runtimeClient?.onMessage?.('project-evolution-references', handleReferences));
     state.disposables.push(runtimeClient?.onMessage?.('project-evolution-progress', handleProgress));
     state.disposables.push(runtimeClient?.onMessage?.('project-evolution-error', handleError));
+    state.disposables.push(runtimeClient?.onMessage?.('project-evolution-cancelled', handleCancelled));
     state.disposables.push(runtimeClient?.onMessage?.('project-evolution-frame-applied', handleFrameApplied));
     state.disposables.push(runtimeClient?.onMessage?.('project-evolution-cleared', function (message) {
       applyClearedState(unwrapPayload(message).message || 'Project evolution movie cleared.');

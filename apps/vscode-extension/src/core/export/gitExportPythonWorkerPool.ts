@@ -4,7 +4,15 @@ import * as path from 'path';
 
 const WORKER_PROTOCOL_VERSION = 1;
 const MAX_TASKS_PER_WORKER = 500;
-const WORKER_READY_TIMEOUT_MS = 10_000;
+// A cold interpreter importing lizard under antivirus on Windows can take
+// well over 10 s, and the Maximum profile starts up to 32 at once (EVO-17).
+const WORKER_READY_TIMEOUT_MS = 30_000;
+/**
+ * One file analysis that takes longer than this is treated as a failure:
+ * the worker is killed and the job retried once on a fresh worker, then
+ * recorded as failed, instead of waiting forever (EVO-17).
+ */
+export const WORKER_JOB_TIMEOUT_MS = 120_000;
 
 export interface WorkerPoolCancelSignal {
     readonly isCancellationRequested: boolean;
@@ -121,7 +129,7 @@ class PersistentPythonWorker {
         }
     }
 
-    public async analyze(job: GitExportAnalysisJob): Promise<void> {
+    public async analyze(job: GitExportAnalysisJob, timeoutMs = WORKER_JOB_TIMEOUT_MS): Promise<void> {
         await this.ready();
         if (this.stopped || this.child.exitCode !== null) {
             throw new Error('python-export-worker-not-running');
@@ -130,13 +138,25 @@ class PersistentPythonWorker {
             throw new Error('python-export-worker-busy');
         }
         return new Promise<void>((resolve, reject) => {
+            const timer = timeoutMs > 0
+                ? setTimeout(() => {
+                    if (this.pending?.jobId === job.id) {
+                        this.pending = undefined;
+                        reject(new Error(`python-export-worker-job-timeout: ${job.id} took more than ${Math.round(timeoutMs / 1000)} s`));
+                    }
+                }, timeoutMs)
+                : undefined;
             this.pending = {
                 jobId: job.id,
                 resolve: () => {
+                    clearTimeout(timer);
                     this.completedTasks += 1;
                     resolve();
                 },
-                reject,
+                reject: (reason: Error) => {
+                    clearTimeout(timer);
+                    reject(reason);
+                },
             };
             this.child.stdin.write(`${JSON.stringify({
                 type: 'analyze',
@@ -251,6 +271,7 @@ export class GitExportPythonWorkerPool {
         private readonly workerScriptPath: string,
         private readonly workerCount: number,
         private readonly token?: WorkerPoolCancelSignal,
+        private readonly jobTimeoutMs = WORKER_JOB_TIMEOUT_MS,
     ) {}
 
     public async run(
@@ -280,8 +301,22 @@ export class GitExportPythonWorkerPool {
             jobs.length,
         );
 
-        const loops = Array.from({ length: actualWorkers }, async () => {
-            let worker = await this.createWorker();
+        // A worker that cannot start degrades the pool instead of failing the
+        // export, as long as one other worker runs; the job queue is shared,
+        // so the running loops take its share (EVO-17).
+        const started = await Promise.allSettled(
+            Array.from({ length: actualWorkers }, () => this.createWorker()),
+        );
+        this.throwIfCancelled();
+        const initialWorkers = started
+            .filter((entry): entry is PromiseFulfilledResult<PersistentPythonWorker> => entry.status === 'fulfilled')
+            .map((entry) => entry.value);
+        if (!initialWorkers.length) {
+            throw (started[0] as PromiseRejectedResult).reason;
+        }
+
+        const loops = initialWorkers.map(async (initialWorker) => {
+            let worker = initialWorker;
             try {
                 while (true) {
                     this.throwIfCancelled();
@@ -296,7 +331,7 @@ export class GitExportPythonWorkerPool {
                         this.throwIfCancelled();
                         try {
                             await job.prepareInput();
-                            await worker.analyze(job);
+                            await worker.analyze(job, this.jobTimeoutMs);
                             finished = true;
                         } catch (error) {
                             const attempt = (attempts.get(job.id) || 0) + 1;
@@ -323,7 +358,7 @@ export class GitExportPythonWorkerPool {
                     onProgress?.({
                         completed,
                         total: jobs.length,
-                        workerCount: actualWorkers,
+                        workerCount: initialWorkers.length,
                         filesPerSecond,
                         etaSeconds: Math.max(0, (jobs.length - completed) / filesPerSecond),
                     });
