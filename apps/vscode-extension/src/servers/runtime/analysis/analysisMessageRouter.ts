@@ -2,8 +2,10 @@ import {
     CollaborationApplicationMessageContext,
     CollaborationMessage,
     CollaborationRoomServer,
+    SharedEntityState,
 } from '../collaboration/collaborationRoomServer';
 import { AnalysisViewMode, analysisRefreshCoordinator } from '../../../code_analysis/refresh';
+import { defaultControllerView } from '../../../code_analysis/refresh/analysisViewModes';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { DependencyGraphBridge } from './dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './historicalComparisonBridge';
@@ -14,6 +16,24 @@ export interface AnalysisRouterRoomHooks {
     getRoom(): CollaborationRoomServer | null;
     getRoomId(): string;
 }
+
+type SnapshotMode = Exclude<AnalysisViewMode, 'selection' | 'single'>;
+
+/**
+ * The cached room entity each snapshot-backed mode probes on activation, and
+ * what makes it usable: a git result, or the dependency dataset URL.
+ */
+const SNAPSHOT_PROBE_BY_MODE: Readonly<Record<SnapshotMode, {
+    entityKind: string;
+    isAvailable(snapshot: SharedEntityState | null | undefined): boolean;
+}>> = {
+    'historical-compare': { entityKind: 'historical-comparison', isAvailable: (snapshot) => !!snapshot?.result },
+    'project-evolution': { entityKind: 'project-evolution', isAvailable: (snapshot) => !!snapshot?.result },
+    'dependency-graph': {
+        entityKind: 'dependency-graph',
+        isAvailable: (snapshot) => typeof snapshot?.datasetUrl === 'string',
+    },
+};
 
 /**
  * Dispatches collaboration room application messages to their feature
@@ -85,51 +105,24 @@ export class AnalysisMessageRouter {
     }
 
     private async handleAnalysisModeActivateMessage(message: CollaborationMessage): Promise<boolean> {
-        const requestedMode = String(message.payload?.mode || '');
-        if (
-            requestedMode === 'single'
-            || requestedMode === 'historical-compare'
-            || requestedMode === 'project-evolution'
-            || requestedMode === 'dependency-graph'
-        ) {
-            const mode = requestedMode as Exclude<AnalysisViewMode, 'selection'>;
-            let controllerView: string | undefined;
-            if (mode !== 'single') {
-                const entityKind = mode === 'historical-compare'
-                    ? 'historical-comparison'
-                    : mode === 'project-evolution'
-                        ? 'project-evolution'
-                        : 'dependency-graph';
-                const snapshot = this.room.getRoom()?.getServerEntity(
-                    this.room.getRoomId(),
-                    entityKind,
-                    'main',
-                );
-                const available = mode === 'historical-compare' || mode === 'project-evolution'
-                    ? !!snapshot?.result
-                    : typeof snapshot?.datasetUrl === 'string';
-                analysisRefreshCoordinator.setSnapshotAvailable(
-                    this.host.sessionId,
-                    mode,
-                    available,
-                );
-                const allowsEmptyShell = mode === 'historical-compare'
-                    || mode === 'project-evolution';
-                if (!available && !allowsEmptyShell) {
-                    this.host.changeAnalysisViewMode('selection', 'visualization-menu');
-                    return true;
-                }
-                controllerView = mode === 'historical-compare' && available
-                    ? 'historical.mapping'
-                    : mode === 'historical-compare'
-                        ? 'historical.selection'
-                        : mode === 'dependency-graph'
-                            ? 'dependency.settings'
-                            : 'project-evolution';
-            } else {
-                controllerView = 'single.mapping';
+        const mode = String(message.payload?.mode || '');
+        if (mode === 'single') {
+            await this.host.activateAnalysisViewMode(mode, defaultControllerView(mode));
+        } else if (Object.prototype.hasOwnProperty.call(SNAPSHOT_PROBE_BY_MODE, mode)) {
+            const probe = SNAPSHOT_PROBE_BY_MODE[mode as SnapshotMode];
+            const snapshot = this.room.getRoom()?.getServerEntity(this.room.getRoomId(), probe.entityKind, 'main');
+            const available = probe.isAvailable(snapshot);
+            analysisRefreshCoordinator.setSnapshotAvailable(this.host.sessionId, mode as SnapshotMode, available);
+            const allowsEmptyShell = mode === 'historical-compare'
+                || mode === 'project-evolution';
+            if (!available && !allowsEmptyShell) {
+                this.host.changeAnalysisViewMode('selection', 'visualization-menu');
+                return true;
             }
-            await this.host.activateAnalysisViewMode(mode, controllerView);
+            const controllerView = mode === 'historical-compare' && available
+                ? 'historical.mapping'
+                : defaultControllerView(mode);
+            await this.host.activateAnalysisViewMode(mode as SnapshotMode, controllerView);
         }
         return true;
     }

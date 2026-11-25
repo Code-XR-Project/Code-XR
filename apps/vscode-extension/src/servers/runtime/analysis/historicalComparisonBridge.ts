@@ -11,6 +11,11 @@ import { analysisRefreshCoordinator } from '../../../code_analysis/refresh';
 import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/sessionWatcherManager';
 import { readJsonBody, sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
+import {
+    broadcastFilteredGitReferences,
+    describeBridgeError,
+    replyWithReferences,
+} from './analysisBridgeReplies';
 
 /**
  * Historical-comparison feature bridge: the LivePanel REST endpoints and the
@@ -117,21 +122,12 @@ export class HistoricalComparisonBridge {
         if (!this.historicalComparisonService) {
             return false;
         }
-        try {
-            const references = await this.historicalComparisonService.getReferences();
-            messageContext.send({
-                type: 'historical-comparison-references',
-                payload: references,
-            });
-        } catch (error) {
-            messageContext.send({
-                type: 'historical-comparison-error',
-                payload: {
-                    code: 'references-unavailable',
-                    message: error instanceof Error ? error.message : String(error),
-                },
-            });
-        }
+        const service = this.historicalComparisonService;
+        await replyWithReferences(messageContext, {
+            load: () => service.getReferences(),
+            referencesType: 'historical-comparison-references',
+            errorType: 'historical-comparison-error',
+        });
         return true;
     }
 
@@ -204,42 +200,14 @@ export class HistoricalComparisonBridge {
                 }
             } catch (error) {
                 if (error instanceof GitAnalysisSourceError) {
-                    await this.broadcastFilteredGitReferences(messageContext);
+                    await broadcastFilteredGitReferences(this.host, messageContext);
                 }
                 messageContext.broadcast({
                     type: 'historical-comparison-error',
-                    payload: {
-                        code: error instanceof GitAnalysisSourceError
-                            ? error.code
-                            : error instanceof Error
-                                ? error.message
-                                : 'comparison-failed',
-                        message: error instanceof Error ? error.message : String(error),
-                    },
+                    payload: describeBridgeError(error, 'comparison-failed'),
                 });
             }
         })();
         return true;
-    }
-
-    private async broadcastFilteredGitReferences(
-        messageContext: CollaborationApplicationMessageContext,
-    ): Promise<void> {
-        const [historical, evolution] = await Promise.all([
-            this.host.historicalComparisonService?.getReferences(),
-            this.host.projectEvolutionService?.getReferences(),
-        ]);
-        if (historical) {
-            messageContext.broadcast({
-                type: 'historical-comparison-references',
-                payload: historical,
-            });
-        }
-        if (evolution) {
-            messageContext.broadcast({
-                type: 'project-evolution-references',
-                payload: evolution,
-            });
-        }
     }
 }

@@ -1,3 +1,5 @@
+import { defaultControllerView } from './analysisViewModes';
+
 export type AnalysisRefreshMode = 'single' | 'historical-compare' | 'project-evolution' | 'dependency-graph';
 export type AnalysisViewMode = AnalysisRefreshMode | 'selection';
 
@@ -49,23 +51,6 @@ interface SessionRefreshState {
 }
 
 const MODES: AnalysisRefreshMode[] = ['single', 'historical-compare', 'project-evolution', 'dependency-graph'];
-
-function defaultControllerView(mode: AnalysisViewMode): string {
-    switch (mode) {
-        case 'selection':
-            return 'visualization-menu';
-        case 'single':
-            return 'single.mapping';
-        case 'dependency-graph':
-            return 'dependency.settings';
-        case 'historical-compare':
-            return 'historical.selection';
-        case 'project-evolution':
-            return 'project-evolution';
-        default:
-            return 'single.mapping';
-    }
-}
 
 function emptyPending(): Record<AnalysisRefreshMode, Map<string, PathChangeKind>> {
         return {
