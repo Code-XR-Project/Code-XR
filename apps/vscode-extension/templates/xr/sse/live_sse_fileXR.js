@@ -28,10 +28,14 @@
       onerror: null,
       onmessage: null
     };
-    const eventSource = liveReloadDisabled
-      ? disabledEventSource
-      : new EventSource('/events');
+    // The live connection. It is reassigned on every reconnect, so read it
+    // through this variable, never capture it.
+    let eventSource = disabledEventSource;
     let isXRMode = false;
+    let reconnectDelayMs = 0;
+    let reconnectTimer = null;
+    const RECONNECT_MIN_DELAY_MS = 1000;
+    const RECONNECT_MAX_DELAY_MS = 30000;
 
     if (liveReloadDisabled) {
       liveReloadDebugLog(' Offline export detected: live reload disabled.');
@@ -45,7 +49,7 @@
         .then((manifest) => {
           if (manifest && manifest.kind === 'codexr-export') {
             liveReloadDebugLog(' Offline export detected: live reload disabled.');
-            eventSource.close();
+            stopLiveReload();
           }
         })
         .catch(() => {});
@@ -131,30 +135,143 @@
       }
     }
 
-    eventSource.onopen = function() {
-      liveReloadDebugLog(' EventSource connection established');
-    };
-
-    eventSource.onerror = function(err) {
-      if (liveReloadDisabled) {
-        eventSource.close();
-        return;
+    // Live-reload connection state, readable by the scene and by tests:
+    // 'connecting' | 'open' | 'reconnecting' | 'disabled'.
+    function setLiveReloadStatus(status) {
+      window.__CODEXR_LIVE_RELOAD_STATUS__ = status;
+      try {
+        document.dispatchEvent(new CustomEvent('codexr-live-reload-status', { detail: { status: status } }));
+      } catch (_error) {
+        // CustomEvent is missing only in non-browser hosts.
       }
-      console.error(' EventSource error:', err);
-      // Try to reconnect after a delay
-      setTimeout(() => {
-        if (liveReloadDisabled) {
+    }
+
+    function stopLiveReload() {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      eventSource.close();
+      eventSource = disabledEventSource;
+      setLiveReloadStatus('disabled');
+    }
+
+    // Opens the connection and binds EVERY handler to it. The previous
+    // reconnect opened a bare `new EventSource('/events')` with no handlers
+    // and closed the one that had them, so after one network drop the scene
+    // silently stopped updating until the page was reloaded.
+    function connectLiveReload() {
+      reconnectTimer = null;
+      const source = new EventSource('/events');
+      eventSource = source;
+      setLiveReloadStatus('connecting');
+      source.onopen = function () {
+        reconnectDelayMs = 0;
+        setLiveReloadStatus('open');
+        liveReloadDebugLog(' EventSource connection established');
+      };
+      source.onerror = function (err) {
+        if (source !== eventSource) {
           return;
         }
-        liveReloadDebugLog(' Attempting to reconnect...');
-        eventSource.close();
-        new EventSource('/events');
-      }, 3000);
-    };
+        console.error(' EventSource error:', err);
+        // While the browser is retrying on its own (CONNECTING) there is
+        // nothing to do. It only gives up (CLOSED) on a fatal answer such as
+        // a 404, and then a fresh connection is opened with back-off.
+        if (source.readyState !== 2) {
+          setLiveReloadStatus('reconnecting');
+          return;
+        }
+        source.close();
+        scheduleReconnect();
+      };
+      source.addEventListener('analysis-updated', handleAnalysisUpdated);
+      source.addEventListener('dataRefresh', handleDataRefresh);
+      source.onmessage = handleGenericMessage;
+      return source;
+    }
 
+    function scheduleReconnect() {
+      if (liveReloadDisabled || reconnectTimer) {
+        return;
+      }
+      reconnectDelayMs = reconnectDelayMs
+        ? Math.min(RECONNECT_MAX_DELAY_MS, reconnectDelayMs * 2)
+        : RECONNECT_MIN_DELAY_MS;
+      setLiveReloadStatus('reconnecting');
+      liveReloadDebugLog(' Reconnecting in ' + reconnectDelayMs + ' ms...');
+      reconnectTimer = setTimeout(connectLiveReload, reconnectDelayMs);
+    }
+
+    // --- Data-source cache busting -------------------------------------
+    // A babia-queryjson value is either the parsed object ({ url, ... }) or,
+    // before A-Frame initialised the component, the raw declaration string
+    // ("url: ./data.json; ..."). Both forms are read the same way, and any
+    // "url:" prefix that leaked into the url itself is stripped, which also
+    // heals a value already corrupted to "url: url: ./data.json".
+    function readQueryJsonUrl(value) {
+      let raw = '';
+      if (typeof value === 'string') {
+        const match = /(?:^|;)\s*url\s*:\s*([^;]*)/.exec(value);
+        raw = match ? match[1] : '';
+      } else if (value && typeof value.url === 'string') {
+        raw = value.url;
+      }
+      raw = raw.trim();
+      while (/^url\s*:/i.test(raw)) {
+        raw = raw.replace(/^url\s*:\s*/i, '');
+      }
+      return raw.trim();
+    }
+
+    // Sets one query parameter and keeps every other one (comparison sources
+    // carry ?revision=, which the old split('?')[0] dropped).
+    function withQueryParam(url, key, value) {
+      const hashIndex = url.indexOf('#');
+      const hash = hashIndex >= 0 ? url.slice(hashIndex) : '';
+      const withoutHash = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+      const queryIndex = withoutHash.indexOf('?');
+      const base = queryIndex >= 0 ? withoutHash.slice(0, queryIndex) : withoutHash;
+      const params = new URLSearchParams(queryIndex >= 0 ? withoutHash.slice(queryIndex + 1) : '');
+      params.set(key, String(value));
+      return base + '?' + params.toString() + hash;
+    }
+
+    function isDerivedDataSource(dataEntity) {
+      // The row-budgeted chart slices hold inline data fed by their producer;
+      // they have no URL of their own to refresh.
+      const id = dataEntity && dataEntity.id ? String(dataEntity.id) : '';
+      return id.indexOf('codexrChartDataSlice__') === 0;
+    }
+
+    // Cache-busts one data source. Returns false when the entity has no URL
+    // to refresh (inline data, chart slices), so it is left untouched.
+    function bustDataSource(dataEntity, timestamp) {
+      if (!dataEntity || typeof dataEntity.getAttribute !== 'function' || isDerivedDataSource(dataEntity)) {
+        return false;
+      }
+      const queryjson = dataEntity.getAttribute('babia-queryjson');
+      if (!queryjson) {
+        return false;
+      }
+      const currentUrl = readQueryJsonUrl(queryjson);
+      if (!currentUrl) {
+        return false;
+      }
+      const nextUrl = withQueryParam(currentUrl, 't', timestamp);
+      if (typeof queryjson === 'string') {
+        const rest = queryjson.split(';')
+          .map(part => part.trim())
+          .filter(part => part && !/^url\s*:/i.test(part));
+        dataEntity.setAttribute('babia-queryjson', ['url: ' + nextUrl].concat(rest).join('; '));
+      } else {
+        dataEntity.setAttribute('babia-queryjson', Object.assign({}, queryjson, { url: nextUrl }));
+      }
+      return true;
+    }
 
     // Handle analysis-updated events
-    eventSource.addEventListener('analysis-updated', function(event) {
+    function handleAnalysisUpdated(event) {
       liveReloadDebugLog(' Received analysis-updated event:', event);
 
       // Find data entities using all provided selectors
@@ -181,28 +298,9 @@
         const timestamp = Date.now();
         liveReloadDebugLog(' Refreshing ' + dataEntities.length + ' data entities');
         
-        // Update each data entity
-        dataEntities.forEach(dataEntity => {
-          // Get current attributes
-          const queryjson = dataEntity.getAttribute('babia-queryjson');
-          if (queryjson) {
-            // Add cache busting parameter
-            const urlStr = typeof queryjson === 'string' ? queryjson : queryjson.url || '';
-            let url = '';
-            
-            if (typeof urlStr === 'string') {
-              url = urlStr.split('?')[0] + '?t=' + timestamp;
-            }
-            
-            // Handle both string and object attributes
-            if (typeof queryjson === 'string') {
-              dataEntity.setAttribute('babia-queryjson', url);
-            } else {
-              const newAttr = { ...queryjson };
-              newAttr.url = url;
-              dataEntity.setAttribute('babia-queryjson', newAttr);
-            }
-            
+        // Update each data entity (once, even when it matches both selectors)
+        Array.from(new Set(dataEntities)).forEach(dataEntity => {
+          if (bustDataSource(dataEntity, timestamp)) {
             // Trigger data refresh event after a short delay
             setTimeout(() => {
               dataEntity.emit('data-loaded', {});
@@ -238,11 +336,11 @@
       if (dataEntities.length === 0) {
         void completeNormalRefresh(refreshGeneration, 'analysis-updated-no-data', chartEntities);
       }
-    });
-  
+    }
+
 
     // Handle dataRefresh events
-    eventSource.addEventListener('dataRefresh', function(event) {
+    function handleDataRefresh(event) {
       liveReloadDebugLog(' Received dataRefresh event:', event);
       liveReloadDebugLog(' Reloading data.json for XR chart refresh...');
       
@@ -256,25 +354,8 @@
         liveReloadDebugLog(' Refreshing ' + dataEntities.length + ' data entities with cache busting');
         
         dataEntities.forEach(dataEntity => {
-          const queryjson = dataEntity.getAttribute('babia-queryjson');
-          if (queryjson) {
-            // Simple cache busting - let A-Frame handle the rest
-            const urlStr = typeof queryjson === 'string' ? queryjson : queryjson.url || '';
-            let newUrl = '';
-            
-            if (typeof urlStr === 'string') {
-              newUrl = urlStr.split('?')[0] + '?t=' + timestamp;
-            }
-            
-            // Update the data source URL
-            if (typeof queryjson === 'string') {
-              dataEntity.setAttribute('babia-queryjson', newUrl);
-            } else {
-              const newAttr = { ...queryjson };
-              newAttr.url = newUrl;
-              dataEntity.setAttribute('babia-queryjson', newAttr);
-            }
-            
+          // Simple cache busting - let A-Frame handle the rest
+          if (bustDataSource(dataEntity, timestamp)) {
             liveReloadDebugLog(' Data entity refreshed with cache busting');
           }
         });
@@ -308,11 +389,11 @@
       if (dataEntities.length === 0) {
         void completeNormalRefresh(refreshGeneration, 'dataRefresh-no-data', []);
       }
-    });
-  
+    }
+
 
     // Handle general reload messages
-    eventSource.onmessage = function(event) {
+    function handleGenericMessage(event) {
       liveReloadDebugLog('Generic message received:', event.data);
       
       // Skip reload if in XR mode
@@ -325,4 +406,10 @@
         liveReloadDebugLog(' Live reload triggered, refreshing page...');
         window.location.reload();
       }
-    };
+    }
+
+    if (liveReloadDisabled) {
+      setLiveReloadStatus('disabled');
+    } else {
+      connectLiveReload();
+    }
