@@ -31,7 +31,7 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 | Before | After |
 |---|---|
 | `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` | `apps/vscode-extension/<same name>/` (`manual_test/` then moved on to `backend/`, see below) |
-| `package.json`, `tsconfig.json`, `webpack.config.js`, `eslint.config.mjs`, `esbuild.config.mjs`, `.vscode-test.mjs` | `apps/vscode-extension/` |
+| `package.json`, `tsconfig.json`, `webpack.config.js`, `eslint.config.mjs`, `esbuild.config.mjs` | `apps/vscode-extension/` (`.vscode-test.mjs` moved too and was deleted in 1.2.1: the integration lane it configured had no tests) |
 | `README.md`, `CHANGELOG.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md` | `apps/vscode-extension/` (they ship in the VSIX). The root has its own `README.md` and a copy of `LICENSE`. |
 | `src/code_analysis/python/` | `backend/src/` |
 | `test/python/` | `backend/tests/` |

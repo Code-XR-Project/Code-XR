@@ -761,7 +761,6 @@
     "test:unit": "node test/runners/run-node-tests.cjs",
     "test:python": "node ../../backend/scripts/run-python-tests.cjs",
     "test:all": "npm run test:basic && npm run test:python",
-    "test:integration": "node ../../node_modules/@vscode/test-cli/out/bin.mjs",
     "package:vsix": "npm run package && node scripts/package-vsix.mjs",
     "test:analysis": "node ../../backend/scripts/run-analysis-tests.cjs",
     "test:htmlanalysis": "node test/runners/run-html-analysis-tests.cjs",
@@ -775,14 +774,11 @@
     "python:requirements": "npm run compile-tests && node test/tooling/pythonRequirements.cjs --write"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.98.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
-    "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "copy-webpack-plugin": "^13.0.0",
     "eslint": "^9.25.1",
