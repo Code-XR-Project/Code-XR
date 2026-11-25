@@ -106,6 +106,18 @@ export default [{
         "@typescript-eslint/no-misused-promises": "warn",
     },
 }, {
+    // Modernized idioms (story #56, docs/cleanup/modernization.md §1 and §7).
+    // Each rule landed in the commit that brought its idiom to zero in src/, so
+    // the count can only stay there. Exceptions are per-file overrides below,
+    // never eslint-disable comments (the suppressions guardrail is at 0).
+    files: ["src/**/*.ts"],
+    rules: {
+        "no-var": "error",
+        "prefer-rest-params": "error",
+        "@typescript-eslint/no-namespace": "error",
+        "@typescript-eslint/no-unsafe-function-type": "error",
+    },
+}, {
     files: NO_CONSOLE_FILES,
     ignores: CONSOLE_ALLOWLIST,
     rules: {

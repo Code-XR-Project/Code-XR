@@ -197,3 +197,26 @@ test('no-console is an error over all of src/, and the log sink is the only exce
     assert.deepEqual(block.ignores, ['src/core/logging/sink.ts']);
     assert.ok(fs.existsSync(path.join(projectRoot, 'src', 'core', 'logging', 'sink.ts')), 'the allowlisted sink exists');
 });
+
+// Idioms story #56 brought to zero in src/ (docs/cleanup/modernization.md §7).
+// Each lock-in landed with the commit that reached zero; one switched off or
+// downgraded would let the idiom come back unnoticed.
+const MODERNIZED_IDIOM_RULES = [
+    'no-var',
+    'prefer-rest-params',
+    '@typescript-eslint/no-namespace',
+    '@typescript-eslint/no-unsafe-function-type',
+];
+
+test('the modernized idioms stay locked over src/', async () => {
+    const config = await loadEslintConfig();
+    const block = config.find((candidate) => candidate.rules
+        && candidate.rules['no-var'] !== undefined
+        && Array.isArray(candidate.files) && candidate.files.includes('src/**/*.ts'));
+
+    assert.ok(block, 'one block locks the idioms over src/**/*.ts');
+    for (const rule of MODERNIZED_IDIOM_RULES) {
+        const value = block.rules[rule];
+        assert.equal(Array.isArray(value) ? value[0] : value, 'error', `${rule} is an error over src/`);
+    }
+});
