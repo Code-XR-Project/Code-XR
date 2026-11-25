@@ -20,7 +20,8 @@ export class VisualizeDataModel {
         
         try {
             // Clear any existing state from workspace storage
-            context.workspaceState.update('visualizeDataState', undefined);
+            // 1.3.0: the surrounding catch never sees this write fail; await it.
+            void context.workspaceState.update('visualizeDataState', undefined);
             logger.debug('VISUALIZE-STATE: Cleared workspace storage');
             
             // If state manager instance exists, reset it
@@ -87,7 +88,7 @@ export class VisualizeDataModel {
         // If state was modified, trigger refresh
         if (needsUpdate) {
             logger.debug('VISUALIZE-STATE: State was cleaned, triggering UI refresh');
-            vscode.commands.executeCommand('codexr.servers.refresh');
+            void vscode.commands.executeCommand('codexr.servers.refresh');
         } else {
             logger.debug('VISUALIZE-STATE: State validation complete, no changes needed');
         }

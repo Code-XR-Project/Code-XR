@@ -65,7 +65,7 @@ export class ProjectAnalysisCommands {
     private async pickWorkspaceFolder(placeHolder: string): Promise<string | undefined> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 'No workspace is currently open. Please open a project folder to analyze.',
             );
             return undefined;

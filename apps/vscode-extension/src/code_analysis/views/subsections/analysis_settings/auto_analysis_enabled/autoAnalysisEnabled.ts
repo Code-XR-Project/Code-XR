@@ -17,7 +17,7 @@ export class AutoAnalysisEnabledSetting {
     constructor(context: vscode.ExtensionContext) {
         logger.debug('Initializing Auto-Analysis Enabled setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
-        this.loadSavedState();
+        void this.loadSavedState();
     }
 
     /**
@@ -78,7 +78,7 @@ export class AutoAnalysisEnabledSetting {
             'Auto-Analysis enabled - watchers and debounce time are now active' : 
             'Auto-Analysis disabled - watchers and debounce time are paused';
         
-        vscode.window.showInformationMessage(message);
+        void vscode.window.showInformationMessage(message);
     }
 
     /**

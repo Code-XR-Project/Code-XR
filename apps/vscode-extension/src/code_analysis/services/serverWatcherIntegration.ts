@@ -74,7 +74,7 @@ export class ServerWatcherIntegration {
             await this.cleanupAnalysisFiles(session.outputPath);
             sessionRegistry.updateSessionStatus(sessionId, 'closed');
 
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `Analysis cleaned up: ${session.targetName} - ${session.analysisMode} (server on port ${serverPort} was closed)`,
             );
         } catch (error) {

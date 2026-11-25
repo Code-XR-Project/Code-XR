@@ -36,7 +36,7 @@ export class FileAnalysisLivePanelCommands {
             } else {
                 const activeEditor = vscode.window.activeTextEditor;
                 if (!activeEditor) {
-                    vscode.window.showWarningMessage('CodeXR: No file selected for LivePanel analysis');
+                    void vscode.window.showWarningMessage('CodeXR: No file selected for LivePanel analysis');
                     return;
                 }
                 filePath = activeEditor.document.fileName;
@@ -46,7 +46,7 @@ export class FileAnalysisLivePanelCommands {
             await AnalysisOrchestrator.orchestrateAnalysis(filePath, 'LivePanel', 'file', this.context, false);
         } catch (error) {
             logger.error('Error in LivePanel analyze file command:', error);
-            vscode.window.showErrorMessage(`CodeXR: LivePanel analysis failed - ${error}`);
+            void vscode.window.showErrorMessage(`CodeXR: LivePanel analysis failed - ${error}`);
         }
     }
 }

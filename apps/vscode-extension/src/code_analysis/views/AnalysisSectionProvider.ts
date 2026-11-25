@@ -80,7 +80,7 @@ export class AnalysisSectionProvider implements SectionProvider<CodeAnalysisTree
      */
     refresh(): void {
         this.activeAnalysesDataService.refresh();
-        this.analysisSettingsSubsection.refresh();
+        void this.analysisSettingsSubsection.refresh();
         this._onDidChangeTreeData.fire();
     }
 

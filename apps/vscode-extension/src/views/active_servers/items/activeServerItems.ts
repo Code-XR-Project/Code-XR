@@ -167,7 +167,7 @@ export class ActiveServerItemFactory {
         participants: ConnectedParticipantSummary[],
     ): ActiveServerTreeItem[] {
         const protocol = server.certMode === 'http' ? 'http' : 'https';
-        const lanUrl = `${protocol}://${NetworkUtils.getLocalIPAddress()}:${server.port}`;
+        const lanUrl = NetworkUtils.getPrimaryExternalUrl(server.port, protocol);
         const children = [
             this.createCommandItem(
                 'Local network address',

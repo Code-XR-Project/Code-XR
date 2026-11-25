@@ -41,7 +41,7 @@ export class FilesByLanguageCommands {
         try {
             const absolutePath = FilesByLanguageCommands.resolveFilePath(filePath);
             if (!absolutePath) {
-                vscode.window.showErrorMessage('No workspace folder found');
+                void vscode.window.showErrorMessage('No workspace folder found');
                 return;
             }
 
@@ -84,10 +84,10 @@ export class FilesByLanguageCommands {
                 return;
             }
 
-            vscode.window.showWarningMessage(`Unknown analysis mode: ${analysisMode}`);
+            void vscode.window.showWarningMessage(`Unknown analysis mode: ${analysisMode}`);
         } catch (error) {
             logger.error(() => `Failed to run and analyze file ${filePath}.`, error);
-            vscode.window.showErrorMessage(`Failed to analyze file: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to analyze file: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 

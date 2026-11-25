@@ -1,4 +1,4 @@
-export type DependencyRelationKind =
+type DependencyRelationKind =
     | 'import'
     | 'include'
     | 'require'
@@ -7,10 +7,10 @@ export type DependencyRelationKind =
     | 'call'
     | 'contains';
 
-export type DependencyConfidence = 'exact' | 'probable' | 'ambiguous';
-export type DependencyCapability = 'exact' | 'best-effort' | 'unsupported';
+type DependencyConfidence = 'exact' | 'probable' | 'ambiguous';
+type DependencyCapability = 'exact' | 'best-effort' | 'unsupported';
 export type DependencyGraphLayout = 'force-3d' | 'hierarchical' | 'metric-space';
-export type DependencySymbolKind =
+type DependencySymbolKind =
     | 'module'
     | 'function'
     | 'method'
@@ -30,7 +30,7 @@ export type DependencyEdgeEncoding =
     | 'intensity-width'
     | 'intensity-combined';
 
-export interface DependencyNode {
+interface DependencyNode {
     id: string;
     kind: 'file' | 'group' | 'external' | 'symbol';
     label: string;
@@ -44,7 +44,7 @@ export interface DependencyNode {
     metrics: Record<string, number | string>;
 }
 
-export interface DependencyEdge {
+interface DependencyEdge {
     id: string;
     source: string;
     target: string;

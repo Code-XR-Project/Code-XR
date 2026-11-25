@@ -36,7 +36,7 @@ export class AnalysisDirectoryModeCommands {
                                 ? `${selectedMode.replace('Deep', '')} Deep`
                                 : selectedMode;
                             
-                            vscode.window.showInformationMessage(
+                            void vscode.window.showInformationMessage(
                                 `Directory analysis mode set to: ${modeText}`, 
                                 'OK'
                             );
@@ -47,7 +47,7 @@ export class AnalysisDirectoryModeCommands {
                         
                     } catch (error) {
                         logger.error('Error selecting analysis directory mode:', error);
-                        vscode.window.showErrorMessage(
+                        void vscode.window.showErrorMessage(
                             `Failed to select directory analysis mode: ${error instanceof Error ? error.message : String(error)}`
                         );
                     }

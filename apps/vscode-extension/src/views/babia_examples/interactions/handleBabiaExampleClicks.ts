@@ -49,7 +49,7 @@ export class BabiaExampleClickHandler {
 
         if (!item.babiaExample.isValid) {
             logger.warn('Attempted to launch invalid example');
-            vscode.window.showWarningMessage(`Example "${item.babiaExample.name}" is invalid and cannot be launched.`);
+            void vscode.window.showWarningMessage(`Example "${item.babiaExample.name}" is invalid and cannot be launched.`);
             return;
         }
 
@@ -59,11 +59,11 @@ export class BabiaExampleClickHandler {
             // Use the example launcher to handle the launch
             await this.exampleLauncher.launchExample(item.babiaExample);
             
-            vscode.window.showInformationMessage(`Example "${item.babiaExample.name}" launched successfully!`);
+            void vscode.window.showInformationMessage(`Example "${item.babiaExample.name}" launched successfully!`);
             
         } catch (error) {
             logger.error(`Error launching example ${item.babiaExample.id}:`, error);
-            vscode.window.showErrorMessage(`Failed to launch example "${item.babiaExample.name}": ${error}`);
+            void vscode.window.showErrorMessage(`Failed to launch example "${item.babiaExample.name}": ${error}`);
         }
     }
 
@@ -119,10 +119,10 @@ export class BabiaExampleClickHandler {
         try {
             // For now, use the default launcher - future enhancement could support launch mode selection
             await this.exampleLauncher.launchExample(example);
-            vscode.window.showInformationMessage(`Example "${example.name}" launched! (Uses current user configuration for launch mode)`);
+            void vscode.window.showInformationMessage(`Example "${example.name}" launched! (Uses current user configuration for launch mode)`);
         } catch (error) {
             logger.error(`Error launching example:`, error);
-            vscode.window.showErrorMessage(`Failed to launch example: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to launch example: ${error}`);
         }
     }
 
@@ -133,10 +133,10 @@ export class BabiaExampleClickHandler {
         try {
             // For now, use the default launcher - future enhancement could support launch mode selection
             await this.exampleLauncher.launchExample(example);
-            vscode.window.showInformationMessage(`Example "${example.name}" launched! (Uses current user configuration for launch mode)`);
+            void vscode.window.showInformationMessage(`Example "${example.name}" launched! (Uses current user configuration for launch mode)`);
         } catch (error) {
             logger.error(`Error launching example:`, error);
-            vscode.window.showErrorMessage(`Failed to launch example: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to launch example: ${error}`);
         }
     }
 
@@ -153,6 +153,6 @@ Directory: ${example.directory}
 Valid: ${example.isValid ? 'Yes' : 'No'}
 ${example.description ? `Description: ${example.description}` : ''}`;
 
-        vscode.window.showInformationMessage(details, { modal: true });
+        void vscode.window.showInformationMessage(details, { modal: true });
     }
 }

@@ -24,10 +24,10 @@ export async function openServerInBrowser(serverId: string): Promise<void> {
                 : server.url;
             await PreviewRenderer.openPreview(browserUrl, server.htmlFile || '', 'browser');
             logger.debug(() => `Opened ${server.url} in browser`);
-            vscode.window.showInformationMessage(`Opened ${server.url} in browser`);
+            void vscode.window.showInformationMessage(`Opened ${server.url} in browser`);
         } catch (error) {
             logger.error(`Error opening ${server.url} in browser:`, error);
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 `Failed to open in browser: ${error instanceof Error ? error.message : String(error)}`
             );
         }
@@ -67,10 +67,10 @@ export async function openServerInPanel(serverId: string): Promise<void> {
                 : server.url;
             await PreviewRenderer.openPreview(panelUrl, server.htmlFile || '', 'lateralPanel', serverId);
             logger.debug(() => `Successfully opened ${server.url} in lateral panel`);
-            vscode.window.showInformationMessage(`Opened ${server.url} in VS Code panel`);
+            void vscode.window.showInformationMessage(`Opened ${server.url} in VS Code panel`);
         } catch (error) {
             logger.error(`Error opening ${server.url} in panel:`, error);
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 `Failed to open in panel: ${error instanceof Error ? error.message : String(error)}`
             );
         }

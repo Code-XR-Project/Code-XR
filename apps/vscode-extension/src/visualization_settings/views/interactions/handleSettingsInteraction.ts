@@ -51,7 +51,7 @@ export class VisualizationSettingsInteractionHandler {
             }
         } catch (error) {
             logger.error(`VISUALIZATION-SETTINGS: Error configuring ${settingKey}:`, error);
-            vscode.window.showErrorMessage(`Failed to configure ${settingKey}: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to configure ${settingKey}: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -66,7 +66,7 @@ export class VisualizationSettingsInteractionHandler {
             .every(key => current[key] === DEFAULT_VISUALIZATION_SETTINGS[key]);
 
         if (alreadyDefault) {
-            vscode.window.showInformationMessage('Visualization settings already use their default values.');
+            void vscode.window.showInformationMessage('Visualization settings already use their default values.');
             return;
         }
 
@@ -106,9 +106,9 @@ export class VisualizationSettingsInteractionHandler {
         }
 
         // Refresh the tree view
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
 
-        vscode.window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             `Visualization settings reset to default: background ${DEFAULT_VISUALIZATION_SETTINGS.backgroundColor}, `
             + `ground ${DEFAULT_VISUALIZATION_SETTINGS.groundColor}, `
             + `environment '${DEFAULT_VISUALIZATION_SETTINGS.environmentPreset}', `
@@ -170,9 +170,9 @@ export class VisualizationSettingsInteractionHandler {
                             await this.storage.updateSetting(colorType, newColor);
                             
                             // Refresh the tree view to show new icon
-                            vscode.commands.executeCommand('codexr.servers.refresh');
+                            void vscode.commands.executeCommand('codexr.servers.refresh');
                             
-                            vscode.window.showInformationMessage(
+                            void vscode.window.showInformationMessage(
                                 `${fieldName} set to: ${newColor}`
                             );
                             
@@ -196,7 +196,7 @@ export class VisualizationSettingsInteractionHandler {
 
         } catch (error) {
             logger.error(`VISUALIZATION-SETTINGS: Error opening color picker for ${colorType}:`, error);
-            vscode.window.showErrorMessage(`Failed to open color picker: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to open color picker: ${error}`);
             
             // Fallback to the original QuickPick method
             await this.handleColorConfigurationFallback(colorType);
@@ -272,10 +272,10 @@ export class VisualizationSettingsInteractionHandler {
         await this.storage.updateSetting(colorType, newColor);
         
         // Refresh the tree view
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
 
         logger.debug(() => `VISUALIZATION-SETTINGS: ${colorType} updated to '${newColor}'`);
-        vscode.window.showInformationMessage(`${colorType.replace(/([A-Z])/g, ' $1')} set to: ${newColor}`);
+        void vscode.window.showInformationMessage(`${colorType.replace(/([A-Z])/g, ' $1')} set to: ${newColor}`);
     }
 
     /**
@@ -325,7 +325,7 @@ export class VisualizationSettingsInteractionHandler {
                     return undefined;
                 }
             } else {
-                vscode.window.showErrorMessage(`Failed to set ${colorType} after ${maxAttempts} attempts. Please try again later.`);
+                void vscode.window.showErrorMessage(`Failed to set ${colorType} after ${maxAttempts} attempts. Please try again later.`);
                 logger.debug(() => `VISUALIZATION-SETTINGS: Custom ${colorType} input failed after ${maxAttempts} attempts`);
                 return undefined;
             }
@@ -365,10 +365,10 @@ export class VisualizationSettingsInteractionHandler {
         await this.storage.updateSetting('environmentPreset', selectedPreset.value as EnvironmentPreset);
         
         // Refresh the tree view
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
 
         logger.debug(() => `VISUALIZATION-SETTINGS: Environment preset updated to '${selectedPreset.value}'`);
-        vscode.window.showInformationMessage(`Environment preset set to: ${selectedPreset.label} - ${selectedPreset.description}`);
+        void vscode.window.showInformationMessage(`Environment preset set to: ${selectedPreset.label} - ${selectedPreset.description}`);
     }
 
     /**
@@ -402,10 +402,10 @@ export class VisualizationSettingsInteractionHandler {
         await this.storage.updateSetting('chartPalette', selectedPalette.value as ChartPalette);
         
         // Refresh the tree view
-        vscode.commands.executeCommand('codexr.servers.refresh');
+        void vscode.commands.executeCommand('codexr.servers.refresh');
 
         logger.debug(() => `VISUALIZATION-SETTINGS: Chart palette updated to '${selectedPalette.value}'`);
-        vscode.window.showInformationMessage(`Chart palette set to: ${selectedPalette.label} - ${selectedPalette.description}`);
+        void vscode.window.showInformationMessage(`Chart palette set to: ${selectedPalette.label} - ${selectedPalette.description}`);
     }
 
     /**

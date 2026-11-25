@@ -163,7 +163,7 @@ export class ExampleLauncher {
                 logger.debug(`Server configuration and auto-opening handled by shared infrastructure`);
             } else {
                 logger.error(`Failed to launch example "${example.name}":`, result.error);
-                vscode.window.showErrorMessage(`Failed to launch example "${example.name}": ${result.error}`);
+                void vscode.window.showErrorMessage(`Failed to launch example "${example.name}": ${result.error}`);
             }
 
             return result;
@@ -172,7 +172,7 @@ export class ExampleLauncher {
             const errorMsg = `Failed to launch example "${example.name}": ${error instanceof Error ? error.message : String(error)}`;
             logger.error(errorMsg);
             
-            vscode.window.showErrorMessage(errorMsg);
+            void vscode.window.showErrorMessage(errorMsg);
             
             return {
                 success: false,

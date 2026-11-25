@@ -19,7 +19,7 @@ export class AnalysisFileSetting {
     constructor(context: vscode.ExtensionContext) {
         logger.debug('Initializing Analysis File setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
-        this.loadSavedMode();
+        void this.loadSavedMode();
     }
 
     /**

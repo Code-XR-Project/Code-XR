@@ -8,13 +8,10 @@ import { LauncherLivePanel } from './launchers/launcherLivePanel';
 import { LauncherXRAnalysis } from './launchers/launcherXRAnalysis';
 import { LauncherVisualizeDOM } from './launchers/launcherVisualizeDOM';
 import { UnifiedSessionRegistry } from './core/sessionRegistry';
-import { UnifiedAnalysisSession } from './core/analysisSession';
+import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './core/analysisSession';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
-
-export type AnalysisMode = 'LivePanel' | 'XR' | 'VisualizeDOM';
-export type TargetType = 'file' | 'directory';
 
 /**
  * Tells the user why a duplicate request was refused. A finished analysis
@@ -22,20 +19,20 @@ export type TargetType = 'file' | 'directory';
  */
 function warnAboutDuplicateSession(duplicateSession: UnifiedAnalysisSession): void {
     if (duplicateSession.status === 'monitoring') {
-        vscode.window.showWarningMessage(
+        void vscode.window.showWarningMessage(
             `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
             'Open Active Analyses'
         ).then(choice => {
             if (choice === 'Open Active Analyses') {
-                vscode.commands.executeCommand('workbench.view.extension.codeXRView');
+                void vscode.commands.executeCommand('workbench.view.extension.codeXRView');
             }
         });
     } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
-        vscode.window.showWarningMessage(
+        void vscode.window.showWarningMessage(
             `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
         );
     } else {
-        vscode.window.showWarningMessage(
+        void vscode.window.showWarningMessage(
             `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
         );
     }
@@ -87,7 +84,7 @@ export class AnalysisOrchestrator {
                 // Handle session creation errors (e.g., unsupported file types)
                 logger.error(`Session creation failed:`, sessionError);
                 const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
-                vscode.window.showErrorMessage(`CodeXR Analysis Error: ${errorMessage}`);
+                void vscode.window.showErrorMessage(`CodeXR Analysis Error: ${errorMessage}`);
                 throw sessionError;
             }
             
