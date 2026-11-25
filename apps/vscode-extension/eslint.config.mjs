@@ -2,49 +2,12 @@ import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import globals from "globals";
 
-// Logging programme (ROADMAP W4-L): diagnostics go through the logger
-// (src/core/logging), never straight to the console. Each migrated area is
-// added here as it lands; the sink is the one file allowed to call console.*,
-// because it is the fallback while no output channel is attached.
-const NO_CONSOLE_FILES = [
-    "src/core/logging/**/*.ts",
-    "src/code_analysis/engine/utils/**/*.ts",
-    "src/code_analysis/views/**/*.ts",
-    "src/code_analysis/commands/**/*.ts",
-    "src/code_analysis/engine/parsers/**/*.ts",
-    "src/code_analysis/engine/launchers/**/*.ts",
-    "src/code_analysis/engine/processors/**/*.ts",
-    "src/code_analysis/engine/watchers/**/*.ts",
-    "src/code_analysis/engine/servers/**/*.ts",
-    "src/code_analysis/engine/core/**/*.ts",
-    "src/code_analysis/engine/analysisOrchestrator.ts",
-    "src/visualize_data/**/*.ts",
-    "src/visualization_settings/**/*.ts",
-    "src/babia_templates/**/*.ts",
-    "src/views/**/*.ts",
-    "src/utils/**/*.ts",
-    "src/babia_examples/**/*.ts",
-    "src/python_env/**/*.ts",
-    "src/code_analysis/refresh/**/*.ts",
-    "src/code_analysis/services/**/*.ts",
-    "src/code_analysis/configuration/**/*.ts",
-    "src/code_analysis/utils/**/*.ts",
-    "src/core/extensionContext.ts",
-    "src/commands/**/*.ts",
-    "src/servers/runtime/*.ts",
-    "src/servers/runtime/analysis/**/*.ts",
-    "src/servers/runtime/broadcast/**/*.ts",
-    "src/servers/runtime/collaboration/**/*.ts",
-    "src/servers/runtime/http/**/*.ts",
-    "src/servers/runtime/remote/**/*.ts",
-    "src/servers/runtime/sse/**/*.ts",
-    "src/servers/runtime/ws/**/*.ts",
-    "src/active_servers/**/*.ts",
-    "src/servers/commands/**/*.ts",
-    "src/servers/utils/**/*.ts",
-    "src/servers/views/**/*.ts",
-    "src/servers/storage/**/*.ts",
-];
+// Logging programme (ROADMAP W4-L, LOG-02): extension diagnostics go through
+// the logger (src/core/logging), never straight to the console. The sink is
+// the one file allowed to call console.*: it is the fallback while no output
+// channel is attached. Browser runtimes under templates/ are not covered:
+// their console is the page's.
+const NO_CONSOLE_FILES = ["src/**/*.ts"];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 
 const NODE_JS_RULES = {
