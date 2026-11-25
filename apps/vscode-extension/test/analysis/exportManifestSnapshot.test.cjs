@@ -705,3 +705,54 @@ test('the manifest on disk is the returned manifest, pretty-printed', async () =
     });
     assert.equal(fs.readFileSync(path.join(folder, EXPORT_MANIFEST_FILE_NAME), 'utf8'), JSON.stringify(manifest, null, 2));
 });
+
+test('relativizeExportArtifacts: the edge rows of both rewriters (W4-T27 characterization)', async () => {
+    const folder = makeTempFolder();
+    writeJson(folder, 'comparison/revision-1.json', {
+        left: { url: '/comparison/a-left.json' },
+        right: { url: '//cdn.example/right.json' },
+        generatedAt: 'x',
+    });
+    writeJson(folder, 'comparison/revision-2.json', { left: null, right: 'not an object', other: '/kept' });
+    writeJson(folder, 'comparison/revision-3-left.json', { url: '/never/touched' });
+    fs.writeFileSync(path.join(folder, 'comparison', 'revision-4.json'), '{ broken', 'utf8');
+    writeJson(folder, 'evolution/revision-1/manifest.json', {
+        manifestUrl: './already/relative.json',
+        bridgeUrl: 42,
+        frames: [null, { url: '/evolution/revision-1/data1.json' }, { label: 'no url' }, 'text'],
+    });
+    writeJson(folder, 'evolution/revision-2/manifest.json', { frames: 'not a list', bridgeUrl: '/b.json' });
+    writeJson(folder, 'evolution/revision-3/manifest.json', { manifestUrl: 'relative.json' });
+    fs.mkdirSync(path.join(folder, 'evolution', 'revision-4'), { recursive: true });
+    writeJson(folder, 'evolution/notes/manifest.json', { manifestUrl: '/never/touched' });
+
+    const raw = (relative) => fs.readFileSync(path.join(folder, relative), 'utf8');
+    const untouched = [
+        'comparison/revision-2.json',
+        'comparison/revision-3-left.json',
+        'evolution/revision-3/manifest.json',
+        'evolution/notes/manifest.json',
+    ];
+    const before = Object.fromEntries(untouched.map((relative) => [relative, raw(relative)]));
+
+    assert.equal(await relativizeExportArtifacts(folder), 3);
+    assert.deepEqual(JSON.parse(raw('comparison/revision-1.json')), {
+        left: { url: './comparison/a-left.json' },
+        right: { url: '//cdn.example/right.json' },
+        generatedAt: 'x',
+    });
+    assert.deepEqual(JSON.parse(raw('evolution/revision-1/manifest.json')), {
+        manifestUrl: './already/relative.json',
+        bridgeUrl: 42,
+        frames: [null, { url: './evolution/revision-1/data1.json' }, { label: 'no url' }, 'text'],
+    });
+    assert.deepEqual(JSON.parse(raw('evolution/revision-2/manifest.json')), { frames: 'not a list', bridgeUrl: './b.json' });
+    // Rewritten files are re-serialized with two-space indentation; the rest keep their bytes.
+    assert.equal(raw('comparison/revision-1.json'), JSON.stringify(JSON.parse(raw('comparison/revision-1.json')), null, 2));
+    for (const relative of untouched) {
+        assert.equal(raw(relative), before[relative], relative);
+    }
+    assert.equal(raw('comparison/revision-4.json'), '{ broken');
+    assert.equal(await relativizeExportArtifacts(folder), 0);
+    assert.equal(await relativizeExportArtifacts(makeTempFolder()), 0);
+});
