@@ -18,9 +18,8 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 180,
+    "console.total": 73,
     "console.byModule": {
-      "active_servers": 107,
       "core": 2,
       "servers": 71
     },
@@ -72,21 +71,13 @@
   },
   "informational": {
     "src.files": 330,
-    "src.lines": 48900,
-    "src.functions": 3145,
+    "src.lines": 48921,
+    "src.functions": 3213,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 38
-      },
-      {
         "file": "src/servers/commands/serverCommands.ts",
         "count": 23
-      },
-      {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "count": 22
       },
       {
         "file": "src/servers/utils/networkUtils.ts",
@@ -97,36 +88,12 @@
         "count": 17
       },
       {
-        "file": "src/active_servers/registry/activeServerRegistry.ts",
-        "count": 13
-      },
-      {
-        "file": "src/active_servers/services/panelManager.ts",
-        "count": 13
-      },
-      {
-        "file": "src/active_servers/services/serverOpenActions.ts",
-        "count": 10
-      },
-      {
         "file": "src/servers/views/interactions/launchNotifications.ts",
         "count": 9
       },
       {
-        "file": "src/active_servers/commands/activeServersCommands.ts",
-        "count": 6
-      },
-      {
-        "file": "src/active_servers/services/serverRegistrar.ts",
-        "count": 4
-      },
-      {
         "file": "src/core/logging/sink.ts",
         "count": 2
-      },
-      {
-        "file": "src/active_servers/services/withServer.ts",
-        "count": 1
       }
     ],
     "any.topFiles": [
@@ -268,7 +235,7 @@
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 620
+        "lines": 623
       },
       {
         "file": "src/views/ModularTreeDataProvider.ts",

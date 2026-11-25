@@ -39,6 +39,7 @@ const NO_CONSOLE_FILES = [
     "src/servers/runtime/remote/**/*.ts",
     "src/servers/runtime/sse/**/*.ts",
     "src/servers/runtime/ws/**/*.ts",
+    "src/active_servers/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

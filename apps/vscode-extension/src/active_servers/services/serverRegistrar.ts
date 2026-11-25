@@ -1,5 +1,8 @@
 import { ActiveServer, LaunchMode, CertMode } from '../model/activeServerModel';
 import { registerActiveServer } from '../registry/activeServerRegistry';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER_REGISTRAR');
 
 /**
  * Server registration configuration interface
@@ -25,7 +28,7 @@ export class ServerRegistrar {
     private static instance: ServerRegistrar | null = null;
 
     private constructor() {
-        console.log('SERVER_REGISTRAR: Service initialized');
+        logger.debug('Service initialized');
     }
 
     /**
@@ -44,7 +47,7 @@ export class ServerRegistrar {
      * @returns Registered ActiveServer
      */
     public registerServer(config: ServerRegistrationConfig): ActiveServer {
-        console.log('SERVER_REGISTRAR: Registering server with config:', {
+        logger.debug('Registering server with config:', {
             port: config.port,
             customName: config.customName,
             url: config.url,
@@ -59,12 +62,12 @@ export class ServerRegistrar {
             // Register with the registry
             const activeServer = registerActiveServer(config);
             
-            console.log(`SERVER_REGISTRAR: Successfully registered server ${activeServer.id}`);
+            logger.debug(() => `Successfully registered server ${activeServer.id}`);
             
             return activeServer;
 
         } catch (error) {
-            console.error('SERVER_REGISTRAR: Failed to register server:', error);
+            logger.error('Failed to register server:', error);
             throw new Error(`Server registration failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

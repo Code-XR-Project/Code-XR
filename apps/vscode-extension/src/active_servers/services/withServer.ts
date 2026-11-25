@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { ActiveServer } from '../model/activeServerModel';
 import { getActiveServerRegistry } from '../registry/activeServerRegistry';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVER');
 
 /**
  * Run an action on a registered server. An unknown id is logged and reported
@@ -15,7 +18,7 @@ export async function withServer(
     const server = registry.getServer(serverId);
 
     if (!server) {
-        console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
+        logger.error(`Server ${serverId} not found`);
         vscode.window.showErrorMessage(`Server not found: ${serverId}`);
         return;
     }

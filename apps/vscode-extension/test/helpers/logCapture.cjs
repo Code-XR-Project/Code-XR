@@ -12,12 +12,13 @@
  *   warn and error stay;
  * - first: `SCOPE: message`, the hand-written prefix the logger's [SCOPE] tag
  *   replaced, unless the message still carries a module tag of its own (a
- *   compound one such as REQUEST_UPDATE: or SERVER_DEBUG:, which the
- *   migration left in place; a plain word such as NOTE: is message text);
+ *   compound one such as REQUEST_UPDATE: or SERVER_DEBUG:, or SERVER:, which
+ *   the migration left in place where it is not the file's scope; any other
+ *   plain word, such as NOTE:, is message text);
  * - rest: the metadata as the one extra console argument, or nothing.
  * Returns the unsubscribe function.
  */
-const OWN_TAG = /^\[?[A-Z][A-Z0-9]*[_-][A-Z0-9_-]*\]?:/;
+const OWN_TAG = /^\[?(?:[A-Z][A-Z0-9]*[_-][A-Z0-9_-]*|SERVER)\]?:/;
 
 function observeLogsAsConsole(sink, record) {
     return sink.observeLogEntries((entry) => {

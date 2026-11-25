@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { ServerActionHandlers } from '../views/interactions/handleServerActions';
 import { ExtensionCommandRegistration } from '../../commands/shared';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVER');
 
 /**
  * Active Servers Commands
@@ -203,12 +206,12 @@ export class ActiveServersCommands {
                 description: 'Refresh active servers',
                 handler: async () => {
                     if (this.treeDataProvider?.refresh) {
-                        console.log('ACTIVE_SERVER: Refreshing unified tree view');
+                        logger.debug('Refreshing unified tree view');
                         this.treeDataProvider.refresh();
                         return;
                     }
 
-                    console.log('ACTIVE_SERVER: Using fallback refresh handler');
+                    logger.debug('Using fallback refresh handler');
                     await vscode.commands.executeCommand('codexr.tree.refresh');
                 },
                 errorMessage: 'Failed to refresh active servers'
@@ -239,7 +242,7 @@ export class ActiveServersCommands {
         const serverId = item.activeServer?.id || item.server?.id;
         const peerId = item.participant?.peerId;
         if (!serverId || !peerId) {
-            console.error('ACTIVE_SERVER: Could not extract participant from tree item:', treeItem);
+            logger.error('Could not extract participant from tree item:', treeItem);
             return null;
         }
         return { serverId, peerId };
@@ -249,17 +252,17 @@ export class ActiveServersCommands {
         if (typeof treeItem === 'object' && treeItem !== null && 'server' in treeItem) {
             const server = (treeItem as { server?: { id?: string } }).server;
             if (server?.id) {
-                console.log(`ACTIVE_SERVER: Extracted server ID from tree item: ${server.id}`);
+                logger.debug(() => `Extracted server ID from tree item: ${server.id}`);
                 return server.id;
             }
         }
 
         if (typeof treeItem === 'string') {
-            console.log(`ACTIVE_SERVER: Using direct server ID: ${treeItem}`);
+            logger.debug(() => `Using direct server ID: ${treeItem}`);
             return treeItem;
         }
 
-        console.error('ACTIVE_SERVER: Could not extract server ID from tree item:', treeItem);
+        logger.error('Could not extract server ID from tree item:', treeItem);
         return null;
     }
 }

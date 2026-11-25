@@ -16,6 +16,9 @@ import {
     formatServerDetails,
     getServerLabel,
 } from './serverDetailsFormat';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVER');
 
 /** Minimal shape needed to hand out pairing codes; kept structural so the
  *  handler does not depend on the concrete server runtime class. */
@@ -42,7 +45,7 @@ export class ServerActionHandlers {
      * Show server actions quick pick
      */
     public static async showServerActions(serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER: Showing actions for server ${serverId}`);
+        logger.debug(() => `Showing actions for server ${serverId}`);
         
         return withServer(serverId, async (server) => {
             const actions = this.getAvailableActions(server);
@@ -76,7 +79,7 @@ export class ServerActionHandlers {
      * Copy server URL to clipboard
      */
     public static async copyUrl(serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER: Copying URL for server ${serverId}`);
+        logger.debug(() => `Copying URL for server ${serverId}`);
         
         return withServer(serverId, async (server) => {
             try {
@@ -112,16 +115,16 @@ export class ServerActionHandlers {
                 
                     const urlToCopy = choice.label.includes('Network') ? networkUrl : server.url;
                     await vscode.env.clipboard.writeText(urlToCopy);
-                    console.log(`ACTIVE_SERVER: Copied ${urlToCopy} to clipboard`);
+                    logger.debug(() => `Copied ${urlToCopy} to clipboard`);
                     vscode.window.showInformationMessage(`Copied ${choice.label.includes('Network') ? 'Network' : 'Local'} URL to clipboard`);
                 } else {
                     // Fallback to original behavior if no network access available
                     await vscode.env.clipboard.writeText(server.url);
-                    console.log(`ACTIVE_SERVER: Copied ${server.url} to clipboard`);
+                    logger.debug(() => `Copied ${server.url} to clipboard`);
                     vscode.window.showInformationMessage(`Copied ${server.url} to clipboard`);
                 }
             } catch (error) {
-                console.error(`ACTIVE_SERVER: Error copying URL to clipboard:`, error);
+                logger.error(`Error copying URL to clipboard:`, error);
                 vscode.window.showErrorMessage('Failed to copy URL to clipboard');
             }
         });
@@ -357,7 +360,7 @@ export class ServerActionHandlers {
      * Stop server
      */
     public static async stopServer(serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER: Stopping server ${serverId}`);
+        logger.debug(() => `Stopping server ${serverId}`);
         
         return withServer(serverId, async (server) => {
             const response = await vscode.window.showWarningMessage(
@@ -369,27 +372,27 @@ export class ServerActionHandlers {
             if (response === 'Stop') {
                 try {
                     await RemoteAccessManager.getInstance()?.stopSharing(serverId, false);
-                    console.log(`ACTIVE_SERVER: Stopping server ${serverId} (${server.url})`);
+                    logger.debug(() => `Stopping server ${serverId} (${server.url})`);
                     const success = await ServerControl.stopServer(serverId);
                 
                     if (success) {
-                        console.log(`ACTIVE_SERVER: Successfully stopped server ${serverId}`);
+                        logger.debug(() => `Successfully stopped server ${serverId}`);
                         vscode.window.showInformationMessage(`Stopped server ${server.url}`);
                     
                         // Refresh the tree view
                         vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
                     } else {
-                        console.error(`ACTIVE_SERVER: Failed to stop server ${serverId}`);
+                        logger.error(`Failed to stop server ${serverId}`);
                         vscode.window.showErrorMessage(`Failed to stop server ${server.url}`);
                     }
                 } catch (error) {
-                    console.error(`ACTIVE_SERVER: Error stopping server ${serverId}:`, error);
+                    logger.error(`Error stopping server ${serverId}:`, error);
                     vscode.window.showErrorMessage(
                         `Error stopping server: ${error instanceof Error ? error.message : String(error)}`
                     );
                 }
             } else {
-                console.log(`ACTIVE_SERVER: User cancelled stopping server ${serverId}`);
+                logger.debug(() => `User cancelled stopping server ${serverId}`);
             }
         });
     }
@@ -398,12 +401,12 @@ export class ServerActionHandlers {
      * Show detailed server information
      */
     public static async showServerDetails(serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER: Showing details for server ${serverId}`);
+        logger.debug(() => `Showing details for server ${serverId}`);
         
         return withServer(serverId, async (server) => {
             const details = formatServerDetails(server);
 
-            console.log(`ACTIVE_SERVER: Displaying detailed information for server ${serverId}`);
+            logger.debug(() => `Displaying detailed information for server ${serverId}`);
             await vscode.window.showInformationMessage(
                 `Server Information — ${getServerLabel(server)}`,
                 { modal: true, detail: details }
@@ -415,7 +418,7 @@ export class ServerActionHandlers {
      * Stop all servers
      */
     public static async stopAllServers(): Promise<void> {
-        console.log('ACTIVE_SERVER: Stopping all servers');
+        logger.debug('Stopping all servers');
         
         const registry = getActiveServerRegistry();
         const allServers = registry.getAllServers();
@@ -434,27 +437,27 @@ export class ServerActionHandlers {
         if (response === 'Stop All') {
             try {
                 await RemoteAccessManager.getInstance()?.stopAll();
-                console.log(`ACTIVE_SERVER: Stopping ${allServers.length} servers`);
+                logger.debug(() => `Stopping ${allServers.length} servers`);
                 const success = await ServerControl.stopAllServers();
                 
                 if (success) {
-                    console.log('ACTIVE_SERVER: Successfully stopped all servers');
+                    logger.debug('Successfully stopped all servers');
                     vscode.window.showInformationMessage(`Stopped all ${allServers.length} servers`);
                 } else {
-                    console.error('ACTIVE_SERVER: Failed to stop some servers');
+                    logger.error('Failed to stop some servers');
                     vscode.window.showWarningMessage('Some servers may not have stopped properly');
                 }
                 
                 // Refresh the tree view
                 vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
             } catch (error) {
-                console.error('ACTIVE_SERVER: Error stopping all servers:', error);
+                logger.error('Error stopping all servers:', error);
                 vscode.window.showErrorMessage(
                     `Error stopping servers: ${error instanceof Error ? error.message : String(error)}`
                 );
             }
         } else {
-            console.log('ACTIVE_SERVER: User cancelled stopping all servers');
+            logger.debug('User cancelled stopping all servers');
         }
     }
 
@@ -462,7 +465,7 @@ export class ServerActionHandlers {
      * Refresh servers display
      */
     public static async refreshServers(): Promise<void> {
-        console.log('ACTIVE_SERVER: Refreshing servers display');
+        logger.debug('Refreshing servers display');
         vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
     }
 
@@ -581,7 +584,7 @@ export class ServerActionHandlers {
      * @private
      */
     private static async executeAction(action: string, server: ActiveServer): Promise<void> {
-        console.log(`ACTIVE_SERVER: Executing action '${action}' on server ${server.id}`);
+        logger.debug(() => `Executing action '${action}' on server ${server.id}`);
         
         switch (action) {
             case 'openInBrowser':
@@ -612,7 +615,7 @@ export class ServerActionHandlers {
                 await this.stopServer(server.id);
                 break;
             default:
-                console.error(`ACTIVE_SERVER: Unknown action: ${action}`);
+                logger.error(`Unknown action: ${action}`);
                 vscode.window.showErrorMessage(`Unknown action: ${action}`);
         }
     }
