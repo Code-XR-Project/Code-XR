@@ -83,6 +83,10 @@ def _read_source_lines(file_path: str) -> List[str]:
         return []
 
 
+_OPENING_BRACKETS = ('(', '[', '{', '<')
+_CLOSING_TO_OPENING = {')': '(', ']': '[', '}': '{', '>': '<'}
+
+
 def _count_top_level_arguments(argument_text: str) -> int:
     text = (argument_text or '').strip()
     if not text or text.lower() == 'void':
@@ -90,35 +94,23 @@ def _count_top_level_arguments(argument_text: str) -> int:
 
     count = 0
     token: List[str] = []
-    round_depth = 0
-    square_depth = 0
-    curly_depth = 0
-    angle_depth = 0
+    depths = dict.fromkeys(_OPENING_BRACKETS, 0)
 
     for character in text:
-        if character == ',' and not any((round_depth, square_depth, curly_depth, angle_depth)):
+        if character == ',' and not any(depths.values()):
             if ''.join(token).strip():
                 count += 1
             token = []
             continue
 
         token.append(character)
-        if character == '(':
-            round_depth += 1
-        elif character == ')' and round_depth > 0:
-            round_depth -= 1
-        elif character == '[':
-            square_depth += 1
-        elif character == ']' and square_depth > 0:
-            square_depth -= 1
-        elif character == '{':
-            curly_depth += 1
-        elif character == '}' and curly_depth > 0:
-            curly_depth -= 1
-        elif character == '<':
-            angle_depth += 1
-        elif character == '>' and angle_depth > 0:
-            angle_depth -= 1
+        if character in depths:
+            depths[character] += 1
+            continue
+        opening = _CLOSING_TO_OPENING.get(character)
+        # An unmatched closer is ignored rather than driving the depth negative.
+        if opening is not None and depths[opening] > 0:
+            depths[opening] -= 1
 
     if ''.join(token).strip():
         count += 1
