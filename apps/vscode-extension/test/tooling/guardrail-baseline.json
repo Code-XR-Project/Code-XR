@@ -18,11 +18,11 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 260,
+    "console.total": 180,
     "console.byModule": {
       "active_servers": 107,
       "core": 2,
-      "servers": 151
+      "servers": 71
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
@@ -72,21 +72,13 @@
   },
   "informational": {
     "src.files": 330,
-    "src.lines": 48888,
-    "src.functions": 3084,
+    "src.lines": 48900,
+    "src.functions": 3145,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/active_servers/runtime/serverControl.ts",
         "count": 38
-      },
-      {
-        "file": "src/servers/runtime/sse/sseClientRegistry.ts",
-        "count": 29
-      },
-      {
-        "file": "src/servers/runtime/sse/SSEManager.ts",
-        "count": 24
       },
       {
         "file": "src/servers/commands/serverCommands.ts",
@@ -99,10 +91,6 @@
       {
         "file": "src/servers/utils/networkUtils.ts",
         "count": 22
-      },
-      {
-        "file": "src/servers/runtime/http/staticAssets.ts",
-        "count": 18
       },
       {
         "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
@@ -129,12 +117,16 @@
         "count": 6
       },
       {
-        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts",
-        "count": 5
-      },
-      {
         "file": "src/active_servers/services/serverRegistrar.ts",
         "count": 4
+      },
+      {
+        "file": "src/core/logging/sink.ts",
+        "count": 2
+      },
+      {
+        "file": "src/active_servers/services/withServer.ts",
+        "count": 1
       }
     ],
     "any.topFiles": [

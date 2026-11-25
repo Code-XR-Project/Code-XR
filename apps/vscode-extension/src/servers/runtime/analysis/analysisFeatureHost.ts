@@ -21,6 +21,9 @@ import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/se
 import { UnifiedSessionRegistry } from '../../../code_analysis/engine/core/sessionRegistry';
 import { resolveAnalysisServerCapabilities } from '../analysisServerCapabilities';
 import { AnalysisAvailabilitySnapshot } from '../collaboration/collaborationSessionApi';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS_FEATURE_HOST');
 
 /** The slice of the server configuration the analysis features run on. */
 export interface AnalysisFeatureHostConfig {
@@ -251,7 +254,7 @@ export class AnalysisFeatureHost {
         // (total silence in the scene) while historical — which does not
         // await it — kept working. Run it in the background and log failures.
         void SessionWatcherManager.reconcileSession(this.config.analysisSessionId).catch((error) => {
-            console.warn('[Code-XR Fix][Server] Session watcher reconciliation failed:', error);
+            logger.warn('[Code-XR Fix][Server] Session watcher reconciliation failed:', error);
         });
         return snapshot;
     }
@@ -306,7 +309,7 @@ export class AnalysisFeatureHost {
                 this.notifyLivePanelHistoricalUpdated(result.revision);
             }
         } catch (error) {
-            console.error('[CodeXR][HistoricalComparison] Live refresh failed:', error);
+            logger.error('[CodeXR][HistoricalComparison] Live refresh failed:', error);
             this.scheduleHistoricalComparisonRefresh();
         }
     }
