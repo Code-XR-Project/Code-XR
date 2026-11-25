@@ -87,8 +87,8 @@
   },
   "informational": {
     "src.files": 309,
-    "src.lines": 48069,
-    "src.functions": 2620,
+    "src.lines": 48061,
+    "src.functions": 2619,
     "src.unreachableLines": 39,
     "console.topFiles": [
       {

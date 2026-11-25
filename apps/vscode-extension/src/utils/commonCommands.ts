@@ -33,12 +33,4 @@ export class CommonCommands {
             logger.error('Failed to refresh tree view.', error);
         }
     }
-
-    /**
-     * Legacy method for backward compatibility
-     * @deprecated Use refreshTreeView() instead
-     */
-    static refreshServers(): void {
-        this.refreshTreeView();
-    }
 }
