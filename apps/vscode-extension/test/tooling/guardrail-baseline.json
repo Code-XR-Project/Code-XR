@@ -53,14 +53,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 41,
-    "complexity.over10": 61,
-    "complexity.over15": 16,
-    "complexity.over20": 3,
-    "complexity.over30": 1,
+    "functions.over80Lines": 40,
+    "complexity.over10": 60,
+    "complexity.over15": 15,
+    "complexity.over20": 2,
+    "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 504,
+    "eslint.maxWarnings": 502,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49311,
-    "src.functions": 3309,
+    "src.lines": 49393,
+    "src.functions": 3316,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -142,12 +142,6 @@
     ],
     "complexity.worst10": [
       {
-        "ccn": 42,
-        "lines": 227,
-        "function": "runGitRevisionExport",
-        "file": "src/code_analysis/export/gitRevisionExportCore.ts"
-      },
-      {
         "ccn": 26,
         "lines": 100,
         "function": "listReferences",
@@ -200,6 +194,12 @@
         "lines": 51,
         "function": "recalculateLivePanelSummary",
         "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 44,
+        "function": "handleCollaborationMessage",
+        "file": "src/servers/runtime/analysis/analysisMessageRouter.ts"
       }
     ],
     "size.largest10": [
