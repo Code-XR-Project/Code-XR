@@ -18,7 +18,7 @@
 | Configuration settings (VS Code `contributes.configuration`) | **1** (`codeXR.debug.verboseLogs`) | `package.json:465-474` | `node -p "Object.keys(require('./package.json').contributes.configuration.properties)"` |
 | Internal settings stores (not VS Code settings) | 6 stores (server, analysis, visualization, collaboration, visualize-data, python env) | section 0.2 | file names under `globalStorageUri` |
 | View containers / views | 1 activity-bar container `codexr` / 1 tree view `codexrTree` | `package.json:475-493` | node one-liner in 1.1 |
-| Root sidebar sections | **8** (+ nested COLLABORATION group inside ACTIVE SERVERS) | `src/views/sectionDefinitions.ts:66-195` | [M] F5 |
+| Root sidebar sections | **8** (+ nested COLLABORATION group inside ACTIVE SERVERS) | `src/views/sectionDefinitions.ts:77-194` | [M] F5 |
 | Menus | 6 menu ids, **49** entries: `view/title` 2, `explorer/context` 12, `editor/context` 8, `view/item/context` 5, `codeXR.analysis.contextMenu` 11, `commandPalette` 11 | `package.json:494-741` | node one-liner in 1.4 |
 | Submenus | 1 (`codeXR.analysis.contextMenu`, label "Code-XR: Analysis") | `package.json:742-747` | node one-liner |
 | Keybindings | **0** (none contributed) | `package.json` (no `keybindings` key) | node one-liner |
@@ -399,18 +399,18 @@ After the cleanup, expected: rows 1-36 unchanged (32 tree-item, 2 programmatic, 
 
 ## 3. Sidebar tree (`codexrTree`) — sections and what each row does
 
-One `ModularTreeDataProvider` (`src/views/ModularTreeDataProvider.ts`) lazily mounts eight root sections, in this order (the literals returned by `createSectionDefinitions` in `src/views/sectionDefinitions.ts:66-195`). The Python env and Learn More sections stay interactive while the UI is locked (`interactiveWhenRestricted: true`, `:164`, `:193`); every other section is inert while `codeXR.pythonEnv.uiLocked` is set.
+One `ModularTreeDataProvider` (`src/views/ModularTreeDataProvider.ts`) lazily mounts eight root sections, in this order (the literals returned by `createSectionDefinitions` in `src/views/sectionDefinitions.ts:77-194`). The Python env and Learn More sections stay interactive while the UI is locked (`interactiveWhenRestricted: true`, `:166`, `:192`); every other section is inert while `codeXR.pythonEnv.uiLocked` is set.
 
 | # | Root header (label) | Section key | Default state | Provider | Header source |
 |---|---|---|---|---|---|
-| 1 | `SERVERS` | `SERVERS` | expanded | `src/views/servers/ServersSectionProvider.ts` | `sectionDefinitions.ts:67-78` |
-| 2 | `ACTIVE SERVERS` / `ACTIVE SERVERS (N running)` | `activeServers` | expanded | `src/views/active_servers/ActiveServersSectionProvider.ts` | `:79-100` |
-| 3 | `BABIA EXAMPLES` | `babiaExamples` | collapsed | `src/views/babia_examples/BabiaExamplesSectionProvider.ts` | `:101-114` |
-| 4 | `VISUALIZE DATA` | `visualizeData` | collapsed | `src/views/visualize_data/VisualizeDataSectionProvider.ts` | `:115-128` |
-| 5 | `ANALYSIS` | `analysis` | expanded | `src/code_analysis/views/AnalysisSectionProvider.ts` | `:129-142` |
-| 6 | `PYTHON ENV` (status-dependent header) | `pythonEnv` | dynamic | `src/views/python_env/PythonEnvSectionProvider.ts`, items `src/python_env/views/items/pythonEnvItems.ts:51` | `:143-165` |
-| 7 | `VISUALIZATION SETTINGS` | `visualizationSettings` | collapsed | `src/views/visualization_settings/VisualizationSettingsSectionProvider.ts` | `:166-179` |
-| 8 | `LEARN MORE & SUPPORT` | `learnMore` | expanded | `src/views/learn_more/LearnMoreSectionProvider.ts` | `:180-194` |
+| 1 | `SERVERS` | `SERVERS` | expanded | `src/views/servers/ServersSectionProvider.ts` | `sectionDefinitions.ts:78-88` |
+| 2 | `ACTIVE SERVERS` / `ACTIVE SERVERS (N running)` | `activeServers` | expanded | `src/views/active_servers/ActiveServersSectionProvider.ts` | `:89-108` |
+| 3 | `BABIA EXAMPLES` | `babiaExamples` | collapsed | `src/views/babia_examples/BabiaExamplesSectionProvider.ts` | `:109-120` |
+| 4 | `VISUALIZE DATA` | `visualizeData` | collapsed | `src/views/visualize_data/VisualizeDataSectionProvider.ts` | `:121-132` |
+| 5 | `ANALYSIS` | `analysis` | expanded | `src/code_analysis/views/AnalysisSectionProvider.ts` | `:133-144` |
+| 6 | `PYTHON ENV` (status-dependent header) | `pythonEnv` | dynamic | `src/views/python_env/PythonEnvSectionProvider.ts`, items `src/python_env/views/items/pythonEnvItems.ts:51` | `:145-167` |
+| 7 | `VISUALIZATION SETTINGS` | `visualizationSettings` | collapsed | `src/views/visualization_settings/VisualizationSettingsSectionProvider.ts` | `:168-179` |
+| 8 | `LEARN MORE & SUPPORT` | `learnMore` | expanded | `src/views/learn_more/LearnMoreSectionProvider.ts` | `:180-193` |
 
 View-title actions (both sections share the view): **Refresh** (`codeXR.activeServers.refreshServers`) and **Stop All Servers** (`codeXR.activeServers.stopAllServers`), `package.json:495-506`.
 
@@ -450,7 +450,7 @@ Provider `src/views/active_servers/ActiveServersSectionProvider.ts`, items `src/
 | └ `Cross-network connection` (group, only when the global cross-network setting is on or a tunnel is live) | `Start remote connection` → `startRemoteAccess`; when shared: `Generate new pairing code` → `regeneratePairingCode` (internal), `View remote status` → `showRemoteStatus` (internal), `Stop remote connection` → `stopRemoteAccess`; on error `View remote error` | `activeServerItems.ts:302-390`, status text `:440-458` |
 | └ `Actions` (group) | `Open in browser` (`openInBrowser`), `Open in panel` (`openInPanel`, **only when the server is HTTP**), `Copy address` (`copyUrl`), `Server information` (`showDetails`), `Stop server` (`stopServer`) | `activeServerItems.ts:211-217`, `:393-412` |
 
-Header counter: `ACTIVE SERVERS (N running)` (`sectionDefinitions.ts:82-86`). `codeXR.activeServers.openView` focuses the section.
+Header counter: `ACTIVE SERVERS (N running)` (`sectionDefinitions.ts:92-96`). `codeXR.activeServers.openView` focuses the section.
 
 #### 3.2.1 COLLABORATION rows (`src/views/collaboration/items/collaborationItems.ts:36-77`)
 

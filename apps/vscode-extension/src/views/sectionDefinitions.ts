@@ -31,25 +31,36 @@ export interface SectionDefinitionDependencies {
     pythonEnvUiState: PythonEnvUiStateService;
 }
 
+/** What a root section header shows; omitted fields stay undefined. */
+export interface SectionHeaderOptions {
+    label: string;
+    sectionType: string;
+    collapsibleState: vscode.TreeItemCollapsibleState;
+    iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
+    /** Defaults to the label (ModularTreeItem's own fallback). */
+    tooltip?: string;
+    description?: string;
+    contextValue?: string;
+}
+
 /**
- * Builds a root section header of the sidebar tree: a ModularTreeItem that
- * carries no command (expanding it is the only interaction).
+ * Builds a root section header of the sidebar tree: a ModularTreeItem of item
+ * type 'section' that carries no command (expanding it is the only interaction).
  */
-export function createStaticSectionHeader(
-    label: string,
-    sectionType: string,
-    collapsibleState: vscode.TreeItemCollapsibleState,
-    itemType: string,
-    iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri },
-    tooltip?: string,
-    description?: string,
-    contextValue?: string,
-): ModularTreeItem {
+export function createStaticSectionHeader({
+    label,
+    sectionType,
+    collapsibleState,
+    iconPath,
+    tooltip,
+    description,
+    contextValue,
+}: SectionHeaderOptions): ModularTreeItem {
     return new ModularTreeItem(
         label,
         collapsibleState,
         sectionType,
-        itemType,
+        'section',
         undefined,
         iconPath,
         tooltip,
@@ -66,14 +77,13 @@ export function createSectionDefinitions(
     return [
         {
             sectionName: 'SERVERS',
-            createHeader: () => createStaticSectionHeader(
-                'SERVERS',
-                'SERVERS',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('server-environment'),
-                'Server configuration and launch options',
-            ),
+            createHeader: () => createStaticSectionHeader({
+                label: 'SERVERS',
+                sectionType: 'SERVERS',
+                collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+                iconPath: new vscode.ThemeIcon('server-environment'),
+                tooltip: 'Server configuration and launch options',
+            }),
             createProvider: () => new ServersSectionProvider(context),
         },
         {
@@ -85,59 +95,51 @@ export function createSectionDefinitions(
                     ? `ACTIVE SERVERS (${runningCount} running)`
                     : 'ACTIVE SERVERS';
 
-                return createStaticSectionHeader(
-                    title,
-                    'activeServers',
-                    vscode.TreeItemCollapsibleState.Expanded,
-                    'section',
-                    new vscode.ThemeIcon('server-process'),
-                    'Running servers and collaboration profile',
-                    undefined,
-                    'activeServersSection',
-                );
+                return createStaticSectionHeader({
+                    label: title,
+                    sectionType: 'activeServers',
+                    collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+                    iconPath: new vscode.ThemeIcon('server-process'),
+                    tooltip: 'Running servers and collaboration profile',
+                    contextValue: 'activeServersSection',
+                });
             },
             createProvider: () => new ActiveServersSectionProvider(context),
         },
         {
             sectionName: 'babiaExamples',
-            createHeader: () => createStaticSectionHeader(
-                'BABIA EXAMPLES',
-                'babiaExamples',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('library'),
-                'Interactive visualization examples',
-                undefined,
-                'babiaExamplesSection',
-            ),
+            createHeader: () => createStaticSectionHeader({
+                label: 'BABIA EXAMPLES',
+                sectionType: 'babiaExamples',
+                collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+                iconPath: new vscode.ThemeIcon('library'),
+                tooltip: 'Interactive visualization examples',
+                contextValue: 'babiaExamplesSection',
+            }),
             createProvider: () => new BabiaExamplesSectionProvider(context),
         },
         {
             sectionName: 'visualizeData',
-            createHeader: () => createStaticSectionHeader(
-                'VISUALIZE DATA',
-                'visualizeData',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('open-preview', new vscode.ThemeColor('charts.foreground')),
-                'Data visualization configuration and launch',
-                undefined,
-                'visualizeDataSection',
-            ),
+            createHeader: () => createStaticSectionHeader({
+                label: 'VISUALIZE DATA',
+                sectionType: 'visualizeData',
+                collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+                iconPath: new vscode.ThemeIcon('open-preview', new vscode.ThemeColor('charts.foreground')),
+                tooltip: 'Data visualization configuration and launch',
+                contextValue: 'visualizeDataSection',
+            }),
             createProvider: () => new VisualizeDataSectionProvider(context),
         },
         {
             sectionName: 'analysis',
-            createHeader: () => createStaticSectionHeader(
-                'ANALYSIS',
-                'analysis',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('beaker'),
-                'Analysis tools and settings',
-                undefined,
-                'codeXR.analysis.section.main',
-            ),
+            createHeader: () => createStaticSectionHeader({
+                label: 'ANALYSIS',
+                sectionType: 'analysis',
+                collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+                iconPath: new vscode.ThemeIcon('beaker'),
+                tooltip: 'Analysis tools and settings',
+                contextValue: 'codeXR.analysis.section.main',
+            }),
             createProvider: () => new AnalysisSectionProvider(context),
         },
         {
@@ -165,30 +167,27 @@ export function createSectionDefinitions(
         },
         {
             sectionName: 'visualizationSettings',
-            createHeader: () => createStaticSectionHeader(
-                'VISUALIZATION SETTINGS',
-                'visualizationSettings',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('settings-gear'),
-                'Configure visualization rendering preferences',
-                undefined,
-                'visualizationSettingsSection',
-            ),
+            createHeader: () => createStaticSectionHeader({
+                label: 'VISUALIZATION SETTINGS',
+                sectionType: 'visualizationSettings',
+                collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+                iconPath: new vscode.ThemeIcon('settings-gear'),
+                tooltip: 'Configure visualization rendering preferences',
+                contextValue: 'visualizationSettingsSection',
+            }),
             createProvider: () => new VisualizationSettingsSectionProvider(context),
         },
         {
             sectionName: 'learnMore',
-            createHeader: () => createStaticSectionHeader(
-                'LEARN MORE & SUPPORT',
-                'learnMore',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('book', new vscode.ThemeColor('charts.foreground')),
-                'Access CodeXR documentation, tutorials, examples, and support options',
-                'Docs, tutorials & support',
-                'learnMoreSection',
-            ),
+            createHeader: () => createStaticSectionHeader({
+                label: 'LEARN MORE & SUPPORT',
+                sectionType: 'learnMore',
+                collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+                iconPath: new vscode.ThemeIcon('book', new vscode.ThemeColor('charts.foreground')),
+                tooltip: 'Access CodeXR documentation, tutorials, examples, and support options',
+                description: 'Docs, tutorials & support',
+                contextValue: 'learnMoreSection',
+            }),
             createProvider: () => new LearnMoreSectionProvider(context),
             interactiveWhenRestricted: true,
         },
