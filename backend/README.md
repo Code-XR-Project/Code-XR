@@ -9,7 +9,7 @@ The Python service that produces every analysis Code-XR shows: Lizard-based code
 
 ## How the apps use it
 
-The VS Code extension does not import it: it runs it as a separate process in a virtual environment the extension manages. At build time `apps/vscode-extension/webpack.config.js` copies `backend/src/` into `dist/code_analysis/python/`, which is where the packaged extension looks for it. During development, if that copy is missing, the extension falls back to `backend/src/` directly. The future IDE will run the same backend the same way.
+The VS Code extension does not import it: it runs it as a separate process in a virtual environment the extension manages. At build time `apps/vscode-extension/webpack.config.js` copies `backend/src/` into `dist/code_analysis/python/`, which is where the packaged extension looks for it. During development (an Extension Development Host), if that copy is missing, the extension falls back to `backend/src/` directly; an installed extension never does. The future IDE will run the same backend the same way.
 
 ## Running the tests
 
