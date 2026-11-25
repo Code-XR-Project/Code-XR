@@ -531,11 +531,7 @@
     "charts/mix/index.html",
     "charts/pie/index.html",
     "charts/pie/population.html",
-    "data/gdp.json",
     "data/population.json",
-    "data/sales.json",
-    "data/simple_sales.json",
-    "data/temperatures.json",
-    "data/test_functions.json"
+    "data/sales.json"
   ]
 }
