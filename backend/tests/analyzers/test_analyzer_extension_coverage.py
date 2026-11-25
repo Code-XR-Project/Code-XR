@@ -133,8 +133,10 @@ COMMENT_ANALYZER_LANGUAGES_WITHOUT_AN_ARM = frozenset()
 # (sumaryFiles/file_reanalysis_coordinator.py -> build_file_snapshot) applies no
 # contract filter of its own. The arms below are therefore live, although no
 # per-language fixture touches them and the contract does not list them.
-# Aliases that no gate admits ('.hh', '.pod', '.t', '.st', '.phps') are left
-# unpinned on purpose: removing those is a legitimate cleanup.
+# Aliases that no gate admits ('.phps') are left unpinned on purpose: removing
+# those is a legitimate cleanup ('.pod', '.t' and '.st' went in 1.2.1, W2-64).
+# '.hh' is NOT one of them: languageMetadata lists it under C++, so the XR file
+# command accepts a .hh file and its commentLines come from the C-style arm.
 WATCHER_ONLY_SNIPPETS = {
     '.jsx': SNIPPETS['JavaScript'],
     '.rs': _source('// a comment', 'struct Sample {', '}'),
