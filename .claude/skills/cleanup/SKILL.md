@@ -39,7 +39,7 @@ Never delete on the strength of a name, a comment, or a doc's claim. Deadness is
 Before acting on anything, grep `.claude/docs/v1.2.1/AUDIT.md` for the file: each area ends with a "looks dead or duplicated, but is ALIVE or deliberate" list.
 
 Traps this repo has already set:
-- **`debugThemeProblem.ts` looks dead and is a registered module** — `src/commands/index.ts` registers it. Command IDs go through `assertUniqueCommandIds`; removing a registration without removing its entry throws at activation. (Its removal is authorized, as its own commit — `ROADMAP.md` §B.)
+- **A module can look dead and still register commands** — `debugThemeProblem.ts` was one until W2-49 removed it with its two ids. Command IDs go through `assertUniqueCommandIds` and `test/commands/internalCommandIds.cjs`; removing a registration without removing its entry there turns the command contract test red.
 - **`src/active_servers/views/` vs `src/views/active_servers/` is deliberate**, not accidental duplication (`AI_WORKFLOWS.md` §refactor). Half of it is dead and half is the busiest module in the area; trace imports file by file.
 - **Two files are called `serverItems.ts`.** `src/views/servers/items/serverItems.ts` is alive and text-pinned by a test; `src/active_servers/views/items/serverItems.ts` is the dead one. Basename greps lie here.
 - **Python is reachable through a wider gate than its own contract.** The incremental re-analysis path feeds Python extensions the metric contract does not list (`.rs`, `.jsx`, `.r`, …), so an analyzer branch that looks unreachable from Python alone can still run.

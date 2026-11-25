@@ -8,7 +8,6 @@ import * as vscode from 'vscode';
 import { CommandRegistration } from '../analysis_settings/analysis_file_mode';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import { AnalysisOrchestrator } from '../../../engine/analysisOrchestrator';
-import { WorkspaceSnapshotService } from '../../../services/workspaceSnapshotService';
 import { CodeXRLogger } from '../../../../core/logging/logger';
 
 const logger = CodeXRLogger.getLogger('FILES_BY_LANGUAGE_COMMANDS');
@@ -21,25 +20,8 @@ export class FilesByLanguageCommands {
      */
     static getCommandRegistrations(
         context: vscode.ExtensionContext,
-        refreshCallback: () => void,
     ): CommandRegistration[] {
         const commandRegistrations: CommandRegistration[] = [
-            {
-                commandId: 'codeXR.analysis.refreshFilesByLanguage',
-                callback: async () => {
-                    await WorkspaceSnapshotService.getInstance(context).refresh();
-                    refreshCallback();
-                    vscode.window.showInformationMessage('Files by Language refreshed!');
-                },
-                description: 'Refresh files by language grouping',
-            },
-            {
-                commandId: 'codeXR.analysis.openFileFromLanguageGroup',
-                callback: (fileUri: vscode.Uri) => {
-                    void vscode.window.showTextDocument(fileUri);
-                },
-                description: 'Open file from language group',
-            },
             {
                 commandId: 'codeXR.analysis.runAndAnalyzeFile',
                 callback: async (filePath: string, languageName: string) => {

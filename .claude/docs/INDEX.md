@@ -3,7 +3,7 @@
 > **Purpose**: The navigation hub. Every session starts here (pointed from `CLAUDE.md`) and reads *only* the documents mapped to its task.
 > **Stability**: Update whenever a document is added, removed, or repurposed.
 
-> **Monorepo (2026-11-25):** paths in these docs predate the move. `src/`, `test/`, `templates/`, `scripts/`, `docs/` → `apps/vscode-extension/…`; `src/code_analysis/python/` → `backend/src/`; `test/python/` → `backend/tests/`. Layout and rationale: `docs/monorepo.md` (repository root).
+> **Monorepo (2026-11-25):** paths in these docs predate the move. `src/`, `test/`, `templates/`, `scripts/`, `docs/` → `apps/vscode-extension/…`; `src/code_analysis/python/` → `backend/src/`; `test/python/` → `backend/tests/`; `manual_test/` → `backend/manual_test/` (1.2.1). Layout and rationale: `docs/monorepo.md` (repository root).
 
 ## Document inventory
 
@@ -42,7 +42,7 @@
 |---|---|---|
 | `README.md` | EN | User-facing overview, features, install (partly one release behind — see status doc) |
 | `CHANGELOG.md` | EN | Version history; `[1.2.1]` is the active section (provisional date; 1.2.0 released 2026-07-30) |
-| `docs/project/ROADMAP_V1.2.0.md` | ES | v1.2.0 goals, per-area status table, delivery sequence, exit criteria |
+| `docs/project/ROADMAP_V1.2.0.md` | EN | v1.2.0 goals, per-area status table, delivery sequence, exit criteria |
 | `docs/features/DEPENDENCY_GRAPH_XR.md` | EN | Dependency-graph XR mode: architecture, 23 languages, layouts, limits |
 | `docs/features/HISTORICAL_COMPARISON_XR.md` | ES | Historical comparator: dual table, safe Git access, caching, limits |
 | `docs/features/PROJECT_EVOLUTION_XR.md` | EN | Project Evolution "movie" mode (in progress; file currently untracked) |
@@ -51,7 +51,7 @@
 | `THIRD_PARTY_NOTICES.md` | EN | Third-party licenses; what is and isn't bundled |
 | `templates/components/COMPONENTS.md` | EN | Inventory + load order of browser-side component runtimes |
 | `test/README.md` | EN | Test suite layout and commands |
-| `manual_test/README.md` | EN | Per-language fixtures for `npm run test:analysis` |
+| `backend/manual_test/README.md` | EN | Per-language fixtures for `npm run test:analysis` |
 
 ## Task → reading list
 

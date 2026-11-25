@@ -4,7 +4,7 @@ const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 
-const { readPinnedLizardRequirement } = require(path.join(projectRoot, 'test', 'runners', 'run-analysis-tests.cjs'));
+const { readPinnedLizardRequirement } = require(path.join(projectRoot, '..', '..', 'backend', 'scripts', 'run-analysis-tests.cjs'));
 const {
     CODEXR_PYTHON_PACKAGES,
     getPinnedPythonRequirement,

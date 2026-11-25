@@ -31,31 +31,6 @@ export class AutoAnalysisDelayCommands {
                 commandId: 'codeXR.analysis.selectAutoAnalysisDelay',
                 callback: () => commands.selectAutoAnalysisDelay(refreshCallback),
                 description: 'Select Auto-Analysis Delay from options'
-            },
-            {
-                commandId: 'codeXR.analysis.setAutoAnalysisDelayRealTime',
-                callback: () => commands.setAutoAnalysisDelay('RealTime', refreshCallback),
-                description: 'Set Auto-Analysis Delay to Real Time (0s)'
-            },
-            {
-                commandId: 'codeXR.analysis.setAutoAnalysisDelay1s',
-                callback: () => commands.setAutoAnalysisDelay('1s', refreshCallback),
-                description: 'Set Auto-Analysis Delay to 1 second'
-            },
-            {
-                commandId: 'codeXR.analysis.setAutoAnalysisDelay3s',
-                callback: () => commands.setAutoAnalysisDelay('3s', refreshCallback),
-                description: 'Set Auto-Analysis Delay to 3 seconds'
-            },
-            {
-                commandId: 'codeXR.analysis.setAutoAnalysisDelay5s',
-                callback: () => commands.setAutoAnalysisDelay('5s', refreshCallback),
-                description: 'Set Auto-Analysis Delay to 5 seconds'
-            },
-            {
-                commandId: 'codeXR.analysis.setAutoAnalysisDelay10s',
-                callback: () => commands.setAutoAnalysisDelay('10s', refreshCallback),
-                description: 'Set Auto-Analysis Delay to 10 seconds'
             }
         ];
     }

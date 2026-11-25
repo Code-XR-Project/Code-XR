@@ -15,10 +15,28 @@
 - **Continuous integration.** The same gates a developer runs locally now run on Windows and Linux for every pull request.
 - **A repository ready to grow.** The source repository is now organized as a monorepo: the extension, its Python analysis backend and the space for the upcoming Code-XR IDE live side by side, and continuous integration also runs on macOS. The packaged extension is the same: no file was added to or removed from it.
 
+#### Removed
+
+- **Eleven hidden settings commands that nothing could run.** `codeXR.analysis.setAnalysisFileModeXR`, `setAnalysisFileModeHivePanel`, `setViewThemeDark`, `setViewThemeLight`, `enableAutoAnalysis`, `disableAutoAnalysis` and the five `setAutoAnalysisDelay…` variants were registered but never appeared in the Command Palette, a menu or the sidebar. The sidebar rows that change these settings (`toggleAnalysisFileMode`, `toggleViewTheme`, `toggleAutoAnalysisEnabled`, `selectAutoAnalysisDelay`) work exactly as before.
+- **Two hidden Files-by-Language commands that were never wired up.** `codeXR.analysis.refreshFilesByLanguage` and `codeXR.analysis.openFileFromLanguageGroup` had no sidebar row, menu entry or palette entry. Clicking a file in the Files by Language list still opens and analyzes it (`runAndAnalyzeFile`), and the list still refreshes on its own.
+- **The hidden `codeXR.analysis.cleanAnalysis` command.** Nothing in the sidebar, the menus or the Command Palette could run it. The automatic cleanup of stale analysis files when the extension starts is unchanged.
+- **The hidden `codeXR.visualizeData.debugState` command.** A troubleshooting command that printed the Visualize Data state to the developer console; nothing in the sidebar, the menus or the Command Palette could run it.
+- **The two hidden theme debugging commands** `codexr.debug.themeConfiguration` and `codexr.debug.themeWorkflow`, together with the diagnostics module behind them. They only wrote to the developer console and nothing could run them. Theme settings are unaffected.
+- **The "Hello World" command** (`CodeXR.helloWorld`), a leftover from the extension template that showed a greeting and nothing else. It no longer appears in the Command Palette.
+
+#### Changed
+
+- **"CodeXR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
+
 #### Fixed
 
 - **Historical comparison and project evolution no longer refuse a folder opened through a link.** When the analyzed folder was reached through a symbolic link, a junction, or a shortened Windows path (`C:\Users\JOHNDO~1\...`), Code-XR compared it with the repository path Git reports and wrongly concluded the folder was outside the repository, so the Git-based analyses were unavailable. Both paths are now resolved to their real location before they are compared.
+- **The installed extension only ever runs the Python analysis scripts it ships with.** If its bundled copy of an analysis script was missing (a damaged or partially deleted install), Code-XR fell back to a developer location two folders above the extension, which in an installed copy is your home folder, and could have run a file found there. That fallback is now limited to development builds; an installed extension reports the missing script instead.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
+
+#### Removed
+
+- Four sample datasets under `examples/data/` (`gdp.json`, `simple_sales.json`, `temperatures.json`, `test_functions.json`) that no BabiaXR example ever loaded. Every example in the BabiaXR Examples view opens and renders exactly as before; the package carries 8 fewer files.
 
 ## [1.2.0] - 2026-07-30
 
