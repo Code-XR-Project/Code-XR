@@ -6,10 +6,10 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration';
+import type { ChartType, AnalysisDirectoryMode as AnalysisMode } from '../../../../configuration';
 import { BabiaChartRegistry } from '../../../../../babia_templates/registry/chartRegistry';
 
-export type AnalysisMode = 'XR' | 'XRDeep' | 'LivePanel' | 'LivePanelDeep';
-export type ChartType = 'bars' | 'barsmap' | 'cyls' | 'cylsmap' | 'donut' | 'pie' | 'bubbles' | 'boats';
+export type { AnalysisMode, ChartType };
 
 export interface ChartTypeInfo {
     id: string;
