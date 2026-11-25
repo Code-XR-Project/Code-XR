@@ -47,7 +47,8 @@ const PANEL_BACKINGS = [
 
 test('every panel backing is opaque', () => {
     for (const [file, snippet] of PANEL_BACKINGS) {
-        const source = fs.readFileSync(path.join(componentsRoot, file), 'utf8');
+        // Windows checkouts use CRLF; the multi-line snippets are written with LF.
+        const source = fs.readFileSync(path.join(componentsRoot, file), 'utf8').replace(/\r\n/g, '\n');
         assert.ok(source.includes(snippet), `${file}: opaque backing not found`);
     }
 });
