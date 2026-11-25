@@ -40,8 +40,8 @@ Before acting on anything, grep `.claude/docs/v1.2.1/AUDIT.md` for the file: eac
 
 Traps this repo has already set:
 - **A module can look dead and still register commands** — `debugThemeProblem.ts` was one until W2-49 removed it with its two ids. Command IDs go through `assertUniqueCommandIds` and `test/commands/internalCommandIds.cjs`; removing a registration without removing its entry there turns the command contract test red.
-- **`src/active_servers/views/` vs `src/views/active_servers/` is deliberate**, not accidental duplication (`AI_WORKFLOWS.md` §refactor). Half of it is dead and half is the busiest module in the area; trace imports file by file.
-- **Two files are called `serverItems.ts`.** `src/views/servers/items/serverItems.ts` is alive and text-pinned by a test; `src/active_servers/views/items/serverItems.ts` is the dead one. Basename greps lie here.
+- **The active-servers tree used to live in two folders** (`src/active_servers/views/` and `src/views/active_servers/`); story #55 put both halves in `src/features/active-servers/views/`. The registry and `ServerControl` it drives are in `src/core/server/`. Trace imports file by file before calling any of it dead.
+- **Basename greps lie.** There used to be two `serverItems.ts` (the dead one was removed in W2); `src/features/servers/views/serverItems.ts` is alive and text-pinned by a test. #55 renamed the feature command wrappers to `*CommandRegistrations.ts` so they no longer share a basename with the feature's own `*Commands.ts`.
 - **Python is reachable through a wider gate than its own contract.** The incremental re-analysis path feeds Python extensions the metric contract does not list (`.rs`, `.jsx`, `.r`, …), so an analyzer branch that looks unreachable from Python alone can still run.
 
 ## 3. Characterize before you reshape

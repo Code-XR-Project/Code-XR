@@ -1,6 +1,6 @@
 /**
  * Behavioural characterization of the "no extension context yet" guard in
- * src/servers/commands/serverCommands.ts, written before ROADMAP T51 moved
+ * src/features/servers/commands/serverCommands.ts, written before ROADMAP T51 moved
  * its three copies into one helper. Each entry point reaches the guard by
  * its own path (startLocalServer after a file was picked, resetToDefault
  * after the confirmation, configureRemoteAccess at once); each must answer
@@ -18,7 +18,7 @@ const GUARD_TOAST = { kind: 'error', message: 'SERVER: Extension context not ava
 test('every entry point that needs the extension context refuses with the same toast before it is set', async () => {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const commands = requireOut('servers/commands/serverCommands.js');
+        const commands = requireOut('features/servers/commands/serverCommands.js');
 
         await commands.configureRemoteAccess();
         assert.deepEqual(fake.messages, [GUARD_TOAST]);

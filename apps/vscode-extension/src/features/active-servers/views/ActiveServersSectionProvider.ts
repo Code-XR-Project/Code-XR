@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { SectionProvider } from '../../platform/tree/baseInterfaces';
-import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
-import { CollaborationSectionProvider } from '../../features/collaboration/views/CollaborationSectionProvider';
-import { getActiveServerRegistry } from '../../core/server/registry/activeServerRegistry';
-import { ActiveServer } from '../../core/server/registry/activeServerModel';
-import { ConnectedParticipantSummary } from '../../core/collaboration/connectedParticipant';
-import { getLogger } from '../../platform/logging/sink';
+import { SectionProvider } from '../../../platform/tree/baseInterfaces';
+import { ActiveServerTreeItem, ActiveServerItemFactory } from './activeServerItems';
+import { CollaborationSectionProvider } from '../../collaboration/views/CollaborationSectionProvider';
+import { getActiveServerRegistry } from '../../../core/server/registry/activeServerRegistry';
+import { ActiveServer } from '../../../core/server/registry/activeServerModel';
+import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS_MODULAR');
 

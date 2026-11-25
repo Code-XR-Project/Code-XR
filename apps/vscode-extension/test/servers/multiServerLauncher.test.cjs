@@ -282,7 +282,7 @@ async function runScenario(scenario) {
             const { NetworkUtils } = loaded('core/server/networkUtils.js');
             NetworkUtils.getLocalIPAddress = () => scenario.localIp || '192.0.2.10';
 
-            const { PreviewRenderer } = loaded('servers/runtime/previewRenderer.js');
+            const { PreviewRenderer } = loaded('features/active-servers/services/previewRenderer.js');
             PreviewRenderer.openPreview = async (...args) => {
                 transcript.previews.push(normalize(args, context));
                 if (scenario.previewFails) {

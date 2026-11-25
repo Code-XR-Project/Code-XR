@@ -52,7 +52,7 @@ Full procedure lives in the **`cleanup` skill** — invoke it. Summary:
 1. Confirm scope with the user first if the refactor crosses module boundaries or touches a contract seam (field schema, chart registry, command registration, component injection, SSE keying).
 2. Read: `ARCHITECTURE.md` (esp. "cross-module contracts") + the area doc.
 3. Refactors must be behavior-neutral: run the full relevant matrix before *and* after (`test:basic`, plus `test:python`/`test:analysis` if analysis is touched, harnesses if runtimes are touched).
-4. Respect known duplication that is historical, not accidental (e.g. `active_servers/views/` vs `views/active_servers/`) — don't "clean up" aggregation wiring without tracing imports.
+4. Respect known duplication that is historical, not accidental (e.g. the two example item factories and click handlers in `features/examples/views/`) — don't "clean up" aggregation wiring without tracing imports.
 5. Update `ARCHITECTURE.md` if module responsibilities or seams moved.
 
 ## Playbook: documentation update

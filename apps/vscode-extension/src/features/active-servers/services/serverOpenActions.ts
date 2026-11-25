@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { withServer } from './withServer';
-import { PreviewRenderer } from '../../servers/runtime/previewRenderer';
-import { getLogger } from '../../platform/logging/sink';
+import { PreviewRenderer } from './previewRenderer';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVER');
 

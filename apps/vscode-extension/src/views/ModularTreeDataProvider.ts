@@ -41,14 +41,14 @@ interface SectionItemAdapter {
 /** One row per section, in sidebar order. */
 const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<string, SectionItemAdapter>([
     ['SERVERS', {
-        load: () => require('./servers/items/serverItems').ServerTreeItem,
+        load: () => require('../features/servers/views/serverItems').ServerTreeItem,
         itemTypeKeys: ['serverItemType'],
         defaultItemType: 'config-option',
         constructorExtras: [],
         payloadKeys: [],
     }],
     ['activeServers', {
-        load: () => require('./active_servers/items/activeServerItems').ActiveServerTreeItem,
+        load: () => require('../features/active-servers/views/activeServerItems').ActiveServerTreeItem,
         itemTypeKeys: ['activeServerItemType'],
         defaultItemType: 'server-item',
         // Participant rows carry their peer, which context-menu commands

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { ServerSettings } from '../../../core/server/serverSettingsManager';
 import type { LaunchMode } from '../../../core/server/registry/activeServerModel';
-import { openServerInBrowser, openServerInPanel } from '../../../active_servers/services/serverOpenActions';
+import { openServerInBrowser, openServerInPanel } from '../services/serverOpenActions';
 import { NetworkUtils } from '../../../core/server/networkUtils';
 import { getLogger } from '../../../platform/logging/sink';
 

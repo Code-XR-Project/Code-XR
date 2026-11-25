@@ -3,7 +3,7 @@ import { PortManager } from './portManager';
 import { ServerSettingsManager } from './serverSettingsManager';
 import { LaunchMode, CertMode } from './registry/activeServerModel';
 import { getServerRegistrar } from './registry/serverRegistrar';
-import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../../servers/views/interactions/launchNotifications';
+import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../../features/active-servers/views/launchNotifications';
 import {
     determineCertMode,
     determineLaunchMode,

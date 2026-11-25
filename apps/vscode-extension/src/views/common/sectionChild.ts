@@ -1,7 +1,7 @@
 // Types only: every import here is `import type`, so this module never loads
 // the item modules. ModularTreeDataProvider loads them lazily on purpose.
-import type { ServerTreeItem } from '../servers/items/serverItems';
-import type { ActiveServerTreeItem } from '../active_servers/items/activeServerItems';
+import type { ServerTreeItem } from '../../features/servers/views/serverItems';
+import type { ActiveServerTreeItem } from '../../features/active-servers/views/activeServerItems';
 import type { BabiaExampleTreeItem } from '../../features/examples/views/babiaExampleItems';
 import type { VisualizeDataModularTreeItem } from '../../features/visualize-data/views/visualizeDataSectionItems';
 import type { CodeAnalysisTreeItem } from '../../code_analysis/views/items/analysisItems';

@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { handleHttpModeClick, handlePortClick, handleAutoOpenClick, handleOpenModeClick } from '../views/interactions/handleConfigurationClicks';
-import { MultiServerLauncher } from '../../core/server/multiServerLauncher';
-import { ServerSettingsManager, ServerSettings } from '../../core/server/serverSettingsManager';
-import { CloudflaredBinaryManager } from '../../core/remote-access/cloudflaredBinaryManager';
-import { RemoteAccessManager } from '../../core/remote-access/remoteAccessManager';
-import { getLogger } from '../../platform/logging/sink';
+import { handleHttpModeClick, handlePortClick, handleAutoOpenClick, handleOpenModeClick } from '../views/handleConfigurationClicks';
+import { MultiServerLauncher } from '../../../core/server/multiServerLauncher';
+import { ServerSettingsManager, ServerSettings } from '../../../core/server/serverSettingsManager';
+import { CloudflaredBinaryManager } from '../../../core/remote-access/cloudflaredBinaryManager';
+import { RemoteAccessManager } from '../../../core/remote-access/remoteAccessManager';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SERVER');
 

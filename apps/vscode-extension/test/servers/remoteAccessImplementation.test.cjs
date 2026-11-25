@@ -25,7 +25,7 @@ function readProjectFile(...parts) {
 test('remote access defaults to enabled, with a one-shot migration for older settings files', () => {
     const settings = readProjectFile('src', 'core', 'server', 'serverSettingsManager.ts');
     const model = readProjectFile('src', 'core', 'remote-access', 'remoteAccessModel.ts');
-    const items = readProjectFile('src', 'views', 'servers', 'items', 'serverItems.ts');
+    const items = readProjectFile('src', 'features', 'servers', 'views', 'serverItems.ts');
     assert.match(settings, /remoteAccess: \{ \.\.\.DEFAULT_REMOTE_ACCESS_SETTINGS \}/);
     assert.match(settings, /version: '1\.2\.0'/);
     // The default is ON; persisted files predating it carry enabled: false and
@@ -111,22 +111,23 @@ test('cloudflared is pinned, checksum-verified, and launched without a shell', (
 test('active servers exposes expandable information, participants, and conditional invitations', () => {
     const provider = readProjectFile(
         'src',
+        'features',
+        'active-servers',
         'views',
-        'active_servers',
         'ActiveServersSectionProvider.ts',
     );
     const items = readProjectFile(
         'src',
+        'features',
+        'active-servers',
         'views',
-        'active_servers',
-        'items',
         'activeServerItems.ts',
     );
     const actions = readProjectFile(
         'src',
-        'active_servers',
+        'features',
+        'active-servers',
         'views',
-        'interactions',
         'handleServerActions.ts',
     );
     assert.match(items, /TreeItemCollapsibleState\.Collapsed/);
@@ -166,13 +167,13 @@ test('guest pairing pages stay self-contained for the response CSP', () => {
 
 test('the host can remove a guest from the participant modal and the tree context menu', () => {
     const actions = readProjectFile(
-        'src', 'active_servers', 'views', 'interactions', 'handleServerActions.ts',
+        'src', 'features', 'active-servers', 'views', 'handleServerActions.ts',
     );
     const commands = readProjectFile(
-        'src', 'active_servers', 'commands', 'activeServersCommands.ts',
+        'src', 'features', 'active-servers', 'commands', 'activeServersCommands.ts',
     );
     const items = readProjectFile(
-        'src', 'views', 'active_servers', 'items', 'activeServerItems.ts',
+        'src', 'features', 'active-servers', 'views', 'activeServerItems.ts',
     );
     const manifest = JSON.parse(readProjectFile('package.json'));
 
@@ -236,7 +237,7 @@ test('participant removal is server-authoritative and revokes remote sessions', 
 
 test('disabling cross-network connections uninstalls the managed cloudflared download', () => {
     const binaryManager = readProjectFile('src', 'core', 'remote-access', 'cloudflaredBinaryManager.ts');
-    const serverCommands = readProjectFile('src', 'servers', 'commands', 'serverCommands.ts');
+    const serverCommands = readProjectFile('src', 'features', 'servers', 'commands', 'serverCommands.ts');
 
     // The manager owns exactly the managed download, never a system binary
     // found on PATH: uninstall only removes CodeXR's own storage directory.

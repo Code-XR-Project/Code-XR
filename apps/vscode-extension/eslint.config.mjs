@@ -173,8 +173,9 @@ export default [{
     // the list when it is typed).
     name: "codexr/any-free-folders",
     files: [
-        "src/active_servers/**/*.ts",
         "src/core/server/**/*.ts",
+        "src/features/active-servers/**/*.ts",
+        "src/platform/webview/**/*.ts",
         "src/code_analysis/engine/watchers/**/*.ts",
         "src/code_analysis/services/**/*.ts",
         "src/code_analysis/views/subsections/active_analyses/**/*.ts",
@@ -187,6 +188,7 @@ export default [{
         "src/core/server/serverFactory.ts",
         "src/core/server/serverSettingsManager.ts",
         "src/core/server/sse/SSEManager.ts",
+        "src/features/active-servers/views/activeServerItems.ts",
     ],
     rules: {
         "@typescript-eslint/no-explicit-any": "error",

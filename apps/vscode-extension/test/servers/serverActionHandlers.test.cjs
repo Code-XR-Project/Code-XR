@@ -463,11 +463,11 @@ async function runScenario(scenario) {
 
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
+            const { ServerActionHandlers } = requireOut('features/active-servers/views/handleServerActions.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
             observeLogsAsConsole(loaded('platform/logging/sink.js'), record);
 
-            const { PreviewRenderer } = loaded('servers/runtime/previewRenderer.js');
+            const { PreviewRenderer } = loaded('features/active-servers/services/previewRenderer.js');
             PreviewRenderer.openPreview = async (...args) => {
                 transcript.calls.push(normalize(['openPreview', ...args]));
                 if (scenario.previewFails) {

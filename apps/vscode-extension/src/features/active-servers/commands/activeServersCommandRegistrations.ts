@@ -1,5 +1,5 @@
-import { ActiveServersCommands } from '../../active_servers/commands/activeServersCommands';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
+import { ActiveServersCommands } from './activeServersCommands';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
 
 interface RefreshableTreeProvider {
     refresh(): void;

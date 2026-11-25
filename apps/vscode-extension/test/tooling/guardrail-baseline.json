@@ -31,18 +31,18 @@
       "core/charts": 6,
       "core/python-env": 5,
       "core/server": 10,
+      "features/active-servers": 1,
       "features/examples": 3,
       "features/learn-more": 1,
+      "features/servers": 1,
       "features/visualization-settings": 3,
       "features/visualize-data": 10,
       "platform": 12,
-      "servers": 1,
       "utils": 3,
-      "views": 6
+      "views": 5
     },
     "suppressions.total": 0,
     "size.filesOver500": [
-      "src/active_servers/views/interactions/handleServerActions.ts",
       "src/code_analysis/engine/utils/executePython.ts",
       "src/code_analysis/export/exportManifest.ts",
       "src/code_analysis/historical/gitRepositoryService.ts",
@@ -54,7 +54,8 @@
       "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
       "src/core/server/collaboration/collaborationRoomServer.ts",
       "src/core/server/httpServer.ts",
-      "src/views/active_servers/items/activeServerItems.ts"
+      "src/features/active-servers/views/activeServerItems.ts",
+      "src/features/active-servers/views/handleServerActions.ts"
     ],
     "functions.over80Lines": 36,
     "complexity.over10": 53,
@@ -110,8 +111,10 @@
       "src/core/server/serverFactory.ts": 1,
       "src/core/server/serverSettingsManager.ts": 4,
       "src/core/server/sse/SSEManager.ts": 1,
+      "src/features/active-servers/views/activeServerItems.ts": 1,
       "src/features/examples/views/handleBabiaExampleClicks.ts": 3,
       "src/features/learn-more/views/handleLearnMoreClicks.ts": 1,
+      "src/features/servers/views/configurationItems.ts": 1,
       "src/features/visualization-settings/views/VisualizationSettingsSectionProvider.ts": 2,
       "src/features/visualization-settings/views/visualizationSettingsItems.ts": 1,
       "src/features/visualize-data/services/jsonFieldAnalyzer.ts": 5,
@@ -122,11 +125,9 @@
       "src/platform/commands/commandBuilder.ts": 5,
       "src/platform/commands/commandRegistry.ts": 2,
       "src/platform/tree/baseInterfaces.ts": 5,
-      "src/servers/views/items/configurationItems.ts": 1,
       "src/utils/commonCommands.ts": 2,
       "src/utils/uriPathConverter.ts": 1,
-      "src/views/ModularTreeDataProvider.ts": 5,
-      "src/views/active_servers/items/activeServerItems.ts": 1
+      "src/views/ModularTreeDataProvider.ts": 5
     },
     "any.topFiles": [
       {
@@ -249,7 +250,7 @@
         "ccn": 15,
         "lines": 88,
         "function": "startLocalServer",
-        "file": "src/servers/commands/serverCommands.ts"
+        "file": "src/features/servers/commands/serverCommands.ts"
       }
     ],
     "size.largest10": [
@@ -270,7 +271,7 @@
         "lines": 632
       },
       {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "file": "src/features/active-servers/views/handleServerActions.ts",
         "lines": 624
       },
       {

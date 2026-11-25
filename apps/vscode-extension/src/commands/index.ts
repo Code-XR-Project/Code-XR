@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { getServerCommandRegistrations } from './servers/serverCommands';
-import { getActiveServersCommandRegistrations } from './active_servers/activeServersCommands';
+import { getServerCommandRegistrations } from '../features/servers/commands/serverCommandRegistrations';
+import { getActiveServersCommandRegistrations } from '../features/active-servers/commands/activeServersCommandRegistrations';
 import { getBabiaExamplesCommandRegistrations } from '../features/examples/commands/babiaExamplesCommandRegistrations';
 import { getVisualizeDataCommandRegistrations } from '../features/visualize-data/commands/visualizeDataCommandRegistrations';
 import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';

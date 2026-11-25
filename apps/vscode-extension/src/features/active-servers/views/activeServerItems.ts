@@ -4,7 +4,7 @@ import { ActiveServer } from '../../../core/server/registry/activeServerModel';
 import { COLLABORATION_AVATARS } from '../../../core/collaboration/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
 import { NetworkUtils } from '../../../core/server/networkUtils';
-import { CollaborationTreeItem } from '../../../features/collaboration/views/collaborationItems';
+import { CollaborationTreeItem } from '../../collaboration/views/collaborationItems';
 import { ServerSettingsManager } from '../../../core/server/serverSettingsManager';
 import { getLogger } from '../../../platform/logging/sink';
 
