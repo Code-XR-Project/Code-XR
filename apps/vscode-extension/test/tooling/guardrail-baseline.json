@@ -36,14 +36,14 @@
     },
     "catch.consoleOnly": 58,
     "catch.emptyNoComment": 0,
-    "any.total": 207,
+    "any.total": 206,
     "any.byModule": {
       "active_servers": 12,
       "babia_templates": 3,
       "code_analysis": 90,
       "commands": 8,
       "python_env": 5,
-      "servers": 13,
+      "servers": 12,
       "utils": 14,
       "views": 54,
       "visualization_settings": 6,
@@ -88,8 +88,8 @@
   },
   "informational": {
     "src.files": 309,
-    "src.lines": 48834,
-    "src.functions": 2670,
+    "src.lines": 48796,
+    "src.functions": 2666,
     "src.unreachableLines": 39,
     "console.topFiles": [
       {
