@@ -12,10 +12,12 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 
 const { createFakeVscode, withFakeVscode } = require('../helpers/fakeVscode.cjs');
 
 const REGISTRY = 'active_servers/registry/activeServerRegistry.js';
+const projectRoot = path.resolve(__dirname, '..', '..');
 
 function loadRegistry(callback) {
     return withFakeVscode(createFakeVscode(), ({ requireOut }) => {
@@ -128,4 +130,50 @@ test('registry dispose: clears the servers without delivering registryCleared', 
         assert.equal(registry.getServerCount(), 0);
         assert.deepEqual(events, ['serverAdded']);
     });
+});
+
+test('registry events: a throwing listener is reported and does not stop the others', () => {
+    withFakeVscode(createFakeVscode(), ({ requireOut }) => {
+        const { observeLogEntries } = requireOut('core/logging/sink.js');
+        const { ActiveServerRegistry } = requireOut(REGISTRY);
+        const registry = ActiveServerRegistry.getInstance();
+        const errors = [];
+        const stopObserving = observeLogEntries((entry) => {
+            if (entry.level === 'error') {
+                errors.push(`${entry.scope}: ${entry.message}`);
+            }
+        });
+        const calls = [];
+        registry.onRegistryChange(() => {
+            throw new Error('listener failed');
+        });
+        registry.onRegistryChange((event) => calls.push(event.type));
+
+        try {
+            assert.doesNotThrow(() => registry.registerServer(serverConfig(3005)));
+        } finally {
+            stopObserving();
+        }
+
+        assert.deepEqual(calls, ['serverAdded']);
+        assert.deepEqual(errors, ['ACTIVE_SERVERS: Registry change listener failed:']);
+    });
+});
+
+test('registry module: loads without the vscode module, and a late subscriber after dispose hears nothing', () => {
+    const filename = path.join(projectRoot, 'out', ...REGISTRY.split('/'));
+    delete require.cache[filename];
+    try {
+        const { ActiveServerRegistry } = require(filename);
+        const registry = ActiveServerRegistry.getInstance();
+        const events = [];
+        registry.onRegistryChange((event) => events.push(event.type));
+        registry.registerServer(serverConfig(3006));
+        registry.dispose();
+        registry.onRegistryChange((event) => events.push(`late:${event.type}`));
+        registry.registerServer(serverConfig(3007));
+        assert.deepEqual(events, ['serverAdded']);
+    } finally {
+        delete require.cache[filename];
+    }
 });
