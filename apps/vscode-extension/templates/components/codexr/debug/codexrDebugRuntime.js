@@ -3,12 +3,12 @@
 
   if (root.CodeXRDebug) { return; }
 
-  var watchHandle = null;
-  var hudHandle = null;
-  var hudEnabled = false;
-  var hudRoot = null;
-  var hudText = null;
-  var sceneListenersAttached = false;
+  let watchHandle = null;
+  let hudHandle = null;
+  let hudEnabled = false;
+  let hudRoot = null;
+  let hudText = null;
+  let sceneListenersAttached = false;
 
   function doc() { return root.document; }
   function scene() { return doc()?.querySelector?.('a-scene') || null; }
@@ -17,8 +17,8 @@
       ?.components?.['codexr-dependency-graph'] || null;
   }
   function rendererStats() {
-    var renderer = scene()?.renderer;
-    var info = renderer?.info || {};
+    const renderer = scene()?.renderer;
+    const info = renderer?.info || {};
     return {
       drawCalls: Number(info.render?.calls || 0),
       triangles: Number(info.render?.triangles || 0),
@@ -36,7 +36,7 @@
     }
   }
   function graphStats() {
-    var component = graphComponent();
+    const component = graphComponent();
     if (!component?.getDebugSnapshot) {
       return {
         active: false,
@@ -61,10 +61,10 @@
     };
   }
   function collectStatus() {
-    var performance = root.CodeXRRenderBudgetRuntime?.getSnapshot?.() || {};
-    var density = root.CodeXRDependencyVisualBudgetRuntime?.getSnapshot?.() || {};
-    var currentScene = scene();
-    var xrSession = getXrSession(currentScene);
+    const performance = root.CodeXRRenderBudgetRuntime?.getSnapshot?.() || {};
+    const density = root.CodeXRDependencyVisualBudgetRuntime?.getSnapshot?.() || {};
+    const currentScene = scene();
+    const xrSession = getXrSession(currentScene);
     return {
       timestamp: new Date().toISOString(),
       performance: {
@@ -92,7 +92,7 @@
     };
   }
   function printStatus(snapshot) {
-    var value = snapshot || collectStatus();
+    const value = snapshot || collectStatus();
     if (root.console?.groupCollapsed) {
       root.console.groupCollapsed('[CodeXR][Debug] Visualization status');
       root.console.table?.([value.performance]);
@@ -108,17 +108,17 @@
     return value;
   }
   function status() {
-    var snapshot = collectStatus();
+    const snapshot = collectStatus();
     printStatus(snapshot);
     updateHud(snapshot);
     return snapshot;
   }
   function currentAnalysis() {
-    var modeState = root.CodeXRAnalysisModeRuntime?.getState?.() || {};
-    var mappingState = root.CodeXRMappingUiRuntime?.getState?.() || {};
-    var controllerState = root.CodeXRAnalysisControllerRuntime?.getControllerState?.() || {};
-    var surface = surfaceStats();
-    var value = {
+    const modeState = root.CodeXRAnalysisModeRuntime?.getState?.() || {};
+    const mappingState = root.CodeXRMappingUiRuntime?.getState?.() || {};
+    const controllerState = root.CodeXRAnalysisControllerRuntime?.getControllerState?.() || {};
+    const surface = surfaceStats();
+    const value = {
       analysis: modeState.mode || controllerState.mode || mappingState.mode || 'unknown',
       activeLifecycle: modeState.activeLifecycleMode || null,
       controllerView: modeState.controllerView || controllerState.controllerView || null,
@@ -150,25 +150,25 @@
   }
   function watch(intervalMs) {
     stopWatch();
-    var interval = Math.max(250, Number(intervalMs || 1000));
+    const interval = Math.max(250, Number(intervalMs || 1000));
     status();
     watchHandle = root.setInterval?.(status, interval) ?? null;
     return interval;
   }
   function isImmersive() {
-    var currentScene = scene();
+    const currentScene = scene();
     return !!currentScene?.is?.('vr-mode') || !!currentScene?.is?.('ar-mode');
   }
   function ensureHud() {
     if (hudRoot?.isConnected) { return; }
-    var currentScene = scene();
-    var camera = currentScene?.camera?.el || doc()?.querySelector?.('[camera]');
+    const currentScene = scene();
+    const camera = currentScene?.camera?.el || doc()?.querySelector?.('[camera]');
     if (!camera || !doc()?.createElement) { return; }
     hudRoot = doc().createElement('a-entity');
     hudRoot.setAttribute('id', 'codexrDebugHud');
     hudRoot.setAttribute('position', '0.72 0.43 -1.25');
     hudRoot.setAttribute('codexr-desktop-only', '');
-    var panel = doc().createElement('a-plane');
+    const panel = doc().createElement('a-plane');
     panel.setAttribute('width', '0.72');
     panel.setAttribute('height', '0.38');
     panel.setAttribute('material', 'color: #07111f; opacity: .88; shader: flat');
@@ -187,7 +187,7 @@
     if (!hudEnabled) { return; }
     ensureHud();
     if (!hudRoot || !hudText) { return; }
-    var value = snapshot || collectStatus();
+    const value = snapshot || collectStatus();
     hudRoot.setAttribute('visible', !isImmersive());
     hudText.setAttribute('value', [
       'CodeXR diagnostics',
@@ -238,7 +238,7 @@
   // that entity's local position is already 0,0,0 by design) — so simulating
   // enter-vr/exit-vr is a plain emit, with or without an XR emulator present.
   function simulateImmersive(mode) {
-    var currentScene = scene();
+    const currentScene = scene();
     if (!currentScene?.emit) {
       root.console?.warn?.('[CodeXR][Debug] No scene to simulate on.');
       return false;
@@ -253,7 +253,7 @@
   function simulateAR() { return simulateImmersive('ar-mode'); }
   function simulateVR() { return simulateImmersive('vr-mode'); }
   function exitSimulated() {
-    var currentScene = scene();
+    const currentScene = scene();
     if (!currentScene?.emit) { return false; }
     currentScene.emit('exit-vr');
     currentScene.removeState?.('ar-mode');
@@ -263,7 +263,7 @@
   }
 
   function help() {
-    var commands = [
+    const commands = [
       'CodeXRDebug.status()',
       'CodeXRDebug.currentAnalysis()',
       'CodeXRDebug.currentAnalsysis()',
@@ -280,11 +280,11 @@
     return commands;
   }
   function registerDesktopOnlyComponent() {
-    var AFRAME = root.AFRAME;
+    const AFRAME = root.AFRAME;
     if (!AFRAME?.registerComponent || AFRAME.components['codexr-desktop-only']) { return; }
     AFRAME.registerComponent('codexr-desktop-only', {
       init: function () {
-        var self = this;
+        const self = this;
         this.updateVisibility = function () {
           self.el.setAttribute('visible', !self.el.sceneEl?.is?.('vr-mode') && !self.el.sceneEl?.is?.('ar-mode'));
         };
@@ -302,16 +302,16 @@
   }
 
   function registerCodeXRConsoleFacade() {
-    var groups = {};
+    const groups = {};
     function register(group, commands) {
       groups[group] = (commands || []).map(function (command) {
         return Object.assign({ group: group }, command);
       });
     }
     function catalog() {
-      var values = Object.keys(groups).flatMap(function (group) { return groups[group]; });
+      const values = Object.keys(groups).flatMap(function (group) { return groups[group]; });
       if (root.CodeXRChartDebug) {
-        var chartDescriptions = {
+        const chartDescriptions = {
           enable: 'Enable chart debugging and optionally select a chart.',
           disable: 'Disable chart debugging controls.',
           select: 'Select a chart by ID, alias, or CSS selector.',
@@ -341,10 +341,10 @@
       });
     }
     function facadeHelp() {
-      var commands = catalog();
+      const commands = catalog();
       root.console?.group?.('[CodeXR] Browser console commands');
       Object.keys(groups).forEach(function (group) {
-        var rows = commands.filter(function (command) { return command.group === group; })
+        const rows = commands.filter(function (command) { return command.group === group; })
           .map(function (command) {
             return {
               Command: command.command,
@@ -358,7 +358,7 @@
           root.console?.groupEnd?.();
         }
       });
-      var chartRows = commands.filter(function (command) {
+      const chartRows = commands.filter(function (command) {
         return command.group === 'Chart debugging';
       }).map(function (command) {
         return {
