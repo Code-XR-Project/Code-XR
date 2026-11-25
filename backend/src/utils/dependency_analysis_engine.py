@@ -635,26 +635,23 @@ def _load_refresh_request(root: str, request_path: Optional[str]) -> Optional[Di
     return normalized
 
 
-def analyze_dependencies(
-    directory_path: str,
-    recursive: bool = False,
-    cache_path: Optional[str] = None,
-    refresh_request_path: Optional[str] = None,
-) -> Dict[str, object]:
-    root = os.path.realpath(directory_path)
-    refresh = _load_refresh_request(root, refresh_request_path)
-    nodes: List[Dict[str, object]] = []
-    warnings: List[str] = []
-    lookup: Dict[str, str] = {}
-    parsed: List[str] = []
-    parser_availability: Dict[str, bool] = {}
-    cache = _load_cache(cache_path)
-    cached_files = cache["files"] if cache.get("root") == root else {}
-    next_cached_files: Dict[str, object] = {}
-    extracted_by_node: Dict[str, List[Tuple[str, str, str]]] = {}
-    full_scan = refresh is None or bool(refresh.get("forceFullScan")) or not cached_files
+TargetTuple = Tuple[str, str, str]
+
+
+def _resolve_scan_set(
+    root: str,
+    recursive: bool,
+    refresh: Optional[Dict[str, object]],
+    cached_files: Dict[str, object],
+) -> Tuple[Dict[str, str], Set[str]]:
+    """Files to put in the graph (relative -> absolute) and the ones that must be re-read.
+
+    A full scan re-reads everything; an incremental refresh starts from the cached
+    files still on disk, drops the removed ones and re-reads the changed and added ones.
+    """
     files_by_relative: Dict[str, str] = {}
     refresh_relative: Set[str] = set()
+    full_scan = refresh is None or bool(refresh.get("forceFullScan")) or not cached_files
 
     if full_scan:
         files = scan_directory_files_for_analysis(
@@ -681,57 +678,68 @@ def analyze_dependencies(
                 files_by_relative[relative] = file_path
                 refresh_relative.add(relative)
 
-    for relative, file_path in sorted(files_by_relative.items()):
-        language = get_metric_language(file_path)
-        node_id = _node_id("file", relative.lower())
-        cached_entry = cached_files.get(relative)
-        use_cache = (
-            relative not in refresh_relative
-            and
-            isinstance(cached_entry, dict)
-            and cached_entry.get("language") == language
-            and isinstance(cached_entry.get("targets"), list)
-            and isinstance(cached_entry.get("totalLines"), int)
-        )
-        if use_cache:
-            targets = [tuple(item) for item in cached_entry["targets"] if isinstance(item, list) and len(item) == 3]
-            parser_available = bool(cached_entry.get("parserAvailable"))
-            content_hash = str(cached_entry.get("hash", ""))
-            total_lines = int(cached_entry.get("totalLines", 0))
-        else:
-            text, warning = _read_text(file_path)
-            if warning:
-                warnings.append(f"{relative}: {warning}")
-            content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-            parser_available, structured_targets = _extract_structured_targets(language, text)
-            targets = sorted({
-                target
-                for target in [*structured_targets, *_extract_targets(text)]
-            })
-            total_lines = len(text.splitlines())
-        parser_availability.setdefault(language, parser_available)
-        extracted_by_node[node_id] = targets
-        next_cached_files[relative] = {
-            "hash": content_hash,
-            "language": language,
-            "parserAvailable": parser_available,
-            "targets": [list(item) for item in targets],
-            "totalLines": total_lines,
-        }
-        node = {
-            "id": node_id,
-            "kind": "file",
-            "label": Path(relative).name,
-            "relativePath": relative,
-            "language": language,
-            "external": False,
-            "metrics": _empty_metrics(totalLines=total_lines),
-        }
-        nodes.append(node)
-        for key in _candidate_keys(relative):
-            lookup.setdefault(key, node_id)
-        parsed.append(node_id)
+    return files_by_relative, refresh_relative
 
+
+def _cached_targets(cached_entry: object, language: str) -> Optional[Tuple[List[TargetTuple], bool, str, int]]:
+    """(targets, parserAvailable, hash, totalLines) from a usable cache entry, else None."""
+    usable = (
+        isinstance(cached_entry, dict)
+        and cached_entry.get("language") == language
+        and isinstance(cached_entry.get("targets"), list)
+        and isinstance(cached_entry.get("totalLines"), int)
+    )
+    if not usable:
+        return None
+    targets = [tuple(item) for item in cached_entry["targets"] if isinstance(item, list) and len(item) == 3]
+    parser_available = bool(cached_entry.get("parserAvailable"))
+    content_hash = str(cached_entry.get("hash", ""))
+    total_lines = int(cached_entry.get("totalLines", 0))
+    return targets, parser_available, content_hash, total_lines
+
+
+def _extract_file_targets(
+    relative: str,
+    file_path: str,
+    language: str,
+    warnings: List[str],
+) -> Tuple[List[TargetTuple], bool, str, int]:
+    """Read one file and extract its (sorted, de-duplicated) dependency targets."""
+    text, warning = _read_text(file_path)
+    if warning:
+        warnings.append(f"{relative}: {warning}")
+    content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    parser_available, structured_targets = _extract_structured_targets(language, text)
+    targets = sorted({
+        target
+        for target in [*structured_targets, *_extract_targets(text)]
+    })
+    total_lines = len(text.splitlines())
+    return targets, parser_available, content_hash, total_lines
+
+
+def _file_node(node_id: str, relative: str, language: str, total_lines: int) -> Dict[str, object]:
+    return {
+        "id": node_id,
+        "kind": "file",
+        "label": Path(relative).name,
+        "relativePath": relative,
+        "language": language,
+        "external": False,
+        "metrics": _empty_metrics(totalLines=total_lines),
+    }
+
+
+def _resolve_edge_counts(
+    parsed: List[str],
+    extracted_by_node: Dict[str, List[TargetTuple]],
+    lookup: Dict[str, str],
+    nodes: List[Dict[str, object]],
+) -> Dict[Tuple[str, str, str, str], int]:
+    """Resolve every target to a file node or an external node (appended to ``nodes``).
+
+    Self-references are dropped; the first candidate key that resolves wins.
+    """
     edge_counts: Dict[Tuple[str, str, str, str], int] = defaultdict(int)
     external_nodes: Dict[str, str] = {}
     for source_id in parsed:
@@ -754,7 +762,10 @@ def analyze_dependencies(
                     }
                     nodes.append(external)
             edge_counts[(source_id, target_id, relation, confidence)] += 1
+    return edge_counts
 
+
+def _build_edges(edge_counts: Dict[Tuple[str, str, str, str], int]) -> List[Dict[str, object]]:
     edges = []
     for (source, target, kind, confidence), occurrences in edge_counts.items():
         edge_id = _node_id("edge", f"{source}\0{target}\0{kind}")
@@ -766,6 +777,50 @@ def analyze_dependencies(
             "confidence": confidence,
             "occurrences": occurrences,
         })
+    return edges
+
+
+def analyze_dependencies(
+    directory_path: str,
+    recursive: bool = False,
+    cache_path: Optional[str] = None,
+    refresh_request_path: Optional[str] = None,
+) -> Dict[str, object]:
+    root = os.path.realpath(directory_path)
+    refresh = _load_refresh_request(root, refresh_request_path)
+    nodes: List[Dict[str, object]] = []
+    warnings: List[str] = []
+    lookup: Dict[str, str] = {}
+    parsed: List[str] = []
+    parser_availability: Dict[str, bool] = {}
+    cache = _load_cache(cache_path)
+    cached_files = cache["files"] if cache.get("root") == root else {}
+    next_cached_files: Dict[str, object] = {}
+    extracted_by_node: Dict[str, List[TargetTuple]] = {}
+    files_by_relative, refresh_relative = _resolve_scan_set(root, recursive, refresh, cached_files)
+
+    for relative, file_path in sorted(files_by_relative.items()):
+        language = get_metric_language(file_path)
+        node_id = _node_id("file", relative.lower())
+        cached = None if relative in refresh_relative else _cached_targets(cached_files.get(relative), language)
+        if cached is None:
+            cached = _extract_file_targets(relative, file_path, language, warnings)
+        targets, parser_available, content_hash, total_lines = cached
+        parser_availability.setdefault(language, parser_available)
+        extracted_by_node[node_id] = targets
+        next_cached_files[relative] = {
+            "hash": content_hash,
+            "language": language,
+            "parserAvailable": parser_available,
+            "targets": [list(item) for item in targets],
+            "totalLines": total_lines,
+        }
+        nodes.append(_file_node(node_id, relative, language, total_lines))
+        for key in _candidate_keys(relative):
+            lookup.setdefault(key, node_id)
+        parsed.append(node_id)
+
+    edges = _build_edges(_resolve_edge_counts(parsed, extracted_by_node, lookup, nodes))
     _add_graph_metrics(nodes, edges)
 
     for language, available in parser_availability.items():
