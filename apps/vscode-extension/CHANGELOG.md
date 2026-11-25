@@ -20,6 +20,10 @@
 - **Historical comparison and project evolution no longer refuse a folder opened through a link.** When the analyzed folder was reached through a symbolic link, a junction, or a shortened Windows path (`C:\Users\JOHNDO~1\...`), Code-XR compared it with the repository path Git reports and wrongly concluded the folder was outside the repository, so the Git-based analyses were unavailable. Both paths are now resolved to their real location before they are compared.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
+#### Removed
+
+- Four sample datasets under `examples/data/` (`gdp.json`, `simple_sales.json`, `temperatures.json`, `test_functions.json`) that no BabiaXR example ever loaded. Every example in the BabiaXR Examples view opens and renders exactly as before; the package carries 8 fewer files.
+
 ## [1.2.0] - 2026-07-30
 
 ### CodeXR 1.2.0: "Threads, Timelines & Global Networks"
