@@ -22,6 +22,7 @@
 - **The hidden `codeXR.analysis.cleanAnalysis` command.** Nothing in the sidebar, the menus or the Command Palette could run it. The automatic cleanup of stale analysis files when the extension starts is unchanged.
 - **The hidden `codeXR.visualizeData.debugState` command.** A troubleshooting command that printed the Visualize Data state to the developer console; nothing in the sidebar, the menus or the Command Palette could run it.
 - **The two hidden theme debugging commands** `codexr.debug.themeConfiguration` and `codexr.debug.themeWorkflow`, together with the diagnostics module behind them. They only wrote to the developer console and nothing could run them. Theme settings are unaffected.
+- **The "Hello World" command** (`CodeXR.helloWorld`), a leftover from the extension template that showed a greeting and nothing else. It no longer appears in the Command Palette.
 
 #### Fixed
 

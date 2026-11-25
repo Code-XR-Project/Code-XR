@@ -49,14 +49,6 @@ export function registerAllCommands(
         ...getVisualizationSettingsCommandRegistrations(context),
         ...getCollaborationCommandRegistrations(context, treeDataProvider),
         ...getLearnMoreCommandRegistrations(context),
-        {
-            id: 'CodeXR.helloWorld',
-            module: 'GENERAL_COMMANDS',
-            description: 'Hello world',
-            handler: () => {
-                vscode.window.showInformationMessage('Hello World from CodeXR!');
-            },
-        },
     ];
     assertUniqueCommandIds(registrations);
     CommandBuilder.registerAll(context, registrations);

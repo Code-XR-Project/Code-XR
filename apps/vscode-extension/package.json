@@ -64,10 +64,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "CodeXR.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "codeXR.collaboration.selectIdentity",
         "title": "CodeXR: Select Collaboration Identity"
       },
