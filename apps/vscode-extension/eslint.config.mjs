@@ -161,6 +161,18 @@ export default [{
         semi: "error",
     },
 }, {
+    // Standalone runtimes converted from `var` to `let`/`const` (story #56,
+    // docs/cleanup/modernization.md §2.3), one runtime per commit. Each is one
+    // IIFE, so no top-level binding was a page global. The multi-part runtimes
+    // stay on `var` until 1.3.0: their parts cannot be linted alone.
+    files: [
+        "templates/components/codexr/dependency-visual-budget/dependencyVisualBudgetRuntime.js",
+    ],
+    rules: {
+        "no-var": "error",
+        "prefer-const": "error",
+    },
+}, {
     // The LivePanel webview loads its scripts into one page scope: these are the
     // names panelShell.js, dataTable.js, charts.js and the two panels define for
     // the *main.js scripts (and each other), plus the webview's own API.
