@@ -5,6 +5,15 @@ const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { readAssembledRuntime, requireAssembledRuntime } = require(path.join(projectRoot, 'test', 'helpers', 'runtimeAssembly.cjs'));
+const { assertAbsent, readConcatenated } = require(path.join(projectRoot, 'test', 'helpers', 'sourceText.cjs'));
+// The collaboration room server and the modules split out of it: negative
+// guards on "the room" read all of them, so code moving between them cannot
+// slip past a guard.
+const ROOM_SERVER_FILES = [
+    'src/servers/runtime/collaboration/collaborationRoomServer.ts',
+    'src/servers/runtime/collaboration/roomTypes.ts',
+    'src/servers/runtime/collaboration/roomMessageCodec.ts',
+];
 const runtimeSource = readAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 const runtimeModule = requireAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 
@@ -392,7 +401,9 @@ test('well-known screen ids are reserved at script load and survive materializat
     // Server never resurrects an entity from a bare transform.
     const serverSource = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationRoomServer.ts');
     assert.match(serverSource, /Never resurrect an entity from a bare transform/);
-    assert.doesNotMatch(serverSource, /room\.entities\.get\(key\) \|\| \{ entityKind, entityId \}/);
+    assertAbsent(readConcatenated(ROOM_SERVER_FILES), /room\.entities\.get\(key\) \|\| \{ entityKind, entityId \}/, {
+        canary: /Never resurrect an entity from a bare transform/,
+    });
 });
 
 test('collision bumpers stop look-at, drag, and resize at walls and screens', () => {

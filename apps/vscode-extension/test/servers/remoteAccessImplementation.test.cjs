@@ -3,7 +3,17 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { assertAbsent, readConcatenated } = require('../helpers/sourceText.cjs');
+
 const projectRoot = path.resolve(__dirname, '..', '..');
+// The collaboration room server and the modules split out of it: negative
+// guards on "the room" read all of them, so code moving between them cannot
+// slip past a guard.
+const ROOM_SERVER_FILES = [
+    'src/servers/runtime/collaboration/collaborationRoomServer.ts',
+    'src/servers/runtime/collaboration/roomTypes.ts',
+    'src/servers/runtime/collaboration/roomMessageCodec.ts',
+];
 
 function readProjectFile(...parts) {
     return fs.readFileSync(path.join(projectRoot, ...parts), 'utf8');
@@ -69,7 +79,7 @@ test('remote HTTP and WebSocket access require server-issued sessions', () => {
     assert.match(httpServer, /safeRequestUrl/);
     assert.match(roomServer, /authorizeUpgrade/);
     assert.match(roomServer, /peer\.session\?\.profile/);
-    assert.doesNotMatch(roomServer, /broadcastProfileConfiguration/);
+    assertAbsent(readConcatenated(ROOM_SERVER_FILES), /broadcastProfileConfiguration/, { canary: /peer\.session\?\.profile/ });
     assert.match(broadcastServer, /this\.authorizeUpgrade\(req\)/);
 });
 
@@ -213,7 +223,7 @@ test('participant removal is server-authoritative and revokes remote sessions', 
     assert.match(room, /socket\.close\(4001, 'Removed by room host'\)/);
 
     // The room reports the session; the server owns revoking it.
-    assert.doesNotMatch(room, /revokeSession/);
+    assertAbsent(readConcatenated(ROOM_SERVER_FILES), /revokeSession/, { canary: /private disconnectRemovedPeer\(/ });
     assert.match(httpServer, /result\.removed && result\.remote && !!result\.sessionId/);
     assert.match(httpServer, /this\.remoteSessionAuthority\.revokeSession\(result\.sessionId\)/);
     assert.match(authority, /public revokeSession\(sessionId: string\): boolean/);
