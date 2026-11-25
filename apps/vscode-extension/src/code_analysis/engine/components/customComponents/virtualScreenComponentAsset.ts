@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { assembleRuntimeContent, writeAssembledRuntimeToOutput } from './runtimeAssembly';
+import { assertSourceExists } from './singleFileRuntimeAssets';
 
 export const VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME = 'virtualScreenRuntime.js';
 export const VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME = 'codexrMultiScreenManagerRuntime.js';
@@ -33,11 +34,10 @@ function resolveVirtualScreenManagerRuntimeSourcePath(extensionPath: string): st
 }
 
 function assertVirtualScreenManagerRuntimeSourceExists(extensionPath: string): string {
-    const runtimePath = resolveVirtualScreenManagerRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(runtimePath)) {
-        throw new Error(`Virtual screen manager runtime not found at ${runtimePath}`);
-    }
-    return runtimePath;
+    return assertSourceExists(
+        resolveVirtualScreenManagerRuntimeSourcePath(extensionPath),
+        'Virtual screen manager runtime',
+    );
 }
 
 export async function copyVirtualScreenManagerRuntimeToOutput(

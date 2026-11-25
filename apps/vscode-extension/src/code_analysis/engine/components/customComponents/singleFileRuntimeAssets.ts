@@ -44,12 +44,19 @@ export function resolveRuntimeAssetSourcePath(asset: SingleFileRuntimeAsset, ext
     return path.join(extensionPath, 'templates', 'components', ...asset.folder, asset.outputName);
 }
 
-export function assertRuntimeAssetSourceExists(asset: SingleFileRuntimeAsset, extensionPath: string): string {
-    const sourcePath = resolveRuntimeAssetSourcePath(asset, extensionPath);
+/**
+ * The one existence check of the asset family: the path, or
+ * `<label> not found at <path>` when nothing is there.
+ */
+export function assertSourceExists(sourcePath: string, label: string): string {
     if (!fs.existsSync(sourcePath)) {
-        throw new Error(`${asset.label} not found at ${sourcePath}`);
+        throw new Error(`${label} not found at ${sourcePath}`);
     }
     return sourcePath;
+}
+
+export function assertRuntimeAssetSourceExists(asset: SingleFileRuntimeAsset, extensionPath: string): string {
+    return assertSourceExists(resolveRuntimeAssetSourcePath(asset, extensionPath), asset.label);
 }
 
 export async function copyRuntimeAssetToOutput(

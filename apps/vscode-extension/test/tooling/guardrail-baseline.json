@@ -69,7 +69,7 @@
   },
   "informational": {
     "src.files": 336,
-    "src.lines": 48921,
+    "src.lines": 48922,
     "src.functions": 3281,
     "src.unreachableLines": 0,
     "console.topFiles": [

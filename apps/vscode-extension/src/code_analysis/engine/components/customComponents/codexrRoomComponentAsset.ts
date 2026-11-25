@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import {
     SINGLE_FILE_RUNTIME_ASSETS,
     assertRuntimeAssetSourceExists,
+    assertSourceExists,
     resolveRuntimeAssetSourcePath,
 } from './singleFileRuntimeAssets';
 
@@ -27,11 +28,10 @@ export function resolveCodeXrRoomTextureSourcePath(extensionPath: string): strin
 /** The runtime is checked first, then the texture directory; every entry point needs both. */
 export function assertCodeXrRoomAssetsExist(extensionPath: string): { runtimePath: string; textureDirectory: string } {
     const runtimePath = assertRuntimeAssetSourceExists(ROOM_RUNTIME, extensionPath);
-    const textureDirectory = resolveCodeXrRoomTextureSourcePath(extensionPath);
-
-    if (!fs.existsSync(textureDirectory)) {
-        throw new Error(`CodeXR room texture directory not found at ${textureDirectory}`);
-    }
+    const textureDirectory = assertSourceExists(
+        resolveCodeXrRoomTextureSourcePath(extensionPath),
+        'CodeXR room texture directory',
+    );
 
     return { runtimePath, textureDirectory };
 }
