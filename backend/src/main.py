@@ -27,9 +27,8 @@ for module_dir in (LIVEPANELS_DIR, XR_DIR, HTML_DIR):
 def main():
     parser = argparse.ArgumentParser(description='Python Analysis Entry Point')
     parser.add_argument('--mode', required=True, choices=['livePanel', 'xr', 'schema', 'dependencies'], help='Analysis mode')
-    parser.add_argument('--type', required=True, choices=['file', 'directory', 'project'], help='Analysis type')
+    parser.add_argument('--type', required=True, choices=['file', 'directory'], help='Analysis type')
     parser.add_argument('--target', help='Target path to analyze')
-    parser.add_argument('--output', help='Output file path (optional)')
     parser.add_argument('--files', nargs='*', help='Specific files to analyze (directory mode only)')
     parser.add_argument('--deep', action='store_true', help='Enable deep recursive analysis for directories')
     parser.add_argument('--cache', help='Private dependency extraction cache path')
@@ -41,17 +40,15 @@ def main():
     if args.mode != 'schema' and not args.target:
         parser.error('--target is required unless --mode schema is used')
 
-    normalized_type = 'directory' if args.type == 'project' else args.type
-
-    log_info(f'Starting analysis - Mode: {args.mode}, Type: {normalized_type}')
+    log_info(f'Starting analysis - Mode: {args.mode}, Type: {args.type}')
     if args.target:
         log_info(f'Target: {args.target}')
 
     try:
         if args.mode == 'schema':
-            result = execute_schema_request(normalized_type)
+            result = execute_schema_request(args.type)
         elif args.mode == 'dependencies':
-            if normalized_type == 'directory':
+            if args.type == 'directory':
                 result = analyze_dependencies(
                     args.target,
                     recursive=args.deep,
@@ -64,21 +61,21 @@ def main():
                     project_root=args.project_root,
                     cache_path=args.cache,
                 )
-        elif args.mode == 'livePanel' and normalized_type == 'file':
+        elif args.mode == 'livePanel' and args.type == 'file':
             from livePanel_file_analysis_coordinator import analyze_file_comprehensive
             result = analyze_file_comprehensive(args.target)
-        elif args.mode == 'livePanel' and normalized_type == 'directory':
+        elif args.mode == 'livePanel' and args.type == 'directory':
             from livePanel_directory_analysis_coordinator import analyze_directory_comprehensive
             from livePanel_directory_deep_analysis_coordinator import analyze_directory_deep_comprehensive
             result = analyze_directory_deep_comprehensive(args.target, args.files) if args.deep else analyze_directory_comprehensive(args.target, args.files)
-        elif args.mode == 'xr' and normalized_type == 'file':
+        elif args.mode == 'xr' and args.type == 'file':
             from xr_file_analysis_coordinator import analyze_file_for_xr
             result = analyze_file_for_xr(args.target)
-        elif args.mode == 'xr' and normalized_type == 'directory':
+        elif args.mode == 'xr' and args.type == 'directory':
             from xr_directory_analysis_coordinator import analyze_directory_xr
             result = analyze_directory_xr(args.target, is_deep=args.deep, filtered_files=args.files)
         else:
-            raise ValueError(f'Unsupported combination: {args.mode} + {normalized_type}')
+            raise ValueError(f'Unsupported combination: {args.mode} + {args.type}')
 
         log_info('Analysis completed successfully')
         print('=== JSON_START ===')
@@ -91,7 +88,7 @@ def main():
             'error': True,
             'message': str(error),
             'mode': args.mode,
-            'type': normalized_type,
+            'type': args.type,
             'target': args.target,
         }, indent=2))
         print('=== JSON_END ===')
