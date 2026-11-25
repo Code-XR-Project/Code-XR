@@ -34,7 +34,6 @@
 | `npm run package` | Production webpack build (hidden source maps) | Pre-packaging |
 | `npm run package:vsix` | `package` + `scripts/package-vsix.mjs` → builds the `.vsix` (refuses to package without `dist/extension.js`) | Release preparation |
 | `node scripts/dist-fingerprint.mjs --out <file>` · `node scripts/dist-diff.mjs <before> <after> --expect-identical-bundle` | Hash everything under `dist/` and compare two fingerprints. **H1**: an unreachable file was deleted ⇒ `extension.js` byte-identical (the production build is deterministic). `--allow-removed <path|dir/>` names copied assets that are meant to disappear. **H2**: `--bundle-lines <old> <new>` for a dead declaration removed from a live file | Proving a cleanup commit changed nothing that ships (`cleanup` skill §3) |
-| `npm run test:integration` | `@vscode/test-cli` — **currently targets `out/test/**/*.test.js`, which doesn't exist; the integration layer is unpopulated** | Don't rely on it (needs verification/setup) |
 | `npm run report:manual-metrics` | analysis test runner in report-only mode | Metric reports without assertions |
 | `npm run guardrails:measure` | `test/tooling/measureGuardrails.cjs` — prints the cleanup metrics from the TypeScript AST (~2 s): `console.*` per module, console-only catch blocks, `any`, suppressions, files over 500 lines, functions over 80 lines, CCN over 10/15/20/30, modules unreachable from `src/extension.ts`, `console.log` in `templates/`, the lint `--max-warnings` | Before and after any cleanup item |
 | `npm run guardrails:update` | Same script with `--write`: regenerates `test/tooling/guardrail-baseline.json` | In the **same commit** as a change that moves a metric — the baseline diff is that item's recorded before/after |
@@ -87,7 +86,6 @@ Also `manual_test/` (repo root): per-language fixtures consumed by `npm run test
 
 - **CI** (`.github/workflows/ci.yml`, since 1.2.1) runs on pull requests to `master`: `npm test` and the Python suites on `windows-latest` and `ubuntu-latest`, plus a job that packages the VSIX and uploads it with its dist fingerprint. It runs exactly the local gates — nothing is CI-only. `ubuntu-latest` reports without blocking until its first LF/POSIX fallout is fixed. The browser harnesses stay local (they need Playwright's Chromium and live CDNs). The other workflow, `deploy-pages-redirect.yml`, only publishes the GitHub Pages redirect.
 - **`esbuild.config.mjs` is unreferenced** by any npm script — webpack is the active bundler. Likely legacy from the 0.0.8-era ESBuild migration. *Needs verification before removal.*
-- **`.vscode-test.mjs` / `test:integration` mismatch**: points to `out/test/**/*.test.js`, but no such tests exist.
 - `tsconfig.json` `outDir` is `out/` (used for `compile-tests`/typecheck output); the shipped bundle goes to `dist/` via webpack. Don't confuse the two.
 - `tsconfig.tsbuildinfo` at root is a build cache — never edit or commit-review it.
 - A leftover `CodeXR.helloWorld` command exists in package.json (scaffolding; see `V1.2.0_STATUS.md` documentation debt).
