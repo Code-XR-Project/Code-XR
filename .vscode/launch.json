@@ -6,12 +6,12 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/.vscode-test/dev-extension",
-        "--user-data-dir=${workspaceFolder}/.vscode-test/user-data",
-        "--extensions-dir=${workspaceFolder}/.vscode-test/extensions"
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension/.vscode-test/dev-extension",
+        "--user-data-dir=${workspaceFolder}/apps/vscode-extension/.vscode-test/user-data",
+        "--extensions-dir=${workspaceFolder}/apps/vscode-extension/.vscode-test/extensions"
       ],
       "outFiles": [
-        "${workspaceFolder}/.vscode-test/dev-extension/dist/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/.vscode-test/dev-extension/dist/**/*.js"
       ],
       "preLaunchTask": "CodeXR: compile:dev-host"
     },
@@ -20,10 +20,10 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}"
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"
       ],
       "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
+        "${workspaceFolder}/apps/vscode-extension/dist/**/*.js"
       ],
       "preLaunchTask": "CodeXR: compile"
     }

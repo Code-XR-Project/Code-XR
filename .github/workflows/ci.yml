@@ -1,8 +1,13 @@
 name: CI
 
-# The same gates a developer runs locally, on every pull request to master.
+# The same gates a developer runs locally, on every pull request to master or
+# to a release branch (v1.2.1, ...).
 # Nothing here is CI-only: if it is green locally it should be green here, and
 # the other way round.
+#
+# The repository is an npm-workspaces monorepo: `npm ci` and the root scripts
+# run from the repository root and delegate to apps/vscode-extension; the
+# Python backend lives in backend/.
 #
 # Deliberately absent: secrets, third-party actions, coverage or telemetry
 # uploaders, and the browser harnesses (they need Playwright's Chromium and live
@@ -12,6 +17,7 @@ on:
   pull_request:
     branches:
       - master
+      - 'v[0-9]*'
   push:
     branches:
       - master
@@ -35,14 +41,15 @@ jobs:
   gate:
     name: npm test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # The repo is developed on Windows with a CRLF working tree; ubuntu is its
-    # first LF/POSIX run. It reports without blocking until its fallout is fixed,
-    # then this line goes and the job becomes required.
-    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
+    # The repo is developed on Windows with a CRLF working tree; ubuntu and
+    # macOS are its LF/POSIX runs. They report without blocking until their
+    # fallout is fixed, then this line goes and the jobs become required. All
+    # three are targets: the extension and the future IDE must work on each.
+    continue-on-error: ${{ matrix.os != 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,11 +70,11 @@ jobs:
   python:
     name: python suites (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
+    continue-on-error: ${{ matrix.os != 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,20 +90,28 @@ jobs:
         with:
           python-version: '3.12'
 
-      # The runners only use Node builtins, so no npm ci here. With CI set, a
+      # The first two runners only use Node builtins, so they need no npm ci. With CI set, a
       # runner that finds no interpreter fails instead of skipping.
       - name: Backend unit suites
-        run: node test/runners/run-python-tests.cjs
+        run: node apps/vscode-extension/test/runners/run-python-tests.cjs
         env:
           CODEXR_PYTHON: ${{ steps.python.outputs.python-path }}
 
       # Builds a venv with the lizard version the extension pins for users and
       # measures the per-language fixtures with it.
       - name: Per-language analysis fixtures
-        run: node test/runners/run-analysis-tests.cjs
+        run: node apps/vscode-extension/test/runners/run-analysis-tests.cjs
+
+      # This suite also loads the compiled LivePanelParser from out/, which the
+      # steps above never needed: install and compile the tests first.
+      - name: Install
+        run: npm ci
+
+      - name: Compile tests
+        run: npm run compile-tests
 
       - name: HTML DOM analysis
-        run: node test/runners/run-html-analysis-tests.cjs
+        run: node apps/vscode-extension/test/runners/run-html-analysis-tests.cjs
 
   package:
     name: package the VSIX
@@ -120,14 +135,14 @@ jobs:
 
       # What ships, hashed: reviewers can compare two runs of a cleanup branch.
       - name: Fingerprint dist
-        run: node scripts/dist-fingerprint.mjs --out dist-fingerprint.json
+        run: node apps/vscode-extension/scripts/dist-fingerprint.mjs --out dist-fingerprint.json
 
       - name: Upload the VSIX and its fingerprint
         uses: actions/upload-artifact@v4
         with:
           name: code-xr-vsix
           path: |
-            artifacts/*.vsix
+            apps/vscode-extension/artifacts/*.vsix
             dist-fingerprint.json
           retention-days: 14
           if-no-files-found: error

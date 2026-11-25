@@ -4,6 +4,8 @@
 > **Stability**: Stable — update when scripts, launch configs, or test layers change.
 > Verified against `package.json`, `.vscode/launch.json`, `.vscode/tasks.json` and `test/runners/` on 2026-07-08.
 
+> **Monorepo (2026-11-25):** run `npm ci` and every `npm run …` from the repository root; scripts delegate to the `code-xr` workspace in `apps/vscode-extension/`, where the paths below live (the Python backend is `backend/src/`, its tests `backend/tests/`). See `docs/monorepo.md`.
+
 ## Environment
 
 - **Platform**: developed on Windows 11; npm scripts deliberately call tool binaries via `node ./node_modules/<tool>/bin/...` instead of bare CLI names (Windows robustness). Keep that style when adding scripts.
