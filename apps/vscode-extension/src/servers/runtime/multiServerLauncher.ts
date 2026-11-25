@@ -1,24 +1,20 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import { HttpServer } from './httpServer';
-import { HttpsDefaultServer } from './httpsDefaultServer';
-import { HttpsCustomServer } from './httpsCustomServer';
 import { PortManager } from './portManager';
 import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
 import { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
 import { ServerActionHandlers } from '../../active_servers/views/interactions/handleServerActions';
 import { getServerRegistrar } from '../../active_servers/services/serverRegistrar';
 import { NetworkUtils } from '../utils/networkUtils';
+import {
+    determineCertMode,
+    determineLaunchMode,
+    determineServerType,
+    launchServerByType,
+    ServerInstance,
+    ServerType,
+} from './serverFactory';
 
-/**
- * Server types supported by the launcher
- */
-export type ServerType = 'http' | 'https-default' | 'https-custom';
-
-/**
- * Server instance type for the running server
- */
-export type ServerInstance = HttpServer | HttpsDefaultServer | HttpsCustomServer;
+export type { ServerInstance, ServerType } from './serverFactory';
 
 /**
  * Launch result interface (consolidated from launcher.ts)
@@ -127,7 +123,8 @@ export class MultiServerLauncher {
             // Launch the server - Use 0.0.0.0 to listen on all network interfaces for external access
             const host = '0.0.0.0';
             console.log(`SERVER: DEBUG - Configuring server to listen on ${host}:${finalPort} for network access`);
-            const result = await this.launchServerByType(
+            const result = await launchServerByType(
+                this.context,
                 serverType,
                 settings,
                 finalPort,
@@ -154,8 +151,8 @@ export class MultiServerLauncher {
 
                 // Register server in active servers registry
                 try {
-                    const launchMode: LaunchMode = this.determineLaunchMode(settings);
-                    const certMode: CertMode = this.determineCertMode(serverType, result.httpsOverridden);
+                    const launchMode: LaunchMode = determineLaunchMode(settings);
+                    const certMode: CertMode = determineCertMode(serverType, result.httpsOverridden);
                     
                     console.log('SERVER:  DEBUG - About to register server with the following details:');
                     console.log('SERVER:  DEBUG - customName:', customName);
@@ -273,164 +270,6 @@ export class MultiServerLauncher {
     }
 
     /**
-     * Determine server type based on settings
-     * @private
-     */
-    private determineServerType(settings: ServerSettings): ServerType {
-        if (settings.mode === 'HTTP') {
-            return 'http';
-        } else if (settings.mode === 'HTTPS') {
-            return settings.https.certSource === 'default' ? 'https-default' : 'https-custom';
-        }
-        
-        throw new Error(`Invalid server mode: ${settings.mode}`);
-    }
-
-    /**
-     * Determine launch mode based on settings
-     * @private
-     */
-    private determineLaunchMode(settings: ServerSettings): LaunchMode {
-        return settings.launch.openMode === 'lateralPanel' ? 'lateralPanel' as LaunchMode : 'browser' as LaunchMode;
-    }
-
-    /**
-     * Determine certificate mode based on server type and overrides
-     * @private
-     */
-    private determineCertMode(serverType: ServerType, httpsOverridden?: boolean): CertMode {
-        if (httpsOverridden) {
-            return 'http';
-        }
-        
-        switch (serverType) {
-            case 'http':
-                return 'http';
-            case 'https-default':
-                return 'https-default';
-            case 'https-custom':
-                return 'https-custom';
-            default:
-                return 'http';
-        }
-    }
-
-    /**
-     * Launch server by type - delegates to existing server implementations
-     * @private
-     */
-    private async launchServerByType(
-        serverType: ServerType,
-        settings: ServerSettings,
-        port: number,
-        host: string,
-        htmlFile?: string,
-        additionalMetadata?: Record<string, any>,
-    ): Promise<{
-        success: boolean;
-        serverUrl?: string;
-        serverType?: ServerType;
-        port?: number;
-        error?: string;
-        httpsOverridden?: boolean;
-        serverInstance?: ServerInstance;
-    }> {
-        try {
-            let server: ServerInstance;
-            let serverUrl: string;
-
-            // Default server configuration
-            const staticRoot = htmlFile ? path.dirname(htmlFile) : path.join(__dirname, '../../../templates');
-            const mainFile = htmlFile ? path.basename(htmlFile) : undefined;
-            const enableCors = true;
-            const allowedOrigins = ['*'];
-
-            console.log(`SERVER: Using static root: ${staticRoot}`);
-            if (mainFile) {
-                console.log(`SERVER: Main file configured: ${mainFile}`);
-            }
-
-            switch (serverType) {
-                case 'http':
-                    console.log('SERVER: Creating HTTP server...');
-                    server = new HttpServer({
-                        port,
-                        host,
-                        staticRoot,
-                        enableCors,
-                        allowedOrigins,
-                        mainFile,
-                        extensionContext: this.context,
-                        analysisSessionId: typeof additionalMetadata?.sessionId === 'string'
-                            ? additionalMetadata.sessionId
-                            : undefined,
-                    });
-                    break;
-
-                case 'https-default':
-                    console.log('SERVER: Creating HTTPS server with generated local certificates...');
-                    server = new HttpsDefaultServer({
-                        port,
-                        host,
-                        staticRoot,
-                        enableCors,
-                        allowedOrigins,
-                        mainFile,
-                        extensionContext: this.context,
-                        analysisSessionId: typeof additionalMetadata?.sessionId === 'string'
-                            ? additionalMetadata.sessionId
-                            : undefined,
-                    });
-                    break;
-
-                case 'https-custom':
-                    console.log('SERVER: Creating HTTPS server with custom certificates...');
-                    if (!settings.https?.certPath || !settings.https.keyPath) {
-                        throw new Error('Custom certificate paths are required for custom HTTPS server');
-                    }
-                    server = new HttpsCustomServer({
-                        port,
-                        host,
-                        staticRoot,
-                        enableCors,
-                        allowedOrigins,
-                        mainFile,
-                        certPath: settings.https.certPath,
-                        keyPath: settings.https.keyPath,
-                        extensionContext: this.context,
-                        analysisSessionId: typeof additionalMetadata?.sessionId === 'string'
-                            ? additionalMetadata.sessionId
-                            : undefined,
-                    });
-                    break;
-
-                default:
-                    throw new Error(`Unsupported server type: ${serverType}`);
-            }
-
-            // Start the server
-            console.log(`SERVER: Starting ${serverType} server...`);
-            serverUrl = await server.start();
-
-            return {
-                success: true,
-                serverUrl,
-                serverType,
-                port,
-                serverInstance: server
-            };
-
-        } catch (error) {
-            console.error(`SERVER: Error launching ${serverType} server:`, error);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                serverType
-            };
-        }
-    }
-
-    /**
      * Check for lateral panel + HTTPS conflict and provide fallback
      * @private
      * @param settings - Server settings
@@ -440,7 +279,7 @@ export class MultiServerLauncher {
         serverType: ServerType;
         isOverridden: boolean;
     } {
-        const originalServerType = this.determineServerType(settings);
+        const originalServerType = determineServerType(settings);
         
         // Check if we have lateral panel + HTTPS combination
         const isLateralPanel = settings.launch.openMode === 'lateralPanel';

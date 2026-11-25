@@ -63,7 +63,6 @@
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
-      "src/servers/runtime/multiServerLauncher.ts",
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
@@ -82,18 +81,14 @@
     }
   },
   "informational": {
-    "src.files": 323,
-    "src.lines": 48242,
+    "src.files": 324,
+    "src.lines": 48263,
     "src.functions": 2649,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "count": 126
-      },
-      {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 45
       },
       {
         "file": "src/active_servers/runtime/serverControl.ts",
@@ -105,6 +100,10 @@
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "count": 38
+      },
+      {
+        "file": "src/servers/runtime/multiServerLauncher.ts",
         "count": 38
       },
       {
@@ -302,16 +301,16 @@
         "lines": 595
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "lines": 590
-      },
-      {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
         "lines": 581
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
         "lines": 573
+      },
+      {
+        "file": "src/remote_access/services/remoteAccessManager.ts",
+        "lines": 564
       }
     ]
   },
