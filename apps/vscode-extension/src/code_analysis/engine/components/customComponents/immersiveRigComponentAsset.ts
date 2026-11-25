@@ -1,39 +1,27 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import {
+    SINGLE_FILE_RUNTIME_ASSETS,
+    resolveRuntimeAssetSourcePath,
+    assertRuntimeAssetSourceExists,
+    copyRuntimeAssetToOutput,
+    readRuntimeAssetContent,
+} from './singleFileRuntimeAssets';
 
-export const IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME = 'codexrImmersiveRigRuntime.js';
+const ASSET = SINGLE_FILE_RUNTIME_ASSETS.immersiveRig;
 
-const IMMERSIVE_RIG_RUNTIME_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'immersive-rig',
-    IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
-] as const;
+export const IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME = ASSET.outputName;
 
 export function resolveImmersiveRigRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...IMMERSIVE_RIG_RUNTIME_SOURCE_SEGMENTS);
+    return resolveRuntimeAssetSourcePath(ASSET, extensionPath);
 }
 
 export function assertImmersiveRigRuntimeSourceExists(extensionPath: string): string {
-    const runtimePath = resolveImmersiveRigRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(runtimePath)) {
-        throw new Error(`CodeXR immersive-rig runtime not found at ${runtimePath}`);
-    }
-    return runtimePath;
+    return assertRuntimeAssetSourceExists(ASSET, extensionPath);
 }
 
-export async function copyImmersiveRigRuntimeToOutput(
-    extensionPath: string,
-    outputDirectory: string,
-): Promise<string> {
-    const runtimePath = assertImmersiveRigRuntimeSourceExists(extensionPath);
-    const outputPath = path.join(outputDirectory, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME);
-    await fs.promises.copyFile(runtimePath, outputPath);
-    return outputPath;
+export async function copyImmersiveRigRuntimeToOutput(extensionPath: string, outputDirectory: string): Promise<string> {
+    return copyRuntimeAssetToOutput(ASSET, extensionPath, outputDirectory);
 }
 
 export async function readImmersiveRigRuntimeContent(extensionPath: string): Promise<string> {
-    const runtimePath = assertImmersiveRigRuntimeSourceExists(extensionPath);
-    return fs.promises.readFile(runtimePath, 'utf8');
+    return readRuntimeAssetContent(ASSET, extensionPath);
 }

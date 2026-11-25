@@ -1,38 +1,27 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import {
+    SINGLE_FILE_RUNTIME_ASSETS,
+    resolveRuntimeAssetSourcePath,
+    assertRuntimeAssetSourceExists,
+    copyRuntimeAssetToOutput,
+    readRuntimeAssetContent,
+} from './singleFileRuntimeAssets';
 
-export const CODEXR_COMMON_RUNTIME_OUTPUT_NAME = 'codexrCommonRuntime.js';
+const ASSET = SINGLE_FILE_RUNTIME_ASSETS.common;
 
-const CODEXR_COMMON_RUNTIME_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'common',
-    CODEXR_COMMON_RUNTIME_OUTPUT_NAME,
-] as const;
+export const CODEXR_COMMON_RUNTIME_OUTPUT_NAME = ASSET.outputName;
 
 export function resolveCodeXrCommonRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_COMMON_RUNTIME_SOURCE_SEGMENTS);
+    return resolveRuntimeAssetSourcePath(ASSET, extensionPath);
 }
 
 export function assertCodeXrCommonRuntimeSourceExists(extensionPath: string): string {
-    const runtimePath = resolveCodeXrCommonRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(runtimePath)) {
-        throw new Error(`CodeXR common runtime not found at ${runtimePath}`);
-    }
-    return runtimePath;
+    return assertRuntimeAssetSourceExists(ASSET, extensionPath);
 }
 
-export async function copyCodeXrCommonRuntimeToOutput(
-    extensionPath: string,
-    outputDirectory: string,
-): Promise<string> {
-    const runtimePath = assertCodeXrCommonRuntimeSourceExists(extensionPath);
-    const outputPath = path.join(outputDirectory, CODEXR_COMMON_RUNTIME_OUTPUT_NAME);
-    await fs.promises.copyFile(runtimePath, outputPath);
-    return outputPath;
+export async function copyCodeXrCommonRuntimeToOutput(extensionPath: string, outputDirectory: string): Promise<string> {
+    return copyRuntimeAssetToOutput(ASSET, extensionPath, outputDirectory);
 }
 
 export async function readCodeXrCommonRuntimeContent(extensionPath: string): Promise<string> {
-    const runtimePath = assertCodeXrCommonRuntimeSourceExists(extensionPath);
-    return fs.promises.readFile(runtimePath, 'utf8');
+    return readRuntimeAssetContent(ASSET, extensionPath);
 }

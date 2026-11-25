@@ -17,6 +17,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `test/packaging`: what ships (VSIX layout, dist characterization, Marketplace listing, the menu surface).
 - `test/runners`: the runner scripts npm scripts point to (the unit runner, the HTML-analysis runner, the four browser harnesses).
 - `test/tooling`: the guardrail ratchet (`measureGuardrails.cjs`, `guardrail-baseline.json`), the lint/typecheck contract, the npm-script checks.
+- `test/views`: the sidebar tree: a golden snapshot of every item `ModularTreeDataProvider` builds and of the section-item bridge behind it (`CODEXR_WRITE_TREE_SNAPSHOT=1` regenerates it, for an intended change only).
 - `../../backend/tests` (outside this package): backend Python tests grouped by capability; `../../backend/scripts/run-python-tests.cjs` runs them (`npm run test:python`).
 
 ## Commands

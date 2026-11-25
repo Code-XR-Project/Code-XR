@@ -1,38 +1,27 @@
-import * as path from 'path';
-import * as fs from 'fs';
+import {
+    SINGLE_FILE_RUNTIME_ASSETS,
+    resolveRuntimeAssetSourcePath,
+    assertRuntimeAssetSourceExists,
+    copyRuntimeAssetToOutput,
+    readRuntimeAssetContent,
+} from './singleFileRuntimeAssets';
 
-export const CODEXR_AVATAR_RUNTIME_OUTPUT_NAME = 'codexrAvatarRuntime.js';
+const ASSET = SINGLE_FILE_RUNTIME_ASSETS.avatar;
 
-const CODEXR_AVATAR_RUNTIME_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'avatar',
-    CODEXR_AVATAR_RUNTIME_OUTPUT_NAME,
-] as const;
+export const CODEXR_AVATAR_RUNTIME_OUTPUT_NAME = ASSET.outputName;
 
 export function resolveCodeXrAvatarRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_AVATAR_RUNTIME_SOURCE_SEGMENTS);
+    return resolveRuntimeAssetSourcePath(ASSET, extensionPath);
 }
 
 export function assertCodeXrAvatarRuntimeSourceExists(extensionPath: string): string {
-    const sourcePath = resolveCodeXrAvatarRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(sourcePath)) {
-        throw new Error(`CodeXR avatar runtime not found at ${sourcePath}`);
-    }
-    return sourcePath;
+    return assertRuntimeAssetSourceExists(ASSET, extensionPath);
 }
 
-export async function copyCodeXrAvatarRuntimeToOutput(
-    extensionPath: string,
-    outputDirectory: string,
-): Promise<string> {
-    const sourcePath = assertCodeXrAvatarRuntimeSourceExists(extensionPath);
-    const outputPath = path.join(outputDirectory, CODEXR_AVATAR_RUNTIME_OUTPUT_NAME);
-    await fs.promises.copyFile(sourcePath, outputPath);
-    return outputPath;
+export async function copyCodeXrAvatarRuntimeToOutput(extensionPath: string, outputDirectory: string): Promise<string> {
+    return copyRuntimeAssetToOutput(ASSET, extensionPath, outputDirectory);
 }
 
 export async function readCodeXrAvatarRuntimeContent(extensionPath: string): Promise<string> {
-    return fs.promises.readFile(assertCodeXrAvatarRuntimeSourceExists(extensionPath), 'utf8');
+    return readRuntimeAssetContent(ASSET, extensionPath);
 }
