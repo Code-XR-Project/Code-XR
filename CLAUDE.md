@@ -65,7 +65,7 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 ## AI workflow rules
 
 1. **One feature, bug, or refactor per session.** Finish and validate before starting the next. In the v1.2.1 cleanup programme the unit is the **commit**: one roadmap item = one bisectable commit, several per session in roadmap order, gate after each.
-2. Run `npm test` (plus the narrowest specialized script for the touched area) before declaring anything done. Never claim behavior works without a test run or the F5 flow. Note that `lint` inside that gate is currently weak — see `V1.2.1_STATUS.md` backlog item 1.
+2. Run `npm test` (plus the narrowest specialized script for the touched area) before declaring anything done. Never claim behavior works without a test run or the F5 flow. `lint` inside that gate fails on any error and on warnings over the recorded `--max-warnings` budget.
 3. Work on `v1.2.1` or a `feature/*` branch off it; never commit directly to `master`.
 4. Label claims: confirmed / self-assessed (docs claim it) / inferred / open question. Docs' status labels ("Implementado") are self-assessments, not verified facts.
 5. When you change the version state (cleanup lands, verification resolved), **update `.claude/docs/V1.2.1_STATUS.md` and the CHANGELOG `[1.2.1]` section in the same session** (it carries a provisional date, moved forward when the release is cut). Architecture changed → `ARCHITECTURE.md`; tooling changed → `DEVELOPMENT.md`; doc added → `INDEX.md`.

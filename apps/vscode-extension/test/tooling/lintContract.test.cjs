@@ -35,3 +35,19 @@ test('every block that sets a parser or plugins is scoped with files', async () 
         }
     }
 });
+
+test('the pre-existing style rules are errors and the lint script has a warning budget', async () => {
+    const config = await loadEslintConfig();
+    const tsBlock = config.find((block) => Array.isArray(block.files) && block.files.includes('**/*.ts'));
+    const severity = (rule) => {
+        const value = tsBlock.rules[rule];
+        return Array.isArray(value) ? value[0] : value;
+    };
+
+    for (const rule of ['@typescript-eslint/naming-convention', 'curly', 'eqeqeq', 'no-throw-literal', 'semi']) {
+        assert.equal(severity(rule), 'error', `${rule} is an error`);
+    }
+
+    const manifest = require(path.join(projectRoot, 'package.json'));
+    assert.match(manifest.scripts.lint, /--max-warnings \d+/, 'the lint script carries --max-warnings');
+});

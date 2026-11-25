@@ -74,7 +74,7 @@
     "complexity.over30": 5,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": null,
+    "eslint.maxWarnings": 0,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
