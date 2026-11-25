@@ -5,10 +5,14 @@
       : ''));
   }
 
+  // Every frame is loaded by its own immutable URL, online as offline
+  // (EVO-5). The shared data.json "bridge" the server used to copy each frame
+  // into raced between players; it stays only as the fallback for a movie
+  // whose frames carry no url (1.2.0 exports, harness fixtures).
   function frameUrlWithCache(frame, rawUrl) {
     var raw = client()?.isOfflineExport?.()
       ? String(frame.url || '')
-      : String(rawUrl || bridgeUrl() || frame.url || '');
+      : String(frame.url || rawUrl || bridgeUrl() || '');
     if (!raw) { return ''; }
     var separator = raw.indexOf('?') === -1 ? '?' : '&';
     return raw + separator
@@ -266,6 +270,15 @@
     }
     state.frameIndex = Math.max(0, Math.min(frames.length - 1, Number(index) || 0));
     var requestedFrameIndex = state.frameIndex;
+    state.seekInFlight += 1;
+    try {
+      return await seekFrame(requestedFrameIndex, viewGeneration, frames);
+    } finally {
+      state.seekInFlight = Math.max(0, state.seekInFlight - 1);
+    }
+  }
+
+  async function seekFrame(requestedFrameIndex, viewGeneration, frames) {
     var applied = null;
     try {
       applied = await requestBridgeFrame(requestedFrameIndex);
@@ -294,7 +307,7 @@
     }
     var appliedToChart = await applyBridgeFrameToChart(
       frames[requestedFrameIndex],
-      applied.bridgeUrl,
+      applied.frameUrl || applied.bridgeUrl,
       viewGeneration
     );
     if (!appliedToChart || !isEvolutionViewCurrent(viewGeneration)) {

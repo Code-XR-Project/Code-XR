@@ -195,16 +195,27 @@
   function renderGenerationProgress(payload) {
     if (!refs.progressRoot) { return; }
     var count = Number(payload?.frameCount) || 0;
-    var index = Number(payload?.frameIndex) || 0;
     var analyzing = payload?.state === 'analyzing' && count > 0;
     setNodeVisible(refs.progressRoot, analyzing);
-    if (!analyzing) { return; }
-    var ratio = Math.min(1, Math.max(0, index / count));
+    if (!analyzing) {
+      state.generationCompleted = 0;
+      return;
+    }
+    // Revisions FINISHED, never lower than what was already shown: with
+    // parallel workers frameIndex names whichever one spoke last, so the bar
+    // jumped back and never reached the end (EVO-14). Servers from 1.2.0
+    // send no `completed`; frameIndex + 1 is the closest they offer.
+    var reported = payload.completed != null
+      ? Number(payload.completed) || 0
+      : (Number(payload?.frameIndex) || 0) + 1;
+    state.generationCompleted = Math.min(count, Math.max(state.generationCompleted || 0, reported));
+    var done = state.generationCompleted;
+    var ratio = Math.min(1, Math.max(0, done / count));
     var width = Math.max(0.01, ratio * TIMELINE_WIDTH);
     refs.progressFill.setAttribute('width', width);
     // Grows from the left edge.
     refs.progressFill.setAttribute('position', ((width / 2) - (TIMELINE_WIDTH / 2)) + ' 0 0');
-    refs.progressLabel.setAttribute('value', 'Generating frame ' + Math.min(index + 1, count) + ' / ' + count);
+    refs.progressLabel.setAttribute('value', 'Analyzed ' + done + ' / ' + count + ' revisions');
   }
 
   function buildSparkline() {

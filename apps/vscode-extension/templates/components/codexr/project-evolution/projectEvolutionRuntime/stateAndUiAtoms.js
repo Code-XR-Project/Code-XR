@@ -41,6 +41,10 @@
     // True while the server is building the movie: shows the progress bar and
     // makes the panel reserve room for it.
     generating: false,
+    // Seeks still running (setSpeed must not restart playback under one).
+    seekInFlight: 0,
+    // Revisions the progress bar has shown as finished (it never goes back).
+    generationCompleted: 0,
     // A generation job (any phase) is running for the room: the Clear button
     // then reads "Cancel" and stops the job instead of deleting the movie.
     jobRunning: false,

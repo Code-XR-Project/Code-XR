@@ -128,7 +128,9 @@ export class ProjectEvolutionBridge {
             const requestId = typeof payload.requestId === 'string'
                 ? payload.requestId
                 : undefined;
-            const result = await this.projectEvolutionService.applyFrameToBridge(revision, frameIndex);
+            // No file I/O any more (EVO-5): the frame is validated and its
+            // own URL goes to the room, which follows the seek.
+            const result = this.projectEvolutionService.resolveFrame(revision, frameIndex);
             const currentView = this.host.getAnalysisViewState();
             if (
                 currentView?.mode !== 'project-evolution'
@@ -140,11 +142,15 @@ export class ProjectEvolutionBridge {
                 type: 'project-evolution-frame-applied',
                 payload: {
                     ...result,
+                    // Scenes from 1.2.0 read the frame from `bridgeUrl`.
+                    bridgeUrl: result.frameUrl,
                     requestId,
                 },
             });
         } catch (error) {
-            messageContext.broadcast({
+            // A bad seek is the requester's alone: broadcasting it stopped
+            // playback for the whole room (EVO-5).
+            messageContext.send({
                 type: 'project-evolution-error',
                 payload: {
                     code: error instanceof Error ? error.message : 'project-evolution-apply-frame-failed',

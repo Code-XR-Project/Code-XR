@@ -69,12 +69,10 @@ function writeFixtureFiles() {
       'utf8',
     );
   });
-  fs.copyFileSync(path.join(revisionRoot, 'data1.json'), path.join(revisionRoot, 'data.json'));
   fs.writeFileSync(
     path.join(revisionRoot, 'manifest.json'),
     `${JSON.stringify({
       revision: 1,
-      bridgeUrl: '/output/project-evolution-harness/evolution/revision-1/data.json',
       frames: framePayloads.map((payload, index) => ({
         index,
         url: `/output/project-evolution-harness/evolution/revision-1/data${index + 1}.json`,
@@ -85,8 +83,11 @@ function writeFixtureFiles() {
   );
 }
 
-function readBridgePayload() {
-  return JSON.parse(fs.readFileSync(path.join(revisionRoot, 'data.json'), 'utf8'));
+// EVO-5: each frame is loaded from its own immutable dataN.json; there is no
+// shared data.json bridge left to read back.
+function assertFrameLoaded(metrics, frameNumber, message) {
+  assert.match(JSON.stringify(metrics.dataUrl), new RegExp(`/data${frameNumber}\\.json\\?`), message);
+  assert.equal(fs.existsSync(path.join(revisionRoot, 'data.json')), false, 'no bridge file is ever written');
 }
 
 function contentType(filePath) {
@@ -104,21 +105,15 @@ function createServer() {
     if (requestUrl.pathname === '/__project_evolution_apply_frame') {
       const frameIndex = Number(requestUrl.searchParams.get('frameIndex') || 0);
       const sourcePath = path.join(revisionRoot, `data${frameIndex + 1}.json`);
-      const bridgePath = path.join(revisionRoot, 'data.json');
       if (!Number.isInteger(frameIndex) || frameIndex < 0 || !fs.existsSync(sourcePath)) {
         response.writeHead(400, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: 'invalid-frame' }));
         return;
       }
-      const tmpPath = `${bridgePath}.${process.pid}.tmp`;
-      fs.copyFileSync(sourcePath, tmpPath);
-      fs.renameSync(tmpPath, bridgePath);
+      // Like ProjectEvolutionService.resolveFrame: validate, copy nothing.
+      const frameUrl = `/output/project-evolution-harness/evolution/revision-1/data${frameIndex + 1}.json`;
       response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      response.end(JSON.stringify({
-        revision: 1,
-        frameIndex,
-        bridgeUrl: '/output/project-evolution-harness/evolution/revision-1/data.json',
-      }));
+      response.end(JSON.stringify({ revision: 1, frameIndex, frameUrl, bridgeUrl: frameUrl }));
       return;
     }
 
@@ -151,9 +146,9 @@ async function validateBridge(port) {
   const applyUrl = `http://127.0.0.1:${port}/__project_evolution_apply_frame?revision=1&frameIndex=2`;
   const response = await fetch(applyUrl);
   assert.equal(response.status, 200);
-  const payload = JSON.parse(fs.readFileSync(path.join(revisionRoot, 'data.json'), 'utf8'));
-  assert.equal(payload.length, framePayloads[2].length);
-  fs.copyFileSync(path.join(revisionRoot, 'data1.json'), path.join(revisionRoot, 'data.json'));
+  const payload = await response.json();
+  assert.equal(payload.frameUrl, '/output/project-evolution-harness/evolution/revision-1/data3.json');
+  assert.equal(fs.existsSync(path.join(revisionRoot, 'data.json')), false);
 }
 
 async function runPlaywrightIfAvailable(port) {
@@ -200,7 +195,7 @@ async function runScenario(browser, port) {
   assert.equal(metrics.treeParentId, 'codexrProjectEvolutionRoot');
   assert.equal(metrics.chartParentId, 'codexrProjectEvolutionRoot');
   assert.equal(metrics.hasLegacySurface, false);
-  assert.match(metrics.dataHtml, /babia-queryjson="url: .*data\.json/);
+  assert.match(metrics.dataHtml, /babia-queryjson="url: .*data1\.json/);
   assert.match(metrics.treeHtml, /babia-treebuilder="field: filePath/);
   assert.match(metrics.treeHtml, /from: codexrProjectEvolutionData/);
   assert.match(metrics.chartHtml, /babia-boats="[^"]*from: codexrProjectEvolutionTree/);
@@ -208,8 +203,7 @@ async function runScenario(browser, port) {
   assert.match(metrics.chartHtml, /codexr-boats-layout-stability="enabled: true"/);
   assert.match(metrics.chartHtml, /codexr-chart-containment="enabled: true/);
   assert.ok(metrics.chartChildren > 0, 'expected chart geometry after frame 1');
-  assert.match(JSON.stringify(metrics.dataUrl), /data\.json/);
-  assert.deepEqual(readBridgePayload(), framePayloads[0], 'data.json must contain frame 1');
+  assertFrameLoaded(metrics, 1, 'frame 1 is loaded from data1.json');
 
   const frameOneMeshes = metrics.chartMeshes;
   const frameOneNodeToken = metrics.chartNodeToken;
@@ -263,7 +257,7 @@ async function runScenario(browser, port) {
   );
   assert.ok(metrics.figuresOldCount > 0, 'Babia must retain figures_old for the frame transition');
   assert.equal(metrics.chartAnimating, false, 'the frame transition must finish before containment settles');
-  assert.deepEqual(readBridgePayload(), framePayloads[1], 'data.json must contain frame 2');
+  assertFrameLoaded(metrics, 2, 'frame 2 is loaded from data2.json');
   assert.ok(
     metrics.chartScale.y >= frameOneYScale * 0.25
       && metrics.chartScale.y <= frameOneYScale * 4,
@@ -319,7 +313,7 @@ async function runScenario(browser, port) {
     `frame 3 Boats bases must retain local height 0.2: ${metrics.greenLayerLocalHeights.join(', ')}`,
   );
   assert.equal(metrics.boatsStyle.zoneElevation, 0.01);
-  assert.deepEqual(readBridgePayload(), framePayloads[2], 'data.json must contain frame 3');
+  assertFrameLoaded(metrics, 3, 'frame 3 is loaded from data3.json');
   await page.click('[data-testid="frame-1"]');
   await page.waitForTimeout(4500);
   metrics = await page.evaluate(() => window.CodeXRProjectEvolutionHarness.updateStatus());
@@ -331,7 +325,7 @@ async function runScenario(browser, port) {
   );
   assert.equal(metrics.chartNodeToken, frameOneNodeToken, 'seeking back must keep the chart identity');
   assert.equal(metrics.chartComponentToken, frameOneComponentToken, 'seeking back must keep Babia');
-  assert.deepEqual(readBridgePayload(), framePayloads[0], 'data.json must return to frame 1');
+  assertFrameLoaded(metrics, 1, 'seeking back loads data1.json again');
 
   await page.click('[data-testid="frame-2"]');
   await page.waitForTimeout(4500);
@@ -364,9 +358,8 @@ async function runScenario(browser, port) {
   assert.equal(metrics.runtime.frameIndex, 0);
 
   // Paused chart selection replaces only the chart. It must not seek,
-  // refresh the datasource, or overwrite the bridge payload.
+  // refresh the datasource, or load another frame file.
   const pausedDataUrl = JSON.stringify(metrics.dataUrl);
-  const pausedBridgePayload = readBridgePayload();
   const pausedDataToken = metrics.dataNodeToken;
   const pausedTreeToken = metrics.treeNodeToken;
   const pausedChartToken = metrics.chartNodeToken;
@@ -383,7 +376,6 @@ async function runScenario(browser, port) {
   assert.match(metrics.chartHtml, /babia-bars="[^"]*from: codexrChartDataSlice__codexrProjectEvolutionData/);
   assert.match(metrics.chartHtml, /x_axis: fileName/);
   assert.equal(JSON.stringify(metrics.dataUrl), pausedDataUrl, 'the datasource URL must not refresh');
-  assert.deepEqual(readBridgePayload(), pausedBridgePayload, 'data.json must not change');
   assert.deepEqual(metrics.normalChartTransform, normalChartTransform);
   assert.deepEqual(metrics.duplicateIds, []);
   await page.waitForFunction(
@@ -409,7 +401,7 @@ async function runScenario(browser, port) {
   assert.equal(metrics.chartNodeToken, barsChartToken, 'the selected chart persists into later frames');
   assert.equal(metrics.chartComponentToken, barsComponentToken, 'the selected Babia instance persists');
   assert.deepEqual(metrics.rootChildren, ['codexrProjectEvolutionTree', 'codexrProjectEvolutionChart']);
-  assert.deepEqual(readBridgePayload(), framePayloads[1]);
+  assertFrameLoaded(metrics, 2, 'later frames load their own file with the new chart');
 
   // Leaving parks the complete pipeline. Re-entry restores the exact entities
   // and frame without asking the server to apply it again.

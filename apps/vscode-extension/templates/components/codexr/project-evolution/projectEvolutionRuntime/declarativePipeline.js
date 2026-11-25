@@ -304,6 +304,21 @@
     });
   }
 
+  // A Quest under load can take well over a second to attach a component;
+  // 1200 ms failed the pipeline there (LIFECYCLE-4).
+  var PIPELINE_COMPONENT_TIMEOUT_MS = 4000;
+
+  // A pipeline that fails half-way is torn down whole: a root left without
+  // its chart was taken for a preserved frame and broke every later entry
+  // into the mode (LIFECYCLE-4). The next seek rebuilds it from scratch.
+  function failEvolutionPipeline(message, viewGeneration) {
+    if (isEvolutionViewCurrent(viewGeneration)) {
+      setStatus(message, 'error');
+      releaseEvolutionVisualization();
+    }
+    return null;
+  }
+
   async function ensureDeclarativeEvolutionPipeline(frame, frameUrl, viewGeneration) {
     if (!isEvolutionViewCurrent(viewGeneration)) {
       return null;
@@ -316,17 +331,15 @@
     var rootEl = ensureEvolutionRoot(frame);
     var dataResult = ensureEvolutionDataSource(frameUrl);
     var dataSource = dataResult.entity;
-    if (!dataSource || !await waitForComponent(dataSource, 'babia-queryjson', 1200)) {
-      setStatus('Project evolution datasource is not available.', 'error');
-      return null;
+    if (!dataSource || !await waitForComponent(dataSource, 'babia-queryjson', PIPELINE_COMPONENT_TIMEOUT_MS)) {
+      return failEvolutionPipeline('Project evolution datasource is not available.', viewGeneration);
     }
     if (!isEvolutionViewCurrent(viewGeneration)) {
       return null;
     }
     var treeBuilder = ensureEvolutionTreeBuilder(rootEl);
-    if (!treeBuilder || !await waitForComponent(treeBuilder, EVOLUTION_TREE_COMPONENT, 1200)) {
-      setStatus('Project evolution tree is not available.', 'error');
-      return null;
+    if (!treeBuilder || !await waitForComponent(treeBuilder, EVOLUTION_TREE_COMPONENT, PIPELINE_COMPONENT_TIMEOUT_MS)) {
+      return failEvolutionPipeline('Project evolution tree is not available.', viewGeneration);
     }
     scopeEvolutionTreeOutput(treeBuilder);
     if (!isEvolutionViewCurrent(viewGeneration)) {
@@ -347,9 +360,8 @@
       }
     }
     var chart = ensureEvolutionChart(chartId, rootEl);
-    if (!chart || !await waitForComponent(chart, componentName, 1200)) {
-      setStatus('Project evolution chart is not available.', 'error');
-      return null;
+    if (!chart || !await waitForComponent(chart, componentName, PIPELINE_COMPONENT_TIMEOUT_MS)) {
+      return failEvolutionPipeline('Project evolution chart is not available.', viewGeneration);
     }
     await waitForComponent(chart, 'codexr-chart-containment', 1200);
     if (!isEvolutionViewCurrent(viewGeneration)) {

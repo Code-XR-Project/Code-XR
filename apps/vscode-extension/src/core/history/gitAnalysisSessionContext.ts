@@ -22,6 +22,13 @@ import { ComparisonSource, GitAnalysisExclusionCode } from './historicalComparis
  */
 export const REVISION_ANALYSIS_TIMEOUT_MS = 5 * 60 * 1000;
 
+/**
+ * Analyzed revisions kept per session (least recently used dropped first).
+ * Enough for a 96-frame movie; before, every regeneration over a different
+ * range added to a cache nothing ever trimmed (EVO-8).
+ */
+export const MAX_CACHED_REVISIONS = 128;
+
 /** One analyzed revision as both Git services cache it. */
 export interface CachedPayload {
     payload: Record<string, unknown>[];
@@ -107,9 +114,37 @@ export class GitAnalysisSessionContext {
         const cacheKey = buildAnalyzerCacheKey(this.policy.cacheVersion, source.commitSha, session);
         const cached = this.cache.get(cacheKey);
         if (cached) {
+            this.remember(cacheKey, cached);
             return cached;
         }
 
+        try {
+            return await this.analyzeRevision(source, session, cacheKey);
+        } finally {
+            // The snapshot is only the analyzer's input: once its payload is
+            // cached it is dead weight (up to 100 MB per revision, EVO-8).
+            await this.gitService.releaseSnapshot(source).catch(() => undefined);
+        }
+    }
+
+    /** Keeps `key` as the most recently used entry and trims the oldest ones. */
+    private remember(key: string, value: CachedPayload): void {
+        this.cache.delete(key);
+        this.cache.set(key, value);
+        while (this.cache.size > MAX_CACHED_REVISIONS) {
+            const oldest = this.cache.keys().next().value;
+            if (oldest === undefined) {
+                break;
+            }
+            this.cache.delete(oldest);
+        }
+    }
+
+    private async analyzeRevision(
+        source: Extract<ComparisonSource, { kind: 'gitRef' }>,
+        session: UnifiedAnalysisSession,
+        cacheKey: string,
+    ): Promise<CachedPayload> {
         const materialized = await this.gitService.materialize(source);
         if (!materialized.targetPath) {
             if (this.policy.missingTarget === 'throw') {
@@ -124,7 +159,7 @@ export class GitAnalysisSessionContext {
                 missingTarget: true,
                 warnings: materialized.warnings,
             };
-            this.cache.set(cacheKey, missing);
+            this.remember(cacheKey, missing);
             return missing;
         }
 
@@ -149,7 +184,7 @@ export class GitAnalysisSessionContext {
             missingTarget: false,
             warnings: materialized.warnings,
         };
-        this.cache.set(cacheKey, result);
+        this.remember(cacheKey, result);
         return result;
     }
 
@@ -168,7 +203,10 @@ export class GitAnalysisSessionContext {
         try {
             analysisResult = await runWithLaunchSignal(
                 watchdog.signal,
-                () => new ExecutePython(this.extensionContext).executeAnalysis(revisionSession),
+                // Silent: one VS Code notification per revision (up to 24,
+                // four at a time) was noise; the room's progress bar is the
+                // report (EVO-8).
+                () => new ExecutePython(this.extensionContext).executeAnalysis(revisionSession, { silent: true }),
             );
         } catch (error) {
             if (jobSignal?.aborted) {

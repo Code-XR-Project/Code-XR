@@ -63,9 +63,14 @@ test('project evolution owns one declarative datasource and a direct tree-chart 
     assert.doesNotMatch(runtimeSource, /setAttribute\(pipeline\.componentName, data\)/);
     assert.doesNotMatch(runtimeSource, /emit\('data-loaded'/);
     assert.match(runtimeSource, /function waitForComponent\(element, componentName, timeoutMs\)/);
-    assert.match(runtimeSource, /await waitForComponent\(dataSource, 'babia-queryjson', 1200\)/);
-    assert.match(runtimeSource, /await waitForComponent\(treeBuilder, EVOLUTION_TREE_COMPONENT, 1200\)/);
-    assert.match(runtimeSource, /await waitForComponent\(chart, componentName, 1200\)/);
+    assert.match(runtimeSource, /await waitForComponent\(dataSource, 'babia-queryjson', PIPELINE_COMPONENT_TIMEOUT_MS\)/);
+    assert.match(runtimeSource, /await waitForComponent\(treeBuilder, EVOLUTION_TREE_COMPONENT, PIPELINE_COMPONENT_TIMEOUT_MS\)/);
+    assert.match(runtimeSource, /await waitForComponent\(chart, componentName, PIPELINE_COMPONENT_TIMEOUT_MS\)/);
+    assert.match(runtimeSource, /var PIPELINE_COMPONENT_TIMEOUT_MS = 4000/);
+    // LIFECYCLE-4: a half-built pipeline is torn down whole, never left as a
+    // root without a chart.
+    assert.equal((runtimeSource.match(/return failEvolutionPipeline\(/g) || []).length, 3);
+    assert.match(runtimeSource, /function failEvolutionPipeline\(message, viewGeneration\) \{[\s\S]{0,200}releaseEvolutionVisualization\(\);/);
     assert.match(runtimeSource, /configureDeclarativeChartEntity\?\.\(/);
     // The git-ref-picker runtime is presentation chrome: every describeSource
     // use goes through the guarded helper, so a missing picker can no longer
@@ -125,7 +130,7 @@ test('project evolution namespaces stable boats identities away from other analy
     assert.match(runtimeSource, /buffer\.__codexrEvolutionNamespace = MODE/);
 });
 
-test('project evolution bridge URL is cache-busted without changing its path', () => {
+test('project evolution frame URL is the frame\'s own file, cache-busted (EVO-5)', () => {
     const runtime = loadRuntime();
 
     const url = runtime.__testing.frameUrlWithCache({
@@ -133,7 +138,7 @@ test('project evolution bridge URL is cache-busted without changing its path', (
         url: '/evolution/revision-3/data4.json',
     }, '/evolution/revision-3/data.json');
 
-    assert.match(url, /^\/evolution\/revision-3\/data\.json\?/);
+    assert.match(url, /^\/evolution\/revision-3\/data4\.json\?/);
     assert.match(url, /revision=/);
     assert.match(url, /frame=4/);
     assert.match(url, /t=123456789/);
@@ -334,14 +339,18 @@ function loadRuntimeWithClient(clientStub) {
     return sandbox.CodeXRProjectEvolutionRuntime;
 }
 
-test('offline export plays each frame from its own file; online keeps the bridge preference', () => {
+test('every frame plays from its own file, online and offline (EVO-5)', () => {
     const frame = { index: 3, url: '/evolution/revision-3/data4.json' };
     const appliedBridgeUrl = '/evolution/revision-3/data.json';
 
-    // Online (no offline flag): the bridge URL wins, exactly as before.
+    // Online: the frame's own immutable file wins over the old shared bridge,
+    // which raced between players seeking at once.
     const online = loadRuntimeWithClient({ isOfflineExport: () => false, sendMessage: () => true });
     const onlineUrl = online.__testing.frameUrlWithCache(frame, appliedBridgeUrl);
-    assert.match(onlineUrl, /^\/evolution\/revision-3\/data\.json\?/);
+    assert.match(onlineUrl, /^\/evolution\/revision-3\/data4\.json\?/);
+    // A 1.2.0 movie whose frames carry no url still falls back to the bridge.
+    const legacyUrl = online.__testing.frameUrlWithCache({ index: 3 }, appliedBridgeUrl);
+    assert.match(legacyUrl, /^\/evolution\/revision-3\/data\.json\?/);
 
     // Offline: the same call must point at the frame's own pre-generated file,
     // because no server exists to swap the bridge content.
@@ -578,4 +587,28 @@ test('offline generation is wired through the panel, and the no-git replay path 
     assert.match(runtimeSource, /exported revisions \(Auto, Range or Manual\)/);
     assert.match(runtimeSource, /replays the movie generated before export/);
     assert.match(runtimeSource, /replay-only: it cannot be cleared or regenerated here/);
+});
+
+test('S10: progress only grows, Play at the end restarts, replays keep the frame, picks past the limit are refused', () => {
+    // EVO-14: the bar shows revisions FINISHED and never goes back.
+    assert.match(runtimeSource, /state\.generationCompleted = Math\.min\(count, Math\.max\(state\.generationCompleted \|\| 0, reported\)\)/);
+    assert.match(runtimeSource, /'Analyzed ' \+ done \+ ' \/ ' \+ count \+ ' revisions'/);
+    assert.doesNotMatch(runtimeSource, /'Generating frame ' \+/);
+    // EVO-15: Play on the last frame starts over; a speed change never
+    // restarts the chain under a seek; a replay of the same movie keeps the
+    // frame instead of jumping to frame 1.
+    assert.match(runtimeSource, /if \(state\.frameIndex >= state\.result\.frames\.length - 1\) \{\s*var generation = state\.playbackGeneration;\s*void seek\(0\)/);
+    assert.match(runtimeSource, /if \(state\.playing && !state\.seekInFlight\) \{/);
+    assert.match(runtimeSource, /state\.seekInFlight \+= 1;[\s\S]{0,120}finally \{\s*state\.seekInFlight = Math\.max\(0, state\.seekInFlight - 1\);/);
+    assert.match(runtimeSource, /if \(!sameMovie\) \{\s*state\.frameIndex = 0;/);
+    assert.match(runtimeSource, /return seek\(state\.frameIndex\);/);
+    // EVO-1: a shared movie arriving ends the "generating" state too.
+    assert.match(runtimeSource, /state\.jobRunning = false;\s*state\.generating = false;\s*renderGenerationProgress\(\{ state: 'idle' \}\);\s*\/\/ A replay/);
+    // EVO-13: the limit is said when the user picks past it.
+    assert.match(runtimeSource, /'A manual movie has at most ' \+ limit \+ ' frames\. Remove one to add another\.'/);
+});
+
+test('S10: a frame applied by another participant loads that frame\'s own file', () => {
+    assert.match(runtimeSource, /applyBridgeFrameToChart\(frames\[state\.frameIndex\], payload\.frameUrl \|\| payload\.bridgeUrl, viewGeneration\)/);
+    assert.match(runtimeSource, /applied\.frameUrl \|\| applied\.bridgeUrl,/);
 });

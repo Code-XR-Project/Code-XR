@@ -31,24 +31,32 @@ The XR panel exposes a compact player:
   between modes;
 - page through available Git sources with previous/next arrows;
 - mark range starts in green and range ends in red;
-- show manual picks with their selection order;
+- show manual picks with their selection order (the movie itself always plays
+  oldest first, and a manual movie holds at most 24 frames: a 25th pick is
+  refused with a message);
 - play and pause;
 - previous and next frame;
 - speed presets;
 - clear the generated movie for everyone in the shared XR room;
 - current frame label, frame count and progress status.
 
-Each frame replaces the active chart datasource and asks the analysis table to
-renormalize. Playback waits for the chart/table to settle, then holds briefly
+Each frame points the chart datasource at that frame's own file,
+`/evolution/revision-N/data<i>.json`, and asks the analysis table to
+renormalize. The files are written once and never changed, so participants
+seeking at the same time cannot overwrite each other's frame (until 1.2.1 every
+frame was copied over a shared `data.json`, which raced). Playback waits for the chart/table to settle, then holds briefly
 before advancing, so the movie reads as a sequence of stable scenes instead of a
 rapid data swap. While playback is active, a small overlay above the table shows
 the current revision, date and frame number. When playback reaches the last
 frame, the final chart remains visible and the panel reports completion until
-the user generates another movie or presses `Clear movie`. The Field Mapping panel remains
+the user generates another movie or presses `Clear movie`; Play on the last
+frame starts the movie over. The Field Mapping panel remains
 available, so users can change the chart and dimensions while reviewing the
 evolution.
 
-`Clear movie` removes the generated `/evolution/` JSON files, clears the shared
+Only the current movie is kept on disk: a new movie removes the older
+`revision-N` folders, so an export always ships the movie the room was looking
+at. `Clear movie` removes the whole `/evolution/` folder, clears the shared
 Project Evolution entity, hides the movie chart, and resets every connected
 client to the empty Project Evolution panel. It does not delete the normal
 analysis `data.json`.
@@ -68,6 +76,11 @@ button reads `Cancel`:
   cancelled and waited for first, so no late movie can appear after the clear.
 - **Leaving the mode** changes nothing on the server: the generation goes on
   for the room and its movie appears when it is ready.
+
+The progress bar counts revisions finished (analyzed or discarded) out of the
+total, so it only moves forward and reaches the end. Revisions are analyzed
+without a VS Code notification each, and each revision's snapshot is deleted as
+soon as it is analyzed.
 
 A second Generate while one runs is answered `busy` to that participant only.
 A participant who opens the panel mid-generation sees the room's job (the

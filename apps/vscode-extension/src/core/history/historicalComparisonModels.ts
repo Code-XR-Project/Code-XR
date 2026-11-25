@@ -156,7 +156,11 @@ export interface ProjectEvolutionResult {
     frames: ProjectEvolutionFrame[];
     generatedAt: string;
     manifestUrl: string;
-    bridgeUrl: string;
+    /**
+     * Gone since 1.2.1: frames are loaded by their own immutable `url`
+     * (EVO-5). Kept optional so a movie exported by 1.2.0 still parses.
+     */
+    bridgeUrl?: string;
     excludedSources: GitAnalysisExclusion[];
 }
 
@@ -172,6 +176,12 @@ export interface ProjectEvolutionProgress {
     revision?: number;
     frameIndex?: number;
     frameCount?: number;
+    /**
+     * Revisions finished so far (analyzed or discarded) out of `frameCount`.
+     * Only ever grows and reaches `frameCount`, unlike `frameIndex`, which
+     * names whichever of the parallel workers spoke last (EVO-14).
+     */
+    completed?: number;
     /** The job this progress belongs to. */
     jobId?: string;
 }

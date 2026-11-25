@@ -94,6 +94,15 @@
   - Two screens turned toward you at an angle could still pass through each other while you dragged or followed them. The collision check now compares the whole panel, not a few points on it.
   - Added screens now use the scene's screen settings (sizes, distance in front of you, collision) instead of built-in defaults, and their idle label shows the screen's name ("vscreen 2") instead of an internal id.
   - Dependency graph cards now have a close button (**X**, at the top-right corner of a pinned card). The stack stays at most two rows high and grows sideways, so six pinned cards no longer climb through the ceiling.
+- **Project evolution is more reliable.**
+  - Two people moving through the movie at the same time no longer get errors that stop playback for the whole room, or a frame shown under another frame's title. Each frame is now loaded from its own file instead of being copied over a shared one, and a frame that cannot be shown is reported only to the person who asked for it.
+  - A movie whose first frame could not be built (a component slow to load on a headset, for example) no longer makes the mode impossible to open again until a new movie is generated. The half-built frame is removed and rebuilt, and slow components get 4 s instead of 1.2 s.
+  - The progress bar now counts finished revisions, so it only moves forward and reaches the end. Before, it jumped back and forth between parallel analyses.
+  - Generating a movie no longer opens one VS Code notification per revision, and each revision's temporary copy of the project is deleted as soon as it is analyzed instead of staying on disk (up to about 100 MB each) until VS Code closed.
+  - Only the current movie is kept on disk. Before, every movie generated stayed, **Clear movie** removed only the newest one, and a later export could ship an older movie that had been replaced and cleared.
+  - **Play** on the last frame starts the movie over instead of stopping at once, and reconnecting to the room keeps the frame you were on instead of jumping back to frame 1.
+  - Manual movies always play from oldest to newest, as exported movies already did, whatever order the commits were picked in. A 25th pick is refused with a message instead of being dropped without notice.
+  - The commit picker no longer lists the remote's default-branch alias as a branch named "origin".
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

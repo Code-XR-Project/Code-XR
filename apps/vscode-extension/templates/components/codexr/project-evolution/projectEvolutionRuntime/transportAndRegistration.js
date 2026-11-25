@@ -16,6 +16,18 @@
     state.playing = true;
     state.playbackGeneration += 1;
     render();
+    // Play on the last frame starts the movie over; it used to end at once
+    // with "finished" (EVO-15).
+    if (state.frameIndex >= state.result.frames.length - 1) {
+      var generation = state.playbackGeneration;
+      void seek(0).then(function () {
+        if (state.playing && generation === state.playbackGeneration) {
+          updatePlaybackOverlay(state.result.frames[state.frameIndex], state.result.frames.length, true);
+          void scheduleNext(generation);
+        }
+      });
+      return true;
+    }
     updatePlaybackOverlay(state.result.frames[state.frameIndex], state.result.frames.length, true);
     void scheduleNext(state.playbackGeneration);
     return true;
@@ -73,7 +85,10 @@
     // Repaints both speed rows (panel + companion) so they show which speed
     // the movie is actually running at.
     render();
-    if (state.playing) {
+    // Only a countdown is restarted at the new speed. During a seek the
+    // chain re-arms itself once the frame lands, and restarting it here
+    // raced the seek and could skip a frame (EVO-15).
+    if (state.playing && !state.seekInFlight) {
       state.playbackGeneration += 1;
       void scheduleNext(state.playbackGeneration);
     }
