@@ -4,12 +4,9 @@ Class Counter Analyzer
 
 This script analyzes a file and counts the number of class declarations.
 It supports multiple programming languages with comprehensive pattern matching.
-
-Usage: python class_counter_analyzer.py <file_path>
+Imported by utils/file_analysis_engine.py; it has no command line of its own.
 """
 
-import sys
-import json
 import os
 import re
 from typing import Any, Dict, List, Tuple
@@ -387,23 +384,3 @@ def extract_script_from_vue(content):
         return matches[0].strip()
     
     return ""
-
-
-def main():
-    """Main entry point"""
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "No file path provided"}))
-        sys.exit(1)
-    
-    file_path = sys.argv[1]
-    result = analyze_classes(file_path)
-    
-    # Output as JSON
-    print(json.dumps(result))
-
-
-if __name__ == "__main__":
-    main()
-
-
-
