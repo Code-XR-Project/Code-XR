@@ -15,7 +15,7 @@ This repository is an **npm-workspaces monorepo**. It holds the published VS Cod
 | [`backend/`](backend/) | The Python analysis backend (Lizard metrics, dependency engine, XR/LivePanel/DOM data producers) and its unit tests. Shipped inside the extension at `dist/code_analysis/python`. | Active |
 | [`packages/`](packages/) | Code shared between the apps. Empty today: see [`packages/README.md`](packages/README.md) for what moves here and when. | Planned |
 | [`docs/`](docs/) | Repository-level documentation (monorepo layout, cross-platform notes). Extension user docs stay in `apps/vscode-extension/docs/` because they ship in the VSIX. | Active |
-| [`media/`](media/) | Release screenshots, GIFs and the video index used by the README and the website. Not shipped. | Active |
+| [`media/`](media/) | Release screenshot and GIF masters, the shot list ([`SHOTLIST.md`](media/SHOTLIST.md)) and the video index. Nothing reads this folder at HEAD: the extension README loads its images from absolute URLs pinned to the release tag, and the website keeps its own copies. Not shipped. | Archive |
 | [`pages/`](pages/) | The GitHub Pages redirect to the website. | Active |
 
 More detail, including why the XR templates and the shared TypeScript logic are not split into packages yet, is in [`docs/monorepo.md`](docs/monorepo.md).
