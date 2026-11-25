@@ -82,6 +82,34 @@ test('every extension script is mirrored at the root, under the same name', () =
     assert.deepEqual(missing, []);
 });
 
+test('every test:* script is documented in DEVELOPMENT.md and test/README.md', () => {
+    // A runnable suite nobody knows about protects nothing.
+    const development = fs.readFileSync(path.join(repoRoot, '.claude', 'docs', 'DEVELOPMENT.md'), 'utf8');
+    const testReadme = fs.readFileSync(path.join(projectRoot, 'test', 'README.md'), 'utf8');
+    const testScripts = [...new Set(Object.values(packages)
+        .flatMap(({ manifest }) => Object.keys(manifest.scripts))
+        .filter((name) => name === 'test' || name.startsWith('test:')))];
+    const mentions = (text, name) => text.includes(`npm run ${name}`) || text.includes(`\`${name}\``);
+
+    assert.ok(testScripts.length >= 10, 'canary: the test scripts were found');
+    assert.deepEqual(testScripts.filter((name) => !mentions(development, name)), [], 'missing from .claude/docs/DEVELOPMENT.md');
+    assert.deepEqual(
+        testScripts.filter((name) => name !== 'test:backend' && !mentions(testReadme, name)),
+        [],
+        'missing from test/README.md (test:backend is the root alias of test:python)',
+    );
+});
+
+test('test/README.md names every directory of the suite', () => {
+    const testReadme = fs.readFileSync(path.join(projectRoot, 'test', 'README.md'), 'utf8');
+    const directories = fs.readdirSync(path.join(projectRoot, 'test'), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+
+    assert.ok(directories.includes('tooling'), 'canary');
+    assert.deepEqual(directories.filter((name) => !testReadme.includes(`test/${name}`)), []);
+});
+
 test('the target parser reads the script shapes this repository uses', () => {
     assert.deepEqual(commandsOf('node a.cjs --x && npm run b').flatMap(targetsOf), [
         { kind: 'file', value: 'a.cjs' },

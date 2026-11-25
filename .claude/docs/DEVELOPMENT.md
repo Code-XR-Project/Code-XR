@@ -22,6 +22,7 @@
 | `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project with `tsconfig.check.json`, which extends `tsconfig.json` and adds `noUnusedLocals`, `noFallthroughCasesInSwitch`, `noImplicitReturns` and `noUnusedParameters` (an unused parameter kept for a signature is named `_x`). `compile`, `compile-tests` and webpack stay on `tsconfig.json`, so an unused symbol fails the gate but never the F5 build. Then a second pass, `tsconfig.tooling.json`: `checkJs` over `scripts/*.mjs`, `webpack.config.js` and `eslint.config.mjs` (strict except `noImplicitAny`; a JSDoc `@type` is the fix for a finding there) | Fast correctness gate; part of `test:basic` |
 | `npm run lint` | ESLint (flat config, `eslint.config.mjs`) over explicit roots — `src/`, `test/`, `scripts/`, `templates/`, `webpack.config.js`, `eslint.config.mjs` — with a `--max-warnings` budget (608). The roots are listed rather than `eslint .`, so the scope is reviewable in the diff | Part of `test:basic` (~7 s: the type-aware block builds the TypeScript program). Style and unused-symbol rules are errors (Node-side JS also gets `no-undef` and `no-eval`). The standalone `templates/` runtimes get a relaxed browser block (classic scripts: top-level names are page globals, `== null` is allowed; the LivePanel page's shared globals are listed in the config); the multi-part runtime directories (`templates/components/codexr/*/*Runtime/`) are ignored, because a part does not parse on its own; the warn-only budget rules, all on `src/` (`no-explicit-any`; `complexity` 15, `max-depth` 4, `max-params` 5, `max-lines-per-function` 80, `max-lines` 600; type-aware `no-floating-promises` with `checkThenables` and `no-misused-promises`), count toward the budget, which is recorded in the guardrail baseline (`eslint.maxWarnings`) and only ever lowered: when a cleanup removes warnings, lower the number in the script and run `guardrails:update` |
 | `npm run compile-tests` | Removes `out/`, then `tsc -p . --outDir out`. Starting empty matters: tsc never deletes output for a source that is gone, so a module deleted from `src/` would keep a compiled twin the suites still load | Part of `test:basic` |
+| `npm run watch-tests` | `tsc -p . -w --outDir out`: keeps `out/` current while iterating on tests (the runner's stale-output check is per file, so this stays valid) | Iterating with `npm run test:unit` |
 | `npm test` = `npm run test:basic` | `typecheck` + `lint` + `compile-tests` (tsc → `out/`) + `test:unit`. Needs **no** webpack build | **The default gate. Run before declaring any change done.** |
 | `npm run test:unit` | `test/runners/run-node-tests.cjs` → first refuses to start if `out/` does not match `src/` (a source newer than its output, an uncompiled source, or a compiled file whose source is gone), then collects `test/**/*.test.cjs` and runs `node --test --test-isolation=none --test-concurrency=1` — **every suite in one process**, so a test must never leave global state behind | Unit/runtime tests only (fast) |
 | `npm run test:python` (root `test:backend` runs the same file directly) | `backend/scripts/run-python-tests.cjs` → `unittest discover` over `backend/tests/`. A test folder **needs an `__init__.py`** or discovery skips it silently. With no interpreter it skips locally and **fails under `CI`** | After touching `src/code_analysis/python/` |
@@ -30,6 +31,7 @@
 | `npm run test:analysis` | `backend/scripts/run-analysis-tests.cjs` (venv in `backend/artifacts/analysis-test-venv`) over the `backend/manual_test/` fixtures (one per supported language); asserts XR and LivePanel produce the same `data.json`. Its venv installs the **lizard version the extension pins** (read from `backend/requirements.txt`, the generated mirror of `pythonPackageManifest.ts`) | After changing analysis output or language support |
 | `npm run test:htmlanalysis` | HTML/DOM analysis tests | After touching `python/html/html_dom_parser.py` or DOM mode |
 | `npm run test:xr-harness` | `test/runners/run-xr-containment-harness.cjs` (browser harness, uses Playwright) | After touching table/containment runtimes |
+| `npm run test:xr-mode-harness` | `test/runners/run-xr-mode-cycle-harness.cjs` — static contract over `test/manual/xr-mode-cycle-harness.html`, then (with Playwright) walks the analysis selector through every mode and back, asserting the controller's view/mode state at each step | After touching the analysis-mode controller, mapping UI, historical comparison or dependency graph runtimes |
 | `npm run test:project-evolution-harness` | Project Evolution playback harness | After touching project-evolution runtime |
 | `npm run test:xr-immersive-harness` | `test/runners/run-xr-immersive-harness.cjs` — AR/VR semantics against real A-Frame: AR hide/keep sets, rig floor-align + AR recenter, pointer handover; plus a static contract over both scene templates | After touching the scene templates, pointer-policy or immersive-rig |
 | `npm run package` | Production webpack build (hidden source maps) | Pre-packaging |
@@ -67,15 +69,17 @@ test/
 ├── helpers/             sourceText.cjs (LF readers, assertAbsent with a mandatory canary),
 │                        fakeVscode.cjs (scoped fake `vscode` to EXECUTE out/ modules),
 │                        runtimeAssembly.cjs (test-side mirror of the runtime assembler)
-├── tooling/             measureGuardrails.cjs + guardrail-baseline.json + the ratchet test
-├── python/              unittest suites (dependencies + goldens, analyzers, scanning, html_dom,
-│                        xr schema…); backend_sandbox.py scopes a fake lizard to one module
+├── baseline/            the feature baseline of the cleanup epic: snapshot of the user-visible
+│                        surface + the register of authorized removals (featureSurface.cjs --write)
+├── tooling/             measureGuardrails.cjs + guardrail-baseline.json + the ratchet test;
+│                        lintContract (what lint/typecheck cover and how strict), npmScripts
+│                        (every script target exists; every test:* script is documented here)
 ├── manual/              browser-run HTML harnesses (xr-containment, project-evolution-playback…)
 └── runners/             the .cjs runner scripts npm scripts point to (the two Python-only ones,
                          run-python-tests and run-analysis-tests, are in backend/scripts/)
 ```
 
-The dependency-graph sample sources (~25 languages) live with the backend that reads them: `backend/tests/fixtures/dependency-languages/`.
+The Python `unittest` suites (dependencies + goldens, analyzers, scanning, html_dom, xr schema…; `backend_sandbox.py` scopes a fake lizard to one module) live in `backend/tests/`, and the dependency-graph sample sources (~25 languages) with them: `backend/tests/fixtures/dependency-languages/`.
 
 Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:analysis` (see `backend/manual_test/README.md`); that runner drives `backend/tests/manual_metrics_suite.py` and `backend/scripts/report-manual-metrics.py` (reports land in `backend/artifacts/manual_test_reports/`).
 
