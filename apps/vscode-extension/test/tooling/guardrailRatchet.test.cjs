@@ -92,7 +92,7 @@ test('modules are the first folder under src/, or the first two under core/ and 
     assert.equal(moduleOf('src/platform/logging/logger.ts'), 'platform');
     assert.equal(moduleOf('src/core/server/http/httpRespond.ts'), 'core/server');
     assert.equal(moduleOf('src/features/analysis/views/analysisItems.ts'), 'features/analysis');
-    assert.equal(moduleOf('src/core/extensionContext.ts'), 'core');
+    assert.equal(moduleOf('src/core/example.ts'), 'core');
 });
 
 test('--renamed re-keys the baseline through a move map, so a pure move reports no change', () => {

@@ -3,7 +3,7 @@ import { NetworkUtils } from '../utils/networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
 import { isCertificateRejectedByClient } from './httpsTlsOptions';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SERVER');
 

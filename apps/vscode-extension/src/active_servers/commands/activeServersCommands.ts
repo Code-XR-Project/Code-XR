@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ServerActionHandlers } from '../views/interactions/handleServerActions';
 import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVER');
 

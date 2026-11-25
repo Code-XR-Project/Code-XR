@@ -9,7 +9,7 @@ import { LauncherXRAnalysis } from './launchers/launcherXRAnalysis';
 import { LauncherVisualizeDOM } from './launchers/launcherVisualizeDOM';
 import { UnifiedSessionRegistry } from './core/sessionRegistry';
 import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './core/analysisSession';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
 

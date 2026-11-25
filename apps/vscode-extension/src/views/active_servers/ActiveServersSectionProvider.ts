@@ -5,7 +5,7 @@ import { CollaborationSectionProvider } from '../collaboration/CollaborationSect
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
 import { ConnectedParticipantSummary } from '../../collaboration/model/connectedParticipant';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS_MODULAR');
 

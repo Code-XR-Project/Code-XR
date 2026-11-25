@@ -12,7 +12,7 @@ import { SSEManager } from '../../../servers/runtime/sse/SSEManager';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
 import { analysisUpdateEvents } from '../../historical/analysisUpdateEvents';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('RE_ANALYSIS_MANAGER');
 

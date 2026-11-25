@@ -5,7 +5,7 @@
 
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import { getLogger } from '../core/logging/sink';
+import { getLogger } from '../platform/logging/sink';
 
 const logger = getLogger('SHA256_GENERATOR');
 

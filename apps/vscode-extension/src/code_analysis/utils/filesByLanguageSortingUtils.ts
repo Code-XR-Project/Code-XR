@@ -11,7 +11,7 @@ import {
     LanguageGroupSortDirection
 } from '../configuration/models/analysisConfiguration';
 import { FilesByLanguage } from './workspaceFileScanner';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('FILES_BY_LANGUAGE_SORTING_UTILS');
 

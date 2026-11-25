@@ -26,7 +26,7 @@ import {
     XRAnalysisData,
 } from './directoryReanalysisData';
 import { analysisUpdateEvents } from '../../historical/analysisUpdateEvents';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('DIRECTORY_REANALYZER');
 

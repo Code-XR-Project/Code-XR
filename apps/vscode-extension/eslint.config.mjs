@@ -3,12 +3,12 @@ import tsParser from "@typescript-eslint/parser";
 import globals from "globals";
 
 // Logging programme (ROADMAP W4-L, LOG-02): extension diagnostics go through
-// the logger (src/core/logging), never straight to the console. The sink is
+// the logger (src/platform/logging), never straight to the console. The sink is
 // the one file allowed to call console.*: it is the fallback while no output
 // channel is attached. Browser runtimes under templates/ are not covered:
 // their console is the page's.
 const NO_CONSOLE_FILES = ["src/**/*.ts"];
-const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
+const CONSOLE_ALLOWLIST = ["src/platform/logging/sink.ts"];
 
 const NODE_JS_RULES = {
     "no-undef": "error",

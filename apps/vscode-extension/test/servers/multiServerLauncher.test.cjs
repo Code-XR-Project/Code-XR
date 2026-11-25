@@ -231,7 +231,7 @@ async function runScenario(scenario) {
             // dependency would build a fresh copy nobody else references.
             const { MultiServerLauncher } = requireOut('servers/runtime/multiServerLauncher.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
-            observeLogsAsConsole(loaded('core/logging/sink.js'), record);
+            observeLogsAsConsole(loaded('platform/logging/sink.js'), record);
             const makeFakeServer = (kind) => class {
                 constructor(config) {
                     this.isFakeServer = true;

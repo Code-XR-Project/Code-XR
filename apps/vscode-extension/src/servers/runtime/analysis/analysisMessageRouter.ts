@@ -10,7 +10,7 @@ import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { DependencyGraphBridge } from './dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './projectEvolutionBridge';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_MESSAGE_ROUTER');
 

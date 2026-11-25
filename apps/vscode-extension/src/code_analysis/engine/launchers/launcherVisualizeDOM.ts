@@ -8,7 +8,7 @@ import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { executeLaunchPipeline } from './launchPipeline';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LAUNCHER_VISUALIZE_DOM');
 

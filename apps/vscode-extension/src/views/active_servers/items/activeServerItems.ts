@@ -6,7 +6,7 @@ import { ConnectedParticipantSummary } from '../../../collaboration/model/connec
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
 import { CollaborationTreeItem } from '../../collaboration/items/collaborationItems';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS');
 

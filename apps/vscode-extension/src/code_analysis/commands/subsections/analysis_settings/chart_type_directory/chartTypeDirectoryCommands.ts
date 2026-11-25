@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { ChartTypeDirectorySetting } from '../../../../views/subsections/analysis_settings/chart_type_directory/chartTypeDirectory';
 import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
 import { createChartTypeCommands } from '../chart_type_shared/chartTypeCommandFactory';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('CHART_TYPE_DIRECTORY_COMMANDS');
 

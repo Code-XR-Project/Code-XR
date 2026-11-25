@@ -3,8 +3,8 @@ import { BABIA_EXAMPLE_LIBRARIES, BabiaExample } from '../model/babiaExampleMode
 import { ExampleClickHandler } from '../views/interactions/handleExampleClicks';
 import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
 import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { DetailRow, formatDetailSections } from '../../utils/detailDialog';
-import { getLogger } from '../../core/logging/sink';
+import { DetailRow, formatDetailSections } from '../../platform/ui/detailDialog';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('EXAMPLES');
 

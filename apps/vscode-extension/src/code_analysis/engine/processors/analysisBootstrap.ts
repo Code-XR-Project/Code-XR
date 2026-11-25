@@ -9,7 +9,7 @@ import { directoryXRParser, DirectoryXRParsingResult } from '../parsers/director
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { buildTrackedFileSnapshot } from '../watchers/directorySnapshot';
 import { resolveTrackedSystemPath } from '../watchers/directoryReanalysisData';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_BOOTSTRAP');
 

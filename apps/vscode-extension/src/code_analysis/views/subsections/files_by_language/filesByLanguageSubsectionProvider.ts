@@ -10,7 +10,7 @@ import { WorkspaceFileScanner } from '../../../utils/workspaceFileScanner';
 import { FilesByLanguageSortingUtils } from '../../../utils/filesByLanguageSortingUtils';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import { WorkspaceSnapshotService } from '../../../services/workspaceSnapshotService';
-import { CodeXRLogger } from '../../../../core/logging/logger';
+import { CodeXRLogger } from '../../../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('FILES_BY_LANGUAGE');
 

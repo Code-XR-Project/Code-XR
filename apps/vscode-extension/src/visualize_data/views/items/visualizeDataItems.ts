@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VisualizeDataStateManager, VisualizeDataState } from '../../state/visualizeDataState';
 import { ChartDimension } from '../../../babia_templates/models/chartModels';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZE_DATA_ITEMS');
 

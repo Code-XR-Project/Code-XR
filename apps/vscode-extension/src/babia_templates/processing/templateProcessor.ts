@@ -6,7 +6,7 @@ import { CreateStructure } from './placeholders/createStructure';
 import { XRFieldTypeMap, XRSchemaTargetType } from '../models/xrFieldModels';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('TEMPLATE_PROCESSOR');

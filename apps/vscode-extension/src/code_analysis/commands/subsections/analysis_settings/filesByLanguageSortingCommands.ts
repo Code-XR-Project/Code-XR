@@ -13,7 +13,7 @@ import {
     FilesSortBy,
     FilesSortDirection
 } from '../../../configuration/models/analysisConfiguration';
-import { getLogger } from '../../../../core/logging/sink';
+import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 

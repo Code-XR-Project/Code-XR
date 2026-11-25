@@ -13,9 +13,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { generateNonce } from '../../../utils/nonceGenerator';
+import { generateNonce } from '../../../shared/nonceGenerator';
 import { ThemeUtils } from '../utils/themeUtils';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('LIVE_PANEL_PARSER');

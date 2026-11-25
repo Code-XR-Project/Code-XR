@@ -31,7 +31,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 
 ## Activation flow (`src/extension.ts`)
 
-1. `initializeExtensionContext` + `CodeXRLogger.initialize` (`src/core/`). The logger attaches the "CodeXR" output channel to the vscode-free log sink; everything logged before this (including at module load) was buffered by the sink and is flushed into the channel now.
+1. `initializeExtensionContext` + `CodeXRLogger.initialize` (`src/platform/`). The logger attaches the "CodeXR" output channel to the vscode-free log sink; everything logged before this (including at module load) was buffered by the sink and is flushed into the channel now.
 2. Singletons initialized: `AnalysisConfigurationStorage`, `CollaborationProfileManager`, `RemoteAccessManager`, `ServerSettingsManager`, `getActiveServerRegistry()`, `ServerControl`.
 3. `ModularTreeDataProvider` (`src/views/ModularTreeDataProvider.ts`) registered as the single tree view `codexrTree` (one activity-bar container hosts all sections: servers, active servers, examples, visualize data, analyses, python env, visualization settings, learn more). **Collaboration is not a root section**: `CollaborationSectionProvider` is mounted by `ActiveServersSectionProvider` as the nested `COLLABORATION` group (item type `collaboration-group`), so its items — including `Join Remote Session` — render inside `ACTIVE SERVERS`.
 4. `registerAllCommands` (`src/commands/index.ts`) merges command arrays from every feature module and registers them via `CommandBuilder.registerAll`. **`assertUniqueCommandIds` throws on duplicate command IDs** — keep this in mind when adding commands.
@@ -68,10 +68,11 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `python_env/` | Managed Python virtual environment (create/verify/reinstall + UI state) | `runtime/venvManager.ts` |
 | `visualize_data/` | User-driven "visualize your own JSON" flow | commands + launcher |
 | `visualization_settings/` | Visualization settings (colors, chart config) + color picker | storage + model |
-| `core/` | Extension context, logging, startup coordination | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `startup/startupCoordinator.ts` |
-| `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports), `tree/baseInterfaces.ts` (the section-provider contract every sidebar section implements) |
+| `core/` | Startup coordination (moves to `app/` in #55 B14) | `startup/startupCoordinator.ts` |
+| `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports), `commands/commandBuilder.ts`, `tree/baseInterfaces.ts` (the section-provider contract every sidebar section implements), `ui/errorHandler.ts`, `ui/detailDialog.ts`, `webview/panelManager.ts` (the `serverId → WebviewPanel` registry) |
+| `shared/` | Helpers with no VS Code and no domain | `nonceGenerator.ts` |
 | `learn_more/` | "Learn more" help section in the tree | commands + views |
-| `utils/` | Shared helpers | `languageMetadata.ts`, `fileToServerMap.ts`, `commandBuilder.ts`, `errorHandler.ts`, `nonceGenerator.ts` |
+| `utils/` | Helpers still waiting for their #55 batch | `languageMetadata.ts`, `fileToServerMap.ts`, `sha256Generator.ts` |
 
 **Per-feature layout convention** (followed by most modules): `commands/` + `model(s)/` + `runtime/` or `services/` + `views/{items,interactions}` + `registry|storage|state/`. When adding a feature, mirror this pattern.
 
@@ -93,7 +94,7 @@ Note: there is some historical duplication — e.g. `active_servers/views/` **an
 
 ## Logging (since 1.2.1)
 
-Every diagnostic of the extension host goes through `src/core/logging`. A module logs with `const logger = getLogger('SCOPE')` from `core/logging/sink.ts`, which has no `vscode` import, so any module (and any unit test that loads it from `out/` without the fake vscode) can log. Lines land in the **CodeXR** output channel as `[ISO time] [LEVEL] [SCOPE] message`, with an optional metadata line (an Error's stack, a string, or JSON).
+Every diagnostic of the extension host goes through `src/platform/logging`. A module logs with `const logger = getLogger('SCOPE')` from `platform/logging/sink.ts`, which has no `vscode` import, so any module (and any unit test that loads it from `out/` without the fake vscode) can log. Lines land in the **CodeXR** output channel as `[ISO time] [LEVEL] [SCOPE] message`, with an optional metadata line (an Error's stack, a string, or JSON).
 
 - **Levels.** `warn` and `error` are always written. `debug` and `info` are written only in development mode or with `codeXR.debug.verboseLogs` on (`logPolicy.ts`). Anything carrying a file system path is `debug`, passed lazily (`logger.debug(() => ...)`), so it costs nothing while verbose logging is off. A caught failure is reported at `warn` or `error`, never only at `debug`.
 - **Before activation** the sink keeps up to 1,000 lines in a buffer and flushes them through the level policy when `CodeXRLogger.initialize` attaches the channel; while no channel is attached (and after it is disposed), `warn`/`error` are also echoed to the console.

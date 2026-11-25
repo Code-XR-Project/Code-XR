@@ -13,7 +13,7 @@ import { FileRequirementProcessor, ProcessedRequirements } from '../processors/F
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { AnalysisConfigurationStorage } from '../../configuration/analysisConfigurationStorage';
 import { executeLaunchPipeline } from './launchPipeline';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LAUNCHER_LIVE_PANEL');
 

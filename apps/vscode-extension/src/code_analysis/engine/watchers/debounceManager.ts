@@ -11,7 +11,7 @@
 import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../../configuration/analysisConfigurationStorage';
 import { ConfigurationConverter } from './configurationConverter';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('DEBOUNCE_MANAGER');
 

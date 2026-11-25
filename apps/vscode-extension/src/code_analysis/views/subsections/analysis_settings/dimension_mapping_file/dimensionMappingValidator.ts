@@ -7,7 +7,7 @@ import { ChartMetadata } from '../../../../../babia_templates/models/chartModels
 import { chartTemplates } from '../../../../../babia_templates/charts/templateCharts';
 import { DimensionMapping } from '../../../../configuration/models/analysisConfiguration';
 import { XRFieldTypeMap } from '../../../../services/xrFieldSchemaService';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('DIMENSION_MAPPING_VALIDATOR');
 

@@ -25,7 +25,7 @@ import { DimensionMappingDirectorySetting } from '../views/subsections/analysis_
 import { FilesByLanguageSortingSetting } from '../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
 import { ProfileConfigurationSetting } from '../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { getPanelManager } from '../../active_servers/services/panelManager';
-import { getLogger } from '../../core/logging/sink';
+import { getPanelManager } from '../../platform/webview/panelManager';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SERVER');
 

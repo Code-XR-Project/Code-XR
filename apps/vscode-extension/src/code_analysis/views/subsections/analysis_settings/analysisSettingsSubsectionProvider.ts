@@ -17,7 +17,7 @@ import { AutoAnalysisEnabledSetting } from './auto_analysis_enabled/autoAnalysis
 import { FilesByLanguageSortingSetting } from './files_by_language_sorting/filesByLanguageSorting';
 import { ProfileConfigurationSetting } from './profile_configuration/profileConfiguration';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
-import { getLogger } from '../../../../core/logging/sink';
+import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 

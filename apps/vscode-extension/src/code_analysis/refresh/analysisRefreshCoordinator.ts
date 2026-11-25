@@ -1,5 +1,5 @@
 import { defaultControllerView } from './analysisViewModes';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_REFRESH_COORDINATOR');
 

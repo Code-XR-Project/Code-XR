@@ -20,7 +20,7 @@
   "ratcheted": {
     "console.total": 2,
     "console.byModule": {
-      "core/logging": 2
+      "platform": 2
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
@@ -29,10 +29,10 @@
       "babia_templates": 2,
       "code_analysis": 18,
       "commands": 6,
-      "platform": 7,
+      "platform": 12,
       "python_env": 5,
       "servers": 11,
-      "utils": 13,
+      "utils": 8,
       "views": 15,
       "visualization_settings": 5,
       "visualize_data": 2
@@ -73,11 +73,11 @@
     "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.byFile": {
-      "src/core/logging/sink.ts": 2
+      "src/platform/logging/sink.ts": 2
     },
     "console.topFiles": [
       {
-        "file": "src/core/logging/sink.ts",
+        "file": "src/platform/logging/sink.ts",
         "count": 2
       }
     ],
@@ -97,6 +97,7 @@
       "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": 1,
       "src/commands/analysis/AnalysisCommands.ts": 5,
       "src/commands/index.ts": 1,
+      "src/platform/commands/commandBuilder.ts": 5,
       "src/platform/commands/commandRegistry.ts": 2,
       "src/platform/tree/baseInterfaces.ts": 5,
       "src/python_env/runtime/venvManager.ts": 5,
@@ -108,7 +109,6 @@
       "src/servers/runtime/sse/SSEManager.ts": 1,
       "src/servers/storage/serverSettingsManager.ts": 4,
       "src/servers/views/items/configurationItems.ts": 1,
-      "src/utils/commandBuilder.ts": 5,
       "src/utils/commonCommands.ts": 2,
       "src/utils/jsonFieldAnalyzer.ts": 5,
       "src/utils/uriPathConverter.ts": 1,
@@ -131,15 +131,15 @@
         "count": 5
       },
       {
+        "file": "src/platform/commands/commandBuilder.ts",
+        "count": 5
+      },
+      {
         "file": "src/platform/tree/baseInterfaces.ts",
         "count": 5
       },
       {
         "file": "src/python_env/runtime/venvManager.ts",
-        "count": 5
-      },
-      {
-        "file": "src/utils/commandBuilder.ts",
         "count": 5
       },
       {

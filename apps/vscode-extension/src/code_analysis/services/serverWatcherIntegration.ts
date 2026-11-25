@@ -9,7 +9,7 @@ import { SessionWatcherManager } from '../engine/watchers/sessionWatcherManager'
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ServerControl } from '../../active_servers/runtime/serverControl';
 import * as fs from 'fs';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 import type { ActiveServer, RegistryEvent } from '../../active_servers/model/activeServerModel';
 import type { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 

@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { DimensionMappingDirectorySetting } from '../../../../views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory';
 import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('DIMENSION_MAPPING_DIRECTORY_COMMANDS');
 

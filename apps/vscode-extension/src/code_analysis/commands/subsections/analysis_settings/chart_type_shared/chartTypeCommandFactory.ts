@@ -6,7 +6,7 @@
  */
 
 import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
-import type { ScopedLogger } from '../../../../../core/logging/sink';
+import type { ScopedLogger } from '../../../../../platform/logging/sink';
 
 export interface ChartTypeCommandOptions {
     commandId: string;

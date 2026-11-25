@@ -11,7 +11,7 @@ const {
 } = require('./fakeVscode.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const compiledLogger = path.join(projectRoot, 'out', 'core', 'logging', 'logger.js');
+const compiledLogger = path.join(projectRoot, 'out', 'platform', 'logging', 'logger.js');
 
 function requireVscodeOutsideTheScope() {
     // Resolved through Module._load like any other request: once the scope is
@@ -36,7 +36,7 @@ test('a compiled module that imports vscode loads and runs inside the scope', ()
 
     try {
         withFakeVscode(fake, ({ requireOut }) => {
-            const { CodeXRLogger } = requireOut('core/logging/logger.js');
+            const { CodeXRLogger } = requireOut('platform/logging/logger.js');
             CodeXRLogger.initialize(context);
             CodeXRLogger.getLogger('PROBE').warn('loaded under the fake');
         });
@@ -56,7 +56,7 @@ test('the scope always closes: the hook is restored and compiled modules are evi
 
     // sync callback
     withFakeVscode(fake, ({ requireOut }) => {
-        requireOut('core/logging/logger.js');
+        requireOut('platform/logging/logger.js');
         assert.ok(require.cache[compiledLogger], 'cached while the scope is open');
     });
     assert.equal(require.cache[compiledLogger], undefined, 'evicted: a singleton bound to a dead fake must not reach the next suite');
@@ -65,7 +65,7 @@ test('the scope always closes: the hook is restored and compiled modules are evi
     // async callback: cleanup waits for the promise
     let releaseCallback;
     const pending = withFakeVscode(fake, async ({ requireOut }) => {
-        requireOut('core/logging/logger.js');
+        requireOut('platform/logging/logger.js');
         await new Promise((resolve) => { releaseCallback = resolve; });
         return 'done';
     });
@@ -83,11 +83,11 @@ test('the scope always closes: the hook is restored and compiled modules are evi
 });
 
 test('modules that were already cached before the scope are left alone', () => {
-    const policyPath = path.join(projectRoot, 'out', 'core', 'logging', 'logPolicy.js');
+    const policyPath = path.join(projectRoot, 'out', 'platform', 'logging', 'logPolicy.js');
     const policyBefore = require(policyPath);
 
     withFakeVscode(createFakeVscode(), ({ requireOut }) => {
-        requireOut('core/logging/logger.js');
+        requireOut('platform/logging/logger.js');
     });
 
     assert.equal(require(policyPath), policyBefore, 'a vscode-free module another suite holds is not reloaded behind its back');
@@ -121,7 +121,7 @@ test('strict mode still loads a compiled module that does `import * as vscode`',
 
     try {
         withFakeVscode(fake, ({ requireOut }) => {
-            const { CodeXRLogger } = requireOut('core/logging/logger.js');
+            const { CodeXRLogger } = requireOut('platform/logging/logger.js');
             CodeXRLogger.initialize(context);
             CodeXRLogger.getLogger('STRICT').error('loaded');
         });
@@ -249,7 +249,7 @@ test('fakeExtensionContext gives real storage directories and isolated state', a
 });
 
 test('the log sink is the exception: every scope loads it fresh, so a channel never receives lines buffered outside', () => {
-    const sinkPath = path.join(projectRoot, 'out', 'core', 'logging', 'sink.js');
+    const sinkPath = path.join(projectRoot, 'out', 'platform', 'logging', 'sink.js');
     const fake = createFakeVscode();
     const context = fakeExtensionContext({ extensionMode: ExtensionMode.Development });
     const original = console.warn;
@@ -257,7 +257,7 @@ test('the log sink is the exception: every scope loads it fresh, so a channel ne
     try {
         require(sinkPath).getLogger('OUTSIDE').warn('buffered outside any scope');
         withFakeVscode(fake, ({ requireOut }) => {
-            const { CodeXRLogger } = requireOut('core/logging/logger.js');
+            const { CodeXRLogger } = requireOut('platform/logging/logger.js');
             CodeXRLogger.initialize(context);
         });
     } finally {

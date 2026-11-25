@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateNonce } from '../../utils/nonceGenerator';
-import { CodeXRLogger } from '../../core/logging/logger';
+import { generateNonce } from '../../shared/nonceGenerator';
+import { CodeXRLogger } from '../../platform/logging/logger';
 import {
     DEFAULT_REMOTE_ACCESS_SETTINGS,
     RemoteAccessSettings,

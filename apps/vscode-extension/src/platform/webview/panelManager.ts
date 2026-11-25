@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../logging/sink';
 
 const logger = getLogger('ACTIVE_SERVER_PANEL');
 

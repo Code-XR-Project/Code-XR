@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { generateNonce } from '../../../utils/nonceGenerator';
+import { generateNonce } from '../../../shared/nonceGenerator';
 import { 
     UnifiedAnalysisSession, 
     AnalysisMode, 
@@ -15,7 +15,7 @@ import {
     SessionCreationParams
 } from './analysisSession';
 import { SHA256Generator } from '../../../utils/sha256Generator';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('UNIFIED_REGISTRY');
 

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('COLOR_PICKER_UTILS');

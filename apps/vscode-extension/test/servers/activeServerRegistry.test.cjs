@@ -134,7 +134,7 @@ test('registry dispose: clears the servers without delivering registryCleared', 
 
 test('registry events: a throwing listener is reported and does not stop the others', () => {
     withFakeVscode(createFakeVscode(), ({ requireOut }) => {
-        const { observeLogEntries } = requireOut('core/logging/sink.js');
+        const { observeLogEntries } = requireOut('platform/logging/sink.js');
         const { ActiveServerRegistry } = requireOut(REGISTRY);
         const registry = ActiveServerRegistry.getInstance();
         const errors = [];

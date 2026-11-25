@@ -6,7 +6,7 @@ import { MultiServerLauncher } from '../runtime/multiServerLauncher';
 import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
 import { CloudflaredBinaryManager } from '../../remote_access/services/cloudflaredBinaryManager';
 import { RemoteAccessManager } from '../../remote_access/services/remoteAccessManager';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SERVER');
 

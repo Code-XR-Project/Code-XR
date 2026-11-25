@@ -29,7 +29,7 @@ import { copyDependencyVisualBudgetRuntimeToOutput, DEPENDENCY_VISUAL_BUDGET_RUN
 import { copyDependencyGraphRuntimeToOutput, DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME } from '../components/customComponents/dependencyGraphComponentAsset';
 import { copyGuideScreenRuntimeToOutput, copyGuidePageToOutput, GUIDE_SCREEN_RUNTIME_OUTPUT_NAME, GUIDE_PAGE_OUTPUT_NAME } from '../components/customComponents/guideScreenComponentAsset';
 import { copyLogoRuntimeToOutput, LOGO_RUNTIME_OUTPUT_NAME } from '../components/customComponents/logoComponentAsset';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('FILE_XR_PARSER');

@@ -4,7 +4,7 @@ import { createSectionDefinitions, LazySectionDefinition } from './sectionDefini
 import type { SectionChild } from './common/sectionChild';
 import { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
 import { VenvManager } from '../python_env/runtime/venvManager';
-import { CodeXRLogger } from '../core/logging/logger';
+import { CodeXRLogger } from '../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('MODULAR_TREE');
 

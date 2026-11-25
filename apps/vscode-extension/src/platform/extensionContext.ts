@@ -10,7 +10,7 @@
  *   initializeExtensionContext(context);
  * 
  *   // In any consumer (no context parameter needed):
- *   import { getExtensionContext } from '../core/extensionContext';
+ *   import { getExtensionContext } from './extensionContext';
  *   const ctx = getExtensionContext();
  */
 

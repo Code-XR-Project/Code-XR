@@ -45,7 +45,7 @@ export type {
     SharedEntityState,
     SharedPresenceState,
 } from './roomTypes';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('COLLABORATION_ROOM_SERVER');
 

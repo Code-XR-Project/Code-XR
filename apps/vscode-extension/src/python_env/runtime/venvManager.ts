@@ -5,7 +5,7 @@ import * as os from 'os';
 import { PythonEnvStorage, PythonEnvMetadata } from '../storage/pythonEnvStorage';
 import { ExecutableCommand, PythonEnvUtils } from '../utils/pythonEnvUtils';
 import { PythonEnvUiStateService } from './pythonEnvUiState';
-import { CodeXRLogger } from '../../core/logging/logger';
+import { CodeXRLogger } from '../../platform/logging/logger';
 import {
     CODEXR_PYTHON_PACKAGES,
     CodeXRPythonPackage,

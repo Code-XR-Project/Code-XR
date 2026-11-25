@@ -9,7 +9,7 @@ import * as path from 'path';
 import { ProfileConfigurationSetting } from '../../../../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
 import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
 import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('PROFILE_CONFIGURATION_COMMANDS');
 

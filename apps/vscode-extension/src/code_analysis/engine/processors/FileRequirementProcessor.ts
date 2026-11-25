@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ThemeUtils } from '../utils/themeUtils';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { AnalysisBootstrap, BootstrapProcessedRequirements } from './analysisBootstrap';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('FILE_REQUIREMENT_PROCESSOR');
 

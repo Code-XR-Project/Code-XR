@@ -10,9 +10,9 @@ import { getLearnMoreCommandRegistrations } from './learn_more/learnMoreCommands
 import { getGeneralCommandRegistrations } from './common/generalCommands';
 import { getCollaborationCommandRegistrations } from './collaboration/collaborationCommands';
 import { ExtensionCommandRegistration, assertUniqueCommandIds } from '../platform/commands/commandRegistry';
-import { CommandBuilder } from '../utils/commandBuilder';
+import { CommandBuilder } from '../platform/commands/commandBuilder';
 import { BabiaExamplesTreeDataProvider } from '../babia_examples/views/babiaExamplesTreeView';
-import { CodeXRLogger } from '../core/logging/logger';
+import { CodeXRLogger } from '../platform/logging/logger';
 interface RefreshableTreeProvider {
     refresh(): void;
     refreshSection?(sectionName: string): void;

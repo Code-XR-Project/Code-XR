@@ -9,7 +9,7 @@ import { CommandRegistration } from '../analysis_settings/analysis_file_mode/ana
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import { AnalysisOrchestrator } from '../../../engine/analysisOrchestrator';
 import { getLanguageByExtension } from '../../../../utils/supportedLanguages';
-import { getLogger } from '../../../../core/logging/sink';
+import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('PROJECT_STRUCTURE_COMMANDS');
 

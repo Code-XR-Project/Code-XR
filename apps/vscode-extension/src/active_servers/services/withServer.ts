@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ActiveServer } from '../model/activeServerModel';
 import { getActiveServerRegistry } from '../registry/activeServerRegistry';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVER');
 

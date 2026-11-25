@@ -3,7 +3,7 @@ import type { ServerSettings } from '../../storage/serverSettingsManager';
 import type { LaunchMode } from '../../../active_servers/model/activeServerModel';
 import { openServerInBrowser, openServerInPanel } from '../../../active_servers/services/serverOpenActions';
 import { NetworkUtils } from '../../utils/networkUtils';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SERVER');
 

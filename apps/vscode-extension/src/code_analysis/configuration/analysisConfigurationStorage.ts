@@ -18,7 +18,7 @@ import {
     XRBabiaUiConfig,
     DEFAULT_ANALYSIS_CONFIGURATION
 } from './models/analysisConfiguration';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 

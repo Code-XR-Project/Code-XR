@@ -8,9 +8,9 @@
  */
 
 import * as vscode from 'vscode';
-import type { ExtensionCommandRegistration } from '../platform/commands/commandRegistry';
-import { handleError, ErrorDomain, ErrorSeverity } from './errorHandler';
-import { getLogger } from '../core/logging/sink';
+import type { ExtensionCommandRegistration } from './commandRegistry';
+import { handleError, ErrorDomain, ErrorSeverity } from '../ui/errorHandler';
+import { getLogger } from '../logging/sink';
 
 const logger = getLogger('COMMAND_BUILDER');
 

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isVerboseLoggingEnabled, shouldEmitLog } = require('../../out/core/logging/logPolicy.js');
+const { isVerboseLoggingEnabled, shouldEmitLog } = require('../../out/platform/logging/logPolicy.js');
 
 test('verbose logging is always enabled in development mode', () => {
     assert.equal(isVerboseLoggingEnabled('development', false), true);

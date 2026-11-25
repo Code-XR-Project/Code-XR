@@ -14,7 +14,7 @@ import {
     showChartTypeSelection,
     toChartTypeInfos,
 } from '../chart_type_shared/sharedChartTypeSettingCore';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('CHART_TYPE_DIRECTORY');
 

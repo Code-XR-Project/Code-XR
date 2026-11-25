@@ -8,7 +8,7 @@ import * as path from 'path';
 import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
 import type { CodeAnalysisTreeItem } from '../../../../views/items/analysisItems';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_ANALYSES_DATA_SERVICE');
 

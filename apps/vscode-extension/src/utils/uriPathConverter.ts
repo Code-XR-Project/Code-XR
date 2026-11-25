@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { getLogger } from '../core/logging/sink';
+import { getLogger } from '../platform/logging/sink';
 
 const logger = getLogger('URI_PATH_CONVERTER');
 

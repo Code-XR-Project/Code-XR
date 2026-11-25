@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as http from 'http';
 import { SSEClientRegistry } from './sseClientRegistry';
 import { fileToServerMap } from '../../../utils/fileToServerMap';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SSE_MANAGER');
 

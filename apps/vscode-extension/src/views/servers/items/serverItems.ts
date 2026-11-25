@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getServerConfig } from '../../../servers/views/items/configurationItems';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SERVERS');
 

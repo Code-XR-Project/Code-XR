@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CodeXRLogger } from '../core/logging/logger';
+import { CodeXRLogger } from '../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('COMMON_COMMANDS');
 

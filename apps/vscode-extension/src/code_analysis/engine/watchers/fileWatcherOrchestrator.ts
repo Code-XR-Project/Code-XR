@@ -15,7 +15,7 @@ import { ConfigurationConverter } from './configurationConverter';
 import { getFileStatSnapshot } from './directorySnapshot';
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../refresh/analysisRefreshCoordinator';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('FILE_WATCHER_ORCHESTRATOR');
 

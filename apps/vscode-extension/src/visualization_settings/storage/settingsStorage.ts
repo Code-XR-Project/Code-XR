@@ -7,7 +7,7 @@ import {
     getVisualizationConfigDirectory,
     getVisualizationSettingsFilePath,
 } from './settingsFile';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SETTINGS_STORAGE');
 

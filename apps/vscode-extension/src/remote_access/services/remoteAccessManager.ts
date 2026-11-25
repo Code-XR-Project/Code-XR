@@ -13,7 +13,7 @@ import {
     RemoteSessionAuthority,
 } from '../security/remoteSessionAuthority';
 import { CloudflaredBinaryManager } from './cloudflaredBinaryManager';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('REMOTE_ACCESS');
 

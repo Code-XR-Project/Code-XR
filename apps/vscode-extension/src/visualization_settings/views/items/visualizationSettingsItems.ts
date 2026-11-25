@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VisualizationSettings, SETTING_FIELDS, SettingField } from '../../model/settingsModel';
 import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_SETTINGS_ITEMS');
 

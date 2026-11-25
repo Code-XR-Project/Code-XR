@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import { ActiveServer, ActiveServerRuntime } from '../model/activeServerModel';
 import type { UnifiedAnalysisSession } from '../../code_analysis/engine/core/analysisSession';
 import { getActiveServerRegistry } from '../registry/activeServerRegistry';
-import { getPanelManager } from '../services/panelManager';
+import { getPanelManager } from '../../platform/webview/panelManager';
 import { fileToServerMap } from '../../utils/fileToServerMap';
 import { sseManager } from '../../servers/runtime/sse/SSEManager';
 import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
-import { handleError, ErrorDomain, ErrorSeverity } from '../../utils/errorHandler';
-import { getLogger } from '../../core/logging/sink';
+import { handleError, ErrorDomain, ErrorSeverity } from '../../platform/ui/errorHandler';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS');
 

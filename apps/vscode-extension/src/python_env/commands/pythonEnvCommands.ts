@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VenvManager } from '../runtime/venvManager';
 import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { CodeXRLogger } from '../../core/logging/logger';
+import { CodeXRLogger } from '../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('PYTHON_ENV_COMMANDS');
 

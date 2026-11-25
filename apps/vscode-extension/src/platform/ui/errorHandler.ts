@@ -6,7 +6,7 @@
  */
 
 import * as vscode from 'vscode';
-import { CodeXRLogger } from '../core/logging/logger';
+import { CodeXRLogger } from '../logging/logger';
 
 const logger = CodeXRLogger.getLogger('ERROR_HANDLER');
 

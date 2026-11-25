@@ -17,7 +17,7 @@ import { UnifiedSessionRegistry } from '../core/sessionRegistry';
 import { ProcessedRequirements } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
 import { SessionServerManager } from '../servers/sessionServerManager';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LAUNCH_PIPELINE');
 

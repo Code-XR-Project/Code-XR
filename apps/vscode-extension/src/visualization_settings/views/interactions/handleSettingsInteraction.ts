@@ -12,7 +12,7 @@ import {
 import { VisualizationSettingsStorage } from '../../storage/settingsStorage';
 import { ColorPickerUtils, ColorPickerOptions } from '../../utils/colorPickerUtils';
 import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('HANDLE_SETTINGS_INTERACTION');
 

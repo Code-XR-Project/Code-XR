@@ -3,7 +3,7 @@ import { VisualizationLauncher } from '../views/interactions/visualizationLaunch
 import { VisualizeDataModel } from '../model/visualizeDataModel';
 import { VisualizationRestorer, StoredVisualization } from '../runtime/visualizationRestorer';
 import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZE_DATA_COMMANDS');
 

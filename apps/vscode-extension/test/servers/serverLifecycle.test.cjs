@@ -86,7 +86,7 @@ function captureConsole() {
          * inside the scope, before the first line to capture.
          */
         observeLogger() {
-            observeLogsAsConsole(require(path.join(__dirname, '..', '..', 'out', 'core', 'logging', 'sink.js')), record);
+            observeLogsAsConsole(require(path.join(__dirname, '..', '..', 'out', 'platform', 'logging', 'sink.js')), record);
         },
         /** Values replaced by stable placeholders in every later line (ports, temp paths). */
         setReplacements(next) {

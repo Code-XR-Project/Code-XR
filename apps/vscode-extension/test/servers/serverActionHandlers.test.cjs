@@ -465,7 +465,7 @@ async function runScenario(scenario) {
         await withFakeVscode(fake, async ({ requireOut }) => {
             const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
-            observeLogsAsConsole(loaded('core/logging/sink.js'), record);
+            observeLogsAsConsole(loaded('platform/logging/sink.js'), record);
 
             const { PreviewRenderer } = loaded('servers/runtime/previewRenderer.js');
             PreviewRenderer.openPreview = async (...args) => {

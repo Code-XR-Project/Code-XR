@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VisualizationSettingsTreeItem, VisualizationSettingsItemFactory } from '../../../visualization_settings/views/items/visualizationSettingsItems';
 import { VisualizationSettings } from '../../../visualization_settings/model/settingsModel';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_SETTINGS_MODULAR');
 

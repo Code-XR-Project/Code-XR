@@ -6,7 +6,7 @@ import { CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, CODEXR_DOM_SCENE_COLLAB_RUNTI
 import { readVirtualScreenManagerRuntimeContent, VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, readVirtualScreenRuntimeContent, VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME } from '../components/customComponents/virtualScreenComponentAsset';
 import { readPointerPolicyRuntimeContent, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../components/customComponents/pointerPolicyComponentAsset';
 import { readImmersiveRigRuntimeContent, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../components/customComponents/immersiveRigComponentAsset';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZE_DOM_PARSER');
 

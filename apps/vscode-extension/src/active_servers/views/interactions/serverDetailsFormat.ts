@@ -1,7 +1,7 @@
 import * as path from 'path';
 import type { ActiveServer } from '../../model/activeServerModel';
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
-import { formatDetailSections, formatDuration } from '../../../utils/detailDialog';
+import { formatDetailSections, formatDuration } from '../../../platform/ui/detailDialog';
 
 /*
  * The text of the server dialogs: the "Server Information" detail, the

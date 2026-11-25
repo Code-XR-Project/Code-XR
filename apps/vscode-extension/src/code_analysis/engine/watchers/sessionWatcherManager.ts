@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { FileWatcherOrchestrator } from './fileWatcherOrchestrator';
 import { DirectoryWatcherOrchestrator } from './directoryWatcherOrchestrator';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SESSION_WATCHER_MANAGER');
 

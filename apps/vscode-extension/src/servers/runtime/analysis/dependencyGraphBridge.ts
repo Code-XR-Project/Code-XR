@@ -7,7 +7,7 @@ import {
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
 import { sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('DEPENDENCY_GRAPH_BRIDGE');
 

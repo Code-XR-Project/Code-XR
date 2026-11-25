@@ -10,14 +10,14 @@ import { ServerSettingsManager } from '../../../servers/storage/serverSettingsMa
 import { COLLABORATION_AVATARS } from '../../../collaboration/model/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import type { PairingRequestSummary } from '../../../remote_access/security/remoteSessionAuthority';
-import { formatDetailSections, formatDuration } from '../../../utils/detailDialog';
+import { formatDetailSections, formatDuration } from '../../../platform/ui/detailDialog';
 import {
     formatPendingRequests,
     formatRemoteStatus,
     formatServerDetails,
     getServerLabel,
 } from './serverDetailsFormat';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVER');
 

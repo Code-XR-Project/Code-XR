@@ -18,7 +18,7 @@ import { AnalysisMessageRouter } from './analysis/analysisMessageRouter';
 import { DependencyGraphBridge } from './analysis/dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './analysis/historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './analysis/projectEvolutionBridge';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('SERVER');

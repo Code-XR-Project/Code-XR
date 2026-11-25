@@ -7,7 +7,7 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { ChartMetadata } from '../../../../../babia_templates/models/chartModels';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('SHARED_CHART_TYPE_SETTING_CORE');
 

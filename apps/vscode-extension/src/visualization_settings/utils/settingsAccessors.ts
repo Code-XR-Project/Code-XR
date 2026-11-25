@@ -6,7 +6,7 @@ import {
     StoredVisualizationSettingsJson,
     getVisualizationSettingsFilePath,
 } from '../storage/settingsFile';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SETTINGS_ACCESSORS');
 

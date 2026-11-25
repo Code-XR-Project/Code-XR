@@ -13,7 +13,7 @@ import { ProjectByLanguageSubsectionProvider } from './subsections/project_by_la
 import { FilesByLanguageSubsectionProvider } from './subsections/files_by_language/filesByLanguageSubsectionProvider';
 import { ActiveAnalysesDataService } from './subsections/active_analyses/services/activeAnalysesDataService';
 import { WorkspaceSnapshotService } from '../services/workspaceSnapshotService';
-import { CodeXRLogger } from '../../core/logging/logger';
+import { CodeXRLogger } from '../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('ANALYSIS');
 

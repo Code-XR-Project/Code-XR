@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { getLogger } from '../core/logging/sink';
+import { getLogger } from '../platform/logging/sink';
 
 const logger = getLogger('REQUEST_UPDATE');
 

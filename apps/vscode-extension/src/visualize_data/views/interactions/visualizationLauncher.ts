@@ -5,10 +5,10 @@ import { BabiaChartRegistry } from '../../../babia_templates/registry/chartRegis
 import { VisualizeDataStateManager, VisualizeDataState } from '../../state/visualizeDataState';
 import { JsonFieldAnalyzer } from '../../../utils/jsonFieldAnalyzer';
 import { DimensionMapping } from '../../../babia_templates/models/chartModels';
-import { generateNonce } from '../../../utils/nonceGenerator';
+import { generateNonce } from '../../../shared/nonceGenerator';
 import { TemplateProcessor } from '../../../babia_templates/processing/templateProcessor';
 import { launchServerWithFile } from '../../../servers/runtime/index';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_LAUNCHER');
 

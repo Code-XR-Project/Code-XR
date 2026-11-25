@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { BabiaExample, ExampleScanResult } from '../model/babiaExampleModel';
 import { MultiServerLauncher, MultiServerLaunchResult } from '../../servers/runtime/multiServerLauncher';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('EXAMPLES');
 

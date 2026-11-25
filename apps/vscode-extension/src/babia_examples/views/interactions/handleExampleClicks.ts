@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { BabiaExample } from '../../model/babiaExampleModel';
 import { ExampleLauncher } from '../../runtime/exampleLauncher';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('EXAMPLES');
 

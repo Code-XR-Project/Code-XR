@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { VisualizationSettingsModularTreeItem } from '../items/visualizationSettingsItems';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_SETTINGS_MODULAR');
 

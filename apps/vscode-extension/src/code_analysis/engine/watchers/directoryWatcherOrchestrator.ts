@@ -14,12 +14,12 @@ import { ConfigurationConverter } from './configurationConverter';
 import { FileHashTracker } from './fileHashTracker';
 import { DirectoryReAnalyzer } from './directoryReAnalyzer';
 import { ReAnalysisManager } from './reAnalysisManager';
-import { handleError, ErrorDomain, ErrorSeverity } from '../../../utils/errorHandler';
+import { handleError, ErrorDomain, ErrorSeverity } from '../../../platform/ui/errorHandler';
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { isRelevantDirectoryEvent, shouldIgnoreDirectoryName } from './analysisFilePolicy';
 import { scanDirectoryScope } from './directorySnapshot';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../refresh/analysisRefreshCoordinator';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('DIRECTORY_WATCHER_ORCHESTRATOR');
 

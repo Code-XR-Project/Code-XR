@@ -18,7 +18,7 @@ import { BabiaChartRegistry } from '../../../babia_templates/registry/chartRegis
 import { DimensionMapping } from '../../../babia_templates/models/chartModels';
 import { executeLaunchPipeline } from './launchPipeline';
 import { XRFieldSchemaService } from '../../services/xrFieldSchemaService';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('LAUNCHER_XR_ANALYSIS');
 

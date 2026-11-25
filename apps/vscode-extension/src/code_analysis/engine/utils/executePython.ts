@@ -6,7 +6,7 @@ import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { VenvManager } from '../../../python_env/runtime/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
 import { classifyStderrLine } from './pythonStderrStream';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
 

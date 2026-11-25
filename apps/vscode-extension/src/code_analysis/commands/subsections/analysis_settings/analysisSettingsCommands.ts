@@ -26,7 +26,7 @@ import { DimensionMappingFileCommands } from './dimension_mapping_file/dimension
 import { DimensionMappingDirectoryCommands } from './dimension_mapping_directory/dimensionMappingDirectoryCommands';
 import { FilesByLanguageSortingCommands } from './filesByLanguageSortingCommands';
 import { ProfileConfigurationCommands } from './profile_configuration/profileConfigurationCommands';
-import { getLogger } from '../../../../core/logging/sink';
+import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 

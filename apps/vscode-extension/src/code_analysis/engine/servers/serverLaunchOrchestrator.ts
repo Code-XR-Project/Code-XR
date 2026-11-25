@@ -15,7 +15,7 @@ import {
     ServerLaunchResult,
     SessionServerInfo,
 } from './models/sessionServerModels';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SERVER_LAUNCH_ORCHESTRATOR');
 

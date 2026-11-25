@@ -22,8 +22,8 @@ function withLogger(options, scenario) {
     try {
         withFakeVscode(fake, ({ requireOut }) => {
             // The sink holds the logging state; the fake scope loads it fresh.
-            const sink = requireOut('core/logging/sink.js');
-            const { CodeXRLogger } = requireOut('core/logging/logger.js');
+            const sink = requireOut('platform/logging/sink.js');
+            const { CodeXRLogger } = requireOut('platform/logging/logger.js');
             scenario({ CodeXRLogger, fake, context, sink });
         });
     } finally {

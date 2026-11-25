@@ -7,8 +7,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../../utils/getVisualizationConfiguration';
-import { generateNonce } from '../../utils/nonceGenerator';
-import { getLogger } from '../../core/logging/sink';
+import { generateNonce } from '../../shared/nonceGenerator';
+import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('TEMPLATE_HTML_PROCESSOR');

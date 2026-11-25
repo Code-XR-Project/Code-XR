@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { launchServerWithFile } from '../../servers/runtime/index';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_RESTORER');
 

@@ -3,7 +3,7 @@ import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
 import { BabiaExampleTreeItem, BabiaExampleItemFactory } from './items/babiaExampleItems';
 import { BabiaExampleClickHandler } from './interactions/handleBabiaExampleClicks';
 import { ExampleLauncher } from '../../babia_examples/runtime/exampleLauncher';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('BABIA_EXAMPLES_MODULAR');
 

@@ -5,7 +5,7 @@ import { HttpsDefaultServer } from './httpsDefaultServer';
 import { HttpsCustomServer } from './httpsCustomServer';
 import type { ServerSettings } from '../storage/serverSettingsManager';
 import type { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('SERVER');

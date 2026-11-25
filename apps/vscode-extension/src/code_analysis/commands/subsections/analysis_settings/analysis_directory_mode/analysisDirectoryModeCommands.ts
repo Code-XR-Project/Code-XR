@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { AnalysisDirectorySetting } from '../../../../views/subsections/analysis_settings/analysis_directory_mode/analysisDirectoryMode';
 import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
-import { getLogger } from '../../../../../core/logging/sink';
+import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS');
 

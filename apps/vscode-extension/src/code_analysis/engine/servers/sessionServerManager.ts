@@ -12,7 +12,7 @@ import {
     ServerLaunchRequest, 
     SessionServerStatus 
 } from './models/sessionServerModels';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('SESSION_SERVER_MANAGER');
 

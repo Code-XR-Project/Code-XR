@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CodeXRLogger } from '../../../core/logging/logger';
+import { CodeXRLogger } from '../../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('THEME_UTILS');
 

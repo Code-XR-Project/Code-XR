@@ -7,7 +7,7 @@ import type {
     XRSchemaTargetType,
 } from '../../babia_templates/models/xrFieldModels';
 import { ExecutePython } from '../engine/utils/executePython';
-import { getLogger } from '../../core/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('XR_FIELD_SCHEMA');
 

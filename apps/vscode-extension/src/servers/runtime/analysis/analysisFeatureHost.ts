@@ -14,7 +14,7 @@ import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/se
 import { UnifiedSessionRegistry } from '../../../code_analysis/engine/core/sessionRegistry';
 import { resolveAnalysisServerCapabilities } from '../analysisServerCapabilities';
 import { AnalysisAvailabilitySnapshot } from '../collaboration/collaborationSessionApi';
-import { getLogger } from '../../../core/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_FEATURE_HOST');
 
