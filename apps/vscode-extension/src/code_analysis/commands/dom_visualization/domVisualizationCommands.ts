@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { LauncherVisualizeDOM } from '../../engine/launchers/launcherVisualizeDOM';
-import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { getFileSystemPathFromEditorOrInput } from '../../../utils/uriPathConverter';
 import { getLogger } from '../../../core/logging/sink';
 

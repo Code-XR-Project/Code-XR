@@ -5,7 +5,7 @@
  * and error reporting, so the two error dialects stay as they were.
  */
 
-import { CommandRegistration } from '../analysis_file_mode';
+import { CommandRegistration } from '../analysis_file_mode/analysisFileModeCommands';
 import type { ScopedLogger } from '../../../../../core/logging/sink';
 
 export interface ChartTypeCommandOptions {

@@ -4,16 +4,15 @@
  */
 
 import * as vscode from 'vscode';
-import {
-    AnalysisSettingsCommands,
-    ActiveAnalysesCommandRegistrations,
-    ProjectByLanguageCommands,
-    FilesByLanguageCommands,
-} from './subsections';
-import { FileAnalysisCommands } from './file_analysis';
-import { DirectoryAnalysisCommands, ProjectAnalysisCommands } from './directory_analysis';
-import { DOMVisualizationCommands } from './dom_visualization';
-import { CommandRegistration } from './subsections/analysis_settings/analysis_file_mode';
+import { AnalysisSettingsCommands } from './subsections/analysis_settings/analysisSettingsCommands';
+import { ActiveAnalysesCommandRegistrations } from './subsections/active_analyses/activeAnalysesCommands';
+import { ProjectByLanguageCommands } from './subsections/project_by_language/projectByLanguageCommands';
+import { FilesByLanguageCommands } from './subsections/files_by_language/filesByLanguageCommands';
+import { FileAnalysisCommands } from './file_analysis/fileAnalysisCommands';
+import { DirectoryAnalysisCommands } from './directory_analysis/directoryAnalysisCommands';
+import { ProjectAnalysisCommands } from './directory_analysis/projectAnalysisCommands';
+import { DOMVisualizationCommands } from './dom_visualization/domVisualizationCommands';
+import { CommandRegistration } from './subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { AnalysisFileSetting } from '../views/subsections/analysis_settings/analysis_file_mode/analysisFileMode';
 import { AnalysisDirectorySetting } from '../views/subsections/analysis_settings/analysis_directory_mode/analysisDirectoryMode';
 import { ViewThemeSetting } from '../views/subsections/analysis_settings/view_theme/viewTheme';

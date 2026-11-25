@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { CommandRegistration } from '../analysis_settings/analysis_file_mode';
+import { CommandRegistration } from '../analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import { AnalysisOrchestrator } from '../../../engine/analysisOrchestrator';
 import { getLanguageByExtension } from '../../../../utils/supportedLanguages';

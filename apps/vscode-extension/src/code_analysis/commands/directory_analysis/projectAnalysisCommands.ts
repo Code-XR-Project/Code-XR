@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
-import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 
 export class ProjectAnalysisCommands {
     constructor(private context: vscode.ExtensionContext) {}

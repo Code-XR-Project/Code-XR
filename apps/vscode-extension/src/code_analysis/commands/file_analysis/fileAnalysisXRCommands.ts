@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { getLanguageForFile } from '../../../utils/languageMetadata';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
-import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('FILE_ANALYSIS_XR_COMMANDS');

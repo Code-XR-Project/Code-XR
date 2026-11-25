@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { FileAnalysisLivePanelCommands } from './fileAnalysisLivePanelCommands';
 import { FileAnalysisXRCommands } from './fileAnalysisXRCommands';
-import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 
 export class FileAnalysisCommands {
     static getCommandRegistrations(context: vscode.ExtensionContext): CommandRegistration[] {

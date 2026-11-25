@@ -10,7 +10,7 @@ import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession'
 import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
 import { ServerWatcherIntegration } from '../../../../services/serverWatcherIntegration';
 import { ActiveAnalysesDataService } from '../services/activeAnalysesDataService';
-import { CommandRegistration } from '../../../../commands/subsections/analysis_settings/analysis_file_mode';
+import { CommandRegistration } from '../../../../commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands';
 import { analysisRefreshCoordinator } from '../../../../refresh/analysisRefreshCoordinator';
 import {
     AnalysisServerCapabilities,

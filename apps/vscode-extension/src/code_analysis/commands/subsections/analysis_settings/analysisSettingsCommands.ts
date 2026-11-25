@@ -15,17 +15,17 @@ import { DimensionMappingFileSetting } from '../../../views/subsections/analysis
 import { DimensionMappingDirectorySetting } from '../../../views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory';
 import { FilesByLanguageSortingSetting } from '../../../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
 import { ProfileConfigurationSetting } from '../../../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
-import { AnalysisFileModeCommands, CommandRegistration } from './analysis_file_mode';
-import { AnalysisDirectoryModeCommands } from './analysis_directory_mode';
-import { ViewThemeCommands } from './view_theme';
-import { AutoAnalysisDelayCommands } from './auto_analysis_delay';
-import { AutoAnalysisEnabledCommands } from './auto_analysis_enabled';
+import { AnalysisFileModeCommands, CommandRegistration } from './analysis_file_mode/analysisFileModeCommands';
+import { AnalysisDirectoryModeCommands } from './analysis_directory_mode/analysisDirectoryModeCommands';
+import { ViewThemeCommands } from './view_theme/viewThemeCommands';
+import { AutoAnalysisDelayCommands } from './auto_analysis_delay/autoAnalysisDelayCommands';
+import { AutoAnalysisEnabledCommands } from './auto_analysis_enabled/autoAnalysisEnabledCommands';
 import { ChartTypeFileCommands } from './chart_type_file/chartTypeFileCommands';
 import { ChartTypeDirectoryCommands } from './chart_type_directory/chartTypeDirectoryCommands';
 import { DimensionMappingFileCommands } from './dimension_mapping_file/dimensionMappingFileCommands';
 import { DimensionMappingDirectoryCommands } from './dimension_mapping_directory/dimensionMappingDirectoryCommands';
 import { FilesByLanguageSortingCommands } from './filesByLanguageSortingCommands';
-import { ProfileConfigurationCommands } from './profile_configuration';
+import { ProfileConfigurationCommands } from './profile_configuration/profileConfigurationCommands';
 import { getLogger } from '../../../../core/logging/sink';
 
 const logger = getLogger('ANALYSIS');
