@@ -48,8 +48,8 @@
       "src/code_analysis/refresh/analysisRefreshCoordinator.ts",
       "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
       "src/core/python-env/venvManager.ts",
-      "src/remote_access/security/remoteSessionAuthority.ts",
-      "src/remote_access/services/remoteAccessManager.ts",
+      "src/core/remote-access/remoteAccessManager.ts",
+      "src/core/remote-access/remoteSessionAuthority.ts",
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
@@ -265,7 +265,7 @@
         "lines": 746
       },
       {
-        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "file": "src/core/remote-access/remoteSessionAuthority.ts",
         "lines": 632
       },
       {
@@ -289,7 +289,7 @@
         "lines": 567
       },
       {
-        "file": "src/remote_access/services/remoteAccessManager.ts",
+        "file": "src/core/remote-access/remoteAccessManager.ts",
         "lines": 567
       }
     ]

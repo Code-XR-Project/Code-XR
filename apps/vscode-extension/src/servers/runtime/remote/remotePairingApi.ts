@@ -1,7 +1,7 @@
 import * as http from 'http';
 import * as crypto from 'crypto';
-import { CollaborationProfile, DEFAULT_COLLABORATION_PROFILE } from '../../../collaboration/model/collaborationProfile';
-import { RemoteSessionAuthority } from '../../../remote_access/security/remoteSessionAuthority';
+import { CollaborationProfile, DEFAULT_COLLABORATION_PROFILE } from '../../../core/collaboration/collaborationProfile';
+import { RemoteSessionAuthority } from '../../../core/remote-access/remoteSessionAuthority';
 import { CollaborationRoomServer } from '../collaboration/collaborationRoomServer';
 import { renderInvitationErrorPage, renderPairingPage } from './pairingPage';
 import {

@@ -5,11 +5,11 @@ import { ServerControl } from '../../runtime/serverControl';
 import { openServerInBrowser, openServerInPanel } from '../../services/serverOpenActions';
 import { withServer } from '../../services/withServer';
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
-import { RemoteAccessManager } from '../../../remote_access/services/remoteAccessManager';
+import { RemoteAccessManager } from '../../../core/remote-access/remoteAccessManager';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
-import { COLLABORATION_AVATARS } from '../../../collaboration/model/collaborationProfile';
-import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
-import type { PairingRequestSummary } from '../../../remote_access/security/remoteSessionAuthority';
+import { COLLABORATION_AVATARS } from '../../../core/collaboration/collaborationProfile';
+import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
+import type { PairingRequestSummary } from '../../../core/remote-access/remoteSessionAuthority';
 import { formatDetailSections, formatDuration } from '../../../platform/ui/detailDialog';
 import {
     formatPendingRequests,

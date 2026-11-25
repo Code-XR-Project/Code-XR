@@ -8,8 +8,8 @@ function loadAuthority() {
     return require(path.join(
         projectRoot,
         'out',
-        'remote_access',
-        'security',
+        'core',
+        'remote-access',
         'remoteSessionAuthority.js',
     )).RemoteSessionAuthority;
 }

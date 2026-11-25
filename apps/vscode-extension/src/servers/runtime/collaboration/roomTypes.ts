@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import type { AuthenticatedCollaborationSession } from '../../../remote_access/model/remoteAccessModel';
+import type { AuthenticatedCollaborationSession } from '../../../core/remote-access/remoteAccessModel';
 
 /**
  * Wire and state types of the collaboration room. The public ones are

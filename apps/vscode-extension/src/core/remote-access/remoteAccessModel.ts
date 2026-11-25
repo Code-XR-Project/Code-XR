@@ -1,5 +1,5 @@
-import { CollaborationProfile } from '../../collaboration/model/collaborationProfile';
-import type { CollaborationClientKind } from '../../collaboration/model/connectedParticipant';
+import { CollaborationProfile } from '../collaboration/collaborationProfile';
+import type { CollaborationClientKind } from '../collaboration/connectedParticipant';
 
 export type { CollaborationClientKind };
 

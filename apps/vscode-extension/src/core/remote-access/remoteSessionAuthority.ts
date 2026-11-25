@@ -6,12 +6,12 @@ import {
     sanitizeCollaborationName,
     ASSIGNABLE_AVATAR_IDS,
     normalizeCollaborationProfile,
-} from '../../collaboration/model/collaborationProfile';
-import { buildStarWarsDisplayName } from '../../collaboration/model/anonymousName';
+} from '../collaboration/collaborationProfile';
+import { buildStarWarsDisplayName } from '../collaboration/anonymousName';
 import {
     AuthenticatedCollaborationSession,
     CollaborationClientKind,
-} from '../model/remoteAccessModel';
+} from './remoteAccessModel';
 
 /**
  * An invitation lives for as long as the host keeps sharing: it is minted once

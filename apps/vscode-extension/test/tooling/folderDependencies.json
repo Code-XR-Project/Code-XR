@@ -17,21 +17,21 @@
     "(root)": [
       "active_servers",
       "code_analysis",
-      "collaboration",
       "commands",
+      "core/collaboration",
+      "core/remote-access",
       "core/startup",
       "features/python-env",
       "platform",
-      "remote_access",
       "servers",
       "utils",
       "views"
     ],
     "active_servers": [
       "code_analysis",
-      "collaboration",
+      "core/collaboration",
+      "core/remote-access",
       "platform",
-      "remote_access",
       "servers",
       "utils"
     ],
@@ -44,18 +44,16 @@
       "shared",
       "utils"
     ],
-    "collaboration": [],
     "commands": [
       "active_servers",
       "code_analysis",
-      "collaboration",
+      "features/collaboration",
       "features/examples",
       "features/learn-more",
       "features/python-env",
       "features/visualization-settings",
       "features/visualize-data",
       "platform",
-      "remote_access",
       "servers",
       "utils"
     ],
@@ -63,10 +61,22 @@
       "platform",
       "shared"
     ],
+    "core/collaboration": [],
     "core/python-env": [
       "platform"
     ],
+    "core/remote-access": [
+      "active_servers",
+      "core/collaboration",
+      "platform",
+      "servers"
+    ],
     "core/startup": [],
+    "features/collaboration": [
+      "core/collaboration",
+      "core/remote-access",
+      "platform"
+    ],
     "features/examples": [
       "platform",
       "servers"
@@ -90,18 +100,12 @@
       "shared"
     ],
     "platform": [],
-    "remote_access": [
-      "active_servers",
-      "collaboration",
-      "platform",
-      "servers"
-    ],
     "servers": [
       "active_servers",
       "code_analysis",
-      "collaboration",
+      "core/collaboration",
+      "core/remote-access",
       "platform",
-      "remote_access",
       "shared",
       "utils"
     ],
@@ -112,8 +116,9 @@
     "views": [
       "active_servers",
       "code_analysis",
-      "collaboration",
+      "core/collaboration",
       "core/python-env",
+      "features/collaboration",
       "features/examples",
       "features/learn-more",
       "features/python-env",
@@ -124,11 +129,11 @@
     ]
   },
   "twoWayPairs": {
-    "active_servers<->code_analysis": "Stopping a server closes its analysis session (active_servers/runtime/serverControl.ts -> code_analysis sessionRegistry), and the analysis watchers follow server removal (code_analysis/services/serverWatcherIntegration.ts -> the active-server registry and ServerControl). Both sides are the analysis<->server pair of docs/cleanup/src-layout.md §3.5; breaking it needs an event or callback seam, which is story #13 territory.",
-    "active_servers<->remote_access": "The active-server model and registry carry RemoteAccessState (types from remote_access/model), and RemoteAccessManager watches the registry to stop a tunnel when its server goes. In src-layout.md the registry joins core/server, so this becomes the core server<->remote-access pair.",
+    "active_servers<->code_analysis": "Stopping a server closes its analysis session (active_servers/runtime/serverControl.ts -> code_analysis sessionRegistry), and the analysis watchers follow server removal (code_analysis/services/serverWatcherIntegration.ts -> the active-server registry and ServerControl). Both sides are the analysis<->server pair of docs/cleanup/src-layout.md \u00a73.5; breaking it needs an event or callback seam, which is story #13 territory.",
+    "active_servers<->core/remote-access": "The active-server model and registry carry RemoteAccessState (types from core/remote-access/remoteAccessModel.ts), and RemoteAccessManager watches the registry to stop a tunnel when its server goes. In src-layout.md the registry joins core/server, so this becomes the core server<->remote-access pair.",
     "active_servers<->servers": "The running-server registry (active_servers) and the server runtime (servers) are one subsystem split in two folders: the launcher registers servers and opens previews through active_servers, ServerControl stops them through the SSE manager. src-layout.md merges the registry, registrar and ServerControl into core/server; what then remains is the one upward edge multiServerLauncher -> launchNotifications (a view), allow-listed there.",
-    "code_analysis<->servers": "The analysis bridges are hosted by the HTTP server (servers/runtime/analysis/* -> code_analysis historical, dependencies, refresh, watchers), and the analysis engine launches and notifies servers (serverLaunchOrchestrator, SSE). The analysis<->server pair of src-layout.md §3.5; inverting it means registering the bridges from the analysis side (#13).",
-    "remote_access<->servers": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (servers -> remote_access, 9 edges), and RemoteAccessManager reads and turns off the cross-network setting through ServerSettingsManager (remote_access -> servers, 1 edge). Breaking it needs that setting behind an injected accessor (#13)."
+    "code_analysis<->servers": "The analysis bridges are hosted by the HTTP server (servers/runtime/analysis/* -> code_analysis historical, dependencies, refresh, watchers), and the analysis engine launches and notifies servers (serverLaunchOrchestrator, SSE). The analysis<->server pair of src-layout.md \u00a73.5; inverting it means registering the bridges from the analysis side (#13).",
+    "core/remote-access<->servers": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (servers -> core/remote-access), and RemoteAccessManager reads and turns off the cross-network setting through ServerSettingsManager (core/remote-access -> servers, 1 edge). Breaking it needs that setting behind an injected accessor (#13)."
   },
   "vscodeFreeFloor": 106,
   "vscodeFreeNote": "src files from which no import path reaches `vscode` (type imports included). 97 when #42 started; may only go up. Raise the floor when it does. #55 batch 0 lowered it 109 -> 106 only because three vscode-free re-export barrels were deleted (configuration/models, customComponents, refresh index.ts); no surviving file lost the property."

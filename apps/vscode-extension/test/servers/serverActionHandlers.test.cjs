@@ -480,7 +480,7 @@ async function runScenario(scenario) {
             ServerSettingsManager.getInstance = () => ({
                 getServerSettings: () => ({ remoteAccess: { enabled: scenario.remoteEnabled === true } }),
             });
-            const { RemoteAccessManager } = loaded('remote_access/services/remoteAccessManager.js');
+            const { RemoteAccessManager } = loaded('core/remote-access/remoteAccessManager.js');
             RemoteAccessManager.getInstance = () => (scenario.remoteManager === 'missing' ? null : {
                 startSharing: async (serverId) => {
                     transcript.calls.push(['startSharing', serverId]);

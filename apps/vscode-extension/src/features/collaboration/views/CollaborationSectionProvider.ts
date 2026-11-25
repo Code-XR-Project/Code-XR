@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
-import { CollaborationProfileManager } from '../../collaboration/services/collaborationProfileManager';
-import { CollaborationItemFactory, CollaborationTreeItem } from './items/collaborationItems';
+import { BaseSectionProvider } from '../../../platform/tree/baseInterfaces';
+import { CollaborationProfileManager } from '../../../core/collaboration/collaborationProfileManager';
+import { CollaborationItemFactory, CollaborationTreeItem } from './collaborationItems';
 
 export class CollaborationSectionProvider extends BaseSectionProvider<CollaborationTreeItem> {
     private readonly manager: CollaborationProfileManager;

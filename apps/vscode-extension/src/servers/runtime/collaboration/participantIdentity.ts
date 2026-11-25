@@ -1,9 +1,9 @@
-import { buildStarWarsDisplayName } from '../../../collaboration/model/anonymousName';
+import { buildStarWarsDisplayName } from '../../../core/collaboration/anonymousName';
 import {
     COLLABORATION_AVATARS,
     CollaborationProfile,
     VALID_AVATAR_IDS,
-} from '../../../collaboration/model/collaborationProfile';
+} from '../../../core/collaboration/collaborationProfile';
 import { normalizeId } from './roomMessageCodec';
 import {
     CollaborationPeer,

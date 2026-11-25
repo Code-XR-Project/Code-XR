@@ -6,7 +6,7 @@ import {
     CollaborationProfile,
     DEFAULT_COLLABORATION_PROFILE,
     normalizeCollaborationProfile,
-} from '../model/collaborationProfile';
+} from './collaborationProfile';
 
 /**
  * The avatar shipped inside the extension. It is CC0, so it can be

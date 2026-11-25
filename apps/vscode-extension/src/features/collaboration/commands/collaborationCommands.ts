@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { AUTO_AVATAR_ID, COLLABORATION_AVATARS, sanitizeCollaborationName } from '../../collaboration/model/collaborationProfile';
-import { AVATAR_ASSET, CollaborationProfileManager } from '../../collaboration/services/collaborationProfileManager';
-import { formatDetailSections } from '../../platform/ui/detailDialog';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { RemoteAccessManager } from '../../remote_access/services/remoteAccessManager';
+import { AUTO_AVATAR_ID, COLLABORATION_AVATARS, sanitizeCollaborationName } from '../../../core/collaboration/collaborationProfile';
+import { AVATAR_ASSET, CollaborationProfileManager } from '../../../core/collaboration/collaborationProfileManager';
+import { formatDetailSections } from '../../../platform/ui/detailDialog';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
+import { RemoteAccessManager } from '../../../core/remote-access/remoteAccessManager';
 
 interface RefreshableTreeProvider {
     refreshSection?(sectionName: string): void;

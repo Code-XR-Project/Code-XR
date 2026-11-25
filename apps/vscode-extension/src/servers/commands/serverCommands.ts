@@ -4,8 +4,8 @@ import * as fs from 'fs';
 import { handleHttpModeClick, handlePortClick, handleAutoOpenClick, handleOpenModeClick } from '../views/interactions/handleConfigurationClicks';
 import { MultiServerLauncher } from '../runtime/multiServerLauncher';
 import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
-import { CloudflaredBinaryManager } from '../../remote_access/services/cloudflaredBinaryManager';
-import { RemoteAccessManager } from '../../remote_access/services/remoteAccessManager';
+import { CloudflaredBinaryManager } from '../../core/remote-access/cloudflaredBinaryManager';
+import { RemoteAccessManager } from '../../core/remote-access/remoteAccessManager';
 import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('SERVER');

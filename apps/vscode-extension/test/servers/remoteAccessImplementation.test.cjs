@@ -24,7 +24,7 @@ function readProjectFile(...parts) {
 
 test('remote access defaults to enabled, with a one-shot migration for older settings files', () => {
     const settings = readProjectFile('src', 'servers', 'storage', 'serverSettingsManager.ts');
-    const model = readProjectFile('src', 'remote_access', 'model', 'remoteAccessModel.ts');
+    const model = readProjectFile('src', 'core', 'remote-access', 'remoteAccessModel.ts');
     const items = readProjectFile('src', 'views', 'servers', 'items', 'serverItems.ts');
     assert.match(settings, /remoteAccess: \{ \.\.\.DEFAULT_REMOTE_ACCESS_SETTINGS \}/);
     assert.match(settings, /version: '1\.2\.0'/);
@@ -39,9 +39,9 @@ test('remote access defaults to enabled, with a one-shot migration for older set
 });
 
 test('invitation links carry no TTL and the download consent is asked once', () => {
-    const authority = readProjectFile('src', 'remote_access', 'security', 'remoteSessionAuthority.ts');
+    const authority = readProjectFile('src', 'core', 'remote-access', 'remoteSessionAuthority.ts');
     const pairingApi = readProjectFile('src', 'servers', 'runtime', 'remote', 'remotePairingApi.ts');
-    const binaryManager = readProjectFile('src', 'remote_access', 'services', 'cloudflaredBinaryManager.ts');
+    const binaryManager = readProjectFile('src', 'core', 'remote-access', 'cloudflaredBinaryManager.ts');
     // The 30-minute invitation TTL made the sidebar's address die while the
     // tunnel stayed up. Invitations now live until revocation.
     assert.doesNotMatch(authority, /INVITATION_TTL_MS/);
@@ -89,14 +89,14 @@ test('remote HTTP and WebSocket access require server-issued sessions', () => {
 test('cloudflared is pinned, checksum-verified, and launched without a shell', () => {
     const binaryManager = readProjectFile(
         'src',
-        'remote_access',
-        'services',
+        'core',
+        'remote-access',
         'cloudflaredBinaryManager.ts',
     );
     const remoteManager = readProjectFile(
         'src',
-        'remote_access',
-        'services',
+        'core',
+        'remote-access',
         'remoteAccessManager.ts',
     );
     assert.match(binaryManager, /CLOUDFLARED_VERSION = '2026\.5\.2'/);
@@ -142,8 +142,8 @@ test('external browser pairing selects identity before requesting the code', () 
     const pairingPage = readProjectFile('src', 'servers', 'runtime', 'remote', 'pairingPage.ts');
     const authority = readProjectFile(
         'src',
-        'remote_access',
-        'security',
+        'core',
+        'remote-access',
         'remoteSessionAuthority.ts',
     );
     assert.match(pairingPage, /\/api\/remote\/identity/);
@@ -219,7 +219,7 @@ test('the host can remove a guest from the participant modal and the tree contex
 test('participant removal is server-authoritative and revokes remote sessions', () => {
     const room = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationRoomServer.ts');
     const httpServer = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
-    const authority = readProjectFile('src', 'remote_access', 'security', 'remoteSessionAuthority.ts');
+    const authority = readProjectFile('src', 'core', 'remote-access', 'remoteSessionAuthority.ts');
 
     // Both kick paths share one wire format, so browsers cannot tell them apart.
     assert.match(room, /public removeParticipant\(roomId: string, peerId: string\): ParticipantRemovalResult/);
@@ -235,7 +235,7 @@ test('participant removal is server-authoritative and revokes remote sessions', 
 });
 
 test('disabling cross-network connections uninstalls the managed cloudflared download', () => {
-    const binaryManager = readProjectFile('src', 'remote_access', 'services', 'cloudflaredBinaryManager.ts');
+    const binaryManager = readProjectFile('src', 'core', 'remote-access', 'cloudflaredBinaryManager.ts');
     const serverCommands = readProjectFile('src', 'servers', 'commands', 'serverCommands.ts');
 
     // The manager owns exactly the managed download, never a system binary
@@ -254,7 +254,7 @@ test('disabling cross-network connections uninstalls the managed cloudflared dow
 });
 
 test('declining the cloudflared download turns cross-network off instead of leaving it silently broken', () => {
-    const remoteManager = readProjectFile('src', 'remote_access', 'services', 'remoteAccessManager.ts');
+    const remoteManager = readProjectFile('src', 'core', 'remote-access', 'remoteAccessManager.ts');
 
     const resolveIndex = remoteManager.indexOf('const binaryPath = await this.binaryManager.resolveBinary(true);');
     const disableIndex = remoteManager.indexOf(

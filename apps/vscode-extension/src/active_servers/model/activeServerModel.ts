@@ -103,4 +103,4 @@ export interface RegistryEvent {
     server?: ActiveServer;
     timestamp: number;
 }
-import { RemoteAccessState } from '../../remote_access/model/remoteAccessModel';
+import { RemoteAccessState } from '../../core/remote-access/remoteAccessModel';

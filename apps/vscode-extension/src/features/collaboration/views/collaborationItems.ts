@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { CollaborationConfiguration } from '../../../collaboration/services/collaborationProfileManager';
-import { COLLABORATION_AVATARS } from '../../../collaboration/model/collaborationProfile';
+import { CollaborationConfiguration } from '../../../core/collaboration/collaborationProfileManager';
+import { COLLABORATION_AVATARS } from '../../../core/collaboration/collaborationProfile';
 
 export type CollaborationItemType = 'identity' | 'avatar' | 'asset' | 'session' | 'info';
 

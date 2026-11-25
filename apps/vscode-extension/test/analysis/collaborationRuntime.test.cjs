@@ -188,7 +188,7 @@ test('automatic avatar colour survives profile normalization and validation', ()
         ASSIGNABLE_AVATAR_IDS,
         VALID_AVATAR_IDS,
         normalizeCollaborationProfile,
-    } = require(path.join(projectRoot, 'out', 'collaboration', 'model', 'collaborationProfile.js'));
+    } = require(path.join(projectRoot, 'out', 'core', 'collaboration', 'collaborationProfile.js'));
 
     assert.equal(AUTO_AVATAR_ID, 'auto');
     assert.equal(DEFAULT_COLLABORATION_PROFILE.avatarId, AUTO_AVATAR_ID);

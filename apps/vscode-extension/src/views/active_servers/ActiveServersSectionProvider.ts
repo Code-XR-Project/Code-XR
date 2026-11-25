@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
-import { CollaborationSectionProvider } from '../collaboration/CollaborationSectionProvider';
+import { CollaborationSectionProvider } from '../../features/collaboration/views/CollaborationSectionProvider';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
-import { ConnectedParticipantSummary } from '../../collaboration/model/connectedParticipant';
+import { ConnectedParticipantSummary } from '../../core/collaboration/connectedParticipant';
 import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS_MODULAR');

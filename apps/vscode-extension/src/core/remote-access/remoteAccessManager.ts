@@ -2,16 +2,16 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CollaborationProfileManager } from '../../collaboration/services/collaborationProfileManager';
+import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ServerSettingsManager } from '../../servers/storage/serverSettingsManager';
-import { DEFAULT_REMOTE_ACCESS_STATE, RemoteAccessState } from '../model/remoteAccessModel';
+import { DEFAULT_REMOTE_ACCESS_STATE, RemoteAccessState } from './remoteAccessModel';
 import {
     PairingFailureEvent,
     PairingRequestCreatedEvent,
     RemoteSessionAuthority,
-} from '../security/remoteSessionAuthority';
+} from './remoteSessionAuthority';
 import { CloudflaredBinaryManager } from './cloudflaredBinaryManager';
 import { getLogger } from '../../platform/logging/sink';
 

@@ -6,7 +6,7 @@ import { CodeXRLogger } from '../../platform/logging/logger';
 import {
     DEFAULT_REMOTE_ACCESS_SETTINGS,
     RemoteAccessSettings,
-} from '../../remote_access/model/remoteAccessModel';
+} from '../../core/remote-access/remoteAccessModel';
 
 const logger = CodeXRLogger.getLogger('SERVER_SETTINGS');
 

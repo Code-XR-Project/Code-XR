@@ -8,7 +8,7 @@ import { getPythonEnvCommandRegistrations } from '../features/python-env/command
 import { getVisualizationSettingsCommandRegistrations } from '../features/visualization-settings/commands/visualizationSettingsCommandRegistrations';
 import { getLearnMoreCommandRegistrations } from '../features/learn-more/commands/learnMoreCommandRegistrations';
 import { getGeneralCommandRegistrations } from './common/generalCommands';
-import { getCollaborationCommandRegistrations } from './collaboration/collaborationCommands';
+import { getCollaborationCommandRegistrations } from '../features/collaboration/commands/collaborationCommands';
 import { ExtensionCommandRegistration, assertUniqueCommandIds } from '../platform/commands/commandRegistry';
 import { CommandBuilder } from '../platform/commands/commandBuilder';
 import { BabiaExamplesTreeDataProvider } from '../features/examples/views/babiaExamplesTreeView';

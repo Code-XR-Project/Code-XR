@@ -31,7 +31,7 @@ function requireOut(relativePath) {
 }
 
 function loadExtensionModel() {
-    const model = requireOut('collaboration/model/collaborationProfile.js');
+    const model = requireOut('core/collaboration/collaborationProfile.js');
     const palette = model.COLLABORATION_AVATARS.map((avatar) => avatar.id);
 
     // Every test below compares against this list or iterates it: an empty or
