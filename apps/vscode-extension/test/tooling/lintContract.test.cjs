@@ -78,3 +78,10 @@ test('typecheck runs the strict flags, and only typecheck does', () => {
         assert.equal(readTsconfig('tsconfig.json').compilerOptions[flag], undefined, `tsconfig.json leaves ${flag} to the check config`);
     }
 });
+
+test('the extension project does not type-check against the browser DOM', () => {
+    // The extension host is Node; a DOM global (window, document, a DOM-typed
+    // setTimeout) in src/ would type-check and then fail at runtime.
+    const lib = readTsconfig('tsconfig.json').compilerOptions.lib.map((entry) => entry.toLowerCase());
+    assert.ok(!lib.includes('dom'), 'tsconfig.json lib has no DOM');
+});

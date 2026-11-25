@@ -4,9 +4,10 @@
 		"target": "ES2022",
 		"outDir": "out",
 
+		// No "DOM": the extension host is Node. Browser code lives under
+		// templates/ as plain JS and is not part of this project.
 		"lib": [
-			"ES2022",
-			"DOM"
+			"ES2022"
 		],
 		"types": ["node", "vscode"],
 		"sourceMap": true,
