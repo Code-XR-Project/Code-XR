@@ -10,6 +10,17 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
 
+/**
+ * What every ExecutePython entry point resolves: the backend's parsed JSON
+ * payload, or (for the raw entry points: schema and dependencies) a
+ * PythonScriptFailure record. Its shape depends on the mode (an XR record
+ * array, a LivePanel object, the DOM parser's object, the schema...) and
+ * each caller reads the fields of its own mode, so the boundary stays open
+ * in this one alias rather than in an `any` per method. Narrowing it per
+ * caller is follow-up work outside this module.
+ */
+type PythonPayload = any;
+
 /** The HTML DOM parser fails a run with a truthy `error` field (or no outcome at all). */
 function domFailureOf(result: unknown): { error?: string } | undefined {
     if (!result) {
@@ -63,7 +74,7 @@ export class ExecutePython {
         this.venvManager = new VenvManager(context);
     }
 
-    public async executeXRFieldSchema(targetType: 'file' | 'directory'): Promise<any> {
+    public async executeXRFieldSchema(targetType: 'file' | 'directory'): Promise<PythonPayload> {
         logger.debug(() => 'Loading XR field schema for ' + targetType);
         return await this.executePythonScript('main.py', [
             '--mode', 'schema',
@@ -78,7 +89,7 @@ export class ExecutePython {
           cachePath?: string,
           refreshRequestPath?: string,
           projectRoot?: string,
-      ): Promise<any> {
+      ): Promise<PythonPayload> {
         const args = [
             '--mode', 'dependencies',
             '--type', targetType,
@@ -108,13 +119,13 @@ export class ExecutePython {
     public async executeAnalysis(
         session: UnifiedAnalysisSession,
         options: { silent?: boolean } = {},
-    ): Promise<any> {
+    ): Promise<PythonPayload> {
         logger.debug(`Starting Python analysis execution...`);
         logger.debug(() => `Analysis mode: ${session.analysisMode}`);
         logger.debug(() => `Target type: ${session.targetType}`);
         logger.debug(() => `Target path: ${session.targetPath}`);
 
-        const runAnalysis = async (progress: vscode.Progress<{message: string; increment: number}>): Promise<any> => {
+        const runAnalysis = async (progress: vscode.Progress<{message: string; increment: number}>): Promise<PythonPayload> => {
             progress.report({
                 increment: 0,
                 message: `Starting ${session.analysisMode} analysis...`,
@@ -160,7 +171,7 @@ export class ExecutePython {
     private async executeFileAnalysis(
         session: UnifiedAnalysisSession,
         progress?: vscode.Progress<{message?: string; increment?: number}>,
-    ): Promise<any> {
+    ): Promise<PythonPayload> {
         logger.debug(() => `Executing file analysis for: ${session.targetPath}`);
 
         try {
@@ -182,7 +193,7 @@ export class ExecutePython {
     private async executeDirectoryAnalysis(
         session: UnifiedAnalysisSession,
         progress?: vscode.Progress<{message?: string; increment?: number}>,
-    ): Promise<any> {
+    ): Promise<PythonPayload> {
         logger.debug('Executing directory analysis...');
         logger.debug(() => `Will analyze directory: ${session.targetPath}`);
         logger.debug(() => `Analysis mode: ${session.analysisMode}`);
@@ -216,7 +227,7 @@ export class ExecutePython {
     private async executeXRAnalysis(
         session: UnifiedAnalysisSession,
         progress?: vscode.Progress<{message?: string; increment?: number}>,
-    ): Promise<any> {
+    ): Promise<PythonPayload> {
         logger.debug(() => `Executing XR analysis for: ${session.targetPath}`);
         logger.debug(() => `Target type: ${session.targetType}`);
 
@@ -275,7 +286,7 @@ export class ExecutePython {
     private async executeHTMLDOMAnalysis(
         session: UnifiedAnalysisSession,
         progress?: vscode.Progress<{message?: string; increment?: number}>,
-    ): Promise<any> {
+    ): Promise<PythonPayload> {
         logger.debug(() => `Executing HTML DOM analysis for: ${session.targetPath}`);
 
         try {
@@ -315,7 +326,7 @@ export class ExecutePython {
         throw new Error(`${label} failed: ${failure.error || 'Unknown error'}`);
     }
 
-    public async executeFileReanalysis(filePaths: string[]): Promise<any> {
+    public async executeFileReanalysis(filePaths: string[]): Promise<PythonPayload> {
         logger.debug(() => `Starting file re-analysis for ${filePaths.length} files`);
 
         try {
@@ -346,7 +357,7 @@ export class ExecutePython {
         scriptName: string,
         args: string[],
         progress?: vscode.Progress<{message?: string; increment?: number}>,
-    ): Promise<any> {
+    ): Promise<PythonPayload> {
         logger.debug(() => `Executing Python script: ${scriptName}`);
         logger.debug(() => `Script arguments: ${args.join(' ')}`);
         logger.debug(() => `Target: ${args.includes('--target') ? args[args.indexOf('--target') + 1] : 'Multiple targets'}`);
@@ -489,7 +500,7 @@ export class ExecutePython {
      * Maps a spawn outcome to what executePythonScript resolves: the parsed
      * payload, or a failure record (never a rejection).
      */
-    private toScriptResult(outcome: SpawnOutcome, scriptName: string): any {
+    private toScriptResult(outcome: SpawnOutcome, scriptName: string): unknown {
         if (outcome.kind === 'spawn-error') {
             return {
                 success: false,

@@ -24,11 +24,11 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 142,
+    "any.total": 132,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
-      "code_analysis": 63,
+      "code_analysis": 53,
       "commands": 8,
       "python_env": 5,
       "servers": 11,
@@ -60,7 +60,7 @@
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 524,
+    "eslint.maxWarnings": 514,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,7 +69,7 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49004,
+    "src.lines": 49015,
     "src.functions": 3274,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -79,10 +79,6 @@
       }
     ],
     "any.topFiles": [
-      {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 12
-      },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts",
         "count": 11
@@ -137,6 +133,10 @@
       },
       {
         "file": "src/code_analysis/engine/parsers/fileXRParser.ts",
+        "count": 3
+      },
+      {
+        "file": "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts",
         "count": 3
       }
     ],
@@ -232,16 +232,16 @@
         "lines": 576
       },
       {
+        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "lines": 567
+      },
+      {
         "file": "src/remote_access/services/remoteAccessManager.ts",
         "lines": 567
       },
       {
         "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
         "lines": 562
-      },
-      {
-        "file": "src/code_analysis/historical/gitRepositoryService.ts",
-        "lines": 560
       }
     ]
   },
