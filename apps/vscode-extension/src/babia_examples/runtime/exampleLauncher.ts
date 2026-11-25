@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { BabiaExample, ExampleScanResult, ExampleLaunchConfig } from '../model/babiaExampleModel';
+import { BabiaExample, ExampleScanResult } from '../model/babiaExampleModel';
 import { MultiServerLauncher, MultiServerLaunchResult } from '../../servers/runtime/multiServerLauncher';
 
 /**

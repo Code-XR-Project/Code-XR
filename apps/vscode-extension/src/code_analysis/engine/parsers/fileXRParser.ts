@@ -226,7 +226,6 @@ export class FileXRParser {
         const mappingsCount = dimensionMappings.length;
         const dimensionsCount = chartMetadata.dimensions.length;
         const requiredDimensionsCount = chartMetadata.dimensions.filter((dimension) => dimension.required).length;
-        const statusIcon = validationResult.isValid ? 'check' : 'warning';
         const summaryMessage = `${chartType} chart with ${mappingsCount}/${dimensionsCount} dimensions mapped (${requiredDimensionsCount} required)`;
 
         if (validationResult.isValid) {

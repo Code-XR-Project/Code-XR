@@ -22,12 +22,10 @@ import { RemoteAccessManager } from './remote_access';
 
 const startupLogger = CodeXRLogger.getLogger('STARTUP');
 
-let extensionContext: vscode.ExtensionContext;
 let globalModularTreeDataProvider: ModularTreeDataProvider | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
     const activationStartedAt = Date.now();
-    extensionContext = context;
 
     initializeExtensionContext(context);
     CodeXRLogger.initialize(context);

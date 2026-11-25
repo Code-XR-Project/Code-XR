@@ -5,7 +5,7 @@ import { getPanelManager } from '../services/panelManager';
 import { fileToServerMap } from '../../utils/fileToServerMap';
 import { sseManager } from '../../servers/runtime/sse/SSEManager';
 import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
-import { handleError, formatErrorMessage, ErrorDomain, ErrorSeverity } from '../../utils/errorHandler';
+import { handleError, ErrorDomain, ErrorSeverity } from '../../utils/errorHandler';
 
 /** How long a graceful shutdown may take before it is forced. */
 const STOP_TIMEOUT_MS = 4000;

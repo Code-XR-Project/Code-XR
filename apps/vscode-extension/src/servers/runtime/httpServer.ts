@@ -1,6 +1,5 @@
 import * as http from 'http';
 import * as path from 'path';
-import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { sseManager } from './sse/SSEManager';
 import { fileToServerMap } from '../../utils/fileToServerMap';

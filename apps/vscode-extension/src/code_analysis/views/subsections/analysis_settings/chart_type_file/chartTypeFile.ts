@@ -8,7 +8,6 @@ import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration';
 import { BabiaChartRegistry } from '../../../../../babia_templates/registry/chartRegistry';
 import { ChartMetadata } from '../../../../../babia_templates/models/chartModels';
-import { DimensionMappingCleaner } from './dimensionMappingCleaner';
 
 export type AnalysisMode = 'XR' | 'LivePanel';
 export type ChartType = 'bars' | 'barsmap' | 'cyls' | 'cylsmap' | 'donut' | 'pie' | 'bubbles' | 'boats';

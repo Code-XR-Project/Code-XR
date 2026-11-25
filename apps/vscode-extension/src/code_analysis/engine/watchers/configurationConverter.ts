@@ -3,7 +3,7 @@
  * Convierte la configuración de AutoAnalysisDelay a milisegundos
  */
 
-import { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../configuration/models/analysisConfiguration';
+import { AutoAnalysisDelayConfig } from '../../configuration/models/analysisConfiguration';
 
 export class ConfigurationConverter {
     

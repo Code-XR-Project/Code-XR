@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import { BabiaExample } from '../model/babiaExampleModel';
 import { ExampleLauncher } from '../runtime/exampleLauncher';
-import { BabiaExampleTreeItem, ExampleItemFactory, ExampleIcons } from './items/exampleItems';
+import { BabiaExampleTreeItem, ExampleItemFactory } from './items/exampleItems';
 
 /**
  * Babia Examples Tree Data Provider

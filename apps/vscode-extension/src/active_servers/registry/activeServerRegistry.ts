@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { ActiveServer, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from '../model/activeServerModel';
 import { RemoteAccessState } from '../../remote_access/model/remoteAccessModel';
 

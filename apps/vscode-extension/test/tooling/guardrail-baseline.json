@@ -76,7 +76,8 @@
     "complexity.over20": 10,
     "complexity.over30": 6,
     "reachability.unreachable": [
-      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts"
+      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
+      "src/code_analysis/views/subsections/analysis_settings/chart_type_file/dimensionMappingCleaner.ts"
     ],
     "templates.consoleLog": 117,
     "eslint.maxWarnings": null,
@@ -88,9 +89,9 @@
   },
   "informational": {
     "src.files": 310,
-    "src.lines": 49582,
+    "src.lines": 49571,
     "src.functions": 2722,
-    "src.unreachableLines": 39,
+    "src.unreachableLines": 122,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -320,5 +321,13 @@
       }
     ]
   },
-  "waivers": []
+  "waivers": [
+    {
+      "metric": "reachability.unreachable",
+      "from": 1,
+      "to": 2,
+      "reason": "W2-22 drops the unused DimensionMappingCleaner import, orphaning dimensionMappingCleaner.ts until W2-24 (#29) deletes it",
+      "date": "2026-11-25"
+    }
+  ]
 }
