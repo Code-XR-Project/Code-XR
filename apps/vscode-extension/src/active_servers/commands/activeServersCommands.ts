@@ -84,7 +84,7 @@ export class ActiveServersCommands {
                     if (!participantTarget) {
                         // Never fail silently: an unresolvable target used to
                         // look exactly like a command that did nothing.
-                        vscode.window.showWarningMessage(
+                        void vscode.window.showWarningMessage(
                             'Could not tell which participant to remove. Refresh the view and try again.',
                         );
                         return;

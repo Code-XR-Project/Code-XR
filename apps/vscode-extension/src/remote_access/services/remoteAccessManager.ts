@@ -261,7 +261,7 @@ export class RemoteAccessManager implements vscode.Disposable {
         this.getAuthority(server)?.revokeAll();
         this.updateState(serverId, { ...DEFAULT_REMOTE_ACCESS_STATE });
         if (notify && (share || server?.remoteAccess?.status === 'shared')) {
-            vscode.window.showInformationMessage('The remote connection was stopped and its sessions revoked.');
+            void vscode.window.showInformationMessage('The remote connection was stopped and its sessions revoked.');
         }
     }
 
@@ -275,7 +275,7 @@ export class RemoteAccessManager implements vscode.Disposable {
             throw new Error('This server has no active remote invitation.');
         }
         await vscode.env.clipboard.writeText(state.invitationUrl);
-        vscode.window.showInformationMessage('Remote invitation link copied.');
+        void vscode.window.showInformationMessage('Remote invitation link copied.');
     }
 
     public async joinInvitation(value?: string): Promise<void> {
@@ -316,7 +316,7 @@ export class RemoteAccessManager implements vscode.Disposable {
         }
         this.trackGuestConnection(invitationUrl.origin, extensionToken, profileManager);
         await vscode.env.openExternal(vscode.Uri.parse(browserUrl));
-        vscode.window.showInformationMessage('Remote session paired and opened with this CodeXR profile.');
+        void vscode.window.showInformationMessage('Remote session paired and opened with this CodeXR profile.');
     }
 
     /**

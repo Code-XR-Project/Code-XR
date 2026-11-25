@@ -61,7 +61,7 @@
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 439,
+    "eslint.maxWarnings": 354,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -70,7 +70,7 @@
   },
   "informational": {
     "src.files": 337,
-    "src.lines": 49007,
+    "src.lines": 49011,
     "src.functions": 3287,
     "src.unreachableLines": 0,
     "console.topFiles": [

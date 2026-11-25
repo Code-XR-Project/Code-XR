@@ -116,16 +116,16 @@ export class ServerActionHandlers {
                     const urlToCopy = choice.label.includes('Network') ? networkUrl : server.url;
                     await vscode.env.clipboard.writeText(urlToCopy);
                     logger.debug(() => `Copied ${urlToCopy} to clipboard`);
-                    vscode.window.showInformationMessage(`Copied ${choice.label.includes('Network') ? 'Network' : 'Local'} URL to clipboard`);
+                    void vscode.window.showInformationMessage(`Copied ${choice.label.includes('Network') ? 'Network' : 'Local'} URL to clipboard`);
                 } else {
                     // Fallback to original behavior if no network access available
                     await vscode.env.clipboard.writeText(server.url);
                     logger.debug(() => `Copied ${server.url} to clipboard`);
-                    vscode.window.showInformationMessage(`Copied ${server.url} to clipboard`);
+                    void vscode.window.showInformationMessage(`Copied ${server.url} to clipboard`);
                 }
             } catch (error) {
                 logger.error(`Error copying URL to clipboard:`, error);
-                vscode.window.showErrorMessage('Failed to copy URL to clipboard');
+                void vscode.window.showErrorMessage('Failed to copy URL to clipboard');
             }
         });
     }
@@ -133,13 +133,13 @@ export class ServerActionHandlers {
     public static async copyLanUrl(serverId: string): Promise<void> {
         const server = getActiveServerRegistry().getServer(serverId);
         if (!server) {
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
+            void vscode.window.showErrorMessage(`Server not found: ${serverId}`);
             return;
         }
         const protocol = server.url.startsWith('https') ? 'https' : 'http';
         const lanUrl = NetworkUtils.getPrimaryExternalUrl(server.port, protocol);
         await vscode.env.clipboard.writeText(lanUrl);
-        vscode.window.showInformationMessage(`Network address copied: ${lanUrl}`);
+        void vscode.window.showInformationMessage(`Network address copied: ${lanUrl}`);
     }
 
     public static async startRemoteAccess(serverId: string): Promise<void> {
@@ -147,7 +147,7 @@ export class ServerActionHandlers {
         const state = await manager.startSharing(serverId);
         if (state.status === 'shared' && state.invitationUrl) {
             await vscode.env.clipboard.writeText(state.invitationUrl);
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 'Server shared through Cloudflare. The invitation link has been copied to the clipboard.',
             );
         }
@@ -170,7 +170,7 @@ export class ServerActionHandlers {
         const participant = this.findConnectedParticipant(serverId, peerId);
 
         if (!participant) {
-            vscode.window.showInformationMessage('This participant is no longer connected.');
+            void vscode.window.showInformationMessage('This participant is no longer connected.');
             return;
         }
 
@@ -214,11 +214,11 @@ export class ServerActionHandlers {
     public static async removeParticipant(serverId: string, peerId: string): Promise<void> {
         const participant = this.findConnectedParticipant(serverId, peerId);
         if (!participant) {
-            vscode.window.showInformationMessage('This participant is no longer connected.');
+            void vscode.window.showInformationMessage('This participant is no longer connected.');
             return;
         }
         if (participant.role === 'host') {
-            vscode.window.showWarningMessage('The host of the session cannot be removed.');
+            void vscode.window.showWarningMessage('The host of the session cannot be removed.');
             return;
         }
 
@@ -237,19 +237,19 @@ export class ServerActionHandlers {
 
         const runtime = this.getParticipantHostRuntime(serverId);
         if (typeof runtime?.removeParticipant !== 'function') {
-            vscode.window.showWarningMessage('This server does not support removing participants.');
+            void vscode.window.showWarningMessage('This server does not support removing participants.');
             return;
         }
 
         const outcome = runtime.removeParticipant(peerId);
         if (!outcome.removed) {
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `${participant.displayName} had already left the session.`,
             );
             return;
         }
 
-        vscode.window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             outcome.sessionRevoked
                 ? `${participant.displayName} was removed. Their remote session was revoked.`
                 : `${participant.displayName} was removed from the session.`,
@@ -294,13 +294,13 @@ export class ServerActionHandlers {
             : undefined;
 
         if (!authority) {
-            vscode.window.showWarningMessage('This server does not support remote access.');
+            void vscode.window.showWarningMessage('This server does not support remote access.');
             return;
         }
 
         const pending = authority.listPendingPairingRequests();
         if (pending.length === 0) {
-            vscode.window.showInformationMessage('Nobody is waiting to connect right now.');
+            void vscode.window.showInformationMessage('Nobody is waiting to connect right now.');
             return;
         }
 
@@ -377,17 +377,17 @@ export class ServerActionHandlers {
                 
                     if (success) {
                         logger.debug(() => `Successfully stopped server ${serverId}`);
-                        vscode.window.showInformationMessage(`Stopped server ${server.url}`);
+                        void vscode.window.showInformationMessage(`Stopped server ${server.url}`);
                     
                         // Refresh the tree view
-                        vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
+                        void vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
                     } else {
                         logger.error(`Failed to stop server ${serverId}`);
-                        vscode.window.showErrorMessage(`Failed to stop server ${server.url}`);
+                        void vscode.window.showErrorMessage(`Failed to stop server ${server.url}`);
                     }
                 } catch (error) {
                     logger.error(`Error stopping server ${serverId}:`, error);
-                    vscode.window.showErrorMessage(
+                    void vscode.window.showErrorMessage(
                         `Error stopping server: ${error instanceof Error ? error.message : String(error)}`
                     );
                 }
@@ -424,7 +424,7 @@ export class ServerActionHandlers {
         const allServers = registry.getAllServers();
         
         if (allServers.length === 0) {
-            vscode.window.showInformationMessage('No servers are currently running');
+            void vscode.window.showInformationMessage('No servers are currently running');
             return;
         }
 
@@ -442,17 +442,17 @@ export class ServerActionHandlers {
                 
                 if (success) {
                     logger.debug('Successfully stopped all servers');
-                    vscode.window.showInformationMessage(`Stopped all ${allServers.length} servers`);
+                    void vscode.window.showInformationMessage(`Stopped all ${allServers.length} servers`);
                 } else {
                     logger.error('Failed to stop some servers');
-                    vscode.window.showWarningMessage('Some servers may not have stopped properly');
+                    void vscode.window.showWarningMessage('Some servers may not have stopped properly');
                 }
                 
                 // Refresh the tree view
-                vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
+                void vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
             } catch (error) {
                 logger.error('Error stopping all servers:', error);
-                vscode.window.showErrorMessage(
+                void vscode.window.showErrorMessage(
                     `Error stopping servers: ${error instanceof Error ? error.message : String(error)}`
                 );
             }
@@ -466,7 +466,7 @@ export class ServerActionHandlers {
      */
     public static async refreshServers(): Promise<void> {
         logger.debug('Refreshing servers display');
-        vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
+        void vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
     }
 
     /**
@@ -616,7 +616,7 @@ export class ServerActionHandlers {
                 break;
             default:
                 logger.error(`Unknown action: ${action}`);
-                vscode.window.showErrorMessage(`Unknown action: ${action}`);
+                void vscode.window.showErrorMessage(`Unknown action: ${action}`);
         }
     }
 }
