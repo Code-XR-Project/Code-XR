@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AutoAnalysisEnabledSetting } from '../../../../views/subsections/analysis_settings/auto_analysis_enabled';
+import { AutoAnalysisEnabledSetting } from '../../../../views/subsections/analysis_settings/auto_analysis_enabled/autoAnalysisEnabled';
 import { CommandRegistration } from '../analysis_file_mode';
 import { SessionWatcherManager } from '../../../../engine/watchers/sessionWatcherManager';
 import { getLogger } from '../../../../../core/logging/sink';

@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ProfileConfigurationSetting } from '../../../../views/subsections/analysis_settings/profile_configuration';
+import { ProfileConfigurationSetting } from '../../../../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
 import { CommandRegistration } from '../analysis_file_mode';
 import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
 import { getLogger } from '../../../../../core/logging/sink';

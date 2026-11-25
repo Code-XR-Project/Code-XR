@@ -5,17 +5,17 @@
 
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../items/analysisItems';
-import { AnalysisFileSetting } from './analysis_file_mode';
-import { AnalysisDirectorySetting } from './analysis_directory_mode';
-import { ViewThemeSetting } from './view_theme';
+import { AnalysisFileSetting } from './analysis_file_mode/analysisFileMode';
+import { AnalysisDirectorySetting } from './analysis_directory_mode/analysisDirectoryMode';
+import { ViewThemeSetting } from './view_theme/viewTheme';
 import { ChartTypeFileSetting } from './chart_type_file/chartTypeFile';
 import { ChartTypeDirectorySetting } from './chart_type_directory/chartTypeDirectory';
 import { DimensionMappingFileSetting } from './dimension_mapping_file/dimensionMappingFile';
 import { DimensionMappingDirectorySetting } from './dimension_mapping_directory/dimensionMappingDirectory';
-import { AutoAnalysisDelaySetting } from './auto_analysis_delay';
-import { AutoAnalysisEnabledSetting } from './auto_analysis_enabled';
-import { FilesByLanguageSortingSetting } from './files_by_language_sorting';
-import { ProfileConfigurationSetting } from './profile_configuration';
+import { AutoAnalysisDelaySetting } from './auto_analysis_delay/autoAnalysisDelay';
+import { AutoAnalysisEnabledSetting } from './auto_analysis_enabled/autoAnalysisEnabled';
+import { FilesByLanguageSortingSetting } from './files_by_language_sorting/filesByLanguageSorting';
+import { ProfileConfigurationSetting } from './profile_configuration/profileConfiguration';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import { getLogger } from '../../../../core/logging/sink';
 

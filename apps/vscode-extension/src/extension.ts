@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { registerAllCommands } from './commands/index';
 import { initializePythonEnvOnStartup } from './commands/python_env/pythonEnvCommands';
 import { XRFieldSchemaService } from './code_analysis/services/xrFieldSchemaService';
-import { ModularTreeDataProvider } from './views';
+import { ModularTreeDataProvider } from './views/ModularTreeDataProvider';
 import { CommonCommands } from './utils/commonCommands';
 import { ServerSettingsManager } from './servers/storage/serverSettingsManager';
 import { GeneratedHttpsCertificateManager } from './servers/runtime/generatedHttpsCertificateManager';

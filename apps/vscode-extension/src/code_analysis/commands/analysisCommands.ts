@@ -23,8 +23,8 @@ import { ChartTypeFileSetting } from '../views/subsections/analysis_settings/cha
 import { ChartTypeDirectorySetting } from '../views/subsections/analysis_settings/chart_type_directory/chartTypeDirectory';
 import { DimensionMappingFileSetting } from '../views/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFile';
 import { DimensionMappingDirectorySetting } from '../views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory';
-import { FilesByLanguageSortingSetting } from '../views/subsections/analysis_settings/files_by_language_sorting';
-import { ProfileConfigurationSetting } from '../views/subsections/analysis_settings/profile_configuration';
+import { FilesByLanguageSortingSetting } from '../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
+import { ProfileConfigurationSetting } from '../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { getLogger } from '../../core/logging/sink';
 

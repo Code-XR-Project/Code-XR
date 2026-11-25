@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { DimensionMappingDirectorySetting } from '../../../../views/subsections/analysis_settings/dimension_mapping_directory';
+import { DimensionMappingDirectorySetting } from '../../../../views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory';
 import { CommandRegistration } from '../analysis_file_mode';
 import { getLogger } from '../../../../../core/logging/sink';
 

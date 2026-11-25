@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { ChartTypeDirectorySetting } from '../../../../views/subsections/analysis_settings/chart_type_directory';
+import { ChartTypeDirectorySetting } from '../../../../views/subsections/analysis_settings/chart_type_directory/chartTypeDirectory';
 import { CommandRegistration } from '../analysis_file_mode';
 import { createChartTypeCommands } from '../chart_type_shared/chartTypeCommandFactory';
 import { getLogger } from '../../../../../core/logging/sink';

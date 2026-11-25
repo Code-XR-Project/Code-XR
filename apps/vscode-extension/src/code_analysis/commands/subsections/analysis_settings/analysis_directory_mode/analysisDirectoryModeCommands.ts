@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AnalysisDirectorySetting } from '../../../../views/subsections/analysis_settings/analysis_directory_mode';
+import { AnalysisDirectorySetting } from '../../../../views/subsections/analysis_settings/analysis_directory_mode/analysisDirectoryMode';
 import { CommandRegistration } from '../analysis_file_mode';
 import { getLogger } from '../../../../../core/logging/sink';
 

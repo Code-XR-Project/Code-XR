@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
-import { CollaborationSectionProvider } from '../collaboration';
+import { CollaborationSectionProvider } from '../collaboration/CollaborationSectionProvider';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
 import { ConnectedParticipantSummary } from '../../collaboration';

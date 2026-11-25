@@ -4,19 +4,17 @@
  */
 
 import * as vscode from 'vscode';
-import { 
-    AnalysisFileSetting,
-    AnalysisDirectorySetting, 
-    ViewThemeSetting, 
-    AutoAnalysisDelaySetting,
-    AutoAnalysisEnabledSetting,
-} from '../../../views/subsections/analysis_settings';
+import { AnalysisFileSetting } from '../../../views/subsections/analysis_settings/analysis_file_mode/analysisFileMode';
+import { AnalysisDirectorySetting } from '../../../views/subsections/analysis_settings/analysis_directory_mode/analysisDirectoryMode';
+import { ViewThemeSetting } from '../../../views/subsections/analysis_settings/view_theme/viewTheme';
+import { AutoAnalysisDelaySetting } from '../../../views/subsections/analysis_settings/auto_analysis_delay/autoAnalysisDelay';
+import { AutoAnalysisEnabledSetting } from '../../../views/subsections/analysis_settings/auto_analysis_enabled/autoAnalysisEnabled';
 import { ChartTypeFileSetting } from '../../../views/subsections/analysis_settings/chart_type_file/chartTypeFile';
 import { ChartTypeDirectorySetting } from '../../../views/subsections/analysis_settings/chart_type_directory/chartTypeDirectory';
 import { DimensionMappingFileSetting } from '../../../views/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFile';
 import { DimensionMappingDirectorySetting } from '../../../views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory';
-import { FilesByLanguageSortingSetting } from '../../../views/subsections/analysis_settings/files_by_language_sorting';
-import { ProfileConfigurationSetting } from '../../../views/subsections/analysis_settings/profile_configuration';
+import { FilesByLanguageSortingSetting } from '../../../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
+import { ProfileConfigurationSetting } from '../../../views/subsections/analysis_settings/profile_configuration/profileConfiguration';
 import { AnalysisFileModeCommands, CommandRegistration } from './analysis_file_mode';
 import { AnalysisDirectoryModeCommands } from './analysis_directory_mode';
 import { ViewThemeCommands } from './view_theme';

@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { ViewThemeSetting } from '../../../../views/subsections/analysis_settings/view_theme';
+import { ViewThemeSetting } from '../../../../views/subsections/analysis_settings/view_theme/viewTheme';
 import { CommandRegistration } from '../analysis_file_mode';
 import { getLogger } from '../../../../../core/logging/sink';
 

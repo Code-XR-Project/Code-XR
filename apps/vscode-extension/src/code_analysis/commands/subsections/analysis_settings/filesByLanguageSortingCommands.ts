@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { CommandRegistration } from './analysis_file_mode';
-import { FilesByLanguageSortingSetting } from '../../../views/subsections/analysis_settings/files_by_language_sorting';
+import { FilesByLanguageSortingSetting } from '../../../views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import {
     LanguageGroupSortBy,

@@ -8,11 +8,9 @@ import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { CodeAnalysisTreeItem } from './items/analysisItems';
 import { CodeAnalysisInteractionHandler } from './interactions/handleAnalysisClicks';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
-import {
-    AnalysisSettingsSubsectionProvider,
-    ProjectByLanguageSubsectionProvider,
-    FilesByLanguageSubsectionProvider,
-} from './subsections';
+import { AnalysisSettingsSubsectionProvider } from './subsections/analysis_settings/analysisSettingsSubsectionProvider';
+import { ProjectByLanguageSubsectionProvider } from './subsections/project_by_language/projectByLanguageSubsectionProvider';
+import { FilesByLanguageSubsectionProvider } from './subsections/files_by_language/filesByLanguageSubsectionProvider';
 import { ActiveAnalysesDataService } from './subsections/active_analyses/services/activeAnalysesDataService';
 import { WorkspaceSnapshotService } from '../services/workspaceSnapshotService';
 import { CodeXRLogger } from '../../core/logging/logger';
