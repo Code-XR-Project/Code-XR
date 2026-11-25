@@ -11,7 +11,8 @@ const { createFakeVscode, fakeExtensionContext, withFakeVscode } = require(path.
 // Characterization of inspectGitRevisionExport, the export preflight
 // (ROADMAP W4-T34): what it returns for a directory target, a file target
 // and a folder outside any repository, against a real fixture repository.
-// The only consumer (promptGitExportRequest) reads commitCount alone.
+// The only consumer (promptGitExportRequest) reads commitCount alone, so
+// the preflight returns nothing else and resolves the root only once.
 
 function runGit(repositoryPath, args) {
     return childProcess.execFileSync('git', ['-C', repositoryPath, ...args], { encoding: 'utf8', windowsHide: true }).trim();
@@ -60,9 +61,9 @@ async function inspect(targetPath) {
 
 test('the preflight counts the commits of the repository holding the target', async () => {
     const { repositoryPath, outside } = buildRepository();
-    const repositoryRoot = path.resolve(runGit(repositoryPath, ['rev-parse', '--show-toplevel']));
-    assert.deepEqual(await inspect(path.join(repositoryPath, 'src')), { commitCount: 3, repositoryRoot });
-    assert.deepEqual(await inspect(path.join(repositoryPath, 'src', 'a.py')), { commitCount: 3, repositoryRoot });
+    // The repository root is no longer returned: nothing read it (W4-T34).
+    assert.deepEqual(await inspect(path.join(repositoryPath, 'src')), { commitCount: 3 });
+    assert.deepEqual(await inspect(path.join(repositoryPath, 'src', 'a.py')), { commitCount: 3 });
     const failure = await inspect(outside);
     assert.match(failure.error, /^git-command-failed: /);
 });
