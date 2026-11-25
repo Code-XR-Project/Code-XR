@@ -229,8 +229,22 @@ export class HttpServer {
      */
     public forceStop(): void {
         this.disposeRuntimeFeatures();
-        this.server?.closeAllConnections();
+        const server = this.server;
+        this.server = null;
         this.isRunning = false;
+        if (server) {
+            // close() stops accepting connections and releases the port; it
+            // was never called here, so a force-stopped server kept listening
+            // with no entry left in the tree to stop it from.
+            server.close(() => undefined);
+            server.closeAllConnections();
+        }
+    }
+
+    /** The port the listener is actually bound to, or null when not listening. */
+    public getListeningPort(): number | null {
+        const address = this.server?.address();
+        return address && typeof address === 'object' ? address.port : null;
     }
 
     /**

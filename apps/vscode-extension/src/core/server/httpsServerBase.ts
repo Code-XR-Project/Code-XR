@@ -106,8 +106,22 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
      */
     public forceStop(): void {
         this.httpHandler.disposeRuntimeFeatures();
-        this.server?.closeAllConnections();
+        const server = this.server;
+        this.server = null;
         this.isRunning = false;
+        if (server) {
+            // close() stops accepting connections and releases the port; it
+            // was never called here, so a force-stopped server kept listening
+            // with no entry left in the tree to stop it from.
+            server.close(() => undefined);
+            server.closeAllConnections();
+        }
+    }
+
+    /** The port the listener is actually bound to, or null when not listening. */
+    public getListeningPort(): number | null {
+        const address = this.server?.address();
+        return address && typeof address === 'object' ? address.port : null;
     }
 
     public getIsRunning(): boolean {
@@ -157,8 +171,19 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
         }
     }
 
-    /** Finds a free port from the configured one upwards and adopts it. */
+    /**
+     * Keeps the configured port when it is free, and only otherwise searches
+     * upwards and adopts the next free one. The launcher has already picked a
+     * free port; searching again unconditionally went through get-port, which
+     * locks every port it returns for 15-30 s and therefore skipped the very
+     * port the launcher had just chosen, so the server listened one port above
+     * the one shown in the tree, the toast and the LAN URL.
+     */
     protected async resolveListeningPort(): Promise<void> {
+        if (await PortManager.isPortAvailable(this.config.port, this.config.host)) {
+            logger.debug(() => `Port ${this.config.port} is available on host ${this.config.host}`);
+            return;
+        }
         logger.debug(() => `Looking for available port starting from ${this.config.port} on host ${this.config.host}...`);
         const availablePort = await PortManager.findAvailablePort(this.config.port, this.config.port + 100, this.config.host);
 

@@ -177,7 +177,7 @@ const SCENARIOS = {
         portSearch: 'fail',
         launches: [[htmlFile, undefined, undefined]],
     },
-    'registration fails: the launch still succeeds, the launcher keeps nothing': {
+    'registration fails: the server is stopped and the launch fails': {
         settings: baseSettings(),
         registrarFails: true,
         launches: [[htmlFile, undefined, undefined]],
@@ -382,8 +382,10 @@ test('launcher: the key behaviours, stated outright', () => {
     const copy = transcripts['no auto-open on a LAN address, answered "Copy Network URL"'];
     assert.equal(copy.clipboard, `http://192.0.2.10:${REQUESTED_PORT}`);
 
-    const lost = transcripts['registration fails: the launch still succeeds, the launcher keeps nothing'];
-    assert.equal(lost.results[0].success, true);
-    assert.equal(lost.results[0].activeServerId, '<undefined>');
+    const lost = transcripts['registration fails: the server is stopped and the launch fails'];
+    // XR epic S4 (audit LAUNCHER-16): an unregistered server could never be
+    // found or stopped again, so the launch now stops it and fails.
+    assert.equal(lost.results[0].success, false);
+    assert.match(lost.results[0].error, /^Failed to register the server: /);
     assert.equal(lost.runningCount, 0);
 });

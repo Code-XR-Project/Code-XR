@@ -15,10 +15,14 @@ export class PortManager {
     /**
      * Check if a specific port is available
      * @param port - The port number to check
-     * @param host - The host to bind to (default: '0.0.0.0')
+     * @param host - The host to bind to. Without one, the port must be free on
+     *   the wildcard address and on loopback (see isPortFreeEverywhere).
      * @returns Promise<boolean> - True if port is available, false otherwise
      */
-    public static async isPortAvailable(port: number, host: string = '0.0.0.0'): Promise<boolean> {
+    public static async isPortAvailable(port: number, host?: string): Promise<boolean> {
+        if (host === undefined) {
+            return PortManager.isPortFreeEverywhere(port);
+        }
         return new Promise((resolve) => {
             const server = net.createServer();
             
@@ -37,6 +41,36 @@ export class PortManager {
                     logger.error(`Error checking port ${port}:`, err);
                     resolve(false);
                 }
+            });
+        });
+    }
+
+    /**
+     * True only when the port is free on the wildcard address AND on loopback
+     * (IPv4 and IPv6). Checking 0.0.0.0 alone is not enough on macOS and
+     * Windows: a wildcard bind can succeed while another process (a Vite or
+     * Next dev server, typically on 3000) owns 127.0.0.1 or ::1, and
+     * "localhost" then reaches that other app instead of Code-XR.
+     */
+    public static async isPortFreeEverywhere(port: number): Promise<boolean> {
+        for (const host of ['0.0.0.0', '127.0.0.1', '::1']) {
+            const free = await PortManager.isPortAvailableOnHost(port, host);
+            if (!free) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Like isPortAvailable, but a host this machine does not have (no IPv6) counts as free. */
+    private static isPortAvailableOnHost(port: number, host: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const server = net.createServer();
+            server.once('error', (err: NodeJS.ErrnoException) => {
+                resolve(err.code === 'EADDRNOTAVAIL' || err.code === 'EAFNOSUPPORT');
+            });
+            server.listen({ port, host, exclusive: true }, () => {
+                server.close(() => resolve(true));
             });
         });
     }
@@ -81,9 +115,10 @@ export class PortManager {
             
             logger.debug(() => `Checking ${ports.length} ports sequentially from ${startPort} to ${startPort + maxRange - 1}`);
             
+            // No host: get-port then checks the wildcard and every local
+            // interface, loopback included (see isPortFreeEverywhere).
             const availablePort = await getPort({
                 port: ports,
-                host: '0.0.0.0'  // Use 0.0.0.0 to check availability on all interfaces
             });
 
             logger.debug(() => `Found available port: ${availablePort} (sequential search successful)`);

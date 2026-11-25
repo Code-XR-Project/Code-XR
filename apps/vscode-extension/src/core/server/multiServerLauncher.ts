@@ -71,6 +71,47 @@ export class MultiServerLauncher {
         logger.debug('Multi-server launcher initialized');
     }
 
+    /** Logs (and, when it differs, announces) the port a server bound; returns whether it changed. */
+    private reportBoundPort(requestedPort: number, boundPort: number): boolean {
+        if (boundPort === requestedPort) {
+            logger.debug(() => `Using requested port ${boundPort}`);
+            return false;
+        }
+        logger.debug(() => `Port ${requestedPort} already in use. Using port ${boundPort} instead.`);
+        notifyPortChanged(requestedPort, boundPort);
+        return true;
+    }
+
+    /** Opens a freshly launched server per the settings; a failure is logged, never thrown. */
+    private async openLaunchedServer(
+        settings: Parameters<typeof handleAutoOpening>[0],
+        serverUrl: string,
+        htmlFile: string | undefined,
+        activeServerId: string
+    ): Promise<void> {
+        try {
+            await handleAutoOpening(settings, serverUrl, htmlFile, determineLaunchMode(settings), activeServerId);
+        } catch (error) {
+            logger.error('Failed to open the launched server:', error);
+        }
+    }
+
+    /** Stops a server that started but could not be registered, falling back to forceStop. */
+    private async discardUnregisteredServer(instance: { stop?: () => Promise<void>; forceStop?: () => void } | undefined): Promise<void> {
+        try {
+            if (typeof instance?.stop === 'function') {
+                await instance.stop();
+            }
+        } catch (stopError) {
+            logger.warn('Stopping the unregistered server failed; forcing it closed:', stopError);
+            try {
+                instance?.forceStop?.();
+            } catch (forceError) {
+                logger.warn('Forcing the unregistered server closed failed:', forceError);
+            }
+        }
+    }
+
     /**
      * Launch a new server instance with dynamic port allocation
      * @param htmlFile Optional HTML file to serve
@@ -114,14 +155,6 @@ export class MultiServerLauncher {
             // Find available port using dynamic allocation
             const requestedPort = settings.defaultPort;
             const finalPort = await this.findAvailablePortWithLogging(requestedPort);
-            const portChanged = finalPort !== requestedPort;
-
-            if (portChanged) {
-                logger.debug(() => `Port ${requestedPort} already in use. Using port ${finalPort} instead.`);
-                notifyPortChanged(requestedPort, finalPort);
-            } else {
-                logger.debug(() => `Using requested port ${finalPort}`);
-            }
 
             // Launch the server - Use 0.0.0.0 to listen on all network interfaces for external access
             const host = '0.0.0.0';
@@ -137,7 +170,12 @@ export class MultiServerLauncher {
             );
             
             if (result.success && result.serverUrl) {
-                logger.debug(() => `Successfully launched ${serverType} server on port ${finalPort}`);
+                // The port the server really listens on. Everything below
+                // (registry, session, toasts, LAN URL) uses it, never the port
+                // that was only requested.
+                const boundPort = result.port ?? finalPort;
+                const portChanged = this.reportBoundPort(requestedPort, boundPort);
+                logger.debug(() => `Successfully launched ${serverType} server on port ${boundPort}`);
                 
                 // Generate unique server ID
                 const serverId = this.generateServerId();
@@ -147,7 +185,7 @@ export class MultiServerLauncher {
                     id: serverId,
                     server: result.serverInstance!,
                     serverType: serverType,
-                    port: finalPort,
+                    port: boundPort,
                     htmlFile: htmlFile,
                     activeServerId: ''
                 };
@@ -159,12 +197,12 @@ export class MultiServerLauncher {
                     
                     logger.debug('DEBUG - About to register server with the following details:');
                     logger.debug('DEBUG - customName:', customName);
-                    logger.debug('DEBUG - port:', finalPort);
+                    logger.debug('DEBUG - port:', boundPort);
                     logger.debug('DEBUG - url:', result.serverUrl);
                     
                     const registrar = getServerRegistrar();
                     const activeServer = registrar.registerServer({
-                        port: finalPort,
+                        port: boundPort,
                         url: result.serverUrl,
                         launchMode: launchMode,
                         certMode: certMode,
@@ -192,14 +230,23 @@ export class MultiServerLauncher {
                     
                     logger.debug(() => `Successfully registered server ${serverId} (active ID: ${activeServer.id}) via registrar service`);
                     logger.debug(() => `Currently managing ${this.servers.size} server(s)`);
-                    
-                    // Handle auto-opening based on configuration
-                    await handleAutoOpening(settings, result.serverUrl, htmlFile, launchMode, serverInfo.activeServerId);
-                    
                 } catch (error) {
+                    // A server nobody registered cannot be found, listed or
+                    // stopped again: stop it now and report the launch as failed
+                    // instead of leaving an unreachable listener on 0.0.0.0.
                     logger.error('Failed to register server in registry:', error);
-                    // Don't fail the launch if registry registration fails
+                    this.servers.delete(serverId);
+                    await this.discardUnregisteredServer(result.serverInstance);
+                    return {
+                        success: false,
+                        error: `Failed to register the server: ${error instanceof Error ? error.message : String(error)}`,
+                        httpsOverridden: isHttpsOverridden
+                    };
                 }
+
+                // Handle auto-opening based on configuration. A failure to open
+                // the page does not undo a server that is running and listed.
+                await this.openLaunchedServer(settings, result.serverUrl, htmlFile, serverInfo.activeServerId);
 
                 return {
                     success: true,
@@ -207,7 +254,7 @@ export class MultiServerLauncher {
                     serverType: serverType,
                     serverId: serverId,
                     activeServerId: serverInfo.activeServerId || undefined,
-                    port: finalPort,
+                    port: boundPort,
                     httpsOverridden: isHttpsOverridden,
                     portChanged: portChanged,
                     originalPort: requestedPort
@@ -253,7 +300,12 @@ export class MultiServerLauncher {
         logger.debug(() => `Port ${requestedPort} already in use. Searching for next available port (${requestedPort + 1})...`);
         
         try {
-            const availablePort = await PortManager.findAvailablePort(requestedPort + 1);
+            // The search window follows the requested port: the default end port
+            // (8080) made a busy 8080 (allowed by the settings) fail every launch.
+            const availablePort = await PortManager.findAvailablePort(
+                requestedPort + 1,
+                Math.min(65535, requestedPort + 100),
+            );
             logger.debug(() => `Free port found at ${availablePort}. Launching server...`);
             return availablePort;
         } catch (error) {

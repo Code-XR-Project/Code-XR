@@ -96,9 +96,12 @@ if (staleOutput.length > 0) {
     process.exit(1);
 }
 
+// --test-force-exit: every suite shares one process, so a test that fails
+// before closing its server left a live handle and the run hung until the CI
+// job was cancelled hours later instead of reporting the failure.
 const result = spawnSync(
     process.execPath,
-    ['--test', '--test-isolation=none', '--test-concurrency=1', ...testFiles],
+    ['--test', '--test-isolation=none', '--test-concurrency=1', '--test-force-exit', ...testFiles],
     {
         cwd: projectRoot,
         stdio: 'inherit',

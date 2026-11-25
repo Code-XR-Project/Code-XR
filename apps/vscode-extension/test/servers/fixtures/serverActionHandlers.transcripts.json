@@ -2171,14 +2171,14 @@
     "clipboard": "",
     "unusedAnswers": 0
   },
-  "stop all: as it behaves today (a count read as a flag)": {
+  "stop all: one summary from the returned counts": {
     "console": [
       "log: ACTIVE_SERVER: Stopping all servers",
       "log: ACTIVE_SERVER: Stopping 2 servers",
       "log: ACTIVE_SERVER: Successfully stopped all servers",
       "log: ACTIVE_SERVER: Stopping all servers",
       "log: ACTIVE_SERVER: Stopping 2 servers",
-      "error: ACTIVE_SERVER: Failed to stop some servers",
+      "error: ACTIVE_SERVER: Stopped 1 of 2 servers",
       "log: ACTIVE_SERVER: Stopping all servers",
       "log: ACTIVE_SERVER: Stopping 2 servers",
       "error: ACTIVE_SERVER: Error stopping all servers: [\"<Error: stopAllServers exploded>\"]",
@@ -2196,7 +2196,7 @@
       },
       {
         "kind": "info",
-        "message": "Stopped all 2 servers",
+        "message": "Stopped 2 server(s)",
         "items": []
       },
       {
@@ -2209,7 +2209,7 @@
       },
       {
         "kind": "warning",
-        "message": "Some servers may not have stopped properly",
+        "message": "Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the CodeXR output.",
         "items": []
       },
       {
@@ -2314,7 +2314,7 @@
       },
       {
         "kind": "info",
-        "message": "Stopped all 1 servers",
+        "message": "Stopped 1 server(s)",
         "items": []
       }
     ],
