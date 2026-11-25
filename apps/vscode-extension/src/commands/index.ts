@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { getServerCommandRegistrations } from './servers/serverCommands';
 import { getActiveServersCommandRegistrations } from './active_servers/activeServersCommands';
-import { getBabiaExamplesCommandRegistrations } from './babia_examples/babiaExamplesCommands';
+import { getBabiaExamplesCommandRegistrations } from '../features/examples/commands/babiaExamplesCommandRegistrations';
 import { getVisualizeDataCommandRegistrations } from '../features/visualize-data/commands/visualizeDataCommandRegistrations';
 import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';
 import { getPythonEnvCommandRegistrations } from '../features/python-env/commands/pythonEnvCommandRegistrations';
@@ -11,7 +11,7 @@ import { getGeneralCommandRegistrations } from './common/generalCommands';
 import { getCollaborationCommandRegistrations } from './collaboration/collaborationCommands';
 import { ExtensionCommandRegistration, assertUniqueCommandIds } from '../platform/commands/commandRegistry';
 import { CommandBuilder } from '../platform/commands/commandBuilder';
-import { BabiaExamplesTreeDataProvider } from '../babia_examples/views/babiaExamplesTreeView';
+import { BabiaExamplesTreeDataProvider } from '../features/examples/views/babiaExamplesTreeView';
 import { CodeXRLogger } from '../platform/logging/logger';
 interface RefreshableTreeProvider {
     refresh(): void;

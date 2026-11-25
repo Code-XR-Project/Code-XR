@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { BabiaExampleTreeItem } from '../items/babiaExampleItems';
-import { ExampleLauncher } from '../../../babia_examples/runtime/exampleLauncher';
+import { BabiaExampleTreeItem } from './babiaExampleItems';
+import { ExampleLauncher } from '../services/exampleLauncher';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('BABIA_EXAMPLES_MODULAR');

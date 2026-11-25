@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
-import { BabiaExampleTreeItem, BabiaExampleItemFactory } from './items/babiaExampleItems';
-import { BabiaExampleClickHandler } from './interactions/handleBabiaExampleClicks';
-import { ExampleLauncher } from '../../babia_examples/runtime/exampleLauncher';
-import { getLogger } from '../../platform/logging/sink';
+import { BaseSectionProvider } from '../../../platform/tree/baseInterfaces';
+import { BabiaExampleTreeItem, BabiaExampleItemFactory } from './babiaExampleItems';
+import { BabiaExampleClickHandler } from './handleBabiaExampleClicks';
+import { ExampleLauncher } from '../services/exampleLauncher';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('BABIA_EXAMPLES_MODULAR');
 

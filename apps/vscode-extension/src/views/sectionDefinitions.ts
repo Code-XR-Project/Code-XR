@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterfaces';
 import { ServersSectionProvider } from './servers/ServersSectionProvider';
 import { ActiveServersSectionProvider } from './active_servers/ActiveServersSectionProvider';
-import { BabiaExamplesSectionProvider } from './babia_examples/BabiaExamplesSectionProvider';
+import { BabiaExamplesSectionProvider } from '../features/examples/views/BabiaExamplesSectionProvider';
 import { VisualizeDataSectionProvider } from '../features/visualize-data/views/VisualizeDataSectionProvider';
 import { PythonEnvSectionProvider } from '../features/python-env/views/PythonEnvSectionProvider';
 import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';

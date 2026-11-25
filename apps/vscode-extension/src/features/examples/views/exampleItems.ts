@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { BabiaExample } from '../../model/babiaExampleModel';
+import { BabiaExample } from '../model/babiaExampleModel';
 
 /**
  * Tree item types for Babia examples

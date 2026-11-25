@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { BABIA_EXAMPLE_LIBRARIES, BabiaExample } from '../model/babiaExampleModel';
-import { ExampleClickHandler } from '../views/interactions/handleExampleClicks';
+import { ExampleClickHandler } from '../views/handleExampleClicks';
 import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { DetailRow, formatDetailSections } from '../../platform/ui/detailDialog';
-import { getLogger } from '../../platform/logging/sink';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
+import { DetailRow, formatDetailSections } from '../../../platform/ui/detailDialog';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('EXAMPLES');
 

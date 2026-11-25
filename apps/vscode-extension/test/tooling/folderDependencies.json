@@ -35,10 +35,6 @@
       "servers",
       "utils"
     ],
-    "babia_examples": [
-      "platform",
-      "servers"
-    ],
     "babia_templates": [
       "platform",
       "shared",
@@ -56,9 +52,9 @@
     "collaboration": [],
     "commands": [
       "active_servers",
-      "babia_examples",
       "code_analysis",
       "collaboration",
+      "features/examples",
       "features/learn-more",
       "features/python-env",
       "features/visualization-settings",
@@ -75,6 +71,10 @@
       "platform"
     ],
     "core/startup": [],
+    "features/examples": [
+      "platform",
+      "servers"
+    ],
     "features/learn-more": [
       "platform"
     ],
@@ -116,10 +116,10 @@
     ],
     "views": [
       "active_servers",
-      "babia_examples",
       "code_analysis",
       "collaboration",
       "core/python-env",
+      "features/examples",
       "features/learn-more",
       "features/python-env",
       "features/visualization-settings",

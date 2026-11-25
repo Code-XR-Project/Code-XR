@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { ExampleLauncher } from '../runtime/exampleLauncher';
-import { BabiaExampleTreeItem, ExampleItemFactory } from './items/exampleItems';
-import { getLogger } from '../../platform/logging/sink';
+import { ExampleLauncher } from '../services/exampleLauncher';
+import { BabiaExampleTreeItem, ExampleItemFactory } from './exampleItems';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('EXAMPLES_UI');
 

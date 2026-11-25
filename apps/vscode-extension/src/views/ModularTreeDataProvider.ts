@@ -58,7 +58,7 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: ['activeServer', 'participant'],
     }],
     ['babiaExamples', {
-        load: () => require('./babia_examples/items/babiaExampleItems').BabiaExampleTreeItem,
+        load: () => require('../features/examples/views/babiaExampleItems').BabiaExampleTreeItem,
         itemTypeKeys: ['babiaItemType'],
         defaultItemType: 'example-item',
         constructorExtras: ['babiaExample'],

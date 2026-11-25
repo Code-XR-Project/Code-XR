@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { BabiaExamplesCommands } from '../../babia_examples/commands/babiaExamplesCommands';
-import { BabiaExamplesTreeDataProvider } from '../../babia_examples/views/babiaExamplesTreeView';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
+import { BabiaExamplesCommands } from './babiaExamplesCommands';
+import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
 
 export function getBabiaExamplesCommandRegistrations(
     context: vscode.ExtensionContext,

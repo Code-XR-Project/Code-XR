@@ -243,7 +243,7 @@ test('the compiled resolvers find what they need in a materialized packaged layo
             );
             const commonRuntime = assertCodeXrCommonRuntimeSourceExists(extensionRoot);
 
-            const { ExampleLauncher } = requireOut('babia_examples/runtime/exampleLauncher.js');
+            const { ExampleLauncher } = requireOut('features/examples/services/exampleLauncher.js');
             const examples = await new ExampleLauncher(context).scanExamples();
 
             const { SaveFiles } = requireOut('code_analysis/engine/utils/saveFiles.js');
