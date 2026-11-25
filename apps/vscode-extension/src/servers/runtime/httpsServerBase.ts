@@ -3,11 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type * as vscode from 'vscode';
 import type { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
-import type { ConnectedParticipantSummary } from '../../collaboration';
+import type { ConnectedParticipantSummary } from '../../collaboration/model/connectedParticipant';
 import { PortManager } from './portManager';
 import { GeneratedHttpsCertificateManager } from './generatedHttpsCertificateManager';
 import { buildTlsServerOptions } from './httpsTlsOptions';
-import type { RemoteSessionAuthority } from '../../remote_access';
+import type { RemoteSessionAuthority } from '../../remote_access/security/remoteSessionAuthority';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('SERVER');
