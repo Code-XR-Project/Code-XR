@@ -6,6 +6,7 @@
     "containmentLimits.js",
     "chartFitProfiles.js",
     "boatsLayoutStability.js",
+    "babiaCompat.js",
     "diagnosticsAndPid.js",
     "containmentComponentCore.js",
     "measurementAndScaling.js",
