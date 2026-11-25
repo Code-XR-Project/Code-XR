@@ -90,11 +90,11 @@ function readBridgePayload() {
 }
 
 function contentType(filePath) {
-  if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
-  if (filePath.endsWith('.js')) return 'text/javascript; charset=utf-8';
-  if (filePath.endsWith('.json')) return 'application/json; charset=utf-8';
-  if (filePath.endsWith('.svg')) return 'image/svg+xml';
-  if (filePath.endsWith('.png')) return 'image/png';
+  if (filePath.endsWith('.html')) { return 'text/html; charset=utf-8'; }
+  if (filePath.endsWith('.js')) { return 'text/javascript; charset=utf-8'; }
+  if (filePath.endsWith('.json')) { return 'application/json; charset=utf-8'; }
+  if (filePath.endsWith('.svg')) { return 'image/svg+xml'; }
+  if (filePath.endsWith('.png')) { return 'image/png'; }
   return 'application/octet-stream';
 }
 

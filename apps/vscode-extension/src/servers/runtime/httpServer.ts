@@ -505,10 +505,10 @@ export class HttpServer {
 
     /**
      * Handle Server-Sent Events request for analysis updates
-     * @param req - HTTP request
+     * @param _req - HTTP request (unused)
      * @param res - HTTP response
      */
-    private async handleSSERequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    private async handleSSERequest(_req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
         console.log('REQUEST_UPDATE: SSE connection request received on server');
         console.log(`REQUEST_UPDATE: Server port: ${this.config.port}`);
         

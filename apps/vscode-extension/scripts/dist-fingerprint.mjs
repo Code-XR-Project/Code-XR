@@ -42,6 +42,7 @@ export function fingerprintDist(distDirectory) {
         throw new Error(`${distDirectory} does not exist. Build first: CODEXR_NO_SOURCEMAPS=1 npm run package`);
     }
 
+    /** @type {Record<string, string>} */
     const files = {};
     let totalBytes = 0;
     let bundle = null;
@@ -79,7 +80,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     try {
         main(process.argv.slice(2));
     } catch (error) {
-        console.error(error.message);
+        console.error(/** @type {Error} */ (error).message);
         process.exit(1);
     }
 }

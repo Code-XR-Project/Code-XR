@@ -1,15 +1,10 @@
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { readAssembledRuntime } = require(path.join(projectRoot, 'test', 'helpers', 'runtimeAssembly.cjs'));
-
-function read(relativePath) {
-  return fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
-}
 
 test('XR mode panel exposes one labelled Analyses button and no dependency header button', () => {
   const modeRuntime = readAssembledRuntime('analysis-mode', 'analysisModeRuntime.js');
@@ -572,7 +567,7 @@ test('mounting a non-normal surface root keeps the preserved normal chart hidden
       return element(tagName + '-' + elements.size);
     },
     getElementById(id) {
-      if (id === 'codexr-tooling-config-xr-mapping-ui') return config;
+      if (id === 'codexr-tooling-config-xr-mapping-ui') { return config; }
       return elements.get(id) || null;
     },
     querySelector(selector) {

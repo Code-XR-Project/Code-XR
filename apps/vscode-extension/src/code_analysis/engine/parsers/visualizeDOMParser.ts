@@ -46,7 +46,7 @@ export class VisualizeDOMParser {
     public async processHTMLTemplates(
         templateData: HTMLTemplateData, 
         theme?: string,
-        virtualScreenSessionId?: string,
+        _virtualScreenSessionId?: string,
     ): Promise<Map<string, string>> {
         console.log(`VISUALIZE_DOM_PARSER:  Processing HTML templates for DOM visualization`);
         console.log(`VISUALIZE_DOM_PARSER: File: ${templateData.fileName}`);

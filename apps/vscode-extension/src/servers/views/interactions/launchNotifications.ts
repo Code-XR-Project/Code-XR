@@ -44,7 +44,7 @@ export function notifyPortChanged(requestedPort: number, finalPort: number): voi
 export async function handleAutoOpening(
     settings: ServerSettings, 
     serverUrl: string, 
-    htmlFile: string | undefined, 
+    _htmlFile: string | undefined, 
     launchMode: LaunchMode, 
     activeServerId: string
 ): Promise<void> {

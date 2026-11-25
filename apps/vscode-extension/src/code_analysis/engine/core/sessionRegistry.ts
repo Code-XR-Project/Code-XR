@@ -23,7 +23,7 @@ export class UnifiedSessionRegistry {
     private _onSessionChanged = new vscode.EventEmitter<UnifiedAnalysisSession>();
     public readonly onSessionChanged = this._onSessionChanged.event;
 
-    private constructor(context: vscode.ExtensionContext) {
+    private constructor(_context: vscode.ExtensionContext) {
         console.log('UNIFIED_REGISTRY: Initializing session registry');
     }
 
