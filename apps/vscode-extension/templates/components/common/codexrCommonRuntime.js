@@ -359,10 +359,15 @@
 
   // Non-overlapping grid slot for the Nth of `count` legend cards — a shared
   // primitive so any Code-XR legend surface can lay multiple cards out without
-  // them overlapping (centered rows, wrapping upward into a grid).
+  // them overlapping (centered rows, wrapping upward into a grid). With
+  // `maxRows` the grid grows sideways instead of past that many rows, so a
+  // full stack never climbs through the ceiling (PANELS-7).
   function legendSlotPosition(index, count, options) {
     const opts = options || {};
-    const perRow = Math.max(1, Math.round(Number(opts.perRow) || 3));
+    const total = Math.max(1, Number(count) || 1);
+    const basePerRow = Math.max(1, Math.round(Number(opts.perRow) || 3));
+    const maxRows = Math.round(Number(opts.maxRows) || 0);
+    const perRow = maxRows > 0 ? Math.max(basePerRow, Math.ceil(total / maxRows)) : basePerRow;
     const cardWidth = Number(opts.cardWidth) || 2.8;
     const cardHeight = Number(opts.cardHeight) || 1.1;
     const gapX = opts.gapX != null ? Number(opts.gapX) : .3;
@@ -370,7 +375,6 @@
     const originX = Number(opts.originX) || 0;
     const originY = Number(opts.originY) || 0;
     const z = opts.z != null ? Number(opts.z) : 0;
-    const total = Math.max(1, Number(count) || 1);
     const i = Math.max(0, Number(index) || 0);
     const row = Math.floor(i / perRow);
     const col = i % perRow;

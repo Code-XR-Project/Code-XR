@@ -39,7 +39,12 @@
       // ever rotating into each other (their relative layout never changes).
       ensureLegendBoard: function () {
         if (this.legendBoard?.isConnected) { return this.legendBoard; }
-        this.legendBoard = entity('a-entity', { class: 'codexr-legend-board' });
+        // Registered with the screens' placement registry (PANELS-5): a
+        // placed screen never lands on the card stack.
+        this.legendBoard = entity('a-entity', {
+          class: 'codexr-legend-board',
+          'data-codexr-panel-obstacle': 'dependency-legend-board'
+        });
         this.legendBoardYaw = null;
         this.el.appendChild(this.legendBoard);
         return this.legendBoard;
@@ -81,6 +86,7 @@
         var card = this.legendCards[key];
         if (!card) { return; }
         if (card.action?.parentNode) { card.action.parentNode.removeChild(card.action); }
+        if (card.closeButton?.parentNode) { card.closeButton.parentNode.removeChild(card.closeButton); }
         root.CodeXRCommonRuntime?.hideTooltip?.(card);
         if (card.connectorRoot?.parentNode) { card.connectorRoot.parentNode.removeChild(card.connectorRoot); }
         if (card.root?.parentNode) { card.root.parentNode.removeChild(card.root); }
@@ -97,6 +103,8 @@
           && (record.data.kind === 'group' || record.data.kind === 'file' || record.data.syntheticExternal);
         if (card.action?.parentNode) { card.action.parentNode.removeChild(card.action); }
         card.action = null;
+        if (card.closeButton?.parentNode) { card.closeButton.parentNode.removeChild(card.closeButton); }
+        card.closeButton = null;
         root.CodeXRCommonRuntime.updateTooltip(card, detail, slotPosition, {
           width: LEGEND_SLOT.cardWidth,
           columns: 2,
@@ -125,6 +133,27 @@
           );
           card.root.appendChild(card.action);
         }
+        if (this.isPinned(selection)) {
+          // A pinned card closes on its own (PANELS-7): before, the only
+          // way out was finding its node again or the global clear.
+          var self = this;
+          var pinnedSelection = { type: selection.type, id: selection.id };
+          card.closeButton = button(
+            'X',
+            // Just outside the top-right corner, inside the grid gap (0.28
+            // wide < gapX 0.34): it never covers the title or a neighbour.
+            (LEGEND_SLOT.cardWidth / 2 + .17) + ' ' + (card.height / 2 - .14) + ' 0.03',
+            .28,
+            function (event) {
+              event.stopPropagation?.();
+              if (self.isPinned(pinnedSelection)) { self.togglePinnedSelection(pinnedSelection); }
+            },
+            '#475569'
+          );
+          card.closeButton.setAttribute('height', .28);
+          card.closeButton.setAttribute('data-codexr-role', 'legend-close');
+          card.root.appendChild(card.closeButton);
+        }
       },
       // Re-place every visible legend into a non-overlapping grid slot above the
       // graph, drop cards whose selection is gone, and refresh the shared visuals.
@@ -149,6 +178,7 @@
           if (!card) { return; }
           var slot = root.CodeXRCommonRuntime.legendSlotPosition(index, active.length, {
             perRow: LEGEND_SLOT.perRow,
+            maxRows: LEGEND_SLOT.maxRows,
             cardWidth: LEGEND_SLOT.cardWidth,
             cardHeight: LEGEND_SLOT.cardHeight,
             gapX: LEGEND_SLOT.gapX,

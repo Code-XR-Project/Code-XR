@@ -260,6 +260,32 @@ test('legendSlotPosition lays legends out in a non-overlapping grid', () => {
     assert.ok(Math.abs(first.x + second.x) < 1e-6);
 });
 
+test('legendSlotPosition with maxRows grows sideways instead of climbing (PANELS-7)', () => {
+    const runtime = loadRuntime().CodeXRCommonRuntime;
+    const opts = { perRow: 2, maxRows: 2, cardWidth: 2.5, cardHeight: 1.85, gapX: 0.34, gapY: 0.3, originY: 0 };
+    // The dependency graph's full stack: six pinned cards plus one hovered.
+    for (const count of [1, 2, 3, 4, 5, 6, 7]) {
+        const rows = new Set();
+        const boxes = [];
+        for (let i = 0; i < count; i++) {
+            const p = runtime.legendSlotPosition(i, count, opts);
+            rows.add(p.y);
+            boxes.push({ x: p.x, y: p.y });
+        }
+        assert.ok(rows.size <= 2, `${count} cards use ${rows.size} rows`);
+        for (let i = 0; i < boxes.length; i++) {
+            for (let j = i + 1; j < boxes.length; j++) {
+                const ox = opts.cardWidth - Math.abs(boxes[i].x - boxes[j].x);
+                const oy = opts.cardHeight - Math.abs(boxes[i].y - boxes[j].y);
+                assert.ok(!(ox > 0.001 && oy > 0.001), `${count} cards: slots ${i} and ${j} overlap`);
+            }
+        }
+    }
+    // Without maxRows the old behaviour is kept: six cards, three rows.
+    const legacy = new Set([0, 1, 2, 3, 4, 5].map((i) => runtime.legendSlotPosition(i, 6, { ...opts, maxRows: 0 }).y));
+    assert.equal(legacy.size, 3);
+});
+
 test('common faceCamera and hitbox helpers tolerate missing scene state', () => {
     const context = loadRuntime();
     const runtime = context.CodeXRCommonRuntime;
