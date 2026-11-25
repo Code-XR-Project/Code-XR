@@ -3,6 +3,8 @@
 > **Purpose**: The navigation hub. Every session starts here (pointed from `CLAUDE.md`) and reads *only* the documents mapped to its task.
 > **Stability**: Update whenever a document is added, removed, or repurposed.
 
+> **Monorepo (2026-11-25):** paths in these docs predate the move. `src/`, `test/`, `templates/`, `scripts/`, `docs/` → `apps/vscode-extension/…`; `src/code_analysis/python/` → `backend/src/`; `test/python/` → `backend/tests/`. Layout and rationale: `docs/monorepo.md` (repository root).
+
 ## Document inventory
 
 ### Internal AI/dev context (`.claude/docs/` — never shipped in the VSIX)

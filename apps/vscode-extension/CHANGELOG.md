@@ -13,6 +13,7 @@
 - **Proof, not promises, that nothing was lost.** The shipped bundle is built deterministically and fingerprinted, so an internal change can be shown to leave it byte-for-byte identical. Code-health metrics (complexity, unused modules, leftover debug logging, loose typing) are measured automatically and can only improve from here: a change that makes any of them worse fails the build.
 - **Tests that cannot give a false green.** The test build now starts from a clean slate, refuses to run against stale output, and measures the per-language analysis fixtures with exactly the analyzer version the extension installs for you.
 - **Continuous integration.** The same gates a developer runs locally now run on Windows and Linux for every pull request.
+- **A repository ready to grow.** The source repository is now organized as a monorepo: the extension, its Python analysis backend and the space for the upcoming Code-XR IDE live side by side, and continuous integration also runs on macOS. The packaged extension is the same: no file was added to or removed from it.
 
 #### Fixed
 

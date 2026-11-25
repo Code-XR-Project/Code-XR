@@ -6,6 +6,20 @@
 
 Current work: **v1.2.1 — a maintenance release: cleanup, optimization, internal hygiene, no new features** (branch `v1.2.1`; `master` is the PR target and the only other branch). The volatile state of the version lives in `.claude/docs/V1.2.1_STATUS.md` — read it, don't re-derive it from git. **1.2.0 shipped on 2026-07-30**; its cycle is closed and `V1.2.0_STATUS.md` is now a historical record.
 
+## Repository layout (monorepo) — read before using any path below
+
+Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo.md`):
+
+| Path | Content |
+|---|---|
+| `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` (shipped), `package.json`, README/CHANGELOG |
+| `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`) |
+| `apps/ide/` | Code-XR IDE (Electron + Monaco) — placeholder only, epic #11 |
+| `packages/` | Planned shared workspaces (`core`, `xr-scenes`) — empty, see `packages/README.md` |
+| root | `package.json` (workspaces + mirrored scripts), the only `package-lock.json`, `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `docs/` |
+
+**Path convention for everything in `.claude/` written before the move:** `src/…`, `test/…`, `templates/…`, `scripts/…`, `docs/…` mean `apps/vscode-extension/<same>`; `src/code_analysis/python/…` means `backend/src/…`; `test/python/…` means `backend/tests/…`. Run `npm ci` and the commands below from the repository root; each script delegates to the extension workspace.
+
 ## Context system — read this first
 
 **Start every session at `.claude/docs/INDEX.md`** and read only the documents mapped to your task type. The knowledge base:
@@ -30,7 +44,7 @@ Current work: **v1.2.1 — a maintenance release: cleanup, optimization, interna
 | `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/` |
 | `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests |
 | `npm run test:unit` | Node native runner over `test/**/*.test.cjs` (not Mocha) |
-| `npm run test:python` / `test:analysis` / `test:all` | Python suites / per-language end-to-end metrics / everything |
+| `npm run test:python` (= `test:backend`) / `test:analysis` / `test:all` | Python suites in `backend/tests` / per-language end-to-end metrics / everything |
 | `npm run package:vsix` | Build the installable `.vsix` |
 | F5 "Run CodeXR Extension" | Isolated Extension Development Host (staged under `.vscode-test/dev-extension`) |
 
@@ -58,7 +72,7 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 
 ## Safety rules
 
-- **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains copies of the Python backend and templates — the sources are `src/code_analysis/python/` and `templates/`.)
+- **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains copies of the Python backend and templates — the sources are `backend/src/` and `apps/vscode-extension/templates/`.)
 - **`docs/**`, `templates/**`, `examples/**` ship inside the VSIX** (package.json `files` allowlist; there is no `.vscodeignore`). `.claude/**` does not ship. Think before adding files to shipped folders.
 - Command IDs must be unique — `assertUniqueCommandIds` in `src/commands/index.ts` throws on duplicates.
 - JS under `templates/components/` is injected into user-facing generated scenes; treat changes there like shipping frontend code (and respect the load order in `templates/components/COMPONENTS.md`).
