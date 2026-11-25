@@ -440,7 +440,9 @@
       'Hover nodes or edges for details. Click once to pin and again to release.',
       rowPosition(0, PANEL_ROWS.hover), 5.9, '#cbd5e1', 'center', 74
     ));
-    refs.status = text(state.snapshot.message || '', rowPosition(0, PANEL_ROWS.status), 5.6, '#fde68a');
+    refs.status = state.loadError
+      ? text(state.loadError, rowPosition(0, PANEL_ROWS.status), 5.6, '#fca5a5')
+      : text(state.snapshot.message || '', rowPosition(0, PANEL_ROWS.status), 5.6, '#fde68a');
     refs.controls.appendChild(refs.status);
   }
 

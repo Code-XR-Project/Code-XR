@@ -179,7 +179,17 @@
     state.initialized = true;
     state.unregisterLifecycle = root.CodeXRAnalysisModeRuntime?.register?.('historical-compare', {
       mappingContextId: 'historical-comparison',
-      activate: function () {
+      activate: function (activation) {
+        // An activation the switcher already abandoned (the user picked
+        // another analysis while it waited) must not route the panel or
+        // request references over the mode that replaced it.
+        if (activation?.token?.isCurrent && !activation.token.isCurrent()) {
+          return false;
+        }
+        // The switcher aborts this signal when the user picks another mode
+        // (or the activation times out); a load failure rejects so it lands
+        // on the selector with its reason (LIFECYCLE-1/3/5).
+        var loadOptions = { signal: activation?.signal || null, rethrow: true };
         if (state.result) {
           // Comparison geometry still mounted (preserved on leave, or a
           // duplicate activation): restore it in place — no renderComparison,
@@ -194,7 +204,7 @@
                 entityId: ENTITY_ID,
                 mode: 'historical-compare',
                 result: state.result
-              });
+              }, loadOptions);
             }
             closePanel();
             return true;
@@ -213,7 +223,7 @@
             entityId: ENTITY_ID,
             mode: 'historical-compare',
             result: state.result
-          });
+          }, loadOptions);
         }
         showHistoricalSelectionPanel();
         return true;

@@ -49,9 +49,10 @@ test('XR mode panel exposes one labelled Analyses button and no dependency heade
   // method (`refs.playButton?.querySelector('a-text').setAttribute?.(…)`).
   assert.doesNotMatch(evolutionRuntime, /querySelector\('a-text'\)\.setAttribute/);
   assert.doesNotMatch(evolutionRuntime, /refs\.(modeRoot|rangeRoot)\.children\[/);
-  // A failed activation is reported on the controller instead of silently
-  // returning to the selector.
-  assert.match(modeRuntime, /setStatusMessage\?\.\(\s*'CodeXR could not open this analysis\./);
+  // A failed activation is reported on the selector itself (the mapping
+  // view's status line is hidden while the selector is up), see
+  // analysisModeLifecycleContract.test.cjs for the behaviour.
+  assert.match(modeRuntime, /'Could not open ' \+ getModeLabel\(state\.lastError\.mode\)/);
   assert.match(evolutionRuntime, /registerPanelView\(\{/);
   assert.match(evolutionRuntime, /id: MODE/);
   assert.match(evolutionRuntime, /headerButton: false/);
@@ -147,7 +148,8 @@ test('XR mode panel exposes one labelled Analyses button and no dependency heade
   assert.doesNotMatch(historyRuntime, /transitionTo\?\.\('selection', \{[\s\S]*historical-selection/);
   assert.match(dependencyRuntime, /function selectDependencyMode\(\)[\s\S]*activateReadySnapshot\('local-dependency-mode-option'\)/);
   assert.match(dependencyRuntime, /function hasReadySnapshot\(\)[\s\S]*snapshot\?\.status === 'ready'[\s\S]*snapshot\?\.datasetUrl/);
-  assert.match(dependencyRuntime, /function activateReadySnapshot\([\s\S]*analysis-mode-activate/);
+  assert.match(dependencyRuntime, /function enterDependencyMode\([\s\S]*analysis-mode-activate/);
+  assert.match(dependencyRuntime, /function activateReadySnapshot\([\s\S]*return enterDependencyMode\(reason\)/);
   assert.ok(
     historyRuntime.indexOf('state.result = result;')
       < historyRuntime.indexOf('await renderComparison(result, datasets[0], datasets[1]);'),

@@ -29,6 +29,8 @@
     // 'auto' asks the room for a colour nobody else there is using.
     avatarId: 'auto',
   };
+  // Upper bound of the reconnect back-off (see scheduleReconnect).
+  const RECONNECT_MAX_DELAY_MS = 15000;
   const DEFAULT_CONFIG = {
     enabled: true,
     collaborationEnabled: true,

@@ -141,7 +141,12 @@
 
     function handleSnapshotEntities(entities) {
       shared.roomEntities.clear();
-      (Array.isArray(entities) ? entities : []).forEach(function (entity) {
+      // The analysis view goes last, so a mode activates with its data
+      // entities (dependency graph, comparison, evolution) already applied.
+      const ordered = (Array.isArray(entities) ? entities : []).slice().sort(function (left, right) {
+        return Number(left?.entityKind === 'analysis-view') - Number(right?.entityKind === 'analysis-view');
+      });
+      ordered.forEach(function (entity) {
         if (!entity?.entityKind || !entity?.entityId) {
           return;
         }
@@ -200,7 +205,19 @@
       const key = getEntityKey(entity.entityKind, entity.entityId);
       const runtime = shared.entityRuntimes.get(key);
       if (runtime?.applySharedState) {
-        runtime.applySharedState(entity, meta || { source: 'room' });
+        // One runtime that throws must not stop the rest of a room snapshot
+        // (the analysis view behind it, the participants, the presence), and
+        // the failure must reach the console (LIFECYCLE-9).
+        try {
+          const applied = runtime.applySharedState(entity, meta || { source: 'room' });
+          if (applied && typeof applied.catch === 'function') {
+            applied.catch(function (error) {
+              win.console?.error?.('[CodeXR][Collab] Runtime "' + key + '" failed to apply the shared state:', error);
+            });
+          }
+        } catch (error) {
+          win.console?.error?.('[CodeXR][Collab] Runtime "' + key + '" failed to apply the shared state:', error);
+        }
         return;
       }
       shared.pendingEntities.set(key, entity);

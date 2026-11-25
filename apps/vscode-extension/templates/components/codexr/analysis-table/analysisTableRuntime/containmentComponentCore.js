@@ -294,7 +294,13 @@
           self.containmentTransition.active = false;
         }
         if (self.el && self.el.object3D && toTransform) {
+          // The end of a fit animation lands the position and scale only.
+          // Visibility belongs to the analysis mode: a chart hidden while the
+          // animation ran (the selector opened, or a mode failed and returned
+          // to it) must stay hidden, not reappear on an empty selector.
+          var visibleNow = self.el.object3D.visible;
           restoreTransform(self.el.object3D, toTransform);
+          self.el.object3D.visible = visibleNow;
           self.syncTransformAttributes();
           self.captureStableTransform();
         }
