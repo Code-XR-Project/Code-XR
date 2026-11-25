@@ -23,7 +23,6 @@ def analyze_classes(file_path):
         return {"error": f"Error reading file: {str(e)}"}
 
     _, ext = os.path.splitext(file_path.lower())
-    class_count = 0
     class_details = []
 
     if ext == '.py':

@@ -646,7 +646,7 @@ def analyze_dependencies(
     nodes: List[Dict[str, object]] = []
     warnings: List[str] = []
     lookup: Dict[str, str] = {}
-    parsed: List[Tuple[str, str, str]] = []
+    parsed: List[str] = []
     parser_availability: Dict[str, bool] = {}
     cache = _load_cache(cache_path)
     cached_files = cache["files"] if cache.get("root") == root else {}
@@ -730,11 +730,11 @@ def analyze_dependencies(
         nodes.append(node)
         for key in _candidate_keys(relative):
             lookup.setdefault(key, node_id)
-        parsed.append((node_id, language, ""))
+        parsed.append(node_id)
 
     edge_counts: Dict[Tuple[str, str, str, str], int] = defaultdict(int)
     external_nodes: Dict[str, str] = {}
-    for source_id, _language, _text in parsed:
+    for source_id in parsed:
         for relation, reference, confidence in extracted_by_node[source_id]:
             target_id = next((lookup[key] for key in _normalize_reference(reference) if key in lookup), None)
             if target_id == source_id:
