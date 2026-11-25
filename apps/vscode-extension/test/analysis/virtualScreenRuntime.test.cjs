@@ -475,6 +475,11 @@ test('grab-and-reach: the grabbing hand\'s stick pushes/pulls the screen per fra
     // The per-frame depth log died with the per-event step: adjustDragDepth
     // now runs every frame and must not spam the console.
     assert.doesNotMatch(runtimeSource, /VIRTUAL_SCREEN: depth update/);
+    // Same rule for the follow loop and the move drag (1.2.1, W2-57): both run
+    // per animation frame / pointer move and must not log on the success path.
+    assert.doesNotMatch(runtimeSource, /\[CodeXR\]\[VirtualScreen\] applyFollowTransform', \{/);
+    assert.doesNotMatch(runtimeSource, /VIRTUAL_SCREEN: move update/);
+    assert.doesNotMatch(runtimeSource, /VIRTUAL_SCREEN: drag intersection missing/);
 });
 
 test('a controller drag claims its stick and owns the pointer for its duration', () => {

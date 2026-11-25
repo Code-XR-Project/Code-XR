@@ -101,7 +101,6 @@
           if (hit) {
             return worldPoint.clone();
           }
-          console.log('VIRTUAL_SCREEN: drag intersection missing');
           return null;
         }
       }
@@ -169,12 +168,6 @@
       if (updateLegendSide()) {
         layout();
       }
-      console.log('VIRTUAL_SCREEN: move update', {
-        x: refs.root.object3D.position.x,
-        y: refs.root.object3D.position.y,
-        z: refs.root.object3D.position.z,
-        handle: state.drag?.handleKey || 'unknown',
-      });
       publishSharedTransform(false);
     }
 

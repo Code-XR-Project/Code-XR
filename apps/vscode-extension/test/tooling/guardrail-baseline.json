@@ -131,7 +131,7 @@
       "src/visualize_data/views/browseVisualizationsTreeView.ts",
       "src/visualize_data/views/index.ts"
     ],
-    "templates.consoleLog": 106,
+    "templates.consoleLog": 103,
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
