@@ -116,6 +116,19 @@ export default [{
         "prefer-rest-params": "error",
         "@typescript-eslint/no-namespace": "error",
         "@typescript-eslint/no-unsafe-function-type": "error",
+        "@typescript-eslint/no-require-imports": "error",
+    },
+}, {
+    // The lazy require() calls that stay (modernization.md §4): the eight in
+    // the tree provider are load-bearing (cleanup skill §4), and the other two
+    // defer a relative import to break a load-time module cycle.
+    files: [
+        "src/views/ModularTreeDataProvider.ts",
+        "src/code_analysis/engine/watchers/directoryReAnalyzer.ts",
+        "src/utils/getVisualizationConfiguration.ts",
+    ],
+    rules: {
+        "@typescript-eslint/no-require-imports": "off",
     },
 }, {
     files: NO_CONSOLE_FILES,

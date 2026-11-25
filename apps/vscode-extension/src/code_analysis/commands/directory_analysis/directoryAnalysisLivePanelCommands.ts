@@ -3,6 +3,7 @@
  * Commands for analyzing directories in LivePanel mode.
  */
 
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
@@ -47,7 +48,7 @@ export class DirectoryAnalysisLivePanelCommands {
                 if (stat.type === vscode.FileType.Directory) {
                     directoryPath = uri.fsPath;
                 } else {
-                    directoryPath = require('path').dirname(uri.fsPath);
+                    directoryPath = path.dirname(uri.fsPath);
                 }
             } else if (vscode.workspace.workspaceFolders?.length) {
                 if (vscode.workspace.workspaceFolders.length === 1) {
@@ -65,7 +66,7 @@ export class DirectoryAnalysisLivePanelCommands {
                     void vscode.window.showWarningMessage('CodeXR: No directory selected for LivePanel analysis');
                     return;
                 }
-                directoryPath = require('path').dirname(activeEditor.document.fileName);
+                directoryPath = path.dirname(activeEditor.document.fileName);
             }
 
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'LivePanel', 'directory', this.context, false);
@@ -88,7 +89,7 @@ export class DirectoryAnalysisLivePanelCommands {
                 const stat = await vscode.workspace.fs.stat(uri);
                 directoryPath = stat.type === vscode.FileType.Directory
                     ? uri.fsPath
-                    : require('path').dirname(uri.fsPath);
+                    : path.dirname(uri.fsPath);
             } else if (vscode.workspace.workspaceFolders?.length) {
                 directoryPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
             } else {
@@ -97,7 +98,7 @@ export class DirectoryAnalysisLivePanelCommands {
                     void vscode.window.showWarningMessage('CodeXR: No directory selected for LivePanel Deep analysis');
                     return;
                 }
-                directoryPath = require('path').dirname(activeEditor.document.fileName);
+                directoryPath = path.dirname(activeEditor.document.fileName);
             }
 
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'LivePanel', 'directory', this.context, true);

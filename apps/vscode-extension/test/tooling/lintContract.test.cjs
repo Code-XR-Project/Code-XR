@@ -206,6 +206,7 @@ const MODERNIZED_IDIOM_RULES = [
     'prefer-rest-params',
     '@typescript-eslint/no-namespace',
     '@typescript-eslint/no-unsafe-function-type',
+    '@typescript-eslint/no-require-imports',
 ];
 
 test('the modernized idioms stay locked over src/', async () => {
@@ -218,5 +219,24 @@ test('the modernized idioms stay locked over src/', async () => {
     for (const rule of MODERNIZED_IDIOM_RULES) {
         const value = block.rules[rule];
         assert.equal(Array.isArray(value) ? value[0] : value, 'error', `${rule} is an error over src/`);
+    }
+});
+
+test('only the three files with deliberate lazy require() may use it', async () => {
+    // modernization.md §4: the tree provider's eight lazy requires are
+    // load-bearing, the other two break load-time cycles. Any other file
+    // imports statically.
+    const config = await loadEslintConfig();
+    const exemptions = config.filter((block) => block.rules
+        && block.rules['@typescript-eslint/no-require-imports'] === 'off');
+
+    assert.equal(exemptions.length, 1, 'one exemption block');
+    assert.deepEqual([...exemptions[0].files].sort(), [
+        'src/code_analysis/engine/watchers/directoryReAnalyzer.ts',
+        'src/utils/getVisualizationConfiguration.ts',
+        'src/views/ModularTreeDataProvider.ts',
+    ]);
+    for (const file of exemptions[0].files) {
+        assert.ok(fs.existsSync(path.join(projectRoot, file)), `${file} exists`);
     }
 });
