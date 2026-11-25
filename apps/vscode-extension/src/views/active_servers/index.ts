@@ -8,6 +8,3 @@ export { ActiveServersSectionProvider } from './ActiveServersSectionProvider';
 
 // Items
 export { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
-
-// Interactions
-export { ActiveServerClickHandler } from './interactions/handleActiveServerClicks';
