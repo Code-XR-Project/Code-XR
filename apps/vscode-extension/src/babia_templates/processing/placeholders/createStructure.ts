@@ -135,7 +135,7 @@ export class CreateStructure {
             // Add nonce script tag for main.js (standard path for all analyses)
             const mainJsScript = `<script nonce="${nonce}" src="./main.js"></script>`;
             
-            return scriptContent + '\n' + mainJsScript;
+            return `${scriptContent}\n${mainJsScript}`;
 
         } catch (error) {
             logger.error(`Error loading SSE script:`, error);

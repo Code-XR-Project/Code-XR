@@ -91,8 +91,8 @@ export class NetworkUtils {
         logger.debug('====================================');
         logger.debug(() => `Primary External URL: ${urls.localIP}`);
         logger.debug(() => `Localhost URL: ${urls.localhost}`);
-        logger.debug(() => 'For VR/Mobile devices use: ' + urls.localIP);
-        logger.debug(() => 'For local testing use: ' + urls.localhost);
+        logger.debug(() => `For VR/Mobile devices use: ${urls.localIP}`);
+        logger.debug(() => `For local testing use: ${urls.localhost}`);
         logger.debug('Network Diagnostics:');
         logger.debug(() => `  - Server listening on: 0.0.0.0:${port}`);
         logger.debug(() => `  - Local IP detected: ${this.getLocalIPAddress()}`);
