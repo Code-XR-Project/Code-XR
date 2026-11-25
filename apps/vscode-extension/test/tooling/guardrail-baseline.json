@@ -64,7 +64,6 @@
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
       "src/servers/runtime/multiServerLauncher.ts",
-      "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 49,
@@ -83,7 +82,7 @@
   },
   "informational": {
     "src.files": 313,
-    "src.lines": 48073,
+    "src.lines": 48089,
     "src.functions": 2654,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -159,7 +158,7 @@
       },
       {
         "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 13
+        "count": 12
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts",

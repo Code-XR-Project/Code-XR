@@ -59,7 +59,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `servers/runtime/collaboration/` | WebSocket room + session descriptor API (`CollaborationSessionApi`: descriptor, avatar model, room id) | `collaborationRoomServer.ts`, `collaborationSessionApi.ts` |
 | `servers/runtime/analysis/` | Analysis features behind the server: `AnalysisFeatureHost` (capability-gated service construction, refresh wiring, LivePanel SSE notifiers, dispose) + one bridge per feature + the room-message router. Bridges depend on the host; nothing here imports the façade | `analysisFeatureHost.ts`, `analysisMessageRouter.ts`, `dependencyGraphBridge.ts`, `historicalComparisonBridge.ts`, `projectEvolutionBridge.ts`, `analysisBridgeReplies.ts` (the git bridges' shared reference and error replies) |
 | `active_servers/` | Registry + lifecycle of **running** server instances (tree section, stop/open/copy-URL actions) | `registry/activeServerRegistry.ts`, `runtime/serverControl.ts` |
-| `views/` | The unified sidebar tree: one provider delegating to per-section providers | `ModularTreeDataProvider.ts`, `*/items/`, `*/interactions/` |
+| `views/` | The unified sidebar tree: one provider delegating to per-section providers | `ModularTreeDataProvider.ts` (section-item bridge table), `sectionDefinitions.ts` (the eight root sections), `*/items/`, `*/interactions/` |
 | `commands/` | Central command registration aggregator | `index.ts` (`registerAllCommands`, `assertUniqueCommandIds`) |
 | `collaboration/` | Identity/profiles for collaborative sessions (names, avatars) | `CollaborationProfileManager` |
 | `remote_access/` | Cross-network sharing via pinned `cloudflared` Quick Tunnel | `cloudflaredBinaryManager`, `remoteAccessManager`, `remoteSessionAuthority` |

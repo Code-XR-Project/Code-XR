@@ -1,26 +1,9 @@
 import * as vscode from 'vscode';
 import { SectionProvider, ModularTreeItem } from './common/baseInterfaces';
-import { ServersSectionProvider } from './servers';
-import { ActiveServersSectionProvider } from './active_servers';
-import { BabiaExamplesSectionProvider } from './babia_examples';
-import { VisualizeDataSectionProvider } from './visualize_data';
-import { PythonEnvSectionProvider } from './python_env';
-import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
-import { VisualizationSettingsSectionProvider } from './visualization_settings';
-import { LearnMoreSectionProvider } from './learn_more';
+import { createSectionDefinitions, LazySectionDefinition } from './sectionDefinitions';
 import { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
 import { VenvManager } from '../python_env/runtime/venvManager';
-import { PythonEnvItems } from '../python_env/views/items/pythonEnvItems';
-import { getActiveServerRegistry } from '../active_servers/registry/activeServerRegistry';
 import { CodeXRLogger } from '../core/logging/logger';
-import { createStaticSectionHeader } from './sectionDefinitions';
-
-interface LazySectionDefinition {
-    sectionName: string;
-    createHeader: () => ModularTreeItem;
-    createProvider: () => SectionProvider<any>;
-    interactiveWhenRestricted?: boolean;
-}
 
 const logger = CodeXRLogger.getLogger('MODULAR_TREE');
 
@@ -144,154 +127,20 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
     private readonly sectionHeaders = new Map<string, ModularTreeItem>();
     private readonly pythonEnvUiState = PythonEnvUiStateService.getInstance();
     private readonly pythonEnvUiStateSubscription: vscode.Disposable;
-    private readonly pythonEnvManager: VenvManager;
     private refreshTimer: NodeJS.Timeout | undefined;
     private refreshAllRequested = false;
     private readonly pendingSectionRefreshes = new Set<string>();
 
-    constructor(private context: vscode.ExtensionContext) {
-        this.pythonEnvManager = new VenvManager(context);
-        this.initializeSectionDefinitions();
+    constructor(context: vscode.ExtensionContext) {
+        const sectionDefinitions = createSectionDefinitions(context, {
+            pythonEnvManager: new VenvManager(context),
+            pythonEnvUiState: this.pythonEnvUiState,
+        });
+        for (const definition of sectionDefinitions) {
+            this.registerSection(definition);
+        }
         this.pythonEnvUiStateSubscription = this.pythonEnvUiState.onDidChangeState(() => {
             this.refreshSection('pythonEnv');
-        });
-    }
-
-    private initializeSectionDefinitions(): void {
-        this.registerSection({
-            sectionName: 'SERVERS',
-            createHeader: () => createStaticSectionHeader(
-                'SERVERS',
-                'SERVERS',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('server-environment'),
-                'Server configuration and launch options',
-            ),
-            createProvider: () => new ServersSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'activeServers',
-            createHeader: () => {
-                const activeServers = getActiveServerRegistry().getAllServers();
-                const runningCount = activeServers.filter((server) => server.status === 'running').length;
-                const title = runningCount > 0
-                    ? `ACTIVE SERVERS (${runningCount} running)`
-                    : 'ACTIVE SERVERS';
-
-                return createStaticSectionHeader(
-                    title,
-                    'activeServers',
-                    vscode.TreeItemCollapsibleState.Expanded,
-                    'section',
-                    new vscode.ThemeIcon('server-process'),
-                    'Running servers and collaboration profile',
-                    undefined,
-                    'activeServersSection',
-                );
-            },
-            createProvider: () => new ActiveServersSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'babiaExamples',
-            createHeader: () => createStaticSectionHeader(
-                'BABIA EXAMPLES',
-                'babiaExamples',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('library'),
-                'Interactive visualization examples',
-                undefined,
-                'babiaExamplesSection',
-            ),
-            createProvider: () => new BabiaExamplesSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'visualizeData',
-            createHeader: () => createStaticSectionHeader(
-                'VISUALIZE DATA',
-                'visualizeData',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('open-preview', new vscode.ThemeColor('charts.foreground')),
-                'Data visualization configuration and launch',
-                undefined,
-                'visualizeDataSection',
-            ),
-            createProvider: () => new VisualizeDataSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'analysis',
-            createHeader: () => createStaticSectionHeader(
-                'ANALYSIS',
-                'analysis',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('beaker'),
-                'Analysis tools and settings',
-                undefined,
-                'codeXR.analysis.section.main',
-            ),
-            createProvider: () => new AnalysisSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'pythonEnv',
-            createHeader: () => {
-                const sectionItem = PythonEnvItems.createSectionItem(
-                    this.pythonEnvManager.getEnvironmentStatus(),
-                    this.pythonEnvUiState.getState(),
-                );
-
-                return new ModularTreeItem(
-                    sectionItem.label,
-                    sectionItem.collapsibleState,
-                    'pythonEnv',
-                    'section',
-                    sectionItem.command,
-                    sectionItem.iconPath,
-                    sectionItem.tooltip,
-                    sectionItem.description,
-                    sectionItem.contextValue,
-                );
-            },
-            createProvider: () => new PythonEnvSectionProvider(this.context),
-            interactiveWhenRestricted: true,
-        });
-
-        this.registerSection({
-            sectionName: 'visualizationSettings',
-            createHeader: () => createStaticSectionHeader(
-                'VISUALIZATION SETTINGS',
-                'visualizationSettings',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('settings-gear'),
-                'Configure visualization rendering preferences',
-                undefined,
-                'visualizationSettingsSection',
-            ),
-            createProvider: () => new VisualizationSettingsSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'learnMore',
-            createHeader: () => createStaticSectionHeader(
-                'LEARN MORE & SUPPORT',
-                'learnMore',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('book', new vscode.ThemeColor('charts.foreground')),
-                'Access CodeXR documentation, tutorials, examples, and support options',
-                'Docs, tutorials & support',
-                'learnMoreSection',
-            ),
-            createProvider: () => new LearnMoreSectionProvider(this.context),
-            interactiveWhenRestricted: true,
         });
     }
 
