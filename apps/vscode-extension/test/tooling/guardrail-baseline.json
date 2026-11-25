@@ -55,7 +55,6 @@
       "src/code_analysis/engine/utils/executePython.ts",
       "src/code_analysis/export/exportManifest.ts",
       "src/code_analysis/historical/gitRepositoryService.ts",
-      "src/code_analysis/historical/projectEvolutionService.ts",
       "src/code_analysis/refresh/analysisRefreshCoordinator.ts",
       "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
       "src/python_env/runtime/venvManager.ts",
@@ -70,7 +69,7 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 54,
-    "complexity.over10": 80,
+    "complexity.over10": 79,
     "complexity.over15": 31,
     "complexity.over20": 10,
     "complexity.over30": 6,
@@ -141,7 +140,7 @@
   },
   "informational": {
     "src.files": 373,
-    "src.lines": 52607,
+    "src.lines": 52596,
     "src.functions": 2850,
     "src.unreachableLines": 2324,
     "console.topFiles": [

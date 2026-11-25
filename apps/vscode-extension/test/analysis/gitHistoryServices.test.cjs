@@ -702,6 +702,24 @@ test('evolution generate (file): missing target cached and excluded per frame, p
     });
 });
 
+test('precondition: every non-missing payload evolution analyzes is already a usable record list', async () => {
+    // Dataflow (W5-07): analyzeSource returns a missing target, or
+    // decorate(requireUsablePayload(...)); the decorators map record for
+    // record and only add fields, so a frame always keeps every record the
+    // analyzer produced and a second validation can never reject it.
+    const session = makeSession();
+    await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, context, analyzer }) => {
+        analyzer.respond = () => [{ filePath: 'a.js', m: 1 }, { filePath: 'b.js', m: 2 }, { filePath: 'b.js', m: 3 }];
+        const service = new ProjectEvolutionService(context, session.id, session.staticRoot, createCatalog());
+        const references = await service.getReferences();
+        const commitId = (sha) => references.sources.find((s) => s.kind === 'gitRef' && s.refType === 'commit' && s.commitSha === sha).id;
+        const result = await service.generate({ mode: 'manual', sourceIds: [commitId(fixture.shas.c1), commitId(fixture.shas.c2)] }, () => {});
+        assert.deepEqual(result.frames.map((frame) => frame.itemCount), [3, 3]);
+        assert.deepEqual(result.excludedSources, []);
+        await service.dispose();
+    });
+});
+
 test('evolution decorates directory frames like historical, with evolutionKey; the decorator edge cases are pinned on both', async () => {
     const session = makeSession();
     await withServices({ sessions: [session] }, async ({ HistoricalComparisonService, ProjectEvolutionService, context, analyzer }) => {

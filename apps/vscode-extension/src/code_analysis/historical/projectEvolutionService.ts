@@ -10,7 +10,6 @@ import {
     GitAnalysisSourceCatalog,
     GitAnalysisSourceError,
     createGitAnalysisExclusion,
-    validateGitAnalysisPayload,
 } from './gitAnalysisEligibility';
 import { sampleTimeline } from './gitTimelineSampler';
 import {
@@ -203,19 +202,9 @@ export class ProjectEvolutionService {
                             'The analyzed target does not exist in this revision.',
                         );
                     } else {
-                        const validation = validateGitAnalysisPayload(payload.payload);
-                        if (!validation.usable) {
-                            exclusionsByIndex[index] = this.sourceCatalog.recordDeterministicExclusion(
-                                source,
-                                validation.code || 'invalid-payload',
-                                validation.reason || 'The analysis produced no usable data.',
-                            );
-                        } else {
-                            analyzed[index] = {
-                                ...payload,
-                                payload: validation.entries,
-                            };
-                        }
+                        // Already validated: analyzeSource returns either a
+                        // missing target or requireUsablePayload's records.
+                        analyzed[index] = payload;
                     }
                 } catch (error) {
                     exclusionsByIndex[index] = error instanceof GitAnalysisSourceError
