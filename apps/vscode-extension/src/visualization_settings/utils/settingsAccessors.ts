@@ -58,54 +58,44 @@ function readSettingsFromFile(): StoredVisualizationSettingsJson | null {
     return null;
 }
 
-/**
- * Get current background color from file storage or globalState fallback
- */
-async function getBackgroundColorFromStorage(): Promise<string> {
-    try {
-        // First try to read from JSON file
-        const fileSettings = readSettingsFromFile();
-        if (fileSettings && fileSettings.backgroundColor) {
-            return fileSettings.backgroundColor;
-        }
-        
-        // Fallback to globalState for backward compatibility
-        if (extensionContext) {
-            const legacySettings = extensionContext.globalState.get<any>(LEGACY_STORAGE_KEY);
-            if (legacySettings && legacySettings.backgroundColor) {
-                return legacySettings.backgroundColor;
-            }
-        }
-    } catch (error) {
-        logger.error('VISUALIZATION-SETTINGS: Error reading background color from storage:', error);
-    }
-    
-    return DEFAULT_VISUALIZATION_SETTINGS.backgroundColor;
-}
+type ColorField = 'backgroundColor' | 'groundColor';
+
+const COLOR_LABELS: Record<ColorField, string> = {
+    backgroundColor: 'background',
+    groundColor: 'ground',
+};
 
 /**
- * Get current ground color from file storage or globalState fallback
+ * A colour from the settings file, or from globalState for backward
+ * compatibility (only the two colours have this fallback), or the default.
  */
-async function getGroundColorFromStorage(): Promise<string> {
+function resolveColor(field: ColorField, fileSettings: StoredVisualizationSettingsJson | null): string {
     try {
-        // First try to read from JSON file
-        const fileSettings = readSettingsFromFile();
-        if (fileSettings && fileSettings.groundColor) {
-            return fileSettings.groundColor;
+        const fileValue = fileSettings?.[field];
+        if (fileValue) {
+            return fileValue;
         }
-        
+
         // Fallback to globalState for backward compatibility
         if (extensionContext) {
             const legacySettings = extensionContext.globalState.get<any>(LEGACY_STORAGE_KEY);
-            if (legacySettings && legacySettings.groundColor) {
-                return legacySettings.groundColor;
+            if (legacySettings && legacySettings[field]) {
+                return legacySettings[field];
             }
         }
     } catch (error) {
-        logger.error('VISUALIZATION-SETTINGS: Error reading ground color from storage:', error);
+        logger.error(`VISUALIZATION-SETTINGS: Error reading ${COLOR_LABELS[field]} color from storage:`, error);
     }
-    
-    return DEFAULT_VISUALIZATION_SETTINGS.groundColor;
+
+    return DEFAULT_VISUALIZATION_SETTINGS[field];
+}
+
+function resolveEnvironment(fileSettings: StoredVisualizationSettingsJson | null): string {
+    return fileSettings?.environment || DEFAULT_VISUALIZATION_SETTINGS.environmentPreset;
+}
+
+function resolvePalette(fileSettings: StoredVisualizationSettingsJson | null): string {
+    return fileSettings?.palette || DEFAULT_VISUALIZATION_SETTINGS.chartPalette;
 }
 
 /**
@@ -114,7 +104,7 @@ async function getGroundColorFromStorage(): Promise<string> {
  */
 export async function getSelectedBackgroundColor(): Promise<string> {
     logger.debug('VISUALIZATION-SETTINGS: Getting selected background color');
-    const color = await getBackgroundColorFromStorage();
+    const color = resolveColor('backgroundColor', readSettingsFromFile());
     logger.debug(() => `VISUALIZATION-SETTINGS: Background color: ${color}`);
     return color;
 }
@@ -125,7 +115,7 @@ export async function getSelectedBackgroundColor(): Promise<string> {
  */
 export async function getSelectedGroundColor(): Promise<string> {
     logger.debug('VISUALIZATION-SETTINGS: Getting selected ground color');
-    const color = await getGroundColorFromStorage();
+    const color = resolveColor('groundColor', readSettingsFromFile());
     logger.debug(() => `VISUALIZATION-SETTINGS: Ground color: ${color}`);
     return color;
 }
@@ -136,10 +126,7 @@ export async function getSelectedGroundColor(): Promise<string> {
  */
 export async function getSelectedEnvironment(): Promise<string> {
     logger.debug('VISUALIZATION-SETTINGS: Getting selected environment');
-    
-    const settings = readSettingsFromFile();
-    const environment = settings?.environment || DEFAULT_VISUALIZATION_SETTINGS.environmentPreset;
-    
+    const environment = resolveEnvironment(readSettingsFromFile());
     logger.debug(() => `VISUALIZATION-SETTINGS: Environment: ${environment}`);
     return environment;
 }
@@ -150,16 +137,14 @@ export async function getSelectedEnvironment(): Promise<string> {
  */
 export async function getSelectedPalette(): Promise<string> {
     logger.debug('VISUALIZATION-SETTINGS: Getting selected chart palette');
-    
-    const settings = readSettingsFromFile();
-    const palette = settings?.palette || DEFAULT_VISUALIZATION_SETTINGS.chartPalette;
-    
+    const palette = resolvePalette(readSettingsFromFile());
     logger.debug(() => `VISUALIZATION-SETTINGS: Palette: ${palette}`);
     return palette;
 }
 
 /**
- * Get all current settings in a single call (for efficiency)
+ * Get all current settings in a single call: one read of the settings file
+ * for the four values (the single accessors read it once each).
  * @returns Promise<object> Object containing all current settings
  */
 export async function getAllSelectedSettings(): Promise<{
@@ -169,23 +154,15 @@ export async function getAllSelectedSettings(): Promise<{
     palette: string;
 }> {
     logger.debug('VISUALIZATION-SETTINGS: Getting all selected settings');
-    
-    const [backgroundColor, groundColor] = await Promise.all([
-        getSelectedBackgroundColor(),
-        getSelectedGroundColor()
-    ]);
-    
+
     const settings = readSettingsFromFile();
-    const environment = settings?.environment || DEFAULT_VISUALIZATION_SETTINGS.environmentPreset;
-    const palette = settings?.palette || DEFAULT_VISUALIZATION_SETTINGS.chartPalette;
-    
     const allSettings = {
-        backgroundColor,
-        groundColor,
-        environment,
-        palette
+        backgroundColor: resolveColor('backgroundColor', settings),
+        groundColor: resolveColor('groundColor', settings),
+        environment: resolveEnvironment(settings),
+        palette: resolvePalette(settings),
     };
-    
+
     logger.debug('VISUALIZATION-SETTINGS: All settings:', allSettings);
     return allSettings;
 }
