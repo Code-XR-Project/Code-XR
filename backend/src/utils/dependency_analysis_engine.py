@@ -356,6 +356,180 @@ def _add_graph_metrics(nodes: List[Dict[str, object]], edges: List[Dict[str, obj
         })
 
 
+def _first_match(reference: str, lookup: Dict[str, str]) -> Optional[str]:
+    """Node id of the first candidate key of ``reference`` found in ``lookup``."""
+    return next((lookup[key] for key in _normalize_reference(reference) if key in lookup), None)
+
+
+def _ensure_external_node(
+    reference: str,
+    external_nodes: Dict[str, str],
+    nodes: List[Dict[str, object]],
+) -> str:
+    """Id of the external node named by ``reference``'s first segment.
+
+    The node is appended to ``nodes`` the first time its (case-folded) name is seen.
+    """
+    external_key = re.split(r"[/.:]", reference.strip())[0] or reference.strip()
+    target_id = external_nodes.get(external_key.lower())
+    if not target_id:
+        target_id = _node_id("external", external_key.lower())
+        external_nodes[external_key.lower()] = target_id
+        nodes.append({
+            "id": target_id, "kind": "external", "label": external_key,
+            "external": True, "metrics": _empty_metrics(),
+        })
+    return target_id
+
+
+def _contains_edge(owner_id: str, symbol_id: str) -> Dict[str, object]:
+    return {
+        "id": _node_id("edge", f"{owner_id}\0{symbol_id}\0contains"),
+        "source": owner_id, "target": symbol_id, "kind": "contains",
+        "confidence": "exact", "occurrences": 1,
+    }
+
+
+def _add_class_symbols(
+    classes: List[Dict[str, object]],
+    relative: str,
+    language: str,
+    module_id: str,
+    nodes: List[Dict[str, object]],
+    edges: List[Dict[str, object]],
+    symbol_lookup: Dict[str, str],
+) -> Dict[str, str]:
+    """One symbol node and one module->class contains edge per class; returns name -> id."""
+    class_ids: Dict[str, str] = {}
+    for class_info in classes:
+        name = str(class_info.get("name") or "anonymous")
+        line = int(class_info.get("line", 0) or 0)
+        symbol_kind = _symbol_type(str(class_info.get("type") or "class"))
+        symbol_id = _node_id("symbol", f"{relative.lower()}\0{symbol_kind}\0{name}\0{line}")
+        class_ids[name.lower()] = symbol_id
+        nodes.append({
+            "id": symbol_id, "kind": "symbol", "symbolKind": symbol_kind,
+            "label": name, "relativePath": relative, "language": language,
+            "external": False, "ownerId": module_id, "lineStart": line,
+            "metrics": _empty_metrics(),
+        })
+        edges.append(_contains_edge(module_id, symbol_id))
+        symbol_lookup[name.lower()] = symbol_id
+    return class_ids
+
+
+def _add_function_symbols(
+    functions: List[Dict[str, object]],
+    classes: List[Dict[str, object]],
+    class_ids: Dict[str, str],
+    source_lines: List[str],
+    relative: str,
+    language: str,
+    module_id: str,
+    nodes: List[Dict[str, object]],
+    edges: List[Dict[str, object]],
+    symbol_lookup: Dict[str, str],
+) -> List[Tuple[int, int, str]]:
+    """One function/method node and its contains edge per function; returns the line ranges."""
+    function_ranges: List[Tuple[int, int, str]] = []
+    for ordinal, function in enumerate(functions):
+        name = str(function.get("functionName") or "unknown")
+        qualified = str(function.get("qualifiedName") or name)
+        line_start = int(function.get("lineStart", 0) or 0)
+        line_end = int(function.get("lineEnd", line_start) or line_start)
+        owner_id = _infer_class_owner(
+            classes, class_ids, source_lines, line_start, qualified, language
+        ) or module_id
+        symbol_kind = "method" if owner_id != module_id else "function"
+        symbol_id = _node_id(
+            "symbol",
+            f"{relative.lower()}\0{symbol_kind}\0{qualified}\0{line_start}\0{ordinal}",
+        )
+        nodes.append({
+            "id": symbol_id, "kind": "symbol", "symbolKind": symbol_kind,
+            "label": name, "relativePath": relative, "language": language,
+            "external": False, "ownerId": owner_id,
+            "lineStart": line_start, "lineEnd": line_end,
+            "metrics": _empty_metrics(
+                totalLines=int(function.get("lineCount", 0) or 0),
+                complexity=float(function.get("complexity", 0) or 0),
+                parameters=int(function.get("parameters", 0) or 0),
+                nestingDepth=int(function.get("maxNestingDepth", 0) or 0),
+            ),
+        })
+        edges.append(_contains_edge(owner_id, symbol_id))
+        symbol_lookup.setdefault(name.lower(), symbol_id)
+        symbol_lookup.setdefault(qualified.lower(), symbol_id)
+        function_ranges.append((line_start, line_end, symbol_id))
+    return function_ranges
+
+
+def _project_file_lookup(root: str, target: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+    """(candidate key -> file node id, file node id -> relative path) for the project's other files."""
+    local_lookup: Dict[str, str] = {}
+    local_paths: Dict[str, str] = {}
+    try:
+        project_files = scan_directory_files_for_analysis(
+            root, recursive=True, max_entries_per_directory=1000, max_total_files=5000,
+        )
+    except Exception:
+        project_files = []
+    for candidate in project_files:
+        candidate_relative = _portable_relative(root, candidate)
+        if os.path.realpath(candidate) == target:
+            continue
+        candidate_id = _node_id("file", candidate_relative.lower())
+        local_paths[candidate_id] = candidate_relative
+        for key in _candidate_keys(candidate_relative):
+            local_lookup.setdefault(key, candidate_id)
+    return local_lookup, local_paths
+
+
+def _resolve_file_edge_counts(
+    text: str,
+    module_id: str,
+    function_ranges: List[Tuple[int, int, str]],
+    symbol_lookup: Dict[str, str],
+    local_lookup: Dict[str, str],
+    local_paths: Dict[str, str],
+    nodes: List[Dict[str, object]],
+) -> Tuple[Dict[Tuple[str, str, str, str], int], Dict[str, Dict[str, object]]]:
+    """Edge counts for one file, plus the project files it reaches.
+
+    A call goes from its enclosing function (else the module) to a known symbol and is
+    dropped when none matches. Any other relation goes from the module to a project file
+    or, failing that, to an external node (appended to ``nodes``). Self-references are dropped.
+    """
+    external_nodes: Dict[str, str] = {}
+    local_nodes: Dict[str, Dict[str, object]] = {}
+    edge_counts: Dict[Tuple[str, str, str, str], int] = defaultdict(int)
+    for relation, reference, confidence, line in _extract_targets_with_lines(text):
+        if relation == "call":
+            source_id = next((
+                symbol_id for start, end, symbol_id in function_ranges
+                if start <= line <= end
+            ), module_id)
+            target_id = _first_match(reference, symbol_lookup)
+            if not target_id:
+                continue
+        else:
+            source_id = module_id
+            target_id = _first_match(reference, local_lookup)
+            if not target_id:
+                target_id = _ensure_external_node(reference, external_nodes, nodes)
+            elif target_id not in local_nodes:
+                local_relative = local_paths.get(target_id, reference)
+                local_nodes[target_id] = {
+                    "id": target_id, "kind": "file",
+                    "label": Path(local_relative).name,
+                    "relativePath": local_relative,
+                    "external": False, "metrics": _empty_metrics(),
+                }
+        if source_id != target_id:
+            edge_counts[(source_id, target_id, relation, confidence)] += 1
+    return edge_counts, local_nodes
+
+
 def analyze_file_dependencies(
     file_path: str,
     project_root: Optional[str] = None,
@@ -374,6 +548,7 @@ def analyze_file_dependencies(
     text, warning = _read_text(target)
     snapshot, snapshot_warning = _build_file_dependency_snapshot(target, text)
     language = str(snapshot.get("language") or get_metric_language(target))
+    source_lines = text.splitlines()
     module_id = _node_id("symbol", f"{relative.lower()}\0module")
     nodes: List[Dict[str, object]] = [{
         "id": module_id,
@@ -384,135 +559,24 @@ def analyze_file_dependencies(
         "language": language,
         "external": False,
         "lineStart": 1,
-        "lineEnd": max(1, len(text.splitlines())),
-        "metrics": _empty_metrics(totalLines=max(1, len(text.splitlines()))),
+        "lineEnd": max(1, len(source_lines)),
+        "metrics": _empty_metrics(totalLines=max(1, len(source_lines))),
     }]
     edges: List[Dict[str, object]] = []
     symbol_lookup: Dict[str, str] = {}
-    function_ranges: List[Tuple[int, int, str]] = []
 
     classes = sorted(snapshot.get("classes", []), key=lambda item: int(item.get("line", 0) or 0))
-    class_ids: Dict[str, str] = {}
-    for class_info in classes:
-        name = str(class_info.get("name") or "anonymous")
-        line = int(class_info.get("line", 0) or 0)
-        symbol_kind = _symbol_type(str(class_info.get("type") or "class"))
-        symbol_id = _node_id("symbol", f"{relative.lower()}\0{symbol_kind}\0{name}\0{line}")
-        class_ids[name.lower()] = symbol_id
-        nodes.append({
-            "id": symbol_id, "kind": "symbol", "symbolKind": symbol_kind,
-            "label": name, "relativePath": relative, "language": language,
-            "external": False, "ownerId": module_id, "lineStart": line,
-            "metrics": _empty_metrics(),
-        })
-        edges.append({
-            "id": _node_id("edge", f"{module_id}\0{symbol_id}\0contains"),
-            "source": module_id, "target": symbol_id, "kind": "contains",
-            "confidence": "exact", "occurrences": 1,
-        })
-        symbol_lookup[name.lower()] = symbol_id
-
-    for ordinal, function in enumerate(snapshot.get("functions", [])):
-        name = str(function.get("functionName") or "unknown")
-        qualified = str(function.get("qualifiedName") or name)
-        line_start = int(function.get("lineStart", 0) or 0)
-        line_end = int(function.get("lineEnd", line_start) or line_start)
-        owner_id = _infer_class_owner(
-            classes, class_ids, text.splitlines(), line_start, qualified, language
-        ) or module_id
-        method = owner_id != module_id
-        symbol_kind = "method" if method else "function"
-        symbol_id = _node_id(
-            "symbol",
-            f"{relative.lower()}\0{symbol_kind}\0{qualified}\0{line_start}\0{ordinal}",
-        )
-        nodes.append({
-            "id": symbol_id, "kind": "symbol", "symbolKind": symbol_kind,
-            "label": name, "relativePath": relative, "language": language,
-            "external": False, "ownerId": owner_id,
-            "lineStart": line_start, "lineEnd": line_end,
-            "metrics": _empty_metrics(
-                totalLines=int(function.get("lineCount", 0) or 0),
-                complexity=float(function.get("complexity", 0) or 0),
-                parameters=int(function.get("parameters", 0) or 0),
-                nestingDepth=int(function.get("maxNestingDepth", 0) or 0),
-            ),
-        })
-        edges.append({
-            "id": _node_id("edge", f"{owner_id}\0{symbol_id}\0contains"),
-            "source": owner_id, "target": symbol_id, "kind": "contains",
-            "confidence": "exact", "occurrences": 1,
-        })
-        symbol_lookup.setdefault(name.lower(), symbol_id)
-        symbol_lookup.setdefault(qualified.lower(), symbol_id)
-        function_ranges.append((line_start, line_end, symbol_id))
-
-    local_lookup: Dict[str, str] = {}
-    local_paths: Dict[str, str] = {}
-    try:
-        project_files = scan_directory_files_for_analysis(
-            root, recursive=True, max_entries_per_directory=1000, max_total_files=5000,
-        )
-    except Exception:
-        project_files = []
-    for candidate in project_files:
-        candidate_relative = _portable_relative(root, candidate)
-        if os.path.realpath(candidate) == target:
-            continue
-        candidate_id = _node_id("file", candidate_relative.lower())
-        local_paths[candidate_id] = candidate_relative
-        for key in _candidate_keys(candidate_relative):
-            local_lookup.setdefault(key, candidate_id)
-
-    external_nodes: Dict[str, str] = {}
-    local_nodes: Dict[str, Dict[str, object]] = {}
-    edge_counts: Dict[Tuple[str, str, str, str], int] = defaultdict(int)
-    for relation, reference, confidence, line in _extract_targets_with_lines(text):
-        source_id = module_id
-        if relation == "call":
-            source_id = next((
-                symbol_id for start, end, symbol_id in function_ranges
-                if start <= line <= end
-            ), module_id)
-            target_id = next((
-                symbol_lookup[key] for key in _normalize_reference(reference)
-                if key in symbol_lookup
-            ), None)
-            if not target_id:
-                continue
-        else:
-            target_id = next((
-                local_lookup[key] for key in _normalize_reference(reference)
-                if key in local_lookup
-            ), None)
-            if target_id:
-                if target_id not in local_nodes:
-                    local_nodes[target_id] = {
-                        "id": target_id, "kind": "file",
-                        "label": Path(local_paths.get(target_id, reference)).name,
-                        "relativePath": local_paths.get(target_id, reference),
-                        "external": False, "metrics": _empty_metrics(),
-                    }
-            else:
-                external_key = re.split(r"[/.:]", reference.strip())[0] or reference.strip()
-                target_id = external_nodes.get(external_key.lower())
-                if not target_id:
-                    target_id = _node_id("external", external_key.lower())
-                    external_nodes[external_key.lower()] = target_id
-                    nodes.append({
-                        "id": target_id, "kind": "external", "label": external_key,
-                        "external": True, "metrics": _empty_metrics(),
-                    })
-        if source_id != target_id:
-            edge_counts[(source_id, target_id, relation, confidence)] += 1
-
+    class_ids = _add_class_symbols(classes, relative, language, module_id, nodes, edges, symbol_lookup)
+    function_ranges = _add_function_symbols(
+        snapshot.get("functions", []), classes, class_ids, source_lines,
+        relative, language, module_id, nodes, edges, symbol_lookup,
+    )
+    local_lookup, local_paths = _project_file_lookup(root, target)
+    edge_counts, local_nodes = _resolve_file_edge_counts(
+        text, module_id, function_ranges, symbol_lookup, local_lookup, local_paths, nodes,
+    )
     nodes.extend(local_nodes.values())
-    for (source, target_id, kind, confidence), occurrences in edge_counts.items():
-        edges.append({
-            "id": _node_id("edge", f"{source}\0{target_id}\0{kind}"),
-            "source": source, "target": target_id, "kind": kind,
-            "confidence": confidence, "occurrences": occurrences,
-        })
+    edges.extend(_build_edges(edge_counts))
     _add_graph_metrics(nodes, edges)
 
     warnings = []
@@ -744,23 +808,11 @@ def _resolve_edge_counts(
     external_nodes: Dict[str, str] = {}
     for source_id in parsed:
         for relation, reference, confidence in extracted_by_node[source_id]:
-            target_id = next((lookup[key] for key in _normalize_reference(reference) if key in lookup), None)
+            target_id = _first_match(reference, lookup)
             if target_id == source_id:
                 continue
             if not target_id:
-                external_key = re.split(r"[/.:]", reference.strip())[0] or reference.strip()
-                target_id = external_nodes.get(external_key.lower())
-                if not target_id:
-                    target_id = _node_id("external", external_key.lower())
-                    external_nodes[external_key.lower()] = target_id
-                    external = {
-                        "id": target_id,
-                        "kind": "external",
-                        "label": external_key,
-                        "external": True,
-                        "metrics": _empty_metrics(),
-                    }
-                    nodes.append(external)
+                target_id = _ensure_external_node(reference, external_nodes, nodes)
             edge_counts[(source_id, target_id, relation, confidence)] += 1
     return edge_counts
 
