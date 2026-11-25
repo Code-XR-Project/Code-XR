@@ -8,8 +8,7 @@ import globals from "globals";
 // because it is the fallback while no output channel is attached.
 const NO_CONSOLE_FILES = [
     "src/core/logging/**/*.ts",
-    "src/code_analysis/engine/utils/executePython.ts",
-    "src/code_analysis/engine/utils/pythonStderrStream.ts",
+    "src/code_analysis/engine/utils/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 
