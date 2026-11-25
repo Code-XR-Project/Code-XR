@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { ActiveServer } from '../../model/activeServerModel';
 import { getActiveServerRegistry } from '../../registry/activeServerRegistry';
 import { ServerControl } from '../../runtime/serverControl';
-import { PreviewRenderer } from '../../../servers/runtime/previewRenderer';
+import { openServerInBrowser, openServerInPanel } from '../../services/serverOpenActions';
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
 import { RemoteAccessManager } from '../../../remote_access';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
@@ -63,80 +63,14 @@ export class ServerActionHandlers {
      * Open server in browser
      */
     public static async openInBrowser(serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER: Opening server ${serverId} in browser`);
-        
-        const registry = getActiveServerRegistry();
-        const server = registry.getServer(serverId);
-        
-        if (!server) {
-            console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
-            return;
-        }
-
-        try {
-            const browserUrl = typeof server.serverInstance?.createAuthenticatedBrowserUrl === 'function'
-                ? server.serverInstance.createAuthenticatedBrowserUrl(server.url)
-                : server.url;
-            await PreviewRenderer.openPreview(browserUrl, server.htmlFile || '', 'browser');
-            console.log(`ACTIVE_SERVER: Opened ${server.url} in browser`);
-            vscode.window.showInformationMessage(`Opened ${server.url} in browser`);
-        } catch (error) {
-            console.error(`ACTIVE_SERVER: Error opening ${server.url} in browser:`, error);
-            vscode.window.showErrorMessage(
-                `Failed to open in browser: ${error instanceof Error ? error.message : String(error)}`
-            );
-        }
+        return openServerInBrowser(serverId);
     }
 
     /**
      * Open server in lateral panel
      */
     public static async openInPanel(serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER: Opening server ${serverId} in lateral panel`);
-        
-        const registry = getActiveServerRegistry();
-        const server = registry.getServer(serverId);
-        
-        if (!server) {
-            console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
-            return;
-        }
-
-        // Check for HTTPS + lateral panel conflict
-        if (server.certMode !== 'http') {
-            console.log(`ACTIVE_SERVER: HTTPS server ${serverId} cannot be opened in lateral panel - cert mode: ${server.certMode}`);
-            
-            const response = await vscode.window.showWarningMessage(
-                'HTTPS content cannot be displayed in VS Code panels due to security restrictions. The content will not load properly.',
-                'Open in Browser Instead',
-                'Cancel'
-            );
-            
-            if (response === 'Open in Browser Instead') {
-                console.log(`ACTIVE_SERVER: Redirecting server ${serverId} to browser due to HTTPS incompatibility`);
-                return this.openInBrowser(serverId);
-            } else {
-                console.log(`ACTIVE_SERVER: User cancelled opening HTTPS server ${serverId} in panel`);
-                return; // User cancelled
-            }
-        }
-
-        try {
-            console.log(`ACTIVE_SERVER: Opening HTTP server ${serverId} (${server.url}) in lateral panel`);
-            const panelUrl = typeof server.serverInstance?.createAuthenticatedBrowserUrl === 'function'
-                ? server.serverInstance.createAuthenticatedBrowserUrl(server.url)
-                : server.url;
-            await PreviewRenderer.openPreview(panelUrl, server.htmlFile || '', 'lateralPanel', serverId);
-            console.log(`ACTIVE_SERVER: Successfully opened ${server.url} in lateral panel`);
-            vscode.window.showInformationMessage(`Opened ${server.url} in VS Code panel`);
-        } catch (error) {
-            console.error(`ACTIVE_SERVER: Error opening ${server.url} in panel:`, error);
-            vscode.window.showErrorMessage(
-                `Failed to open in panel: ${error instanceof Error ? error.message : String(error)}`
-            );
-        }
+        return openServerInPanel(serverId);
     }
 
     /**

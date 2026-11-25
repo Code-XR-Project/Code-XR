@@ -81,9 +81,9 @@
     }
   },
   "informational": {
-    "src.files": 324,
-    "src.lines": 48263,
-    "src.functions": 2649,
+    "src.files": 326,
+    "src.lines": 48304,
+    "src.functions": 2652,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -97,14 +97,6 @@
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
         "count": 39
-      },
-      {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "count": 38
-      },
-      {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 38
       },
       {
         "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
@@ -123,8 +115,16 @@
         "count": 30
       },
       {
+        "file": "src/servers/runtime/multiServerLauncher.ts",
+        "count": 29
+      },
+      {
         "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",
         "count": 27
+      },
+      {
+        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "count": 26
       },
       {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
@@ -277,12 +277,12 @@
         "lines": 852
       },
       {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 816
-      },
-      {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
         "lines": 784
+      },
+      {
+        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "lines": 750
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
