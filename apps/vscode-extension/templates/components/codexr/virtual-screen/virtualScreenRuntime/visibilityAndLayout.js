@@ -356,11 +356,8 @@
       refs.edgeHandles.right.setAttribute('position', `${halfWidth + 0.08} 0 0.05`);
     }
 
-    function refreshUi() {
-      if (!refs.root) {
-        return;
-      }
-
+    // The chrome's state, derived once per refresh: which parts show and how.
+    function computeUiFlags() {
       const minimized = isMinimized();
       const fixedContent = isFixedContent(refs.config);
       const active = hasDisplayedStream();
@@ -380,6 +377,26 @@
       const showAudioUnlock = state.audioUnlockRequired && state.streamSourceType === 'remote' && state.hasAudio;
       const showLegend = (active || minimized || fixedContent) && chromeVisible;
 
+      return {
+        minimized,
+        fixedContent,
+        active,
+        expanded,
+        chromeVisible,
+        headerVisible,
+        foreignBroadcast,
+        watchingBroadcast,
+        showShareButton,
+        showJoinButton,
+        showInfoOverlay,
+        showStatus,
+        showAudioUnlock,
+        showLegend,
+      };
+    }
+
+    function applyUiVisibility(flags) {
+      const { fixedContent, active, expanded, chromeVisible, headerVisible, showShareButton, showJoinButton, showInfoOverlay, showStatus, showAudioUnlock, showLegend } = flags;
       setEntityVisible(refs.display, active && expanded);
       // Fixed content is the screen's permanent face: visible whenever expanded.
       setEntityVisible(refs.contentRoot, fixedContent && expanded);
@@ -401,7 +418,10 @@
       Object.values(refs.headerButtons).forEach((button) => setInteractive(button, headerVisible));
       Object.values(refs.cornerHandles).forEach((handle) => setInteractive(handle, expanded && chromeVisible));
       Object.values(refs.edgeHandles).forEach((handle) => setInteractive(handle, chromeVisible));
+    }
 
+    function applyUiGlyphs(flags) {
+      const { minimized, showInfoOverlay } = flags;
       refs.status.setAttribute('value', getDisplayedStatusText());
       refs.legendText.setAttribute('value', getControlLegend());
       refs.legendToggle.__codexrGlyph = state.legendCollapsed ? '+' : '−';
@@ -416,7 +436,10 @@
       refs.infoOverlay.setAttribute('value', showInfoOverlay
         ? `${getBroadcasterDisplayName()} ${refs.config.labels.sharedBy}`
         : '');
+    }
 
+    function applyUiStyles(flags) {
+      const { minimized, expanded, chromeVisible, headerVisible, showJoinButton, showAudioUnlock, showLegend } = flags;
       setButtonStyle(refs.shareButton, 0.20, '#F8FAFC', '#0F172A');
       setButtonStyle(refs.joinButton, showJoinButton ? 0.92 : 0.0, '#16A34A', '#F8FAFC');
       setButtonStyle(refs.audioUnlockButton, showAudioUnlock ? 0.92 : 0.0, '#0EA5E9', '#F8FAFC');
@@ -429,6 +452,17 @@
       Object.values(refs.cornerHandles).forEach((handle) => setHandleStyle(handle, expanded && chromeVisible));
       Object.values(refs.edgeHandles).forEach((handle) => setHandleStyle(handle, chromeVisible));
       setMaterial(refs.headerStrip, `color: #0F172A; opacity: ${headerVisible ? 0.14 : 0.0}; transparent: true; shader: flat;`);
+    }
+
+    function refreshUi() {
+      if (!refs.root) {
+        return;
+      }
+
+      const flags = computeUiFlags();
+      applyUiVisibility(flags);
+      applyUiGlyphs(flags);
+      applyUiStyles(flags);
     }
 
     function updateStatus(message) {

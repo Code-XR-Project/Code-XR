@@ -145,71 +145,15 @@ function showError(message) {
 
 // ── SSE live updates ─────────────────────────────────────────────────────────
 
+// The shared client in panelShell.js dispatches every message type.
 function initializeSSE() {
-  try {
-    const eventSource = new EventSource('/events');
-
-    eventSource.onopen = function() {
-      showSSEStatus('connected');
-    };
-
-    eventSource.onmessage = function(event) {
-      try {
-        handleSSEMessage(JSON.parse(event.data));
-      } catch (error) {
-        console.error('FILE_ANALYSIS: Error parsing SSE message:', error);
-      }
-    };
-
-    eventSource.onerror = function() {
-      // EventSource retries automatically; just reflect the state.
-      showSSEStatus('error');
-    };
-
-    window.analysisSSE = eventSource;
-  } catch (error) {
-    console.error('FILE_ANALYSIS: Failed to initialize SSE:', error);
-    showSSEStatus('error');
-  }
-}
-
-function handleSSEMessage(data) {
-  const messageType = data.type || (data.data && data.data.type);
-
-  switch (messageType) {
-    case 'connected':
-      showSSEStatus('connected');
-      break;
-
-    case 'analysis-updated':
-      // The file was re-analyzed by the watcher chain; reload data.json.
-      flashSSEStatus('New data received');
-      loadAnalysisData();
-      break;
-
-    case 'dependency-updated':
-      // The server recomputed the dependency dataset as part of re-analysis.
-      flashSSEStatus('New data received');
-      loadDependencySummary();
-      break;
-
-    case 'historical-progress':
-      // Comparison progress from the server (analyzing left/right versions).
-      historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-      break;
-
-    case 'historical-updated':
-      // A comparison finished (or its working-copy side was re-analyzed).
-      flashSSEStatus('New data received');
-      historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-      break;
-
-    case 'heartbeat':
-      break;
-
-    default:
-      console.log('FILE_ANALYSIS: Unknown SSE message type:', messageType);
-  }
+  createLivePanelSse({
+    label: 'FILE_ANALYSIS',
+    // The watcher chain re-analyzed the file; reload data.json.
+    onAnalysisUpdated: () => loadAnalysisData(),
+    onDependencyUpdated: () => loadDependencySummary(),
+    historicalPanel: historicalPanel,
+  });
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────

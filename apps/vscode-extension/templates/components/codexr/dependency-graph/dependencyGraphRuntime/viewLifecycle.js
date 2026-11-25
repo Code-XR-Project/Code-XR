@@ -42,13 +42,53 @@
     setStatus('View reset.', false);
   }
 
-  async function applySharedState(snapshot) {
-    snapshot = snapshot ? Object.assign({
+  function withSnapshotDefaults(snapshot) {
+    return snapshot ? Object.assign({
       edgeEncoding: 'relation-type',
       flowSize: FLOW_DEFAULTS.flowSize,
       flowSpeed: FLOW_DEFAULTS.flowSpeed,
       scope: { kind: 'directory', relativePath: '' }
     }, snapshot) : snapshot;
+  }
+
+  // A dataset response is still wanted only while no newer load started, the
+  // view that asked for it is still the current one, and the graph is active.
+  function isLoadCurrent(loadGeneration, viewGeneration) {
+    return loadGeneration === state.datasetLoadGeneration
+      && viewGeneration === state.viewGeneration
+      && state.active;
+  }
+
+  function storeDataset(snapshot, dataset) {
+    state.dataset = dataset;
+    if (dataset.targetType === 'directory') {
+      state.projectDataset = dataset;
+    } else {
+      var fileKey = normalizeRelativePath(
+        dataset.targetRelativePath || snapshot.scope?.relativePath
+      );
+      state.fileDatasets[fileKey] = dataset;
+    }
+  }
+
+  // A file-scoped snapshot also points at the project-wide dataset; keep it
+  // when it is still wanted. (Unlike the dataset fetch this does not re-check
+  // snapshot identity - pinned as-is by dependencyGraph.test.cjs.)
+  async function loadProjectDataset(snapshot, loadGeneration, viewGeneration) {
+    var projectResponse = await fetch(
+      snapshot.projectDatasetUrl + '?sourceRevision=' + Number(snapshot.sourceRevision || 0),
+      { cache: 'no-store' }
+    );
+    if (projectResponse.ok && isLoadCurrent(loadGeneration, viewGeneration)) {
+      var projectDataset = await projectResponse.json();
+      if (projectDataset?.targetType === 'directory') {
+        state.projectDataset = projectDataset;
+      }
+    }
+  }
+
+  async function applySharedState(snapshot) {
+    snapshot = withSnapshotDefaults(snapshot);
     state.snapshot = snapshot;
     if (!snapshot) {
       renderControls();
@@ -72,39 +112,12 @@
       var response = await fetch(snapshot.datasetUrl + '?revision=' + snapshot.revision, { cache: 'no-store' });
       if (!response.ok) { throw new Error('Dependency dataset could not be loaded.'); }
       var dataset = await response.json();
-      if (
-        loadGeneration !== state.datasetLoadGeneration
-        || viewGeneration !== state.viewGeneration
-        || state.snapshot !== snapshot
-        || !state.active
-      ) {
+      if (!isLoadCurrent(loadGeneration, viewGeneration) || state.snapshot !== snapshot) {
         return;
       }
-      state.dataset = dataset;
-      if (dataset.targetType === 'directory') {
-        state.projectDataset = dataset;
-      } else {
-        var fileKey = normalizeRelativePath(
-          dataset.targetRelativePath || snapshot.scope?.relativePath
-        );
-        state.fileDatasets[fileKey] = dataset;
-      }
+      storeDataset(snapshot, dataset);
       if (snapshot.projectDatasetUrl) {
-        var projectResponse = await fetch(
-          snapshot.projectDatasetUrl + '?sourceRevision=' + Number(snapshot.sourceRevision || 0),
-          { cache: 'no-store' }
-        );
-        if (
-          projectResponse.ok
-          && loadGeneration === state.datasetLoadGeneration
-          && viewGeneration === state.viewGeneration
-          && state.active
-        ) {
-          var projectDataset = await projectResponse.json();
-          if (projectDataset?.targetType === 'directory') {
-            state.projectDataset = projectDataset;
-          }
-        }
+        await loadProjectDataset(snapshot, loadGeneration, viewGeneration);
       }
       renderGraph();
       setTransitionLocked(false);

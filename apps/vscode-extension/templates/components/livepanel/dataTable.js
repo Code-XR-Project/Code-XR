@@ -60,6 +60,27 @@ function normalizeDataTableColumn(column) {
   };
 }
 
+/**
+ * Column for a numeric metric of a row: a missing value counts as 0 (for sorting
+ * and display), and the first sort is descending. Without `format` the default
+ * renderer prints the number as is; with it, the cell is `format(value)`, escaped.
+ *
+ * @param {string} key
+ * @param {string} label
+ * @param {{align?: 'left'|'center'|'right', format?: (value:number)=>string}} [options]
+ *        `align` defaults to 'center'.
+ * @returns {DataTableColumn}
+ */
+function numericColumn(key, label, options) {
+  const config = options || {};
+  const value = (row) => row[key] || 0;
+  const column = { key, label, align: config.align || 'center', defaultDir: 'desc', value };
+  if (typeof config.format === 'function') {
+    column.render = (row) => escapeHtml(config.format(value(row)));
+  }
+  return column;
+}
+
 /** Stringify a raw cell value for the default (escaped) renderer. */
 function formatDataTableValue(value) {
   return value === null || value === undefined ? '' : String(value);
