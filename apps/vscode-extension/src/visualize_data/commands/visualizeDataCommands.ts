@@ -3,6 +3,9 @@ import { VisualizationLauncher } from '../views/interactions/visualizationLaunch
 import { VisualizeDataModel } from '../model/visualizeDataModel';
 import { VisualizationRestorer, StoredVisualization } from '../runtime/visualizationRestorer';
 import { ExtensionCommandRegistration } from '../../commands/shared';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_COMMANDS');
 
 const MODULE = 'VISUALIZE_DATA';
 const BROWSE = 'BROWSE-VISUALIZATIONS';
@@ -24,7 +27,7 @@ export class VisualizeDataCommands {
         };
 
         context.subscriptions.push({
-            dispose: () => console.log(`${MODULE}: Commands cleanup complete`),
+            dispose: () => logger.debug(() => `${MODULE}: Commands cleanup complete`),
         });
 
         return [

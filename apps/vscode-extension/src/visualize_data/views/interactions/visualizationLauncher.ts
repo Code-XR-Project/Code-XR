@@ -8,6 +8,9 @@ import { DimensionMapping } from '../../../babia_templates/models/chartModels';
 import { generateNonce } from '../../../utils/nonceGenerator';
 import { TemplateProcessor } from '../../../babia_templates/processing/templateProcessor';
 import { launchServerWithFile } from '../../../servers/runtime/index';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZATION_LAUNCHER');
 
 /**
  * Visualization Launcher
@@ -17,7 +20,7 @@ export class VisualizationLauncher {
     private stateManager: VisualizeDataStateManager;
 
     constructor(private context: vscode.ExtensionContext) {
-        console.log('VISUALIZE_DATA: Action handler initialized');
+        logger.debug('VISUALIZE_DATA: Action handler initialized');
         this.stateManager = VisualizeDataStateManager.getInstance(context);
     }
 
@@ -25,7 +28,7 @@ export class VisualizationLauncher {
      * Handle chart type selection
      */
     public async handleChartType(): Promise<void> {
-        console.log('VISUALIZE_DATA: Chart type action triggered');
+        logger.debug('VISUALIZE_DATA: Chart type action triggered');
         
         try {
             // Get available charts from BabiaXR registry
@@ -33,7 +36,7 @@ export class VisualizationLauncher {
             const availableCharts = chartRegistry.getAllCharts();
             
             if (availableCharts.length === 0) {
-                console.error('BABIA-TEMPLATES: No chart types found in registry');
+                logger.error('BABIA-TEMPLATES: No chart types found in registry');
                 vscode.window.showErrorMessage('No chart templates available');
                 return;
             }
@@ -61,13 +64,13 @@ export class VisualizationLauncher {
                 // Trigger tree refresh to update display
                 vscode.commands.executeCommand('codexr.servers.refresh');
                 
-                console.log(`BABIA-TEMPLATES: Chart type selected: ${selectedChart.name}`);
+                logger.debug(() => `BABIA-TEMPLATES: Chart type selected: ${selectedChart.name}`);
                 vscode.window.showInformationMessage(`Chart type selected: ${selectedChart.name}`);
             } else {
-                console.log('BABIA-TEMPLATES: Chart type selection cancelled');
+                logger.debug('BABIA-TEMPLATES: Chart type selection cancelled');
             }
         } catch (error) {
-            console.error('VISUALIZE_DATA: Error in chart type action:', error);
+            logger.error('VISUALIZE_DATA: Error in chart type action:', error);
             vscode.window.showErrorMessage(`Failed to handle chart type: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -76,7 +79,7 @@ export class VisualizationLauncher {
      * Handle JSON file selection
      */
     public async handleSelectJson(): Promise<void> {
-        console.log('VISUALIZE_DATA: Select JSON action triggered');
+        logger.debug('VISUALIZE_DATA: Select JSON action triggered');
         
         try {
             const options: vscode.OpenDialogOptions = {
@@ -95,11 +98,11 @@ export class VisualizationLauncher {
                 const fileName = path.basename(filePath);
                 
                 // Analyze JSON file to extract field information
-                console.log(`BABIA-TEMPLATES: Starting JSON analysis for ${fileName}`);
+                logger.debug(() => `BABIA-TEMPLATES: Starting JSON analysis for ${fileName}`);
                 const jsonAnalysis = await JsonFieldAnalyzer.analyzeJsonFile(filePath);
                 
                 if (jsonAnalysis.success) {
-                    console.log(`BABIA-TEMPLATES: JSON analysis successful - found ${jsonAnalysis.fields.length} fields`);
+                    logger.debug(() => `BABIA-TEMPLATES: JSON analysis successful - found ${jsonAnalysis.fields.length} fields`);
                     
                     // Update state with selected JSON and analysis
                     this.stateManager.updateSelectedJson(filePath, fileName);
@@ -108,17 +111,17 @@ export class VisualizationLauncher {
                     // Trigger tree refresh to update display
                     vscode.commands.executeCommand('codexr.servers.refresh');
                     
-                    console.log(`BABIA-TEMPLATES: JSON file selected: ${fileName} (${filePath})`);
+                    logger.debug(() => `BABIA-TEMPLATES: JSON file selected: ${fileName} (${filePath})`);
                     vscode.window.showInformationMessage(`JSON file selected: ${fileName} (${jsonAnalysis.fields.length} fields found)`);
                 } else {
-                    console.error(`BABIA-TEMPLATES: JSON analysis failed: ${jsonAnalysis.error}`);
+                    logger.error(`BABIA-TEMPLATES: JSON analysis failed: ${jsonAnalysis.error}`);
                     vscode.window.showErrorMessage(`Failed to analyze JSON file: ${jsonAnalysis.error}`);
                 }
             } else {
-                console.log('BABIA-TEMPLATES: No JSON file selected');
+                logger.debug('BABIA-TEMPLATES: No JSON file selected');
             }
         } catch (error) {
-            console.error('VISUALIZE_DATA: Error in select JSON action:', error);
+            logger.error('VISUALIZE_DATA: Error in select JSON action:', error);
             vscode.window.showErrorMessage(`Failed to select JSON file: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -127,7 +130,7 @@ export class VisualizationLauncher {
      * Handle dimension mapping configuration (informational only)
      */
     public async handleDimensionMapping(): Promise<void> {
-        console.log('DIMENSION-MAPPING: Dimension mapping overview requested');
+        logger.debug('DIMENSION-MAPPING: Dimension mapping overview requested');
         
         try {
             const state = this.stateManager.getState();
@@ -161,7 +164,7 @@ export class VisualizationLauncher {
             vscode.window.showInformationMessage(`Dimension Mapping Status:\n${message}`);
             
         } catch (error) {
-            console.error('DIMENSION-MAPPING: Error in dimension mapping overview:', error);
+            logger.error('DIMENSION-MAPPING: Error in dimension mapping overview:', error);
             vscode.window.showErrorMessage(`Failed to show dimension mapping overview: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -186,7 +189,7 @@ export class VisualizationLauncher {
      * Handle dimension field mapping for a specific dimension
      */
     public async handleDimensionFieldMapping(dimensionName: string): Promise<void> {
-        console.log(`DIMENSION-MAPPING: Field mapping for dimension '${dimensionName}' triggered`);
+        logger.debug(() => `DIMENSION-MAPPING: Field mapping for dimension '${dimensionName}' triggered`);
         
         try {
             const state = this.stateManager.getState();
@@ -254,7 +257,7 @@ export class VisualizationLauncher {
                         mapping.dataField === selectedItem.field.name && mapping.dimension !== dimensionName
                     );
                     
-                    console.log(`DIMENSION-MAPPING: Warning - Field '${selectedItem.field.name}' is already mapped to dimension '${existingMapping?.dimension}'`);
+                    logger.debug(() => `DIMENSION-MAPPING: Warning - Field '${selectedItem.field.name}' is already mapped to dimension '${existingMapping?.dimension}'`);
                     
                     const proceed = await vscode.window.showWarningMessage(
                         `Field '${selectedItem.field.name}' is already used for dimension '${existingMapping?.dimension}'. Continue?`,
@@ -263,7 +266,7 @@ export class VisualizationLauncher {
                     );
                     
                     if (proceed !== 'Yes, Continue') {
-                        console.log(`DIMENSION-MAPPING: Duplicate field mapping cancelled by user`);
+                        logger.debug(`DIMENSION-MAPPING: Duplicate field mapping cancelled by user`);
                         return;
                     }
                 }
@@ -274,14 +277,14 @@ export class VisualizationLauncher {
                 // Trigger tree refresh
                 vscode.commands.executeCommand('codexr.servers.refresh');
                 
-                console.log(`DIMENSION-MAPPING: Mapped dimension '${dimensionName}' to field '${selectedItem.field.name}'`);
+                logger.debug(() => `DIMENSION-MAPPING: Mapped dimension '${dimensionName}' to field '${selectedItem.field.name}'`);
                 vscode.window.showInformationMessage(`Mapped ${dimension.name} to field: ${selectedItem.field.name}`);
             } else {
-                console.log(`DIMENSION-MAPPING: Field mapping for dimension '${dimensionName}' cancelled`);
+                logger.debug(() => `DIMENSION-MAPPING: Field mapping for dimension '${dimensionName}' cancelled`);
             }
             
         } catch (error) {
-            console.error(`DIMENSION-MAPPING: Error in field mapping for dimension '${dimensionName}':`, error);
+            logger.error(`DIMENSION-MAPPING: Error in field mapping for dimension '${dimensionName}':`, error);
             vscode.window.showErrorMessage(`Failed to map dimension field: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -290,7 +293,7 @@ export class VisualizationLauncher {
      * Handle visualization launch
      */
     public async handleLaunchVisualization(): Promise<void> {
-        console.log('VISUALIZE_DATA: Launch visualization action triggered');
+        logger.debug('VISUALIZE_DATA: Launch visualization action triggered');
         
         try {
             const state = this.stateManager.getState();
@@ -331,7 +334,7 @@ export class VisualizationLauncher {
             });
 
             if (!visualizationName) {
-                console.log('VISUALIZE_DATA: User cancelled visualization name input');
+                logger.debug('VISUALIZE_DATA: User cancelled visualization name input');
                 return;
             }
 
@@ -339,7 +342,7 @@ export class VisualizationLauncher {
             const nonce = generateNonce(8); // 8 bytes = 16 hex characters
             const uniqueName = `${visualizationName.trim()}_${nonce}`;
             
-            console.log('VISUALIZE_DATA: Creating visualization:', uniqueName);
+            logger.debug('VISUALIZE_DATA: Creating visualization:', uniqueName);
 
             // Prepare visualization directory
             const visualizationDir = await this.prepareVisualizationDirectory(uniqueName);
@@ -354,8 +357,8 @@ export class VisualizationLauncher {
 
             // Launch the server with custom name
             const indexHtmlPath = path.join(visualizationDir, 'index.html');
-            console.log('VISUALIZE_DATA: Launching server with file:', indexHtmlPath);
-            console.log(`SERVER: Using custom name '${visualizationName.trim()}' for visualization server`);
+            logger.debug('VISUALIZE_DATA: Launching server with file:', indexHtmlPath);
+            logger.debug(() => `SERVER: Using custom name '${visualizationName.trim()}' for visualization server`);
             
             const launchResult = await launchServerWithFile(this.context, indexHtmlPath, visualizationName.trim());
             
@@ -375,7 +378,7 @@ export class VisualizationLauncher {
             }
 
         } catch (error) {
-            console.error('VISUALIZE_DATA: Error in launch visualization action:', error);
+            logger.error('VISUALIZE_DATA: Error in launch visualization action:', error);
             vscode.window.showErrorMessage(`Failed to launch visualization: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -391,12 +394,12 @@ export class VisualizationLauncher {
         // Ensure directories exist
         if (!fs.existsSync(visualizeDataDir)) {
             fs.mkdirSync(visualizeDataDir, { recursive: true });
-            console.log('VISUALIZE_DATA: Created visualize-data directory:', visualizeDataDir);
+            logger.debug('VISUALIZE_DATA: Created visualize-data directory:', visualizeDataDir);
         }
 
         if (!fs.existsSync(visualizationDir)) {
             fs.mkdirSync(visualizationDir, { recursive: true });
-            console.log('VISUALIZE_DATA: Created visualization directory:', visualizationDir);
+            logger.debug('VISUALIZE_DATA: Created visualization directory:', visualizationDir);
         }
 
         return visualizationDir;
@@ -415,12 +418,12 @@ export class VisualizationLauncher {
                 return { success: false, error: 'Missing chart or JSON file configuration' };
             }
 
-            console.log('VISUALIZATION_LAUNCHER: Using centralized TemplateProcessor for HTML generation');
+            logger.debug('Using centralized TemplateProcessor for HTML generation');
 
             // Copy JSON file as data.json
             const dataJsonPath = path.join(visualizationDir, 'data.json');
             fs.copyFileSync(state.selectedJsonPath, dataJsonPath);
-            console.log('VISUALIZATION_LAUNCHER: Copied data file to:', dataJsonPath);
+            logger.debug('Copied data file to:', dataJsonPath);
 
             // Prepare output path for index.html
             const indexHtmlPath = path.join(visualizationDir, 'index.html');
@@ -437,18 +440,18 @@ export class VisualizationLauncher {
             );
 
             if (!result.success) {
-                console.error('VISUALIZATION_LAUNCHER: TemplateProcessor failed:', result.error);
+                logger.error('TemplateProcessor failed:', result.error);
                 return { 
                     success: false, 
                     error: `Template processing failed: ${result.error}` 
                 };
             }
 
-            console.log('VISUALIZATION_LAUNCHER: Successfully generated index.html using TemplateProcessor');
+            logger.debug('Successfully generated index.html using TemplateProcessor');
             return { success: true };
 
         } catch (error) {
-            console.error('VISUALIZATION_LAUNCHER: Error generating visualization files:', error);
+            logger.error('Error generating visualization files:', error);
             return { 
                 success: false, 
                 error: error instanceof Error ? error.message : String(error) 
@@ -460,7 +463,7 @@ export class VisualizationLauncher {
      * Cleanup resources
      */
     public cleanup(): void {
-        console.log('VISUALIZE_DATA: Action handler cleanup');
+        logger.debug('VISUALIZE_DATA: Action handler cleanup');
         // Note: We don't dispose the state manager here as it may be used by other components
     }
 
