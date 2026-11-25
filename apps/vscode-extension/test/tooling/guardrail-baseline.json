@@ -55,7 +55,7 @@
     ],
     "functions.over80Lines": 42,
     "complexity.over10": 63,
-    "complexity.over15": 20,
+    "complexity.over15": 19,
     "complexity.over20": 4,
     "complexity.over30": 2,
     "reachability.unreachable": [],
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49117,
-    "src.functions": 3288,
+    "src.lines": 49136,
+    "src.functions": 3292,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -167,12 +167,6 @@
       },
       {
         "ccn": 20,
-        "lines": 71,
-        "function": "applyIncrementalChanges",
-        "file": "src/code_analysis/engine/watchers/directoryReAnalyzer.ts"
-      },
-      {
-        "ccn": 20,
         "lines": 73,
         "function": "sampleTimeline",
         "file": "src/code_analysis/historical/gitTimelineSampler.ts"
@@ -200,6 +194,12 @@
         "lines": 61,
         "function": "relativizeExportArtifacts",
         "file": "src/code_analysis/export/exportManifest.ts"
+      },
+      {
+        "ccn": 18,
+        "lines": 47,
+        "function": "closeAnalysis",
+        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts"
       }
     ],
     "size.largest10": [
