@@ -35,7 +35,10 @@ function collectTextFiles(root) {
         for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
             const fullPath = path.join(current, entry.name);
             if (entry.isDirectory()) {
-                if (!['node_modules', '.git', 'artifacts', 'dist', 'out'].includes(entry.name)) {
+                // .claude/worktrees holds whole checkouts made by agent sessions
+                // (git-ignored): scanning them would police other branches.
+                const isAgentWorktrees = entry.name === 'worktrees' && path.basename(current) === '.claude';
+                if (!isAgentWorktrees && !['node_modules', '.git', 'artifacts', 'dist', 'out'].includes(entry.name)) {
                     stack.push(fullPath);
                 }
                 continue;
@@ -46,6 +49,21 @@ function collectTextFiles(root) {
         }
     }
     return files;
+}
+
+// Root-level text of the monorepo (outside apps/vscode-extension): the
+// root README and package.json, the shared docs and ADRs, CI, and the
+// placeholders of the IDE and the shared packages.
+function monorepoTextFiles() {
+    return [
+        path.join(projectRoot, '..', '..', 'README.md'),
+        path.join(projectRoot, '..', '..', 'package.json'),
+        ...collectTextFiles('../../docs'),
+        ...collectTextFiles('../../adr'),
+        ...collectTextFiles('../../.github'),
+        ...collectTextFiles('../../apps/ide'),
+        ...collectTextFiles('../../packages'),
+    ];
 }
 
 test('auto-analysis delay defaults to RealTime and selector labels are plain text', () => {
@@ -111,6 +129,8 @@ test('plugin text sources do not contain emoji characters', () => {
         ...collectTextFiles('templates'),
         ...collectTextFiles('docs'),
         ...collectTextFiles('test'),
+        // Text the monorepo move put outside this package.
+        ...monorepoTextFiles(),
     ];
     const offenders = files.filter((filePath) => emojiPattern.test(fs.readFileSync(filePath, 'utf8')));
     assert.deepEqual(offenders.map((filePath) => path.relative(projectRoot, filePath)), []);
@@ -131,6 +151,7 @@ test('plugin text sources contain no NUL bytes', () => {
         ...collectTextFiles('../../backend'),
         // .claude/ is shared by the whole monorepo and lives at its root.
         ...collectTextFiles('../../.claude'),
+        ...monorepoTextFiles(),
     ];
     const offenders = files.filter((filePath) => fs.readFileSync(filePath).includes(0));
     assert.deepEqual(offenders.map((filePath) => path.relative(projectRoot, filePath)), []);

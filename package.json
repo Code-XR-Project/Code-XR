@@ -3,6 +3,9 @@
   "private": true,
   "description": "Code-XR monorepo: the VS Code extension, the Python analysis backend and (planned) the Code-XR IDE.",
   "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=24"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
