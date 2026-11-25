@@ -91,7 +91,6 @@
       "src/code_analysis/commands/subsections/analysis_settings/index.ts",
       "src/code_analysis/commands/subsections/files_by_language/index.ts",
       "src/code_analysis/commands/subsections/project_by_language/index.ts",
-      "src/code_analysis/config/analysisConfigurationManager.ts",
       "src/code_analysis/configuration/configurationManager.ts",
       "src/code_analysis/configuration/configurationManagerExample.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
@@ -112,8 +111,6 @@
       "src/code_analysis/engine/utils/index.ts",
       "src/code_analysis/engine/watchers/index.ts",
       "src/code_analysis/index.ts",
-      "src/code_analysis/model/analysisModel.ts",
-      "src/code_analysis/runtime/analysisEngine.ts",
       "src/code_analysis/views/subsections/active_analyses/activeAnalysesSubsectionProvider.ts",
       "src/code_analysis/views/subsections/active_analyses/index.ts",
       "src/code_analysis/views/subsections/active_analyses/items/activeAnalysisItems.ts",
@@ -121,13 +118,11 @@
       "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_file/index.ts",
       "src/learn_more/index.ts",
       "src/learn_more/views.ts",
-      "src/python_env/index.ts",
       "src/python_env/views/index.ts",
       "src/python_env/views/interactions/handlePythonEnvActions.ts",
       "src/servers/config/defaultServerConfig.ts",
       "src/servers/views/index.ts",
       "src/utils/fileDisplayUtils.ts",
-      "src/views/analysis/index.ts",
       "src/visualization_settings/views/index.ts",
       "src/visualize_data/views/browseVisualizationsTreeView.ts",
       "src/visualize_data/views/index.ts"
@@ -142,10 +137,10 @@
     }
   },
   "informational": {
-    "src.files": 369,
-    "src.lines": 52974,
-    "src.functions": 2864,
-    "src.unreachableLines": 2317,
+    "src.files": 364,
+    "src.lines": 52983,
+    "src.functions": 2865,
+    "src.unreachableLines": 2312,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -366,12 +361,12 @@
         "lines": 634
       },
       {
-        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 630
+        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "lines": 632
       }
     ]
   },
