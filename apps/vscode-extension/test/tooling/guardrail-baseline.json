@@ -24,9 +24,8 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 86,
+    "any.total": 84,
     "any.byModule": {
-      "active_servers": 2,
       "babia_templates": 2,
       "code_analysis": 18,
       "commands": 6,
@@ -56,12 +55,12 @@
     ],
     "functions.over80Lines": 36,
     "complexity.over10": 53,
-    "complexity.over15": 9,
+    "complexity.over15": 8,
     "complexity.over20": 0,
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 160,
+    "eslint.maxWarnings": 158,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -121,10 +120,6 @@
         "count": 3
       },
       {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 2
-      },
-      {
         "file": "src/babia_templates/processing/templateProcessor.ts",
         "count": 2
       },
@@ -138,6 +133,10 @@
       },
       {
         "file": "src/code_analysis/engine/servers/serverLaunchOrchestrator.ts",
+        "count": 2
+      },
+      {
+        "file": "src/code_analysis/engine/utils/executePython.ts",
         "count": 2
       }
     ],
@@ -186,15 +185,15 @@
       },
       {
         "ccn": 16,
-        "lines": 81,
-        "function": "closeAssociatedAnalysisSession",
-        "file": "src/active_servers/runtime/serverControl.ts"
-      },
-      {
-        "ccn": 16,
         "lines": 31,
         "function": "validateConfig",
         "file": "src/active_servers/services/serverRegistrar.ts"
+      },
+      {
+        "ccn": 15,
+        "lines": 81,
+        "function": "closeAssociatedAnalysisSession",
+        "file": "src/active_servers/runtime/serverControl.ts"
       },
       {
         "ccn": 15,

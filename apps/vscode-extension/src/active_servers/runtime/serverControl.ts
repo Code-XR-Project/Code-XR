@@ -234,8 +234,8 @@ export class ServerControl {
             let associatedSession = null;
             
             // Try to find by sessionId in server metadata (when implemented)
-            if (server.metadata && (server.metadata as any).sessionId) {
-                const sessionId = (server.metadata as any).sessionId;
+            if (server.metadata?.sessionId) {
+                const sessionId = server.metadata.sessionId;
                 logger.debug(() => `DEBUG - Trying to find session by metadata sessionId: ${sessionId}`);
                 associatedSession = sessionRegistry.getSession(sessionId);
                 if (associatedSession) {
