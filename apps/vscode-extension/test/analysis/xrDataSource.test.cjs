@@ -278,6 +278,10 @@ test('XR parsers include CodeXR room runtime in generated assets', () => {
     assert.match(directoryParser, /generatedFiles\.set\(VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, virtualScreenManagerRuntimeContent\)/);
     assert.match(directoryParser, /generatedFiles\.set\(CODEXR_COMMON_RUNTIME_OUTPUT_NAME, codexrCommonRuntimeContent\)/);
     assert.doesNotMatch(directoryParser, /generatedFiles\.set\(CODEXR_VISUAL_STYLE_RUNTIME_OUTPUT_NAME, codexrVisualStyleRuntimeContent\)/);
+    // The abandoned visual-style feature was deleted in 1.2.1 (W2-55): neither
+    // its asset module nor its runtime may come back unwired.
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'components', 'customComponents', 'visualStyleComponentAsset.ts')), false);
+    assert.equal(fs.existsSync(path.join(projectRoot, 'templates', 'components', 'common', 'codexrVisualStyleRuntime.js')), false);
     assert.doesNotMatch(directoryParser, /generatedFiles\.set\(CODEXR_BOATS_RUNTIME_OUTPUT_NAME, codeXrBoatsRuntimeContent\)/);
     assert.doesNotMatch(directoryParser, /codeXrBoatsTextures\.forEach\(\(asset\) => \{/);
     assert.match(directoryParser, /generatedFiles\.set\(CODEXR_ROOM_RUNTIME_OUTPUT_NAME, codexrRoomRuntimeContent\)/);

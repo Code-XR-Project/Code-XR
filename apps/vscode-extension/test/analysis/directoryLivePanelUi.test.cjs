@@ -332,6 +332,167 @@ test('renderFileDetailsTable builds a searchable, sortable table with a clickabl
     assert.deepEqual(table.getVisibleRows().map((r) => r.fileName), ['z.ts', 'a.ts']);
 });
 
+// Characterization of the two file tables, column by column: header metadata,
+// the sort/search value and the rendered cell HTML of a fully populated row and
+// of a row with every metric missing (the `|| 0` / `|| ''` defaults). Lets the
+// column specs be reshaped (R01, column factories) with proof that every cell
+// renders byte-identically.
+function describeFileTables() {
+    const { api } = loadDirectoryBundle();
+    api.setFileData([
+        {
+            fileName: 'z.ts', filePath: '/p/z.ts', relativePath: 'src/deep/z.ts', language: 'TypeScript',
+            fileSizeBytes: 1536000, totalLines: 12345, functionCount: 4, cyclomaticComplexityNumber: 12.345,
+            maxComplexity: 31, commentRatio: 0.256, averageFunctionParameters: 2.345, maxFunctionParameters: 6,
+            averageFunctionNestingDepth: 1.005, maxFunctionNestingDepth: 3, highComplexityFunctions: 2,
+            criticalComplexityFunctions: 1,
+        },
+        { fileName: 'bare<x>.ts', filePath: '/p/bare.ts', cyclomaticComplexityNumber: 0.5 },
+    ]);
+    api.renderFileDetailsTable();
+    api.renderComplexFilesTable();
+    const describe = (mountId) => {
+        const table = api.dataTables[mountId];
+        return {
+            sort: [table.sortKey, table.sortDir],
+            columns: table.columns.map((column) => [
+                [column.key, column.label, column.align, column.defaultDir, column.sortable, column.searchable].join(' | '),
+                ...table.rows.map((row) => `${JSON.stringify(column.value(row))} => ${column.render(row)}`),
+            ]),
+        };
+    };
+    return { details: describe('file-details-table'), complex: describe('complex-files-table') };
+}
+
+const FILE_TABLES_CHARACTERIZATION = {
+    details: {
+        sort: [
+            "fileName",
+            "asc",
+        ],
+        columns: [
+            [
+                "fileName | File | left | asc | true | true",
+                "\"z.ts\" => <span class=\"cell-link\" title=\"/p/z.ts\">z.ts</span>",
+                "\"bare<x>.ts\" => <span class=\"cell-link\" title=\"/p/bare.ts\">bare&lt;x&gt;.ts</span>",
+            ],
+            [
+                "relativePath | Relative Path | left | asc | true | true",
+                "\"src/deep/z.ts\" => <span class=\"cell-path\" title=\"src/deep/z.ts\">src/deep/z.ts</span>",
+                "\"bare<x>.ts\" => <span class=\"cell-path\" title=\"bare&lt;x&gt;.ts\">bare&lt;x&gt;.ts</span>",
+            ],
+            [
+                "language | Language | center | asc | true | true",
+                "\"TypeScript\" => TypeScript",
+                "\"Unknown\" => Unknown",
+            ],
+            [
+                "fileSizeBytes | Size | right | desc | true | true",
+                "1536000 => 1.46 MB",
+                "0 => 0 KB",
+            ],
+            [
+                "totalLines | Lines | right | desc | true | true",
+                "12345 => 12,345",
+                "0 => 0",
+            ],
+            [
+                "functionCount | Functions | center | desc | true | true",
+                "4 => 4",
+                "0 => 0",
+            ],
+            [
+                "cyclomaticComplexityNumber | Avg CCN | center | desc | true | true",
+                "12.345 => 12.3",
+                "0.5 => 0.5",
+            ],
+            [
+                "maxComplexity | Max Fn CCN | center | desc | true | true",
+                "31 => 31",
+                "0 => 0",
+            ],
+            [
+                "commentRatio | Comment % | center | desc | true | true",
+                "0.256 => 25.6%",
+                "0 => 0.0%",
+            ],
+            [
+                "averageFunctionParameters | Avg Params | center | desc | true | true",
+                "2.345 => 2.35",
+                "0 => 0.00",
+            ],
+            [
+                "maxFunctionParameters | Max Params | center | desc | true | true",
+                "6 => 6",
+                "0 => 0",
+            ],
+            [
+                "averageFunctionNestingDepth | Avg Nesting | center | desc | true | true",
+                "1.005 => 1.00",
+                "0 => 0.00",
+            ],
+            [
+                "maxFunctionNestingDepth | Max Nesting | center | desc | true | true",
+                "3 => 3",
+                "0 => 0",
+            ],
+            [
+                "highComplexityFunctions | High CCN Fns | center | desc | true | true",
+                "2 => 2",
+                "0 => 0",
+            ],
+            [
+                "criticalComplexityFunctions | Critical CCN Fns | center | desc | true | true",
+                "1 => 1",
+                "0 => 0",
+            ],
+        ],
+    },
+    complex: {
+        sort: [
+            "cyclomaticComplexityNumber",
+            "desc",
+        ],
+        columns: [
+            [
+                "fileName | File | left | asc | true | true",
+                "\"z.ts\" => <span class=\"cell-link\" title=\"/p/z.ts\">src/deep/z.ts</span>",
+                "\"bare<x>.ts\" => <span class=\"cell-link\" title=\"/p/bare.ts\">bare&lt;x&gt;.ts</span>",
+            ],
+            [
+                "language | Language | center | asc | true | true",
+                "\"TypeScript\" => TypeScript",
+                "\"Unknown\" => Unknown",
+            ],
+            [
+                "cyclomaticComplexityNumber | Avg CCN | center | desc | true | true",
+                "12.345 => 12.3",
+                "0.5 => 0.5",
+            ],
+            [
+                "functionCount | Functions | center | desc | true | true",
+                "4 => 4",
+                "0 => 0",
+            ],
+            [
+                "maxFunctionNestingDepth | Max Nesting | center | desc | true | true",
+                "3 => 3",
+                "0 => 0",
+            ],
+            [
+                "highComplexityFunctions | High-risk Fns | center | desc | true | true",
+                "2 => 2",
+                "0 => 0",
+            ],
+        ],
+    },
+};
+
+test('the file tables render every column exactly as before (characterization)', () => {
+    // JSON round-trip: the arrays come from the vm realm.
+    assert.deepEqual(JSON.parse(JSON.stringify(describeFileTables())), FILE_TABLES_CHARACTERIZATION);
+});
+
 test('renderComplexFilesTable only lists files carrying complexity, highest CCN first', () => {
     const { api } = loadDirectoryBundle();
     api.setFileData([
@@ -479,7 +640,10 @@ test('The dependency summary loads a static artifact, has no manual refresh, and
     assert.doesNotMatch(panel, /\/api\/dependency-graph\/summary/);
     assert.doesNotMatch(js, /function refreshDependencyGraphSummary/);
     assert.doesNotMatch(js, /dependency-refresh-btn/);
-    assert.match(js, /case 'dependency-updated':/);
+    // The SSE switch lives in the shared page shell since 1.2.1 (R04); the
+    // template must still hand its reloads to it.
+    assert.match(js, /createLivePanelSse\(\{/);
+    assert.match(js + '\n' + readSharedComponent('panelShell.js'), /case 'dependency-updated':/);
 });
 
 // ── Shared chart components (Chart.js replacement) ─────────────────────────
@@ -567,11 +731,15 @@ test('Both LivePanel templates mount the shared historical panel and wire it to 
 
     const directoryJs = readTemplate('directoryAnalysismain.js');
     const fileJs = fs.readFileSync(path.join(fileTemplateDir, 'fileAnalysismain.js'), 'utf8');
+    const shell = readSharedComponent('panelShell.js');
     for (const js of [directoryJs, fileJs]) {
         assert.match(js, /new CodexrHistoricalPanel\(\)/);
         assert.match(js, /historicalPanel\.initialize\(\)/);
-        assert.match(js, /case 'historical-progress':/);
-        assert.match(js, /case 'historical-updated':/);
+        // The SSE switch lives in the shared page shell (R04); each template
+        // hands it its historical panel.
+        assert.match(js, /createLivePanelSse\(\{[\s\S]*historicalPanel: historicalPanel/);
+        assert.match(js + '\n' + shell, /case 'historical-progress':/);
+        assert.match(js + '\n' + shell, /case 'historical-updated':/);
         assert.match(js, /new CodexrDependencySummaryPanel\(\)/);
         assert.doesNotMatch(js, /new Chart\(/);
     }
@@ -621,9 +789,11 @@ test('The Live Updates indicator flashes "New data received" then reverts to the
     // The indicator implementation lives in the shared page shell; the
     // template drives it on every SSE data refresh.
     assert.match(shell, /function flashSSEStatus/);
-    assert.match(js, /flashSSEStatus\('New data received'\)/);
+    // Driven from the shared SSE client the template wires up (R04).
+    assert.match(js, /createLivePanelSse\(\{/);
+    assert.match(js + '\n' + shell, /flashSSEStatus\('New data received'\)/);
     // The flash schedules a revert back to the "connected" (Live Updates) state.
-    assert.match(js, /showSSEStatus\('connected'\)/);
+    assert.match(js + '\n' + shell, /showSSEStatus\('connected'\)/);
     assert.match(shell, /setTimeout\(\(\) => \{[\s\S]*showSSEStatus\('connected'\);/);
 });
 

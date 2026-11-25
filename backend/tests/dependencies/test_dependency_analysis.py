@@ -144,6 +144,33 @@ class DependencyAnalysisTests(unittest.TestCase):
             }
             self.assertEqual({"changed.py", "unchanged.py", "added.py"}, relative_paths)
 
+    def test_graph_metrics_count_a_self_edge_once_and_parallel_edges_each(self):
+        # relationCount is "edges touching the node": a self-edge touches it once,
+        # two edges of different kinds between the same pair count twice.
+        nodes = [
+            {"id": "a", "external": False, "metrics": {}},
+            {"id": "b", "external": False, "metrics": {}},
+            {"id": "x", "external": True, "metrics": {}},
+        ]
+        edges = [
+            {"source": "a", "target": "a"},
+            {"source": "a", "target": "b"},
+            {"source": "a", "target": "b"},
+            {"source": "b", "target": "a"},
+            {"source": "b", "target": "x"},
+        ]
+        dependency_analysis_engine._add_graph_metrics(nodes, edges)
+        metrics = {node["id"]: node["metrics"] for node in nodes}
+        self.assertEqual(
+            {"a": 4, "b": 4, "x": 1},
+            {node_id: values["relationCount"] for node_id, values in metrics.items()},
+        )
+        self.assertEqual(
+            {"fanIn": 2, "fanOut": 2, "degree": 2, "dependentCount": 2, "cycleSize": 2, "relationCount": 4},
+            metrics["a"],
+        )
+        self.assertEqual(0, metrics["x"]["cycleSize"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -142,10 +142,8 @@
     "README.md",
     "THIRD_PARTY_NOTICES.md",
     "dist/**/*",
-    "docs/**/*",
     "examples/**/*",
     "resources/avatars/**/*",
-    "resources/favicon.ico",
     "resources/icon.png",
     "resources/icon.svg",
     "resources/languages_icons/color/**/*",
@@ -371,7 +369,7 @@
     "export/git_export_analysis_worker.py | present",
     "html/html_dom_parser.py | present",
     "main.py | present",
-    "sumaryFiles/file_reanalysis_coordinator.py | present"
+    "summaryFiles/file_reanalysis_coordinator.py | present"
   ],
   "persistedState": [
     "codeXR.analysis.filesByLanguage.summaryCache | present",

@@ -14,26 +14,14 @@ UTILS_DIR = Path(__file__).resolve().parent.parent / 'utils'
 if str(UTILS_DIR) not in sys.path:
     sys.path.insert(0, str(UTILS_DIR))
 
-from babia_path_utils import normalize_output_paths
-from directory_analysis_engine import analyze_directory_entries
-
-
-def _emit_progress(current: int, total: int, file_path: str) -> None:
-    percentage = int((current / total) * 100) if total > 0 else 0
-    file_name = os.path.basename(file_path)
-    print(json.dumps({'progress': {'current': current, 'total': total, 'percentage': percentage, 'fileName': file_name, 'message': f'Analyzing {file_name}... ({current}/{total})'}}), file=sys.stderr)
+from directory_analysis_engine import run_directory_analysis
 
 
 def analyze_directory_comprehensive(directory_path, filtered_files=None):
-    print(json.dumps({'debug': f'DIRECTORY_ANALYSIS: Starting directory analysis for {directory_path}'}), file=sys.stderr)
-    entries = analyze_directory_entries(
-        directory_path,
-        recursive=False,
-        filtered_files=filtered_files,
-        progress_callback=_emit_progress,
+    return run_directory_analysis(
+        directory_path, False, filtered_files,
+        'DIRECTORY_ANALYSIS', f'Starting directory analysis for {directory_path}',
     )
-    print(json.dumps({'debug': f'DIRECTORY_ANALYSIS: Generated {len(entries)} file records'}), file=sys.stderr)
-    return normalize_output_paths(entries)
 
 
 def main(filtered_files=None):

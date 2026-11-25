@@ -257,11 +257,6 @@
     var index = normalized.lastIndexOf('/');
     return index < 0 ? '' : normalized.slice(0, index);
   }
-  function baseName(value) {
-    var normalized = normalizeRelativePath(value);
-    var index = normalized.lastIndexOf('/');
-    return index < 0 ? normalized : normalized.slice(index + 1);
-  }
   function createAggregateNode(id, label, navigationPath, syntheticKind) {
     return {
       id: id, kind: 'group', label: label, relativePath: navigationPath,

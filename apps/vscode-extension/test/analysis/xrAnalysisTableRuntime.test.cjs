@@ -574,6 +574,65 @@ test('bootstrap planar fit only guarantees visibility and containment', () => {
     assert.equal(bootstrap.reason, 'bootstrap-containment');
 });
 
+// Characterization of computePlanarAxisTargetScale over an input grid that
+// crosses every branch: the guard (non-finite, zero, negative, missing range),
+// the tolerance clamp (undefined, negative, inside, above 0.25), the
+// hysteresis edges (just inside / just outside the band by one tolerance),
+// overflow, accepted and corrected underflow, and the maxAllowedScale
+// fallback. The transcript is hashed: any change of any field of any result
+// fails, so the guard and band-state logic can be extracted (W5-51) with
+// proof that the function is unchanged.
+function planarTargetScaleTranscript(helpers) {
+    const sizes = [NaN, -1, 0, 0.5, 3.9, 3.95, 4, 4.6, 4.7, 5, 5.1, 6, Infinity];
+    const containment = [0, 3, 5, 5.04, 5.2, 8];
+    const scales = [0, 0.5, 1];
+    const limits = [0, 5];
+    const ranges = [null, { min: 0.78, max: 0.92 }, { min: 0.5, max: 0.5 }];
+    const tolerances = [undefined, -0.1, 0, 0.018, 0.5];
+    const underflow = [undefined, true, false];
+    const lines = [];
+    for (const primary of sizes) {
+        for (const contained of containment) {
+            for (const scale of scales) {
+                for (const limit of limits) {
+                    for (const range of ranges) {
+                        for (const tolerance of tolerances) {
+                            for (const allow of underflow) {
+                                const result = helpers.computePlanarAxisTargetScale(
+                                    primary, contained, scale, limit, range, tolerance, allow,
+                                );
+                                lines.push(JSON.stringify(result));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return lines;
+}
+
+test('computePlanarAxisTargetScale is unchanged over the whole input grid (characterization)', () => {
+    const { runtime } = loadRuntimeSandbox();
+    const lines = planarTargetScaleTranscript(runtime.__testing);
+    const digest = require('node:crypto').createHash('sha256').update(lines.join('\n')).digest('hex');
+    const reasons = {};
+    for (const line of lines) {
+        const reason = line === 'null' ? 'null' : JSON.parse(line).reason;
+        reasons[reason] = (reasons[reason] || 0) + 1;
+    }
+    assert.equal(lines.length, 21060);
+    assert.deepEqual(reasons, {
+        null: 18360,
+        'within-band': 408,
+        'containment-overflow': 1188,
+        'underflow-accepted': 56,
+        'toward-midpoint-up': 112,
+        'toward-midpoint-down': 936,
+    });
+    assert.equal(digest, '8e3715ecc29055ac67c682204845d7ccc35124ab555681d1356454038974230a');
+});
+
 test('planar underflow can be accepted while preserving overflow containment', () => {
     const { runtime } = loadRuntimeSandbox();
     const helpers = runtime.__testing;

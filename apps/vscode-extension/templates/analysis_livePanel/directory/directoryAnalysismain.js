@@ -169,7 +169,7 @@ function formatFileSize(bytes) {
 }
 
 function loadAnalysisData(data) {
-  console.log(' loadAnalysisData called with:', data);
+  debugLog(' loadAnalysisData called with:', data);
   debugLog('Loading analysis data:', data);
   
   //  NEW: Preserve scroll position during updates
@@ -179,45 +179,45 @@ function loadAnalysisData(data) {
   analysisData = normalizeIncomingDirectoryAnalysisData(data);
   fileData = analysisData.files || [];
   
-  console.log(' File data loaded:', fileData.length, 'files');
+  debugLog(' File data loaded:', fileData.length, 'files');
   debugLog('File data loaded:', fileData.length, 'files');
   
   const noDataEl = document.getElementById('no-data');
   const resultsEl = document.getElementById('results');
   
-  console.log(' Elements found - noData:', !!noDataEl, 'results:', !!resultsEl);
+  debugLog(' Elements found - noData:', !!noDataEl, 'results:', !!resultsEl);
   
   if (noDataEl) {
-    console.log(' Hiding no-data element');
+    debugLog(' Hiding no-data element');
     noDataEl.classList.add('hidden');
   }
   if (resultsEl) {
-    console.log(' Showing results element');
+    debugLog(' Showing results element');
     resultsEl.classList.remove('hidden');
   }
   
   try {
-    console.log(' Updating header information...');
+    debugLog(' Updating header information...');
     updateHeaderInfo();
     debugLog('Header info updated');
     
-    console.log(' Updating summary...');
+    debugLog(' Updating summary...');
     updateSummary();
     debugLog('Summary updated');
     
-    console.log(' Updating complexity distribution...');
+    debugLog(' Updating complexity distribution...');
     updateComplexityDistribution();
     debugLog('Complexity distribution updated');
     
-    console.log(' Updating language distribution...');
+    debugLog(' Updating language distribution...');
     updateLanguageDistribution();
     debugLog('Language distribution updated');
     
-    console.log(' Updating file size distribution...');
+    debugLog(' Updating file size distribution...');
     updateFileSizeDistribution();
     debugLog('File size distribution updated');
     
-    console.log(' Updating complexity overview...');
+    debugLog(' Updating complexity overview...');
     updateComplexityOverview();
     debugLog('Complexity overview updated');
     
@@ -230,10 +230,10 @@ function loadAnalysisData(data) {
     //  NEW: Restore scroll position after updates
     setTimeout(() => {
       window.scrollTo(scrollLeft, scrollTop);
-      console.log(` Restored scroll position: ${scrollLeft}, ${scrollTop}`);
+      debugLog(` Restored scroll position: ${scrollLeft}, ${scrollTop}`);
     }, 10);
     
-    console.log(' All sections updated successfully');
+    debugLog(' All sections updated successfully');
     
   } catch (error) {
     console.error(' Error updating sections:', error);
@@ -241,111 +241,27 @@ function loadAnalysisData(data) {
 }
 
 /**
- * Initialize Server-Sent Events for live updates
+ * Live updates over SSE: the shared client in panelShell.js dispatches every
+ * message type; on a re-analysis this panel also shows its update notification.
  */
 function initializeSSE() {
-  console.log('DIRECTORY_ANALYSIS: Initializing SSE for live updates...');
-  
-  try {
-    // Connect to the /events endpoint on the current server
-    const eventSource = new EventSource('/events');
-    
-    eventSource.onopen = function(event) {
-      console.log('DIRECTORY_ANALYSIS: SSE connection opened');
-      showSSEStatus('connected');
-    };
-    
-    eventSource.onmessage = function(event) {
-      console.log('DIRECTORY_ANALYSIS: Raw SSE message received:', event);
-      console.log('DIRECTORY_ANALYSIS: Event data type:', typeof event.data);
-      console.log('DIRECTORY_ANALYSIS: Event data content:', event.data);
-      
-      try {
-        const data = JSON.parse(event.data);
-        console.log('DIRECTORY_ANALYSIS: Parsed SSE data:', data);
-        handleSSEMessage(data);
-      } catch (error) {
-        console.error('DIRECTORY_ANALYSIS: Error parsing SSE message:', error);
-        console.error('DIRECTORY_ANALYSIS: Unparseable data:', event.data);
-      }
-    };
-    
-    eventSource.onerror = function(event) {
-      console.error('DIRECTORY_ANALYSIS: SSE connection error:', event);
-      showSSEStatus('error');
-      
-      // Note: EventSource will automatically try to reconnect
-    };
-    
-    // Store reference for potential cleanup
-    window.analysisSSE = eventSource;
-    
-  } catch (error) {
-    console.error('DIRECTORY_ANALYSIS: Failed to initialize SSE:', error);
-    showSSEStatus('error');
-  }
-}
-
-/**
- * Handle incoming SSE messages
- */
-function handleSSEMessage(data) {
-  console.log('DIRECTORY_ANALYSIS: Handling SSE message, data.type:', data.type);
-  console.log('DIRECTORY_ANALYSIS: Full data object:', data);
-  
-  // Check if we have nested data (EnhancedSSEManager format)
-  const messageType = data.type || (data.data && data.data.type);
-  console.log('DIRECTORY_ANALYSIS: Determined message type:', messageType);
-  
-  switch (messageType) {
-    case 'connected':
-      console.log('DIRECTORY_ANALYSIS: SSE connected for file:', data.fileUri || data.data?.fileUri);
-      showSSEStatus('connected');
-      break;
-      
-    case 'analysis-updated':
-      console.log('DIRECTORY_ANALYSIS: Analysis updated for file:', data.fileUri || data.data?.fileUri);
-      console.log('DIRECTORY_ANALYSIS: Triggering data reload...');
-      flashSSEStatus('New data received');
+  createLivePanelSse({
+    label: 'DIRECTORY_ANALYSIS',
+    trace: debugLog,
+    onAnalysisUpdated: () => {
       showUpdateNotification();
       reloadAnalysisData();
-      break;
-
-    case 'dependency-updated':
-      // The server recomputed the dependency graph as part of the re-analysis;
-      // reload the freshly written artifact.
-      console.log('DIRECTORY_ANALYSIS: Dependency data updated, reloading summary...');
-      flashSSEStatus('New data received');
-      loadDependencySummary();
-      break;
-
-    case 'historical-progress':
-      // Comparison progress from the server (analyzing left/right versions).
-      historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-      break;
-
-    case 'historical-updated':
-      // A comparison finished (or its working-copy side was re-analyzed).
-      flashSSEStatus('New data received');
-      historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-      break;
-
-    case 'heartbeat':
-      console.log('DIRECTORY_ANALYSIS: Heartbeat received');
-      // Keep-alive message, no action needed
-      break;
-      
-    default:
-      console.log('DIRECTORY_ANALYSIS: Unknown SSE message type:', messageType);
-      console.log('DIRECTORY_ANALYSIS: Full data:', data);
-  }
+    },
+    onDependencyUpdated: () => loadDependencySummary(),
+    historicalPanel: historicalPanel,
+  });
 }
 
 /**
  * Reload analysis data after SSE update notification
  */
 function reloadAnalysisData() {
-  console.log('DIRECTORY_ANALYSIS: Reloading analysis data due to SSE update...');
+  debugLog('DIRECTORY_ANALYSIS: Reloading analysis data due to SSE update...');
   
   // Add cache busting to ensure fresh data
   fetch('./data.json?t=' + Date.now())
@@ -356,7 +272,7 @@ function reloadAnalysisData() {
       return response.json();
     })
     .then(data => {
-      console.log('DIRECTORY_ANALYSIS: Successfully reloaded data.json via SSE');
+      debugLog('DIRECTORY_ANALYSIS: Successfully reloaded data.json via SSE');
       loadAnalysisData(data);
       showReloadNotification();
     })
@@ -667,14 +583,10 @@ function renderComplexFilesTable() {
         ),
       },
       { key: 'language', label: 'Language', align: 'center', value: file => file.language || 'Unknown' },
-      {
-        key: 'cyclomaticComplexityNumber', label: 'Avg CCN', align: 'center', defaultDir: 'desc',
-        value: file => file.cyclomaticComplexityNumber || 0,
-        render: file => escapeHtml((file.cyclomaticComplexityNumber || 0).toFixed(1)),
-      },
-      { key: 'functionCount', label: 'Functions', align: 'center', defaultDir: 'desc', value: file => file.functionCount || 0 },
-      { key: 'maxFunctionNestingDepth', label: 'Max Nesting', align: 'center', defaultDir: 'desc', value: file => file.maxFunctionNestingDepth || 0 },
-      { key: 'highComplexityFunctions', label: 'High-risk Fns', align: 'center', defaultDir: 'desc', value: file => file.highComplexityFunctions || 0 },
+      numericColumn('cyclomaticComplexityNumber', 'Avg CCN', { format: value => value.toFixed(1) }),
+      numericColumn('functionCount', 'Functions'),
+      numericColumn('maxFunctionNestingDepth', 'Max Nesting'),
+      numericColumn('highComplexityFunctions', 'High-risk Fns'),
     ],
   }, rows);
 }
@@ -700,42 +612,18 @@ function renderFileDetailsTable() {
         },
       },
       { key: 'language', label: 'Language', align: 'center', value: file => file.language || 'Unknown' },
-      {
-        key: 'fileSizeBytes', label: 'Size', align: 'right', defaultDir: 'desc',
-        value: file => file.fileSizeBytes || 0,
-        render: file => escapeHtml(formatFileSize(file.fileSizeBytes || 0)),
-      },
-      {
-        key: 'totalLines', label: 'Lines', align: 'right', defaultDir: 'desc',
-        value: file => file.totalLines || 0,
-        render: file => escapeHtml((file.totalLines || 0).toLocaleString()),
-      },
-      { key: 'functionCount', label: 'Functions', align: 'center', defaultDir: 'desc', value: file => file.functionCount || 0 },
-      {
-        key: 'cyclomaticComplexityNumber', label: 'Avg CCN', align: 'center', defaultDir: 'desc',
-        value: file => file.cyclomaticComplexityNumber || 0,
-        render: file => escapeHtml((file.cyclomaticComplexityNumber || 0).toFixed(1)),
-      },
-      { key: 'maxComplexity', label: 'Max Fn CCN', align: 'center', defaultDir: 'desc', value: file => file.maxComplexity || 0 },
-      {
-        key: 'commentRatio', label: 'Comment %', align: 'center', defaultDir: 'desc',
-        value: file => file.commentRatio || 0,
-        render: file => escapeHtml(formatRatio(file.commentRatio || 0)),
-      },
-      {
-        key: 'averageFunctionParameters', label: 'Avg Params', align: 'center', defaultDir: 'desc',
-        value: file => file.averageFunctionParameters || 0,
-        render: file => escapeHtml((file.averageFunctionParameters || 0).toFixed(2)),
-      },
-      { key: 'maxFunctionParameters', label: 'Max Params', align: 'center', defaultDir: 'desc', value: file => file.maxFunctionParameters || 0 },
-      {
-        key: 'averageFunctionNestingDepth', label: 'Avg Nesting', align: 'center', defaultDir: 'desc',
-        value: file => file.averageFunctionNestingDepth || 0,
-        render: file => escapeHtml((file.averageFunctionNestingDepth || 0).toFixed(2)),
-      },
-      { key: 'maxFunctionNestingDepth', label: 'Max Nesting', align: 'center', defaultDir: 'desc', value: file => file.maxFunctionNestingDepth || 0 },
-      { key: 'highComplexityFunctions', label: 'High CCN Fns', align: 'center', defaultDir: 'desc', value: file => file.highComplexityFunctions || 0 },
-      { key: 'criticalComplexityFunctions', label: 'Critical CCN Fns', align: 'center', defaultDir: 'desc', value: file => file.criticalComplexityFunctions || 0 },
+      numericColumn('fileSizeBytes', 'Size', { align: 'right', format: formatFileSize }),
+      numericColumn('totalLines', 'Lines', { align: 'right', format: value => value.toLocaleString() }),
+      numericColumn('functionCount', 'Functions'),
+      numericColumn('cyclomaticComplexityNumber', 'Avg CCN', { format: value => value.toFixed(1) }),
+      numericColumn('maxComplexity', 'Max Fn CCN'),
+      numericColumn('commentRatio', 'Comment %', { format: formatRatio }),
+      numericColumn('averageFunctionParameters', 'Avg Params', { format: value => value.toFixed(2) }),
+      numericColumn('maxFunctionParameters', 'Max Params'),
+      numericColumn('averageFunctionNestingDepth', 'Avg Nesting', { format: value => value.toFixed(2) }),
+      numericColumn('maxFunctionNestingDepth', 'Max Nesting'),
+      numericColumn('highComplexityFunctions', 'High CCN Fns'),
+      numericColumn('criticalComplexityFunctions', 'Critical CCN Fns'),
     ],
   }, fileData);
 }
@@ -881,29 +769,29 @@ const historicalPanel = new CodexrHistoricalPanel();
 // Handle messages from the extension
 window.addEventListener('message', event => {
   const message = event.data;
-  console.log(' Received message from extension:', message);
+  debugLog(' Received message from extension:', message);
   switch (message.command) {
     case 'updateData':
-      console.log(' Processing updateData message with:', message.data);
+      debugLog(' Processing updateData message with:', message.data);
       // Store the new data
       window.analysisData = message.data;
       // Reload the analysis with new data
       loadAnalysisData(message.data);
-      console.log(' Data updated successfully');
+      debugLog(' Data updated successfully');
       break;
     case 'refresh':
-      console.log(' Processing refresh command');
+      debugLog(' Processing refresh command');
       // Try to reload from window.analysisData if available
       if (window.analysisData) {
-        console.log(' Refreshing with existing window.analysisData');
+        debugLog(' Refreshing with existing window.analysisData');
         loadAnalysisData(window.analysisData);
       } else {
-        console.log(' No analysisData available, attempting to fetch from data.json');
+        debugLog(' No analysisData available, attempting to fetch from data.json');
         // Attempt to fetch data.json directly
         fetch('./data.json')
           .then(response => response.json())
           .then(data => {
-            console.log(' Fetched data from data.json:', data);
+            debugLog(' Fetched data from data.json:', data);
             window.analysisData = data;
             loadAnalysisData(data);
           })
@@ -913,22 +801,22 @@ window.addEventListener('message', event => {
       }
       break;
     default:
-      console.log(' Unknown message command:', message.command);
+      debugLog(' Unknown message command:', message.command);
   }
 });
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log(' DOMContentLoaded event fired');
+  debugLog(' DOMContentLoaded event fired');
   
   // Initialize theme from window.initialTheme (set by server) or localStorage fallback
   let initialTheme = 'light';
   if (window.initialTheme) {
     initialTheme = window.initialTheme;
-    console.log(' Using server-provided theme:', initialTheme);
+    debugLog(' Using server-provided theme:', initialTheme);
   } else {
     initialTheme = getStoredTheme();
-    console.log(' Using stored theme:', initialTheme);
+    debugLog(' Using stored theme:', initialTheme);
   }
   applyTheme(initialTheme);
   
@@ -947,16 +835,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Listen for the analysisDataLoaded event from the template
   window.addEventListener('analysisDataLoaded', function(event) {
-    console.log(' Received analysisDataLoaded event, initializing...');
+    debugLog(' Received analysisDataLoaded event, initializing...');
     loadAnalysisData(event.detail);
   });
   
   // Check if we have analysis data available immediately (fallback)
   if (window.analysisData) {
-    console.log(' Found window.analysisData immediately, initializing...');
+    debugLog(' Found window.analysisData immediately, initializing...');
     loadAnalysisData(window.analysisData);
   } else {
-    console.log('Waiting for analysisDataLoaded event...');
+    debugLog('Waiting for analysisDataLoaded event...');
   }
   
   // Live updates arrive over SSE; the tables re-render themselves on reload.
