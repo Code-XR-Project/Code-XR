@@ -141,8 +141,8 @@
   },
   "informational": {
     "src.files": 373,
-    "src.lines": 52654,
-    "src.functions": 2853,
+    "src.lines": 52614,
+    "src.functions": 2851,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -368,8 +368,8 @@
         "lines": 632
       },
       {
-        "file": "src/code_analysis/historical/projectEvolutionService.ts",
-        "lines": 626
+        "file": "src/code_analysis/export/exportManifest.ts",
+        "lines": 595
       }
     ]
   },

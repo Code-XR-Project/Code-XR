@@ -4,21 +4,14 @@ import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
-import { ExecutePython } from '../engine/utils/executePython';
-import { buildAnalyzerCacheKey, toPortableRelativePath } from './gitAnalysisShared';
+import { toPortableRelativePath } from './gitAnalysisShared';
 import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';
-import {
-    GitAnalysisSourceCatalog,
-    GitAnalysisSourceError,
-    isDeterministicNoDataError,
-    validateGitAnalysisPayload,
-} from './gitAnalysisEligibility';
+import { GitAnalysisSourceCatalog } from './gitAnalysisEligibility';
 import {
     ComparisonDataset,
     ComparisonDeltaSummary,
     ComparisonSource,
-    GitAnalysisExclusionCode,
     HistoricalComparisonProgress,
     HistoricalComparisonReferences,
     HistoricalComparisonRequest,
@@ -50,15 +43,18 @@ export class HistoricalComparisonService {
             'snapshots',
         );
         this.gitService = new GitRepositoryService(session.targetPath, snapshotRoot);
-        this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog);
+        this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog, context, {
+            cacheVersion: ANALYZER_CACHE_VERSION,
+            errorCode: 'comparison-source-no-data',
+            sessionIdInfix: 'comparison',
+            metadataKey: 'comparisonSource',
+            missingTarget: 'throw',
+            decorate: (payload, current, analyzedTargetPath) => this.decoratePayload(payload, current, analyzedTargetPath),
+        });
     }
 
     private get sourceCatalog(): GitAnalysisSourceCatalog {
         return this.analysis.sourceCatalog;
-    }
-
-    private get cache(): Map<string, CachedPayload> {
-        return this.analysis.cache;
     }
 
     /** The request of the last successful comparison (what the room shows). */
@@ -135,9 +131,9 @@ export class HistoricalComparisonService {
         ]);
 
         onProgress?.({ state: 'analyzing', message: `Analyzing ${leftSource.label}...` });
-        const leftPayload = await this.analyzeSource(leftSource);
+        const leftPayload = await this.analysis.analyzeSource(leftSource, this.getSession());
         onProgress?.({ state: 'analyzing', message: `Analyzing ${rightSource.label}...` });
-        const rightPayload = await this.analyzeSource(rightSource);
+        const rightPayload = await this.analysis.analyzeSource(rightSource, this.getSession());
 
         // A side whose revision lacks the target never gets here: the request
         // API accepts raw source ids, so analyzeSource refuses that revision
@@ -186,116 +182,8 @@ export class HistoricalComparisonService {
         return result;
     }
 
-    private async analyzeSource(source: ComparisonSource): Promise<CachedPayload> {
-        const session = this.getSession();
-        if (source.kind === 'workingCopy') {
-            const dataPath = path.join(session.savedFilesPath || this.staticRoot, 'data.json');
-            let payload: unknown;
-            try {
-                payload = JSON.parse(await fs.promises.readFile(dataPath, 'utf8'));
-            } catch {
-                throw this.excludeSource(
-                    source,
-                    'invalid-payload',
-                    'The working copy data.json is missing or unreadable.',
-                );
-            }
-            const validation = this.requireUsablePayload(source, payload);
-            return {
-                payload: this.decoratePayload(
-                    validation,
-                    session,
-                    session.targetPath,
-                ),
-                missingTarget: false,
-                warnings: [],
-            };
-        }
 
-        const cacheKey = buildAnalyzerCacheKey(ANALYZER_CACHE_VERSION, source.commitSha, session);
-        const cached = this.cache.get(cacheKey);
-        if (cached) {
-            return cached;
-        }
 
-        const materialized = await this.gitService.materialize(source);
-        if (!materialized.targetPath) {
-            throw this.excludeSource(
-                source,
-                'target-missing',
-                'The analyzed target does not exist in this revision.',
-            );
-        }
-
-        const historicalSession: UnifiedAnalysisSession = {
-            ...session,
-            id: `${session.id}-comparison-${source.commitSha.slice(0, 8)}`,
-            targetPath: materialized.targetPath,
-            targetName: path.basename(materialized.targetPath),
-            status: 'analyzing',
-            startTime: new Date(),
-            requiredFiles: new Map(),
-            templatePaths: new Map(),
-            metadata: { comparisonSource: source },
-        };
-        let analysisResult: unknown;
-        try {
-            analysisResult = await new ExecutePython(this.context).executeAnalysis(historicalSession);
-        } catch (error) {
-            if (isDeterministicNoDataError(error)) {
-                throw this.excludeSource(
-                    source,
-                    'invalid-payload',
-                    'The analyzer did not produce a readable JSON payload.',
-                );
-            }
-            throw error;
-        }
-        const payload = this.decoratePayload(
-            this.requireUsablePayload(source, analysisResult),
-            session,
-            materialized.targetPath,
-        );
-        const result = {
-            payload,
-            missingTarget: false,
-            warnings: materialized.warnings,
-        };
-        this.cache.set(cacheKey, result);
-        return result;
-    }
-
-    private requireUsablePayload(
-        source: ComparisonSource,
-        payload: unknown,
-    ): Record<string, unknown>[] {
-        const validation = validateGitAnalysisPayload(payload);
-        if (!validation.usable) {
-            throw this.excludeSource(
-                source,
-                validation.code || 'invalid-payload',
-                validation.reason || 'The analysis produced no usable data.',
-            );
-        }
-        return validation.entries;
-    }
-
-    private excludeSource(
-        source: ComparisonSource,
-        code: GitAnalysisExclusionCode,
-        reason: string,
-    ): GitAnalysisSourceError {
-        const exclusion = this.sourceCatalog.recordDeterministicExclusion(
-            source,
-            code,
-            reason,
-        );
-        return new GitAnalysisSourceError(
-            'comparison-source-no-data',
-            `"${source.label}" was removed from Git analyses: ${reason}`,
-            [exclusion],
-        );
-    }
 
     private decoratePayload(
         payload: Record<string, unknown>[],
