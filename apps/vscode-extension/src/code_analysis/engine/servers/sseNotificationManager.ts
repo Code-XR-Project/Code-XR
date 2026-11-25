@@ -5,6 +5,9 @@
 
 import { SessionServerInfo, SSENotification } from './models/sessionServerModels';
 import { SSEManager } from '../../../servers/runtime/sse/SSEManager';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SSE_NOTIFICATION_MANAGER');
 
 export class SSENotificationManager {
 
@@ -31,7 +34,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying server started:`, error);
+            logger.error(`Error notifying server started:`, error);
         }
     }
 
@@ -55,7 +58,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying server stopped:`, error);
+            logger.error(`Error notifying server stopped:`, error);
         }
     }
 
@@ -80,7 +83,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying analysis updated:`, error);
+            logger.error(`Error notifying analysis updated:`, error);
         }
     }
 
@@ -105,7 +108,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying file changed:`, error);
+            logger.error(`Error notifying file changed:`, error);
         }
     }
 

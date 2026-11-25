@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { ChartMetadata, DimensionMapping } from '../../babia_templates/models/chartModels';
 import { JsonAnalysisResult } from '../../utils/jsonFieldAnalyzer';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_STATE');
 
 /**
  * Visualize Data State
@@ -348,7 +351,7 @@ export class VisualizeDataStateManager {
             this.context.workspaceState.update('visualizeDataState', this.state);
             console.log('BABIA-TEMPLATES: State saved to workspace storage');
         } catch (error) {
-            console.error('BABIA-TEMPLATES: Failed to save state:', error);
+            logger.error('BABIA-TEMPLATES: Failed to save state:', error);
         }
     }
 
@@ -405,7 +408,7 @@ export class VisualizeDataStateManager {
                 return validatedState;
             }
         } catch (error) {
-            console.error('VISUALIZE-STATE: Failed to load state:', error);
+            logger.error('VISUALIZE-STATE: Failed to load state:', error);
         }
         
         console.log('VISUALIZE-STATE: No stored state found, using initial state');

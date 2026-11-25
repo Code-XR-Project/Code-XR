@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { VisualizationSettings, DEFAULT_VISUALIZATION_SETTINGS } from '../model/settingsModel';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SETTINGS_STORAGE');
 
 /**
  * Visualization Settings Storage
@@ -74,7 +77,7 @@ export class VisualizationSettingsStorage {
                 console.log('VISUALIZATION-SETTINGS: Legacy settings migration completed with all settings');
             }
         } catch (error) {
-            console.error('VISUALIZATION-SETTINGS: Error during legacy migration:', error);
+            logger.error('VISUALIZATION-SETTINGS: Error during legacy migration:', error);
             // Don't throw - migration failure shouldn't prevent normal operation
         }
     }
@@ -111,7 +114,7 @@ export class VisualizationSettingsStorage {
                 return settings;
             }
         } catch (error) {
-            console.error('VISUALIZATION-SETTINGS: Failed to load settings from file:', error);
+            logger.error('VISUALIZATION-SETTINGS: Failed to load settings from file:', error);
         }
 
         console.log('VISUALIZATION-SETTINGS: Using default settings');

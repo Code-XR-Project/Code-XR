@@ -3,6 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { launchServerWithFile } from '../../servers/runtime/index';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('VISUALIZATION_RESTORER');
 
 /**
  * Interface for stored visualization metadata
@@ -192,7 +195,7 @@ export class VisualizationRestorer {
                 try {
                     await fs.promises.rm(folderPath, { recursive: true, force: true });
                 } catch (deleteError) {
-                    console.error(`BROWSE-VISUALIZATIONS: Error deleting folder ${folderPath}:`, deleteError);
+                    logger.error(`BROWSE-VISUALIZATIONS: Error deleting folder ${folderPath}:`, deleteError);
                 }
             }
 

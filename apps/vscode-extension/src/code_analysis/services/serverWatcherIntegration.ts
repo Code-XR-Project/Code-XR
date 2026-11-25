@@ -9,6 +9,9 @@ import { SessionWatcherManager } from '../engine/watchers/sessionWatcherManager'
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ServerControl } from '../../active_servers/runtime/serverControl';
 import * as fs from 'fs';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER_WATCHER_INTEGRATION');
 
 export class ServerWatcherIntegration {
     private static instance: ServerWatcherIntegration;
@@ -41,7 +44,7 @@ export class ServerWatcherIntegration {
                 }
             });
         } catch (error) {
-            console.error('SERVER_WATCHER_INTEGRATION: Error setting up server event listeners:', error);
+            logger.error('Error setting up server event listeners:', error);
         }
     }
 
@@ -55,7 +58,7 @@ export class ServerWatcherIntegration {
                 await this.cleanupSessionAfterServerClosure(session.id, server.port);
             }
         } catch (error) {
-            console.error('SERVER_WATCHER_INTEGRATION: Error handling server removal:', error);
+            logger.error('Error handling server removal:', error);
         }
     }
 
@@ -75,7 +78,7 @@ export class ServerWatcherIntegration {
                 `Analysis cleaned up: ${session.targetName} - ${session.analysisMode} (server on port ${serverPort} was closed)`,
             );
         } catch (error) {
-            console.error(`SERVER_WATCHER_INTEGRATION: Error cleaning up session ${sessionId}:`, error);
+            logger.error(`Error cleaning up session ${sessionId}:`, error);
         }
     }
 
@@ -90,7 +93,7 @@ export class ServerWatcherIntegration {
                 console.log(`SERVER_WATCHER_INTEGRATION: No active session watcher found for session ${sessionId}`);
             }
         } catch (error) {
-            console.error(`SERVER_WATCHER_INTEGRATION: Error stopping watcher for session ${sessionId}:`, error);
+            logger.error(`Error stopping watcher for session ${sessionId}:`, error);
         }
     }
 
@@ -100,7 +103,7 @@ export class ServerWatcherIntegration {
                 console.log(`SERVER_WATCHER_INTEGRATION: Cleaning up analysis files at: ${outputPath}`);
             }
         } catch (error) {
-            console.error('SERVER_WATCHER_INTEGRATION: Error cleaning up analysis files:', error);
+            logger.error('Error cleaning up analysis files:', error);
         }
     }
 
@@ -136,7 +139,7 @@ export class ServerWatcherIntegration {
                 await ServerControl.stopServer(serverToStop.id);
             }
         } catch (error) {
-            console.error(`SERVER_WATCHER_INTEGRATION: Error stopping server by port ${port}:`, error);
+            logger.error(`Error stopping server by port ${port}:`, error);
         }
     }
 
@@ -159,7 +162,7 @@ export class ServerWatcherIntegration {
                 await ServerControl.stopServer(matchingServer.id);
             }
         } catch (error) {
-            console.error(`SERVER_WATCHER_INTEGRATION: Error finding and stopping server for session ${sessionId}:`, error);
+            logger.error(`Error finding and stopping server for session ${sessionId}:`, error);
         }
     }
 

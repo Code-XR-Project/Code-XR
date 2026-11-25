@@ -12,6 +12,9 @@ import {
 import { VisualizationSettingsStorage } from '../../storage/settingsStorage';
 import { ColorPickerUtils, ColorPickerOptions } from '../../utils/colorPickerUtils';
 import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('HANDLE_SETTINGS_INTERACTION');
 
 /**
  * Handle Visualization Settings Interactions
@@ -97,7 +100,7 @@ export class VisualizationSettingsInteractionHandler {
                 await DynamicColorIconGenerator.getOrCreateColorIcon(this.context, colorKey, defaultColor);
                 DynamicColorIconGenerator.cleanupOldColorIcons(this.context, colorKey, defaultColor);
             } catch (iconError) {
-                console.error(`COLOR-PICKER: Error restoring default icon for ${colorKey}:`, iconError);
+                logger.error(`COLOR-PICKER: Error restoring default icon for ${colorKey}:`, iconError);
                 // The tree regenerates the icon on render, so keep going.
             }
         }
@@ -159,7 +162,7 @@ export class VisualizationSettingsInteractionHandler {
                                 DynamicColorIconGenerator.cleanupOldColorIcons(this.context, colorType, newColor);
                                 
                             } catch (iconError) {
-                                console.error(`COLOR-PICKER: Error generating icon for ${colorType}:`, iconError);
+                                logger.error(`COLOR-PICKER: Error generating icon for ${colorType}:`, iconError);
                                 // Continue with setting update even if icon generation fails
                             }
                             
@@ -261,7 +264,7 @@ export class VisualizationSettingsInteractionHandler {
             DynamicColorIconGenerator.cleanupOldColorIcons(this.context, colorType, newColor);
             
         } catch (iconError) {
-            console.error(`COLOR-PICKER: Error generating fallback icon for ${colorType}:`, iconError);
+            logger.error(`COLOR-PICKER: Error generating fallback icon for ${colorType}:`, iconError);
             // Continue with setting update even if icon generation fails
         }
 

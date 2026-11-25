@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { VisualizeDataStateManager, VisualizeDataState } from '../../state/visualizeDataState';
 import { ChartDimension } from '../../../babia_templates/models/chartModels';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_ITEMS');
 
 /**
  * Tree item types for visualize data items
@@ -65,7 +68,7 @@ export class VisualizeDataItemFactory {
             }
         } catch (error) {
             // State manager not initialized yet, use default values
-            console.log('BABIA-TEMPLATES: Error accessing state manager, using defaults:', error);
+            logger.warn('BABIA-TEMPLATES: Error accessing state manager, using defaults:', error);
         }
 
         const chartDescription = state?.selectedChart 

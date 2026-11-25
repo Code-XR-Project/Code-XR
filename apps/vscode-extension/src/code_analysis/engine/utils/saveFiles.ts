@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SAVE_FILES');
 
 /**
  * Utility para guardar archivos en el workspace storage
@@ -159,7 +162,7 @@ export class SaveFiles {
             console.log(`SAVE_FILES:  Favicon copied successfully`);
             
         } catch (error) {
-            console.error(`SAVE_FILES:  Error copying favicon:`, error);
+            logger.error(`Error copying favicon:`, error);
             // No lanzamos error para que no interrumpa el guardado de otros archivos
         }
     }

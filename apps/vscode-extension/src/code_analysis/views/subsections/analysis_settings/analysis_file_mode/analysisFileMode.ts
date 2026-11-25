@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, AnalysisFileMode } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { AnalysisFileMode } from '../../../../configuration';
 
@@ -98,7 +101,7 @@ export class AnalysisFileSetting {
             await this.storage.setAnalysisFileMode(this.currentMode);
             console.log(`ANALYSIS: Saved analysis file mode to storage: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error saving mode to storage:', error);
+            logger.error('Error saving mode to storage:', error);
         }
     }
 }

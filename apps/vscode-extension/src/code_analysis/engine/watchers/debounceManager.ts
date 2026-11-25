@@ -11,6 +11,9 @@
 import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../../configuration/analysisConfigurationStorage';
 import { ConfigurationConverter } from './configurationConverter';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DEBOUNCE_MANAGER');
 
 // ─── Status interface ────────────────────────────────────────────────
 
@@ -86,7 +89,7 @@ export class DebounceManager {
                 try {
                     await this.callback();
                 } catch (err) {
-                    console.error('DEBOUNCE_MANAGER: Callback error:', err);
+                    logger.error('Callback error:', err);
                 }
             }, this.delayMs);
         } else {

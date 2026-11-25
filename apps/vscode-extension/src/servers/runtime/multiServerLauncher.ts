@@ -9,6 +9,9 @@ import { LaunchMode, CertMode } from '../../active_servers/model/activeServerMod
 import { ServerActionHandlers } from '../../active_servers/views/interactions/handleServerActions';
 import { getServerRegistrar } from '../../active_servers/services/serverRegistrar';
 import { NetworkUtils } from '../utils/networkUtils';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /**
  * Server types supported by the launcher
@@ -197,7 +200,7 @@ export class MultiServerLauncher {
                     await this.handleAutoOpening(settings, result.serverUrl, htmlFile, launchMode, serverInfo.activeServerId);
                     
                 } catch (error) {
-                    console.error('SERVER: Failed to register server in registry:', error);
+                    logger.error('Failed to register server in registry:', error);
                     // Don't fail the launch if registry registration fails
                 }
 

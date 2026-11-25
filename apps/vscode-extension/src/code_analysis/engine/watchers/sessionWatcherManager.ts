@@ -8,6 +8,9 @@ import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { FileWatcherOrchestrator } from './fileWatcherOrchestrator';
 import { DirectoryWatcherOrchestrator } from './directoryWatcherOrchestrator';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SESSION_WATCHER_MANAGER');
 
 interface ManagedWatcher {
     startWatching(): Promise<string | null>;
@@ -97,7 +100,7 @@ export class SessionWatcherManager {
                 await orchestrator.updateDebounceConfiguration();
                 updatedCount++;
             } catch (error) {
-                console.error(`SESSION_WATCHER_MANAGER: Error updating watcher configuration for session ${sessionId}:`, error);
+                logger.error(`Error updating watcher configuration for session ${sessionId}:`, error);
             }
         }
 

@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, ViewTheme } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { ViewTheme } from '../../../../configuration';
 
@@ -111,7 +114,7 @@ export class ViewThemeSetting {
             await this.storage.setViewTheme(this.currentTheme);
             console.log(`ANALYSIS: Saved view theme to storage: ${this.currentTheme}`);
         } catch (error) {
-            console.error('ANALYSIS: Error saving theme to storage:', error);
+            logger.error('Error saving theme to storage:', error);
         }
     }
 }

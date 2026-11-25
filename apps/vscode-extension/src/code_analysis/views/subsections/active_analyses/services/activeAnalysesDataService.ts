@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_ANALYSES_DATA_SERVICE');
 
 export interface ActiveAnalysisItem {
     // Core session properties - SIMPLIFIED
@@ -183,13 +186,13 @@ export class ActiveAnalysesDataService {
                             analyses.push(analysisItem);
                         }
                     } catch (error) {
-                        console.error('ACTIVE_ANALYSES_DATA_SERVICE: Error creating analysis item for session:', session.id, error);
+                        logger.error(`Error creating analysis item for session: ${session.id}`, error);
                     }
                 }
             }
 
         } catch (error) {
-            console.error('ACTIVE_ANALYSES_DATA_SERVICE: Error getting analyses:', error);
+            logger.error('Error getting analyses:', error);
         }
 
         console.log(`ACTIVE_ANALYSES_DATA_SERVICE: Returning ${analyses.length} active analyses`);

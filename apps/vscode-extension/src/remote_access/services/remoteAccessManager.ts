@@ -13,6 +13,9 @@ import {
     RemoteSessionAuthority,
 } from '../security/remoteSessionAuthority';
 import { CloudflaredBinaryManager } from './cloudflaredBinaryManager';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('REMOTE_ACCESS');
 
 interface ShareRecord {
     process: ChildProcessWithoutNullStreams;
@@ -239,7 +242,7 @@ export class RemoteAccessManager implements vscode.Disposable {
             }
         } catch (error) {
             // Unsupported servers and tunnel failures must not break a launch.
-            console.error(`REMOTE_ACCESS: Auto-start failed for ${serverId}:`, error);
+            logger.error(`Auto-start failed for ${serverId}:`, error);
         }
     }
 

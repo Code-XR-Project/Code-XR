@@ -15,6 +15,9 @@ import {
     ServerLaunchResult,
     SessionServerInfo,
 } from './models/sessionServerModels';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVER_LAUNCH_ORCHESTRATOR');
 
 export class ServerLaunchOrchestrator {
     private multiServerLauncher: MultiServerLauncher | null = null;
@@ -165,7 +168,7 @@ export class ServerLaunchOrchestrator {
                 }
             }
         } catch (error) {
-            console.error(`SERVER_LAUNCH_ORCHESTRATOR: Error reading directory ${dir}:`, error);
+            logger.error(`Error reading directory ${dir}:`, error);
         }
 
         return htmlFiles;

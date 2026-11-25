@@ -1,4 +1,7 @@
 import * as http from 'http';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SSE_CLIENT_REGISTRY');
 
 /**
  * SSE Client Registry
@@ -118,8 +121,8 @@ export class SSEClientRegistry {
                 activeClients.push(client);
                 console.log(`REQUEST_UPDATE: Message sent to client successfully`);
             } catch (error) {
-                console.error(`[SSE_CLIENT_REGISTRY] Error sending to client for ${fileUri}:`, error);
-                console.error(`REQUEST_UPDATE: Failed to send to client: ${error}`);
+                logger.error(`[SSE_CLIENT_REGISTRY] Error sending to client for ${fileUri}:`, error);
+                logger.error(`REQUEST_UPDATE: Failed to send to client: ${error}`);
                 // Client will be removed via error event handler
             }
         }
@@ -170,7 +173,7 @@ export class SSEClientRegistry {
                 activeClients.push(client);
                 console.log(`[SSE_CLIENT_REGISTRY] SSE event '${eventType}' sent to client successfully`);
             } catch (error) {
-                console.error(`[SSE_CLIENT_REGISTRY] Error sending SSE event '${eventType}' to client for ${fileUri}:`, error);
+                logger.error(`[SSE_CLIENT_REGISTRY] Error sending SSE event '${eventType}' to client for ${fileUri}:`, error);
                 // Client will be removed via error event handler
             }
         }
@@ -224,7 +227,7 @@ export class SSEClientRegistry {
             try {
                 client.end();
             } catch (error) {
-                console.error(`[SSE_CLIENT_REGISTRY] Error closing client for ${fileUri}:`, error);
+                logger.error(`[SSE_CLIENT_REGISTRY] Error closing client for ${fileUri}:`, error);
             }
         }
         
@@ -243,7 +246,7 @@ export class SSEClientRegistry {
                 try {
                     client.end();
                 } catch (error) {
-                    console.error(`[SSE_CLIENT_REGISTRY] Error closing client:`, error);
+                    logger.error(`[SSE_CLIENT_REGISTRY] Error closing client:`, error);
                 }
             }
         }

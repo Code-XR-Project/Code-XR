@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { DimensionDataType } from '../../babia_templates/models/chartModels';
 import { ExecutePython } from '../engine/utils/executePython';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('XR_FIELD_SCHEMA');
 
 export type XRSchemaTargetType = 'file' | 'directory';
 export type XRFieldValueType = 'numeric' | 'text';
@@ -73,7 +76,7 @@ export class XRFieldSchemaService {
                 return schema;
             }
         } catch (error) {
-            console.warn(`XR_FIELD_SCHEMA: Failed to load live schema for ${targetType}:`, error);
+            logger.warn(`Failed to load live schema for ${targetType}:`, error);
         }
 
         if (!allowCacheFallback) {

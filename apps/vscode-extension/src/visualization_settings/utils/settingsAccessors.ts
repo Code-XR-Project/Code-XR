@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DEFAULT_VISUALIZATION_SETTINGS } from '../model/settingsModel';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SETTINGS_ACCESSORS');
 
 /**
  * Settings Accessors
@@ -64,7 +67,7 @@ function readSettingsFromFile(): {
             return jsonSettings;
         }
     } catch (error) {
-        console.error('VISUALIZATION-SETTINGS: Error reading settings file:', error);
+        logger.error('VISUALIZATION-SETTINGS: Error reading settings file:', error);
     }
     
     return null;
@@ -89,7 +92,7 @@ async function getBackgroundColorFromStorage(): Promise<string> {
             }
         }
     } catch (error) {
-        console.error('VISUALIZATION-SETTINGS: Error reading background color from storage:', error);
+        logger.error('VISUALIZATION-SETTINGS: Error reading background color from storage:', error);
     }
     
     return DEFAULT_VISUALIZATION_SETTINGS.backgroundColor;
@@ -114,7 +117,7 @@ async function getGroundColorFromStorage(): Promise<string> {
             }
         }
     } catch (error) {
-        console.error('VISUALIZATION-SETTINGS: Error reading ground color from storage:', error);
+        logger.error('VISUALIZATION-SETTINGS: Error reading ground color from storage:', error);
     }
     
     return DEFAULT_VISUALIZATION_SETTINGS.groundColor;

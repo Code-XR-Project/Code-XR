@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { PythonEnvUtils } from '../utils/pythonEnvUtils';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('PYTHON_ENV');
 
 /**
  * Interface for Python environment metadata
@@ -140,7 +143,7 @@ export class PythonEnvStorage {
                 console.log('PYTHON_ENV: Validation timestamp updated');
             }
         } catch (error) {
-            console.error('PYTHON_ENV: Failed to update validation:', error);
+            logger.error('Failed to update validation:', error);
         }
     }
 
@@ -156,7 +159,7 @@ export class PythonEnvStorage {
                 console.log(`PYTHON_ENV: Dependencies updated (${dependencies.length} packages)`);
             }
         } catch (error) {
-            console.error('PYTHON_ENV: Failed to update dependencies:', error);
+            logger.error('Failed to update dependencies:', error);
         }
     }
 
@@ -220,7 +223,7 @@ export class PythonEnvStorage {
                 
                 stats.venvSize = Math.round(getDirectorySize(this.venvPath) / (1024 * 1024)); // MB
             } catch (error) {
-                console.log('PYTHON_ENV: Could not calculate venv size:', error);
+                logger.warn('Could not calculate venv size:', error);
             }
         }
 

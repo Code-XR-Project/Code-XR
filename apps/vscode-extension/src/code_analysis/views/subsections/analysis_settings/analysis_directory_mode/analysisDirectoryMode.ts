@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, AnalysisDirectoryMode } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { AnalysisDirectoryMode } from '../../../../configuration';
 
@@ -162,7 +165,7 @@ export class AnalysisDirectorySetting {
             this.currentMode = await this.storage.getAnalysisDirectoryMode();
             console.log(`ANALYSIS: Loaded analysis directory mode: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error loading analysis directory mode:', error);
+            logger.error('Error loading analysis directory mode:', error);
             // Keep default mode
         }
     }
@@ -175,7 +178,7 @@ export class AnalysisDirectorySetting {
             await this.storage.setAnalysisDirectoryMode(this.currentMode);
             console.log(`ANALYSIS: Saved analysis directory mode: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error saving analysis directory mode:', error);
+            logger.error('Error saving analysis directory mode:', error);
         }
     }
 }

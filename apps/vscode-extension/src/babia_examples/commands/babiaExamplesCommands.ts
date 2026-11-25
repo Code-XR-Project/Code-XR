@@ -4,6 +4,9 @@ import { ExampleClickHandler } from '../views/interactions/handleExampleClicks';
 import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
 import { ExtensionCommandRegistration } from '../../commands/shared';
 import { DetailRow, formatDetailSections } from '../../utils/detailDialog';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('EXAMPLES');
 
 /**
  * Babia Examples command declarations.
@@ -160,7 +163,7 @@ export class BabiaExamplesCommands {
                     try {
                         await vscode.commands.executeCommand('codeXR.babiaExamplesView.focus');
                     } catch (error) {
-                        console.error('EXAMPLES: Error in open view command:', error);
+                        logger.error('Error in open view command:', error);
                     }
                 },
                 silentErrors: true,

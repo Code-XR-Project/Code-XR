@@ -1,6 +1,9 @@
 import * as http from 'http';
 import { SSEClientRegistry } from './sseClientRegistry';
 import { fileToServerMap } from '../../../utils/fileToServerMap';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SSE_MANAGER');
 
 /**
  * SSE Manager
@@ -96,7 +99,7 @@ export class SSEManager {
                     console.log(`REQUEST_UPDATE: data.json size: ${stats.size} bytes, modified: ${stats.mtime}`);
                 }
             } catch (fileError) {
-                console.error(`REQUEST_UPDATE: Error checking data.json:`, fileError);
+                logger.error(`REQUEST_UPDATE: Error checking data.json:`, fileError);
             }
         } else {
             console.log(`REQUEST_UPDATE: No mapping found for file: ${fileUri}`);

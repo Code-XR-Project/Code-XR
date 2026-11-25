@@ -23,6 +23,9 @@ import {
     upsertXRFiles,
 } from './directoryReanalysisData';
 import { analysisUpdateEvents } from '../../historical';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DIRECTORY_REANALYZER');
 
 interface IncrementalChangeSet {
     removedFiles?: string[];
@@ -189,7 +192,7 @@ export class DirectoryReAnalyzer {
             const results = await this.executePython.executeFileReanalysis(filesToAnalyze);
             reanalysisResults = Array.isArray(results) ? results : [results];
         } catch (error) {
-            console.error('DIRECTORY_REANALYZER: Error analyzing new files:', error);
+            logger.error('Error analyzing new files:', error);
         }
 
         const resultsToUpsert: any[] = [];
@@ -251,7 +254,7 @@ export class DirectoryReAnalyzer {
             try {
                 await this.sessionServerManager.notifyAnalysisUpdated(session.id);
             } catch (fallbackError) {
-                console.error('DIRECTORY_REANALYZER: SSE fallback also failed:', fallbackError);
+                logger.error('SSE fallback also failed:', fallbackError);
             }
         }
     }

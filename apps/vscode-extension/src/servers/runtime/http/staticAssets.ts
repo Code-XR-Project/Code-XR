@@ -2,6 +2,9 @@ import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
 import { sendErrorResponse } from './httpRespond';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /** The slice of the server configuration static serving depends on. */
 export interface StaticAssetOptions {
@@ -53,7 +56,7 @@ export class StaticAssetServer {
                 const files = fs.readdirSync(this.options.staticRoot);
                 console.error(`SERVER: Files in static root: ${files.join(', ')}`);
             } catch (e) {
-                console.error(`SERVER: Cannot read static root directory: ${e}`);
+                logger.error(`Cannot read static root directory: ${e}`);
             }
 
             // Fallback to a basic HTML page

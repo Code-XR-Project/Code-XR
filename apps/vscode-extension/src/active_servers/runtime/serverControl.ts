@@ -6,6 +6,9 @@ import { fileToServerMap } from '../../utils/fileToServerMap';
 import { sseManager } from '../../servers/runtime/sse/SSEManager';
 import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
 import { handleError, ErrorDomain, ErrorSeverity } from '../../utils/errorHandler';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVERS');
 
 /** How long a graceful shutdown may take before it is forced. */
 const STOP_TIMEOUT_MS = 4000;
@@ -136,7 +139,7 @@ export class ServerControl {
                     instance.forceStop();
                     console.log(`ACTIVE_SERVERS:  Forced shutdown for ${serverId}`);
                 } catch (forceError) {
-                    console.error(`ACTIVE_SERVERS:  Forced shutdown failed for ${serverId}:`, forceError);
+                    logger.error(`Forced shutdown failed for ${serverId}:`, forceError);
                 }
             }
             vscode.window.showWarningMessage(

@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('DYNAMIC_COLOR_ICON_GENERATOR');
 
 /**
  * Dynamic SVG Color Icon Generator
@@ -170,7 +173,7 @@ export class DynamicColorIconGenerator {
                         cleanedCount++;
                         console.log(`COLOR-PICKER: Removed old color icon: ${file}`);
                     } catch (error) {
-                        console.warn(`COLOR-PICKER: Failed to remove old icon ${file}:`, error);
+                        logger.warn(`COLOR-PICKER: Failed to remove old icon ${file}:`, error);
                     }
                 }
             });
@@ -180,7 +183,7 @@ export class DynamicColorIconGenerator {
             }
             
         } catch (error) {
-            console.error(`COLOR-PICKER: Error during cleanup for ${settingKey}:`, error);
+            logger.error(`COLOR-PICKER: Error during cleanup for ${settingKey}:`, error);
             // Don't throw - cleanup is non-critical
         }
     }

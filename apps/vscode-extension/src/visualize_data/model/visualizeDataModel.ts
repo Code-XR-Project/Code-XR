@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { VisualizeDataStateManager } from '../state/visualizeDataState';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_MODEL');
 
 /**
  * Visualize Data Model
@@ -39,7 +42,7 @@ export class VisualizeDataModel {
             });
             
         } catch (error) {
-            console.error('VISUALIZE-STATE: Error during state reset:', error);
+            logger.error('VISUALIZE-STATE: Error during state reset:', error);
         }
     }
     

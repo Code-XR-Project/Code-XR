@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../configuration';
 
@@ -178,7 +181,7 @@ export class AutoAnalysisDelaySetting {
             await this.storage.setAutoAnalysisDelay(this.currentDelayConfig);
             console.log(`ANALYSIS: Saved auto-analysis delay to storage:`, this.currentDelayConfig);
         } catch (error) {
-            console.error('ANALYSIS: Error saving delay to storage:', error);
+            logger.error('Error saving delay to storage:', error);
         }
     }
 }

@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AutoAnalysisEnabledSetting {
     private currentEnabled: boolean = true; // Default enabled
@@ -114,7 +117,7 @@ export class AutoAnalysisEnabledSetting {
             await this.storage.setAutoAnalysisEnabled(this.currentEnabled);
             console.log(`ANALYSIS: Saved auto-analysis enabled state to storage: ${this.currentEnabled}`);
         } catch (error) {
-            console.error('ANALYSIS: Error saving state to storage:', error);
+            logger.error('Error saving state to storage:', error);
         }
     }
 }

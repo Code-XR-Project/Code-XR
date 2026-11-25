@@ -4,6 +4,9 @@ import * as cp from 'child_process';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { VenvManager } from '../../../python_env/runtime/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('EXECUTE_PYTHON');
 
 /**
  * Utility para ejecutar análisis Python
@@ -424,7 +427,7 @@ export class ExecutePython {
                         console.error(`EXECUTE_PYTHON:  dist/code_analysis/python contents: ${distPythonContents.join(', ')}`);
                     }
                 } catch (listError) {
-                    console.error('EXECUTE_PYTHON: Failed to list directory contents:', listError);
+                    logger.error('Failed to list directory contents:', listError);
                 }
 
                 throw new Error(`Python script does not exist: ${scriptPath}`);

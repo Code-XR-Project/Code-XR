@@ -18,23 +18,22 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1418,
+    "console.total": 1361,
     "console.byModule": {
-      "active_servers": 113,
-      "babia_examples": 49,
+      "active_servers": 112,
+      "babia_examples": 48,
       "babia_templates": 68,
-      "code_analysis": 538,
+      "code_analysis": 511,
       "commands": 4,
       "core": 3,
-      "python_env": 24,
-      "remote_access": 1,
-      "servers": 292,
+      "python_env": 20,
+      "servers": 284,
       "utils": 38,
       "views": 107,
-      "visualization_settings": 83,
-      "visualize_data": 98
+      "visualization_settings": 73,
+      "visualize_data": 93
     },
-    "catch.consoleOnly": 56,
+    "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
     "any.total": 201,
     "any.byModule": {
@@ -83,25 +82,25 @@
   },
   "informational": {
     "src.files": 313,
-    "src.lines": 48248,
+    "src.lines": 48344,
     "src.functions": 2652,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 126
+        "count": 125
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 45
-      },
-      {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 39
+        "count": 44
       },
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
         "count": 39
+      },
+      {
+        "file": "src/active_servers/runtime/serverControl.ts",
+        "count": 38
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
@@ -116,16 +115,16 @@
         "count": 34
       },
       {
+        "file": "src/babia_templates/processing/templateHTMLProcessor.ts",
+        "count": 30
+      },
+      {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
-        "count": 34
+        "count": 29
       },
       {
         "file": "src/visualization_settings/views/interactions/handleSettingsInteraction.ts",
-        "count": 32
-      },
-      {
-        "file": "src/babia_templates/processing/templateHTMLProcessor.ts",
-        "count": 30
+        "count": 29
       },
       {
         "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",
@@ -141,11 +140,11 @@
       },
       {
         "file": "src/code_analysis/engine/utils/saveFiles.ts",
-        "count": 25
+        "count": 24
       },
       {
-        "file": "src/servers/runtime/sse/SSEManager.ts",
-        "count": 25
+        "file": "src/servers/runtime/httpsCustomServer.ts",
+        "count": 24
       }
     ],
     "any.topFiles": [
@@ -295,7 +294,7 @@
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 632
+        "lines": 635
       },
       {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
@@ -311,7 +310,7 @@
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
-        "lines": 590
+        "lines": 593
       }
     ]
   },
