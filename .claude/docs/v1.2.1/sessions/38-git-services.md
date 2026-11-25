@@ -72,6 +72,10 @@ The brief's "about 95" duplicated lines came from a different tool. The window-4
 ## Gates
 
 - `npm test` was green on every commit (782/782 on the last one before the merge).
+- After merging `origin/v1.2.1` at `76fa4828`, `npm test` passed 789/789 and `test:analysis` stayed green.
+  - The only conflict was `guardrail-baseline.json`. It was regenerated on the merged tree.
+  - Against upstream's baseline, every ratcheted metric moved in the improving direction or stayed put: `filesOver500` 18 → 16, `over80Lines` 57 → 52, `complexity.over10/15/20/30` 81/31/10/6 → 77/29/9/5.
+  - W2-29/W2-39 had not landed yet at that point.
 - `npm run test:analysis` was green after W5-02, W5-06 and W5-11 (24 root fixtures, 3 deep).
 - `npm run test:project-evolution-harness` **could not run its browser scenario in this container**, for two reasons:
   1. The pinned Playwright expects chromium 1228, but the image ships 1243. This was worked around with an aliased `PLAYWRIGHT_BROWSERS_PATH`.
