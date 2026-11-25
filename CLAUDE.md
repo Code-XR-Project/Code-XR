@@ -14,7 +14,7 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 |---|---|
 | `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (shipped), `package.json`, README/CHANGELOG |
 | `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`), with their fixtures (`backend/tests/fixtures/`) |
-| `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (`report-manual-metrics.py`) |
+| `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (the `test:python` / `test:analysis` runners, `report-manual-metrics.py`) |
 | `apps/ide/` | Code-XR IDE (Electron + Monaco) — placeholder only, epic #11 |
 | `packages/` | Planned shared workspaces (`core`, `xr-scenes`) — empty, see `packages/README.md` |
 | root | `package.json` (workspaces + mirrored scripts), the only `package-lock.json`, `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `docs/` |

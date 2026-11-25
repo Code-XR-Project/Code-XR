@@ -6,7 +6,8 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const nodeTestFile = path.join(projectRoot, 'test', 'analysis', 'livePanelDomIntegration.test.cjs');
 // The backend owns its tests: <repo>/backend/tests.
 const pythonTestRoot = path.join(projectRoot, '..', '..', 'backend', 'tests', 'html_dom');
-const analysisVenvPython = path.join(projectRoot, 'artifacts', 'analysis-test-venv', process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'python.exe' : 'python');
+// The venv npm run test:analysis builds (backend/scripts/run-analysis-tests.cjs).
+const analysisVenvPython = path.join(projectRoot, '..', '..', 'backend', 'artifacts', 'analysis-test-venv', process.platform === 'win32' ? 'Scripts' : 'bin', process.platform === 'win32' ? 'python.exe' : 'python');
 
 function quoteArg(arg) {
     if (/^[A-Za-z0-9_./:-]+$/.test(arg)) {

@@ -14,7 +14,7 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 │   ├── requirements.txt    its exact Python pins, generated from the extension's manifest
 │   ├── tests/              its unittest suites, goldens and fixtures
 │   ├── manual_test/        per-language analysis corpus (npm run test:analysis)
-│   └── scripts/            backend tools (manual-metrics report)
+│   └── scripts/            its test runners and the manual-metrics report
 ├── packages/               shared workspaces, planned (see packages/README.md)
 ├── docs/                   repository-level docs (this file)
 ├── media/                  release screenshots, GIFs, video index (not shipped)
@@ -38,6 +38,7 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 | `package-lock.json` | stays at the root (workspace lockfile) |
 | `apps/vscode-extension/test/fixtures/dependency-languages/` (moved in 1.2.1: only the backend suites read it) | `backend/tests/fixtures/dependency-languages/` |
 | `apps/vscode-extension/manual_test/`, `test/analysis/manual_metrics_suite.py`, `scripts/report-manual-metrics.py` (moved in 1.2.1: they only exercise the backend) | `backend/manual_test/`, `backend/tests/manual_metrics_suite.py`, `backend/scripts/report-manual-metrics.py` |
+| `apps/vscode-extension/test/runners/run-python-tests.cjs`, `run-analysis-tests.cjs` (moved in 1.2.1: Python-only; `run-html-analysis-tests.cjs` stays, it also runs an extension suite) | `backend/scripts/` |
 | `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `.nvmrc`, `.mcp.json`, `CLAUDE.md` | unchanged, at the root |
 
 Inside `apps/vscode-extension/` every relative path is the same as it was at the old repository root. Documents and skills written before the move that say `src/...`, `test/...` or `templates/...` mean `apps/vscode-extension/src/...` and so on; `src/code_analysis/python/` means `backend/src/` and `test/python/` means `backend/tests/`.

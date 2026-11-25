@@ -2,10 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const projectRoot = path.resolve(__dirname, '..', '..');
-// The manual_test corpus, its suite and its report tool belong to the backend.
-const backendRoot = path.join(projectRoot, '..', '..', 'backend');
-const artifactsRoot = path.join(projectRoot, 'artifacts');
+/**
+ * End-to-end check of the backend over backend/manual_test: builds a venv with
+ * the pinned lizard, runs tests/manual_metrics_suite.py, then writes the
+ * reports with scripts/report-manual-metrics.py. Node builtins only, so it runs
+ * without npm ci: `node backend/scripts/run-analysis-tests.cjs [--report-only]`.
+ */
+const backendRoot = path.resolve(__dirname, '..');
+const artifactsRoot = path.join(backendRoot, 'artifacts');
 const venvRoot = path.join(artifactsRoot, 'analysis-test-venv');
 const isWindows = process.platform === 'win32';
 const venvPython = path.join(venvRoot, isWindows ? 'Scripts' : 'bin', isWindows ? 'python.exe' : 'python');
@@ -13,7 +17,7 @@ const reportOnly = process.argv.includes('--report-only');
 
 function run(command, args, options = {}) {
     const result = spawnSync(command, args, {
-        cwd: projectRoot,
+        cwd: backendRoot,
         stdio: 'inherit',
         ...options,
     });
@@ -53,7 +57,7 @@ function getPythonCandidates() {
 function findSystemPython() {
     for (const candidate of getPythonCandidates()) {
         const result = spawnSync(candidate.command, [...candidate.args, '--version'], {
-            cwd: projectRoot,
+            cwd: backendRoot,
             encoding: 'utf8',
         });
 
@@ -74,10 +78,11 @@ function ensureVenv(systemPython) {
 
 /**
  * The extension installs an exact lizard version into the user's managed venv
- * (src/python_env/runtime/pythonPackageManifest.ts). The fixtures must be
- * measured with that same version, so the requirement is read from
- * backend/requirements.txt, the generated mirror of that manifest
- * (test/python_env/pythonRequirements.test.cjs keeps the two equal), instead
+ * (apps/vscode-extension/src/python_env/runtime/pythonPackageManifest.ts). The
+ * fixtures must be measured with that same version, so the requirement is read
+ * from backend/requirements.txt, the generated mirror of that manifest
+ * (apps/vscode-extension/test/python_env/pythonRequirements.test.cjs keeps the
+ * two equal), instead
  * of being repeated here. Only lizard is installed, as before.
  */
 function readPinnedLizardRequirement() {
