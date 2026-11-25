@@ -15,6 +15,10 @@
 - **Continuous integration.** The same gates a developer runs locally now run on Windows and Linux for every pull request.
 - **A repository ready to grow.** The source repository is now organized as a monorepo: the extension, its Python analysis backend and the space for the upcoming Code-XR IDE live side by side, and continuous integration also runs on macOS. The packaged extension is the same: no file was added to or removed from it.
 
+#### Removed
+
+- **Eleven hidden settings commands that nothing could run.** `codeXR.analysis.setAnalysisFileModeXR`, `setAnalysisFileModeHivePanel`, `setViewThemeDark`, `setViewThemeLight`, `enableAutoAnalysis`, `disableAutoAnalysis` and the five `setAutoAnalysisDelay…` variants were registered but never appeared in the Command Palette, a menu or the sidebar. The sidebar rows that change these settings (`toggleAnalysisFileMode`, `toggleViewTheme`, `toggleAutoAnalysisEnabled`, `selectAutoAnalysisDelay`) work exactly as before.
+
 #### Fixed
 
 - **Historical comparison and project evolution no longer refuse a folder opened through a link.** When the analyzed folder was reached through a symbolic link, a junction, or a shortened Windows path (`C:\Users\JOHNDO~1\...`), Code-XR compared it with the repository path Git reports and wrongly concluded the folder was outside the repository, so the Git-based analyses were unavailable. Both paths are now resolved to their real location before they are compared.

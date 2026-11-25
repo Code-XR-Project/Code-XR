@@ -70,17 +70,6 @@ const INTERNAL_COMMAND_IDS = [
     { id: 'codexr.servers.refreshServers', kind: 'legacy-alias', reason: 'published in 1.1.0; zero callers today, kept for users\' keybindings' },
 
     // ---- pending removal: registered, uncontributed, referenced by nothing -----
-    { id: 'codeXR.analysis.setAnalysisFileModeXR', kind: 'pending-removal', reason: 'superseded by toggleAnalysisFileMode' },
-    { id: 'codeXR.analysis.setAnalysisFileModeHivePanel', kind: 'pending-removal', reason: 'superseded by toggleAnalysisFileMode' },
-    { id: 'codeXR.analysis.setViewThemeDark', kind: 'pending-removal', reason: 'superseded by toggleViewTheme' },
-    { id: 'codeXR.analysis.setViewThemeLight', kind: 'pending-removal', reason: 'superseded by toggleViewTheme' },
-    { id: 'codeXR.analysis.enableAutoAnalysis', kind: 'pending-removal', reason: 'superseded by toggleAutoAnalysisEnabled' },
-    { id: 'codeXR.analysis.disableAutoAnalysis', kind: 'pending-removal', reason: 'superseded by toggleAutoAnalysisEnabled' },
-    { id: 'codeXR.analysis.setAutoAnalysisDelayRealTime', kind: 'pending-removal', reason: 'superseded by selectAutoAnalysisDelay' },
-    { id: 'codeXR.analysis.setAutoAnalysisDelay1s', kind: 'pending-removal', reason: 'superseded by selectAutoAnalysisDelay' },
-    { id: 'codeXR.analysis.setAutoAnalysisDelay3s', kind: 'pending-removal', reason: 'superseded by selectAutoAnalysisDelay' },
-    { id: 'codeXR.analysis.setAutoAnalysisDelay5s', kind: 'pending-removal', reason: 'superseded by selectAutoAnalysisDelay' },
-    { id: 'codeXR.analysis.setAutoAnalysisDelay10s', kind: 'pending-removal', reason: 'superseded by selectAutoAnalysisDelay' },
     { id: 'codeXR.analysis.refreshFilesByLanguage', kind: 'pending-removal', reason: 'never wired to a tree item or a menu' },
     { id: 'codeXR.analysis.openFileFromLanguageGroup', kind: 'pending-removal', reason: 'never wired to a tree item or a menu' },
     { id: 'codeXR.analysis.cleanAnalysis', kind: 'pending-removal', reason: 'startup cleanup runs on its own; the command has no caller' },

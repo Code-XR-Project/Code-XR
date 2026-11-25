@@ -31,16 +31,6 @@ export class AutoAnalysisEnabledCommands {
                 commandId: 'codeXR.analysis.toggleAutoAnalysisEnabled',
                 callback: () => commands.toggleAutoAnalysisEnabled(refreshCallback),
                 description: 'Toggle Auto-Analysis Enabled/Disabled state'
-            },
-            {
-                commandId: 'codeXR.analysis.enableAutoAnalysis',
-                callback: () => commands.setAutoAnalysisEnabled(true, refreshCallback),
-                description: 'Enable Auto-Analysis (watchers and debounce time)'
-            },
-            {
-                commandId: 'codeXR.analysis.disableAutoAnalysis',
-                callback: () => commands.setAutoAnalysisEnabled(false, refreshCallback),
-                description: 'Disable Auto-Analysis (pause watchers and debounce time)'
             }
         ];
     }
@@ -65,25 +55,6 @@ export class AutoAnalysisEnabledCommands {
         } catch (error) {
             console.error('ANALYSIS: Error toggling auto-analysis enabled state:', error);
             vscode.window.showErrorMessage(`Failed to toggle auto-analysis state: ${error}`);
-        }
-    }
-
-    /**
-     * Set specific auto-analysis enabled state command handler
-     */
-    private async setAutoAnalysisEnabled(enabled: boolean, refreshCallback: () => void): Promise<void> {
-        try {
-            console.log(`ANALYSIS: Setting auto-analysis enabled to: ${enabled}`);
-            
-            await this.autoAnalysisEnabledSetting.setEnabled(enabled);
-            await this.refreshActiveWatchers();
-            console.log(`ANALYSIS: Auto-analysis enabled set to: ${enabled}`);
-            
-            refreshCallback();
-            
-        } catch (error) {
-            console.error('ANALYSIS: Error setting auto-analysis enabled state:', error);
-            vscode.window.showErrorMessage(`Failed to set auto-analysis state: ${error}`);
         }
     }
 }
