@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 /**
  * Assembly of multi-part CodeXR browser runtimes.
@@ -27,7 +28,7 @@ export function resolveRuntimePartsDir(
     outputName: string,
 ): string {
     const runtimeBase = outputName.replace(/\.js$/, '');
-    return path.join(extensionPath, 'templates', 'components', 'codexr', componentFolder, runtimeBase);
+    return resolveTemplatePath(extensionPath, 'components', 'codexr', componentFolder, runtimeBase);
 }
 
 function readManifest(partsDir: string): RuntimePartsManifest {

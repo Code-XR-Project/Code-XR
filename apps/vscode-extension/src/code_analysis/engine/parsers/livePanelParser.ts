@@ -16,6 +16,7 @@ import * as fs from 'fs';
 import { generateNonce } from '../../../utils/nonceGenerator';
 import { ThemeUtils } from '../utils/themeUtils';
 import { getLogger } from '../../../core/logging/sink';
+import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('LIVE_PANEL_PARSER');
 
@@ -55,12 +56,12 @@ export class LivePanelParser {
     private getTemplatePath(targetType: string): string {
         // Same source of truth XR/VisualizeDOM parsers use — no extension-registry lookup needed.
         // e.g. …/templates/analysis_livePanel/file/
-        return path.join(this.context.extensionPath, 'templates', 'analysis_livePanel', targetType);
+        return resolveTemplatePath(this.context.extensionPath, 'analysis_livePanel', targetType);
     }
 
     private getSharedComponentsPath(): string {
         // Reusable LivePanel components (e.g. the DataTable) shared by every panel.
-        return path.join(this.context.extensionPath, 'templates', 'components', 'livepanel');
+        return resolveTemplatePath(this.context.extensionPath, 'components', 'livepanel');
     }
 
     /**

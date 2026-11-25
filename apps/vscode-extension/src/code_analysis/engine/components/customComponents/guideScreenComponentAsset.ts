@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { assembleRuntimeContent, writeAssembledRuntimeToOutput } from './runtimeAssembly';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 export const GUIDE_SCREEN_RUNTIME_OUTPUT_NAME = 'guideScreenRuntime.js';
 export const GUIDE_PAGE_OUTPUT_NAME = 'guide.html';
@@ -24,7 +25,7 @@ export async function readGuideScreenRuntimeContent(extensionPath: string): Prom
 // server (no extra routes needed): it loads guideScreenRuntime.js and mounts the
 // DOM projection of the same guide model shown on the in-room screen.
 export async function readGuidePageContent(extensionPath: string): Promise<string> {
-    const pagePath = path.join(extensionPath, 'templates', 'guide', GUIDE_PAGE_OUTPUT_NAME);
+    const pagePath = resolveTemplatePath(extensionPath, 'guide', GUIDE_PAGE_OUTPUT_NAME);
     return fs.promises.readFile(pagePath, 'utf8');
 }
 

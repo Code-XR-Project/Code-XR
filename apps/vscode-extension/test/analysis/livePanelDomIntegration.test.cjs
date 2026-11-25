@@ -216,7 +216,7 @@ test('LivePanelParser resolves templates from context.extensionPath like every o
 
     assert.match(source, /constructor\(context: vscode\.ExtensionContext\)/);
     assert.match(source, /this\.context = context;/);
-    assert.match(source, /path\.join\(this\.context\.extensionPath, 'templates', 'analysis_livePanel', targetType\)/);
+    assert.match(source, /resolveTemplatePath\(this\.context\.extensionPath, 'analysis_livePanel', targetType\)/);
     assert.doesNotMatch(source, /vscode\.extensions\.getExtension/);
     assert.doesNotMatch(source, /amonteSl/i);
 

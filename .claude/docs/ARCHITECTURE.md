@@ -69,6 +69,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `visualize_data/` | User-driven "visualize your own JSON" flow | commands + launcher |
 | `visualization_settings/` | Visualization settings (colors, chart config) + color picker | storage + model |
 | `core/` | Extension context, logging, startup coordination | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `startup/startupCoordinator.ts` |
+| `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `templatePaths.ts` (`resolveTemplatePath`) |
 | `learn_more/` | "Learn more" help section in the tree | commands + views |
 | `utils/` | Shared helpers | `languageMetadata.ts`, `fileToServerMap.ts`, `commandBuilder.ts`, `errorHandler.ts`, `nonceGenerator.ts` |
 
@@ -101,7 +102,7 @@ Every diagnostic of the extension host goes through `src/core/logging`. A module
 
 | Path | What it is |
 |---|---|
-| `templates/` | Raw HTML templates + **browser-side JS runtimes**. `xr/` (scene templates + SSE client scripts), `analysis_livePanel/` (webview panels), `components/` (A-Frame component runtimes — see `templates/components/COMPONENTS.md`; `components/livepanel/` holds shared 2D LivePanel components such as `dataTable.{js,css}` that `LivePanelParser` bundles ahead of each panel's own `main.js`/`style.css`), `utils/color-picker.html`. Read in place at `<extensionPath>/templates` and shipped by the `files` allowlist; not copied into `dist/` since 1.2.1. |
+| `templates/` | Raw HTML templates + **browser-side JS runtimes**. `xr/` (scene templates + SSE client scripts), `analysis_livePanel/` (webview panels), `components/` (A-Frame component runtimes — see `templates/components/COMPONENTS.md`; `components/livepanel/` holds shared 2D LivePanel components such as `dataTable.{js,css}` that `LivePanelParser` bundles ahead of each panel's own `main.js`/`style.css`), `utils/color-picker.html`. Read in place at `<extensionPath>/templates` and shipped by the `files` allowlist; not copied into `dist/` since 1.2.1. Source code builds every template path with `resolveTemplatePath(extensionPath, …)` (`src/platform/templatePaths.ts`), never from `__dirname` (wrong from the bundle); tests use `test/helpers/templatesRoot.cjs`. |
 | `test/` | All tests. `.test.cjs` unit suites (Node native runner), Python suites, language fixtures, manual HTML harnesses. See `DEVELOPMENT.md`. |
 | `resources/` | Icons and media (per-language icons, collaboration/comparison/screen assets). |
 | `examples/` | Bundled sample charts + data for the Babia Examples tree section. |

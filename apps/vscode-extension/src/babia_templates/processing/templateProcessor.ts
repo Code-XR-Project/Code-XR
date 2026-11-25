@@ -5,9 +5,9 @@ import { CreateChart } from './placeholders/createChart';
 import { CreateStructure } from './placeholders/createStructure';
 import { XRFieldTypeMap, XRSchemaTargetType } from '../../code_analysis/services/xrFieldSchemaService';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { getLogger } from '../../core/logging/sink';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('TEMPLATE_PROCESSOR');
 
@@ -153,7 +153,7 @@ export class TemplateProcessor {
      */
     private static async loadXRTemplate(context: vscode.ExtensionContext): Promise<string | null> {
         try {
-            const templatePath = path.join(context.extensionPath, 'templates', 'xr', 'file', 'xr-visualization.html');
+            const templatePath = resolveTemplatePath(context.extensionPath, 'xr', 'file', 'xr-visualization.html');
 
             if (!fs.existsSync(templatePath)) {
                 logger.error('XR template not found at:', templatePath);

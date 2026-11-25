@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 /**
  * Scene runtimes shipped as one JS file, copied verbatim from
@@ -41,7 +42,7 @@ export const SINGLE_FILE_RUNTIME_ASSETS = {
 } as const satisfies Record<string, SingleFileRuntimeAsset>;
 
 export function resolveRuntimeAssetSourcePath(asset: SingleFileRuntimeAsset, extensionPath: string): string {
-    return path.join(extensionPath, 'templates', 'components', ...asset.folder, asset.outputName);
+    return resolveTemplatePath(extensionPath, 'components', ...asset.folder, asset.outputName);
 }
 
 export function assertRuntimeAssetSourceExists(asset: SingleFileRuntimeAsset, extensionPath: string): string {

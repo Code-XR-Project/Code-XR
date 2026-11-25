@@ -1,6 +1,5 @@
 import * as https from 'https';
 import * as fs from 'fs';
-import * as path from 'path';
 import type * as vscode from 'vscode';
 import type { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
 import type { ConnectedParticipantSummary } from '../../collaboration/model/connectedParticipant';
@@ -9,6 +8,7 @@ import { GeneratedHttpsCertificateManager } from './generatedHttpsCertificateMan
 import { buildTlsServerOptions } from './httpsTlsOptions';
 import type { RemoteSessionAuthority } from '../../remote_access/security/remoteSessionAuthority';
 import { getLogger } from '../../core/logging/sink';
+import { resolveTemplatePath } from '../../platform/templatePaths';
 
 const logger = getLogger('SERVER');
 
@@ -48,10 +48,9 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
     /** Callers have already checked that `config.extensionContext` is set. */
     protected constructor(config: TConfig, createHttpServer: (httpConfig: HttpServerConfig) => HttpServer) {
         this.certificateManager = new GeneratedHttpsCertificateManager(config.extensionContext!);
-        // staticRoot is __dirname-relative: this file must stay beside httpServer.ts.
         this.config = {
             host: '0.0.0.0',
-            staticRoot: path.join(__dirname, '../../../templates'),
+            staticRoot: resolveTemplatePath(config.extensionContext!.extensionPath),
             enableCors: true,
             allowedOrigins: ['*'],
             ...config,

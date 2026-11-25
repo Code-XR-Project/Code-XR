@@ -24,6 +24,7 @@
 
 - **22 files build template paths by hand**, almost always `path.join(context.extensionPath, 'templates', …)`; 39 files touch `extensionPath`/`extensionUri` (236 hits). There is no central resolver.
 - **Fallback that could break:** `servers/runtime/{httpServer,httpsDefaultServer,httpsCustomServer,multiServerLauncher}.ts` default `staticRoot` to `path.join(__dirname, '../../../templates')`, which is only right in the unbundled layout. Callers appear to always pass `staticRoot` (to confirm with a test).
+  - **Done in #42:** all of them, plus the 17 `extensionPath` call sites, go through `resolveTemplatePath()` (`src/platform/templatePaths.ts`). `test/platform/templatePaths.test.cjs` evaluates `httpServer.js` with the bundle's `__dirname` (`<extension>/dist`) and asserts the default static root is `<extension>/templates`; it also fails on any new `__dirname`-relative template path in `src/`.
 - **Templates ship once (since story #41):** the `files` allowlist ships `templates/**`; webpack no longer copies it into `dist/templates`.
 - **Moving templates to `packages/xr-scenes`** would need: the copy source changed, a decision on the `files` entry, `scripts/prepare-dev-extension.mjs` and `scripts/dist-fingerprint.mjs` updated, and 38 test files retargeted (11 build `projectRoot/templates` directly; `test/helpers/runtimeAssembly.cjs` and `sourceText.cjs` hardcode it).
 
