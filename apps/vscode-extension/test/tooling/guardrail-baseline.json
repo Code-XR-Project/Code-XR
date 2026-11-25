@@ -18,10 +18,9 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 73,
+    "console.total": 2,
     "console.byModule": {
-      "core": 2,
-      "servers": 71
+      "core": 2
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
@@ -71,26 +70,10 @@
   },
   "informational": {
     "src.files": 330,
-    "src.lines": 48921,
-    "src.functions": 3213,
+    "src.lines": 48931,
+    "src.functions": 3244,
     "src.unreachableLines": 0,
     "console.topFiles": [
-      {
-        "file": "src/servers/commands/serverCommands.ts",
-        "count": 23
-      },
-      {
-        "file": "src/servers/utils/networkUtils.ts",
-        "count": 22
-      },
-      {
-        "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
-        "count": 17
-      },
-      {
-        "file": "src/servers/views/interactions/launchNotifications.ts",
-        "count": 9
-      },
       {
         "file": "src/core/logging/sink.ts",
         "count": 2
