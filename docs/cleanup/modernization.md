@@ -143,6 +143,14 @@ One idiom × one area per commit, in this order (value ÷ risk). Each commit lis
 
 Deferred to 1.3.0 (record in the session log, do not open in 1.2.1): `var` in the 9 multi-part runtimes (2,014), string concatenation in templates (611), `fs.promises` for the 109 sync calls (only with a measured hot path).
 
+## 6. Progress (Python and browser runtimes)
+
+Landed on `claude/project-thread-n2s3q6-modernize-py-js` (session log `.claude/docs/v1.2.1/sessions/56a-modernize-py-js.md`). The TypeScript rows of §5 are not part of it. Counts are measured with ruff 0.17.6 (`backend/`) and the A.2 script (`apps/vscode-extension/`).
+
+| Plan row | Idiom × area | Before | After | Lock-in |
+|---|---|---:|---:|---|
+| 1 (Python part) | bare `except:`, `class X(object)`, `super(X, self)`, `%` and `.format()` in `backend/` | 0 | 0 | ruff `E722`, `UP004`, `UP008`, `UP031`, `UP032` in `backend/ruff.toml` |
+
 ## Appendix: how to re-run the numbers
 
 From the repository root, after `npm ci` (the scripts resolve `typescript` and `acorn` from the workspace). Copy each script to a scratch folder first: they are kept here, not in `scripts/`, because only #56 needs them.

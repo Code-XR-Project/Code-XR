@@ -21,7 +21,12 @@ extend-exclude = ["manual_test", "tests/fixtures"]
 # Pyflakes (F: unused imports and variables, undefined names, ...) plus the
 # pycodestyle error classes that are bugs rather than style (E4 imports,
 # E7 statements, E9 syntax/IO). No style rules: see the header.
-select = ["E4", "E7", "E9", "F"]
+#
+# Modernization lock-ins (story #56, docs/cleanup/modernization.md): idioms the
+# backend no longer contains, kept at zero. E722 bare `except:` (it also catches
+# KeyboardInterrupt and SystemExit), UP004 `class X(object)`, UP008
+# `super(X, self)`, UP031 `%` formatting, UP032 `.format()` calls.
+select = ["E4", "E7", "E9", "F", "E722", "UP004", "UP008", "UP031", "UP032"]
 
 [lint.per-file-ignores]
 # E402 (import not at top of file): these modules put their own directory, or
