@@ -7,6 +7,8 @@
   var state = {
     initialized: false,
     panelVisible: false,
+    // A comparison job is running for the room: Compare reads "Cancel".
+    jobRunning: false,
     references: null,
     activeSide: 'left',
     availability: 'loading',

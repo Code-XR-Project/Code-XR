@@ -53,6 +53,27 @@ Project Evolution entity, hides the movie chart, and resets every connected
 client to the empty Project Evolution panel. It does not delete the normal
 analysis `data.json`.
 
+### Cancel, Clear and leaving the mode (1.2.1)
+
+Generating a movie is a job on the extension host with an id, a state
+(`queued`, `running`, `cancelled`, `failed`, `done`) and a 30-minute deadline;
+each revision's analysis also has its own 5-minute watchdog, and each Git
+command a 3-minute one. While a movie is being generated the `Clear movie`
+button reads `Cancel`:
+
+- **Cancel** stops the generation for the whole room: it kills the running Git
+  and Python processes, discards anything the job would still produce, and
+  keeps the movie generated before it.
+- **Clear movie** deletes the current movie. If a generation is running, it is
+  cancelled and waited for first, so no late movie can appear after the clear.
+- **Leaving the mode** changes nothing on the server: the generation goes on
+  for the room and its movie appears when it is ready.
+
+A second Generate while one runs is answered `busy` to that participant only.
+A participant who opens the panel mid-generation sees the room's job (the
+references reply carries its state). A revision whose analysis times out is
+discarded like any other unusable revision; the movie is built from the rest.
+
 ## Architecture
 
 `ProjectEvolutionService` reuses the local Git snapshot materialization used by

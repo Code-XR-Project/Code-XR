@@ -285,6 +285,13 @@ Closing a comparison removes datasources, charts, listeners, controllers and
 comparison geometry. The service deletes its temporary snapshots on disposal
 and clears its in-memory cache.
 
+A comparison is a job on the extension host (1.2.1) with a 15-minute deadline,
+a 5-minute watchdog per side and a 3-minute one per Git command. While it runs,
+the `Compare` button reads `Cancel`: it stops the comparison for the whole room,
+kills its Git and Python processes and keeps the previous comparison. A second
+start is answered `busy` to that participant only, and the live-refresh flag
+follows the request that succeeded, not the one that was asked.
+
 ## Testing performed
 
 Automated coverage checks:

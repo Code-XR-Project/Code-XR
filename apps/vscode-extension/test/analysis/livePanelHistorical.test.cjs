@@ -49,7 +49,7 @@ test('HttpServer exposes LivePanel REST endpoints for references and async compa
     // References report availability instead of failing on non-Git targets.
     assert.match(server, /sendJsonResponse\(res, 200, \{ enabled: false, reason: availability\.reason \}\)/);
     // Compare answers 202 and runs the comparison in the background.
-    assert.match(server, /sendJsonResponse\(res, 202, \{ accepted: true \}\)/);
+    assert.match(server, /sendJsonResponse\(res, 202, \{ accepted: true, jobId: ticket\.id \}\)/);
     assert.match(server, /A historical comparison is already running\./);
 });
 

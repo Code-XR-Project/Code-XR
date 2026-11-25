@@ -120,7 +120,7 @@
     refs.panel.appendChild(refs.progressRoot);
     refs.generateButton = primaryActionButton('Generate movie', '0 0 0.02', startSelectedTimeline);
     refs.panel.appendChild(refs.generateButton);
-    refs.clearButton = button('Clear movie', '0 0 0.02', 1.5, clearMovie, '#7f1d1d', {
+    refs.clearButton = button('Clear movie', '0 0 0.02', 1.5, clearOrCancel, '#7f1d1d', {
       height: 0.4,
       textWidth: 1.9,
       wrapCount: 14

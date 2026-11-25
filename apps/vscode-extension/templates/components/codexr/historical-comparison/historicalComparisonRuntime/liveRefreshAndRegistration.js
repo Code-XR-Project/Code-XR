@@ -153,6 +153,7 @@
     state.disposables.push(client.onMessage?.('historical-comparison-references', handleReferences));
     state.disposables.push(client.onMessage?.('historical-comparison-progress', handleProgress));
     state.disposables.push(client.onMessage?.('historical-comparison-error', handleError));
+    state.disposables.push(client.onMessage?.('historical-comparison-cancelled', handleCancelled));
     client.registerEntityRuntime?.({
       entityKind: ENTITY_KIND,
       entityId: ENTITY_ID,

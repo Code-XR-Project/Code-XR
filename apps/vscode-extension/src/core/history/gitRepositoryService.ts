@@ -7,6 +7,7 @@ import {
     isDirectoryAnalysisFile,
     shouldIgnoreDirectoryName,
 } from '../analysis/watchers/analysisFilePolicy';
+import { currentLaunchSignal } from '../analysis/launch/launchControl';
 import type {
     ComparisonSource,
     GitReferenceType,
@@ -18,6 +19,21 @@ const execFile = promisify(childProcess.execFile);
 const MAX_SNAPSHOT_FILES = 5000;
 const MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024;
 const MAX_SINGLE_FILE_BYTES = 8 * 1024 * 1024;
+/** One git command longer than this is killed and reported (HIST-7, EVO-3). */
+export const GIT_COMMAND_TIMEOUT_MS = 180_000;
+
+/** The error a failed git command is reported with: timeout and cancel get their own codes. */
+function describeGitFailure(error: unknown): Error {
+    const failure = error as { name?: string; killed?: boolean; code?: unknown; message?: string } | null;
+    if (failure?.name === 'AbortError' || failure?.code === 'ABORT_ERR') {
+        return new Error('git-command-cancelled');
+    }
+    if (failure?.killed) {
+        return new Error(`git-command-timeout: a git command took more than ${GIT_COMMAND_TIMEOUT_MS / 1000} s`);
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return new Error(`git-command-failed: ${message}`);
+}
 
 interface GitCommandResult {
     stdout: string;
@@ -527,18 +543,22 @@ export class GitRepositoryService {
 
     private async runGit(cwd: string, args: string[]): Promise<GitCommandResult> {
         try {
+            // The job's signal (if this runs inside one) kills git on Cancel;
+            // the timeout stops a command that hangs on a network drive or a
+            // lazy fetch (HIST-7, EVO-3).
             const result = await execFile('git', ['-C', cwd, ...args], {
                 windowsHide: true,
                 maxBuffer: 16 * 1024 * 1024,
                 encoding: 'utf8',
+                timeout: GIT_COMMAND_TIMEOUT_MS,
+                signal: currentLaunchSignal(),
             });
             return {
                 stdout: result.stdout,
                 stderr: result.stderr,
             };
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`git-command-failed: ${message}`);
+            throw describeGitFailure(error);
         }
     }
 
@@ -559,10 +579,12 @@ export class GitRepositoryService {
                     windowsHide: true,
                     maxBuffer: MAX_SNAPSHOT_BYTES + (16 * 1024 * 1024),
                     encoding: 'buffer',
+                    timeout: GIT_COMMAND_TIMEOUT_MS,
+                    signal: currentLaunchSignal(),
                 },
                 (error, stdout) => {
                     if (error) {
-                        reject(new Error(`git-command-failed: ${error.message}`));
+                        reject(describeGitFailure(error));
                         return;
                     }
                     resolve(Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout));

@@ -19,6 +19,10 @@
     // render() runs before the panel exists (activate with no movie) and during
     // deactivate, so every node here is optional all the way down.
     refs.playButton?.querySelector?.('a-text')?.setAttribute?.('value', state.playing ? 'Pause' : 'Play');
+    // One button, two separate actions (EVO-2): while a movie is being
+    // generated it cancels the generation (the previous movie is kept);
+    // otherwise it clears the movie.
+    refs.clearButton?.querySelector?.('a-text')?.setAttribute?.('value', state.jobRunning ? 'Cancel' : 'Clear movie');
   }
 
   function updateNowShowing(frame, frameCount) {
@@ -245,6 +249,36 @@
     client()?.sendMessage?.('project-evolution-start', request);
   }
 
+  function clearOrCancel() {
+    if (state.jobRunning) {
+      cancelGeneration();
+      return;
+    }
+    clearMovie();
+  }
+
+  function cancelGeneration() {
+    setStatus('Cancelling the project evolution generation...', 'info');
+    if (!client()?.sendMessage?.('project-evolution-cancel', {})) {
+      setStatus('Could not reach VS Code to cancel the generation.', 'error');
+    }
+  }
+
+  // The server stopped the generation (any participant pressed Cancel). The
+  // movie generated before it, if any, is still the current one: show it again.
+  function handleCancelled(message) {
+    var payload = unwrapPayload(message) || {};
+    var wasGenerating = state.jobRunning;
+    state.generating = false;
+    state.jobRunning = false;
+    renderGenerationProgress({ state: 'idle' });
+    setStatus(payload.message || 'Project evolution generation cancelled.', 'info');
+    render();
+    if (wasGenerating && state.result && isEvolutionModeActiveOrActivating()) {
+      void Promise.resolve(seek(state.frameIndex)).catch(function () {});
+    }
+  }
+
   function clearMovie() {
     // Clearing deletes server-side files; offline it would only wipe the
     // replay this export exists to provide. With exported git payloads,
@@ -268,6 +302,16 @@
   function handleReferences(message) {
     var payload = unwrapPayload(message);
     state.references = payload || null;
+    // A participant who opens the panel mid-generation sees the room's job,
+    // not an idle panel with a Generate button that would only answer "busy".
+    var job = payload && payload.job;
+    if (job && (job.state === 'running' || job.state === 'queued')) {
+      state.jobRunning = true;
+      refs.picker?.setReferences(state.references);
+      setStatus('A project evolution movie is being generated for the room...', 'info');
+      render();
+      return;
+    }
     refs.picker?.setReferences(state.references);
     var count = (refs.picker?.getVisibleSources?.() || []).filter(function (source) {
       return source && source.kind === 'gitRef';
@@ -289,12 +333,22 @@
     setStatus(payload.message || '', payload.state === 'error' ? 'error' : 'info');
     // Drives both the progress bar and whether the panel reserves room for it.
     state.generating = payload.state === 'analyzing' && Number(payload.frameCount) > 0;
+    // Any analyzing step, the timeline resolution included, is a job the
+    // room can cancel.
+    state.jobRunning = payload.state === 'analyzing';
     renderGenerationProgress(payload);
     render();
   }
 
   function handleError(message) {
     var payload = unwrapPayload(message);
+    // "Busy" answers only this participant; the room's job is still running.
+    if (payload && payload.code !== 'project-evolution-busy') {
+      state.jobRunning = false;
+      state.generating = false;
+      renderGenerationProgress({ state: 'idle' });
+      render();
+    }
     state.pendingFrameApply?.reject?.(new Error(payload.message || 'Project evolution failed.'));
     state.pendingFrameApply = null;
     stop();

@@ -4,7 +4,8 @@ import {
     CollaborationMessage,
 } from '../collaboration/collaborationRoomServer';
 import { GitAnalysisSourceError } from '../../history/gitAnalysisEligibility';
-import { HistoricalComparisonRequest } from '../../history/historicalComparisonModels';
+import { JobCancelledError, JobTicket } from '../../analysis/launch/jobRunner';
+import { HistoricalComparisonRequest, HistoricalComparisonResult } from '../../history/historicalComparisonModels';
 import { analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../analysis/watchers/sessionWatcherManager';
 import { readJsonBody, sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
@@ -82,10 +83,6 @@ export class HistoricalComparisonBridge {
             sendErrorResponse(res, 404, 'Historical comparison is not available for this session.');
             return;
         }
-        if (this.historicalComparisonService.isBusy()) {
-            sendErrorResponse(res, 409, 'A historical comparison is already running.');
-            return;
-        }
         let request: HistoricalComparisonRequest;
         try {
             const payload = await readJsonBody(req);
@@ -97,11 +94,23 @@ export class HistoricalComparisonBridge {
             sendErrorResponse(res, 400, 'Invalid request body');
             return;
         }
-        sendJsonResponse(res, 202, { accepted: true });
+        // Reserved with no await between the check and the take (HIST-9).
+        const service = this.historicalComparisonService;
+        const ticket = service.reserveComparison(request);
+        if (!ticket) {
+            sendErrorResponse(res, 409, 'A historical comparison is already running.');
+            return;
+        }
+        sendJsonResponse(res, 202, { accepted: true, jobId: ticket.id });
         void (async () => {
             try {
-                await SessionWatcherManager.reconcileSession(this.host.sessionId);
-                const result = await this.historicalComparisonService!.compare(request, (progress) => {
+                try {
+                    await SessionWatcherManager.reconcileSession(this.host.sessionId);
+                } catch (error) {
+                    ticket.release();
+                    throw error;
+                }
+                const result = await service.runComparison(ticket, request, (progress) => {
                     this.host.notifyLivePanelHistoricalProgress(progress);
                 });
                 this.host.notifyLivePanelHistoricalUpdated(result.revision);
@@ -129,6 +138,28 @@ export class HistoricalComparisonBridge {
         return true;
     }
 
+    /** Stops the running comparison for the whole room; the previous result stays. */
+    public handleHistoricalComparisonCancelMessage(
+        messageContext: CollaborationApplicationMessageContext,
+    ): boolean {
+        if (!this.historicalComparisonService) {
+            return false;
+        }
+        const job = this.historicalComparisonService.getJobStatus();
+        if (!this.historicalComparisonService.cancelComparison()) {
+            messageContext.send({
+                type: 'historical-comparison-cancelled',
+                payload: { message: 'No historical comparison is running.', jobId: job?.id ?? null },
+            });
+            return true;
+        }
+        messageContext.broadcast({
+            type: 'historical-comparison-cancelled',
+            payload: { message: 'Historical comparison cancelled.', jobId: job?.id ?? null },
+        });
+        return true;
+    }
+
     public handleHistoricalComparisonStartMessage(
         messageContext: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
@@ -136,7 +167,15 @@ export class HistoricalComparisonBridge {
         if (!this.historicalComparisonService) {
             return false;
         }
-        if (this.historicalComparisonService.isBusy()) {
+        const request: HistoricalComparisonRequest = {
+            leftSourceId: String(message.payload?.leftSourceId || ''),
+            rightSourceId: String(message.payload?.rightSourceId || ''),
+        };
+        // Reserve BEFORE the first await: two starts can never both pass, and
+        // the loser hears "busy" alone (HIST-9, LAUNCHER-11).
+        const service = this.historicalComparisonService;
+        const ticket = service.reserveComparison(request);
+        if (!ticket) {
             messageContext.send({
                 type: 'historical-comparison-error',
                 payload: {
@@ -146,15 +185,6 @@ export class HistoricalComparisonBridge {
             });
             return true;
         }
-        const request: HistoricalComparisonRequest = {
-            leftSourceId: String(message.payload?.leftSourceId || ''),
-            rightSourceId: String(message.payload?.rightSourceId || ''),
-        };
-        analysisRefreshCoordinator.setRefreshEnabled(
-            this.host.sessionId,
-            'historical-compare',
-            request.leftSourceId === 'working-copy' || request.rightSourceId === 'working-copy',
-        );
         const currentView = this.host.getAnalysisViewState();
         if (currentView?.mode !== 'historical-compare') {
             this.host.changeAnalysisViewMode('historical-compare', 'historical.selection');
@@ -163,7 +193,19 @@ export class HistoricalComparisonBridge {
             ? currentView
             : this.host.getAnalysisViewState();
         const operationViewRevision = operationView?.viewRevision;
-        void (async () => {
+        void this.runComparisonJob(messageContext, ticket, request, operationViewRevision);
+        return true;
+    }
+
+    /** Runs a reserved comparison and publishes its result, or its error, to the room. */
+    private async runComparisonJob(
+        messageContext: CollaborationApplicationMessageContext,
+        ticket: JobTicket<HistoricalComparisonResult>,
+        request: HistoricalComparisonRequest,
+        operationViewRevision: number | undefined,
+    ): Promise<void> {
+        const service = this.historicalComparisonService!;
+        try {
             try {
                 await SessionWatcherManager.reconcileSession(
                     this.host.sessionId,
@@ -172,40 +214,54 @@ export class HistoricalComparisonBridge {
                     this.host.sessionId,
                     'historical-compare',
                 );
-                const result = await this.historicalComparisonService!.compare(request, (progress) => {
-                    messageContext.broadcast({
-                        type: 'historical-comparison-progress',
-                        payload: progress,
-                    });
-                });
-                messageContext.upsertSharedEntity({
-                    entityKind: 'historical-comparison',
-                    entityId: 'main',
-                    mode: 'historical-compare',
-                    result,
-                });
-                analysisRefreshCoordinator.setSnapshotAvailable(
-                    this.host.sessionId,
-                    'historical-compare',
-                    true,
-                );
-                if (operationViewRevision !== undefined) {
-                    this.host.updateAnalysisViewIfCurrent(
-                        'historical-compare',
-                        operationViewRevision,
-                        'historical.mapping',
-                    );
-                }
             } catch (error) {
-                if (error instanceof GitAnalysisSourceError) {
-                    await broadcastFilteredGitReferences(this.host, messageContext);
-                }
-                messageContext.broadcast({
-                    type: 'historical-comparison-error',
-                    payload: describeBridgeError(error, 'comparison-failed'),
-                });
+                ticket.release();
+                throw error;
             }
-        })();
-        return true;
+            const result = await service.runComparison(ticket, request, (progress) => {
+                messageContext.broadcast({
+                    type: 'historical-comparison-progress',
+                    payload: progress,
+                });
+            });
+            // The live-refresh flag describes the request that SUCCEEDED;
+            // a failed request no longer leaves it describing itself
+            // while the room still shows the previous one (HIST-9).
+            analysisRefreshCoordinator.setRefreshEnabled(
+                this.host.sessionId,
+                'historical-compare',
+                request.leftSourceId === 'working-copy' || request.rightSourceId === 'working-copy',
+            );
+            messageContext.upsertSharedEntity({
+                entityKind: 'historical-comparison',
+                entityId: 'main',
+                mode: 'historical-compare',
+                result,
+            });
+            analysisRefreshCoordinator.setSnapshotAvailable(
+                this.host.sessionId,
+                'historical-compare',
+                true,
+            );
+            if (operationViewRevision !== undefined) {
+                this.host.updateAnalysisViewIfCurrent(
+                    'historical-compare',
+                    operationViewRevision,
+                    'historical.mapping',
+                );
+            }
+        } catch (error) {
+            if (error instanceof JobCancelledError && error.reason !== 'timeout') {
+                // The cancel handler tells the room itself.
+                return;
+            }
+            if (error instanceof GitAnalysisSourceError) {
+                await broadcastFilteredGitReferences(this.host, messageContext);
+            }
+            messageContext.broadcast({
+                type: 'historical-comparison-error',
+                payload: describeBridgeError(error, 'comparison-failed'),
+            });
+        }
     }
 }

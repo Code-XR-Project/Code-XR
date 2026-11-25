@@ -40,6 +40,27 @@
     }
   }
 
+  function setComparisonJobRunning(running) {
+    state.jobRunning = !!running;
+    refs.compareButton?.querySelector?.('a-text')?.setAttribute?.('value', state.jobRunning ? 'Cancel' : 'Compare');
+  }
+
+  function compareOrCancel() {
+    if (state.jobRunning && !getClient()?.isOfflineExport?.()) {
+      setStatus('Cancelling the historical comparison...', 'info');
+      if (!getClient()?.sendMessage?.('historical-comparison-cancel', {})) {
+        setStatus('Could not reach VS Code to cancel the comparison.', 'error');
+      }
+      return;
+    }
+    startComparison();
+  }
+
+  function handleCancelled(message) {
+    setComparisonJobRunning(false);
+    setStatus(message?.payload?.message || 'Historical comparison cancelled.', 'info');
+  }
+
   function startComparison() {
     // Offline with exported git payloads, Compare works for real: validate
     // the selection like online and compose the comparison locally. Without
@@ -121,6 +142,12 @@
     // Category/paging now live inside the shared picker; the panel only feeds
     // it the references and keeps the selection detail.
     renderReferences();
+    var job = state.references?.job;
+    if (job && (job.state === 'running' || job.state === 'queued')) {
+      setComparisonJobRunning(true);
+      setStatus('A historical comparison is running for the room...', 'info');
+      return;
+    }
     var excludedCount = Number(state.references?.eligibility?.excludedSources?.length || 0);
     setStatus(
       excludedCount
@@ -131,18 +158,25 @@
   }
 
   function handleProgress(message) {
+    setComparisonJobRunning(message?.payload?.state === 'analyzing');
     setStatus(message?.payload?.message || 'Analyzing...', 'info');
   }
 
   function handleError(message) {
     var code = String(message?.payload?.code || '');
     var rawMessage = String(message?.payload?.message || '');
+    // "Busy" answers only this participant: the room's comparison runs on.
+    if (code !== 'comparison-busy') {
+      setComparisonJobRunning(false);
+    }
     var friendlyMessage = code === 'references-unavailable' || /not a git repository|git-command-failed/i.test(rawMessage)
       ? 'History compare requires an analysis inside a local Git repository.'
       : code === 'comparison-busy'
         ? 'Another comparison is already being generated.'
-        : code === 'comparison-source-no-data'
+        : code === 'comparison-source-no-data' || code === 'comparison-timeout'
           ? rawMessage
+        : /git-command-timeout|revision-analysis-timeout/i.test(rawMessage)
+          ? 'A Git or analysis step took too long and was stopped. Please try again.'
         : 'Historical comparison failed. Please try again.';
     setStatus(friendlyMessage, 'error');
   }
@@ -153,6 +187,7 @@
     if (!snapshot || !snapshot.result) {
       return;
     }
+    setComparisonJobRunning(false);
     if (!isHistoricalModeActiveOrActivating()) {
       state.result = snapshot.result;
       return;

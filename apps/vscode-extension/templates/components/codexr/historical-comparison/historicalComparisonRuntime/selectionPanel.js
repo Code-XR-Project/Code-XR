@@ -61,7 +61,10 @@
     refs.sourceRoot.appendChild(buildButton('Back', '-0.75 -2.4 0.02', 1.3, 0.38, function () {
       root.CodeXRAnalysisModeRuntime?.openSelector?.();
     }, '#475569'));
-    refs.sourceRoot.appendChild(buildButton('Compare', '0.75 -2.4 0.02', 1.3, 0.38, startComparison, '#be123c'));
+    // Reads "Cancel" while a comparison runs for the room (S6): the same
+    // place, a separate action, the previous comparison is kept.
+    refs.compareButton = buildButton('Compare', '0.75 -2.4 0.02', 1.3, 0.38, compareOrCancel, '#be123c');
+    refs.sourceRoot.appendChild(refs.compareButton);
 
     refs.panel.appendChild(refs.sourceRoot);
     refs.panel.appendChild(refs.status);

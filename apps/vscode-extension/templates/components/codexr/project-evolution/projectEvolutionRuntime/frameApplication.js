@@ -68,6 +68,7 @@
     }
     var previousRevision = Number(state.result?.revision || 0);
     state.result = shared.result;
+    state.jobRunning = false;
     state.frameIndex = 0;
     if (previousRevision && previousRevision !== Number(shared.result.revision || 0)) {
       releaseEvolutionVisualization();
@@ -149,6 +150,9 @@
 
   function applyClearedState(message) {
     invalidateEvolutionView('project-evolution-cleared');
+    state.jobRunning = false;
+    state.generating = false;
+    renderGenerationProgress({ state: 'idle' });
     stop();
     state.result = null;
     state.frameIndex = 0;
