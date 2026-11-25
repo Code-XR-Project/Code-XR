@@ -69,8 +69,8 @@
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 55,
-    "complexity.over10": 81,
+    "functions.over80Lines": 54,
+    "complexity.over10": 80,
     "complexity.over15": 31,
     "complexity.over20": 10,
     "complexity.over30": 6,
@@ -140,9 +140,9 @@
     }
   },
   "informational": {
-    "src.files": 371,
-    "src.lines": 52571,
-    "src.functions": 2834,
+    "src.files": 372,
+    "src.lines": 52596,
+    "src.functions": 2838,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
