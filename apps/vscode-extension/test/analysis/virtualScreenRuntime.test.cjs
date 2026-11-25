@@ -475,6 +475,11 @@ test('grab-and-reach: the grabbing hand\'s stick pushes/pulls the screen per fra
     // The per-frame depth log died with the per-event step: adjustDragDepth
     // now runs every frame and must not spam the console.
     assert.doesNotMatch(runtimeSource, /VIRTUAL_SCREEN: depth update/);
+    // Same rule for the follow loop and the move drag (1.2.1, W2-57): both run
+    // per animation frame / pointer move and must not log on the success path.
+    assert.doesNotMatch(runtimeSource, /\[CodeXR\]\[VirtualScreen\] applyFollowTransform', \{/);
+    assert.doesNotMatch(runtimeSource, /VIRTUAL_SCREEN: move update/);
+    assert.doesNotMatch(runtimeSource, /VIRTUAL_SCREEN: drag intersection missing/);
 });
 
 test('a controller drag claims its stick and owns the pointer for its duration', () => {
@@ -767,4 +772,115 @@ test('a viewer auto-joins by default and settles to idle when the broadcast ends
     // A new broadcast pulls them in again.
     runtime.applySharedScreenState(activeEntity);
     assert.equal(runtime.getState().broadcastStatus, 'connecting');
+});
+
+// Characterization of the screen chrome (refreshUi, W5-50): a real runtime
+// instance on a recording fake A-Frame document. Every attribute write,
+// raycaster-class toggle and button glyph is recorded while the public API
+// walks the screen through its states (expanded/minimized, look-at, follow,
+// size, a foreign broadcast arriving and ending, fixed content). The
+// transcript is hashed, so refreshUi can be split into flags / visibility /
+// glyphs / styles with proof that every write happens identically and in
+// the same order.
+function screenChromeTranscript(config, steps) {
+    const log = [];
+    const elements = [];
+    const vector = () => ({ x: 0, y: 0, z: 0, set() {}, copy() {} });
+    function fakeEntity(tag) {
+        const entity = {
+            tagName: tag, style: {}, dataset: {}, attrs: {}, children: [], isConnected: true, hasLoaded: true, components: {},
+            object3D: { position: vector(), rotation: vector(), scale: vector(), quaternion: { copy() {} }, getWorldPosition() {}, getWorldQuaternion() {}, updateMatrixWorld() {} },
+            classList: {
+                set: new Set(),
+                add(name) { this.set.add(name); },
+                remove(name) { this.set.delete(name); },
+                contains(name) { return this.set.has(name); },
+                toggle(name, force) {
+                    if (force) { this.set.add(name); } else { this.set.delete(name); }
+                    log.push(`${entity.attrs.id || tag} class ${name}=${!!force}`);
+                    return !!force;
+                },
+            },
+            setAttribute(key, value) {
+                this.attrs[key] = value;
+                log.push(`${this.attrs.id || tag} ${key}=${typeof value === 'object' ? JSON.stringify(value) : value}`);
+            },
+            getAttribute(key) { return this.attrs[key]; },
+            removeAttribute(key) { delete this.attrs[key]; },
+            appendChild(child) { this.children.push(child); return child; },
+            removeChild() {}, remove() {}, addEventListener() {}, removeEventListener() {}, emit() {},
+            querySelector: () => null, querySelectorAll: () => [],
+            play: () => Promise.resolve(), pause() {}, load() {},
+        };
+        elements.push(entity);
+        return entity;
+    }
+    const scene = fakeEntity('a-scene');
+    const win = {
+        document: {
+            createElement: fakeEntity,
+            querySelector: (selector) => (selector === 'a-scene' ? scene : null),
+            querySelectorAll: () => [], getElementById: () => null, addEventListener() {}, body: fakeEntity('body'),
+        },
+        location: { protocol: 'https:', host: 'localhost:8443', hostname: 'localhost' },
+        isSecureContext: true,
+        setTimeout: () => 0, clearTimeout() {}, requestAnimationFrame: () => 0, cancelAnimationFrame() {}, addEventListener() {},
+        console: { log() {}, warn() {}, error() {} },
+    };
+    const runtime = runtimeModule.createRuntime(win);
+    const transcript = [];
+    const record = (label, action) => {
+        log.length = 0;
+        action(runtime);
+        const glyphs = elements
+            .filter((entity) => entity.__codexrGlyph !== undefined)
+            .map((entity) => `${entity.attrs.id || entity.tagName}:${entity.__codexrGlyph}`);
+        transcript.push(`## ${label}`, ...log, `glyphs ${glyphs.join(' | ')}`);
+    };
+    record('init', (screen) => screen.init(config));
+    for (const [label, action] of steps) {
+        record(label, action);
+    }
+    return transcript;
+}
+
+const foreignBroadcast = {
+    entityKind: 'screen', entityId: 'default', screenId: 'default', broadcastStatus: 'live', hasAudio: false,
+    broadcast: { active: true, broadcasterPeerId: 'peer-sender', broadcasterName: 'Ana', hasAudio: false, sourceKind: 'screen' },
+};
+
+// [transcript lines, sha256 of the transcript] per screen kind.
+const SCREEN_CHROME_CHARACTERIZATION = {
+    broadcast: [2454, '07402aa5766f39fb0e88a8b0f72d609153e3635634345ac3c6754ebdfa02d20b'],
+    fixed: [972, 'f0765c01e853932d327596bc75ac6377dc78082ad1d75d09183cbc08655e699b'],
+};
+
+test('the screen chrome renders identically through every state (characterization)', () => {
+    const broadcastScreen = screenChromeTranscript({ screenId: 'default', broadcastEnabled: true }, [
+        ['minimize', (screen) => screen.minimize()],
+        ['expand', (screen) => screen.expand()],
+        ['look-at off', (screen) => screen.toggleLookAtCamera()],
+        ['follow on', (screen) => screen.toggleFollow()],
+        ['follow off', (screen) => screen.toggleFollow()],
+        ['bigger', (screen) => screen.adjustSize(1)],
+        ['renamed', (screen) => screen.setDisplayName('Board')],
+        ['foreign broadcast', (screen) => screen.applySharedScreenState(foreignBroadcast)],
+        ['minimized during broadcast', (screen) => screen.minimize()],
+        ['expanded during broadcast', (screen) => screen.expand()],
+        ['broadcast ends', (screen) => screen.applySharedScreenState({
+            ...foreignBroadcast, broadcastStatus: 'idle', broadcast: { active: false, broadcasterPeerId: '', hasAudio: false, sourceKind: 'screen' },
+        })],
+    ]);
+    runtimeModule.registerContentProvider('characterization-fixed', () => null);
+    const fixedScreen = screenChromeTranscript({
+        screenId: 'fixed-characterization', contentKind: 'fixed', contentProviderId: 'characterization-fixed',
+    }, [
+        ['minimize', (screen) => screen.minimize()],
+        ['expand', (screen) => screen.expand()],
+    ]);
+    const digest = (lines) => require('node:crypto').createHash('sha256').update(lines.join('\n')).digest('hex');
+    assert.deepEqual(
+        { broadcast: [broadcastScreen.length, digest(broadcastScreen)], fixed: [fixedScreen.length, digest(fixedScreen)] },
+        SCREEN_CHROME_CHARACTERIZATION,
+    );
 });

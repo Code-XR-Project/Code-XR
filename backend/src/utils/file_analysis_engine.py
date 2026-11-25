@@ -16,6 +16,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 from babia_path_utils import build_tree_path, normalize_output_paths
 from class_counter_analyzer import analyze_classes
+from file_metric_summary import get_file_size
 from line_metric_utils import build_line_metrics
 from lizard_analyzer import analyze_file as analyze_with_lizard
 from metric_language_contract import get_metric_language
@@ -35,13 +36,6 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
-
-
-def _get_file_size(file_path: str) -> int:
-    try:
-        return os.path.getsize(file_path)
-    except OSError:
-        return 0
 
 
 def _get_file_timestamp(file_path: str) -> str:
@@ -168,7 +162,7 @@ def build_file_snapshot(file_path: str) -> Dict[str, Any]:
         'maxFunctionLines': function_summary['maxFunctionLines'],
         'averageFunctionNestingDepth': function_summary['averageFunctionNestingDepth'],
         'maxFunctionNestingDepth': function_summary['maxFunctionNestingDepth'],
-        'fileSizeBytes': _get_file_size(file_path),
+        'fileSizeBytes': get_file_size(file_path),
         'functions': normalized_functions,
     }
 

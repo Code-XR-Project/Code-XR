@@ -586,20 +586,6 @@
         .add(cameraWorldPosition.clone());
       const targetWorldQuaternion = computeFaceUserQuaternion(targetWorldPosition, cameraWorldPosition);
       const applied = applyWorldTransform(refs.root, targetWorldPosition, targetWorldQuaternion);
-      console.log('[CodeXR][VirtualScreen] applyFollowTransform', {
-        screenId: getScreenId(),
-        applied,
-        cameraWorldPosition: {
-          x: cameraWorldPosition.x,
-          y: cameraWorldPosition.y,
-          z: cameraWorldPosition.z,
-        },
-        targetWorldPosition: {
-          x: targetWorldPosition.x,
-          y: targetWorldPosition.y,
-          z: targetWorldPosition.z,
-        },
-      });
       if (applied && updateLegendSide()) {
         layout();
       }

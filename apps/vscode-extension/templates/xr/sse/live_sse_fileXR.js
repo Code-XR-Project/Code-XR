@@ -1,4 +1,15 @@
 
+    // Debug mode - set to true to trace live reload in the browser console.
+    // Same convention as the LivePanel scripts (DEBUG_MODE + debugLog), with
+    // page-unique names: this is a classic script sharing the page's global scope.
+    const LIVE_RELOAD_DEBUG_MODE = false;
+
+    function liveReloadDebugLog(...args) {
+      if (LIVE_RELOAD_DEBUG_MODE) {
+        console.log(...args);
+      }
+    }
+
     function hasOfflineExportMarker() {
       try {
         const node = document.getElementById('codexr-tooling-config-virtual-screen');
@@ -23,9 +34,9 @@
     let isXRMode = false;
 
     if (liveReloadDisabled) {
-      console.log(' Offline export detected: live reload disabled.');
+      liveReloadDebugLog(' Offline export detected: live reload disabled.');
     } else {
-      console.log(' Setting up EventSource for unified live reload...');
+      liveReloadDebugLog(' Setting up EventSource for unified live reload...');
       // Defensive compatibility for copies produced before the synchronous
       // marker existed. Current exports never open the channel in the first
       // place; older ones still close it as soon as their manifest is found.
@@ -33,7 +44,7 @@
         .then((response) => (response.ok ? response.json() : null))
         .then((manifest) => {
           if (manifest && manifest.kind === 'codexr-export') {
-            console.log(' Offline export detected: live reload disabled.');
+            liveReloadDebugLog(' Offline export detected: live reload disabled.');
             eventSource.close();
           }
         })
@@ -77,7 +88,7 @@
     // Check if we're in an A-Frame scene
     function checkXRMode() {
       isXRMode = !!document.querySelector('a-scene');
-      console.log(isXRMode ? ' XR mode detected' : ' Standard mode detected');
+      liveReloadDebugLog(isXRMode ? ' XR mode detected' : ' Standard mode detected');
       return isXRMode;
     }
 
@@ -111,7 +122,7 @@
       if (analysisTableRuntime && typeof analysisTableRuntime.renormalizeAll === 'function') {
         const updated = analysisTableRuntime.renormalizeAll(reason);
         if (updated > 0) {
-          console.log('[CodeXR] Re-normalized chart containment:', updated);
+          liveReloadDebugLog('[CodeXR] Re-normalized chart containment:', updated);
         }
       }
 
@@ -121,7 +132,7 @@
     }
 
     eventSource.onopen = function() {
-      console.log(' EventSource connection established');
+      liveReloadDebugLog(' EventSource connection established');
     };
 
     eventSource.onerror = function(err) {
@@ -135,7 +146,7 @@
         if (liveReloadDisabled) {
           return;
         }
-        console.log(' Attempting to reconnect...');
+        liveReloadDebugLog(' Attempting to reconnect...');
         eventSource.close();
         new EventSource('/events');
       }, 3000);
@@ -144,7 +155,7 @@
 
     // Handle analysis-updated events
     eventSource.addEventListener('analysis-updated', function(event) {
-      console.log(' Received analysis-updated event:', event);
+      liveReloadDebugLog(' Received analysis-updated event:', event);
 
       // Find data entities using all provided selectors
       let dataEntities = [];
@@ -168,7 +179,7 @@
 
       if (dataEntities.length > 0) {
         const timestamp = Date.now();
-        console.log(' Refreshing ' + dataEntities.length + ' data entities');
+        liveReloadDebugLog(' Refreshing ' + dataEntities.length + ' data entities');
         
         // Update each data entity
         dataEntities.forEach(dataEntity => {
@@ -195,7 +206,7 @@
             // Trigger data refresh event after a short delay
             setTimeout(() => {
               dataEntity.emit('data-loaded', {});
-              console.log(' Data entity refreshed');
+              liveReloadDebugLog(' Data entity refreshed');
             }, 100);
           }
         });
@@ -232,8 +243,8 @@
 
     // Handle dataRefresh events
     eventSource.addEventListener('dataRefresh', function(event) {
-      console.log(' Received dataRefresh event:', event);
-      console.log(' Reloading data.json for XR chart refresh...');
+      liveReloadDebugLog(' Received dataRefresh event:', event);
+      liveReloadDebugLog(' Reloading data.json for XR chart refresh...');
       
       // Simple approach: just reload the data entities with cache busting
       // A-Frame will automatically re-render charts with fresh data
@@ -242,7 +253,7 @@
       
       if (dataEntities.length > 0) {
         const timestamp = Date.now();
-        console.log(' Refreshing ' + dataEntities.length + ' data entities with cache busting');
+        liveReloadDebugLog(' Refreshing ' + dataEntities.length + ' data entities with cache busting');
         
         dataEntities.forEach(dataEntity => {
           const queryjson = dataEntity.getAttribute('babia-queryjson');
@@ -264,7 +275,7 @@
               dataEntity.setAttribute('babia-queryjson', newAttr);
             }
             
-            console.log(' Data entity refreshed with cache busting');
+            liveReloadDebugLog(' Data entity refreshed with cache busting');
           }
         });
 
@@ -290,7 +301,7 @@
           }, 300);
         }
         
-        console.log(' XR data refresh completed - A-Frame will handle chart updates');
+        liveReloadDebugLog(' XR data refresh completed - A-Frame will handle chart updates');
       } else {
         console.warn(' No babia-queryjson data entities found for refresh');
       }
@@ -302,16 +313,16 @@
 
     // Handle general reload messages
     eventSource.onmessage = function(event) {
-      console.log('Generic message received:', event.data);
+      liveReloadDebugLog('Generic message received:', event.data);
       
       // Skip reload if in XR mode
       if (checkXRMode()) {
-        console.log(' Blocking page reload in XR mode');
+        liveReloadDebugLog(' Blocking page reload in XR mode');
         return false;
       }
       
       if (event.data === 'reload') {
-        console.log(' Live reload triggered, refreshing page...');
+        liveReloadDebugLog(' Live reload triggered, refreshing page...');
         window.location.reload();
       }
     };

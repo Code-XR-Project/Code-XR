@@ -83,6 +83,10 @@ def _read_source_lines(file_path: str) -> List[str]:
         return []
 
 
+_OPENING_BRACKETS = ('(', '[', '{', '<')
+_CLOSING_TO_OPENING = {')': '(', ']': '[', '}': '{', '>': '<'}
+
+
 def _count_top_level_arguments(argument_text: str) -> int:
     text = (argument_text or '').strip()
     if not text or text.lower() == 'void':
@@ -90,35 +94,23 @@ def _count_top_level_arguments(argument_text: str) -> int:
 
     count = 0
     token: List[str] = []
-    round_depth = 0
-    square_depth = 0
-    curly_depth = 0
-    angle_depth = 0
+    depths = dict.fromkeys(_OPENING_BRACKETS, 0)
 
     for character in text:
-        if character == ',' and not any((round_depth, square_depth, curly_depth, angle_depth)):
+        if character == ',' and not any(depths.values()):
             if ''.join(token).strip():
                 count += 1
             token = []
             continue
 
         token.append(character)
-        if character == '(':
-            round_depth += 1
-        elif character == ')' and round_depth > 0:
-            round_depth -= 1
-        elif character == '[':
-            square_depth += 1
-        elif character == ']' and square_depth > 0:
-            square_depth -= 1
-        elif character == '{':
-            curly_depth += 1
-        elif character == '}' and curly_depth > 0:
-            curly_depth -= 1
-        elif character == '<':
-            angle_depth += 1
-        elif character == '>' and angle_depth > 0:
-            angle_depth -= 1
+        if character in depths:
+            depths[character] += 1
+            continue
+        opening = _CLOSING_TO_OPENING.get(character)
+        # An unmatched closer is ignored rather than driving the depth negative.
+        if opening is not None and depths[opening] > 0:
+            depths[opening] -= 1
 
     if ''.join(token).strip():
         count += 1
@@ -206,6 +198,48 @@ def _resolve_parameter_count(func: Any, extension: str, source_lines: List[str])
     return _count_parameters_from_parenthesized_signature(long_name)
 
 
+def _unsupported_result(file_path: str, message: str) -> Dict[str, Any]:
+    """The five-key envelope for a file Lizard cannot measure."""
+    return {
+        'error': message,
+        'file': {
+            'filePath': file_path,
+            'fileName': os.path.basename(file_path),
+            'nloc': 0,
+            'functionCount': 0,
+        },
+        'functions': [],
+        'metrics': calculate_complexity_metrics([]),
+        'status': 'unsupported',
+    }
+
+
+def _is_unsupported_language_error(error: Exception) -> bool:
+    error_msg = str(error).lower()
+    return 'unsupported' in error_msg or 'unknown' in error_msg or 'not supported' in error_msg
+
+
+def _build_function_record(func: Any, line_offset: int, extension: str, source_lines: List[str]) -> Dict[str, Any]:
+    line_start = (getattr(func, 'start_line', 0) or 0) + line_offset
+    line_end = (getattr(func, 'end_line', line_start) or line_start) + line_offset
+    line_count = getattr(func, 'nloc', 0) or max((line_end - line_start) + 1, 0)
+    complexity = getattr(func, 'cyclomatic_complexity', 0) or 0
+    parameters = _resolve_parameter_count(func, extension, source_lines)
+    max_nesting_depth = int(getattr(func, 'max_nesting_depth', 0) or 0)
+
+    return {
+        'name': getattr(func, 'name', 'unknown') or 'unknown',
+        'longName': getattr(func, 'long_name', '') or getattr(func, 'name', 'unknown') or 'unknown',
+        'lineStart': line_start,
+        'lineEnd': line_end,
+        'lineCount': line_count,
+        'complexity': complexity,
+        'parameters': parameters,
+        'maxNestingDepth': max_nesting_depth,
+        'cyclomaticDensity': round(complexity / max(line_count, 1), 3),
+    }
+
+
 def analyze_file(file_path: str) -> Dict[str, Any]:
     if not os.path.exists(file_path):
         return {
@@ -220,18 +254,7 @@ def analyze_file(file_path: str) -> Dict[str, Any]:
     try:
         analysis = FILE_ANALYZER(analysis_path)
         if analysis is None:
-            return {
-                'error': f'Lizard could not analyze file: {file_path}',
-                'file': {
-                    'filePath': file_path,
-                    'fileName': os.path.basename(file_path),
-                    'nloc': 0,
-                    'functionCount': 0,
-                },
-                'functions': [],
-                'metrics': calculate_complexity_metrics([]),
-                'status': 'unsupported',
-            }
+            return _unsupported_result(file_path, f'Lizard could not analyze file: {file_path}')
 
         file_info = {
             'filePath': file_path,
@@ -240,28 +263,10 @@ def analyze_file(file_path: str) -> Dict[str, Any]:
             'functionCount': len(getattr(analysis, 'function_list', []) or []),
         }
 
-        functions = []
-        for func in getattr(analysis, 'function_list', []) or []:
-            line_start = (getattr(func, 'start_line', 0) or 0) + line_offset
-            line_end = (getattr(func, 'end_line', line_start) or line_start) + line_offset
-            line_count = getattr(func, 'nloc', 0) or max((line_end - line_start) + 1, 0)
-            complexity = getattr(func, 'cyclomatic_complexity', 0) or 0
-            parameters = _resolve_parameter_count(func, extension, source_lines)
-            max_nesting_depth = int(getattr(func, 'max_nesting_depth', 0) or 0)
-
-            functions.append(
-                {
-                    'name': getattr(func, 'name', 'unknown') or 'unknown',
-                    'longName': getattr(func, 'long_name', '') or getattr(func, 'name', 'unknown') or 'unknown',
-                    'lineStart': line_start,
-                    'lineEnd': line_end,
-                    'lineCount': line_count,
-                    'complexity': complexity,
-                    'parameters': parameters,
-                    'maxNestingDepth': max_nesting_depth,
-                    'cyclomaticDensity': round(complexity / max(line_count, 1), 3),
-                }
-            )
+        functions = [
+            _build_function_record(func, line_offset, extension, source_lines)
+            for func in getattr(analysis, 'function_list', []) or []
+        ]
 
         return {
             'file': file_info,
@@ -270,21 +275,10 @@ def analyze_file(file_path: str) -> Dict[str, Any]:
             'status': 'success',
         }
     except Exception as error:
-        error_msg = str(error).lower()
-        if 'unsupported' in error_msg or 'unknown' in error_msg or 'not supported' in error_msg:
-            return {
-                'error': f'Language not supported by Lizard: {file_path}',
-                'file': {
-                    'filePath': file_path,
-                    'fileName': os.path.basename(file_path),
-                    'nloc': 0,
-                    'functionCount': 0,
-                },
-                'functions': [],
-                'metrics': calculate_complexity_metrics([]),
-                'status': 'unsupported',
-            }
+        if _is_unsupported_language_error(error):
+            return _unsupported_result(file_path, f'Language not supported by Lizard: {file_path}')
 
+        # Deliberately smaller than the unsupported envelope: {error, status} only.
         return {
             'error': str(error),
             'status': 'error',

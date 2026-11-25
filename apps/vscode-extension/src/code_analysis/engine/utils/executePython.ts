@@ -344,7 +344,7 @@ export class ExecutePython {
             ];
 
             console.log(`EXECUTE_PYTHON: Executing file re-analysis with args: ${args.join(' ')}`);
-            const result = await this.executePythonScript('sumaryFiles/file_reanalysis_coordinator.py', args);
+            const result = await this.executePythonScript('summaryFiles/file_reanalysis_coordinator.py', args);
 
             if (result && Array.isArray(result)) {
                 console.log(`EXECUTE_PYTHON:  File re-analysis completed successfully for ${result.length} files`);

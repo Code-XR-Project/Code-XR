@@ -74,10 +74,8 @@
     "complexity.over15": 31,
     "complexity.over20": 10,
     "complexity.over30": 6,
-    "reachability.unreachable": [
-      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts"
-    ],
-    "templates.consoleLog": 117,
+    "reachability.unreachable": [],
+    "templates.consoleLog": 31,
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
@@ -86,10 +84,10 @@
     }
   },
   "informational": {
-    "src.files": 309,
-    "src.lines": 48005,
-    "src.functions": 2619,
-    "src.unreachableLines": 39,
+    "src.files": 308,
+    "src.lines": 47968,
+    "src.functions": 2615,
+    "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",

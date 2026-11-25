@@ -1,6 +1,6 @@
 # CodeXR — Launch media
 
-Screenshots, GIFs and videos for the README and the website. **Nothing here ships inside the VSIX**: `package.json`'s `files` allowlist only picks `resources/favicon.ico`, `resources/icon.*`, `resources/avatars/**` and `resources/languages_icons/color/**` (the SVGs the tree actually uses), so `media/` can never be packaged by accident. `resources/` means "assets the extension uses at runtime"; `media/` means "assets that explain the extension".
+Screenshots, GIFs and videos for the README and the website. **Nothing here ships inside the VSIX**: `package.json`'s `files` allowlist only picks `resources/icon.*`, `resources/avatars/**` and `resources/languages_icons/color/**` (the SVGs the tree actually uses), so `media/` can never be packaged by accident. `resources/` means "assets the extension uses at runtime"; `media/` means "assets that explain the extension".
 
 This file is the inventory of what is actually here, not a wish list. When you add or retake something, update the table it belongs to.
 
