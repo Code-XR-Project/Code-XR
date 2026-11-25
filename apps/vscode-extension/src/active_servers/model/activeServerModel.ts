@@ -53,14 +53,35 @@ export interface ActiveServer {
     customName?: string;
     
     /** Server instance reference for control operations */
-    serverInstance?: any;
+    serverInstance?: ActiveServerRuntime;
     
     /** Additional metadata */
-    metadata?: {
-        host?: string;
-        staticRoot?: string;
-        description?: string;
-    };
+    metadata?: ActiveServerMetadata;
+}
+
+/**
+ * The runtime behind a registered server (HttpServer or one of the HTTPS
+ * servers). Declared structurally, with only what the extension calls on it,
+ * so this model stays free of the server runtime and of vscode.
+ */
+export interface ActiveServerRuntime {
+    stop(): Promise<void>;
+    forceStop(): void;
+    createAuthenticatedBrowserUrl(baseUrl: string): string;
+}
+
+/**
+ * Registration metadata, stored as given: the fields the extension reads,
+ * plus whatever the launcher records (serverType, originalPort, portChanged,
+ * launcherId, ...) and its callers add.
+ */
+export interface ActiveServerMetadata {
+    host?: string;
+    staticRoot?: string;
+    description?: string;
+    /** The analysis session the server serves, when the registration names one. */
+    sessionId?: string;
+    [field: string]: unknown;
 }
 
 /**

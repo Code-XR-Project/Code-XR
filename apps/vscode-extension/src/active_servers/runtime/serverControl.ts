@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { ActiveServer } from '../model/activeServerModel';
+import { ActiveServer, ActiveServerRuntime } from '../model/activeServerModel';
+import type { UnifiedAnalysisSession } from '../../code_analysis/engine/core/analysisSession';
 import { getActiveServerRegistry } from '../registry/activeServerRegistry';
 import { getPanelManager } from '../services/panelManager';
 import { fileToServerMap } from '../../utils/fileToServerMap';
@@ -117,7 +118,7 @@ export class ServerControl {
      * Await the instance's graceful stop, falling back to a forced socket close
      * if it hangs or fails. Returns false when the shutdown was not clean.
      */
-    private static async stopInstanceOrForce(serverId: string, instance: any): Promise<boolean> {
+    private static async stopInstanceOrForce(serverId: string, instance: ActiveServerRuntime): Promise<boolean> {
         let timer: NodeJS.Timeout | undefined;
         try {
             await Promise.race([
@@ -220,7 +221,7 @@ export class ServerControl {
             const allSessions = sessionRegistry.getAllSessions();
             
             logger.debug(() => `DEBUG - Found ${allSessions.length} active analysis sessions`);
-            allSessions.forEach((session: any, index: number) => {
+            allSessions.forEach((session: UnifiedAnalysisSession, index: number) => {
                 logger.debug(() => `DEBUG - Session ${index + 1}:`, {
                     id: session.id,
                     targetPath: session.targetPath,

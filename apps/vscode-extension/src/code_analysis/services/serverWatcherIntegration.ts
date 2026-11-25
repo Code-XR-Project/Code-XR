@@ -15,15 +15,6 @@ import type { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 
 const logger = getLogger('SERVER_WATCHER_INTEGRATION');
 
-/**
- * A server whose registration metadata may name the analysis session it
- * serves. The registry stores metadata as given, so the field is read
- * optimistically, beyond what ActiveServer declares.
- */
-type SessionTaggedServer = ActiveServer & {
-    metadata?: ActiveServer['metadata'] & { sessionId?: string };
-};
-
 export class ServerWatcherIntegration {
     private static instance: ServerWatcherIntegration;
     private context: vscode.ExtensionContext;
@@ -159,7 +150,7 @@ export class ServerWatcherIntegration {
             const serverRegistry = getActiveServerRegistry();
             const servers = serverRegistry.getAllServers();
 
-            let matchingServer = servers.find((server: SessionTaggedServer) => server.metadata && server.metadata.sessionId === sessionId);
+            let matchingServer = servers.find((server: ActiveServer) => server.metadata && server.metadata.sessionId === sessionId);
 
             if (!matchingServer && session.outputPath) {
                 matchingServer = servers.find((server: ActiveServer) => server.htmlFile?.includes(session.outputPath));

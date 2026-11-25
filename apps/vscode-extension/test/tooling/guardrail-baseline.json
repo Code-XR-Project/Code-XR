@@ -24,9 +24,9 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 95,
+    "any.total": 86,
     "any.byModule": {
-      "active_servers": 11,
+      "active_servers": 2,
       "babia_templates": 2,
       "code_analysis": 18,
       "commands": 6,
@@ -61,7 +61,7 @@
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 169,
+    "eslint.maxWarnings": 160,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -70,7 +70,7 @@
   },
   "informational": {
     "src.files": 337,
-    "src.lines": 49550,
+    "src.lines": 49563,
     "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -105,14 +105,6 @@
         "count": 5
       },
       {
-        "file": "src/active_servers/registry/activeServerRegistry.ts",
-        "count": 4
-      },
-      {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 4
-      },
-      {
         "file": "src/servers/storage/serverSettingsManager.ts",
         "count": 4
       },
@@ -129,7 +121,7 @@
         "count": 3
       },
       {
-        "file": "src/active_servers/services/serverRegistrar.ts",
+        "file": "src/active_servers/runtime/serverControl.ts",
         "count": 2
       },
       {
@@ -138,6 +130,14 @@
       },
       {
         "file": "src/code_analysis/engine/parsers/directoryXRParser.ts",
+        "count": 2
+      },
+      {
+        "file": "src/code_analysis/engine/processors/analysisBootstrap.ts",
+        "count": 2
+      },
+      {
+        "file": "src/code_analysis/engine/servers/serverLaunchOrchestrator.ts",
         "count": 2
       }
     ],

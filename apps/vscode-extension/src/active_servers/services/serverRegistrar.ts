@@ -1,4 +1,4 @@
-import { ActiveServer, LaunchMode, CertMode } from '../model/activeServerModel';
+import { ActiveServer, ActiveServerMetadata, ActiveServerRuntime, LaunchMode, CertMode } from '../model/activeServerModel';
 import { registerActiveServer } from '../registry/activeServerRegistry';
 import { getLogger } from '../../core/logging/sink';
 
@@ -15,8 +15,8 @@ export interface ServerRegistrationConfig {
     timestamp: number;
     htmlFile?: string;
     customName?: string;
-    serverInstance?: any;
-    metadata?: any;
+    serverInstance?: ActiveServerRuntime;
+    metadata?: ActiveServerMetadata;
 }
 
 /**
