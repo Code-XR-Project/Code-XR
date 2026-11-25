@@ -762,6 +762,7 @@
     "test:analysis": "node ../../backend/scripts/run-analysis-tests.cjs",
     "test:htmlanalysis": "node test/runners/run-html-analysis-tests.cjs",
     "test:xr-harness": "node test/runners/run-xr-containment-harness.cjs",
+    "test:xr-chart-bounds-harness": "npm run compile-tests && node test/runners/run-xr-chart-bounds-harness.cjs",
     "test:xr-mode-harness": "node test/runners/run-xr-mode-cycle-harness.cjs",
     "test:xr-immersive-harness": "node test/runners/run-xr-immersive-harness.cjs",
     "test:project-evolution-harness": "node test/runners/run-project-evolution-harness.cjs",

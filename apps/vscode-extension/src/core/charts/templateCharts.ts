@@ -21,6 +21,13 @@ export {
     serializeComponentAttributes,
 };
 
+/**
+ * Id of the top-N slice of the `data` producer that row-budgeted charts read.
+ * Must match `CHART_DATA_SLICE_PREFIX + 'data'` in the mapping-UI runtime
+ * (chartDataSlice.js); test/charts pins the pairing.
+ */
+export const CHART_DATA_SLICE_ENTITY_ID = 'codexrChartDataSlice__data';
+
 export const XR_TABLE_BOOTSTRAP_PLANAR_MAX = 0.84;
 export const XR_TABLE_STEADY_PLANAR_MIN = 0.78;
 export const XR_TABLE_STEADY_PLANAR_MAX = 0.92;
@@ -71,10 +78,28 @@ function buildChartEntityHtml(options: {
     const hierarchyLayerStability = profile.preserveRelativeHierarchyLayers
         ? '\n                    codexr-boats-layout-stability="enabled: true"'
         : '';
+    // Row-budgeted charts read the runtime's top-N slice from their FIRST
+    // build. Reading `data` first and being re-pointed later built every chart
+    // twice, the first time over all rows: an axis sized for 400 files and a
+    // fit computed on geometry that was about to be replaced. The slice entity
+    // holds no data at all, so the chart waits for the first real slice
+    // (analysis-table babiaCompat.js keeps Babia from fetching an empty URL);
+    // the mapping UI fills it as soon as `data` has rows.
+    const readsSlice = !!profile.rowBudget;
+    const sliceEntity = readsSlice
+        ? `<a-entity id="${CHART_DATA_SLICE_ENTITY_ID}" babia-queryjson=""></a-entity>
+                `
+        : '';
+    const finalComponentValue = readsSlice
+        ? componentValue.replace(/^from:\s*data;/, `from: ${CHART_DATA_SLICE_ENTITY_ID};`)
+        : componentValue;
+    if (readsSlice && finalComponentValue === componentValue) {
+        throw new Error(`Chart template ${options.chartId} must start with "from: data;" to read the row slice`);
+    }
     return `<!-- ${options.comment} -->
-                <a-entity id="chart"
+                ${sliceEntity}<a-entity id="chart"
                     data-codexr-active-chart-id="${options.chartId}"
-                    ${options.componentName}="${componentValue}"${hierarchyLayerStability}
+                    ${options.componentName}="${finalComponentValue}"${hierarchyLayerStability}
                     codexr-chart-containment="${UNIVERSAL_XR_TABLE_SETTINGS}"
                     position="0 1 -18"
                     rotation="${profile.rotation}"
