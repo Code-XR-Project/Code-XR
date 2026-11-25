@@ -1,5 +1,8 @@
 import { ChartMetadata } from '../models/chartModels';
 import { chartTemplates } from '../charts/templateCharts';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('BABIA_TEMPLATES');
 
 /**
  * BabiaXR Chart Registry
@@ -32,7 +35,7 @@ export class BabiaChartRegistry {
             this.charts.set(chartTemplate.id, chartTemplate);
         }
 
-        console.log('BABIA_TEMPLATES: Initialized chart registry with chart templates');
+        logger.debug('Initialized chart registry with chart templates');
     }
 
     /**
@@ -40,7 +43,7 @@ export class BabiaChartRegistry {
      */
     public registerChart(chart: ChartMetadata): void {
         this.charts.set(chart.id, chart);
-        console.log(`BABIA_TEMPLATES: Registered chart type '${chart.id}'`);
+        logger.debug(() => `Registered chart type '${chart.id}'`);
     }
 
     /**

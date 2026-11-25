@@ -8,6 +8,9 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('CREATE_STRUCTURE');
 
 /**
  * Structure Creator Module - Specialized for General Structure Placeholders
@@ -30,7 +33,7 @@ export class CreateStructure {
         isDirectoryAnalysis?: boolean
     ): { success: boolean; placeholders?: Map<string, string>; error?: string } {
         
-        console.log(`CREATE_STRUCTURE: Creating structural placeholders for analysis type: ${analysisType}, chart type: ${chartType}`);
+        logger.debug(() => `Creating structural placeholders for analysis type: ${analysisType}, chart type: ${chartType}`);
 
         try {
             const placeholders = new Map<string, string>();
@@ -82,14 +85,14 @@ export class CreateStructure {
             placeholders.set('BABIA_UI_COMPONENT', '');
             placeholders.set('BABIA_UI_SCRIPT', '');
 
-            console.log(`CREATE_STRUCTURE: Created ${placeholders.size} structural placeholders`);
+            logger.debug(() => `Created ${placeholders.size} structural placeholders`);
             return { 
                 success: true, 
                 placeholders 
             };
 
         } catch (error) {
-            console.error(`CREATE_STRUCTURE: Error creating structural placeholders:`, error);
+            logger.error(`Error creating structural placeholders:`, error);
             return { 
                 success: false, 
                 error: error instanceof Error ? error.message : String(error)
@@ -101,7 +104,7 @@ export class CreateStructure {
      * Get appropriate SSE script with nonce and main.js path based on analysis type
      */
     private static getSSEScriptWithNonce(analysisType: 'xr' | 'dom' | 'none', nonce: string, context: vscode.ExtensionContext): string {
-        console.log(`CREATE_STRUCTURE: Creating SSE script with nonce for analysis type: ${analysisType}`);
+        logger.debug(() => `Creating SSE script with nonce for analysis type: ${analysisType}`);
 
         try {
             let scriptFileName: string;
@@ -122,12 +125,12 @@ export class CreateStructure {
             const scriptPath = path.join(context.extensionPath, 'templates', 'xr', 'sse', scriptFileName);
 
             if (!fs.existsSync(scriptPath)) {
-                console.warn(`CREATE_STRUCTURE: SSE script not found at: ${scriptPath}`);
+                logger.warn(`SSE script not found at: ${scriptPath}`);
                 return '';
             }
 
             const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            console.log(`CREATE_STRUCTURE: Loaded SSE script: ${scriptFileName} (${scriptContent.length} chars)`);
+            logger.debug(() => `Loaded SSE script: ${scriptFileName} (${scriptContent.length} chars)`);
 
             // Add nonce script tag for main.js (standard path for all analyses)
             const mainJsScript = `<script nonce="${nonce}" src="./main.js"></script>`;
@@ -135,7 +138,7 @@ export class CreateStructure {
             return scriptContent + '\n' + mainJsScript;
 
         } catch (error) {
-            console.error(`CREATE_STRUCTURE: Error loading SSE script:`, error);
+            logger.error(`Error loading SSE script:`, error);
             return '';
         }
     }
@@ -144,7 +147,7 @@ export class CreateStructure {
      * Get tree builder entity for boats chart in XR analysis
      */
     private static getTreeBuilder(analysisType: 'xr' | 'dom' | 'none', chartType?: string, isDirectoryAnalysis?: boolean): string {
-        console.log(`CREATE_STRUCTURE: Getting tree builder for analysis type: ${analysisType}, chart type: ${chartType}, directory analysis: ${isDirectoryAnalysis}`);
+        logger.debug(() => `Getting tree builder for analysis type: ${analysisType}, chart type: ${chartType}, directory analysis: ${isDirectoryAnalysis}`);
 
         // When the XR mapping UI is enabled users can switch between flat and hierarchical charts live.
         // Keep the tree source available so boats variants can be selected without relaunching analysis.
@@ -152,11 +155,11 @@ export class CreateStructure {
         // convention every mode now follows).
         if (analysisType === 'xr') {
             const field = isDirectoryAnalysis ? XR_BOATS_TREE_FIELDS.directory : XR_BOATS_TREE_FIELDS.file;
-            console.log(`CREATE_STRUCTURE: Adding tree builder for XR hierarchical boats chart (field: ${field})`);
+            logger.debug(() => `Adding tree builder for XR hierarchical boats chart (field: ${field})`);
             return `<a-entity id="tree" babia-treebuilder="field: ${field}; split_by: /; from: data"></a-entity>`;
         }
 
-        console.log(`CREATE_STRUCTURE: No tree builder needed for this configuration`);
+        logger.debug(`No tree builder needed for this configuration`);
         return '';
     }
 
@@ -167,7 +170,7 @@ export class CreateStructure {
         template: string, 
         placeholders: Map<string, string>
     ): string {
-        console.log('CREATE_STRUCTURE: Replacing structural placeholders');
+        logger.debug('Replacing structural placeholders');
 
         let result = template;
 
@@ -186,10 +189,10 @@ export class CreateStructure {
         // Check for unresolved structural placeholders
         const unresolvedPlaceholders = result.match(/\{\{[^}]+\}\}|\$\{[^}]+\}/g);
         if (unresolvedPlaceholders) {
-            console.warn(`CREATE_STRUCTURE: Unresolved structural placeholders found:`, unresolvedPlaceholders);
+            logger.warn(`Unresolved structural placeholders found:`, unresolvedPlaceholders);
         }
 
-        console.log('CREATE_STRUCTURE: Structural placeholders replaced');
+        logger.debug('Structural placeholders replaced');
         return result;
     }
 
@@ -206,7 +209,7 @@ export class CreateStructure {
         placeholders.set('GROUND_COLOR', visualizationSettings.groundColor);
         placeholders.set('PALETTE', visualizationSettings.palette);
 
-        console.log(`CREATE_STRUCTURE: Created environment placeholders`);
+        logger.debug(`Created environment placeholders`);
         return placeholders;
     }
 
@@ -220,7 +223,7 @@ export class CreateStructure {
         placeholders.set('DATA_PATH', dataSource);
         placeholders.set('JSON_SOURCE', dataSource);
 
-        console.log(`CREATE_STRUCTURE: Created data source placeholders`);
+        logger.debug(`Created data source placeholders`);
         return placeholders;
     }
 
@@ -239,7 +242,7 @@ export class CreateStructure {
         placeholders.set('TIMESTAMP', new Date().toISOString());
         placeholders.set('NONCE', generateNonce());
 
-        console.log(`CREATE_STRUCTURE: Created metadata placeholders`);
+        logger.debug(`Created metadata placeholders`);
         return placeholders;
     }
 
@@ -255,7 +258,7 @@ export class CreateStructure {
             }
         }
 
-        console.log(`CREATE_STRUCTURE: Combined ${combined.size} total placeholders`);
+        logger.debug(() => `Combined ${combined.size} total placeholders`);
         return combined;
     }
 

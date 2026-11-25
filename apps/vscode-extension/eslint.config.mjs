@@ -20,6 +20,7 @@ const NO_CONSOLE_FILES = [
     "src/code_analysis/engine/analysisOrchestrator.ts",
     "src/visualize_data/**/*.ts",
     "src/visualization_settings/**/*.ts",
+    "src/babia_templates/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

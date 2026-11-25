@@ -1,5 +1,8 @@
 import { ChartMetadata, DimensionMapping } from '../../models/chartModels';
 import { chartTemplates } from '../../charts/templateCharts';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('CREATE_CHART');
 
 /**
  * Chart Creator Module - Specialized for Chart Entity Creation
@@ -19,8 +22,8 @@ export class CreateChart {
         palette: string = 'ubuntu'
     ): { success: boolean; chartHtml?: string; error?: string } {
         
-        console.log(`CREATE_CHART: Creating chart entity with ID: ${chartId}`);
-        console.log(`CREATE_CHART: Mappings:`, mappings);
+        logger.debug(() => `Creating chart entity with ID: ${chartId}`);
+        logger.debug(`Mappings:`, mappings);
 
         try {
             // Every chart — boats included — comes from the single canonical
@@ -49,14 +52,14 @@ export class CreateChart {
             // Replace placeholders in chart template
             const processedChartHtml = this.replacePlaceholders(chart.htmlTemplate, placeholders);
 
-            console.log(`CREATE_CHART: Chart entity created successfully for: ${chartId}`);
+            logger.debug(() => `Chart entity created successfully for: ${chartId}`);
             return { 
                 success: true, 
                 chartHtml: processedChartHtml 
             };
 
         } catch (error) {
-            console.error(`CREATE_CHART: Error creating chart entity:`, error);
+            logger.error(`Error creating chart entity:`, error);
             return { 
                 success: false, 
                 error: error instanceof Error ? error.message : String(error) 
@@ -160,7 +163,7 @@ export class CreateChart {
             }
         }
 
-        console.log(`CREATE_CHART: Created ${placeholders.size} chart placeholders`);
+        logger.debug(() => `Created ${placeholders.size} chart placeholders`);
         return placeholders;
     }
 
@@ -185,7 +188,7 @@ export class CreateChart {
         // Check for unresolved chart placeholders
         const unresolvedPlaceholders = result.match(/\{\{[^}]+\}\}|\$\{[^}]+\}/g);
         if (unresolvedPlaceholders) {
-            console.warn(`CREATE_CHART: Unresolved chart placeholders found:`, unresolvedPlaceholders);
+            logger.warn(`Unresolved chart placeholders found:`, unresolvedPlaceholders);
         }
 
         return result;

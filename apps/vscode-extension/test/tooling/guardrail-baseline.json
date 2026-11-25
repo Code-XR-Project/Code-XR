@@ -18,11 +18,10 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 708,
+    "console.total": 640,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
-      "babia_templates": 68,
       "code_analysis": 24,
       "commands": 4,
       "core": 3,
@@ -80,8 +79,8 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48511,
-    "src.functions": 2915,
+    "src.lines": 48526,
+    "src.functions": 2927,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -99,10 +98,6 @@
       {
         "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 34
-      },
-      {
-        "file": "src/babia_templates/processing/templateHTMLProcessor.ts",
-        "count": 30
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
@@ -137,12 +132,16 @@
         "count": 18
       },
       {
-        "file": "src/babia_templates/processing/placeholders/createStructure.ts",
+        "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
         "count": 17
       },
       {
-        "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
+        "file": "src/views/visualize_data/interactions/handleVisualizeDataClicks.ts",
         "count": 17
+      },
+      {
+        "file": "src/python_env/storage/pythonEnvStorage.ts",
+        "count": 16
       }
     ],
     "any.topFiles": [
