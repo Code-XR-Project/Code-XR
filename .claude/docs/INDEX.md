@@ -42,7 +42,7 @@
 |---|---|---|
 | `README.md` | EN | User-facing overview, features, install (partly one release behind — see status doc) |
 | `CHANGELOG.md` | EN | Version history; `[1.2.1]` is the active section (provisional date; 1.2.0 released 2026-07-30) |
-| `docs/project/ROADMAP_V1.2.0.md` | ES | v1.2.0 goals, per-area status table, delivery sequence, exit criteria |
+| `docs/project/ROADMAP_V1.2.0.md` | EN | v1.2.0 goals, per-area status table, delivery sequence, exit criteria |
 | `docs/features/DEPENDENCY_GRAPH_XR.md` | EN | Dependency-graph XR mode: architecture, 23 languages, layouts, limits |
 | `docs/features/HISTORICAL_COMPARISON_XR.md` | ES | Historical comparator: dual table, safe Git access, caching, limits |
 | `docs/features/PROJECT_EVOLUTION_XR.md` | EN | Project Evolution "movie" mode (in progress; file currently untracked) |

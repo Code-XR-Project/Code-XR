@@ -78,7 +78,7 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 - Command IDs must be unique — `assertUniqueCommandIds` in `src/commands/index.ts` throws on duplicates.
 - JS under `templates/components/` is injected into user-facing generated scenes; treat changes there like shipping frontend code (and respect the load order in `templates/components/COMPONENTS.md`).
 - Project principles (roadmap exit criteria): no telemetry, no network calls or downloads without explicit user consent, server-validated admin operations.
-- Don't delete or rewrite existing docs; record inconsistencies in `.claude/docs/V1.2.0_STATUS.md` → "Documentation debt" instead.
+- Don't delete or rewrite existing docs; record inconsistencies in `.claude/docs/V1.2.1_STATUS.md` instead (the historical list is `V1.2.0_STATUS.md` → "Documentation debt"; `INDEX.md` routes docs work through both).
 
 ## Context management
 
