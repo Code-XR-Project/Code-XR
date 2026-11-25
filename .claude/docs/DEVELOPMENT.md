@@ -16,7 +16,7 @@
 
 | Script | What it does | When to use |
 |---|---|---|
-| `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python`, `templates/`, `examples/` into `dist/`) | Before F5 "workspace direct"; quick build check |
+| `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python` into `dist/code_analysis/python`; `templates/` and `examples/` ship as they are, not copied, since 1.2.1) | Before F5 "workspace direct"; quick build check |
 | `npm run compile:dev-host` | `compile` + `scripts/prepare-dev-extension.mjs` → stages an isolated dev copy under `.vscode-test/dev-extension` | Used automatically by the primary F5 launch config |
 | `npm run watch` | webpack watch mode | Iterating on TS changes |
 | `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project | Fast correctness gate; part of `test:basic` |
@@ -81,7 +81,7 @@ Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:ana
 ## Packaging
 
 - Bundler: **webpack** (`webpack.config.js`), target node, entry `src/extension.ts` → `dist/extension.js` (commonjs2, `clean: true`), `vscode` external.
-- **No `.vscodeignore`** — VSIX contents are controlled by the `files` allowlist in package.json: `dist/**`, selected `resources/`, README/LICENSE/notices/CHANGELOG, **`docs/**`** (yes, docs ship to users), `templates/**`, `examples/**`. `.claude/` is **not** in the list and never ships.
+- **No `.vscodeignore`** — VSIX contents are controlled by the `files` allowlist in package.json: `dist/**`, selected `resources/`, README/LICENSE/notices/CHANGELOG, `templates/**`, `examples/**`. `.claude/` is **not** in the list and never ships; neither does `docs/` since 1.2.1 (nothing reads it at runtime, and vsce rewrites the README links into it to GitHub URLs via `--baseContentUrl`).
 - `npm run package:vsix` produces the installable `.vsix`. During release prep, inspect the VSIX contents against the allowlist (see `AI_WORKFLOWS.md`).
 
 ## Known tooling quirks (do not "fix" casually)

@@ -34,5 +34,5 @@ A new XR runtime needs: the JS under `templates/components/codexr/<component>/`,
 
 ## Never
 
-- Edit anything under `dist/` (build-time copies of `templates/`).
+- Edit anything under `dist/` (build output; the runtime reads `templates/` from the package root).
 - Ship debugging leftovers — this JS lands in every user's generated scene.

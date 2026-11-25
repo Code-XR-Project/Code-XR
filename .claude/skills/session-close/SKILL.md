@@ -31,7 +31,7 @@ The repo, not chat history, is the memory between sessions. Before ending, walk 
 - Branch: `v1.2.1` or a `feature/*` branch off it — **never commit directly to `master`** (it is the PR target).
 - Expect CRLF noise in `git status` on this machine; stage deliberately, don't `git add -A` blindly across the ~250-file working tree.
 - One unit of work per commit series; don't bundle unrelated working-tree drift into your commit.
-- `.claude/**` never ships in the VSIX; `docs/**`, `templates/**`, `examples/**` do (package.json `files` allowlist) — double-check nothing internal landed in a shipped folder.
+- `.claude/**` and `docs/**` never ship in the VSIX; `templates/**`, `examples/**` do (package.json `files` allowlist) — double-check nothing internal landed in a shipped folder.
 
 ## 5. Report
 

@@ -52,22 +52,11 @@ const config = {
             ignore: ['**/*.ts', '**/__pycache__/**'],
           },
           noErrorOnMissing: false
-        },
-        {
-          from: 'templates',
-          to: 'templates',
-          noErrorOnMissing: true,
-          // Copied as data, not built: multi-part runtimes under
-          // templates/components/codexr/*/<runtimeBase>/*.js are fragments that
-          // only parse once concatenated per their manifest.json, so the
-          // production minifier must never touch them.
-          info: { minimized: true }
-        },
-        {
-          from: 'examples',
-          to: 'examples',
-          noErrorOnMissing: true
         }
+        // templates/ and examples/ are NOT copied here: the runtime reads them
+        // at <extensionPath>/templates and <extensionPath>/examples, which the
+        // package.json `files` allowlist ships as they are. A dist/ copy would
+        // only ship them twice (test/packaging/packagedLayout.test.cjs).
       ],
     }),
   ],

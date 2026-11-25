@@ -12,7 +12,7 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 
 | Path | Content |
 |---|---|
-| `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (shipped), `package.json`, README/CHANGELOG |
+| `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (not shipped since 1.2.1), `package.json`, README/CHANGELOG |
 | `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`), with their fixtures (`backend/tests/fixtures/`) |
 | `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (the `test:python` / `test:analysis` runners, `report-manual-metrics.py`) |
 | `apps/ide/` | Code-XR IDE (Electron + Monaco) — placeholder only, epic #11 |
@@ -41,7 +41,7 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 
 | Command | Purpose |
 |---|---|
-| `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies Python backend, `templates/`, `examples/`) |
+| `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies the Python backend; `templates/` and `examples/` ship from the package root, not from `dist/`) |
 | `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/` |
 | `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests |
 | `npm run test:unit` | Node native runner over `test/**/*.test.cjs` (not Mocha) |
@@ -73,8 +73,8 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 
 ## Safety rules
 
-- **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains copies of the Python backend and templates — the sources are `backend/src/` and `apps/vscode-extension/templates/`.)
-- **`docs/**`, `templates/**`, `examples/**` ship inside the VSIX** (package.json `files` allowlist; there is no `.vscodeignore`). `.claude/**` does not ship. Think before adding files to shipped folders.
+- **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains a copy of the Python backend — the source is `backend/src/`.)
+- **`templates/**`, `examples/**` ship inside the VSIX** (`docs/**` stopped shipping in 1.2.1) (package.json `files` allowlist; there is no `.vscodeignore`). `.claude/**` does not ship. Think before adding files to shipped folders.
 - Command IDs must be unique — `assertUniqueCommandIds` in `src/commands/index.ts` throws on duplicates.
 - JS under `templates/components/` is injected into user-facing generated scenes; treat changes there like shipping frontend code (and respect the load order in `templates/components/COMPONENTS.md`).
 - Project principles (roadmap exit criteria): no telemetry, no network calls or downloads without explicit user consent, server-validated admin operations.
