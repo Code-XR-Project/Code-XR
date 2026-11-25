@@ -69,15 +69,6 @@ export interface ActiveServer {
 export type ServerAction = 'openBrowser' | 'openPanel' | 'copyUrl' | 'stop' | 'details';
 
 /**
- * Server action command context
- */
-export interface ServerActionContext {
-    serverId: string;
-    action: ServerAction;
-    server: ActiveServer;
-}
-
-/**
  * Registry event types
  */
 export type RegistryEventType = 'serverAdded' | 'serverRemoved' | 'serverUpdated' | 'registryCleared';
