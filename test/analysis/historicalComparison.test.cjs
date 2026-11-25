@@ -1074,3 +1074,39 @@ test('historical inline Babia data remains lossless inside declarative component
         { uid: 'codexr-left:path;with:semicolon', name: 'part;name' },
     ]);
 });
+
+test('a target reached through a symlink is still inside its repository', async () => {
+    // Git reports the canonical root; the target keeps the linked path. This is
+    // what CI temp folders look like on macOS (/var -> /private/var) and, with
+    // an 8.3 short name instead of a link, on Windows (C:\Users\RUNNER~1).
+    const GitRepositoryService = loadGitRepositoryService();
+    const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-history-link-'));
+    const realRoot = path.join(temporaryRoot, 'real');
+    const repositoryPath = path.join(realRoot, 'repository');
+    fs.mkdirSync(path.join(repositoryPath, 'src'), { recursive: true });
+    runGit(repositoryPath, ['init']);
+    runGit(repositoryPath, ['config', 'user.name', 'CodeXR Tests']);
+    runGit(repositoryPath, ['config', 'user.email', 'codexr-tests@example.invalid']);
+    fs.writeFileSync(path.join(repositoryPath, 'src', 'value.js'), 'export const value = 1;\n');
+    runGit(repositoryPath, ['add', '.']);
+    runGit(repositoryPath, ['commit', '-m', 'initial revision']);
+
+    const linkedRoot = path.join(temporaryRoot, 'linked');
+    // A junction needs no privileges on Windows; elsewhere the type is ignored.
+    fs.symlinkSync(realRoot, linkedRoot, 'junction');
+    const linkedTarget = path.join(linkedRoot, 'repository', 'src');
+
+    try {
+        const service = new GitRepositoryService(linkedTarget, path.join(temporaryRoot, 'snapshots'));
+        const references = await service.listReferences();
+        assert.equal(references.targetRelativePath, 'src');
+        await service.dispose();
+
+        const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-history-outside-'));
+        const outsideService = new GitRepositoryService(outside, path.join(temporaryRoot, 'snapshots-outside'));
+        await assert.rejects(() => outsideService.resolveRepositoryRoot());
+        fs.rmSync(outside, { recursive: true, force: true });
+    } finally {
+        fs.rmSync(temporaryRoot, { recursive: true, force: true });
+    }
+});

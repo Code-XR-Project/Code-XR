@@ -457,7 +457,11 @@ export class GitRepositoryService {
     }
 
     private resolveTargetRelativePath(repositoryRoot: string): string {
-        const relativePath = path.relative(repositoryRoot, this.targetPath);
+        // Git reports the repository root in canonical form, while the target
+        // can arrive through a symlink (macOS /var -> /private/var, a linked
+        // workspace) or a Windows 8.3 short name (C:\Users\RUNNER~1). Compare
+        // canonical paths, or a target inside the repository looks outside it.
+        const relativePath = path.relative(canonicalPath(repositoryRoot), canonicalPath(this.targetPath));
         if (!relativePath || relativePath === '.') {
             return '.';
         }
@@ -540,4 +544,16 @@ export class GitRepositoryService {
         return /^[0-9a-f]{40}$/i.test(value || '');
     }
 
+}
+
+/**
+ * The canonical form of an existing path (symlinks and Windows short names
+ * resolved); the plain absolute path when it cannot be resolved.
+ */
+function canonicalPath(targetPath: string): string {
+    try {
+        return fs.realpathSync.native(targetPath);
+    } catch {
+        return path.resolve(targetPath);
+    }
 }
