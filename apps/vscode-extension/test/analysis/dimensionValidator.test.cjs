@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 // rule passes run one after another and each appends), the early `continue`
 // of the per-mapping pass, and isValid. The module is pure (type-only
 // imports), so it loads from out/ directly.
-const { DimensionValidator } = require('../../out/babia_templates/processing/dimensionValidator.js');
+const { DimensionValidator } = require('../../out/core/charts/processing/dimensionValidator.js');
 
 const CHART = {
     name: 'Bars',

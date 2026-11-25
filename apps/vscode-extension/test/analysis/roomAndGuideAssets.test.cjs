@@ -14,7 +14,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const components = require('../../out/code_analysis/engine/components/customComponents/index.js');
+const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetModules();
 
 const ROOM_DIR = path.join(projectRoot, 'templates', 'components', 'codexr', 'xr-room');
 const RUNTIME = path.join(ROOM_DIR, 'codexrRoomRuntime.js');

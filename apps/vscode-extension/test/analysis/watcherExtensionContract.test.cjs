@@ -7,8 +7,8 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 
 const { projectRoot, readSource, assertAbsent } = require('../helpers/sourceText.cjs');
-const { getAllSupportedExtensions } = require('../../out/utils/supportedLanguages.js');
-const { scanDirectoryScope } = require('../../out/code_analysis/engine/watchers/directorySnapshot.js');
+const { getAllSupportedExtensions } = require('../../out/core/analysis/languages/supportedLanguages.js');
+const { scanDirectoryScope } = require('../../out/core/analysis/watchers/directorySnapshot.js');
 
 // The directory watcher and the metric contract disagree on which files are
 // source code, and users' data depends on the disagreement.
@@ -29,7 +29,7 @@ const { scanDirectoryScope } = require('../../out/code_analysis/engine/watchers/
 // copies of the contract, so that neither a cleanup of analysisFilePolicy.ts nor
 // an "unreachable branch" deletion in the Python tools can move it silently.
 
-const POLICY_MODULE = path.join(projectRoot, 'out', 'code_analysis', 'engine', 'watchers', 'analysisFilePolicy.js');
+const POLICY_MODULE = path.join(projectRoot, 'out', 'core', 'analysis', 'watchers', 'analysisFilePolicy.js');
 const PYTHON_CONTRACT_SOURCE = '../../backend/src/utils/metric_language_contract.py';
 
 // This list IS the contract, so it is written out instead of derived: the

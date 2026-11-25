@@ -16,7 +16,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const components = require(path.join(projectRoot, 'out', 'code_analysis', 'engine', 'components', 'customComponents', 'index.js'));
+const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetModules();
 
 const RUNTIMES = [
     {

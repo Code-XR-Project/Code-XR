@@ -17,7 +17,7 @@ Never claim a change works without running tests or the F5 flow. Route by what w
 | `python/html/html_dom_parser.py` or DOM mode | `npm run test:htmlanalysis` |
 | `templates/components/**` runtimes | the matching `test/analysis/*.test.cjs` via `node --test test/analysis/<suite>.test.cjs`; table/containment → `npm run test:xr-harness`; project evolution → `npm run test:project-evolution-harness` |
 | `templates/analysis_livePanel/**` | `node --test test/analysis/directoryLivePanelUi.test.cjs test/analysis/livePanelDomIntegration.test.cjs` |
-| `src/servers/**` | suites under `test/servers/` |
+| `src/core/server/**`, `src/features/servers/**`, `src/features/active-servers/**` | suites under `test/servers/` |
 | `src/commands/**` or command registration | `node --test test/commands/commandRegistry.test.cjs` (unique IDs enforced) |
 | Language support / metrics output | `npm run test:analysis` (XR and LivePanel must produce identical `data.json`) |
 

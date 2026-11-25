@@ -1,0 +1,209 @@
+import * as vscode from 'vscode';
+import { SectionProvider } from '../../../platform/tree/baseInterfaces';
+import { ActiveServerTreeItem, ActiveServerItemFactory } from './activeServerItems';
+import { CollaborationSectionProvider } from '../../collaboration/views/CollaborationSectionProvider';
+import { getActiveServerRegistry } from '../../../core/server/registry/activeServerRegistry';
+import { ActiveServer } from '../../../core/server/registry/activeServerModel';
+import { ConnectedParticipantSummary } from '../../../core/collaboration/connectedParticipant';
+import { getLogger } from '../../../platform/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVERS_MODULAR');
+
+interface ParticipantAwareServer {
+    getConnectedParticipants(): ConnectedParticipantSummary[];
+    onConnectedParticipantsChanged(
+        listener: (participants: ConnectedParticipantSummary[]) => void,
+    ): () => void;
+}
+
+/**
+ * Active Servers section provider - manages running servers display and control
+ */
+export class ActiveServersSectionProvider implements SectionProvider<ActiveServerTreeItem> {
+    private _onDidChangeTreeData: vscode.EventEmitter<ActiveServerTreeItem | undefined | null | void> = 
+        new vscode.EventEmitter<ActiveServerTreeItem | undefined | null | void>();
+    
+    readonly onDidChangeTreeData: vscode.Event<ActiveServerTreeItem | undefined | null | void> = 
+        this._onDidChangeTreeData.event;
+
+    private readonly participantSubscriptions = new Map<string, () => void>();
+    private readonly registrySubscription: vscode.Disposable;
+    private readonly collaborationProvider: CollaborationSectionProvider;
+    private readonly collaborationSubscription: vscode.Disposable;
+
+    constructor(context: vscode.ExtensionContext) {
+        logger.debug('Initializing Active Servers section provider');
+
+        // Collaboration lives as a nested group inside this section; its provider
+        // stays the single source of truth for the shared profile items.
+        this.collaborationProvider = new CollaborationSectionProvider(context);
+        this.collaborationSubscription = this.collaborationProvider.onDidChangeTreeData(() => this.refresh());
+
+        // Listen to registry changes for active servers
+        const registry = getActiveServerRegistry();
+        logger.debug(() => `Connected to active server registry, current servers: ${registry.getAllServers().length}`);
+        
+        this.registrySubscription = registry.onRegistryChange(() => {
+            logger.debug('Active servers registry changed, refreshing section');
+            this.reconcileParticipantSubscriptions();
+            this.refresh();
+        });
+        this.reconcileParticipantSubscriptions();
+    }
+
+    /**
+     * Get the section name for identification
+     */
+    getSectionName(): string {
+        return 'activeServers';
+    }
+
+    /**
+     * Get the section header item
+     */
+    getSectionItem(): ActiveServerTreeItem {
+        const registry = getActiveServerRegistry();
+        const activeServers = registry.getAllServers();
+        const runningCount = activeServers.filter(server => server.status === 'running').length;
+        
+        const title = runningCount > 0 
+            ? `ACTIVE SERVERS (${runningCount} running)` 
+            : 'ACTIVE SERVERS';
+        
+        return new ActiveServerTreeItem(
+            title,
+            vscode.TreeItemCollapsibleState.Expanded,
+            'no-servers', // Using this as section header type
+            undefined,
+            new vscode.ThemeIcon('server-process'),
+            'Currently running servers',
+            undefined,
+            'activeServersSection'
+        );
+    }
+
+    /**
+     * Get children items for the Active Servers section
+     */
+    async getChildren(element?: ActiveServerTreeItem): Promise<ActiveServerTreeItem[]> {
+        if (element) {
+            // The collaboration group carries no server, so it is resolved before
+            // the server guard below.
+            if (element.activeServerItemType === 'collaboration-group') {
+                const collaborationItems = await this.collaborationProvider.getChildren();
+                return collaborationItems.map(ActiveServerItemFactory.fromCollaborationItem);
+            }
+
+            const server = element.activeServer;
+            if (!server) {
+                return [];
+            }
+            const participants = this.getParticipants(server);
+            if (element.activeServerItemType === 'server-item') {
+                return ActiveServerItemFactory.createServerChildren(server, participants);
+            }
+            if (element.activeServerItemType === 'participants-group') {
+                return ActiveServerItemFactory.createParticipantItems(server, participants);
+            }
+            if (element.activeServerItemType === 'remote-group') {
+                return ActiveServerItemFactory.createRemoteConnectionItems(server);
+            }
+            if (element.activeServerItemType === 'actions-group') {
+                return ActiveServerItemFactory.createActionItems(server);
+            }
+            return [];
+        }
+
+        logger.debug('Loading active servers section children');
+        
+        const registry = getActiveServerRegistry();
+        const activeServers = registry.getAllServers();
+        const runningServers = activeServers.filter(server => server.status === 'running');
+
+        logger.debug(() => `Found ${activeServers.length} total servers, ${runningServers.length} running`);
+        
+        // The collaboration group is always reachable: joining a remote session
+        // does not require a local server.
+        const collaborationGroup = ActiveServerItemFactory.createCollaborationGroupItem();
+
+        // Only running servers are listed: a stopped one leaves the tree.
+        if (runningServers.length === 0) {
+            logger.debug('No running servers, showing "No active servers" message');
+            return [collaborationGroup, ActiveServerItemFactory.createNoServersItem()];
+        }
+
+        const children: ActiveServerTreeItem[] = [collaborationGroup];
+
+        // Add "Stop All Servers" option if there are 2 or more running servers
+        if (runningServers.length >= 2) {
+            logger.debug(() => `Adding "Stop All Servers" option for ${runningServers.length} running servers`);
+            children.push(ActiveServerItemFactory.createStopAllServersItem(runningServers.length));
+        }
+
+        // A lone server opens expanded; with several, they stay compact.
+        logger.debug(() => `Creating ${runningServers.length} individual server items`);
+        const serverItems = runningServers.map(server =>
+            ActiveServerItemFactory.createServerItem(server, runningServers.length === 1)
+        );
+
+        children.push(...serverItems);
+        
+        logger.debug(() => `Returning ${children.length} children for Active Servers section`);
+        return children;
+    }
+
+    /**
+     * Refresh the section
+     */
+    refresh(): void {
+        logger.debug('Refreshing Active Servers section');
+        this._onDidChangeTreeData.fire();
+    }
+
+    dispose(): void {
+        this.registrySubscription.dispose();
+        this.collaborationSubscription.dispose();
+        this.collaborationProvider.dispose();
+        for (const dispose of this.participantSubscriptions.values()) {
+            dispose();
+        }
+        this.participantSubscriptions.clear();
+        this._onDidChangeTreeData.dispose();
+    }
+
+    private getParticipants(server: ActiveServer): ConnectedParticipantSummary[] {
+        const runtime = this.asParticipantAwareServer(server);
+        return runtime?.getConnectedParticipants() ?? [];
+    }
+
+    private reconcileParticipantSubscriptions(): void {
+        const servers = getActiveServerRegistry().getAllServers();
+        const activeIds = new Set(servers.map((server) => server.id));
+        for (const [serverId, dispose] of this.participantSubscriptions) {
+            if (!activeIds.has(serverId)) {
+                dispose();
+                this.participantSubscriptions.delete(serverId);
+            }
+        }
+        for (const server of servers) {
+            if (this.participantSubscriptions.has(server.id)) {
+                continue;
+            }
+            const runtime = this.asParticipantAwareServer(server);
+            if (!runtime) {
+                continue;
+            }
+            const dispose = runtime.onConnectedParticipantsChanged(() => this.refresh());
+            this.participantSubscriptions.set(server.id, dispose);
+        }
+    }
+
+    private asParticipantAwareServer(server: ActiveServer): ParticipantAwareServer | null {
+        const runtime = server.serverInstance as Partial<ParticipantAwareServer> | undefined;
+        return runtime
+            && typeof runtime.getConnectedParticipants === 'function'
+            && typeof runtime.onConnectedParticipantsChanged === 'function'
+            ? runtime as ParticipantAwareServer
+            : null;
+    }
+}

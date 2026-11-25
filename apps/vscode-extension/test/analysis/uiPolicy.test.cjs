@@ -67,23 +67,23 @@ function monorepoTextFiles() {
 }
 
 test('auto-analysis delay defaults to RealTime and selector labels are plain text', () => {
-    const model = readProjectFile('src', 'code_analysis', 'configuration', 'models', 'analysisConfiguration.ts');
+    const model = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
     const profile = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'profile_configuration',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'profile-configuration',
         'profileConfiguration.ts',
     );
     const commands = readProjectFile(
         'src',
-        'code_analysis',
-        'commands',
-        'subsections',
-        'analysis_settings',
-        'auto_analysis_delay',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'auto-analysis-delay',
         'autoAnalysisDelayCommands.ts',
     );
 
@@ -96,11 +96,11 @@ test('auto-analysis delay defaults to RealTime and selector labels are plain tex
 });
 
 test('XR mapping UI is always injected and no longer has an enabled config flag', () => {
-    const fileParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
-    const directoryParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
-    const storage = readProjectFile('src', 'code_analysis', 'configuration', 'analysisConfigurationStorage.ts');
-    const model = readProjectFile('src', 'code_analysis', 'configuration', 'models', 'analysisConfiguration.ts');
-    const templateProcessor = readProjectFile('src', 'babia_templates', 'processing', 'templateProcessor.ts');
+    const fileParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
+    const directoryParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
+    const storage = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfigurationStorage.ts');
+    const model = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
+    const templateProcessor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
 
     assert.match(fileParser, /babiaUiVisibleByDefault: babiaUiConfig\.visibleByDefault/);
     assert.match(directoryParser, /babiaUiVisibleByDefault: babiaUiConfig\.visibleByDefault/);

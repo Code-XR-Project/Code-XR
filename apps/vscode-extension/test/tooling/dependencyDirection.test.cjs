@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * Pins which top-level folders of src/ may import which (story #42). The
- * allowed edges, the documented two-way pairs and the vscode-free floor are
- * data in folderDependencies.json; this file only compares them with the
- * measured import graph (folderDependencies.cjs).
+ * Pins which folders of src/ may import which (stories #42, #55). The
+ * allowed edges, the layer order and its exceptions, the documented two-way
+ * pairs and the vscode-free floor are data in folderDependencies.json; this
+ * file only compares them with the measured import graph
+ * (folderDependencies.cjs).
  *
  * A failure here means an import crossed folders in a new direction. Prefer
  * importing the concrete lower-level file instead; if the new direction is
@@ -32,13 +33,21 @@ function measuredEdgeKeys() {
         .sort();
 }
 
+function measuredFileEdges() {
+    return Object.values(measured.edges).flatMap((targets) => Object.values(targets).flat());
+}
+
 test('the measurement reads the code: it finds the source files and both runtime and type-only edges', () => {
-    assert.ok(measured.fileCount > 300, `only ${measured.fileCount} src files were read`);
-    // A runtime import (feature commands use the command model) ...
-    assert.ok(measured.edges.commands?.platform, 'commands -> platform is not seen');
+    assert.ok(measured.fileCount > 280, `only ${measured.fileCount} src files were read`);
+    const fileEdges = measuredFileEdges();
+    // A runtime import (the extension entry point imports the logger) ...
+    assert.ok(
+        fileEdges.some((edge) => /^extension\.ts -> .*\/logger\.ts$/.test(edge)),
+        'extension.ts -> logger.ts is not seen',
+    );
     // ... and an `import type` one (the participant summary in the servers' API).
     assert.ok(
-        (measured.edges.servers?.collaboration || []).some((edge) => edge.startsWith('servers/runtime/httpsServerBase.ts ->')),
+        fileEdges.some((edge) => /\/httpsServerBase\.ts -> .*\/connectedParticipant\.ts$/.test(edge)),
         'the type-only import in httpsServerBase.ts is not seen',
     );
 });
@@ -61,6 +70,24 @@ test('no import crosses folders in a direction folderDependencies.json does not 
 test('every allowed direction is still used (remove an entry once its last import is gone)', () => {
     const present = new Set(measuredEdgeKeys());
     assert.deepEqual(allowedEdgeKeys().filter((key) => !present.has(key)), []);
+});
+
+test('no allowed direction goes up the layers or across features, unless it is a listed exception', () => {
+    const rank = (folder) => data.layers.indexOf(folder.split('/')[0]);
+    const breaksLayering = (key) => {
+        const [from, to] = key.split('->');
+        const [fromRank, toRank] = [rank(from), rank(to)];
+        if (fromRank < 0 || toRank < 0) {
+            return false;
+        }
+        return toRank < fromRank || (fromRank === toRank && from.startsWith('features/'));
+    };
+    const allowed = allowedEdgeKeys();
+    assert.deepEqual(allowed.filter(breaksLayering).filter((key) => !data.layerExceptions[key]), []);
+    for (const [key, reason] of Object.entries(data.layerExceptions)) {
+        assert.ok(allowed.includes(key) && breaksLayering(key), `${key} is not an allowed edge that breaks the layering`);
+        assert.ok(typeof reason === 'string' && reason.length > 40, `${key} has no written reason`);
+    }
 });
 
 test('the two-way folder pairs are exactly the documented ones, each with a reason', () => {

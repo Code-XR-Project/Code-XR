@@ -6,6 +6,13 @@
  *
  *   node test/tooling/measureGuardrails.cjs            print the measurement
  *   node test/tooling/measureGuardrails.cjs --write    regenerate the baseline
+ *   … --write --renamed <map.json>                      the same, for a commit that moves files
+ *
+ * `--renamed` takes a move map (`{ "src/old.ts": "src/new.ts" }`, or an object
+ * whose `moves` key is one, like docs/cleanup/src-move-map.json) and re-keys the
+ * committed baseline through it before comparing: a path that moved is compared
+ * at its new location, and the per-module counts are regrouped from the per-file
+ * ones. A pure move then reports no change, and the ratchet needs no waiver.
  *
  * The committed baseline (guardrail-baseline.json) is the "before" number of
  * every cleanup item: a commit that moves a metric regenerates the baseline,
@@ -31,7 +38,7 @@ const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', 'out', 'output', 'a
 
 const definitions = {
     'console.total': 'CallExpression nodes whose callee is console.<log|warn|error|debug|info|trace> in src/**/*.ts (console calls inside template strings are text, not nodes, and are not counted)',
-    'console.byModule': 'console.total grouped by the first directory under src/ (files directly in src/ count as "(root)")',
+    'console.byModule': 'console.total grouped by the first directory under src/, or the first two for src/core/ and src/features/ (files directly in src/ count as "(root)")',
     'catch.consoleOnly': 'catch clauses with at least one statement where every statement is a console.* call',
     'catch.emptyNoComment': 'catch clauses with an empty block that also carries no comment explaining the swallow',
     'any.total': 'AnyKeyword type nodes in src/**/*.ts (": any", "as any", "<any>", "any[]", generic arguments)',
@@ -74,9 +81,15 @@ function collectFiles(root, extensions) {
     return files.sort();
 }
 
+/** Areas of src/ whose sub-folders are separate modules (subsystems, features). */
+const TWO_LEVEL_AREAS = new Set(['core', 'features']);
+
 function moduleOf(posixPath) {
     const segments = posixPath.split('/');
-    return segments.length > 2 ? segments[1] : '(root)';
+    if (segments.length <= 2) {
+        return '(root)';
+    }
+    return TWO_LEVEL_AREAS.has(segments[1]) && segments.length > 3 ? `${segments[1]}/${segments[2]}` : segments[1];
 }
 
 function isFunctionLike(node) {
@@ -313,7 +326,9 @@ function measureSource() {
             'src.lines': totalLines,
             'src.functions': functions.length,
             'src.unreachableLines': unreachable.reduce((sum, file) => sum + lineCounts[file], 0),
+            'console.byFile': sortedObject(consoleByFile),
             'console.topFiles': topEntries(consoleByFile, 15),
+            'any.byFile': sortedObject(anyByFile),
             'any.topFiles': topEntries(anyByFile, 15),
             'complexity.worst10': functions
                 .slice()
@@ -439,6 +454,52 @@ function compareRatcheted(measured, baseline) {
     return { worse, moved };
 }
 
+function readMoveMap(mapPath) {
+    const parsed = JSON.parse(fs.readFileSync(path.resolve(mapPath), 'utf8'));
+    return parsed.moves && typeof parsed.moves === 'object' ? parsed.moves : parsed;
+}
+
+/**
+ * The committed baseline as it reads after the moves in `moves` (old -> new,
+ * paths relative to the extension root). A path is re-keyed only when the move
+ * has happened on disk (old gone, new present), so one cumulative map serves
+ * every batch. `byModule` counts are regrouped from the recorded per-file
+ * counts; a baseline recorded before those existed is accepted when the new
+ * grouping only splits its modules (same totals per first-level folder).
+ */
+function rekeyBaseline(baseline, moves, measured, exists = (file) => fs.existsSync(path.join(projectRoot, file))) {
+    const moved = (file) => {
+        const target = moves[file];
+        return target && target !== file && !exists(file) && exists(target) ? target : file;
+    };
+    const ratcheted = { ...baseline.ratcheted };
+    for (const metric of ['size.filesOver500', 'reachability.unreachable']) {
+        if (Array.isArray(ratcheted[metric])) {
+            ratcheted[metric] = ratcheted[metric].map(moved).sort();
+        }
+    }
+    const firstLevel = (byModule) => {
+        const collapsed = {};
+        for (const [name, count] of Object.entries(byModule || {})) {
+            increment(collapsed, name.split('/')[0], count);
+        }
+        return JSON.stringify(sortedObject(collapsed));
+    };
+    for (const prefix of ['console', 'any']) {
+        const byFile = baseline.informational && baseline.informational[`${prefix}.byFile`];
+        if (byFile) {
+            const regrouped = {};
+            for (const [file, count] of Object.entries(byFile)) {
+                increment(regrouped, moduleOf(moved(file)), count);
+            }
+            ratcheted[`${prefix}.byModule`] = sortedObject(regrouped);
+        } else if (measured && firstLevel(measured[`${prefix}.byModule`]) === firstLevel(ratcheted[`${prefix}.byModule`])) {
+            ratcheted[`${prefix}.byModule`] = measured[`${prefix}.byModule`];
+        }
+    }
+    return { ...baseline, ratcheted };
+}
+
 function describeChange(change) {
     const detail = change.detail ? ` (${change.detail})` : '';
     return `${change.metric}: ${change.from} -> ${change.to}${detail}`;
@@ -450,7 +511,8 @@ function describeChange(change) {
  * lint rule that raises the warning ceiling once).
  */
 function writeBaseline(measurement, options = {}) {
-    const previous = fs.existsSync(baselinePath) ? readBaseline() : undefined;
+    const committed = fs.existsSync(baselinePath) ? readBaseline() : undefined;
+    const previous = committed && options.moves ? rekeyBaseline(committed, options.moves, measurement.ratcheted) : committed;
     const waivers = previous ? previous.waivers.slice() : [];
 
     if (previous) {
@@ -482,8 +544,14 @@ if (require.main === module) {
             console.error('--allow-regression needs a reason.');
             process.exit(1);
         }
+        const renamedIndex = process.argv.indexOf('--renamed');
+        if (renamedIndex >= 0 && !process.argv[renamedIndex + 1]) {
+            console.error('--renamed needs a move map (JSON).');
+            process.exit(1);
+        }
         try {
-            writeBaseline(measurement, { allowRegression, date: new Date().toISOString().slice(0, 10) });
+            const moves = renamedIndex >= 0 ? readMoveMap(process.argv[renamedIndex + 1]) : undefined;
+            writeBaseline(measurement, { allowRegression, moves, date: new Date().toISOString().slice(0, 10) });
             console.log(`Baseline written to ${toPosix(baselinePath)}`);
         } catch (error) {
             console.error(error.message);
@@ -494,4 +562,4 @@ if (require.main === module) {
     }
 }
 
-module.exports = { measure, readBaseline, writeBaseline, compareRatcheted, describeChange, baselinePath, definitions };
+module.exports = { measure, readBaseline, writeBaseline, compareRatcheted, rekeyBaseline, describeChange, moduleOf, baselinePath, definitions };

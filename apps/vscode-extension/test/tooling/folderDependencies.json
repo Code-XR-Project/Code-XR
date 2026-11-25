@@ -1,31 +1,143 @@
 {
-  "description": "Allowed import directions between the top-level folders of src/ (story #42). Checked by test/tooling/dependencyDirection.test.cjs; `node test/tooling/folderDependencies.cjs` prints the measured matrix. When files move (story #55), rewrite this file, not the test.",
+  "description": "Allowed import directions between the folders of src/ (stories #42, #55). A folder is the first directory under src/, or the first two under the areas in `twoLevelAreas`. Checked by test/tooling/dependencyDirection.test.cjs; `node test/tooling/folderDependencies.cjs` prints the measured matrix. When files move, rewrite this file, not the test.",
+  "twoLevelAreas": [
+    "core",
+    "features"
+  ],
+  "layers": [
+    "app",
+    "features",
+    "core",
+    "platform",
+    "shared"
+  ],
+  "layersNote": "Top to bottom: a folder may import its own layer or a lower one, never a higher one, and a feature never imports another feature. Folders outside these areas (the pre-#55 tree, `(root)`) are not ranked. Each exception needs a reason.",
+  "layerExceptions": {
+    "core/server->features/active-servers": "core/server/multiServerLauncher.ts shows the post-launch toasts (open in browser / panel, copy URL) from features/active-servers/views/launchNotifications.ts. Known since #42 (item 5) and #39; the fix is a notification callback the feature registers with the launcher (#13 host ports).",
+    "features/active-servers->features/collaboration": "The COLLABORATION tree group is nested inside ACTIVE SERVERS by design (ARCHITECTURE \"Activation flow\"): ActiveServersSectionProvider builds it with CollaborationSectionProvider and activeServerItems uses collaborationItems. The alternative, moving the two collaboration view files under features/active-servers/views/, was left to the maintainer (src-layout.md §3.5)."
+  },
   "mayImport": {
-    "(root)": ["active_servers", "code_analysis", "collaboration", "commands", "core", "remote_access", "servers", "utils", "views"],
-    "active_servers": ["code_analysis", "collaboration", "core", "platform", "remote_access", "servers", "utils"],
-    "babia_examples": ["core", "platform", "servers", "utils"],
-    "babia_templates": ["core", "platform", "utils"],
-    "code_analysis": ["active_servers", "babia_templates", "core", "platform", "python_env", "servers", "utils"],
-    "collaboration": [],
-    "commands": ["active_servers", "babia_examples", "code_analysis", "collaboration", "core", "learn_more", "platform", "python_env", "remote_access", "servers", "utils", "visualization_settings", "visualize_data"],
-    "core": [],
-    "learn_more": ["platform"],
+    "(root)": [
+      "app",
+      "core/analysis",
+      "core/collaboration",
+      "core/remote-access",
+      "core/server",
+      "features/analysis",
+      "features/python-env",
+      "platform"
+    ],
+    "app": [
+      "core/python-env",
+      "core/server",
+      "features/active-servers",
+      "features/analysis",
+      "features/collaboration",
+      "features/examples",
+      "features/learn-more",
+      "features/python-env",
+      "features/servers",
+      "features/visualization-settings",
+      "features/visualize-data",
+      "platform"
+    ],
+    "core/analysis": [
+      "core/charts",
+      "core/history",
+      "core/python-env",
+      "core/server",
+      "platform",
+      "shared"
+    ],
+    "core/charts": [
+      "platform",
+      "shared"
+    ],
+    "core/collaboration": [],
+    "core/dependencies": [
+      "core/analysis"
+    ],
+    "core/export": [
+      "core/analysis",
+      "core/history",
+      "core/python-env",
+      "platform"
+    ],
+    "core/history": [
+      "core/analysis"
+    ],
+    "core/python-env": [
+      "platform"
+    ],
+    "core/remote-access": [
+      "core/collaboration",
+      "core/server",
+      "platform"
+    ],
+    "core/server": [
+      "core/analysis",
+      "core/collaboration",
+      "core/dependencies",
+      "core/history",
+      "core/remote-access",
+      "features/active-servers",
+      "platform",
+      "shared"
+    ],
+    "features/active-servers": [
+      "core/collaboration",
+      "core/remote-access",
+      "core/server",
+      "features/collaboration",
+      "platform"
+    ],
+    "features/analysis": [
+      "core/analysis",
+      "core/charts",
+      "core/export",
+      "core/server",
+      "platform"
+    ],
+    "features/collaboration": [
+      "core/collaboration",
+      "core/remote-access",
+      "platform"
+    ],
+    "features/examples": [
+      "core/server",
+      "platform"
+    ],
+    "features/learn-more": [
+      "platform"
+    ],
+    "features/python-env": [
+      "core/python-env",
+      "platform"
+    ],
+    "features/servers": [
+      "core/remote-access",
+      "core/server",
+      "platform"
+    ],
+    "features/visualization-settings": [
+      "core/charts",
+      "platform"
+    ],
+    "features/visualize-data": [
+      "core/charts",
+      "core/server",
+      "platform",
+      "shared"
+    ],
     "platform": [],
-    "python_env": ["core", "platform"],
-    "remote_access": ["active_servers", "collaboration", "core", "servers"],
-    "servers": ["active_servers", "code_analysis", "collaboration", "core", "platform", "remote_access", "utils"],
-    "utils": ["core", "platform", "visualization_settings"],
-    "views": ["active_servers", "babia_examples", "code_analysis", "collaboration", "core", "platform", "python_env", "servers", "visualization_settings", "visualize_data"],
-    "visualization_settings": ["core", "platform"],
-    "visualize_data": ["active_servers", "babia_templates", "core", "platform", "servers", "utils"]
+    "shared": []
   },
   "twoWayPairs": {
-    "active_servers<->code_analysis": "Stopping a server closes its analysis session (active_servers/runtime/serverControl.ts -> code_analysis sessionRegistry), and the analysis watchers follow server removal (code_analysis/services/serverWatcherIntegration.ts -> the active-server registry and ServerControl). Both sides are the analysis<->server pair of docs/cleanup/src-layout.md §3.5; breaking it needs an event or callback seam, which is story #13 territory.",
-    "active_servers<->remote_access": "The active-server model and registry carry RemoteAccessState (types from remote_access/model), and RemoteAccessManager watches the registry to stop a tunnel when its server goes. In src-layout.md the registry joins core/server, so this becomes the core server<->remote-access pair.",
-    "active_servers<->servers": "The running-server registry (active_servers) and the server runtime (servers) are one subsystem split in two folders: the launcher registers servers and opens previews through active_servers, ServerControl stops them through the SSE manager. src-layout.md merges the registry, registrar and ServerControl into core/server; what then remains is the one upward edge multiServerLauncher -> launchNotifications (a view), allow-listed there.",
-    "code_analysis<->servers": "The analysis bridges are hosted by the HTTP server (servers/runtime/analysis/* -> code_analysis historical, dependencies, refresh, watchers), and the analysis engine launches and notifies servers (serverLaunchOrchestrator, SSE). The analysis<->server pair of src-layout.md §3.5; inverting it means registering the bridges from the analysis side (#13).",
-    "remote_access<->servers": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (servers -> remote_access, 9 edges), and RemoteAccessManager reads and turns off the cross-network setting through ServerSettingsManager (remote_access -> servers, 1 edge). Breaking it needs that setting behind an injected accessor (#13)."
+    "core/analysis<->core/history": "Was inside code_analysis before #55. The Git history services compose the analysis session, the session registry, ExecutePython, the configuration storage and the analysis file policy (core/history -> core/analysis), while the re-analysis watchers publish on analysisUpdateEvents (core/analysis/watchers -> core/history/analysisUpdateEvents.ts). Moving that event bus next to the watchers would remove the pair.",
+    "core/analysis<->core/server": "The analysis<->server pair of docs/cleanup/src-layout.md §3.5. The analysis bridges are hosted by the HTTP server (core/server/analysis/* -> core/analysis refresh, watchers and the session registry) and stopping a server closes its analysis session (core/server/serverControl.ts -> core/analysis/session); the analysis engine launches and notifies servers (core/analysis/session-servers -> multiServerLauncher, SSEManager, fileToServerMap, ServerSettingsManager). Inverting it means registering the bridges from the analysis side and an event or callback seam for the session (#13).",
+    "core/remote-access<->core/server": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (core/server -> core/remote-access), and RemoteAccessManager watches the running-server registry to stop a tunnel when its server goes and reads and turns off the cross-network setting through ServerSettingsManager (core/remote-access -> core/server). Breaking it needs that setting and the registry events behind an injected accessor (#13).",
+    "core/server<->features/active-servers": "The one upward edge of docs/cleanup/src-layout.md §3.5 seen from both sides: core/server/multiServerLauncher.ts shows the post-launch toasts from features/active-servers/views/launchNotifications.ts (#42 item 5 / #39; listed in layerExceptions), while the ACTIVE SERVERS feature drives the registry, ServerControl and the server settings. Moving the toasts behind a callback the feature registers removes the pair."
   },
-  "vscodeFreeFloor": 109,
-  "vscodeFreeNote": "src files from which no import path reaches `vscode` (type imports included). 97 when #42 started; may only go up. Raise the floor when it does."
+  "vscodeFreeFloor": 106,
+  "vscodeFreeNote": "src files from which no import path reaches `vscode` (type imports included). 97 when #42 started; may only go up. Raise the floor when it does. #55 batch 0 lowered it 109 -> 106 only because three vscode-free re-export barrels were deleted (configuration/models, customComponents, refresh index.ts); no surviving file lost the property."
 }

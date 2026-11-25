@@ -23,9 +23,9 @@ async function withOrchestrator(body) {
     const workRoot = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-orchestrator-')));
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { UnifiedSessionRegistry } = requireOut('code_analysis/engine/core/sessionRegistry.js');
+            const { UnifiedSessionRegistry } = requireOut('core/analysis/session/sessionRegistry.js');
             const registry = UnifiedSessionRegistry.getInstance(context);
-            const { AnalysisOrchestrator } = requireOut('code_analysis/engine/analysisOrchestrator.js');
+            const { AnalysisOrchestrator } = requireOut('core/analysis/analysisOrchestrator.js');
             const fired = [];
             registry.onSessionChanged((session) => fired.push(session.id));
             await body({ registry, AnalysisOrchestrator, fake, context, workRoot, fired });

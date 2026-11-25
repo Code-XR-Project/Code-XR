@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 
-const { GitRepositoryService } = require('../../out/code_analysis/historical/gitRepositoryService.js');
+const { GitRepositoryService } = require('../../out/core/history/gitRepositoryService.js');
 
 // Characterization of GitRepositoryService.listReferences (ROADMAP W4-T25,
 // CX-04) per output format. historicalComparison.test.cjs drives it against

@@ -62,11 +62,11 @@
 | **New feature** | `ARCHITECTURE.md` → `V1.2.1_STATUS.md` → area doc(s) → `AI_WORKFLOWS.md` §feature. **Note: features are out of scope for 1.2.1** | per module convention |
 | **Bug fix** | `ARCHITECTURE.md` (module map) → `AI_WORKFLOWS.md` §bug fix; area doc if a contract seam is involved | the one module |
 | **Refactor** | `ARCHITECTURE.md` (contracts!) → `AI_WORKFLOWS.md` §refactor | crossing modules |
-| **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/babia_templates/`, `engine/components/` |
-| **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `src/code_analysis/python/`, `engine/`, `src/utils/languageMetadata.ts` |
-| **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `code_analysis/dependencies/`, graph runtime |
-| **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `code_analysis/historical/` |
-| **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/servers/`, `active_servers/`, `collaboration/`, `remote_access/` |
+| **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/core/charts/`, `src/core/analysis/scene-assets/` |
+| **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `backend/src/`, `src/core/analysis/`, `src/core/analysis/languages/languageMetadata.ts` |
+| **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `core/dependencies/`, graph runtime |
+| **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `core/history/`, `core/export/` |
+| **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/core/server/`, `src/features/servers/`, `src/features/active-servers/`, `core/collaboration/`, `features/collaboration/`, `core/remote-access/` |
 | **Build / test / tooling** | `DEVELOPMENT.md` | `scripts/`, configs |
 | **Docs update** | `AI_WORKFLOWS.md` §docs → `V1.2.1_STATUS.md` §carried-over debt → `V1.2.0_STATUS.md` §documentation debt | `docs/`, `.claude/docs/` |
 | **Release preparation** | `V1.2.1_STATUS.md` (all) → `AI_WORKFLOWS.md` §release → `DEVELOPMENT.md` §packaging; `docs/project/ROADMAP_V1.2.0.md` only for historical exit criteria | everything user-visible |
@@ -78,7 +78,7 @@
 | `node_modules/`, `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/` | Generated / dependencies; never read or edit |
 | `tsconfig.tsbuildinfo`, `package-lock.json` | Build cache / lockfile; huge, no signal |
 | `resources/` (media), `examples/` | Binary/media assets; only relevant when explicitly working on them |
-| `src/code_analysis/` *as a whole* | 246 files — enter via `ARCHITECTURE.md` module map, never scan |
+| `src/core/analysis/` + `src/features/analysis/` *as a whole* | about 120 files — enter via `ARCHITECTURE.md` module map, never scan |
 | `package.json` *as a whole* | ~70 commands; grep the section you need |
 
 ## Keeping this index current

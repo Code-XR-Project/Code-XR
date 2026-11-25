@@ -23,8 +23,8 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
 const LAUNCHERS = [
-    { module: 'code_analysis/engine/launchers/launcherLivePanel.js', className: 'LauncherLivePanel', withTheme: true, methods: ['launchFileLivePanelAnalysis', 'launchDirectoryLivePanelAnalysis'] },
-    { module: 'code_analysis/engine/launchers/launcherXRAnalysis.js', className: 'LauncherXRAnalysis', withTheme: false, methods: ['launchFileXRAnalysis', 'launchDirectoryXRAnalysis'] },
+    { module: 'core/analysis/launchers/launcherLivePanel.js', className: 'LauncherLivePanel', withTheme: true, methods: ['launchFileLivePanelAnalysis', 'launchDirectoryLivePanelAnalysis'] },
+    { module: 'core/analysis/launchers/launcherXRAnalysis.js', className: 'LauncherXRAnalysis', withTheme: false, methods: ['launchFileXRAnalysis', 'launchDirectoryXRAnalysis'] },
 ];
 
 async function withLaunchers(body) {
@@ -33,21 +33,21 @@ async function withLaunchers(body) {
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
             const calls = [];
-            const pipeline = requireOut('code_analysis/engine/launchers/launchPipeline.js');
+            const pipeline = requireOut('core/analysis/launchers/launchPipeline.js');
             const configs = [];
             pipeline.executeLaunchPipeline = async (session, launchContext, config) => {
                 configs.push(config);
             };
-            const { UnifiedSessionRegistry } = requireOut('code_analysis/engine/core/sessionRegistry.js');
+            const { UnifiedSessionRegistry } = requireOut('core/analysis/session/sessionRegistry.js');
             UnifiedSessionRegistry.getInstance = () => ({ updateSessionStatus() {} });
-            const { AnalysisConfigurationStorage } = requireOut('code_analysis/configuration/analysisConfigurationStorage.js');
+            const { AnalysisConfigurationStorage } = requireOut('core/analysis/configuration/analysisConfigurationStorage.js');
             AnalysisConfigurationStorage.getInstance = () => ({
                 async getViewTheme() {
                     calls.push(['getViewTheme']);
                     return 'dark';
                 },
             });
-            const { FileRequirementProcessor } = requireOut('code_analysis/engine/processors/FileRequirementProcessor.js');
+            const { FileRequirementProcessor } = requireOut('core/analysis/processors/FileRequirementProcessor.js');
             const behaviour = { processResult: { processed: true }, watchResult: 'watcher-1', fail: null };
             let processorInstances = 0;
             FileRequirementProcessor.prototype.processRequirements = async function recordProcess(...args) {
@@ -59,7 +59,7 @@ async function withLaunchers(body) {
                 }
                 return behaviour.processResult;
             };
-            const { SessionWatcherManager } = requireOut('code_analysis/engine/watchers/sessionWatcherManager.js');
+            const { SessionWatcherManager } = requireOut('core/analysis/watchers/sessionWatcherManager.js');
             let watcherInstances = 0;
             SessionWatcherManager.prototype.startWatchingSession = async function recordWatch(...args) {
                 watcherInstances += this.__seen ? 0 : 1;

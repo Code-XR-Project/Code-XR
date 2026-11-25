@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
-const { scanDirectoryScope } = require('../../out/code_analysis/engine/watchers/directorySnapshot.js');
+const { scanDirectoryScope } = require('../../out/core/analysis/watchers/directorySnapshot.js');
 
 function createTempDir(prefix) {
     return fs.mkdtempSync(path.join(os.tmpdir(), prefix));

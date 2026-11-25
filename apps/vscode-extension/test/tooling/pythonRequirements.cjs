@@ -3,7 +3,7 @@
 /**
  * backend/requirements.txt is GENERATED from the one source of truth for the
  * Python packages Code-XR installs: CODEXR_PYTHON_PACKAGES in
- * src/python_env/runtime/pythonPackageManifest.ts (the extension installs those
+ * src/core/python-env/pythonPackageManifest.ts (the extension installs those
  * exact versions into the user's managed venv). The file exists so the backend
  * can be set up, and the future IDE can reuse the pin, without reading the
  * extension's TypeScript.
@@ -20,12 +20,12 @@ const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const requirementsPath = path.join(projectRoot, '..', '..', 'backend', 'requirements.txt');
-const manifestModule = path.join(projectRoot, 'out', 'python_env', 'runtime', 'pythonPackageManifest.js');
+const manifestModule = path.join(projectRoot, 'out', 'core', 'python-env', 'pythonPackageManifest.js');
 
 function renderRequirements(packages, getPinnedPythonRequirement) {
     const header = [
         '# GENERATED - do not edit. Source of truth:',
-        '#   apps/vscode-extension/src/python_env/runtime/pythonPackageManifest.ts',
+        '#   apps/vscode-extension/src/core/python-env/pythonPackageManifest.ts',
         '# Regenerate with `npm run python:requirements` (from the repository root).',
         '# These are the exact versions the extension installs into its managed venv.',
     ];

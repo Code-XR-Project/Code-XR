@@ -4,8 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
-const { FileHashTracker } = require('../../out/code_analysis/engine/watchers/fileHashTracker.js');
-const { SHA256Generator } = require('../../out/utils/sha256Generator.js');
+const { FileHashTracker } = require('../../out/core/analysis/watchers/fileHashTracker.js');
+const { SHA256Generator } = require('../../out/core/analysis/utils/sha256Generator.js');
 
 function createTempDir(prefix) {
     return fs.mkdtempSync(path.join(os.tmpdir(), prefix));

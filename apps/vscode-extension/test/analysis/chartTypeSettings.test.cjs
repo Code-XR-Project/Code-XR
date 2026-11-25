@@ -13,8 +13,8 @@ const assert = require('node:assert/strict');
 
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require('../helpers/fakeVscode.cjs');
 
-const FILE = { module: 'code_analysis/views/subsections/analysis_settings/chart_type_file/chartTypeFile.js', className: 'ChartTypeFileSetting' };
-const DIRECTORY = { module: 'code_analysis/views/subsections/analysis_settings/chart_type_directory/chartTypeDirectory.js', className: 'ChartTypeDirectorySetting' };
+const FILE = { module: 'features/analysis/sections/settings/chart-type-file/chartTypeFile.js', className: 'ChartTypeFileSetting' };
+const DIRECTORY = { module: 'features/analysis/sections/settings/chart-type-directory/chartTypeDirectory.js', className: 'ChartTypeDirectorySetting' };
 
 function silenceConsole() {
     const methods = ['log', 'info', 'warn', 'error', 'debug'];
@@ -48,7 +48,7 @@ async function withSetting(kind, values, body) {
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
             const Setting = requireOut(kind.module)[kind.className];
-            const { BabiaChartRegistry } = requireOut('babia_templates/registry/chartRegistry.js');
+            const { BabiaChartRegistry } = requireOut('core/charts/chartRegistry.js');
             const setting = new Setting(context);
             const { storage, calls } = recordingStorage(values);
             setting.storage = storage;

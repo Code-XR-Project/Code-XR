@@ -7,7 +7,7 @@
 
 0. **Know the version's scope.** The active version is **v1.2.1, a maintenance release: cleanup, optimization and hygiene, no new features.** Read `V1.2.1_STATUS.md` for the ranked backlog and the baseline numbers. If a task would add user-visible behaviour, it belongs in 1.3.0 — say so instead of quietly widening 1.2.1.
 1. **One unit of work per session** — one feature, one bug, one refactor, or one docs/release task. Finish and validate it before starting anything else. **Exception — the v1.2.1 cleanup programme:** there the unit is the *commit*, not the session. One roadmap item = one bisectable commit, a session may land several in roadmap order with the gate run after each, and a red gate ends the session at the last green commit (`cleanup` skill §1).
-2. **Start from `INDEX.md`** and read only the documents mapped to your task type. Do not scan `src/` broadly; `src/code_analysis/` alone is 246 files.
+2. **Start from `INDEX.md`** and read only the documents mapped to your task type. Do not scan `src/` broadly; `src/core/analysis/` and `src/features/analysis/` together are about 120 files.
 3. **Distinguish claim levels** in everything you report and write: confirmed (you verified it), self-assessed (a doc claims it), inferred, open question.
 4. **Validate before declaring done**: at minimum `npm run test:basic`; plus the narrowest specialized script for the touched area (matrix in `DEVELOPMENT.md`).
 5. **End-of-session checklist**:
@@ -21,7 +21,7 @@
 
 1. Read: `ARCHITECTURE.md`, `V1.2.1_STATUS.md` (the active status doc), plus the area doc (`XR_COMPONENTS.md` and/or `PYTHON_ANALYSIS.md`) and any relevant `docs/*.md` feature doc.
 2. Check the scope of the active version — 1.2.1 is maintenance only (`V1.2.1_STATUS.md`, `v1.2.1/ROADMAP.md`), so a feature belongs in 1.3.0; `docs/project/ROADMAP_V1.2.0.md` is the historical 1.2.0 plan. Respect scope decisions (e.g., boats/Code City is paused).
-3. Follow the per-feature module convention (`commands/` + `model/` + `runtime|services/` + `views/{items,interactions}`); register commands through the module's registration array consumed by `src/commands/index.ts` (IDs must be unique — `assertUniqueCommandIds` enforces this).
+3. Follow the per-feature module convention (`commands/` + `model/` + `runtime|services/` + `views/{items,interactions}`); register commands through the module's registration array consumed by `src/app/commands/registerAllCommands.ts` (IDs must be unique — `assertUniqueCommandIds` enforces this).
 4. If the feature adds metrics or chart dimensions, plan the Python schema ↔ TS validator sync first (`PYTHON_ANALYSIS.md` → field-schema contract).
 5. Add tests: unit `.test.cjs` in `test/<area>/`; runtime changes under `templates/components/` get a runtime test; consider a manual harness for visual behavior.
 6. Validate: narrow test script → `npm run test:basic` → F5 manual flow (`DEVELOPMENT.md`).
@@ -31,7 +31,7 @@
 
 1. Read: `ARCHITECTURE.md` module map to locate the subsystem; the area doc if the bug touches a contract seam.
 2. **Reproduce first** — via the narrowest test script or the F5 flow. Write a failing test when feasible (`test/<area>/*.test.cjs` or `test/python/`).
-3. Fix at the root cause; do not patch around watchers/session lifecycle without reading `engine/core/analysisSession.ts` + `engine/watchers/` behavior.
+3. Fix at the root cause; do not patch around watchers/session lifecycle without reading `core/analysis/session/analysisSession.ts` + `core/analysis/watchers/` behavior.
 4. Validate: the new/affected test + `npm run test:basic`.
 5. Update CHANGELOG (Fixed) and, if the bug revealed wrong documentation, correct the doc in the same session.
 
@@ -52,7 +52,7 @@ Full procedure lives in the **`cleanup` skill** — invoke it. Summary:
 1. Confirm scope with the user first if the refactor crosses module boundaries or touches a contract seam (field schema, chart registry, command registration, component injection, SSE keying).
 2. Read: `ARCHITECTURE.md` (esp. "cross-module contracts") + the area doc.
 3. Refactors must be behavior-neutral: run the full relevant matrix before *and* after (`test:basic`, plus `test:python`/`test:analysis` if analysis is touched, harnesses if runtimes are touched).
-4. Respect known duplication that is historical, not accidental (e.g. `active_servers/views/` vs `views/active_servers/`) — don't "clean up" aggregation wiring without tracing imports.
+4. Respect known duplication that is historical, not accidental (e.g. the two example item factories and click handlers in `features/examples/views/`) — don't "clean up" aggregation wiring without tracing imports.
 5. Update `ARCHITECTURE.md` if module responsibilities or seams moved.
 
 ## Playbook: documentation update
@@ -66,7 +66,7 @@ Full procedure lives in the **`cleanup` skill** — invoke it. Summary:
 
 1. Read: `V1.2.1_STATUS.md` (entire file), `v1.2.1/ROADMAP.md` (decisions and exit criteria; `docs/project/ROADMAP_V1.2.0.md` holds the historical 1.2.0 ones), `DEVELOPMENT.md` (packaging).
 2. Resolve every open verification row in `V1.2.1_STATUS.md` (each has a how-to-verify hint).
-3. Reconcile docs: README "What's New" → the release's content; CHANGELOG `[1.2.1]` → its provisional date moved to the real release date; roadmap statuses; language-count claim fixed against `src/utils/languageMetadata.ts`; rename leftovers.
+3. Reconcile docs: README "What's New" → the release's content; CHANGELOG `[1.2.1]` → its provisional date moved to the real release date; roadmap statuses; language-count claim fixed against `src/core/analysis/languages/languageMetadata.ts`; rename leftovers.
 4. Quality gate: `npm run test:all` + `npm run test:analysis` + harnesses for touched runtimes; F5 smoke of the three analysis modes.
 5. Package: `npm run package:vsix`; **inspect the VSIX contents** against the package.json `files` allowlist (no `.vscodeignore` exists — the allowlist is the only control). Verify no unintended files ship and nothing required is missing.
 6. Respect the pre-release sequence a feature release used (1.2.0: `1.2.0-alpha.1` → … → `rc.1` → stable) — do not jump to stable.

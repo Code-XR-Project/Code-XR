@@ -3,12 +3,12 @@ import tsParser from "@typescript-eslint/parser";
 import globals from "globals";
 
 // Logging programme (ROADMAP W4-L, LOG-02): extension diagnostics go through
-// the logger (src/core/logging), never straight to the console. The sink is
+// the logger (src/platform/logging), never straight to the console. The sink is
 // the one file allowed to call console.*: it is the fallback while no output
 // channel is attached. Browser runtimes under templates/ are not covered:
 // their console is the page's.
 const NO_CONSOLE_FILES = ["src/**/*.ts"];
-const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
+const CONSOLE_ALLOWLIST = ["src/platform/logging/sink.ts"];
 
 const NODE_JS_RULES = {
     "no-undef": "error",
@@ -140,14 +140,14 @@ export default [{
     // must still fall back to the default (modernization.md §7, row 9).
     files: [
         // historicalComparison.test.cjs pins `source.kind === 'workingCopy') || null` here (S pin).
-        "src/code_analysis/historical/projectEvolutionService.ts",
-        "src/servers/runtime/analysis/dependencyGraphBridge.ts",
-        "src/servers/runtime/analysis/projectEvolutionBridge.ts",
-        "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "src/servers/runtime/collaboration/roomSharedState.ts",
-        "src/servers/storage/serverSettingsManager.ts",
-        "src/visualize_data/state/visualizeDataState.ts",
-        "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts",
+        "src/core/history/projectEvolutionService.ts",
+        "src/core/server/analysis/dependencyGraphBridge.ts",
+        "src/core/server/analysis/projectEvolutionBridge.ts",
+        "src/core/server/collaboration/collaborationRoomServer.ts",
+        "src/core/server/collaboration/roomSharedState.ts",
+        "src/core/server/serverSettingsManager.ts",
+        "src/features/visualize-data/model/visualizeDataState.ts",
+        "src/features/analysis/sections/settings/sharedDimensionMappingSettingCore.ts",
     ],
     rules: {
         "@typescript-eslint/prefer-nullish-coalescing": "off",
@@ -157,9 +157,9 @@ export default [{
     // the tree provider are load-bearing (cleanup skill §4), and the other two
     // defer a relative import to break a load-time module cycle.
     files: [
-        "src/views/ModularTreeDataProvider.ts",
-        "src/code_analysis/engine/watchers/directoryReAnalyzer.ts",
-        "src/utils/getVisualizationConfiguration.ts",
+        "src/app/sidebar/ModularTreeDataProvider.ts",
+        "src/core/analysis/watchers/directoryReAnalyzer.ts",
+        "src/core/charts/getVisualizationConfiguration.ts",
     ],
     rules: {
         "@typescript-eslint/no-require-imports": "off",
@@ -167,13 +167,31 @@ export default [{
 }, {
     // Folders whose `any`s were typed away (story #56, modernization.md §7):
     // there no-explicit-any is an error, not a budget warning. A folder joins
-    // the list in the commit that brings it to zero.
+    // the list in the commit that brings it to zero. When #55 moved a locked
+    // file into a folder that also holds files with `any`, the lock moved to
+    // that whole folder and those files are listed in `ignores` (each leaves
+    // the list when it is typed).
     name: "codexr/any-free-folders",
     files: [
-        "src/active_servers/**/*.ts",
-        "src/code_analysis/engine/watchers/**/*.ts",
-        "src/code_analysis/services/**/*.ts",
-        "src/code_analysis/views/subsections/active_analyses/**/*.ts",
+        "src/core/server/**/*.ts",
+        "src/features/active-servers/**/*.ts",
+        "src/platform/webview/**/*.ts",
+        "src/core/analysis/python/**/*.ts",
+        "src/core/analysis/watchers/**/*.ts",
+        "src/features/analysis/services/**/*.ts",
+        "src/features/analysis/workspace/**/*.ts",
+        "src/features/analysis/sections/active-analyses/**/*.ts",
+    ],
+    ignores: [
+        "src/core/server/http/httpRespond.ts",
+        "src/core/server/httpsTlsOptions.ts",
+        "src/core/server/launchServerWithFile.ts",
+        "src/core/server/multiServerLauncher.ts",
+        "src/core/server/serverFactory.ts",
+        "src/core/server/serverSettingsManager.ts",
+        "src/core/server/sse/SSEManager.ts",
+        "src/core/analysis/python/executePython.ts",
+        "src/features/active-servers/views/activeServerItems.ts",
     ],
     rules: {
         "@typescript-eslint/no-explicit-any": "error",

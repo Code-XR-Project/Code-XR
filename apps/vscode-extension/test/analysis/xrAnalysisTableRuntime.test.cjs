@@ -1417,7 +1417,7 @@ test('runtime source reflects the render-first phase controller and geometry-rea
 
 test('generated XR presets give the vertical controller enough headroom for tiny Babia geometry', () => {
     const templateCharts = fs.readFileSync(
-        path.join(projectRoot, 'src', 'babia_templates', 'charts', 'templateCharts.ts'),
+        path.join(projectRoot, 'src', 'core', 'charts', 'templateCharts.ts'),
         'utf8',
     );
     const historicalRuntime = readAssembledRuntime('historical-comparison', 'historicalComparisonRuntime.js');

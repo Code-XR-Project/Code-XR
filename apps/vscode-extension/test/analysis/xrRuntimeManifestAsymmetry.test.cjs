@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const { projectRoot, readSource } = require('../helpers/sourceText.cjs');
 // The asset family never imports `vscode`, so the compiled barrel loads as it is.
-const components = require('../../out/code_analysis/engine/components/customComponents/index.js');
+const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetModules();
 
 /*
  * fileXRParser.ts copies a run of runtime assets into the scene folder and then
@@ -43,8 +43,8 @@ const components = require('../../out/code_analysis/engine/components/customComp
  * the F5 flow (open a file analysis and a directory analysis in XR).
  */
 
-const FILE_XR_PARSER = 'src/code_analysis/engine/parsers/fileXRParser.ts';
-const DIRECTORY_XR_PARSER = 'src/code_analysis/engine/parsers/directoryXRParser.ts';
+const FILE_XR_PARSER = 'src/core/analysis/parsers/fileXRParser.ts';
+const DIRECTORY_XR_PARSER = 'src/core/analysis/parsers/directoryXRParser.ts';
 
 const RUNTIME_ASSETS_COPIED_BY_FILE_XR = [
     'analysisModeRuntime.js',

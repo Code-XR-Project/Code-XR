@@ -37,7 +37,7 @@ async function withRegistry(body, fakeOptions = {}) {
     const restoreConsole = silenceConsole();
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { UnifiedSessionRegistry } = requireOut('code_analysis/engine/core/sessionRegistry.js');
+            const { UnifiedSessionRegistry } = requireOut('core/analysis/session/sessionRegistry.js');
             const registry = UnifiedSessionRegistry.getInstance(context);
             const fired = [];
             registry.onSessionChanged((session) => fired.push(session));

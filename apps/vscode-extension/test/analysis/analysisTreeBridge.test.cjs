@@ -7,7 +7,7 @@ const { readConcatenated } = require('../helpers/sourceText.cjs');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const baseInterfacesSource = fs.readFileSync(path.join(projectRoot, 'src', 'platform', 'tree', 'baseInterfaces.ts'), 'utf8');
 // The provider and the section literals it registers (split out in W5-16).
-const modularTreeSource = readConcatenated(['src/views/ModularTreeDataProvider.ts', 'src/views/sectionDefinitions.ts']);
+const modularTreeSource = readConcatenated(['src/app/sidebar/ModularTreeDataProvider.ts', 'src/app/sidebar/sectionDefinitions.ts']);
 
 test('modular tree base interfaces use the neutral analysis bridge properties', () => {
     assert.match(baseInterfacesSource, /analysisItemType\?:/);

@@ -15,8 +15,8 @@ These files are injected into user-facing generated pages — treat them like sh
 ## Two injection paths — know which one you're on
 
 **XR scenes**: each runtime is inlined into generated HTML by a matching
-`src/code_analysis/engine/components/customComponents/*ComponentAsset.ts`.
-A new XR runtime needs: the JS under `templates/components/codexr/<component>/`, a component asset TS file that reads it (a single-file runtime: a row in `SINGLE_FILE_RUNTIME_ASSETS` in `customComponents/singleFileRuntimeAssets.ts` plus thin wrappers), wiring where assets are injected, and a row in `COMPONENTS.md` at the right load position.
+`src/core/analysis/scene-assets/*ComponentAsset.ts`.
+A new XR runtime needs: the JS under `templates/components/codexr/<component>/`, a component asset TS file that reads it (a single-file runtime: a row in `SINGLE_FILE_RUNTIME_ASSETS` in `scene-assets/singleFileRuntimeAssets.ts` plus thin wrappers), wiring where assets are injected, and a row in `COMPONENTS.md` at the right load position.
 
 **LivePanel shared components**: files under `templates/components/livepanel/` are bundled by `LivePanelParser.processTemplateFiles` — shared JS is concatenated **ahead of** the template's own script into `main.js`, shared CSS ahead of the template stylesheet into `style.css`. No component-asset file involved. Anything you put there reaches every LivePanel template (file and directory) automatically.
 

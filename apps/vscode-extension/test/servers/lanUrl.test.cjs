@@ -3,9 +3,9 @@
  * local-network (LAN) address without a localhost guard, written before
  * ROADMAP T48 made them call NetworkUtils.getPrimaryExternalUrl:
  *   - the "Local network address" row under an active server
- *     (views/active_servers/items/activeServerItems.ts);
+ *     (features/active-servers/views/activeServerItems.ts);
  *   - the "Network" line of the server details
- *     (active_servers/views/interactions/serverDetailsFormat.ts);
+ *     (features/active-servers/views/serverDetailsFormat.ts);
  *   - "Copy Network URL" (ServerActionHandlers.copyLanUrl).
  *
  * The first two take the protocol from certMode ('http' -> http, anything
@@ -35,7 +35,7 @@ function makeServer(overrides) {
 async function withNetwork(body) {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { NetworkUtils } = requireOut('servers/utils/networkUtils.js');
+        const { NetworkUtils } = requireOut('core/server/networkUtils.js');
         NetworkUtils.getLocalIPAddress = () => '192.0.2.7';
         await body({ fake, requireOut });
     });
@@ -43,8 +43,8 @@ async function withNetwork(body) {
 
 test('the "Local network address" row: protocol from certMode, the local IP and the port', async () => {
     await withNetwork(async ({ requireOut }) => {
-        const { ActiveServerItemFactory } = requireOut('views/active_servers/items/activeServerItems.js');
-        const { ServerSettingsManager } = requireOut('servers/storage/serverSettingsManager.js');
+        const { ActiveServerItemFactory } = requireOut('features/active-servers/views/activeServerItems.js');
+        const { ServerSettingsManager } = requireOut('core/server/serverSettingsManager.js');
         ServerSettingsManager.getInstance = () => ({ getServerSettings: () => ({ remoteAccess: { enabled: false } }) });
         const cases = [
             [{ certMode: 'http', url: 'http://localhost:5555' }, 'http://192.0.2.7:5555'],
@@ -63,7 +63,7 @@ test('the "Local network address" row: protocol from certMode, the local IP and 
 
 test('the details "Network" line: protocol from certMode', async () => {
     await withNetwork(async ({ requireOut }) => {
-        const { formatServerDetails } = requireOut('active_servers/views/interactions/serverDetailsFormat.js');
+        const { formatServerDetails } = requireOut('features/active-servers/views/serverDetailsFormat.js');
         assert.match(formatServerDetails(makeServer({ certMode: 'http', url: 'http://localhost:5555' })), /http:\/\/192\.0\.2\.7:5555/);
         assert.match(formatServerDetails(makeServer({ certMode: 'default' })), /https:\/\/192\.0\.2\.7:5555/);
     });
@@ -71,8 +71,8 @@ test('the details "Network" line: protocol from certMode', async () => {
 
 test('Copy Network URL: protocol from the server URL scheme', async () => {
     await withNetwork(async ({ fake, requireOut }) => {
-        const { getActiveServerRegistry } = requireOut('active_servers/registry/activeServerRegistry.js');
-        const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
+        const { getActiveServerRegistry } = requireOut('core/server/registry/activeServerRegistry.js');
+        const { ServerActionHandlers } = requireOut('features/active-servers/views/handleServerActions.js');
         const registry = getActiveServerRegistry();
         const originalGetServer = registry.getServer;
         const servers = {

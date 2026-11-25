@@ -2,10 +2,10 @@
  * Behavioural characterization of the two Git-history services and their
  * collaboration bridges (W5-01, hist TEST-01').
  *
- *   src/code_analysis/historical/historicalComparisonService.ts
- *   src/code_analysis/historical/projectEvolutionService.ts
- *   src/servers/runtime/analysis/historicalComparisonBridge.ts
- *   src/servers/runtime/analysis/projectEvolutionBridge.ts
+ *   src/core/history/historicalComparisonService.ts
+ *   src/core/history/projectEvolutionService.ts
+ *   src/core/server/analysis/historicalComparisonBridge.ts
+ *   src/core/server/analysis/projectEvolutionBridge.ts
  *
  * Until this suite the four files were pinned only by regexes over their own
  * text, which blocks every behaviour-neutral reshaping. Everything here runs
@@ -33,10 +33,10 @@ const childProcess = require('node:child_process');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
-const HISTORICAL_MODULE = 'code_analysis/historical/historicalComparisonService.js';
-const EVOLUTION_MODULE = 'code_analysis/historical/projectEvolutionService.js';
-const HISTORICAL_BRIDGE_MODULE = 'servers/runtime/analysis/historicalComparisonBridge.js';
-const EVOLUTION_BRIDGE_MODULE = 'servers/runtime/analysis/projectEvolutionBridge.js';
+const HISTORICAL_MODULE = 'core/history/historicalComparisonService.js';
+const EVOLUTION_MODULE = 'core/history/projectEvolutionService.js';
+const HISTORICAL_BRIDGE_MODULE = 'core/server/analysis/historicalComparisonBridge.js';
+const EVOLUTION_BRIDGE_MODULE = 'core/server/analysis/projectEvolutionBridge.js';
 
 // ------------------------------------------------------------------ fixture repo
 
@@ -196,25 +196,25 @@ async function withServices(options, body) {
     const sessions = new Map((options.sessions || []).map((session) => [session.id, session]));
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { UnifiedSessionRegistry } = requireOut('code_analysis/engine/core/sessionRegistry.js');
+            const { UnifiedSessionRegistry } = requireOut('core/analysis/session/sessionRegistry.js');
             UnifiedSessionRegistry.getInstance = () => ({ getSession: (id) => sessions.get(id) });
-            const { ExecutePython } = requireOut('code_analysis/engine/utils/executePython.js');
+            const { ExecutePython } = requireOut('core/analysis/python/executePython.js');
             ExecutePython.prototype.executeAnalysis = function stubbedAnalysis(session) {
                 return analyzer.run(session);
             };
-            const { AnalysisConfigurationStorage } = requireOut('code_analysis/configuration/analysisConfigurationStorage.js');
+            const { AnalysisConfigurationStorage } = requireOut('core/analysis/configuration/analysisConfigurationStorage.js');
             AnalysisConfigurationStorage.getInstance = () => ({
                 getDimensionMappingFile: async () => ({ height: 'ccn', area: '', color: 7 }),
                 getDimensionMappingDirectory: async () => ({ height: 'totalLines', width: 'totalLines', color: '' }),
             });
-            const { GitRepositoryService } = requireOut('code_analysis/historical/gitRepositoryService.js');
+            const { GitRepositoryService } = requireOut('core/history/gitRepositoryService.js');
             const materialized = [];
             const originalMaterialize = GitRepositoryService.prototype.materialize;
             GitRepositoryService.prototype.materialize = function countedMaterialize(source) {
                 materialized.push(source.kind === 'gitRef' ? source.commitSha : source.id);
                 return originalMaterialize.call(this, source);
             };
-            const eligibility = requireOut('code_analysis/historical/gitAnalysisEligibility.js');
+            const eligibility = requireOut('core/history/gitAnalysisEligibility.js');
             const { HistoricalComparisonService } = requireOut(HISTORICAL_MODULE);
             const { ProjectEvolutionService } = requireOut(EVOLUTION_MODULE);
             await body({
@@ -913,7 +913,7 @@ async function settle() {
 async function withBridges(body) {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const coordinatorModule = requireOut('code_analysis/refresh/analysisRefreshCoordinator.js');
+        const coordinatorModule = requireOut('core/analysis/refresh/analysisRefreshCoordinator.js');
         const coordinatorCalls = [];
         const coordinator = coordinatorModule.analysisRefreshCoordinator;
         coordinator.setRefreshEnabled = (...args) => coordinatorCalls.push(['setRefreshEnabled', ...args]);
@@ -921,7 +921,7 @@ async function withBridges(body) {
         coordinator.refreshMode = async (...args) => {
             coordinatorCalls.push(['refreshMode', ...args]);
         };
-        const { GitAnalysisSourceError } = requireOut('code_analysis/historical/gitAnalysisEligibility.js');
+        const { GitAnalysisSourceError } = requireOut('core/history/gitAnalysisEligibility.js');
         const { HistoricalComparisonBridge } = requireOut(HISTORICAL_BRIDGE_MODULE);
         const { ProjectEvolutionBridge } = requireOut(EVOLUTION_BRIDGE_MODULE);
         await body({ HistoricalComparisonBridge, ProjectEvolutionBridge, GitAnalysisSourceError, coordinatorCalls });

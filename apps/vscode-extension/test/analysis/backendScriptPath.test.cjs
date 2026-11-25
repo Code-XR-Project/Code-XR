@@ -34,7 +34,7 @@ function makeInstalledLayout() {
 
 function withHelper(callback) {
     return withFakeVscode(createFakeVscode(), ({ requireOut }) =>
-        callback(requireOut('code_analysis/engine/utils/backendScriptPath.js')));
+        callback(requireOut('core/analysis/python/backendScriptPath.js')));
 }
 
 test('the shipped dist copy wins in every mode', () => {

@@ -32,7 +32,7 @@ function loadLivePanelParserWithStubbedVscode() {
     // The scope closes as soon as the class is loaded: the parser and everything
     // it imported stay usable, but nothing bound to this fake is left in
     // require.cache for the suites that run after this one.
-    const { LivePanelParser } = withFakeVscode(fake, ({ requireOut }) => requireOut('code_analysis/engine/parsers/livePanelParser.js'));
+    const { LivePanelParser } = withFakeVscode(fake, ({ requireOut }) => requireOut('core/analysis/parsers/livePanelParser.js'));
 
     return {
         LivePanelParser,
@@ -52,7 +52,7 @@ function extractMethodBlock(source, methodName) {
 }
 
 test('LivePanel directory launcher no longer blocks on empty directoriesToAnalyze before the first analysis', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'launchers', 'launcherLivePanel.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherLivePanel.ts');
 
     assert.equal(source.includes('No directories to analyze'), false);
     assert.match(source, /Directory targets will be resolved by the Python coordinator during the initial analysis/);
@@ -60,8 +60,8 @@ test('LivePanel directory launcher no longer blocks on empty directoriesToAnalyz
 });
 
 test('FileRequirementProcessor delegates all analysis startup paths to AnalysisBootstrap', () => {
-    const processor = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'FileRequirementProcessor.ts');
-    const bootstrap = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
+    const processor = readProjectFile('src', 'core', 'analysis', 'processors', 'FileRequirementProcessor.ts');
+    const bootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
 
     assert.match(processor, /import \{ AnalysisBootstrap, BootstrapProcessedRequirements \} from '\.\/analysisBootstrap';/);
     assert.match(processor, /this\.analysisBootstrap = new AnalysisBootstrap\(context\);/);
@@ -75,9 +75,9 @@ test('FileRequirementProcessor delegates all analysis startup paths to AnalysisB
 });
 
 test('LivePanel and XR bootstrap share the first Python analysis and tracked file hydration', () => {
-    const bootstrap = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
-    const fileXRParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
-    const directoryXRParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
+    const bootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
+    const fileXRParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
+    const directoryXRParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 
     assert.match(bootstrap, /const analysisResult = await this\.executePython\.executeAnalysis\(session\);/);
     assert.match(bootstrap, /session\.hash256 = await SHA256Generator\.generateFileHash\(session\.targetPath\);/);
@@ -88,9 +88,9 @@ test('LivePanel and XR bootstrap share the first Python analysis and tracked fil
 });
 
 test('VisualizeDOM launch and regeneration now go through the shared bootstrap path', () => {
-    const launcher = readProjectFile('src', 'code_analysis', 'engine', 'launchers', 'launcherVisualizeDOM.ts');
-    const reanalysisManager = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'reAnalysisManager.ts');
-    const bootstrap = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
+    const launcher = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherVisualizeDOM.ts');
+    const reanalysisManager = readProjectFile('src', 'core', 'analysis', 'watchers', 'reAnalysisManager.ts');
+    const bootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
     const domBootstrap = extractMethodBlock(bootstrap, 'bootstrapVisualizeDOM');
 
     assert.match(launcher, /const processor = new FileRequirementProcessor\(context\);/);
@@ -103,7 +103,7 @@ test('VisualizeDOM launch and regeneration now go through the shared bootstrap p
 });
 
 test('Server launch fails explicitly when an analysis session has no generated main HTML file', () => {
-    const orchestrator = readProjectFile('src', 'code_analysis', 'engine', 'servers', 'serverLaunchOrchestrator.ts');
+    const orchestrator = readProjectFile('src', 'core', 'analysis', 'session-servers', 'serverLaunchOrchestrator.ts');
 
     assert.match(orchestrator, /const preferredMainFile = typeof session\?\.metadata\?\.mainHtmlFileName === 'string'/);
     assert.match(orchestrator, /const htmlFilePath = this\.findMainHtmlFile\(tempDir, preferredMainFile\);/);
@@ -114,8 +114,8 @@ test('Server launch fails explicitly when an analysis session has no generated m
 test('VisualizeDOM runtime mounts babia-html from a JSON payload so full documents survive semicolons in style and script tags', () => {
     const template = readProjectFile('templates', 'xr', 'html', 'dom-visualization-template.html');
     const sseClient = readProjectFile('templates', 'xr', 'sse', 'live_sse_fileDOM.js');
-    const reanalysisManager = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'reAnalysisManager.ts');
-    const templateProcessor = readProjectFile('src', 'babia_templates', 'processing', 'templateHTMLProcessor.ts');
+    const reanalysisManager = readProjectFile('src', 'core', 'analysis', 'watchers', 'reAnalysisManager.ts');
+    const templateProcessor = readProjectFile('src', 'core', 'charts', 'processing', 'templateHTMLProcessor.ts');
 
     assert.match(template, /html2canvas\.min\.js/);
     assert.match(template, /babia-html="renderHTML: true; renderHTMLOnlyLeafs: true; distanceLevels: 0\.7"/);
@@ -138,7 +138,7 @@ test('VisualizeDOM runtime mounts babia-html from a JSON payload so full documen
 });
 
 test('HTML DOM Python integration now emits JSON markers and ExecutePython keeps a direct JSON fallback', () => {
-    const executePython = readProjectFile('src', 'code_analysis', 'engine', 'utils', 'executePython.ts');
+    const executePython = readProjectFile('src', 'core', 'analysis', 'python', 'executePython.ts');
     const htmlParser = readProjectFile('..', '..', 'backend', 'src', 'html', 'html_dom_parser.py');
 
     assert.match(htmlParser, /def emit_json_result\(result: Dict\[str, Any\]\) -> None:/);
@@ -209,10 +209,10 @@ test('LivePanel directory template and script expose unified directory aggregate
 // error chain) with no equivalent failure on the XR side.
 
 test('LivePanelParser resolves templates from context.extensionPath like every other parser, never the extension registry', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'livePanelParser.ts');
-    const bootstrap = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
-    const fileXRParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
-    const visualizeDOMParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'visualizeDOMParser.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'parsers', 'livePanelParser.ts');
+    const bootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
+    const fileXRParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
+    const visualizeDOMParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'visualizeDOMParser.ts');
 
     assert.match(source, /constructor\(context: vscode\.ExtensionContext\)/);
     assert.match(source, /this\.context = context;/);

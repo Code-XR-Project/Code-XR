@@ -1,6 +1,6 @@
 /**
  * The pure helpers shared by historical comparison, project evolution and
- * the export-time Git pre-analysis (src/code_analysis/historical/gitAnalysisShared.ts).
+ * the export-time Git pre-analysis (src/core/history/gitAnalysisShared.ts).
  * Loaded from out/ with no vscode stub: the module must stay vscode-free.
  */
 const test = require('node:test');
@@ -10,7 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const { toPortableRelativePath, buildAnalyzerCacheKey, decorateDirectoryEntries } = require(path.join(projectRoot, 'out', 'code_analysis', 'historical', 'gitAnalysisShared.js'));
+const { toPortableRelativePath, buildAnalyzerCacheKey, decorateDirectoryEntries } = require(path.join(projectRoot, 'out', 'core', 'history', 'gitAnalysisShared.js'));
 
 test('toPortableRelativePath: relative candidates are cleaned to POSIX, with an unknown fallback', () => {
     const root = path.join(os.tmpdir(), 'codexr-root');

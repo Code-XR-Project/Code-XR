@@ -12,7 +12,7 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 // TreeItem for the context-menu commands. Runs the real service from out/
 // against a stub session registry.
 
-const MODULE = 'code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.js';
+const MODULE = 'features/analysis/sections/active-analyses/activeAnalysesDataService.js';
 
 async function render(sessions) {
     const fake = createFakeVscode();

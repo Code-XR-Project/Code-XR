@@ -10,7 +10,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
 test('dependency graph is a first-class analysis table mode', () => {
   const table = readAssembledRuntime('analysis-table', 'analysisTableRuntime.js');
-  const models = read('src/code_analysis/historical/historicalComparisonModels.ts');
+  const models = read('src/core/history/historicalComparisonModels.ts');
   assert.match(table, /dependency-graph/);
   assert.match(models, /'dependency-graph'/);
   assert.match(table, /#7c3aed/);
@@ -183,7 +183,7 @@ test('file scope projection keeps symbols and aggregates other project files', (
 });
 
 test('render budget runtime is packaged before dependency rendering', () => {
-  const parser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+  const parser = read('src/core/analysis/parsers/directoryXRParser.ts');
   const template = read('templates/xr/file/xr-visualization.html');
   const budget = readAssembledRuntime('render-budget', 'renderBudgetRuntime.js');
   assert.match(parser, /RENDER_BUDGET_RUNTIME_OUTPUT_NAME/);
@@ -255,7 +255,7 @@ test('dependency detail override combines with performance conservatively', () =
 
 test('dependency graph keeps density control local and packages diagnostics', () => {
   const runtime = readAssembledRuntime('dependency-graph', 'dependencyGraphRuntime.js');
-  const parser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+  const parser = read('src/core/analysis/parsers/directoryXRParser.ts');
   assert.match(runtime, /Detail: /);
   assert.match(runtime, /setDetailOverride/);
   assert.match(runtime, /CodeXRCommonRuntime\?\.createTooltip/);
@@ -365,7 +365,7 @@ test('dependency metric axes use readable shared scales', () => {
 });
 
 test('directory XR parser packages the dependency runtime', () => {
-  const parser = read('src/code_analysis/engine/parsers/directoryXRParser.ts');
+  const parser = read('src/core/analysis/parsers/directoryXRParser.ts');
   const template = read('templates/xr/file/xr-visualization.html');
   assert.match(parser, /CODEXR_COMMON_RUNTIME_OUTPUT_NAME/);
   assert.match(parser, /readCodeXrCommonRuntimeContent/);
@@ -375,7 +375,7 @@ test('directory XR parser packages the dependency runtime', () => {
 });
 
 test('file XR parser packages the dependency runtime', () => {
-  const parser = read('src/code_analysis/engine/parsers/fileXRParser.ts');
+  const parser = read('src/core/analysis/parsers/fileXRParser.ts');
   assert.match(parser, /copyCodeXrCommonRuntimeToOutput/);
   assert.match(parser, /CODEXR_COMMON_RUNTIME_OUTPUT_NAME/);
   assert.match(parser, /copyDependencyGraphRuntimeToOutput/);
@@ -564,12 +564,12 @@ test('XR SSE signals normal analysis readiness after Babia stabilization', () =>
 });
 
 test('dependency server preserves cached datasets and no longer accepts granularity', () => {
-  const server = read('src/servers/runtime/analysis/analysisMessageRouter.ts')
-    + read('src/servers/runtime/analysis/dependencyGraphBridge.ts')
-    + read('src/servers/runtime/analysis/analysisFeatureHost.ts')
-    + read('src/servers/runtime/httpServer.ts');
-  const service = read('src/code_analysis/dependencies/dependencyGraphService.ts');
-  const models = read('src/code_analysis/dependencies/dependencyGraphModels.ts');
+  const server = read('src/core/server/analysis/analysisMessageRouter.ts')
+    + read('src/core/server/analysis/dependencyGraphBridge.ts')
+    + read('src/core/server/analysis/analysisFeatureHost.ts')
+    + read('src/core/server/httpServer.ts');
+  const service = read('src/core/dependencies/dependencyGraphService.ts');
+  const models = read('src/core/dependencies/dependencyGraphModels.ts');
   assert.match(server, /hasCachedDataset/);
   assert.match(server, /Restoring dependency graph/);
   assert.match(server, /existingDependencyState\?\.layout/);
@@ -586,22 +586,22 @@ test('dependency server preserves cached datasets and no longer accepts granular
 });
 
 test('python dependency packages are pinned centrally', () => {
-  const manifest = read('src/python_env/runtime/pythonPackageManifest.ts');
+  const manifest = read('src/core/python-env/pythonPackageManifest.ts');
   assert.match(manifest, /lizard/);
   assert.match(manifest, /tree-sitter-language-pack/);
   assert.match(manifest, /version: '1\.8\.1'/);
 });
 
 test('dependency graph availability gate allows LivePanel directory/project analyses', () => {
-  const service = read('src/code_analysis/dependencies/dependencyGraphService.ts');
+  const service = read('src/core/dependencies/dependencyGraphService.ts');
   assert.match(service, /session\.analysisMode !== 'XR' && session\.analysisMode !== 'LivePanel'/);
 });
 
 test('LivePanel dependency graph summary REST endpoint is thin and reuses the existing service', () => {
-  const server = read('src/servers/runtime/analysis/analysisMessageRouter.ts')
-    + read('src/servers/runtime/analysis/dependencyGraphBridge.ts')
-    + read('src/servers/runtime/analysis/analysisFeatureHost.ts')
-    + read('src/servers/runtime/httpServer.ts');
+  const server = read('src/core/server/analysis/analysisMessageRouter.ts')
+    + read('src/core/server/analysis/dependencyGraphBridge.ts')
+    + read('src/core/server/analysis/analysisFeatureHost.ts')
+    + read('src/core/server/httpServer.ts');
   assert.match(server, /case '\/dependency-graph\/summary':/);
   assert.match(server, /public async handleDependencyGraphSummary\(/);
   assert.match(server, /this\.dependencyGraphService\.getAvailability\(\)/);
@@ -611,10 +611,10 @@ test('LivePanel dependency graph summary REST endpoint is thin and reuses the ex
 });
 
 test('LivePanel ties the dependency graph into the re-analysis chain as a background mode and pushes updates over SSE', () => {
-  const server = read('src/servers/runtime/analysis/analysisMessageRouter.ts')
-    + read('src/servers/runtime/analysis/dependencyGraphBridge.ts')
-    + read('src/servers/runtime/analysis/analysisFeatureHost.ts')
-    + read('src/servers/runtime/httpServer.ts');
+  const server = read('src/core/server/analysis/analysisMessageRouter.ts')
+    + read('src/core/server/analysis/dependencyGraphBridge.ts')
+    + read('src/core/server/analysis/analysisFeatureHost.ts')
+    + read('src/core/server/httpServer.ts');
   // Background refresh: recompute the dependency graph on every source change,
   // seed the initial dataset, and clean up on dispose.
   assert.match(server, /setBackgroundRefresh\(livePanelSessionId, 'dependency-graph', true\)/);
@@ -626,7 +626,7 @@ test('LivePanel ties the dependency graph into the re-analysis chain as a backgr
 });
 
 test('the refresh coordinator exposes background modes that publishChanges runs while inactive', () => {
-  const coordinator = read('src/code_analysis/refresh/analysisRefreshCoordinator.ts');
+  const coordinator = read('src/core/analysis/refresh/analysisRefreshCoordinator.ts');
   assert.match(coordinator, /backgroundModes: Set<AnalysisRefreshMode>/);
   assert.match(coordinator, /public setBackgroundRefresh\(/);
   assert.match(coordinator, /for \(const backgroundMode of state\.backgroundModes\)/);
@@ -634,14 +634,14 @@ test('the refresh coordinator exposes background modes that publishChanges runs 
 });
 
 test('the dependency service consumes an incremental change batch (changed files only, extraction cache)', () => {
-  const service = read('src/code_analysis/dependencies/dependencyGraphService.ts');
+  const service = read('src/core/dependencies/dependencyGraphService.ts');
   // The incremental request feeds the Python analyzer the change batch + a cache.
   assert.match(service, /const requestPath = path\.join\(requestDirectory, 'refresh-request\.json'\)/);
   assert.match(service, /this\.extractionCachePath/);
-  const server = read('src/servers/runtime/analysis/analysisMessageRouter.ts')
-    + read('src/servers/runtime/analysis/dependencyGraphBridge.ts')
-    + read('src/servers/runtime/analysis/analysisFeatureHost.ts')
-    + read('src/servers/runtime/httpServer.ts');
+  const server = read('src/core/server/analysis/analysisMessageRouter.ts')
+    + read('src/core/server/analysis/dependencyGraphBridge.ts')
+    + read('src/core/server/analysis/analysisFeatureHost.ts')
+    + read('src/core/server/httpServer.ts');
   // The handler builds the request from the coordinator batch (first run full, then incremental).
   assert.match(server, /changedFiles: batch\.changedFiles/);
   assert.match(server, /forceFullScan: batch\.forceRefresh \|\| !this\.dependencyGraphService\.hasGeneratedDataset\(\)/);
@@ -902,10 +902,10 @@ test('flow size and speed are a room-shared catalogue rendered in the panel', ()
   assert.match(source, /publishState\(\{ flowSpeed: cycleValue\(currentFlowSpeed, flowSpeedIds, 1\) \}\)/);
 
   // The analysis server validates and persists the same contract.
-  const server = read('src/servers/runtime/analysis/analysisMessageRouter.ts')
-    + read('src/servers/runtime/analysis/dependencyGraphBridge.ts')
-    + read('src/servers/runtime/analysis/analysisFeatureHost.ts')
-    + read('src/servers/runtime/httpServer.ts');
+  const server = read('src/core/server/analysis/analysisMessageRouter.ts')
+    + read('src/core/server/analysis/dependencyGraphBridge.ts')
+    + read('src/core/server/analysis/analysisFeatureHost.ts')
+    + read('src/core/server/httpServer.ts');
   assert.match(server, /allowedFlowSizes = new Set\(\['s', 'm', 'l', 'xl'\]\)/);
   assert.match(server, /allowedFlowSpeeds = new Set\(\['x05', 'x1', 'x2', 'x3'\]\)/);
   assert.match(server, /flowSize: existingDependencyState\?\.flowSize \|\| 'm'/);

@@ -25,7 +25,7 @@ test('readSource names the fix when a pinned file is gone', () => {
 });
 
 test('readConcatenated follows code across several files', () => {
-    const haystack = readConcatenated(['src/extension.ts', 'src/commands/index.ts']);
+    const haystack = readConcatenated(['src/extension.ts', 'src/app/commands/registerAllCommands.ts']);
 
     assert.match(haystack, /export (async )?function activate/);
     assert.match(haystack, /assertUniqueCommandIds/);
@@ -33,16 +33,16 @@ test('readConcatenated follows code across several files', () => {
 });
 
 test('collectFiles and readSourceTree walk a directory in a stable order', () => {
-    const files = collectFiles('src/core', { extensions: ['.ts'] });
+    const files = collectFiles('src/platform', { extensions: ['.ts'] });
 
-    assert.ok(files.includes('src/core/logging/logger.ts'));
+    assert.ok(files.includes('src/platform/logging/logger.ts'));
     assert.deepEqual(files, files.slice().sort());
     assert.equal(
-        collectFiles('src/core', { extensions: ['.ts'], exclude: (file) => file.includes('/logging/') })
+        collectFiles('src/platform', { extensions: ['.ts'], exclude: (file) => file.includes('/logging/') })
             .some((file) => file.includes('/logging/')),
         false,
     );
-    assert.match(readSourceTree('src/core/logging', { extensions: ['.ts'] }), /class CodeXRLogger/);
+    assert.match(readSourceTree('src/platform/logging', { extensions: ['.ts'] }), /class CodeXRLogger/);
 });
 
 test('assertAbsent refuses to pass against the wrong haystack', () => {

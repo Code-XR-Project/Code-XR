@@ -86,7 +86,7 @@ function captureConsole() {
          * inside the scope, before the first line to capture.
          */
         observeLogger() {
-            observeLogsAsConsole(require(path.join(__dirname, '..', '..', 'out', 'core', 'logging', 'sink.js')), record);
+            observeLogsAsConsole(require(path.join(__dirname, '..', '..', 'out', 'platform', 'logging', 'sink.js')), record);
         },
         /** Values replaced by stable placeholders in every later line (ports, temp paths). */
         setReplacements(next) {
@@ -100,8 +100,8 @@ function captureConsole() {
 
 /** Stubs NetworkUtils and PortManager (shared by every server module in this load). */
 function installNetworkStubs(requireOut, freePort) {
-    const { NetworkUtils } = requireOut('servers/utils/networkUtils.js');
-    const { PortManager } = requireOut('servers/runtime/portManager.js');
+    const { NetworkUtils } = requireOut('core/server/networkUtils.js');
+    const { PortManager } = requireOut('core/server/portManager.js');
     const calls = [];
     NetworkUtils.getPrimaryExternalUrl = (port, protocol) => `${protocol}://192.0.2.10:${port}`;
     NetworkUtils.generateServerUrls = (port, protocol) => ({
@@ -301,8 +301,8 @@ test.after(() => {
 test('HTTPS constructors keep their guard order and messages', async () => {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { HttpsCustomServer } = requireOut('servers/runtime/httpsCustomServer.js');
-        const { HttpsDefaultServer } = requireOut('servers/runtime/httpsDefaultServer.js');
+        const { HttpsCustomServer } = requireOut('core/server/httpsCustomServer.js');
+        const { HttpsDefaultServer } = requireOut('core/server/httpsDefaultServer.js');
         const context = sharedContext();
         const consoleCapture = captureConsole();
         consoleCapture.observeLogger();
@@ -336,7 +336,7 @@ test('HttpsDefaultServer: generated pair, TLS surface, VR toast and dispose-befo
         await withFakeVscode(fake, async ({ requireOut }) => {
             consoleCapture.observeLogger();
             const calls = installNetworkStubs(requireOut, port);
-            const { HttpsDefaultServer } = requireOut('servers/runtime/httpsDefaultServer.js');
+            const { HttpsDefaultServer } = requireOut('core/server/httpsDefaultServer.js');
             const certDirectory = path.join(sharedStorage, 'global', 'server-certs');
             consoleCapture.setReplacements([[certDirectory, '<certs>'], [String(port), '<port>']]);
 
@@ -416,8 +416,8 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
         await withFakeVscode(fake, async ({ requireOut }) => {
             consoleCapture.observeLogger();
             const calls = installNetworkStubs(requireOut, port);
-            const { HttpsCustomServer } = requireOut('servers/runtime/httpsCustomServer.js');
-            const { GeneratedHttpsCertificateManager } = requireOut('servers/runtime/generatedHttpsCertificateManager.js');
+            const { HttpsCustomServer } = requireOut('core/server/httpsCustomServer.js');
+            const { GeneratedHttpsCertificateManager } = requireOut('core/server/generatedHttpsCertificateManager.js');
             const generated = await new GeneratedHttpsCertificateManager(context).ensureDefaultCertificatePair();
 
             // A valid custom pair: copied out of the generated store.
@@ -531,7 +531,7 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
         await withFakeVscode(fake, async ({ requireOut }) => {
             consoleCapture.observeLogger();
             installNetworkStubs(requireOut, port);
-            const { HttpServer } = requireOut('servers/runtime/httpServer.js');
+            const { HttpServer } = requireOut('core/server/httpServer.js');
             consoleCapture.setReplacements([[String(port), '<port>']]);
             const server = new HttpServer({ port, host: '127.0.0.1', staticRoot: templatesRoot() });
             assert.equal(await server.start(), `http://localhost:${port}`);
@@ -574,7 +574,7 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
 test('httpsTlsOptions: the shared TLS literal both HTTPS servers listen with', async () => {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { HTTPS_CIPHER_SUITES, buildTlsServerOptions, isCertificateRejectedByClient } = requireOut('servers/runtime/httpsTlsOptions.js');
+        const { HTTPS_CIPHER_SUITES, buildTlsServerOptions, isCertificateRejectedByClient } = requireOut('core/server/httpsTlsOptions.js');
         assert.deepEqual([...HTTPS_CIPHER_SUITES], ALLOWED_CIPHERS);
         const { SNICallback, ...literal } = buildTlsServerOptions('CERT', 'KEY');
         assert.deepEqual(literal, {

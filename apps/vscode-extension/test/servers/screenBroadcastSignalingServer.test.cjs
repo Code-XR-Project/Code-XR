@@ -7,7 +7,7 @@ const WebSocket = require('ws');
 const projectRoot = path.resolve(__dirname, '..', '..');
 
 function loadBroadcastSignalingServer() {
-    return require(path.join(projectRoot, 'out', 'servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.js'));
+    return require(path.join(projectRoot, 'out', 'core', 'server', 'broadcast', 'screenBroadcastSignalingServer.js'));
 }
 
 function waitForOpen(socket) {

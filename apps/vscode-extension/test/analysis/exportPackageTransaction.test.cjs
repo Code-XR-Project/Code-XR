@@ -10,7 +10,7 @@ const {
   pruneExportPackage,
   publishExportPackage,
   validateExportPackage,
-} = require('../../out/code_analysis/export/exportPackageTransaction.js');
+} = require('../../out/core/export/exportPackageTransaction.js');
 
 function makeRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-export-transaction-'));

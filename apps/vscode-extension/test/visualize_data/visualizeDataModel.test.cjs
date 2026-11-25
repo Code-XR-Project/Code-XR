@@ -150,9 +150,9 @@ function openSession(workbench, callback) {
         // The state module goes first: requireOut() always reloads the file it is
         // given, so asking for it after the model would hand the test a second
         // singleton instead of the one the model talks to.
-        const { VisualizeDataStateManager } = requireOut('visualize_data/state/visualizeDataState.js');
-        const { VisualizeDataModel } = requireOut('visualize_data/model/visualizeDataModel.js');
-        const { JsonFieldAnalyzer } = requireOut('utils/jsonFieldAnalyzer.js');
+        const { VisualizeDataStateManager } = requireOut('features/visualize-data/model/visualizeDataState.js');
+        const { VisualizeDataModel } = requireOut('features/visualize-data/model/visualizeDataModel.js');
+        const { JsonFieldAnalyzer } = requireOut('features/visualize-data/services/jsonFieldAnalyzer.js');
 
         assert.equal(VisualizeDataStateManager.hasInstance(), false, 'precondition: a session starts without a state manager, or a reload would prove nothing');
 

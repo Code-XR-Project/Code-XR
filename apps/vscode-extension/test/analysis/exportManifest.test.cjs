@@ -14,7 +14,7 @@ const {
     refreshRuntimeCopies,
     relativizeExportArtifacts,
     writeExportReadme,
-} = require('../../out/code_analysis/export/exportManifest.js');
+} = require('../../out/core/export/exportManifest.js');
 
 const XR_CAPABILITIES = {
     dependencyGraph: true,

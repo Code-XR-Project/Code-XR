@@ -9,11 +9,11 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.j
 const webpackConfigSource = fs.readFileSync(path.join(projectRoot, 'webpack.config.js'), 'utf8');
 const packageVsixSource = fs.readFileSync(path.join(projectRoot, 'scripts', 'package-vsix.mjs'), 'utf8');
 const extensionSource = fs.readFileSync(path.join(projectRoot, 'src', 'extension.ts'), 'utf8');
-const httpsDefaultServerSource = fs.readFileSync(path.join(projectRoot, 'src', 'servers', 'runtime', 'httpsDefaultServer.ts'), 'utf8');
-const httpsCustomServerSource = fs.readFileSync(path.join(projectRoot, 'src', 'servers', 'runtime', 'httpsCustomServer.ts'), 'utf8');
+const httpsDefaultServerSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'server', 'httpsDefaultServer.ts'), 'utf8');
+const httpsCustomServerSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'server', 'httpsCustomServer.ts'), 'utf8');
 
 function loadGeneratedHttpsCertificateManager() {
-    return require(path.join(projectRoot, 'out', 'servers', 'runtime', 'generatedHttpsCertificateManager.js'));
+    return require(path.join(projectRoot, 'out', 'core', 'server', 'generatedHttpsCertificateManager.js'));
 }
 
 test('GeneratedHttpsCertificateManager creates certificate assets inside VS Code global storage and reuses them', async () => {

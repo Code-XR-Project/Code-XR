@@ -18,7 +18,7 @@ The Python backend is a frequent source of confusion:
 - `--mode {livePanel, xr, schema, dependencies}`
 - `--type {file, directory, project}`
 
-The TS bridge is `src/code_analysis/engine/utils/executePython.ts`, which spawns the venv's interpreter against `main.py` and parses the JSON. Progress is streamed via `python/utils/progress_logger.py` conventions. *[inferred: exact progress protocol — verify in executePython.ts if you need it]*
+The TS bridge is `src/core/analysis/python/executePython.ts`, which spawns the venv's interpreter against `main.py` and parses the JSON. Progress is streamed via `python/utils/progress_logger.py` conventions. *[inferred: exact progress protocol — verify in executePython.ts if you need it]*
 
 ## Layout
 
@@ -45,8 +45,8 @@ src/code_analysis/python/
 ## The field-schema contract (critical seam)
 
 1. `python/utils/xr_field_schema.py` defines which metric fields exist per analysis type.
-2. TS fetches it via `main.py --mode schema`, cached/served by `src/code_analysis/services/xrFieldSchemaService.ts` (prefetched at startup by the `StartupCoordinator`).
-3. `src/babia_templates/processing/dimensionValidator.ts` validates user dimension mappings against that schema before launching an XR scene.
+2. TS fetches it via `main.py --mode schema`, cached/served by `src/core/analysis/python/xrFieldSchemaService.ts` (prefetched at startup by the `StartupCoordinator`).
+3. `src/core/charts/processing/dimensionValidator.ts` validates user dimension mappings against that schema before launching an XR scene.
 
 **Rule**: any metric added/renamed/removed in Python must flow through the schema, and the analysis/manual-metrics tests must be re-run. A mismatch surfaces as dimension-mapping validation failures or empty charts.
 
@@ -60,7 +60,7 @@ src/code_analysis/python/
 
 Python source is also pinned on **quote style and import order** by source-text tests (`main.py`'s `choices=['livePanel', …]`, `print('=== JSON_START ===')`, the imports that follow the `sys.path` setup). No formatter, no isort.
 
-## Virtual environment (`src/python_env/`)
+## Virtual environment (`src/core/python-env/`, commands and tree in `src/features/python-env/`)
 
 - `runtime/venvManager.ts` creates/verifies/reinstalls the venv; package manifest and env UI state live alongside it. User-facing commands: `codeXR.pythonEnv.*` (create/delete/status/reinitialize/verify/debug).
 - Python dependencies (e.g. `lizard`, `tree-sitter-language-pack`) are installed into this venv at runtime. **Needs verification**: the exact dependency manifest location (there is no top-level `requirements.txt`; the manifest appears to live inside `src/python_env/` — confirm before changing dependencies).
@@ -69,7 +69,7 @@ Python source is also pinned on **quote style and import order** by source-text 
 ## Languages and metrics
 
 - Metrics: cyclomatic complexity (CCN), LOC/comment lines, function/class counts, parameters — primarily via **Lizard**. Dependency relations via **tree-sitter-language-pack** (pinned; confidence levels exact/best-effort/unsupported/ambiguous — see `docs/features/DEPENDENCY_GRAPH_XR.md`).
-- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/utils/languageMetadata.ts` (TS side) + `python/utils/metric_language_contract.py` (Python side)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
+- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/core/analysis/languages/languageMetadata.ts` (TS side) + `python/utils/metric_language_contract.py` (Python side)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
 
 ## Testing the Python side
 

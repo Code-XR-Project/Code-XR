@@ -30,29 +30,28 @@ test('XR schema registry includes the new file and directory metrics used by the
 test('shared dimension mapping core consumes the schema service instead of hardcoded field lists', () => {
     const sharedCore = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_shared',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
         'sharedDimensionMappingSettingCore.ts',
     );
     const fileSetting = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_file',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-file',
         'dimensionMappingFile.ts',
     );
     const directorySetting = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_directory',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-directory',
         'dimensionMappingDirectory.ts',
     );
 
@@ -69,19 +68,21 @@ test('shared dimension mapping core consumes the schema service instead of hardc
 test('XR schema consumers support text-only dimensions for categorical chart axes', () => {
     const schemaService = readProjectFile(
         'src',
-        'code_analysis',
-        'services',
+        'core',
+        'analysis',
+        'python',
         'xrFieldSchemaService.ts',
     );
     const templateProcessor = readProjectFile(
         'src',
-        'babia_templates',
+        'core',
+        'charts',
         'processing',
         'templateProcessor.ts',
     );
     const templateCharts = readProjectFile(
         'src',
-        'babia_templates',
+        'core',
         'charts',
         'templateCharts.ts',
     );
@@ -100,7 +101,7 @@ test('XR schema consumers support text-only dimensions for categorical chart axe
 });
 
 test('XR launcher validates mappings with schema-provided field types before execution', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'launchers', 'launcherXRAnalysis.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherXRAnalysis.ts');
 
     assert.match(source, /getFieldTypeMap\(analysisType, true\)/);
     assert.match(source, /Python field schema is not available yet/);
@@ -108,8 +109,8 @@ test('XR launcher validates mappings with schema-provided field types before exe
 });
 
 test('boats chart metadata keeps numeric-only area and height with any-valued color', () => {
-    const templateCharts = readProjectFile('src', 'babia_templates', 'charts', 'templateCharts.ts');
-    const createChart = readProjectFile('src', 'babia_templates', 'processing', 'placeholders', 'createChart.ts');
+    const templateCharts = readProjectFile('src', 'core', 'charts', 'templateCharts.ts');
+    const createChart = readProjectFile('src', 'core', 'charts', 'processing', 'placeholders', 'createChart.ts');
 
     assert.doesNotMatch(templateCharts, /id: 'codexr-boats'/);
 

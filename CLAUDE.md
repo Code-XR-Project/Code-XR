@@ -76,7 +76,7 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 
 - **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains a copy of the Python backend — the source is `backend/src/`.)
 - **`templates/**`, `examples/**` ship inside the VSIX** (`docs/**` stopped shipping in 1.2.1) (package.json `files` allowlist; there is no `.vscodeignore`). `.claude/**` does not ship. Think before adding files to shipped folders.
-- Command IDs must be unique — `assertUniqueCommandIds` in `src/commands/index.ts` throws on duplicates.
+- Command IDs must be unique — `assertUniqueCommandIds` (`src/platform/commands/commandRegistry.ts`, called by `src/app/commands/registerAllCommands.ts`) throws on duplicates.
 - JS under `templates/components/` is injected into user-facing generated scenes; treat changes there like shipping frontend code (and respect the load order in `templates/components/COMPONENTS.md`).
 - Project principles (roadmap exit criteria): no telemetry, no network calls or downloads without explicit user consent, server-validated admin operations.
 - Don't delete or rewrite existing docs; record inconsistencies in `.claude/docs/V1.2.1_STATUS.md` instead (the historical list is `V1.2.0_STATUS.md` → "Documentation debt"; `INDEX.md` routes docs work through both).
@@ -84,5 +84,5 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 ## Context management
 
 - Never scan `node_modules/`, `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `package-lock.json`.
-- `src/code_analysis/` is 246 files and `package.json` is ~1,000 lines — navigate via the module map in `ARCHITECTURE.md` and targeted Grep, never wholesale reads.
+- `src/core/analysis/` + `src/features/analysis/` are about 120 files and `package.json` is ~1,000 lines — navigate via the module map in `ARCHITECTURE.md` and targeted Grep, never wholesale reads.
 - Long-form knowledge lives in `.claude/docs/`, decisions live in the repo (status doc, CHANGELOG) — not in chat history. If you learn something durable, write it into the right doc before the session ends.

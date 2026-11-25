@@ -18,8 +18,8 @@ function loadGitRepositoryService() {
     const sourcePath = path.join(
         projectRoot,
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'gitRepositoryService.ts',
     );
     const previousLoader = require.extensions['.ts'];
@@ -48,7 +48,7 @@ function loadGitRepositoryService() {
 }
 
 function loadTimelineSampler() {
-    const sourcePath = path.join(projectRoot, 'src', 'code_analysis', 'historical', 'gitTimelineSampler.ts');
+    const sourcePath = path.join(projectRoot, 'src', 'core', 'history', 'gitTimelineSampler.ts');
     const previousLoader = require.extensions['.ts'];
     require.extensions['.ts'] = function compileTypeScript(module, filename) {
         const source = fs.readFileSync(filename, 'utf8');
@@ -182,8 +182,8 @@ function runGit(repositoryPath, args) {
 test('historical Git service resolves server-owned refs without checkout, fetch, shell, or .git writes', () => {
     const source = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'gitRepositoryService.ts',
     );
 
@@ -326,8 +326,8 @@ test('historical Git service materializes repository roots, branches, tags, comm
 test('historical snapshots use private extension storage and publish only immutable result artifacts', () => {
     const source = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'historicalComparisonService.ts',
     );
 
@@ -345,7 +345,7 @@ test('historical snapshots use private extension storage and publish only immuta
     // its key name. Exact output: gitHistoryServices.test.cjs.
     assert.match(source, /decorateDirectoryEntries\(payload, session\.targetPath, analyzedTargetPath, \['comparisonKey'\]\)/);
     assert.match(
-        readConcatenated(['src/code_analysis/historical/gitAnalysisShared.ts']),
+        readConcatenated(['src/core/history/gitAnalysisShared.ts']),
         /filePath: buildBabiaStyleFilePath\(originalTargetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}decorated\[field\] = key/,
     );
     assert.match(source, /let added = 0/);
@@ -355,20 +355,20 @@ test('historical snapshots use private extension storage and publish only immuta
 });
 
 test('historical comparison is authoritative, shared per room, and rejects concurrent work', () => {
-    const server = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisMessageRouter.ts')
-        + readProjectFile('src', 'servers', 'runtime', 'analysis', 'historicalComparisonBridge.ts')
-        + readProjectFile('src', 'servers', 'runtime', 'analysis', 'projectEvolutionBridge.ts')
-        + readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisMessageRouter.ts')
+        + readProjectFile('src', 'core', 'server', 'analysis', 'historicalComparisonBridge.ts')
+        + readProjectFile('src', 'core', 'server', 'analysis', 'projectEvolutionBridge.ts')
+        + readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     const service = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'historicalComparisonService.ts',
     );
     const room = readProjectFile(
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'collaboration',
         'collaborationRoomServer.ts',
     );
@@ -384,7 +384,7 @@ test('historical comparison is authoritative, shared per room, and rejects concu
     assert.match(server, /await this\.historicalComparisonService\.getAvailability\(\)/);
     // The capability payload is built by the extracted CollaborationSessionApi.
     assert.match(
-        readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationSessionApi.ts'),
+        readProjectFile('src', 'core', 'server', 'collaboration', 'collaborationSessionApi.ts'),
         /historicalComparisonReason: historicalComparison\.reason/,
     );
     assert.match(server, /entityKind: 'historical-comparison'/);
@@ -397,26 +397,26 @@ test('historical comparison is authoritative, shared per room, and rejects concu
 });
 
 test('project evolution builds a chronological Git movie and publishes shared XR state', () => {
-    const server = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisMessageRouter.ts')
-        + readProjectFile('src', 'servers', 'runtime', 'analysis', 'historicalComparisonBridge.ts')
-        + readProjectFile('src', 'servers', 'runtime', 'analysis', 'projectEvolutionBridge.ts')
-        + readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisMessageRouter.ts')
+        + readProjectFile('src', 'core', 'server', 'analysis', 'historicalComparisonBridge.ts')
+        + readProjectFile('src', 'core', 'server', 'analysis', 'projectEvolutionBridge.ts')
+        + readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     const service = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'projectEvolutionService.ts',
     );
     const models = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'historicalComparisonModels.ts',
     );
     const gitService = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'gitRepositoryService.ts',
     );
     const runtime = readAssembledRuntime('project-evolution', 'projectEvolutionRuntime.js');
@@ -473,7 +473,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(service, /source\.commitSha === picked\.commitSha/);
     assert.match(service, /sourceId === 'working-copy'[\s\S]{0,80}timeline\.length - 1/);
     assert.match(service, /throw new Error\('project-evolution-range-not-found'\)/);
-    const sampler = readProjectFile('src', 'code_analysis', 'historical', 'gitTimelineSampler.ts');
+    const sampler = readProjectFile('src', 'core', 'history', 'gitTimelineSampler.ts');
     assert.match(sampler, /export function sampleTimeline/);
     assert.match(sampler, /function isMilestone/);
     assert.match(sampler, /function fillWidestGaps/);
@@ -481,7 +481,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(server, /new ProjectEvolutionService/);
     assert.match(server, /projectEvolutionService\.getAvailability/);
     // The capability payload is built by the extracted CollaborationSessionApi.
-    const sessionApi = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationSessionApi.ts');
+    const sessionApi = readProjectFile('src', 'core', 'server', 'collaboration', 'collaborationSessionApi.ts');
     assert.match(sessionApi, /projectEvolution: projectEvolution\.enabled/);
     assert.match(sessionApi, /projectEvolutionReason: projectEvolution\.reason/);
     assert.match(server, /message\.type === 'project-evolution-references-request'/);
@@ -718,8 +718,8 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     // service shares with historical comparison and the export lives in
     // gitAnalysisShared.ts since #38 (retargeted haystack, same assertions).
     const portablePaths = readConcatenated([
-        'src/code_analysis/historical/projectEvolutionService.ts',
-        'src/code_analysis/historical/gitAnalysisShared.ts',
+        'src/core/history/projectEvolutionService.ts',
+        'src/core/history/gitAnalysisShared.ts',
     ]);
     assert.match(portablePaths, /toPortableRelativePath\(analyzedTargetPath, sourcePath\)/, 'canary: the service still routes paths through the shared helper');
     assert.match(portablePaths, /if \(!path\.isAbsolute\(candidate\)\)/);
@@ -927,8 +927,8 @@ test('historical source selector keeps commit cards compact and identifies live 
     const runtime = readAssembledRuntime('historical-comparison', 'historicalComparisonRuntime.js');
     const gitService = readProjectFile(
         'src',
-        'code_analysis',
-        'historical',
+        'core',
+        'history',
         'gitRepositoryService.ts',
     );
 

@@ -202,8 +202,8 @@ test('no-console is an error over all of src/, and the log sink is the only exce
     const [block] = blocks;
     assert.equal(block.rules['no-console'], 'error');
     assert.deepEqual(block.files, ['src/**/*.ts']);
-    assert.deepEqual(block.ignores, ['src/core/logging/sink.ts']);
-    assert.ok(fs.existsSync(path.join(projectRoot, 'src', 'core', 'logging', 'sink.ts')), 'the allowlisted sink exists');
+    assert.deepEqual(block.ignores, ['src/platform/logging/sink.ts']);
+    assert.ok(fs.existsSync(path.join(projectRoot, 'src', 'platform', 'logging', 'sink.ts')), 'the allowlisted sink exists');
 });
 
 // Idioms story #56 brought to zero in src/ (docs/cleanup/modernization.md §7).
@@ -245,9 +245,9 @@ test('only the three files with deliberate lazy require() may use it', async () 
 
     assert.equal(exemptions.length, 1, 'one exemption block');
     assert.deepEqual([...exemptions[0].files].sort(), [
-        'src/code_analysis/engine/watchers/directoryReAnalyzer.ts',
-        'src/utils/getVisualizationConfiguration.ts',
-        'src/views/ModularTreeDataProvider.ts',
+        'src/app/sidebar/ModularTreeDataProvider.ts',
+        'src/core/analysis/watchers/directoryReAnalyzer.ts',
+        'src/core/charts/getVisualizationConfiguration.ts',
     ]);
     for (const file of exemptions[0].files) {
         assert.ok(fs.existsSync(path.join(projectRoot, file)), `${file} exists`);

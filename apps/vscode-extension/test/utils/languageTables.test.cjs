@@ -4,12 +4,12 @@ const assert = require('node:assert/strict');
 /**
  * Characterization of the two live language tables (1.2.1, roadmap W1-10).
  *
- * - utils/supportedLanguages decides what is ANALYSED: getAllSupportedExtensions
+ * - core/analysis/languages/supportedLanguages decides what is ANALYSED: getAllSupportedExtensions
  *   (minus HTML) is the metric-analysis extension set of the watchers,
  *   isSupportedExtension is the table's membership predicate (its two src
  *   callers, both dead, went in 1.2.1 W2-26 / W2-30), and
  *   getLanguageByExtension routes HTML files to the DOM view by language name.
- * - utils/languageMetadata decides what is LABELLED: getLanguageForFile groups the
+ * - core/analysis/languages/languageMetadata decides what is LABELLED: getLanguageForFile groups the
  *   "Files by Language" tree, marks files as supported in the workspace snapshot,
  *   and gates the XR file command.
  *
@@ -27,8 +27,8 @@ const assert = require('node:assert/strict');
  * straight from out/. If one of them ever starts to need the editor API, these
  * two requires throw.
  */
-const analysed = require('../../out/utils/supportedLanguages.js');
-const labelled = require('../../out/utils/languageMetadata.js');
+const analysed = require('../../out/core/analysis/languages/supportedLanguages.js');
+const labelled = require('../../out/core/analysis/languages/languageMetadata.js');
 
 /**
  * One row per language: display name, key of the analysis table (the value

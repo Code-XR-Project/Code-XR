@@ -63,8 +63,8 @@ function nextMessage(socket, type) {
 }
 
 test('room and broadcast endpoints share one server, each on its own path, and fall back to the same default room', async () => {
-    const { CollaborationRoomServer } = out('servers', 'runtime', 'collaboration', 'collaborationRoomServer.js');
-    const { ScreenBroadcastSignalingServer } = out('servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.js');
+    const { CollaborationRoomServer } = out('core', 'server', 'collaboration', 'collaborationRoomServer.js');
+    const { ScreenBroadcastSignalingServer } = out('core', 'server', 'broadcast', 'screenBroadcastSignalingServer.js');
     const server = http.createServer((_req, res) => res.end('ok'));
     const scopes = [];
     // Paths given without the leading slash are normalized.
@@ -113,8 +113,8 @@ test('room and broadcast endpoints share one server, each on its own path, and f
 });
 
 test('an unauthorized upgrade has its socket destroyed; an authorized one on the same path connects', async () => {
-    const { CollaborationRoomServer } = out('servers', 'runtime', 'collaboration', 'collaborationRoomServer.js');
-    const { ScreenBroadcastSignalingServer } = out('servers', 'runtime', 'broadcast', 'screenBroadcastSignalingServer.js');
+    const { CollaborationRoomServer } = out('core', 'server', 'collaboration', 'collaborationRoomServer.js');
+    const { ScreenBroadcastSignalingServer } = out('core', 'server', 'broadcast', 'screenBroadcastSignalingServer.js');
     const server = http.createServer((_req, res) => res.end('ok'));
     const allow = (request) => new URL(request.url, 'http://x').searchParams.get('ok') === '1';
     const room = new CollaborationRoomServer(server, '/codexr-room', { authorizeUpgrade: allow });

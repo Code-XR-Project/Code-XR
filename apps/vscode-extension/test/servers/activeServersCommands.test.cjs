@@ -1,6 +1,6 @@
 /**
  * Behavioural characterization of the active-servers command registrations
- * (src/active_servers/commands/activeServersCommands.ts), written before
+ * (src/features/active-servers/commands/activeServersCommands.ts), written before
  * ROADMAP T44 turned the eleven identical "server id from a tree item"
  * handlers into a table. It runs the compiled module from out/ under the
  * fake vscode, with every ServerActionHandlers static replaced by a
@@ -56,7 +56,7 @@ const TREE_ITEM_COMMANDS = {
 async function withCommands(body) {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
+        const { ServerActionHandlers } = requireOut('features/active-servers/views/handleServerActions.js');
         const calls = [];
         const methods = [
             ...Object.values(TREE_ITEM_COMMANDS),
@@ -70,7 +70,7 @@ async function withCommands(body) {
             };
         }
         try {
-            const { ActiveServersCommands } = requireOut('active_servers/commands/activeServersCommands.js');
+            const { ActiveServersCommands } = requireOut('features/active-servers/commands/activeServersCommands.js');
             await body({ fake, ActiveServersCommands, calls });
         } finally {
             Object.assign(ServerActionHandlers, originals);

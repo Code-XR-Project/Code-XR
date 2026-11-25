@@ -132,7 +132,7 @@ assert.match(viewLifecycle, /setAttribute\?\.\('position', '0\.07 1\.75 -10\.75'
 
 // The mapping panel never opts into hiding on AR.
 const templateProcessor = fs.readFileSync(
-    path.join(projectRoot, 'src', 'babia_templates', 'processing', 'templateProcessor.ts'),
+    path.join(projectRoot, 'src', 'core', 'charts', 'processing', 'templateProcessor.ts'),
     'utf8',
 );
 assert.match(templateProcessor, /hideOnEnterAr: false/);

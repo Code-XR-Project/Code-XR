@@ -5,7 +5,7 @@ const path = require('node:path');
 // The pure stderr classifier ExecutePython uses (ROADMAP W4-L04). The end-to-end
 // report sequence is pinned in pythonStderrProgress.test.cjs; this pins the
 // log lines and the null cases, line by line.
-const { classifyStderrLine } = require(path.join(__dirname, '..', '..', 'out', 'code_analysis', 'engine', 'utils', 'pythonStderrStream.js'));
+const { classifyStderrLine } = require(path.join(__dirname, '..', '..', 'out', 'core', 'analysis', 'python', 'pythonStderrStream.js'));
 
 test('a full progress line logs four lines and reports the basename with an increment of 100/total', () => {
     const line = JSON.stringify({ progress: {

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {
     shouldSkipWorkspaceEntry,
     sortWorkspaceEntries,
-} = require('../../out/code_analysis/services/workspaceSnapshotModel.js');
+} = require('../../out/features/analysis/workspace/workspaceSnapshotModel.js');
 
 test('shouldSkipWorkspaceEntry filters hidden and generated entries', () => {
     assert.equal(shouldSkipWorkspaceEntry('.git'), true);

@@ -27,10 +27,10 @@ const packageJson = JSON.parse(readSource('package.json'));
 // The compiled consumers this suite EXECUTES. When one of them moves, retarget
 // the constant; do not fall back to reading its source, which cannot tell a
 // live lookup from a table that nobody calls.
-const PROFILE_MANAGER_MODULE = 'collaboration/services/collaborationProfileManager.js';
-const LANGUAGE_TABLE_MODULE = 'utils/languageMetadata.js';
-const LANGUAGE_ICON_MODULE = 'code_analysis/utils/workspaceFileScanner.js';
-const SAVE_FILES_MODULE = 'code_analysis/engine/utils/saveFiles.js';
+const PROFILE_MANAGER_MODULE = 'core/collaboration/collaborationProfileManager.js';
+const LANGUAGE_TABLE_MODULE = 'core/analysis/languages/languageMetadata.js';
+const LANGUAGE_ICON_MODULE = 'features/analysis/workspace/workspaceFileScanner.js';
+const SAVE_FILES_MODULE = 'core/analysis/utils/saveFiles.js';
 
 /**
  * Ships, but nothing reaches it. Every entry is debt and carries its reason.

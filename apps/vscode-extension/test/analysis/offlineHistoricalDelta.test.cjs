@@ -37,8 +37,8 @@ const { readSource } = require(path.join(projectRoot, 'test', 'helpers', 'source
 // == Where the two implementations live ==
 // A refactor that moves either side retargets THIS block and nothing below it.
 
-const EXTENSION_MODULE = 'code_analysis/historical/historicalComparisonService.js';
-const EXTENSION_SOURCE = 'src/code_analysis/historical/historicalComparisonService.ts';
+const EXTENSION_MODULE = 'core/history/historicalComparisonService.js';
+const EXTENSION_SOURCE = 'src/core/history/historicalComparisonService.ts';
 const runtimeSource = readAssembledRuntime('historical-comparison', 'historicalComparisonRuntime.js');
 
 function loadExtensionDelta(requireOut) {
@@ -414,7 +414,7 @@ test('payload pairs shaped by the export decorator get the same counters on both
     // The decorator that writes the per-revision payloads of an export: the
     // browser port only ever sees entries shaped by it.
     const { decorateRevisionPayload } = require(path.join(
-        projectRoot, 'out', 'code_analysis', 'export', 'gitRevisionExportCore.js',
+        projectRoot, 'out', 'core', 'export', 'gitRevisionExportCore.js',
     ));
     // Pure path arithmetic, nothing is created on disk. Each revision is
     // analyzed in its own snapshot folder, as a materialized commit is.

@@ -76,8 +76,8 @@ function buildCases(chartTemplates) {
 function capture() {
     const fake = createFakeVscode();
     return withFakeVscode(fake, ({ requireOut }) => {
-        const { TemplateProcessor } = requireOut('babia_templates/processing/templateProcessor.js');
-        const { chartTemplates } = requireOut('babia_templates/charts/templateCharts.js');
+        const { TemplateProcessor } = requireOut('core/charts/processing/templateProcessor.js');
+        const { chartTemplates } = requireOut('core/charts/templateCharts.js');
         return buildCases(chartTemplates).map((entry) => {
             const result = TemplateProcessor.buildBabiaUiPlaceholders(
                 entry.chartId,

@@ -463,24 +463,24 @@ async function runScenario(scenario) {
 
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
+            const { ServerActionHandlers } = requireOut('features/active-servers/views/handleServerActions.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
-            observeLogsAsConsole(loaded('core/logging/sink.js'), record);
+            observeLogsAsConsole(loaded('platform/logging/sink.js'), record);
 
-            const { PreviewRenderer } = loaded('servers/runtime/previewRenderer.js');
+            const { PreviewRenderer } = loaded('features/active-servers/services/previewRenderer.js');
             PreviewRenderer.openPreview = async (...args) => {
                 transcript.calls.push(normalize(['openPreview', ...args]));
                 if (scenario.previewFails) {
                     throw new Error('no browser available');
                 }
             };
-            const { NetworkUtils } = loaded('servers/utils/networkUtils.js');
+            const { NetworkUtils } = loaded('core/server/networkUtils.js');
             NetworkUtils.getLocalIPAddress = () => localIp;
-            const { ServerSettingsManager } = loaded('servers/storage/serverSettingsManager.js');
+            const { ServerSettingsManager } = loaded('core/server/serverSettingsManager.js');
             ServerSettingsManager.getInstance = () => ({
                 getServerSettings: () => ({ remoteAccess: { enabled: scenario.remoteEnabled === true } }),
             });
-            const { RemoteAccessManager } = loaded('remote_access/services/remoteAccessManager.js');
+            const { RemoteAccessManager } = loaded('core/remote-access/remoteAccessManager.js');
             RemoteAccessManager.getInstance = () => (scenario.remoteManager === 'missing' ? null : {
                 startSharing: async (serverId) => {
                     transcript.calls.push(['startSharing', serverId]);
@@ -496,7 +496,7 @@ async function runScenario(scenario) {
                     transcript.calls.push(['stopAll']);
                 },
             });
-            const { ServerControl } = loaded('active_servers/runtime/serverControl.js');
+            const { ServerControl } = loaded('core/server/serverControl.js');
             const control = { stopServer: [...((scenario.control || {}).stopServer || [])], stopAllServers: [...((scenario.control || {}).stopAllServers || [])] };
             for (const method of ['stopServer', 'stopAllServers']) {
                 ServerControl[method] = async (...args) => {
@@ -510,7 +510,7 @@ async function runScenario(scenario) {
             }
 
             Date.now = () => NOW;
-            const { getActiveServerRegistry } = loaded('active_servers/registry/activeServerRegistry.js');
+            const { getActiveServerRegistry } = loaded('core/server/registry/activeServerRegistry.js');
             const registry = getActiveServerRegistry();
             const ids = [];
             for (const config of scenario.servers || []) {

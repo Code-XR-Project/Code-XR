@@ -1,6 +1,6 @@
 /**
  * The host's one table of default controller views per analysis mode
- * (src/code_analysis/refresh/analysisViewModes.ts). The refresh coordinator,
+ * (src/core/analysis/refresh/analysisViewModes.ts). The refresh coordinator,
  * the export manifest and the collaboration router all read it; the browser
  * copy is kept in step by controllerViewMapSync.test.cjs.
  */
@@ -13,7 +13,7 @@ const {
     ANALYSIS_CONTROLLER_VIEW_BY_MODE,
     FALLBACK_CONTROLLER_VIEW,
     defaultControllerView,
-} = require(path.join(projectRoot, 'out', 'code_analysis', 'refresh', 'analysisViewModes.js'));
+} = require(path.join(projectRoot, 'out', 'core', 'analysis', 'refresh', 'analysisViewModes.js'));
 
 test('every analysis mode has the default controller view 1.2.0 shipped', () => {
     assert.deepEqual({ ...ANALYSIS_CONTROLLER_VIEW_BY_MODE }, {

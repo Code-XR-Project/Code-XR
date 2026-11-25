@@ -12,7 +12,7 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 // Uri behaviour comes from the fake vscode (file: URIs resolve through
 // node:url, so expectations are built the same way and stay OS-agnostic).
 
-const MODULE = 'utils/uriPathConverter.js';
+const MODULE = 'features/analysis/commands/dom/uriPathConverter.js';
 const filePath = path.resolve('/repo/src/a.ts');
 const fileUri = url.pathToFileURL(filePath).toString();
 

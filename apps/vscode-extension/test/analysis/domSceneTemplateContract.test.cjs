@@ -150,7 +150,7 @@ async function runDomPipeline() {
 
     try {
         const files = await withFakeVscode(fake, async ({ requireOut }) => {
-            const { VisualizeDOMParser } = requireOut('code_analysis/engine/parsers/visualizeDOMParser.js');
+            const { VisualizeDOMParser } = requireOut('core/analysis/parsers/visualizeDOMParser.js');
             return new VisualizeDOMParser(context).processHTMLTemplates({
                 htmlContent: '<!DOCTYPE html><html><body><p>contract probe</p></body></html>',
                 fileName: 'probe.html',

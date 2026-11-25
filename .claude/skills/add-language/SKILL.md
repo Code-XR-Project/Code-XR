@@ -7,18 +7,18 @@ description: Add or adjust supported-language coverage in CodeXR — the Python 
 
 Language support spans two worlds that must change together. The **source of truth** is code, not docs (README says 24, other docs 23 — known documentation debt):
 
-- TS side: `src/utils/languageMetadata.ts`
+- TS side: `src/core/analysis/languages/languageMetadata.ts`
 - Python side: `src/code_analysis/python/utils/metric_language_contract.py`
 
 ## Checklist for adding/changing a language
 
 1. **Python contract**: declare the language's metric capabilities in `metric_language_contract.py`. Metrics come primarily from Lizard; dependency relations from `tree-sitter-language-pack` (`utils/dependency_analysis_engine.py`) with confidence levels exact / best-effort / unsupported / ambiguous.
 2. **Field schema impact**: if any metric field is added/renamed, it must flow through `python/utils/xr_field_schema.py` → `--mode schema` → `xrFieldSchemaService.ts` → `dimensionValidator.ts`. A mismatch surfaces as dimension-mapping failures or empty charts. See `.claude/docs/PYTHON_ANALYSIS.md` §field-schema contract.
-3. **TS metadata**: mirror the language in `src/utils/languageMetadata.ts` (extensions, display name, capabilities).
+3. **TS metadata**: mirror the language in `src/core/analysis/languages/languageMetadata.ts` (extensions, display name, capabilities).
 4. **Fixtures**:
    - `backend/manual_test/<lang>_metrics.<ext>` (flat, one or more files per language; `deep/` holds the recursive-directory extras) — consumed by `npm run test:analysis` (see `backend/manual_test/README.md`).
    - `backend/tests/fixtures/dependency-languages/` — sample source for dependency-graph tests.
-5. **Venv dependencies**: if a new Python package is needed, it goes through the managed venv manifest in `src/python_env/` (`venvManager.ts`) — never assume system Python, never add an implicit download (no downloads without explicit user consent).
+5. **Venv dependencies**: if a new Python package is needed, it goes through the managed venv manifest in `src/core/python-env/` (`venvManager.ts`, `pythonPackageManifest.ts`) — never assume system Python, never add an implicit download (no downloads without explicit user consent).
 
 ## Validation
 

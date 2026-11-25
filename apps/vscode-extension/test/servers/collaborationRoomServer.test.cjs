@@ -7,7 +7,7 @@ const WebSocket = require('ws');
 const projectRoot = path.resolve(__dirname, '..', '..');
 
 function loadCollaborationRoomServer() {
-    return require(path.join(projectRoot, 'out', 'servers', 'runtime', 'collaboration', 'collaborationRoomServer.js'));
+    return require(path.join(projectRoot, 'out', 'core', 'server', 'collaboration', 'collaborationRoomServer.js'));
 }
 
 function waitForOpen(socket) {

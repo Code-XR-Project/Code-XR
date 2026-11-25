@@ -1,0 +1,499 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import * as vscode from 'vscode';
+import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
+import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
+import { decorateDirectoryEntries } from './gitAnalysisShared';
+import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
+import { GitRepositoryService } from './gitRepositoryService';
+import {
+    GitAnalysisSourceCatalog,
+    GitAnalysisSourceError,
+    createGitAnalysisExclusion,
+} from './gitAnalysisEligibility';
+import { sampleTimeline } from './gitTimelineSampler';
+import {
+    ComparisonSource,
+    GitAnalysisExclusion,
+    ProjectEvolutionProgress,
+    ProjectEvolutionReferences,
+    ProjectEvolutionRequest,
+    ProjectEvolutionResult,
+} from './historicalComparisonModels';
+
+const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
+const DEFAULT_MAX_FRAMES = 24;
+const DEFAULT_ANALYSIS_CONCURRENCY = 4;
+const TIMELINE_SCAN_LIMIT = 240;
+
+interface ResolvedEvolutionSources {
+    sources: ComparisonSource[];
+    exclusions: GitAnalysisExclusion[];
+}
+
+export class ProjectEvolutionService {
+    private readonly gitService: GitRepositoryService;
+    private readonly analysis: GitAnalysisSessionContext;
+    private readonly jobs = new SingleJobGate<ProjectEvolutionRequest, ProjectEvolutionResult>('project-evolution-busy');
+    private revision = 0;
+    private cancellationRevision = 0;
+
+    public constructor(
+        private readonly context: vscode.ExtensionContext,
+        private readonly sessionId: string,
+        private readonly staticRoot: string,
+        sourceCatalog?: GitAnalysisSourceCatalog,
+    ) {
+        const session = this.getSession();
+        const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
+        this.gitService = new GitRepositoryService(
+            session.targetPath,
+            path.join(privateStorageRoot, 'project-evolution', sessionId, 'snapshots'),
+        );
+        this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog, context, {
+            cacheVersion: ANALYZER_CACHE_VERSION,
+            errorCode: 'project-evolution-insufficient-data',
+            sessionIdInfix: 'evolution',
+            metadataKey: 'projectEvolutionSource',
+            missingTarget: 'cache-empty',
+            decorate: (payload, current, analyzedTargetPath) => this.decoratePayload(payload, current, analyzedTargetPath),
+        });
+    }
+
+    public getAvailability(): Promise<{ enabled: boolean; reason: string | null }> {
+        return this.gitService.getAvailability(
+            'Project evolution requires a local Git repository.',
+        );
+    }
+
+    public async getReferences(): Promise<ProjectEvolutionReferences> {
+        const references = await this.gitService.listReferences();
+        const timeline = await this.buildAutomaticTimeline(references);
+        const mergedSources = this.mergeSources(references.sources, timeline);
+        const filtered = await this.analysis.sourceCatalog.filterSources({
+            repositoryRoot: references.repositoryRoot,
+            targetRelativePath: references.targetRelativePath,
+            sources: mergedSources,
+        });
+        const usableIds = new Set(filtered.sources.map((source) => source.id));
+        const usableTimeline = timeline.filter((source) => usableIds.has(source.id));
+        const suggested = this.sampleSources(usableTimeline, DEFAULT_MAX_FRAMES)
+            .map((source) => source.id);
+        return {
+            ...references,
+            sources: filtered.sources,
+            eligibility: filtered.eligibility,
+            activeRequest: this.jobs.lastRequest ? { ...this.jobs.lastRequest } : null,
+            suggestedSourceIds: suggested,
+            maxFrames: DEFAULT_MAX_FRAMES,
+        };
+    }
+
+    public isBusy(): boolean {
+        return this.jobs.isBusy();
+    }
+
+    public async generate(
+        request: ProjectEvolutionRequest,
+        onProgress: (progress: ProjectEvolutionProgress) => void,
+    ): Promise<ProjectEvolutionResult> {
+        return this.jobs.run(request, () => this.executeEvolution(request, onProgress));
+    }
+
+    public dispose(): Promise<void> {
+        return this.analysis.dispose();
+    }
+
+    public async clearGeneratedMovie(): Promise<void> {
+        this.cancellationRevision += 1;
+        this.jobs.forgetLastRequest();
+        this.analysis.cache.clear();
+        if (this.revision < 1) {
+            return;
+        }
+        const evolutionDirectory = path.resolve(this.staticRoot, 'evolution');
+        const revisionDirectory = path.resolve(evolutionDirectory, `revision-${this.revision}`);
+        const staticRoot = path.resolve(this.staticRoot);
+        if (!revisionDirectory.startsWith(staticRoot + path.sep) && revisionDirectory !== staticRoot) {
+            throw new Error('project-evolution-clear-outside-static-root');
+        }
+        await fs.promises.rm(revisionDirectory, { recursive: true, force: true });
+    }
+
+    public async applyFrameToBridge(
+        revision: number,
+        frameIndex: number,
+    ): Promise<{ revision: number; frameIndex: number; bridgeUrl: string }> {
+        const safeRevision = Math.floor(Number(revision));
+        const safeFrameIndex = Math.floor(Number(frameIndex));
+        if (!Number.isFinite(safeRevision) || safeRevision < 1 || safeRevision !== this.revision) {
+            throw new Error('project-evolution-invalid-revision');
+        }
+        if (!Number.isFinite(safeFrameIndex) || safeFrameIndex < 0) {
+            throw new Error('project-evolution-invalid-frame');
+        }
+        const revisionDirectory = this.resolveRevisionDirectory(safeRevision);
+        const sourcePath = path.join(revisionDirectory, `data${safeFrameIndex + 1}.json`);
+        const bridgePath = path.join(revisionDirectory, 'data.json');
+        await fs.promises.access(sourcePath, fs.constants.R_OK);
+        await this.copyFileAtomically(sourcePath, bridgePath);
+        return {
+            revision: safeRevision,
+            frameIndex: safeFrameIndex,
+            bridgeUrl: `/evolution/revision-${safeRevision}/data.json`,
+        };
+    }
+
+    private async executeEvolution(
+        request: ProjectEvolutionRequest,
+        onProgress: (progress: ProjectEvolutionProgress) => void,
+    ): Promise<ProjectEvolutionResult> {
+        onProgress?.({ state: 'analyzing', message: 'Resolving project timeline...' });
+        const cancellationToken = this.cancellationRevision;
+        const resolved = await this.resolveTimelineSources(request);
+        const sources = resolved.sources;
+        if (sources.length < 2) {
+            throw new GitAnalysisSourceError(
+                'project-evolution-insufficient-data',
+                `Project evolution needs at least two revisions with data; ${sources.length} remain after filtering.`,
+                resolved.exclusions,
+            );
+        }
+
+        const { analyzed, exclusionsByIndex } = await this.analyzeSources(sources, cancellationToken, onProgress);
+        const valid = analyzed
+            .map((payload, index) => payload ? { payload, source: sources[index] } : undefined)
+            .filter((entry): entry is { payload: CachedPayload; source: ComparisonSource } => !!entry);
+        const excludedSources = [
+            ...resolved.exclusions,
+            ...exclusionsByIndex.filter(
+                (entry): entry is GitAnalysisExclusion => !!entry,
+            ),
+        ];
+        if (valid.length < 2) {
+            throw new GitAnalysisSourceError(
+                'project-evolution-insufficient-data',
+                `Project evolution needs at least two revisions with data; ${valid.length} remain after analysis.`,
+                excludedSources,
+            );
+        }
+
+        const result = await this.writeEvolutionArtifacts(valid, excludedSources);
+        onProgress?.({
+            state: 'ready',
+            message: excludedSources.length
+                ? `Project evolution ready. ${excludedSources.length} revision(s) were discarded because they had no usable data.`
+                : 'Project evolution ready.',
+            revision: result.revision,
+            frameCount: result.frames.length,
+        });
+        return result;
+    }
+
+    /** Phase 2: a worker pool analyzes every source; a failure becomes that frame's exclusion. */
+    private async analyzeSources(
+        sources: ComparisonSource[],
+        cancellationToken: number,
+        onProgress: (progress: ProjectEvolutionProgress) => void,
+    ): Promise<{ analyzed: (CachedPayload | undefined)[]; exclusionsByIndex: (GitAnalysisExclusion | undefined)[] }> {
+        const analyzed = new Array<CachedPayload | undefined>(sources.length);
+        const exclusionsByIndex = new Array<GitAnalysisExclusion | undefined>(sources.length);
+        const concurrency = Math.min(DEFAULT_ANALYSIS_CONCURRENCY, sources.length);
+        let nextIndex = 0;
+        let completed = 0;
+
+        onProgress?.({
+            state: 'analyzing',
+            message: `Analyzing ${sources.length} project revisions with ${concurrency} workers...`,
+            frameIndex: 0,
+            frameCount: sources.length,
+        });
+
+        const workers = Array.from({ length: concurrency }, async () => {
+            while (nextIndex < sources.length && cancellationToken === this.cancellationRevision) {
+                const index = nextIndex;
+                nextIndex += 1;
+                const source = sources[index];
+                onProgress?.({
+                    state: 'analyzing',
+                    message: `Analyzing frame ${index + 1} / ${sources.length} (${this.describeRevisionType(source)}): ${source.label}`,
+                    frameIndex: index,
+                    frameCount: sources.length,
+                });
+                try {
+                    const payload = await this.analysis.analyzeSource(source, this.getSession());
+                    if (payload.missingTarget) {
+                        exclusionsByIndex[index] = this.analysis.sourceCatalog.recordDeterministicExclusion(
+                            source,
+                            'target-missing',
+                            'The analyzed target does not exist in this revision.',
+                        );
+                    } else {
+                        // Already validated by analyzeSource (requireUsablePayload).
+                        analyzed[index] = payload;
+                    }
+                } catch (error) {
+                    exclusionsByIndex[index] = error instanceof GitAnalysisSourceError
+                        && error.exclusions.length
+                        ? error.exclusions[0]
+                        : createGitAnalysisExclusion(
+                            source,
+                            'analysis-failed',
+                            'analysis',
+                            error instanceof Error ? error.message : String(error),
+                        );
+                }
+                if (cancellationToken !== this.cancellationRevision) {
+                    throw new Error('project-evolution-cleared');
+                }
+                completed += 1;
+                const exclusion = exclusionsByIndex[index];
+                onProgress?.({
+                    state: 'analyzing',
+                    message: exclusion
+                        ? `Discarded ${source.label}: ${exclusion.reason}`
+                        : `Analyzed ${completed} / ${sources.length} project revisions. Last completed: ${this.describeRevisionType(source)} ${source.label}`,
+                    frameIndex: index,
+                    frameCount: sources.length,
+                });
+            }
+        });
+        await Promise.all(workers);
+        if (cancellationToken !== this.cancellationRevision) {
+            throw new Error('project-evolution-cleared');
+        }
+        return { analyzed, exclusionsByIndex };
+    }
+
+    /** Phase 4: a new revision folder with dataN.json per frame, the data.json bridge and the manifest. */
+    private async writeEvolutionArtifacts(
+        valid: Array<{ payload: CachedPayload; source: ComparisonSource }>,
+        excludedSources: GitAnalysisExclusion[],
+    ): Promise<ProjectEvolutionResult> {
+        const revision = ++this.revision;
+        const evolutionDirectory = path.join(this.staticRoot, 'evolution');
+        const revisionDirectory = path.join(evolutionDirectory, `revision-${revision}`);
+        await fs.promises.rm(revisionDirectory, { recursive: true, force: true });
+        await fs.promises.mkdir(revisionDirectory, { recursive: true });
+        const frames: ProjectEvolutionResult['frames'] = [];
+        for (let index = 0; index < valid.length; index += 1) {
+            const entry = valid[index];
+            const fileName = `data${index + 1}.json`;
+            await fs.promises.writeFile(
+                path.join(revisionDirectory, fileName),
+                JSON.stringify(entry.payload.payload, null, 2),
+                'utf8',
+            );
+            frames.push({
+                index,
+                source: entry.source,
+                label: entry.source.label,
+                date: this.extractDate(entry.source) || '',
+                url: `/evolution/revision-${revision}/${fileName}`,
+                itemCount: entry.payload.payload.length,
+                missingTarget: false,
+                warnings: entry.payload.warnings,
+            });
+        }
+
+        const result: ProjectEvolutionResult = {
+            revision,
+            mode: 'project-evolution',
+            frames,
+            generatedAt: new Date().toISOString(),
+            manifestUrl: `/evolution/revision-${revision}/manifest.json`,
+            bridgeUrl: `/evolution/revision-${revision}/data.json`,
+            excludedSources,
+        };
+        await this.copyFileAtomically(
+            path.join(revisionDirectory, 'data1.json'),
+            path.join(revisionDirectory, 'data.json'),
+        );
+        await fs.promises.writeFile(
+            path.join(revisionDirectory, 'manifest.json'),
+            JSON.stringify(result, null, 2),
+            'utf8',
+        );
+        return result;
+    }
+
+    private async resolveTimelineSources(request: ProjectEvolutionRequest): Promise<ResolvedEvolutionSources> {
+        const mode = request.mode || 'auto';
+        const maxFrames = Math.max(1, Math.min(96, Math.floor(Number(request.maxFrames || DEFAULT_MAX_FRAMES))));
+        let candidates: ComparisonSource[];
+        if (mode === 'manual' && Array.isArray(request.sourceIds) && request.sourceIds.length) {
+            candidates = await this.gitService.resolveSourcesInChronologicalOrder(
+                request.sourceIds.slice(0, maxFrames),
+            );
+        } else {
+            candidates = await this.resolveAutomaticOrRangeSources(request);
+        }
+        const repository = await this.gitService.getRepositoryContext();
+        const filtered = await this.analysis.sourceCatalog.filterSources({
+            ...repository,
+            sources: candidates,
+        });
+        return {
+            sources: mode === 'manual'
+                ? filtered.sources.slice(0, maxFrames)
+                : this.sampleSources(filtered.sources, maxFrames),
+            exclusions: filtered.eligibility.excludedSources,
+        };
+    }
+
+    private async resolveAutomaticOrRangeSources(
+        request: ProjectEvolutionRequest,
+    ): Promise<ComparisonSource[]> {
+        const timeline = await this.buildAutomaticTimeline();
+        const mode = request.mode || 'auto';
+        if (mode === 'range' && request.startSourceId && request.endSourceId) {
+            const startIndex = await this.resolveTimelineIndex(timeline, request.startSourceId);
+            const endIndex = await this.resolveTimelineIndex(timeline, request.endSourceId);
+            // A range the user asked for must never silently degrade into the
+            // full automatic movie — that is how "my range was not analyzed"
+            // presented. Unresolvable endpoints are a loud error instead.
+            if (startIndex < 0 || endIndex < 0) {
+                throw new Error('project-evolution-range-not-found');
+            }
+            const from = Math.min(startIndex, endIndex);
+            const to = Math.max(startIndex, endIndex);
+            return timeline.slice(from, to + 1);
+        }
+        return timeline;
+    }
+
+    /**
+     * Position of a picked source inside the commit timeline.
+     *
+     * The picker offers branches, tags and the working copy, whose ids do not
+     * exist in the commit-only timeline — so a direct id match is only the fast
+     * path. Otherwise the source is resolved to its commit sha (branches/tags
+     * point at one) and located by sha; the working copy means "the end".
+     */
+    private async resolveTimelineIndex(
+        timeline: ComparisonSource[],
+        sourceId: string,
+    ): Promise<number> {
+        const byId = timeline.findIndex((source) => source.id === sourceId);
+        if (byId >= 0) {
+            return byId;
+        }
+        if (sourceId === 'working-copy') {
+            return timeline.length - 1;
+        }
+        try {
+            const picked = await this.gitService.resolveSource(sourceId);
+            if (picked.kind !== 'gitRef' || !picked.commitSha) {
+                return -1;
+            }
+            return timeline.findIndex(
+                (source) => source.kind === 'gitRef' && source.commitSha === picked.commitSha,
+            );
+        } catch {
+            return -1;
+        }
+    }
+
+    private async buildAutomaticTimeline(existingReferences?: { sources: ComparisonSource[]; workingTreeDirty: boolean }): Promise<ComparisonSource[]> {
+        const references = existingReferences ?? await this.gitService.listReferences();
+        const timeline = await this.gitService.listTimelineSources(TIMELINE_SCAN_LIMIT);
+        const gitTimeline = timeline.length
+            ? timeline
+            : references.sources.filter((source) => source.kind === 'gitRef');
+        const endAnchor = this.resolveCurrentStateSource(references);
+        if (endAnchor && !gitTimeline.some((source) => source.id === endAnchor.id)) {
+            return [...gitTimeline, endAnchor];
+        }
+        return gitTimeline;
+    }
+
+    /**
+     * The revision a movie must finish on: the branch as it stands right now.
+     *
+     * That is the working copy — it is the checked-out branch whether or not the
+     * tree is dirty, and it is what the user is looking at. The timeline itself
+     * is `--all`, so its last entry may well belong to a different branch and
+     * cannot be trusted as the ending.
+     */
+    private resolveCurrentStateSource(
+        references: { sources: ComparisonSource[]; workingTreeDirty: boolean },
+    ): ComparisonSource | null {
+        return references.sources.find((source) => source.kind === 'workingCopy') || null;
+    }
+
+    private sampleSources(sources: ComparisonSource[], maxFrames: number): ComparisonSource[] {
+        // Shared sampler: even spacing in time, milestones preferred, and the
+        // current state of the branch always last (see gitTimelineSampler).
+        return sampleTimeline(sources, maxFrames, sources[sources.length - 1] || null);
+    }
+
+    private mergeSources(primary: ComparisonSource[], timeline: ComparisonSource[]): ComparisonSource[] {
+        const merged = new Map<string, ComparisonSource>();
+        for (const source of primary) {
+            merged.set(source.id, source);
+        }
+        for (const source of timeline) {
+            merged.set(source.id, source);
+        }
+        return Array.from(merged.values());
+    }
+
+
+
+
+    private decoratePayload(
+        payload: Record<string, unknown>[],
+        session: UnifiedAnalysisSession,
+        analyzedTargetPath: string,
+    ): Record<string, unknown>[] {
+        if (session.targetType === 'directory') {
+            // Every frame rebuilds filePath against the ORIGINAL target, so the
+            // movie's tree matches the normal analysis exactly.
+            return decorateDirectoryEntries(payload, session.targetPath, analyzedTargetPath, ['evolutionKey']);
+        }
+        return payload.map((entry) => ({
+            ...entry,
+            evolutionKey: `function:${String(entry.functionName || entry.name || 'unknown').toLocaleLowerCase()}`,
+        }));
+    }
+
+    private extractDate(source: ComparisonSource): string | undefined {
+        const description = source.kind === 'gitRef' ? source.description : '';
+        const match = String(description || '').match(/^(\d{4}-\d{2}-\d{2})/);
+        return match ? match[1] : undefined;
+    }
+
+    private describeRevisionType(source: ComparisonSource): string {
+        if (source.kind === 'workingCopy') {
+            return 'working copy';
+        }
+        if (source.revisionType === 'merge') {
+            return 'merge';
+        }
+        return source.revisionType || source.refType || 'commit';
+    }
+
+    private resolveRevisionDirectory(revision: number): string {
+        const evolutionDirectory = path.resolve(this.staticRoot, 'evolution');
+        const revisionDirectory = path.resolve(evolutionDirectory, `revision-${revision}`);
+        const staticRoot = path.resolve(this.staticRoot);
+        if (!revisionDirectory.startsWith(staticRoot + path.sep) && revisionDirectory !== staticRoot) {
+            throw new Error('project-evolution-revision-outside-static-root');
+        }
+        return revisionDirectory;
+    }
+
+    private async copyFileAtomically(sourcePath: string, destinationPath: string): Promise<void> {
+        const tempPath = `${destinationPath}.${process.pid}.${Date.now()}.tmp`;
+        await fs.promises.copyFile(sourcePath, tempPath);
+        await fs.promises.rename(tempPath, destinationPath);
+    }
+
+    private getSession(): UnifiedAnalysisSession {
+        const session = UnifiedSessionRegistry.getInstance(this.context).getSession(this.sessionId);
+        if (!session || session.analysisMode !== 'XR') {
+            throw new Error('project-evolution-session-unavailable');
+        }
+        return session;
+    }
+}

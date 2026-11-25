@@ -8,7 +8,7 @@ const { readPinnedLizardRequirement } = require(path.join(projectRoot, '..', '..
 const {
     CODEXR_PYTHON_PACKAGES,
     getPinnedPythonRequirement,
-} = require(path.join(projectRoot, 'out', 'python_env', 'runtime', 'pythonPackageManifest.js'));
+} = require(path.join(projectRoot, 'out', 'core', 'python-env', 'pythonPackageManifest.js'));
 
 test('the analysis test runner measures fixtures with the lizard version users get', () => {
     // The extension installs an exact lizard into the managed venv. If the

@@ -47,7 +47,7 @@ async function inspect(targetPath) {
     const context = fakeExtensionContext();
     try {
         return await withFakeVscode(createFakeVscode(), async ({ requireOut }) => {
-            const { inspectGitRevisionExport } = requireOut('code_analysis/export/gitRevisionExporter.js');
+            const { inspectGitRevisionExport } = requireOut('core/export/gitRevisionExporter.js');
             try {
                 return await inspectGitRevisionExport(context, { id: 'sess', targetPath });
             } catch (error) {

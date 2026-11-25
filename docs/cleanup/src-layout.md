@@ -1,6 +1,6 @@
 # `src/` layout: analysis and move plan (story #55)
 
-> **Status:** analysis only, 2026-11-25, measured on `v1.2.1` at `e16b95e8` (after PRs #44–#57, #40 included). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
+> **Status:** executed by story #55 on 2026-11-25; the result is in [§7](#7-result-story-55-executed-2026-11-25). The analysis below is kept as written: analysis only, 2026-11-25, measured on `v1.2.1` at `e16b95e8` (after PRs #44–#57, #40 included). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
 > **Update from #42 (layering):** three rows of the move map are already done at their destination here: `commands/shared/commandRegistry.ts` → `platform/commands/commandRegistry.ts` (the `commands/shared` barrel is deleted), `views/common/baseInterfaces.ts` → `platform/tree/baseInterfaces.ts`, and the new `platform/templatePaths.ts` (`resolveTemplatePath`; the `__dirname`-depth constraint in §3.4 is gone). Two of the five `core/` pairs of §3.5 are broken: `analysis↔charts` (the XR field types moved to `babia_templates/models/xrFieldModels.ts`) and `collaboration↔remote-access` (`CollaborationClientKind` declared in `collaboration/model/connectedParticipant.ts`). The folder matrix is data in `test/tooling/folderDependencies.json` (#42's direction test): rewrite it with each batch.
 > Paths are relative to `apps/vscode-extension/` (so `src/…` is the extension source) unless stated otherwise. Every number below comes from the scripts in the [appendix](#appendix-scripts) and can be re-run.
 
@@ -399,7 +399,7 @@ src/
 │   │   ├── session/        [2]   session-servers/ [4]   utils/ [3]   watchers/ [11]
 │   ├── charts/             [5]  chartModels.ts, chartRegistry.ts, chartPresentation.ts, templateCharts.ts, getVisualizationConfiguration.ts
 │   │   ├── processing/     [3]  └── placeholders/ [2]
-│   │   └── settings/       [3]  settingsModel.ts, settingsStorage.ts, settingsAccessors.ts
+│   │   └── settings/       [4]  settingsModel.ts, settingsStorage.ts, settingsFile.ts, settingsAccessors.ts
 │   ├── collaboration/      [4]  profile model, anonymous names, participants, profile manager
 │   ├── dependencies/       [2]
 │   ├── export/             [8]
@@ -412,11 +412,11 @@ src/
 │       └── remote/         [4]   sse/ [2]   ws/ [1]
 ├── platform/               [1]  extensionContext.ts
 │   ├── commands/           [2]  commandRegistry.ts, commandBuilder.ts
-│   ├── logging/            [2]  logger.ts, logPolicy.ts
+│   ├── logging/            [3]  logger.ts, logPolicy.ts, sink.ts
 │   ├── tree/               [1]  baseInterfaces.ts
 │   ├── ui/                 [2]  detailDialog.ts, errorHandler.ts
 │   └── webview/            [1]  panelManager.ts
-└── shared/                 [2]  nonceGenerator.ts, sha256Generator.ts
+└── shared/                 [1]  nonceGenerator.ts (sha256Generator.ts: core/analysis/utils, §4.1)
 ```
 
 Notes on choices that are not obvious:
@@ -449,7 +449,17 @@ Notes on choices that are not obvious:
 
 ## 4. Move map
 
-Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barrel, dissolved in batch 0 (its importers are retargeted to the declaring files, the barrel is deleted). **—** = stays. The batch numbers refer to §5.
+Every `.ts` file under `src/` (337 after the refresh of §4.1), relative to `src/`. **B0** = re-export barrel, dissolved in batch 0 (its importers are retargeted to the declaring files, the barrel is deleted). **—** = stays. The batch numbers refer to §5.
+
+### 4.1 Refresh before the move (2026-11-25, on `v1.2.1` at `41cfc523`)
+
+The map was re-generated on the tree as it stands after #34, #35, #42 and #56 (337 files, 49,226 lines). Rows that changed:
+
+- **Already at their destination (#42), now `—`:** `platform/commands/commandRegistry.ts`, `platform/tree/baseInterfaces.ts`, and the new `platform/templatePaths.ts`. The `commands/shared/index.ts` barrel is already gone, so batch 0 dissolves 46 barrels, not 47.
+- **New files, placed by the §3.1 rule next to the file they were split from:** `core/logging/sink.ts` → `platform/logging/` (B1, with `logger.ts`), `visualization_settings/storage/settingsFile.ts` → `core/charts/settings/` (B4, with `settingsStorage.ts`), `babia_templates/models/xrFieldModels.ts` → `core/charts/` (B7, with `chartModels.ts`), `code_analysis/engine/utils/pythonStderrStream.ts` → `core/analysis/python/` (B12, with `executePython.ts`), `…/chart_type_shared/chartTypeCommandFactory.ts` → `features/analysis/sections/settings/` (B13, with `sharedChartTypeSettingCore.ts`).
+- **Changed destination:** `utils/sha256Generator.ts` → `core/analysis/utils/` (B12) instead of `shared/`. #34 gave it a logger, so in `shared/` it would import `platform/` (an upward edge); all seven importers are in the analysis engine.
+
+Re-measured with A.4 on the refreshed map: **one upward edge** (`core/server/multiServerLauncher.ts` → `features/active-servers/views/launchNotifications.ts`), **one cross-feature pair** (`active-servers` → `collaboration`), and three two-way pairs inside `core/` (`analysis↔server` 6/12, `analysis↔history` 2/9, `remote-access↔server` 3/10; #42 broke `analysis↔charts` and `collaboration↔remote-access`). Target shape (A.7 with the map): 291 files, 99 folders, 0 snake_case, 0 barrels.
 
 | Old (`src/…`) | New (`src/…`) | Batch |
 |---|---|---|
@@ -472,6 +482,7 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `babia_templates/charts/chartPresentation.ts` | `core/charts/chartPresentation.ts` | B7 |
 | `babia_templates/charts/templateCharts.ts` | `core/charts/templateCharts.ts` | B7 |
 | `babia_templates/models/chartModels.ts` | `core/charts/chartModels.ts` | B7 |
+| `babia_templates/models/xrFieldModels.ts` | `core/charts/xrFieldModels.ts` | B7 |
 | `babia_templates/processing/dimensionValidator.ts` | `core/charts/processing/dimensionValidator.ts` | B7 |
 | `babia_templates/processing/placeholders/createChart.ts` | `core/charts/processing/placeholders/createChart.ts` | B7 |
 | `babia_templates/processing/placeholders/createStructure.ts` | `core/charts/processing/placeholders/createStructure.ts` | B7 |
@@ -503,6 +514,7 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `code_analysis/commands/subsections/analysis_settings/auto_analysis_enabled/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `code_analysis/commands/subsections/analysis_settings/chart_type_directory/chartTypeDirectoryCommands.ts` | `features/analysis/sections/settings/chart-type-directory/chartTypeDirectoryCommands.ts` | B13 |
 | `code_analysis/commands/subsections/analysis_settings/chart_type_file/chartTypeFileCommands.ts` | `features/analysis/sections/settings/chart-type-file/chartTypeFileCommands.ts` | B13 |
+| `code_analysis/commands/subsections/analysis_settings/chart_type_shared/chartTypeCommandFactory.ts` | `features/analysis/sections/settings/chartTypeCommandFactory.ts` | B13 |
 | `code_analysis/commands/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectoryCommands.ts` | `features/analysis/sections/settings/dimension-mapping-directory/dimensionMappingDirectoryCommands.ts` | B13 |
 | `code_analysis/commands/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFileCommands.ts` | `features/analysis/sections/settings/dimension-mapping-file/dimensionMappingFileCommands.ts` | B13 |
 | `code_analysis/commands/subsections/analysis_settings/filesByLanguageSortingCommands.ts` | `features/analysis/sections/settings/files-by-language-sorting/filesByLanguageSortingCommands.ts` | B13 |
@@ -563,6 +575,7 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `code_analysis/engine/utils/backendScriptPath.ts` | `core/analysis/python/backendScriptPath.ts` | B12 |
 | `code_analysis/engine/utils/executePython.ts` | `core/analysis/python/executePython.ts` | B12 |
 | `code_analysis/engine/utils/fileHashCalculator.ts` | `core/analysis/utils/fileHashCalculator.ts` | B12 |
+| `code_analysis/engine/utils/pythonStderrStream.ts` | `core/analysis/python/pythonStderrStream.ts` | B12 |
 | `code_analysis/engine/utils/saveFiles.ts` | `core/analysis/utils/saveFiles.ts` | B12 |
 | `code_analysis/engine/utils/themeUtils.ts` | `core/analysis/utils/themeUtils.ts` | B12 |
 | `code_analysis/engine/watchers/analysisFilePolicy.ts` | `core/analysis/watchers/analysisFilePolicy.ts` | B12 |
@@ -659,16 +672,18 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `commands/learn_more/learnMoreCommands.ts` | `features/learn-more/commands/learnMoreCommandRegistrations.ts` | B2 |
 | `commands/python_env/pythonEnvCommands.ts` | `features/python-env/commands/pythonEnvCommandRegistrations.ts` | B3 |
 | `commands/servers/serverCommands.ts` | `features/servers/commands/serverCommandRegistrations.ts` | B10 |
-| `commands/shared/commandRegistry.ts` | `platform/commands/commandRegistry.ts` | B1 |
-| `commands/shared/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `commands/visualization_settings/visualizationSettingsCommands.ts` | `features/visualization-settings/commands/visualizationSettingsCommandRegistrations.ts` | B4 |
 | `commands/visualize_data/visualizeDataCommands.ts` | `features/visualize-data/commands/visualizeDataCommandRegistrations.ts` | B5 |
 | `core/extensionContext.ts` | `platform/extensionContext.ts` | B1 |
 | `core/logging/logger.ts` | `platform/logging/logger.ts` | B1 |
 | `core/logging/logPolicy.ts` | `platform/logging/logPolicy.ts` | B1 |
+| `core/logging/sink.ts` | `platform/logging/sink.ts` | B1 |
 | `core/startup/startupCoordinator.ts` | `app/startup/startupCoordinator.ts` | B14 |
 | `extension.ts` | `extension.ts` | — |
 | `learn_more/commands/learnMoreCommands.ts` | `features/learn-more/commands/learnMoreCommands.ts` | B2 |
+| `platform/commands/commandRegistry.ts` | `platform/commands/commandRegistry.ts` | — |
+| `platform/templatePaths.ts` | `platform/templatePaths.ts` | — |
+| `platform/tree/baseInterfaces.ts` | `platform/tree/baseInterfaces.ts` | — |
 | `python_env/commands/pythonEnvCommands.ts` | `features/python-env/commands/pythonEnvCommands.ts` | B3 |
 | `python_env/runtime/pythonEnvUiState.ts` | `core/python-env/pythonEnvUiState.ts` | B3 |
 | `python_env/runtime/pythonPackageManifest.ts` | `core/python-env/pythonPackageManifest.ts` | B3 |
@@ -734,7 +749,7 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `utils/jsonFieldAnalyzer.ts` | `features/visualize-data/services/jsonFieldAnalyzer.ts` | B5 |
 | `utils/languageMetadata.ts` | `core/analysis/languages/languageMetadata.ts` | B12 |
 | `utils/nonceGenerator.ts` | `shared/nonceGenerator.ts` | B1 |
-| `utils/sha256Generator.ts` | `shared/sha256Generator.ts` | B1 |
+| `utils/sha256Generator.ts` | `core/analysis/utils/sha256Generator.ts` | B12 |
 | `utils/supportedLanguages.ts` | `core/analysis/languages/supportedLanguages.ts` | B12 |
 | `utils/uriPathConverter.ts` | `features/analysis/commands/dom/uriPathConverter.ts` | B13 |
 | `views/active_servers/ActiveServersSectionProvider.ts` | `features/active-servers/views/ActiveServersSectionProvider.ts` | B10 |
@@ -747,7 +762,6 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `views/collaboration/CollaborationSectionProvider.ts` | `features/collaboration/views/CollaborationSectionProvider.ts` | B8 |
 | `views/collaboration/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/collaboration/items/collaborationItems.ts` | `features/collaboration/views/collaborationItems.ts` | B8 |
-| `views/common/baseInterfaces.ts` | `platform/tree/baseInterfaces.ts` | B1 |
 | `views/common/sectionChild.ts` | `app/sidebar/sectionChild.ts` | B14 |
 | `views/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/learn_more/index.ts` | *(dissolved: re-export barrel)* | B0 |
@@ -772,6 +786,7 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `visualization_settings/commands/visualizationSettingsCommands.ts` | `features/visualization-settings/commands/visualizationSettingsCommands.ts` | B4 |
 | `visualization_settings/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `visualization_settings/model/settingsModel.ts` | `core/charts/settings/settingsModel.ts` | B4 |
+| `visualization_settings/storage/settingsFile.ts` | `core/charts/settings/settingsFile.ts` | B4 |
 | `visualization_settings/storage/settingsStorage.ts` | `core/charts/settings/settingsStorage.ts` | B4 |
 | `visualization_settings/utils/colorPickerUtils.ts` | `features/visualization-settings/views/colorPickerUtils.ts` | B4 |
 | `visualization_settings/utils/dynamicColorIconGenerator.ts` | `features/visualization-settings/views/dynamicColorIconGenerator.ts` | B4 |
@@ -786,347 +801,7 @@ Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barr
 | `visualize_data/views/items/visualizationItem.ts` | `features/visualize-data/views/visualizationItem.ts` | B5 |
 | `visualize_data/views/items/visualizeDataItems.ts` | `features/visualize-data/views/visualizeDataItems.ts` | B5 |
 
-Machine-readable form: keys and values use the `src/…` form that tests and docs use, and `null` means dissolved.
-
-<details><summary>Move map as JSON (332 entries)</summary>
-
-```json
-{
-  "src/active_servers/commands/activeServersCommands.ts": "src/features/active-servers/commands/activeServersCommands.ts",
-  "src/active_servers/model/activeServerModel.ts": "src/core/server/registry/activeServerModel.ts",
-  "src/active_servers/registry/activeServerRegistry.ts": "src/core/server/registry/activeServerRegistry.ts",
-  "src/active_servers/runtime/serverControl.ts": "src/core/server/serverControl.ts",
-  "src/active_servers/services/panelManager.ts": "src/platform/webview/panelManager.ts",
-  "src/active_servers/services/serverOpenActions.ts": "src/features/active-servers/services/serverOpenActions.ts",
-  "src/active_servers/services/serverRegistrar.ts": "src/core/server/registry/serverRegistrar.ts",
-  "src/active_servers/services/withServer.ts": "src/features/active-servers/services/withServer.ts",
-  "src/active_servers/views/interactions/handleServerActions.ts": "src/features/active-servers/views/handleServerActions.ts",
-  "src/active_servers/views/interactions/serverDetailsFormat.ts": "src/features/active-servers/views/serverDetailsFormat.ts",
-  "src/babia_examples/commands/babiaExamplesCommands.ts": "src/features/examples/commands/babiaExamplesCommands.ts",
-  "src/babia_examples/model/babiaExampleModel.ts": "src/features/examples/model/babiaExampleModel.ts",
-  "src/babia_examples/runtime/exampleLauncher.ts": "src/features/examples/services/exampleLauncher.ts",
-  "src/babia_examples/views/babiaExamplesTreeView.ts": "src/features/examples/views/babiaExamplesTreeView.ts",
-  "src/babia_examples/views/interactions/handleExampleClicks.ts": "src/features/examples/views/handleExampleClicks.ts",
-  "src/babia_examples/views/items/exampleItems.ts": "src/features/examples/views/exampleItems.ts",
-  "src/babia_templates/charts/chartPresentation.ts": "src/core/charts/chartPresentation.ts",
-  "src/babia_templates/charts/templateCharts.ts": "src/core/charts/templateCharts.ts",
-  "src/babia_templates/models/chartModels.ts": "src/core/charts/chartModels.ts",
-  "src/babia_templates/processing/dimensionValidator.ts": "src/core/charts/processing/dimensionValidator.ts",
-  "src/babia_templates/processing/placeholders/createChart.ts": "src/core/charts/processing/placeholders/createChart.ts",
-  "src/babia_templates/processing/placeholders/createStructure.ts": "src/core/charts/processing/placeholders/createStructure.ts",
-  "src/babia_templates/processing/templateHTMLProcessor.ts": "src/core/charts/processing/templateHTMLProcessor.ts",
-  "src/babia_templates/processing/templateProcessor.ts": "src/core/charts/processing/templateProcessor.ts",
-  "src/babia_templates/registry/chartRegistry.ts": "src/core/charts/chartRegistry.ts",
-  "src/code_analysis/commands/analysisCommands.ts": "src/features/analysis/commands/analysisCommands.ts",
-  "src/code_analysis/commands/clean_analysis/cleanAnalysisCommands.ts": "src/features/analysis/commands/cleanAnalysisCommands.ts",
-  "src/code_analysis/commands/directory_analysis/directoryAnalysisCommands.ts": "src/features/analysis/commands/directory/directoryAnalysisCommands.ts",
-  "src/code_analysis/commands/directory_analysis/directoryAnalysisLivePanelCommands.ts": "src/features/analysis/commands/directory/directoryAnalysisLivePanelCommands.ts",
-  "src/code_analysis/commands/directory_analysis/directoryAnalysisXRCommands.ts": "src/features/analysis/commands/directory/directoryAnalysisXRCommands.ts",
-  "src/code_analysis/commands/directory_analysis/index.ts": null,
-  "src/code_analysis/commands/directory_analysis/projectAnalysisCommands.ts": "src/features/analysis/commands/directory/projectAnalysisCommands.ts",
-  "src/code_analysis/commands/dom_visualization/domVisualizationCommands.ts": "src/features/analysis/commands/dom/domVisualizationCommands.ts",
-  "src/code_analysis/commands/dom_visualization/index.ts": null,
-  "src/code_analysis/commands/file_analysis/fileAnalysisCommands.ts": "src/features/analysis/commands/file/fileAnalysisCommands.ts",
-  "src/code_analysis/commands/file_analysis/fileAnalysisLivePanelCommands.ts": "src/features/analysis/commands/file/fileAnalysisLivePanelCommands.ts",
-  "src/code_analysis/commands/file_analysis/fileAnalysisXRCommands.ts": "src/features/analysis/commands/file/fileAnalysisXRCommands.ts",
-  "src/code_analysis/commands/file_analysis/index.ts": null,
-  "src/code_analysis/commands/subsections/active_analyses/activeAnalysesCommands.ts": "src/features/analysis/sections/active-analyses/activeAnalysesCommandRegistrations.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/analysis_directory_mode/analysisDirectoryModeCommands.ts": "src/features/analysis/sections/settings/analysis-directory-mode/analysisDirectoryModeCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/analysis_directory_mode/index.ts": null,
-  "src/code_analysis/commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands.ts": "src/features/analysis/sections/settings/analysis-file-mode/analysisFileModeCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/analysis_file_mode/index.ts": null,
-  "src/code_analysis/commands/subsections/analysis_settings/analysisSettingsCommands.ts": "src/features/analysis/sections/settings/analysisSettingsCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/auto_analysis_delay/autoAnalysisDelayCommands.ts": "src/features/analysis/sections/settings/auto-analysis-delay/autoAnalysisDelayCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/auto_analysis_delay/index.ts": null,
-  "src/code_analysis/commands/subsections/analysis_settings/auto_analysis_enabled/autoAnalysisEnabledCommands.ts": "src/features/analysis/sections/settings/auto-analysis-enabled/autoAnalysisEnabledCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/auto_analysis_enabled/index.ts": null,
-  "src/code_analysis/commands/subsections/analysis_settings/chart_type_directory/chartTypeDirectoryCommands.ts": "src/features/analysis/sections/settings/chart-type-directory/chartTypeDirectoryCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/chart_type_file/chartTypeFileCommands.ts": "src/features/analysis/sections/settings/chart-type-file/chartTypeFileCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectoryCommands.ts": "src/features/analysis/sections/settings/dimension-mapping-directory/dimensionMappingDirectoryCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFileCommands.ts": "src/features/analysis/sections/settings/dimension-mapping-file/dimensionMappingFileCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/filesByLanguageSortingCommands.ts": "src/features/analysis/sections/settings/files-by-language-sorting/filesByLanguageSortingCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/index.ts": null,
-  "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts": "src/features/analysis/sections/settings/profile-configuration/profileConfigurationCommands.ts",
-  "src/code_analysis/commands/subsections/analysis_settings/view_theme/index.ts": null,
-  "src/code_analysis/commands/subsections/analysis_settings/view_theme/viewThemeCommands.ts": "src/features/analysis/sections/settings/view-theme/viewThemeCommands.ts",
-  "src/code_analysis/commands/subsections/files_by_language/filesByLanguageCommands.ts": "src/features/analysis/sections/files-by-language/filesByLanguageCommands.ts",
-  "src/code_analysis/commands/subsections/index.ts": null,
-  "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts": "src/features/analysis/sections/project-by-language/projectByLanguageCommands.ts",
-  "src/code_analysis/configuration/analysisConfigurationStorage.ts": "src/core/analysis/configuration/analysisConfigurationStorage.ts",
-  "src/code_analysis/configuration/index.ts": null,
-  "src/code_analysis/configuration/models/analysisConfiguration.ts": "src/core/analysis/configuration/analysisConfiguration.ts",
-  "src/code_analysis/configuration/models/index.ts": null,
-  "src/code_analysis/dependencies/dependencyGraphModels.ts": "src/core/dependencies/dependencyGraphModels.ts",
-  "src/code_analysis/dependencies/dependencyGraphService.ts": "src/core/dependencies/dependencyGraphService.ts",
-  "src/code_analysis/dependencies/index.ts": null,
-  "src/code_analysis/engine/analysisOrchestrator.ts": "src/core/analysis/analysisOrchestrator.ts",
-  "src/code_analysis/engine/components/customComponents/analysisModeComponentAsset.ts": "src/core/analysis/scene-assets/analysisModeComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/analysisTableComponentAsset.ts": "src/core/analysis/scene-assets/analysisTableComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/avatarComponentAsset.ts": "src/core/analysis/scene-assets/avatarComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/codexrDebugComponentAsset.ts": "src/core/analysis/scene-assets/codexrDebugComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/codexrRoomComponentAsset.ts": "src/core/analysis/scene-assets/codexrRoomComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/collaborationComponentAsset.ts": "src/core/analysis/scene-assets/collaborationComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/commonComponentAsset.ts": "src/core/analysis/scene-assets/commonComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/commonGitRefPickerComponentAsset.ts": "src/core/analysis/scene-assets/commonGitRefPickerComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/dependencyGraphComponentAsset.ts": "src/core/analysis/scene-assets/dependencyGraphComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/dependencyVisualBudgetComponentAsset.ts": "src/core/analysis/scene-assets/dependencyVisualBudgetComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/guideScreenComponentAsset.ts": "src/core/analysis/scene-assets/guideScreenComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/historicalComparisonComponentAsset.ts": "src/core/analysis/scene-assets/historicalComparisonComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/immersiveRigComponentAsset.ts": "src/core/analysis/scene-assets/immersiveRigComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/index.ts": null,
-  "src/code_analysis/engine/components/customComponents/logoComponentAsset.ts": "src/core/analysis/scene-assets/logoComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/pointerPolicyComponentAsset.ts": "src/core/analysis/scene-assets/pointerPolicyComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/projectEvolutionComponentAsset.ts": "src/core/analysis/scene-assets/projectEvolutionComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/renderBudgetComponentAsset.ts": "src/core/analysis/scene-assets/renderBudgetComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/runtimeAssembly.ts": "src/core/analysis/scene-assets/runtimeAssembly.ts",
-  "src/code_analysis/engine/components/customComponents/singleFileRuntimeAssets.ts": "src/core/analysis/scene-assets/singleFileRuntimeAssets.ts",
-  "src/code_analysis/engine/components/customComponents/virtualScreenComponentAsset.ts": "src/core/analysis/scene-assets/virtualScreenComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/xrChartDebugComponentAsset.ts": "src/core/analysis/scene-assets/xrChartDebugComponentAsset.ts",
-  "src/code_analysis/engine/components/customComponents/xrChartMappingUiComponentAsset.ts": "src/core/analysis/scene-assets/xrChartMappingUiComponentAsset.ts",
-  "src/code_analysis/engine/core/analysisSession.ts": "src/core/analysis/session/analysisSession.ts",
-  "src/code_analysis/engine/core/sessionRegistry.ts": "src/core/analysis/session/sessionRegistry.ts",
-  "src/code_analysis/engine/launchers/launcherLivePanel.ts": "src/core/analysis/launchers/launcherLivePanel.ts",
-  "src/code_analysis/engine/launchers/launcherVisualizeDOM.ts": "src/core/analysis/launchers/launcherVisualizeDOM.ts",
-  "src/code_analysis/engine/launchers/launcherXRAnalysis.ts": "src/core/analysis/launchers/launcherXRAnalysis.ts",
-  "src/code_analysis/engine/launchers/launchPipeline.ts": "src/core/analysis/launchers/launchPipeline.ts",
-  "src/code_analysis/engine/parsers/directoryXRParser.ts": "src/core/analysis/parsers/directoryXRParser.ts",
-  "src/code_analysis/engine/parsers/fileXRParser.ts": "src/core/analysis/parsers/fileXRParser.ts",
-  "src/code_analysis/engine/parsers/livePanelParser.ts": "src/core/analysis/parsers/livePanelParser.ts",
-  "src/code_analysis/engine/parsers/visualizeDOMParser.ts": "src/core/analysis/parsers/visualizeDOMParser.ts",
-  "src/code_analysis/engine/processors/analysisBootstrap.ts": "src/core/analysis/processors/analysisBootstrap.ts",
-  "src/code_analysis/engine/processors/FileRequirementProcessor.ts": "src/core/analysis/processors/FileRequirementProcessor.ts",
-  "src/code_analysis/engine/servers/models/sessionServerModels.ts": "src/core/analysis/session-servers/sessionServerModels.ts",
-  "src/code_analysis/engine/servers/serverLaunchOrchestrator.ts": "src/core/analysis/session-servers/serverLaunchOrchestrator.ts",
-  "src/code_analysis/engine/servers/sessionServerManager.ts": "src/core/analysis/session-servers/sessionServerManager.ts",
-  "src/code_analysis/engine/servers/sseNotificationManager.ts": "src/core/analysis/session-servers/sseNotificationManager.ts",
-  "src/code_analysis/engine/utils/backendScriptPath.ts": "src/core/analysis/python/backendScriptPath.ts",
-  "src/code_analysis/engine/utils/executePython.ts": "src/core/analysis/python/executePython.ts",
-  "src/code_analysis/engine/utils/fileHashCalculator.ts": "src/core/analysis/utils/fileHashCalculator.ts",
-  "src/code_analysis/engine/utils/saveFiles.ts": "src/core/analysis/utils/saveFiles.ts",
-  "src/code_analysis/engine/utils/themeUtils.ts": "src/core/analysis/utils/themeUtils.ts",
-  "src/code_analysis/engine/watchers/analysisFilePolicy.ts": "src/core/analysis/watchers/analysisFilePolicy.ts",
-  "src/code_analysis/engine/watchers/configurationConverter.ts": "src/core/analysis/watchers/configurationConverter.ts",
-  "src/code_analysis/engine/watchers/debounceManager.ts": "src/core/analysis/watchers/debounceManager.ts",
-  "src/code_analysis/engine/watchers/directoryReanalysisData.ts": "src/core/analysis/watchers/directoryReanalysisData.ts",
-  "src/code_analysis/engine/watchers/directoryReAnalyzer.ts": "src/core/analysis/watchers/directoryReAnalyzer.ts",
-  "src/code_analysis/engine/watchers/directorySnapshot.ts": "src/core/analysis/watchers/directorySnapshot.ts",
-  "src/code_analysis/engine/watchers/directoryWatcherOrchestrator.ts": "src/core/analysis/watchers/directoryWatcherOrchestrator.ts",
-  "src/code_analysis/engine/watchers/fileHashTracker.ts": "src/core/analysis/watchers/fileHashTracker.ts",
-  "src/code_analysis/engine/watchers/fileWatcherOrchestrator.ts": "src/core/analysis/watchers/fileWatcherOrchestrator.ts",
-  "src/code_analysis/engine/watchers/reAnalysisManager.ts": "src/core/analysis/watchers/reAnalysisManager.ts",
-  "src/code_analysis/engine/watchers/sessionWatcherManager.ts": "src/core/analysis/watchers/sessionWatcherManager.ts",
-  "src/code_analysis/export/exportManifest.ts": "src/core/export/exportManifest.ts",
-  "src/code_analysis/export/exportModeSelection.ts": "src/core/export/exportModeSelection.ts",
-  "src/code_analysis/export/exportPackageTransaction.ts": "src/core/export/exportPackageTransaction.ts",
-  "src/code_analysis/export/gitExportOptions.ts": "src/core/export/gitExportOptions.ts",
-  "src/code_analysis/export/gitExportPythonWorkerPool.ts": "src/core/export/gitExportPythonWorkerPool.ts",
-  "src/code_analysis/export/gitRevisionExportCore.ts": "src/core/export/gitRevisionExportCore.ts",
-  "src/code_analysis/export/gitRevisionExporter.ts": "src/core/export/gitRevisionExporter.ts",
-  "src/code_analysis/export/gitTimelineBlobAnalyzer.ts": "src/core/export/gitTimelineBlobAnalyzer.ts",
-  "src/code_analysis/historical/analysisUpdateEvents.ts": "src/core/history/analysisUpdateEvents.ts",
-  "src/code_analysis/historical/gitAnalysisEligibility.ts": "src/core/history/gitAnalysisEligibility.ts",
-  "src/code_analysis/historical/gitAnalysisSessionContext.ts": "src/core/history/gitAnalysisSessionContext.ts",
-  "src/code_analysis/historical/gitAnalysisShared.ts": "src/core/history/gitAnalysisShared.ts",
-  "src/code_analysis/historical/gitBatchObjectReader.ts": "src/core/history/gitBatchObjectReader.ts",
-  "src/code_analysis/historical/gitRepositoryService.ts": "src/core/history/gitRepositoryService.ts",
-  "src/code_analysis/historical/gitTimelineBlobIndex.ts": "src/core/history/gitTimelineBlobIndex.ts",
-  "src/code_analysis/historical/gitTimelineSampler.ts": "src/core/history/gitTimelineSampler.ts",
-  "src/code_analysis/historical/historicalComparisonModels.ts": "src/core/history/historicalComparisonModels.ts",
-  "src/code_analysis/historical/historicalComparisonService.ts": "src/core/history/historicalComparisonService.ts",
-  "src/code_analysis/historical/index.ts": null,
-  "src/code_analysis/historical/projectEvolutionService.ts": "src/core/history/projectEvolutionService.ts",
-  "src/code_analysis/refresh/analysisRefreshCoordinator.ts": "src/core/analysis/refresh/analysisRefreshCoordinator.ts",
-  "src/code_analysis/refresh/analysisViewModes.ts": "src/core/analysis/refresh/analysisViewModes.ts",
-  "src/code_analysis/refresh/index.ts": null,
-  "src/code_analysis/services/serverWatcherIntegration.ts": "src/features/analysis/services/serverWatcherIntegration.ts",
-  "src/code_analysis/services/workspaceSnapshotModel.ts": "src/features/analysis/workspace/workspaceSnapshotModel.ts",
-  "src/code_analysis/services/workspaceSnapshotService.ts": "src/features/analysis/workspace/workspaceSnapshotService.ts",
-  "src/code_analysis/services/xrFieldSchemaService.ts": "src/core/analysis/python/xrFieldSchemaService.ts",
-  "src/code_analysis/utils/filesByLanguageSortingUtils.ts": "src/features/analysis/sections/settings/files-by-language-sorting/filesByLanguageSortingUtils.ts",
-  "src/code_analysis/utils/workspaceFileScanner.ts": "src/features/analysis/workspace/workspaceFileScanner.ts",
-  "src/code_analysis/views/AnalysisSectionProvider.ts": "src/features/analysis/views/AnalysisSectionProvider.ts",
-  "src/code_analysis/views/index.ts": null,
-  "src/code_analysis/views/interactions/handleAnalysisClicks.ts": "src/features/analysis/views/handleAnalysisClicks.ts",
-  "src/code_analysis/views/interactions/index.ts": null,
-  "src/code_analysis/views/items/analysisItems.ts": "src/features/analysis/views/analysisItems.ts",
-  "src/code_analysis/views/items/index.ts": null,
-  "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts",
-  "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts": "src/features/analysis/sections/active-analyses/activeAnalysesDataService.ts",
-  "src/code_analysis/views/subsections/analysis_settings/analysis_directory_mode/analysisDirectoryMode.ts": "src/features/analysis/sections/settings/analysis-directory-mode/analysisDirectoryMode.ts",
-  "src/code_analysis/views/subsections/analysis_settings/analysis_directory_mode/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/analysis_file_mode/analysisFileMode.ts": "src/features/analysis/sections/settings/analysis-file-mode/analysisFileMode.ts",
-  "src/code_analysis/views/subsections/analysis_settings/analysis_file_mode/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/analysisSettingsSubsectionProvider.ts": "src/features/analysis/sections/settings/analysisSettingsSubsectionProvider.ts",
-  "src/code_analysis/views/subsections/analysis_settings/auto_analysis_delay/autoAnalysisDelay.ts": "src/features/analysis/sections/settings/auto-analysis-delay/autoAnalysisDelay.ts",
-  "src/code_analysis/views/subsections/analysis_settings/auto_analysis_delay/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/auto_analysis_enabled/autoAnalysisEnabled.ts": "src/features/analysis/sections/settings/auto-analysis-enabled/autoAnalysisEnabled.ts",
-  "src/code_analysis/views/subsections/analysis_settings/auto_analysis_enabled/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/chart_type_directory/chartTypeDirectory.ts": "src/features/analysis/sections/settings/chart-type-directory/chartTypeDirectory.ts",
-  "src/code_analysis/views/subsections/analysis_settings/chart_type_directory/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/chart_type_file/chartTypeFile.ts": "src/features/analysis/sections/settings/chart-type-file/chartTypeFile.ts",
-  "src/code_analysis/views/subsections/analysis_settings/chart_type_file/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/chart_type_shared/sharedChartTypeSettingCore.ts": "src/features/analysis/sections/settings/sharedChartTypeSettingCore.ts",
-  "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory.ts": "src/features/analysis/sections/settings/dimension-mapping-directory/dimensionMappingDirectory.ts",
-  "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_directory/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFile.ts": "src/features/analysis/sections/settings/dimension-mapping-file/dimensionMappingFile.ts",
-  "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_file/dimensionMappingValidator.ts": "src/features/analysis/sections/settings/dimension-mapping-file/dimensionMappingValidator.ts",
-  "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts": "src/features/analysis/sections/settings/sharedDimensionMappingSettingCore.ts",
-  "src/code_analysis/views/subsections/analysis_settings/files_by_language_sorting/filesByLanguageSorting.ts": "src/features/analysis/sections/settings/files-by-language-sorting/filesByLanguageSorting.ts",
-  "src/code_analysis/views/subsections/analysis_settings/files_by_language_sorting/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/profile_configuration/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": "src/features/analysis/sections/settings/profile-configuration/profileConfiguration.ts",
-  "src/code_analysis/views/subsections/analysis_settings/view_theme/index.ts": null,
-  "src/code_analysis/views/subsections/analysis_settings/view_theme/viewTheme.ts": "src/features/analysis/sections/settings/view-theme/viewTheme.ts",
-  "src/code_analysis/views/subsections/files_by_language/filesByLanguageSubsectionProvider.ts": "src/features/analysis/sections/files-by-language/filesByLanguageSubsectionProvider.ts",
-  "src/code_analysis/views/subsections/files_by_language/index.ts": null,
-  "src/code_analysis/views/subsections/index.ts": null,
-  "src/code_analysis/views/subsections/project_by_language/index.ts": null,
-  "src/code_analysis/views/subsections/project_by_language/projectByLanguageSubsectionProvider.ts": "src/features/analysis/sections/project-by-language/projectByLanguageSubsectionProvider.ts",
-  "src/collaboration/index.ts": null,
-  "src/collaboration/model/anonymousName.ts": "src/core/collaboration/anonymousName.ts",
-  "src/collaboration/model/collaborationProfile.ts": "src/core/collaboration/collaborationProfile.ts",
-  "src/collaboration/model/connectedParticipant.ts": "src/core/collaboration/connectedParticipant.ts",
-  "src/collaboration/services/collaborationProfileManager.ts": "src/core/collaboration/collaborationProfileManager.ts",
-  "src/commands/active_servers/activeServersCommands.ts": "src/features/active-servers/commands/activeServersCommandRegistrations.ts",
-  "src/commands/analysis/AnalysisCommands.ts": "src/features/analysis/commands/analysisCommandRegistrations.ts",
-  "src/commands/analysis/index.ts": null,
-  "src/commands/babia_examples/babiaExamplesCommands.ts": "src/features/examples/commands/babiaExamplesCommandRegistrations.ts",
-  "src/commands/collaboration/collaborationCommands.ts": "src/features/collaboration/commands/collaborationCommands.ts",
-  "src/commands/common/generalCommands.ts": "src/app/commands/generalCommands.ts",
-  "src/commands/index.ts": "src/app/commands/registerAllCommands.ts",
-  "src/commands/learn_more/learnMoreCommands.ts": "src/features/learn-more/commands/learnMoreCommandRegistrations.ts",
-  "src/commands/python_env/pythonEnvCommands.ts": "src/features/python-env/commands/pythonEnvCommandRegistrations.ts",
-  "src/commands/servers/serverCommands.ts": "src/features/servers/commands/serverCommandRegistrations.ts",
-  "src/commands/shared/commandRegistry.ts": "src/platform/commands/commandRegistry.ts",
-  "src/commands/shared/index.ts": null,
-  "src/commands/visualization_settings/visualizationSettingsCommands.ts": "src/features/visualization-settings/commands/visualizationSettingsCommandRegistrations.ts",
-  "src/commands/visualize_data/visualizeDataCommands.ts": "src/features/visualize-data/commands/visualizeDataCommandRegistrations.ts",
-  "src/core/extensionContext.ts": "src/platform/extensionContext.ts",
-  "src/core/logging/logger.ts": "src/platform/logging/logger.ts",
-  "src/core/logging/logPolicy.ts": "src/platform/logging/logPolicy.ts",
-  "src/core/startup/startupCoordinator.ts": "src/app/startup/startupCoordinator.ts",
-  "src/extension.ts": "src/extension.ts",
-  "src/learn_more/commands/learnMoreCommands.ts": "src/features/learn-more/commands/learnMoreCommands.ts",
-  "src/python_env/commands/pythonEnvCommands.ts": "src/features/python-env/commands/pythonEnvCommands.ts",
-  "src/python_env/runtime/pythonEnvUiState.ts": "src/core/python-env/pythonEnvUiState.ts",
-  "src/python_env/runtime/pythonPackageManifest.ts": "src/core/python-env/pythonPackageManifest.ts",
-  "src/python_env/runtime/venvManager.ts": "src/core/python-env/venvManager.ts",
-  "src/python_env/storage/pythonEnvStorage.ts": "src/core/python-env/pythonEnvStorage.ts",
-  "src/python_env/utils/pythonEnvUtils.ts": "src/core/python-env/pythonEnvUtils.ts",
-  "src/python_env/views/items/pythonEnvItems.ts": "src/features/python-env/views/pythonEnvItems.ts",
-  "src/remote_access/index.ts": null,
-  "src/remote_access/model/remoteAccessModel.ts": "src/core/remote-access/remoteAccessModel.ts",
-  "src/remote_access/security/remoteSessionAuthority.ts": "src/core/remote-access/remoteSessionAuthority.ts",
-  "src/remote_access/services/cloudflaredBinaryManager.ts": "src/core/remote-access/cloudflaredBinaryManager.ts",
-  "src/remote_access/services/remoteAccessManager.ts": "src/core/remote-access/remoteAccessManager.ts",
-  "src/servers/commands/serverCommands.ts": "src/features/servers/commands/serverCommands.ts",
-  "src/servers/runtime/analysis/analysisBridgeReplies.ts": "src/core/server/analysis/analysisBridgeReplies.ts",
-  "src/servers/runtime/analysis/analysisFeatureHost.ts": "src/core/server/analysis/analysisFeatureHost.ts",
-  "src/servers/runtime/analysis/analysisMessageRouter.ts": "src/core/server/analysis/analysisMessageRouter.ts",
-  "src/servers/runtime/analysis/dependencyGraphBridge.ts": "src/core/server/analysis/dependencyGraphBridge.ts",
-  "src/servers/runtime/analysis/historicalComparisonBridge.ts": "src/core/server/analysis/historicalComparisonBridge.ts",
-  "src/servers/runtime/analysis/projectEvolutionBridge.ts": "src/core/server/analysis/projectEvolutionBridge.ts",
-  "src/servers/runtime/analysisServerCapabilities.ts": "src/core/server/analysisServerCapabilities.ts",
-  "src/servers/runtime/broadcast/broadcastTypes.ts": "src/core/server/broadcast/broadcastTypes.ts",
-  "src/servers/runtime/broadcast/mediaFrame.ts": "src/core/server/broadcast/mediaFrame.ts",
-  "src/servers/runtime/broadcast/relayPolicy.ts": "src/core/server/broadcast/relayPolicy.ts",
-  "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
-  "src/servers/runtime/collaboration/collaborationRoomServer.ts": "src/core/server/collaboration/collaborationRoomServer.ts",
-  "src/servers/runtime/collaboration/collaborationSessionApi.ts": "src/core/server/collaboration/collaborationSessionApi.ts",
-  "src/servers/runtime/collaboration/participantIdentity.ts": "src/core/server/collaboration/participantIdentity.ts",
-  "src/servers/runtime/collaboration/roomMessageCodec.ts": "src/core/server/collaboration/roomMessageCodec.ts",
-  "src/servers/runtime/collaboration/roomRegistry.ts": "src/core/server/collaboration/roomRegistry.ts",
-  "src/servers/runtime/collaboration/roomSharedState.ts": "src/core/server/collaboration/roomSharedState.ts",
-  "src/servers/runtime/collaboration/roomTypes.ts": "src/core/server/collaboration/roomTypes.ts",
-  "src/servers/runtime/generatedHttpsCertificateManager.ts": "src/core/server/generatedHttpsCertificateManager.ts",
-  "src/servers/runtime/http/httpRespond.ts": "src/core/server/http/httpRespond.ts",
-  "src/servers/runtime/http/staticAssets.ts": "src/core/server/http/staticAssets.ts",
-  "src/servers/runtime/httpsCustomServer.ts": "src/core/server/httpsCustomServer.ts",
-  "src/servers/runtime/httpsDefaultServer.ts": "src/core/server/httpsDefaultServer.ts",
-  "src/servers/runtime/httpServer.ts": "src/core/server/httpServer.ts",
-  "src/servers/runtime/httpsServerBase.ts": "src/core/server/httpsServerBase.ts",
-  "src/servers/runtime/httpsTlsOptions.ts": "src/core/server/httpsTlsOptions.ts",
-  "src/servers/runtime/index.ts": "src/core/server/launchServerWithFile.ts",
-  "src/servers/runtime/multiServerLauncher.ts": "src/core/server/multiServerLauncher.ts",
-  "src/servers/runtime/portManager.ts": "src/core/server/portManager.ts",
-  "src/servers/runtime/previewRenderer.ts": "src/features/active-servers/services/previewRenderer.ts",
-  "src/servers/runtime/remote/brandMark.ts": "src/core/server/remote/brandMark.ts",
-  "src/servers/runtime/remote/pairingPage.ts": "src/core/server/remote/pairingPage.ts",
-  "src/servers/runtime/remote/remoteAccessPolicy.ts": "src/core/server/remote/remoteAccessPolicy.ts",
-  "src/servers/runtime/remote/remotePairingApi.ts": "src/core/server/remote/remotePairingApi.ts",
-  "src/servers/runtime/serverFactory.ts": "src/core/server/serverFactory.ts",
-  "src/servers/runtime/sse/sseClientRegistry.ts": "src/core/server/sse/sseClientRegistry.ts",
-  "src/servers/runtime/sse/SSEManager.ts": "src/core/server/sse/SSEManager.ts",
-  "src/servers/runtime/ws/webSocketEndpoint.ts": "src/core/server/ws/webSocketEndpoint.ts",
-  "src/servers/storage/serverSettingsManager.ts": "src/core/server/serverSettingsManager.ts",
-  "src/servers/utils/networkUtils.ts": "src/core/server/networkUtils.ts",
-  "src/servers/views/interactions/handleConfigurationClicks.ts": "src/features/servers/views/handleConfigurationClicks.ts",
-  "src/servers/views/interactions/launchNotifications.ts": "src/features/active-servers/views/launchNotifications.ts",
-  "src/servers/views/items/configurationItems.ts": "src/features/servers/views/configurationItems.ts",
-  "src/utils/commandBuilder.ts": "src/platform/commands/commandBuilder.ts",
-  "src/utils/commonCommands.ts": "src/app/sidebar/commonCommands.ts",
-  "src/utils/detailDialog.ts": "src/platform/ui/detailDialog.ts",
-  "src/utils/errorHandler.ts": "src/platform/ui/errorHandler.ts",
-  "src/utils/fileToServerMap.ts": "src/core/server/fileToServerMap.ts",
-  "src/utils/getVisualizationConfiguration.ts": "src/core/charts/getVisualizationConfiguration.ts",
-  "src/utils/jsonFieldAnalyzer.ts": "src/features/visualize-data/services/jsonFieldAnalyzer.ts",
-  "src/utils/languageMetadata.ts": "src/core/analysis/languages/languageMetadata.ts",
-  "src/utils/nonceGenerator.ts": "src/shared/nonceGenerator.ts",
-  "src/utils/sha256Generator.ts": "src/shared/sha256Generator.ts",
-  "src/utils/supportedLanguages.ts": "src/core/analysis/languages/supportedLanguages.ts",
-  "src/utils/uriPathConverter.ts": "src/features/analysis/commands/dom/uriPathConverter.ts",
-  "src/views/active_servers/ActiveServersSectionProvider.ts": "src/features/active-servers/views/ActiveServersSectionProvider.ts",
-  "src/views/active_servers/index.ts": null,
-  "src/views/active_servers/items/activeServerItems.ts": "src/features/active-servers/views/activeServerItems.ts",
-  "src/views/babia_examples/BabiaExamplesSectionProvider.ts": "src/features/examples/views/BabiaExamplesSectionProvider.ts",
-  "src/views/babia_examples/index.ts": null,
-  "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts": "src/features/examples/views/handleBabiaExampleClicks.ts",
-  "src/views/babia_examples/items/babiaExampleItems.ts": "src/features/examples/views/babiaExampleItems.ts",
-  "src/views/collaboration/CollaborationSectionProvider.ts": "src/features/collaboration/views/CollaborationSectionProvider.ts",
-  "src/views/collaboration/index.ts": null,
-  "src/views/collaboration/items/collaborationItems.ts": "src/features/collaboration/views/collaborationItems.ts",
-  "src/views/common/baseInterfaces.ts": "src/platform/tree/baseInterfaces.ts",
-  "src/views/common/sectionChild.ts": "src/app/sidebar/sectionChild.ts",
-  "src/views/index.ts": null,
-  "src/views/learn_more/index.ts": null,
-  "src/views/learn_more/interactions/handleLearnMoreClicks.ts": "src/features/learn-more/views/handleLearnMoreClicks.ts",
-  "src/views/learn_more/items/learnMoreItems.ts": "src/features/learn-more/views/learnMoreItems.ts",
-  "src/views/learn_more/LearnMoreSectionProvider.ts": "src/features/learn-more/views/LearnMoreSectionProvider.ts",
-  "src/views/ModularTreeDataProvider.ts": "src/app/sidebar/ModularTreeDataProvider.ts",
-  "src/views/python_env/index.ts": null,
-  "src/views/python_env/PythonEnvSectionProvider.ts": "src/features/python-env/views/PythonEnvSectionProvider.ts",
-  "src/views/sectionDefinitions.ts": "src/app/sidebar/sectionDefinitions.ts",
-  "src/views/servers/index.ts": null,
-  "src/views/servers/items/serverItems.ts": "src/features/servers/views/serverItems.ts",
-  "src/views/servers/ServersSectionProvider.ts": "src/features/servers/views/ServersSectionProvider.ts",
-  "src/views/visualization_settings/index.ts": null,
-  "src/views/visualization_settings/interactions/handleVisualizationSettingsClicks.ts": "src/features/visualization-settings/views/handleVisualizationSettingsClicks.ts",
-  "src/views/visualization_settings/items/visualizationSettingsItems.ts": "src/features/visualization-settings/views/visualizationSettingsSectionItems.ts",
-  "src/views/visualization_settings/VisualizationSettingsSectionProvider.ts": "src/features/visualization-settings/views/VisualizationSettingsSectionProvider.ts",
-  "src/views/visualize_data/index.ts": null,
-  "src/views/visualize_data/interactions/handleVisualizeDataClicks.ts": "src/features/visualize-data/views/handleVisualizeDataClicks.ts",
-  "src/views/visualize_data/items/visualizeDataItems.ts": "src/features/visualize-data/views/visualizeDataSectionItems.ts",
-  "src/views/visualize_data/VisualizeDataSectionProvider.ts": "src/features/visualize-data/views/VisualizeDataSectionProvider.ts",
-  "src/visualization_settings/commands/visualizationSettingsCommands.ts": "src/features/visualization-settings/commands/visualizationSettingsCommands.ts",
-  "src/visualization_settings/index.ts": null,
-  "src/visualization_settings/model/settingsModel.ts": "src/core/charts/settings/settingsModel.ts",
-  "src/visualization_settings/storage/settingsStorage.ts": "src/core/charts/settings/settingsStorage.ts",
-  "src/visualization_settings/utils/colorPickerUtils.ts": "src/features/visualization-settings/views/colorPickerUtils.ts",
-  "src/visualization_settings/utils/dynamicColorIconGenerator.ts": "src/features/visualization-settings/views/dynamicColorIconGenerator.ts",
-  "src/visualization_settings/utils/settingsAccessors.ts": "src/core/charts/settings/settingsAccessors.ts",
-  "src/visualization_settings/views/interactions/handleSettingsInteraction.ts": "src/features/visualization-settings/views/handleSettingsInteraction.ts",
-  "src/visualization_settings/views/items/visualizationSettingsItems.ts": "src/features/visualization-settings/views/visualizationSettingsItems.ts",
-  "src/visualize_data/commands/visualizeDataCommands.ts": "src/features/visualize-data/commands/visualizeDataCommands.ts",
-  "src/visualize_data/model/visualizeDataModel.ts": "src/features/visualize-data/model/visualizeDataModel.ts",
-  "src/visualize_data/runtime/visualizationRestorer.ts": "src/features/visualize-data/services/visualizationRestorer.ts",
-  "src/visualize_data/state/visualizeDataState.ts": "src/features/visualize-data/model/visualizeDataState.ts",
-  "src/visualize_data/views/interactions/visualizationLauncher.ts": "src/features/visualize-data/services/visualizationLauncher.ts",
-  "src/visualize_data/views/items/visualizationItem.ts": "src/features/visualize-data/views/visualizationItem.ts",
-  "src/visualize_data/views/items/visualizeDataItems.ts": "src/features/visualize-data/views/visualizeDataItems.ts"
-}
-```
-</details>
+Machine-readable form: [`src-move-map.json`](src-move-map.json) (`moves`: old → new, `null` = dissolved, key = value = stays; `batch`: the batch of each row). Keys and values use the `src/…` form that tests and docs use. It is the input of the batch codemod (A.5), of `measureGuardrails.cjs --renamed` and of the H3 check (A.6).
 
 ## 5. Move plan
 
@@ -1199,6 +874,36 @@ The bundle cannot be byte-identical. In `npm run compile` (webpack `mode: 'none'
 2. **Same bundle contents.** `npm run package` before and after: identical module **count** in webpack's stats (`--json`), and `scripts/dist-fingerprint.mjs` / `dist-diff.mjs` showing every non-bundle file in `dist/` identical (the Python copy). The bundle size may differ only by the length of path strings.
 3. **Same user surface.** `test/baseline/featureBaseline.test.cjs` green, with **no** `--write`: commands, menus, views, settings, persisted keys, shipped files, chart types, in-scene modes and Python CLI are unchanged. The command set is also pinned by `assertUniqueCommandIds` at activation.
 4. **All gates:** `npm test`, `npm run lint` (warning budget unchanged), `npm run typecheck`, the reachability guardrail (`unreachable = 0`), plus the batch's specialised suites (§5.3). The maintainer runs one F5 smoke after B9, B12 and B14 (open the sidebar, run one XR analysis, start and stop a server).
+
+## 7. Result (story #55 executed, 2026-11-25)
+
+The move ran on branch `claude/project-thread-n2s3q6-src-layout`, from `v1.2.1` at `41cfc523`: the map refresh (§4.1, `cbcd9d24`), the tooling commit (`992f84b2`: `measureGuardrails.cjs --renamed`, two-level units under `core/` and `features/`, the layer test), batch 0 in four commits, then B1–B14 in table order, one commit each, and a closing commit with the layout guard (`test/tooling/srcLayout.test.cjs`). The session log is `.claude/docs/v1.2.1/sessions/55-src-layout.md`.
+
+**Files per batch** (moved with `git mv`; batch 0 deletes): B0 46 barrels · B1 9 · B2 5 · B3 9 · B4 13 · B5 12 · B6 10 · B7 11 · B8 11 · B9 44 · B10 16 · B11 21 · B12 64 · B13 55 · B14 7. Total: 287 moved, 46 deleted, 4 already in place (`extension.ts` and the three `platform/` files of #42).
+
+**H3 for every batch** (§6): `compare-out.mjs` 291 of 291 compiled modules equivalent, 0 problems (batch 0: 311 → 291 modules with its barrel-aware variant, 0 problems); webpack (mode none) 512 modules / 279 `src` modules after every move batch; `featureBaseline` green without `--write`; `npm test` 1,059 of 1,059 and lint at the 158-warning budget after every commit; guardrails re-keyed with `--renamed`, ratcheted metrics unchanged, waivers still 6. B3, B11 and B12 also ran `test:python` and `test:analysis`; B7, B9 and B12 the XR harness (B7 and B12 the immersive harness too).
+
+**Package** (`npm run package:vsix`, against the same build of `41cfc523`): the same 199 files. Every file is byte-identical except `CHANGELOG.md` (the story's line), `dist/extension.js` (1,194,937 → 1,173,899 bytes: the 46 barrel modules are gone from the bundle) and the lazy `get-port` chunk, renamed `756.extension.js` → `515.extension.js` by webpack's deterministic ids. Its contents are identical apart from the id.
+
+**Shape** (A.7, `treestats.mjs`):
+
+| Metric | Before (`41cfc523`) | After |
+|---|---:|---:|
+| `.ts` files | 337 | 291 |
+| lines | 49,226 | 48,773 |
+| folders | 172 | 99 |
+| top-level entries of `src/` | 16 folders + `extension.ts` | 5 layers + `extension.ts` |
+| snake_case / camelCase folder names | 57 / 1 | 0 / 0 |
+| kebab-case folder names | 0 | 23 |
+| single-file leaf folders | 70 | 9 |
+| `index.ts` files (re-export barrels) | 48 (46) | 0 (0) |
+| max depth below `src/` | 5 | 5 |
+| folder units in `folderDependencies.json` / allowed edges | 17 / 78 | 22 / 73 |
+| two-way folder pairs | 5 | 4 |
+
+The four pairs left are all inside the server/analysis subsystems, each with its reason in `folderDependencies.json`: `core/analysis<->core/history`, `core/analysis<->core/server`, `core/remote-access<->core/server`, and `core/server<->features/active-servers`. The last one is the one upward edge (§3.5). The other `layerExceptions` entry is the cross-feature edge `features/active-servers -> features/collaboration` (the nested COLLABORATION group).
+
+**Left as found:** `templates/components/COMPONENTS.md` still says `src/.../customComponents/runtimeAssembly.ts` (now `src/core/analysis/scene-assets/runtimeAssembly.ts`). `templates/` ships, and this story changes no shipped file. Historical docs (`V1.2.0_STATUS.md`, the session logs, `AUDIT.md`, the ROADMAP tables) keep the old paths. The bootstrap `vscodeFreeFloor` was lowered 109 → 106 in batch 0, only because three vscode-free barrels were deleted.
 
 ## Appendix: scripts
 

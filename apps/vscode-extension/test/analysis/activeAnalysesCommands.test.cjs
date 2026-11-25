@@ -1,6 +1,6 @@
 /**
  * Behavioural characterization of the Active Analyses command handlers
- * (src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts),
+ * (src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts),
  * executed from out/ under the fake vscode.
  *
  * What it pins, so that reshaping the handlers cannot change what a user sees:
@@ -21,7 +21,7 @@ const path = require('node:path');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
-const MODULE = 'code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.js';
+const MODULE = 'features/analysis/sections/active-analyses/activeAnalysesCommands.js';
 
 const COMMANDS = {
     showActions: 'codeXR.analysis.activeAnalyses.showActions',
@@ -239,8 +239,8 @@ test('closeOutcome: declining the confirmation closes nothing', async () => {
 // performance, the modal 'Continue Export' confirmation and only then the
 // destination picker. Each step's dismissal ends the wizard right there.
 
-const GIT_EXPORTER_MODULE = 'code_analysis/export/gitRevisionExporter.js';
-const GIT_OPTIONS_MODULE = 'code_analysis/export/gitExportOptions.js';
+const GIT_EXPORTER_MODULE = 'core/export/gitRevisionExporter.js';
+const GIT_OPTIONS_MODULE = 'core/export/gitExportOptions.js';
 
 /**
  * Answers are consumed FIFO by every dialog and message; a function answer

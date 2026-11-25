@@ -472,7 +472,7 @@ test('boats runtime base comes from the injected chart-base config, with a faith
     // Drift guard: the runtime fallback must spell out the SAME construction
     // the generator publishes (chartPresentation.BOATS_BASE_COMPONENT_ATTRIBUTES).
     const chartPresentation = fs.readFileSync(
-        path.join(projectRoot, 'src', 'babia_templates', 'charts', 'chartPresentation.ts'),
+        path.join(projectRoot, 'src', 'core', 'charts', 'chartPresentation.ts'),
         'utf8',
     );
     for (const fragment of [
@@ -495,7 +495,7 @@ test('runtime presentation fallback mirrors the generator profiles field by fiel
     // a fallback mirror for scenes generated before the config existed. Any
     // drift between the two is a bug.
     const { CHART_PRESENTATION_PROFILES } = require(path.join(
-        projectRoot, 'out', 'babia_templates', 'charts', 'chartPresentation.js',
+        projectRoot, 'out', 'core', 'charts', 'chartPresentation.js',
     ));
     const runtime = loadRuntime();
     for (const [chartId, profile] of Object.entries(CHART_PRESENTATION_PROFILES)) {

@@ -588,7 +588,7 @@ test('the extension host enters every analysis mode with the view the browser en
     // than one place, and where it lives is about to change. What has to hold
     // is what the refresh coordinator answers, since that answer is the
     // controllerView of the snapshot the browser then routes.
-    const { AnalysisRefreshCoordinator } = require(path.join(projectRoot, 'out', 'code_analysis', 'refresh', 'analysisRefreshCoordinator.js'));
+    const { AnalysisRefreshCoordinator } = require(path.join(projectRoot, 'out', 'core', 'analysis', 'refresh', 'analysisRefreshCoordinator.js'));
     const hostDefaults = Object.fromEntries(ANALYSIS_MODES.map((mode) => {
         // One coordinator per mode: it remembers the last view of every mode it has been in.
         const coordinator = new AnalysisRefreshCoordinator();

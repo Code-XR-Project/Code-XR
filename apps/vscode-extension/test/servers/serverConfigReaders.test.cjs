@@ -2,8 +2,8 @@
  * Behavioural characterization of the two readers of the server
  * configuration, written before ROADMAP T52 kept only one:
  *   - the private getServerConfig() behind the Servers tree's option rows
- *     (views/servers/items/serverItems.ts);
- *   - the exported getServerConfig() of servers/views/items/configurationItems.ts,
+ *     (features/servers/views/serverItems.ts);
+ *   - the exported getServerConfig() of features/servers/views/configurationItems.ts,
  *     used by the configuration click handlers.
  * Both answer ServerSettingsManager's legacy config, read at call time.
  */
@@ -17,9 +17,9 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 test('both server-config readers answer the legacy config of the settings manager, read at call time', async () => {
     const fake = createFakeVscode();
     await withFakeVscode(fake, async ({ requireOut }) => {
-        const { ServerSettingsManager } = requireOut('servers/storage/serverSettingsManager.js');
-        const { ServerItemFactory } = requireOut('views/servers/items/serverItems.js');
-        const configurationItems = requireOut('servers/views/items/configurationItems.js');
+        const { ServerSettingsManager } = requireOut('core/server/serverSettingsManager.js');
+        const { ServerItemFactory } = requireOut('features/servers/views/serverItems.js');
+        const configurationItems = requireOut('features/servers/views/configurationItems.js');
 
         let config = { httpMode: 'HTTP', port: 4100, autoOpen: true, openMode: 'browser', remoteAccessEnabled: false };
         const originalGetInstance = ServerSettingsManager.getInstance;

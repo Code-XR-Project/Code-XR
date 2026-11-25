@@ -128,7 +128,7 @@ COMMENT_ANALYZER_LANGUAGES_WITHOUT_AN_ARM = frozenset()
 
 # Extensions OUTSIDE the Python contract that still reach these analyzers in a
 # live session: the TypeScript watcher gate (DIRECTORY_ANALYSIS_EXTENSIONS in
-# src/code_analysis/engine/watchers/analysisFilePolicy.ts) is wider than the
+# src/core/analysis/watchers/analysisFilePolicy.ts) is wider than the
 # contract, and the re-analysis of a changed file
 # (summaryFiles/file_reanalysis_coordinator.py -> build_file_snapshot) applies no
 # contract filter of its own. The arms below are therefore live, although no

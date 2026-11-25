@@ -11,21 +11,21 @@ function readProjectFile(...segments) {
 }
 
 test('file XR parser uses data.json for the XR template data entity', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
 
     assert.match(source, /TemplateProcessor\.generateXRVisualization\([\s\S]*'data\.json'/);
     assert.equal(source.includes('./data.json'), false);
 });
 
 test('directory XR parser keeps using data.json for standard and deep XR analysis', () => {
-    const source = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
+    const source = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 
     assert.match(source, /TemplateProcessor\.generateXRVisualization\([\s\S]*'data\.json'/);
 });
 
 test('XR boats tree builder follows the shared tree contract (normal-analysis convention in every mode)', () => {
-    const source = readProjectFile('src', 'babia_templates', 'processing', 'placeholders', 'createStructure.ts');
-    const chartPresentation = readProjectFile('src', 'babia_templates', 'charts', 'chartPresentation.ts');
+    const source = readProjectFile('src', 'core', 'charts', 'processing', 'placeholders', 'createStructure.ts');
+    const chartPresentation = readProjectFile('src', 'core', 'charts', 'chartPresentation.ts');
     const sceneTemplate = readProjectFile('templates', 'xr', 'file', 'xr-visualization.html');
 
     // One canonical contract — the normal analysis' original one: directory
@@ -50,7 +50,7 @@ test('XR boats tree builder follows the shared tree contract (normal-analysis co
 });
 
 test('XR mapping UI config includes live chart selector metadata', () => {
-    const processor = readProjectFile('src', 'babia_templates', 'processing', 'templateProcessor.ts');
+    const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
 
     assert.match(processor, /availableCharts/);
     assert.match(processor, /dimensionsByChart/);
@@ -62,7 +62,7 @@ test('XR mapping UI config includes live chart selector metadata', () => {
 
 test('local XR server prevents stale runtime script caching', () => {
     // Static serving lives in the extracted StaticAssetServer module.
-    const server = readProjectFile('src', 'servers', 'runtime', 'http', 'staticAssets.ts');
+    const server = readProjectFile('src', 'core', 'server', 'http', 'staticAssets.ts');
 
     assert.ok(server.includes('/\\.(:html|js|mjs|json|map)$/i.test(filePath)'));
     assert.match(server, /Cache-Control'\] = 'no-store, no-cache, must-revalidate, max-age=0'/);
@@ -71,17 +71,17 @@ test('local XR server prevents stale runtime script caching', () => {
 });
 
 test('Babia Boats is the default XR file and directory chart while CodeXR Boats remains paused', () => {
-    const config = readProjectFile('src', 'code_analysis', 'configuration', 'models', 'analysisConfiguration.ts');
+    const config = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
     const profile = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'profile_configuration',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'profile-configuration',
         'profileConfiguration.ts',
     );
-    const templateCharts = readProjectFile('src', 'babia_templates', 'charts', 'templateCharts.ts');
+    const templateCharts = readProjectFile('src', 'core', 'charts', 'templateCharts.ts');
 
     assert.match(config, /chartTypeFile: 'boats'/);
     assert.match(config, /chartTypeDirectory: 'boats'/);
@@ -92,8 +92,8 @@ test('Babia Boats is the default XR file and directory chart while CodeXR Boats 
 });
 
 test('boats base construction is canonical: one object feeds the template, no duplicate remains', () => {
-    const chartPresentation = readProjectFile('src', 'babia_templates', 'charts', 'chartPresentation.ts');
-    const createChart = readProjectFile('src', 'babia_templates', 'processing', 'placeholders', 'createChart.ts');
+    const chartPresentation = readProjectFile('src', 'core', 'charts', 'chartPresentation.ts');
+    const createChart = readProjectFile('src', 'core', 'charts', 'processing', 'placeholders', 'createChart.ts');
 
     assert.match(
         chartPresentation,
@@ -119,7 +119,7 @@ test('boats base construction is canonical: one object feeds the template, no du
 
     // The rendered template is BUILT from the profile object — assert on the
     // compiled output, where drift would actually surface.
-    const { chartTemplates } = require(path.join(projectRoot, 'out', 'babia_templates', 'charts', 'templateCharts.js'));
+    const { chartTemplates } = require(path.join(projectRoot, 'out', 'core', 'charts', 'templateCharts.js'));
     const boats = chartTemplates.find((chart) => chart.id === 'boats');
     assert.ok(boats);
     assert.match(boats.htmlTemplate, /babia-boats="from: tree;/);
@@ -144,13 +144,13 @@ test('pie and donut XR chart templates render upright on the analysis table', ()
     // demos stand them with rotation 90 0 0 on the entity, and the profile is
     // the single source of that rotation for the generator AND the live
     // chart switch.
-    const { CHART_PRESENTATION_PROFILES } = require(path.join(projectRoot, 'out', 'babia_templates', 'charts', 'chartPresentation.js'));
+    const { CHART_PRESENTATION_PROFILES } = require(path.join(projectRoot, 'out', 'core', 'charts', 'chartPresentation.js'));
     assert.equal(CHART_PRESENTATION_PROFILES.pie.rotation, '90 0 0');
     assert.equal(CHART_PRESENTATION_PROFILES.donut.rotation, '90 0 0');
     assert.equal(CHART_PRESENTATION_PROFILES.pie.fit, 'uniform');
     assert.equal(CHART_PRESENTATION_PROFILES.donut.fit, 'uniform');
 
-    const { chartTemplates } = require(path.join(projectRoot, 'out', 'babia_templates', 'charts', 'templateCharts.js'));
+    const { chartTemplates } = require(path.join(projectRoot, 'out', 'core', 'charts', 'templateCharts.js'));
     const donut = chartTemplates.find((chart) => chart.id === 'donut');
     const pie = chartTemplates.find((chart) => chart.id === 'pie');
     assert.ok(donut);
@@ -177,7 +177,7 @@ test('XR template keeps babia-queryjson bound to the injected DATA_SOURCE placeh
 
 test('XR template owns the initial chart through a CodeXR analysis surface', () => {
     const template = readProjectFile('templates', 'xr', 'file', 'xr-visualization.html');
-    const processor = readProjectFile('src', 'babia_templates', 'processing', 'templateProcessor.ts');
+    const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
     const modeRuntime = readAssembledRuntime('analysis-mode', 'analysisModeRuntime.js');
 
     assert.match(template, /id="codexrAnalysisSurface"[\s\S]*data-codexr-analysis-surface="true"/);
@@ -252,8 +252,8 @@ test('XR and DOM templates pin aframe-babia-components to the supported version'
 });
 
 test('XR parsers include CodeXR room runtime in generated assets', () => {
-    const fileParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'fileXRParser.ts');
-    const directoryParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
+    const fileParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
+    const directoryParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 
     assert.match(fileParser, /copyCodeXrRoomAssetsToOutput/);
     assert.match(fileParser, /copyCodeXrCommonRuntimeToOutput/);
@@ -280,7 +280,7 @@ test('XR parsers include CodeXR room runtime in generated assets', () => {
     assert.doesNotMatch(directoryParser, /\[CODEXR_VISUAL_STYLE_RUNTIME_OUTPUT_NAME, readCodeXrVisualStyleRuntimeContent\]/);
     // The abandoned visual-style feature was deleted in 1.2.1 (W2-55): neither
     // its asset module nor its runtime may come back unwired.
-    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'components', 'customComponents', 'visualStyleComponentAsset.ts')), false);
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'core', 'analysis', 'scene-assets', 'visualStyleComponentAsset.ts')), false);
     assert.equal(fs.existsSync(path.join(projectRoot, 'templates', 'components', 'common', 'codexrVisualStyleRuntime.js')), false);
     assert.doesNotMatch(directoryParser, /\[CODEXR_BOATS_RUNTIME_OUTPUT_NAME, readCodeXrBoatsRuntimeContent\]/);
     assert.doesNotMatch(directoryParser, /codeXrBoatsTextures\.forEach\(\(asset\) => \{/);
@@ -295,7 +295,7 @@ test('XR parsers include CodeXR room runtime in generated assets', () => {
 });
 
 test('all XR charts share the containment preset', () => {
-    const templateCharts = readProjectFile('src', 'babia_templates', 'charts', 'templateCharts.ts');
+    const templateCharts = readProjectFile('src', 'core', 'charts', 'templateCharts.ts');
 
     assert.match(templateCharts, /export const XR_TABLE_BOOTSTRAP_PLANAR_MAX = 0\.84;/);
     assert.match(templateCharts, /export const XR_TABLE_STEADY_PLANAR_MIN = 0\.78;/);
@@ -307,7 +307,7 @@ test('all XR charts share the containment preset', () => {
     assert.match(templateCharts, /function buildChartEntityHtml\(/);
     const sourceMatches = templateCharts.match(/codexr-chart-containment="\$\{UNIVERSAL_XR_TABLE_SETTINGS\}"/g) || [];
     assert.equal(sourceMatches.length, 1);
-    const { chartTemplates } = require(path.join(projectRoot, 'out', 'babia_templates', 'charts', 'templateCharts.js'));
+    const { chartTemplates } = require(path.join(projectRoot, 'out', 'core', 'charts', 'templateCharts.js'));
     assert.equal(chartTemplates.length, 8);
     for (const chart of chartTemplates) {
         assert.ok(chart.htmlTemplate.includes('codexr-chart-containment="enabled: true;'), `${chart.id} carries the containment preset`);

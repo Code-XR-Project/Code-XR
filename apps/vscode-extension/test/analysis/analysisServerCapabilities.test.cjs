@@ -20,8 +20,8 @@ function loadCapabilitiesModule() {
     const sourcePath = path.join(
         projectRoot,
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'analysisServerCapabilities.ts',
     );
     const source = fs.readFileSync(sourcePath, 'utf8');
@@ -102,7 +102,7 @@ test('resolveAnalysisServerCapabilities returns an independent object per call (
 });
 
 test('the analysis host resolves capabilities from the session mode and gates every optional service behind them', () => {
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
 
     // Uses the single shared capability resolver, keyed off the real session mode.
     assert.match(httpServer, /import \{ resolveAnalysisServerCapabilities \} from '\.\.\/analysisServerCapabilities';/);
@@ -116,7 +116,7 @@ test('the analysis host resolves capabilities from the session mode and gates ev
 });
 
 test('the analysis host no longer constructs the XR-only feature services unconditionally', () => {
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'analysis', 'analysisFeatureHost.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
 
     // The historical/project-evolution services must never be reachable without
     // first passing their capability gate — otherwise a non-XR launch throws.
@@ -131,8 +131,8 @@ test('the analysis host no longer constructs the XR-only feature services uncond
 });
 
 test('The XR-only services still throw for non-XR sessions, so gating their construction is load-bearing, not cosmetic', () => {
-    const historical = readProjectFile('src', 'code_analysis', 'historical', 'historicalComparisonService.ts');
-    const projectEvolution = readProjectFile('src', 'code_analysis', 'historical', 'projectEvolutionService.ts');
+    const historical = readProjectFile('src', 'core', 'history', 'historicalComparisonService.ts');
+    const projectEvolution = readProjectFile('src', 'core', 'history', 'projectEvolutionService.ts');
 
     // Constructors resolve the session eagerly (this is what aborted the launch).
     assert.match(historical, /const session = this\.getSession\(\)[\s\S]*new GitRepositoryService\(session\.targetPath/);
@@ -144,7 +144,7 @@ test('The XR-only services still throw for non-XR sessions, so gating their cons
 });
 
 test('DependencyGraphService is safe to attach for LivePanel: it never throws in its constructor and reports availability instead', () => {
-    const dependency = readProjectFile('src', 'code_analysis', 'dependencies', 'dependencyGraphService.ts');
+    const dependency = readProjectFile('src', 'core', 'dependencies', 'dependencyGraphService.ts');
 
     // No eager getSession() in the constructor (contrast with the XR-only services).
     const constructorBlock = dependency.slice(

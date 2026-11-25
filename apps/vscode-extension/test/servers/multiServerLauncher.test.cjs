@@ -229,9 +229,9 @@ async function runScenario(scenario) {
             // Load the launcher (and with it the whole module graph) once,
             // then patch the modules it holds: a second requireOut of a
             // dependency would build a fresh copy nobody else references.
-            const { MultiServerLauncher } = requireOut('servers/runtime/multiServerLauncher.js');
+            const { MultiServerLauncher } = requireOut('core/server/multiServerLauncher.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
-            observeLogsAsConsole(loaded('core/logging/sink.js'), record);
+            observeLogsAsConsole(loaded('platform/logging/sink.js'), record);
             const makeFakeServer = (kind) => class {
                 constructor(config) {
                     this.isFakeServer = true;
@@ -253,11 +253,11 @@ async function runScenario(scenario) {
                     return `${url}/?codexr_token=fixture`;
                 }
             };
-            loaded('servers/runtime/httpServer.js').HttpServer = makeFakeServer('http');
-            loaded('servers/runtime/httpsDefaultServer.js').HttpsDefaultServer = makeFakeServer('https-default');
-            loaded('servers/runtime/httpsCustomServer.js').HttpsCustomServer = makeFakeServer('https-custom');
+            loaded('core/server/httpServer.js').HttpServer = makeFakeServer('http');
+            loaded('core/server/httpsDefaultServer.js').HttpsDefaultServer = makeFakeServer('https-default');
+            loaded('core/server/httpsCustomServer.js').HttpsCustomServer = makeFakeServer('https-custom');
 
-            const { ServerSettingsManager } = loaded('servers/storage/serverSettingsManager.js');
+            const { ServerSettingsManager } = loaded('core/server/serverSettingsManager.js');
             ServerSettingsManager.getInstance = (ctx) => {
                 assert.equal(ctx, context);
                 return {
@@ -266,7 +266,7 @@ async function runScenario(scenario) {
                 };
             };
 
-            const { PortManager } = loaded('servers/runtime/portManager.js');
+            const { PortManager } = loaded('core/server/portManager.js');
             PortManager.isPortAvailable = async (...args) => {
                 transcript.portCalls.push(['isPortAvailable', ...args]);
                 return scenario.portFree !== false;
@@ -279,10 +279,10 @@ async function runScenario(scenario) {
                 return args[0];
             };
 
-            const { NetworkUtils } = loaded('servers/utils/networkUtils.js');
+            const { NetworkUtils } = loaded('core/server/networkUtils.js');
             NetworkUtils.getLocalIPAddress = () => scenario.localIp || '192.0.2.10';
 
-            const { PreviewRenderer } = loaded('servers/runtime/previewRenderer.js');
+            const { PreviewRenderer } = loaded('features/active-servers/services/previewRenderer.js');
             PreviewRenderer.openPreview = async (...args) => {
                 transcript.previews.push(normalize(args, context));
                 if (scenario.previewFails) {
@@ -291,13 +291,13 @@ async function runScenario(scenario) {
             };
 
             if (scenario.registrarFails) {
-                const { ServerRegistrar } = loaded('active_servers/services/serverRegistrar.js');
+                const { ServerRegistrar } = loaded('core/server/registry/serverRegistrar.js');
                 ServerRegistrar.prototype.registerServer = () => {
                     throw new Error('registry unavailable');
                 };
             }
             if (scenario.registryLookupFailsOnce) {
-                const { ActiveServerRegistry } = loaded('active_servers/registry/activeServerRegistry.js');
+                const { ActiveServerRegistry } = loaded('core/server/registry/activeServerRegistry.js');
                 const realGetServer = ActiveServerRegistry.prototype.getServer;
                 let failed = false;
                 ActiveServerRegistry.prototype.getServer = function getServer(...args) {

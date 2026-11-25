@@ -10,12 +10,12 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 // guards on "the room" read all of them, so code moving between them cannot
 // slip past a guard.
 const ROOM_SERVER_FILES = [
-    'src/servers/runtime/collaboration/collaborationRoomServer.ts',
-    'src/servers/runtime/collaboration/roomTypes.ts',
-    'src/servers/runtime/collaboration/roomMessageCodec.ts',
-    'src/servers/runtime/collaboration/participantIdentity.ts',
-    'src/servers/runtime/collaboration/roomRegistry.ts',
-    'src/servers/runtime/collaboration/roomSharedState.ts',
+    'src/core/server/collaboration/collaborationRoomServer.ts',
+    'src/core/server/collaboration/roomTypes.ts',
+    'src/core/server/collaboration/roomMessageCodec.ts',
+    'src/core/server/collaboration/participantIdentity.ts',
+    'src/core/server/collaboration/roomRegistry.ts',
+    'src/core/server/collaboration/roomSharedState.ts',
 ];
 
 function readProjectFile(...parts) {
@@ -23,9 +23,9 @@ function readProjectFile(...parts) {
 }
 
 test('remote access defaults to enabled, with a one-shot migration for older settings files', () => {
-    const settings = readProjectFile('src', 'servers', 'storage', 'serverSettingsManager.ts');
-    const model = readProjectFile('src', 'remote_access', 'model', 'remoteAccessModel.ts');
-    const items = readProjectFile('src', 'views', 'servers', 'items', 'serverItems.ts');
+    const settings = readProjectFile('src', 'core', 'server', 'serverSettingsManager.ts');
+    const model = readProjectFile('src', 'core', 'remote-access', 'remoteAccessModel.ts');
+    const items = readProjectFile('src', 'features', 'servers', 'views', 'serverItems.ts');
     assert.match(settings, /remoteAccess: \{ \.\.\.DEFAULT_REMOTE_ACCESS_SETTINGS \}/);
     assert.match(settings, /version: '1\.2\.0'/);
     // The default is ON; persisted files predating it carry enabled: false and
@@ -39,9 +39,9 @@ test('remote access defaults to enabled, with a one-shot migration for older set
 });
 
 test('invitation links carry no TTL and the download consent is asked once', () => {
-    const authority = readProjectFile('src', 'remote_access', 'security', 'remoteSessionAuthority.ts');
-    const pairingApi = readProjectFile('src', 'servers', 'runtime', 'remote', 'remotePairingApi.ts');
-    const binaryManager = readProjectFile('src', 'remote_access', 'services', 'cloudflaredBinaryManager.ts');
+    const authority = readProjectFile('src', 'core', 'remote-access', 'remoteSessionAuthority.ts');
+    const pairingApi = readProjectFile('src', 'core', 'server', 'remote', 'remotePairingApi.ts');
+    const binaryManager = readProjectFile('src', 'core', 'remote-access', 'cloudflaredBinaryManager.ts');
     // The 30-minute invitation TTL made the sidebar's address die while the
     // tunnel stayed up. Invitations now live until revocation.
     assert.doesNotMatch(authority, /INVITATION_TTL_MS/);
@@ -58,21 +58,21 @@ test('invitation links carry no TTL and the download consent is asked once', () 
 });
 
 test('remote HTTP and WebSocket access require server-issued sessions', () => {
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'httpServer.ts');
     // Cookie policy and the pairing endpoints live in the extracted remote/ modules.
-    const accessPolicy = readProjectFile('src', 'servers', 'runtime', 'remote', 'remoteAccessPolicy.ts');
-    const pairingApi = readProjectFile('src', 'servers', 'runtime', 'remote', 'remotePairingApi.ts');
+    const accessPolicy = readProjectFile('src', 'core', 'server', 'remote', 'remoteAccessPolicy.ts');
+    const pairingApi = readProjectFile('src', 'core', 'server', 'remote', 'remotePairingApi.ts');
     const roomServer = readProjectFile(
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'collaboration',
         'collaborationRoomServer.ts',
     );
     const broadcastServer = readProjectFile(
         'src',
-        'servers',
-        'runtime',
+        'core',
+        'server',
         'broadcast',
         'screenBroadcastSignalingServer.ts',
     );
@@ -89,14 +89,14 @@ test('remote HTTP and WebSocket access require server-issued sessions', () => {
 test('cloudflared is pinned, checksum-verified, and launched without a shell', () => {
     const binaryManager = readProjectFile(
         'src',
-        'remote_access',
-        'services',
+        'core',
+        'remote-access',
         'cloudflaredBinaryManager.ts',
     );
     const remoteManager = readProjectFile(
         'src',
-        'remote_access',
-        'services',
+        'core',
+        'remote-access',
         'remoteAccessManager.ts',
     );
     assert.match(binaryManager, /CLOUDFLARED_VERSION = '2026\.5\.2'/);
@@ -111,22 +111,23 @@ test('cloudflared is pinned, checksum-verified, and launched without a shell', (
 test('active servers exposes expandable information, participants, and conditional invitations', () => {
     const provider = readProjectFile(
         'src',
+        'features',
+        'active-servers',
         'views',
-        'active_servers',
         'ActiveServersSectionProvider.ts',
     );
     const items = readProjectFile(
         'src',
+        'features',
+        'active-servers',
         'views',
-        'active_servers',
-        'items',
         'activeServerItems.ts',
     );
     const actions = readProjectFile(
         'src',
-        'active_servers',
+        'features',
+        'active-servers',
         'views',
-        'interactions',
         'handleServerActions.ts',
     );
     assert.match(items, /TreeItemCollapsibleState\.Collapsed/);
@@ -139,11 +140,11 @@ test('active servers exposes expandable information, participants, and condition
 });
 
 test('external browser pairing selects identity before requesting the code', () => {
-    const pairingPage = readProjectFile('src', 'servers', 'runtime', 'remote', 'pairingPage.ts');
+    const pairingPage = readProjectFile('src', 'core', 'server', 'remote', 'pairingPage.ts');
     const authority = readProjectFile(
         'src',
-        'remote_access',
-        'security',
+        'core',
+        'remote-access',
         'remoteSessionAuthority.ts',
     );
     assert.match(pairingPage, /\/api\/remote\/identity/);
@@ -154,7 +155,7 @@ test('external browser pairing selects identity before requesting the code', () 
 });
 
 test('guest pairing pages stay self-contained for the response CSP', () => {
-    const pairingPage = readProjectFile('src', 'servers', 'runtime', 'remote', 'pairingPage.ts');
+    const pairingPage = readProjectFile('src', 'core', 'server', 'remote', 'pairingPage.ts');
     // No img-src directive is sent, and an unpaired guest cannot fetch static
     // assets, so external references and data: images would break the page.
     assert.doesNotMatch(pairingPage, /<link\b/);
@@ -166,13 +167,13 @@ test('guest pairing pages stay self-contained for the response CSP', () => {
 
 test('the host can remove a guest from the participant modal and the tree context menu', () => {
     const actions = readProjectFile(
-        'src', 'active_servers', 'views', 'interactions', 'handleServerActions.ts',
+        'src', 'features', 'active-servers', 'views', 'handleServerActions.ts',
     );
     const commands = readProjectFile(
-        'src', 'active_servers', 'commands', 'activeServersCommands.ts',
+        'src', 'features', 'active-servers', 'commands', 'activeServersCommands.ts',
     );
     const items = readProjectFile(
-        'src', 'views', 'active_servers', 'items', 'activeServerItems.ts',
+        'src', 'features', 'active-servers', 'views', 'activeServerItems.ts',
     );
     const manifest = JSON.parse(readProjectFile('package.json'));
 
@@ -199,7 +200,7 @@ test('the host can remove a guest from the participant modal and the tree contex
     // The rendered item is rebuilt twice by the modular tree; the participant
     // must survive both conversions or the context menu has no target at all
     // (this is exactly what broke the right-click path once).
-    const modularTree = readProjectFile('src', 'views', 'ModularTreeDataProvider.ts');
+    const modularTree = readProjectFile('src', 'app', 'sidebar', 'ModularTreeDataProvider.ts');
     // Both conversions are characterized behaviourally by
     // test/views/modularTreeSnapshot.test.cjs; these keep the intent readable.
     assert.match(modularTree, /payloadKeys: \['activeServer', 'participant'\]/);
@@ -217,9 +218,9 @@ test('the host can remove a guest from the participant modal and the tree contex
 });
 
 test('participant removal is server-authoritative and revokes remote sessions', () => {
-    const room = readProjectFile('src', 'servers', 'runtime', 'collaboration', 'collaborationRoomServer.ts');
-    const httpServer = readProjectFile('src', 'servers', 'runtime', 'httpServer.ts');
-    const authority = readProjectFile('src', 'remote_access', 'security', 'remoteSessionAuthority.ts');
+    const room = readProjectFile('src', 'core', 'server', 'collaboration', 'collaborationRoomServer.ts');
+    const httpServer = readProjectFile('src', 'core', 'server', 'httpServer.ts');
+    const authority = readProjectFile('src', 'core', 'remote-access', 'remoteSessionAuthority.ts');
 
     // Both kick paths share one wire format, so browsers cannot tell them apart.
     assert.match(room, /public removeParticipant\(roomId: string, peerId: string\): ParticipantRemovalResult/);
@@ -235,8 +236,8 @@ test('participant removal is server-authoritative and revokes remote sessions', 
 });
 
 test('disabling cross-network connections uninstalls the managed cloudflared download', () => {
-    const binaryManager = readProjectFile('src', 'remote_access', 'services', 'cloudflaredBinaryManager.ts');
-    const serverCommands = readProjectFile('src', 'servers', 'commands', 'serverCommands.ts');
+    const binaryManager = readProjectFile('src', 'core', 'remote-access', 'cloudflaredBinaryManager.ts');
+    const serverCommands = readProjectFile('src', 'features', 'servers', 'commands', 'serverCommands.ts');
 
     // The manager owns exactly the managed download, never a system binary
     // found on PATH: uninstall only removes CodeXR's own storage directory.
@@ -254,7 +255,7 @@ test('disabling cross-network connections uninstalls the managed cloudflared dow
 });
 
 test('declining the cloudflared download turns cross-network off instead of leaving it silently broken', () => {
-    const remoteManager = readProjectFile('src', 'remote_access', 'services', 'remoteAccessManager.ts');
+    const remoteManager = readProjectFile('src', 'core', 'remote-access', 'remoteAccessManager.ts');
 
     const resolveIndex = remoteManager.indexOf('const binaryPath = await this.binaryManager.resolveBinary(true);');
     const disableIndex = remoteManager.indexOf(

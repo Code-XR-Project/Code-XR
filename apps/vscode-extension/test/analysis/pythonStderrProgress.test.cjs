@@ -91,7 +91,7 @@ async function runFileAnalysis(stderrLines, exitCode = 0) {
     const silence = muteConsole();
     try {
         return await withFakeVscode(fake, async ({ requireOut }) => {
-            const { ExecutePython } = requireOut('code_analysis/engine/utils/executePython.js');
+            const { ExecutePython } = requireOut('core/analysis/python/executePython.js');
             const executor = new ExecutePython(context);
             // The venv is not under test: node stands in for its interpreter.
             executor.venvManager = { getPythonExecutablePath: () => process.execPath };
