@@ -3,6 +3,7 @@ import { ActiveServer } from '../../model/activeServerModel';
 import { getActiveServerRegistry } from '../../registry/activeServerRegistry';
 import { ServerControl } from '../../runtime/serverControl';
 import { openServerInBrowser, openServerInPanel } from '../../services/serverOpenActions';
+import { withServer } from '../../services/withServer';
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
 import { RemoteAccessManager } from '../../../remote_access';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
@@ -43,25 +44,18 @@ export class ServerActionHandlers {
     public static async showServerActions(serverId: string): Promise<void> {
         console.log(`ACTIVE_SERVER: Showing actions for server ${serverId}`);
         
-        const registry = getActiveServerRegistry();
-        const server = registry.getServer(serverId);
+        return withServer(serverId, async (server) => {
+            const actions = this.getAvailableActions(server);
         
-        if (!server) {
-            console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
-            return;
-        }
+            const selectedAction = await vscode.window.showQuickPick(actions, {
+                placeHolder: `Actions for ${server.url}`,
+                title: `Server Actions - localhost:${server.port}`
+            });
 
-        const actions = this.getAvailableActions(server);
-        
-        const selectedAction = await vscode.window.showQuickPick(actions, {
-            placeHolder: `Actions for ${server.url}`,
-            title: `Server Actions - localhost:${server.port}`
+            if (selectedAction) {
+                await this.executeAction(selectedAction.action, server);
+            }
         });
-
-        if (selectedAction) {
-            await this.executeAction(selectedAction.action, server);
-        }
     }
 
     /**
@@ -84,60 +78,53 @@ export class ServerActionHandlers {
     public static async copyUrl(serverId: string): Promise<void> {
         console.log(`ACTIVE_SERVER: Copying URL for server ${serverId}`);
         
-        const registry = getActiveServerRegistry();
-        const server = registry.getServer(serverId);
-        
-        if (!server) {
-            console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
-            return;
-        }
-
-        try {
-            // Extract port and protocol from server URL
-            const portMatch = server.url.match(/:(\d+)/);
-            const port = portMatch ? parseInt(portMatch[1]) : null;
-            const protocol = server.url.startsWith('https') ? 'https' : 'http';
+        return withServer(serverId, async (server) => {
+            try {
+                // Extract port and protocol from server URL
+                const portMatch = server.url.match(/:(\d+)/);
+                const port = portMatch ? parseInt(portMatch[1]) : null;
+                const protocol = server.url.startsWith('https') ? 'https' : 'http';
             
-            const localIP = NetworkUtils.getLocalIPAddress();
-            const hasNetworkAccess = localIP !== 'localhost' && port;
+                const localIP = NetworkUtils.getLocalIPAddress();
+                const hasNetworkAccess = localIP !== 'localhost' && port;
             
-            if (hasNetworkAccess) {
-                // Show options for localhost vs network URL
-                const networkUrl = `${protocol}://${localIP}:${port}`;
-                const choice = await vscode.window.showQuickPick([
-                    {
-                        label: 'Local URL',
-                        description: server.url,
-                        detail: 'For use on this computer only'
-                    },
-                    {
-                        label: 'Network URL', 
-                        description: networkUrl,
-                        detail: 'For access from other devices on the network'
+                if (hasNetworkAccess) {
+                    // Show options for localhost vs network URL
+                    const networkUrl = `${protocol}://${localIP}:${port}`;
+                    const choice = await vscode.window.showQuickPick([
+                        {
+                            label: 'Local URL',
+                            description: server.url,
+                            detail: 'For use on this computer only'
+                        },
+                        {
+                            label: 'Network URL', 
+                            description: networkUrl,
+                            detail: 'For access from other devices on the network'
+                        }
+                    ], {
+                        placeHolder: 'Choose URL type to copy'
+                    });
+                
+                    if (!choice) {
+                        return; // User cancelled
                     }
-                ], {
-                    placeHolder: 'Choose URL type to copy'
-                });
                 
-                if (!choice) {
-                    return; // User cancelled
+                    const urlToCopy = choice.label.includes('Network') ? networkUrl : server.url;
+                    await vscode.env.clipboard.writeText(urlToCopy);
+                    console.log(`ACTIVE_SERVER: Copied ${urlToCopy} to clipboard`);
+                    vscode.window.showInformationMessage(`Copied ${choice.label.includes('Network') ? 'Network' : 'Local'} URL to clipboard`);
+                } else {
+                    // Fallback to original behavior if no network access available
+                    await vscode.env.clipboard.writeText(server.url);
+                    console.log(`ACTIVE_SERVER: Copied ${server.url} to clipboard`);
+                    vscode.window.showInformationMessage(`Copied ${server.url} to clipboard`);
                 }
-                
-                const urlToCopy = choice.label.includes('Network') ? networkUrl : server.url;
-                await vscode.env.clipboard.writeText(urlToCopy);
-                console.log(`ACTIVE_SERVER: Copied ${urlToCopy} to clipboard`);
-                vscode.window.showInformationMessage(`Copied ${choice.label.includes('Network') ? 'Network' : 'Local'} URL to clipboard`);
-            } else {
-                // Fallback to original behavior if no network access available
-                await vscode.env.clipboard.writeText(server.url);
-                console.log(`ACTIVE_SERVER: Copied ${server.url} to clipboard`);
-                vscode.window.showInformationMessage(`Copied ${server.url} to clipboard`);
+            } catch (error) {
+                console.error(`ACTIVE_SERVER: Error copying URL to clipboard:`, error);
+                vscode.window.showErrorMessage('Failed to copy URL to clipboard');
             }
-        } catch (error) {
-            console.error(`ACTIVE_SERVER: Error copying URL to clipboard:`, error);
-            vscode.window.showErrorMessage('Failed to copy URL to clipboard');
-        }
+        });
     }
 
     public static async copyLanUrl(serverId: string): Promise<void> {
@@ -372,46 +359,39 @@ export class ServerActionHandlers {
     public static async stopServer(serverId: string): Promise<void> {
         console.log(`ACTIVE_SERVER: Stopping server ${serverId}`);
         
-        const registry = getActiveServerRegistry();
-        const server = registry.getServer(serverId);
-        
-        if (!server) {
-            console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
-            return;
-        }
+        return withServer(serverId, async (server) => {
+            const response = await vscode.window.showWarningMessage(
+                `Stop server ${server.url}?`,
+                'Stop',
+                'Cancel'
+            );
 
-        const response = await vscode.window.showWarningMessage(
-            `Stop server ${server.url}?`,
-            'Stop',
-            'Cancel'
-        );
-
-        if (response === 'Stop') {
-            try {
-                await RemoteAccessManager.getInstance()?.stopSharing(serverId, false);
-                console.log(`ACTIVE_SERVER: Stopping server ${serverId} (${server.url})`);
-                const success = await ServerControl.stopServer(serverId);
+            if (response === 'Stop') {
+                try {
+                    await RemoteAccessManager.getInstance()?.stopSharing(serverId, false);
+                    console.log(`ACTIVE_SERVER: Stopping server ${serverId} (${server.url})`);
+                    const success = await ServerControl.stopServer(serverId);
                 
-                if (success) {
-                    console.log(`ACTIVE_SERVER: Successfully stopped server ${serverId}`);
-                    vscode.window.showInformationMessage(`Stopped server ${server.url}`);
+                    if (success) {
+                        console.log(`ACTIVE_SERVER: Successfully stopped server ${serverId}`);
+                        vscode.window.showInformationMessage(`Stopped server ${server.url}`);
                     
-                    // Refresh the tree view
-                    vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
-                } else {
-                    console.error(`ACTIVE_SERVER: Failed to stop server ${serverId}`);
-                    vscode.window.showErrorMessage(`Failed to stop server ${server.url}`);
+                        // Refresh the tree view
+                        vscode.commands.executeCommand('codeXR.activeServers.refreshServers');
+                    } else {
+                        console.error(`ACTIVE_SERVER: Failed to stop server ${serverId}`);
+                        vscode.window.showErrorMessage(`Failed to stop server ${server.url}`);
+                    }
+                } catch (error) {
+                    console.error(`ACTIVE_SERVER: Error stopping server ${serverId}:`, error);
+                    vscode.window.showErrorMessage(
+                        `Error stopping server: ${error instanceof Error ? error.message : String(error)}`
+                    );
                 }
-            } catch (error) {
-                console.error(`ACTIVE_SERVER: Error stopping server ${serverId}:`, error);
-                vscode.window.showErrorMessage(
-                    `Error stopping server: ${error instanceof Error ? error.message : String(error)}`
-                );
+            } else {
+                console.log(`ACTIVE_SERVER: User cancelled stopping server ${serverId}`);
             }
-        } else {
-            console.log(`ACTIVE_SERVER: User cancelled stopping server ${serverId}`);
-        }
+        });
     }
 
     /**
@@ -420,22 +400,15 @@ export class ServerActionHandlers {
     public static async showServerDetails(serverId: string): Promise<void> {
         console.log(`ACTIVE_SERVER: Showing details for server ${serverId}`);
         
-        const registry = getActiveServerRegistry();
-        const server = registry.getServer(serverId);
-        
-        if (!server) {
-            console.error(`ACTIVE_SERVER: Server ${serverId} not found`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
-            return;
-        }
+        return withServer(serverId, async (server) => {
+            const details = formatServerDetails(server);
 
-        const details = formatServerDetails(server);
-
-        console.log(`ACTIVE_SERVER: Displaying detailed information for server ${serverId}`);
-        await vscode.window.showInformationMessage(
-            `Server Information — ${getServerLabel(server)}`,
-            { modal: true, detail: details }
-        );
+            console.log(`ACTIVE_SERVER: Displaying detailed information for server ${serverId}`);
+            await vscode.window.showInformationMessage(
+                `Server Information — ${getServerLabel(server)}`,
+                { modal: true, detail: details }
+            );
+        });
     }
 
     /**

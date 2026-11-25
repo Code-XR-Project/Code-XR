@@ -18,9 +18,9 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1406,
+    "console.total": 1401,
     "console.byModule": {
-      "active_servers": 113,
+      "active_servers": 108,
       "babia_examples": 49,
       "babia_templates": 68,
       "code_analysis": 538,
@@ -81,9 +81,9 @@
     }
   },
   "informational": {
-    "src.files": 327,
-    "src.lines": 48313,
-    "src.functions": 2651,
+    "src.files": 328,
+    "src.lines": 48297,
+    "src.functions": 2658,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -119,10 +119,6 @@
         "count": 27
       },
       {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "count": 26
-      },
-      {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
         "count": 26
       },
@@ -145,6 +141,10 @@
       {
         "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 24
+      },
+      {
+        "file": "src/servers/commands/serverCommands.ts",
+        "count": 23
       }
     ],
     "any.topFiles": [
@@ -281,16 +281,16 @@
         "lines": 784
       },
       {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 647
-      },
-      {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
       {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
+      },
+      {
+        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "lines": 620
       },
       {
         "file": "src/views/ModularTreeDataProvider.ts",
