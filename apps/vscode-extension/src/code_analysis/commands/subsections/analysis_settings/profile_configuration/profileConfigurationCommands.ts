@@ -13,6 +13,13 @@ import { getLogger } from '../../../../../core/logging/sink';
 
 const logger = getLogger('PROFILE_CONFIGURATION_COMMANDS');
 
+interface StoredProfileItem {
+    label: string;
+    description: string;
+    detail: string;
+    profilePath: string;
+}
+
 export class ProfileConfigurationCommands {
 
     constructor(
@@ -186,43 +193,10 @@ export class ProfileConfigurationCommands {
         logger.debug('Loading profile');
         
         try {
-            const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
-            
-            // Check if profiles directory exists
-            if (!fs.existsSync(profilesDir)) {
-                vscode.window.showInformationMessage('No saved profiles found');
+            const profileItems = this.listStoredProfiles();
+            if (!profileItems) {
                 return;
             }
-
-            // Get list of saved profiles
-            const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
-            
-            if (profileFiles.length === 0) {
-                vscode.window.showInformationMessage('No saved profiles found');
-                return;
-            }
-
-            // Create quick pick items
-            const profileItems = profileFiles.map(file => {
-                const profilePath = path.join(profilesDir, file);
-                try {
-                    const profileData = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
-                    const savedDate = new Date(profileData.savedAt).toLocaleString();
-                    return {
-                        label: profileData.name || file.replace('.json', ''),
-                        description: `Saved: ${savedDate}`,
-                        detail: `Version: ${profileData.version || 'Unknown'}`,
-                        profilePath: profilePath
-                    };
-                } catch {
-                    return {
-                        label: file.replace('.json', ''),
-                        description: 'Invalid profile data',
-                        detail: 'This profile may be corrupted',
-                        profilePath: profilePath
-                    };
-                }
-            });
 
             // Show profile selection
             const selectedProfile = await vscode.window.showQuickPick(profileItems, {
@@ -271,43 +245,10 @@ export class ProfileConfigurationCommands {
         logger.debug('Deleting profile');
         
         try {
-            const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
-            
-            // Check if profiles directory exists
-            if (!fs.existsSync(profilesDir)) {
-                vscode.window.showInformationMessage('No saved profiles found');
+            const profileItems = this.listStoredProfiles();
+            if (!profileItems) {
                 return;
             }
-
-            // Get list of saved profiles
-            const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
-            
-            if (profileFiles.length === 0) {
-                vscode.window.showInformationMessage('No saved profiles found');
-                return;
-            }
-
-            // Create quick pick items
-            const profileItems = profileFiles.map(file => {
-                const profilePath = path.join(profilesDir, file);
-                try {
-                    const profileData = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
-                    const savedDate = new Date(profileData.savedAt).toLocaleString();
-                    return {
-                        label: profileData.name || file.replace('.json', ''),
-                        description: `Saved: ${savedDate}`,
-                        detail: `Version: ${profileData.version || 'Unknown'}`,
-                        profilePath: profilePath
-                    };
-                } catch {
-                    return {
-                        label: file.replace('.json', ''),
-                        description: 'Invalid profile data',
-                        detail: 'This profile may be corrupted',
-                        profilePath: profilePath
-                    };
-                }
-            });
 
             // Show profile selection
             const selectedProfile = await vscode.window.showQuickPick(profileItems, {
@@ -341,5 +282,49 @@ export class ProfileConfigurationCommands {
             logger.error('Error deleting profile:', error);
             vscode.window.showErrorMessage(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    /**
+     * The saved profiles as quick-pick items (a corrupt file is listed as
+     * such), or undefined after telling the user there are none.
+     */
+    private listStoredProfiles(): StoredProfileItem[] | undefined {
+        const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
+
+        // Check if profiles directory exists
+        if (!fs.existsSync(profilesDir)) {
+            vscode.window.showInformationMessage('No saved profiles found');
+            return undefined;
+        }
+
+        // Get list of saved profiles
+        const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
+
+        if (profileFiles.length === 0) {
+            vscode.window.showInformationMessage('No saved profiles found');
+            return undefined;
+        }
+
+        // Create quick pick items
+        return profileFiles.map(file => {
+            const profilePath = path.join(profilesDir, file);
+            try {
+                const profileData = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+                const savedDate = new Date(profileData.savedAt).toLocaleString();
+                return {
+                    label: profileData.name || file.replace('.json', ''),
+                    description: `Saved: ${savedDate}`,
+                    detail: `Version: ${profileData.version || 'Unknown'}`,
+                    profilePath: profilePath
+                };
+            } catch {
+                return {
+                    label: file.replace('.json', ''),
+                    description: 'Invalid profile data',
+                    detail: 'This profile may be corrupted',
+                    profilePath: profilePath
+                };
+            }
+        });
     }
 }
