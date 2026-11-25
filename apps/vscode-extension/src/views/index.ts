@@ -8,7 +8,6 @@ export { ModularTreeDataProvider } from './ModularTreeDataProvider';
 
 // Common interfaces and utilities
 export * from './common/baseInterfaces';
-export * from './common/supportedLanguages';
 
 // Section providers
 export * from './servers';
