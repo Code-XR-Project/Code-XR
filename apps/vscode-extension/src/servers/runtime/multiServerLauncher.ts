@@ -1,14 +1,14 @@
-import * as vscode from 'vscode';
+import type * as vscode from 'vscode';
 import { PortManager } from './portManager';
-import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
+import { ServerSettingsManager } from '../storage/serverSettingsManager';
 import { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
 import { getServerRegistrar } from '../../active_servers/services/serverRegistrar';
-import { handleAutoOpening, notifyPortChanged } from '../views/interactions/launchNotifications';
+import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../views/interactions/launchNotifications';
 import {
     determineCertMode,
     determineLaunchMode,
-    determineServerType,
     launchServerByType,
+    resolveServerTypeForOpenMode,
     ServerInstance,
     ServerType,
 } from './serverFactory';
@@ -96,9 +96,12 @@ export class MultiServerLauncher {
             });
 
             // Check for HTTPS + lateral panel conflict and handle appropriately
-            const serverTypeResult = this.checkAndHandleLateralPanelHttpsConflict(settings);
+            const serverTypeResult = resolveServerTypeForOpenMode(settings);
             const serverType = serverTypeResult.serverType;
             const isHttpsOverridden = serverTypeResult.isOverridden;
+            if (isHttpsOverridden) {
+                warnHttpsOverriddenForPanel();
+            }
 
             console.log('SERVER: Determined server type:', serverType);
             if (isHttpsOverridden) {
@@ -265,50 +268,5 @@ export class MultiServerLauncher {
         const random = Math.random().toString(36).substr(2, 5);
         return `server_${timestamp}_${random}`;
     }
-
-    /**
-     * Check for lateral panel + HTTPS conflict and provide fallback
-     * @private
-     * @param settings - Server settings
-     * @returns Modified server type if fallback needed, original type otherwise
-     */
-    private checkAndHandleLateralPanelHttpsConflict(settings: ServerSettings): {
-        serverType: ServerType;
-        isOverridden: boolean;
-    } {
-        const originalServerType = determineServerType(settings);
-        
-        // Check if we have lateral panel + HTTPS combination
-        const isLateralPanel = settings.launch.openMode === 'lateralPanel';
-        const isHttps = originalServerType === 'https-default' || originalServerType === 'https-custom';
-        
-        if (isLateralPanel && isHttps) {
-            console.log('SERVER: HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility');
-            console.log(`SERVER: Original server type would have been: ${originalServerType}`);
-            console.log('SERVER: VS Code webview panels do not support HTTPS content, using HTTP fallback');
-            
-            // Show non-blocking warning to user with actionable information
-            vscode.window.showWarningMessage(
-                'Launching in HTTP mode due to VS Code limitations: lateral panel views do not support HTTPS content. Use browser mode to preserve HTTPS.',
-                'Change to Browser Mode'
-            ).then(action => {
-                if (action === 'Change to Browser Mode') {
-                    // Open the configuration to change open mode
-                    vscode.commands.executeCommand('codexr.server.config.openMode');
-                }
-            });
-            
-            return {
-                serverType: 'http',
-                isOverridden: true
-            };
-        }
-        
-        return {
-            serverType: originalServerType,
-            isOverridden: false
-        };
-    }
-
 }
 

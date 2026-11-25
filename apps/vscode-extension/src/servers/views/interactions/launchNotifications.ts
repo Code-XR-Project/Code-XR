@@ -5,11 +5,29 @@ import { openServerInBrowser, openServerInPanel } from '../../../active_servers/
 import { NetworkUtils } from '../../utils/networkUtils';
 
 /*
- * What the user sees after MultiServerLauncher has started a server: the
- * busy-port notice, the auto-open (or the "Open Now" / "Copy Network URL"
- * toast when auto-open is off) and the retry toast when auto-open fails.
+ * What the user sees around a MultiServerLauncher launch: the HTTPS-to-HTTP
+ * override warning for the lateral panel, the busy-port notice, the
+ * auto-open (or the "Open Now" / "Copy Network URL" toast when auto-open is
+ * off) and the retry toast when auto-open fails.
  * Kept out of servers/runtime/ so the launcher holds no UI.
  */
+
+/**
+ * HTTPS was overridden to HTTP because the lateral panel cannot show HTTPS
+ * content: say so, and offer to switch the open mode to the browser.
+ */
+export function warnHttpsOverriddenForPanel(): void {
+    // Show non-blocking warning to user with actionable information
+    vscode.window.showWarningMessage(
+        'Launching in HTTP mode due to VS Code limitations: lateral panel views do not support HTTPS content. Use browser mode to preserve HTTPS.',
+        'Change to Browser Mode'
+    ).then(action => {
+        if (action === 'Change to Browser Mode') {
+            // Open the configuration to change open mode
+            vscode.commands.executeCommand('codexr.server.config.openMode');
+        }
+    });
+}
 
 /**
  * Tell the user the configured port was busy and which one is used instead.

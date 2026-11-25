@@ -82,8 +82,8 @@
   },
   "informational": {
     "src.files": 326,
-    "src.lines": 48304,
-    "src.functions": 2652,
+    "src.lines": 48313,
+    "src.functions": 2653,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -115,10 +115,6 @@
         "count": 30
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 29
-      },
-      {
         "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",
         "count": 27
       },
@@ -128,6 +124,10 @@
       },
       {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
+        "count": 26
+      },
+      {
+        "file": "src/servers/runtime/multiServerLauncher.ts",
         "count": 26
       },
       {

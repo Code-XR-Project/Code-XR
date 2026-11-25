@@ -47,6 +47,39 @@ export function determineServerType(settings: ServerSettings): ServerType {
 }
 
 /**
+ * Check for lateral panel + HTTPS conflict and provide fallback. The
+ * launcher tells the user (warnHttpsOverriddenForPanel) when it is overridden.
+ * @param settings - Server settings
+ * @returns Modified server type if fallback needed, original type otherwise
+ */
+export function resolveServerTypeForOpenMode(settings: ServerSettings): {
+    serverType: ServerType;
+    isOverridden: boolean;
+} {
+    const originalServerType = determineServerType(settings);
+    
+    // Check if we have lateral panel + HTTPS combination
+    const isLateralPanel = settings.launch.openMode === 'lateralPanel';
+    const isHttps = originalServerType === 'https-default' || originalServerType === 'https-custom';
+    
+    if (isLateralPanel && isHttps) {
+        console.log('SERVER: HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility');
+        console.log(`SERVER: Original server type would have been: ${originalServerType}`);
+        console.log('SERVER: VS Code webview panels do not support HTTPS content, using HTTP fallback');
+        
+        return {
+            serverType: 'http',
+            isOverridden: true
+        };
+    }
+    
+    return {
+        serverType: originalServerType,
+        isOverridden: false
+    };
+}
+
+/**
  * Determine launch mode based on settings
  */
 export function determineLaunchMode(settings: ServerSettings): LaunchMode {
