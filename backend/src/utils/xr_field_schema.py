@@ -90,13 +90,6 @@ def get_xr_schema(target_type: str) -> Dict[str, Any]:
     }
 
 
-def get_xr_field_types(target_type: str) -> Dict[str, str]:
-    return {
-        field["id"]: field["valueType"]
-        for field in XR_FIELDS_BY_TARGET[target_type]
-    }
-
-
 def build_complexity_band(complexity: Any) -> str:
     try:
         numeric_complexity = float(complexity)

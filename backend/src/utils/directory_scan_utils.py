@@ -26,10 +26,6 @@ EXCLUDED_DIRECTORIES = {
 }
 
 
-def get_analyzable_extensions() -> List[str]:
-    return list(ANALYZABLE_EXTENSIONS)
-
-
 def should_skip_directory_name(name: str) -> bool:
     if not name or name in {'.', '..'}:
         return True

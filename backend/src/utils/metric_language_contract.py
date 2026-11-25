@@ -8,7 +8,7 @@ analysis contract.
 """
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, List, Tuple
 
 
 _LANGUAGE_SPECS: List[Tuple[str, List[str]]] = [
@@ -71,18 +71,3 @@ def get_metric_language_contract() -> Dict[str, List[str]]:
 
 def get_metric_language_names() -> List[str]:
     return list(LANGUAGE_EXTENSION_MAP.keys())
-
-
-def get_dom_only_language_contract() -> Dict[str, List[str]]:
-    return {
-        language: list(extensions)
-        for language, extensions in DOM_ONLY_LANGUAGE_EXTENSION_MAP.items()
-    }
-
-
-def is_metric_extension(extension: str) -> bool:
-    return extension.lower() in EXTENSION_LANGUAGE_MAP
-
-
-def iter_metric_extensions() -> Iterable[str]:
-    return iter(SUPPORTED_METRIC_EXTENSIONS)

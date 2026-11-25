@@ -6,7 +6,7 @@ Shared directory-analysis engine used by XR and LivePanel.
 import os
 from typing import Callable, Dict, Iterable, List, Optional
 
-from directory_scan_utils import filter_explicit_files_for_analysis, get_analyzable_extensions, scan_directory_files_for_analysis
+from directory_scan_utils import filter_explicit_files_for_analysis, scan_directory_files_for_analysis
 from file_analysis_engine import build_file_snapshot
 from file_metric_summary import build_file_metric_summary
 
@@ -55,11 +55,3 @@ def analyze_directory_entries(
         entries.append(build_file_metric_summary(snapshot, file_path, relative_path))
 
     return entries
-
-
-def get_directory_metadata(scan_depth: str) -> Dict[str, object]:
-    return {
-        'analysisType': 'DirectoryCodeAnalysis',
-        'scanDepth': scan_depth,
-        'includedExtensions': get_analyzable_extensions(),
-    }
