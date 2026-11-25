@@ -28,6 +28,7 @@
     "test:analysis": "npm run test:analysis --workspace=code-xr",
     "test:htmlanalysis": "npm run test:htmlanalysis --workspace=code-xr",
     "test:xr-harness": "npm run test:xr-harness --workspace=code-xr",
+    "test:xr-chart-bounds-harness": "npm run test:xr-chart-bounds-harness --workspace=code-xr",
     "test:xr-mode-harness": "npm run test:xr-mode-harness --workspace=code-xr",
     "test:xr-immersive-harness": "npm run test:xr-immersive-harness --workspace=code-xr",
     "test:project-evolution-harness": "npm run test:project-evolution-harness --workspace=code-xr",

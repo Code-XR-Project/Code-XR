@@ -252,10 +252,62 @@
     var lift = Number.isFinite(surfaceLift) ? Math.max(0, surfaceLift) : 0;
     var tableTopY = getTableTopY(data) + lift;
 
+    var deltaX = data.anchorX - measurements.primary.center.x;
+    var deltaZ = data.anchorZ - measurements.primary.center.z;
+    // Centring the PRIMARY bounds (bars, sectors) can push the axes, which
+    // belong to the containment bounds, past the tabletop: a 3-bar chart has
+    // its axis running out to one side. Shift just enough to keep the whole
+    // containment box on the usable top (the region the size fit targets).
+    if (isFiniteBoundsInfo(measurements.containment)) {
+      var limits = computeContainmentLimits(data);
+      deltaX = keepSpanInsideRegion(deltaX, measurements.containment.bounds.min.x, measurements.containment.bounds.max.x, data.anchorX, limits.containmentWidthLimit);
+      deltaZ = keepSpanInsideRegion(deltaZ, measurements.containment.bounds.min.z, measurements.containment.bounds.max.z, data.anchorZ, limits.containmentDepthLimit);
+    }
+
     return {
-      deltaX: data.anchorX - measurements.primary.center.x,
+      deltaX: deltaX,
       deltaY: tableTopY - measurements.primary.bounds.min.y,
-      deltaZ: data.anchorZ - measurements.primary.center.z
+      deltaZ: deltaZ
+    };
+  }
+
+  // Adjusts a planar shift so that [min, max] + delta lies inside
+  // [center - size/2, center + size/2]. A span wider than the region is
+  // centred on it instead (the size fit is what shrinks it).
+  function keepSpanInsideRegion(delta, min, max, center, size) {
+    if (!Number.isFinite(delta) || !Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(center) || !(size > 0)) {
+      return delta;
+    }
+    var regionMin = center - (size / 2);
+    var regionMax = center + (size / 2);
+    if ((max - min) >= size) {
+      return center - ((min + max) / 2);
+    }
+    if (min + delta < regionMin) {
+      return regionMin - min;
+    }
+    if (max + delta > regionMax) {
+      return regionMax - max;
+    }
+    return delta;
+  }
+
+  var CONTAINMENT_OVERHANG_TOLERANCE = 0.02;
+
+  // Distance (metres) by which the containment bounds stick out of the
+  // usable tabletop on each planar axis; 0 when inside.
+  function computeContainmentOverhang(measurements, data) {
+    if (!measurements || !isFiniteBoundsInfo(measurements.containment) || !data) {
+      return null;
+    }
+    var limits = computeContainmentLimits(data);
+    var bounds = measurements.containment.bounds;
+    function overhang(min, max, center, size) {
+      return Math.max(0, (center - (size / 2)) - min, max - (center + (size / 2)));
+    }
+    return {
+      x: overhang(bounds.min.x, bounds.max.x, data.anchorX, limits.containmentWidthLimit),
+      z: overhang(bounds.min.z, bounds.max.z, data.anchorZ, limits.containmentDepthLimit)
     };
   }
 

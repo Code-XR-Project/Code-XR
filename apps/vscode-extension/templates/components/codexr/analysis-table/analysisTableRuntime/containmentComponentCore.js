@@ -289,12 +289,16 @@
       // guarantees no hard violation and no persistent drift, so a residual
       // sub-tolerance correction wish must not keep reporting a settled
       // chart as "still correcting".
-      var stabilized = (this.settled === true && !transitionActive && !heightOverflow)
+      // A chart whose axes hang past the usable tabletop is never "ok", even
+      // when its size fits: the anchor pass shifts it back on its next run.
+      var overhang = computeContainmentOverhang(measurements, this.data);
+      var offTable = !!(overhang && (overhang.x > CONTAINMENT_OVERHANG_TOLERANCE || overhang.z > CONTAINMENT_OVERHANG_TOLERANCE));
+      var stabilized = !offTable && ((this.settled === true && !transitionActive && !heightOverflow)
         || (this.renderPhase === 'steady-fit'
           && (!this.pidController || !this.pidController.active)
           && !needsCorrection
           && !transitionActive
-          && !heightOverflow);
+          && !heightOverflow));
       return {
         ready: true,
         valid: true,
@@ -304,6 +308,8 @@
           ? 'containment-transition-active'
           : heightOverflow
           ? 'height-overflow'
+          : offTable
+          ? 'off-table'
           : stabilized
           ? 'ok'
           : needsCorrection
@@ -312,6 +318,8 @@
         details: {
           phase: this.renderPhase,
           transitionActive: transitionActive,
+          overhangX: overhang ? toFixedNumber(overhang.x) : null,
+          overhangZ: overhang ? toFixedNumber(overhang.z) : null,
           primaryWidth: toFixedNumber(measurements.primary.size.x),
           primaryHeight: toFixedNumber(measurements.primary.size.y),
           primaryDepth: toFixedNumber(measurements.primary.size.z),

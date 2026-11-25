@@ -28,7 +28,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `npm run test:all`: run both the Node and Python suites.
 - `npm run test:analysis`: per-language end-to-end metrics over `backend/manual_test/` with the pinned lizard.
 - `npm run test:htmlanalysis`: the HTML/DOM analysis suite.
-- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`: browser harnesses (Playwright's Chromium and live CDNs; local only).
+- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`, `test:xr-chart-bounds-harness`: browser harnesses (Playwright's Chromium and live CDNs; local only).
 
 The full table, with when to run each, is in `.claude/docs/DEVELOPMENT.md`.
 

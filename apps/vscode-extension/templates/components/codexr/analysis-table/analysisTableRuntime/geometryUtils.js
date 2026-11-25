@@ -349,6 +349,32 @@
     return matchesIgnoredContainmentBoundsMeta(collectNodeMeta(node));
   }
 
+  // three.js caches `geometry.boundingBox` and never invalidates it, while
+  // Babia axes and A-Frame lines rewrite their positions in place: a cached
+  // box kept measuring an axis at its old length. Recompute whenever the
+  // position attribute was replaced or bumped its version since the last
+  // measurement.
+  var BOUNDS_STAMP_KEY = '__codexrBoundsStamp';
+  function refreshGeometryBoundingBox(geometry) {
+    if (!geometry || typeof geometry.computeBoundingBox !== 'function') {
+      return;
+    }
+    var position = geometry.attributes && geometry.attributes.position;
+    var stamp = position ? { attribute: position, version: position.version, count: position.count } : null;
+    var previous = geometry[BOUNDS_STAMP_KEY];
+    var fresh = !!geometry.boundingBox && !!previous && !!stamp
+      && previous.attribute === stamp.attribute
+      && previous.version === stamp.version
+      && previous.count === stamp.count;
+    if (fresh || (geometry.boundingBox && !stamp)) {
+      return;
+    }
+    geometry.computeBoundingBox();
+    if (stamp) {
+      geometry[BOUNDS_STAMP_KEY] = stamp;
+    }
+  }
+
   function buildBoundsFromNodes(three, nodes) {
     if (!three || !three.Box3 || !three.Vector3 || !Array.isArray(nodes) || nodes.length === 0) {
       return null;
@@ -362,9 +388,7 @@
         return;
       }
 
-      if (!node.geometry.boundingBox && typeof node.geometry.computeBoundingBox === 'function') {
-        node.geometry.computeBoundingBox();
-      }
+      refreshGeometryBoundingBox(node.geometry);
 
       if (!node.geometry.boundingBox || typeof node.geometry.boundingBox.clone !== 'function') {
         return;

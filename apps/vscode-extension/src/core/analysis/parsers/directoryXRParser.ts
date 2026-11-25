@@ -42,7 +42,7 @@ import { resolveTemplatePath } from '../../../platform/templatePaths';
  * shipped as text in this order. The file parser copies the same set
  * (test/analysis/xrRuntimeManifestAsymmetry.test.cjs pins the pairing).
  */
-const DIRECTORY_XR_RUNTIME_ASSETS: ReadonlyArray<readonly [string, (extensionPath: string) => Promise<string>]> = [
+export const DIRECTORY_XR_RUNTIME_ASSETS: ReadonlyArray<readonly [string, (extensionPath: string) => Promise<string>]> = [
     [CODEXR_COMMON_RUNTIME_OUTPUT_NAME, readCodeXrCommonRuntimeContent],
     [CODEXR_GIT_REF_PICKER_OUTPUT_NAME, readCodeXrGitRefPickerContent],
     [CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, readCodeXrAvatarRuntimeContent],

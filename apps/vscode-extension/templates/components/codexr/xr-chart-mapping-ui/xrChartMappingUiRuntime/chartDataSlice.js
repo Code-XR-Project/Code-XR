@@ -255,6 +255,13 @@
       }
       var currentSource = String(currentData.from);
       var resolved = resolveChartDataSourceId(chartId, currentSource, mapping);
+      if (getSourceIdFromSliceId(currentSource) && !getSourceIdFromSliceId(resolved)) {
+        // Generated scenes start on the slice (an empty one until `data` has
+        // rows). Falling back to the raw source here would bring back the
+        // all-rows first build; keep the slice and try again shortly.
+        synced = false;
+        return;
+      }
       if (resolved !== currentSource) {
         chartEntity.setAttribute(componentName, 'from', resolved);
       } else if (!getSourceIdFromSliceId(currentSource)) {

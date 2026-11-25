@@ -46,6 +46,11 @@
   - A port held on `localhost` only is no longer reported free (on macOS and Windows the browser could reach the other program instead of the scene).
   - A server that started but could not be added to the list is shut down, and the launch is reported as failed instead of leaving an unreachable server running.
   - "Stop all servers" counts only running servers in its prompt and shows one summary instead of one notification per server, saying how many did not shut down cleanly.
+- **Charts stay on the analysis table.** Bar, cylinder and map charts could end with their axis hanging up to 2.6 m past the table edge, or squeezed into a thin sliver at one end of a long empty axis, while the scene reported the chart as fitted:
+  - BabiaXR resizes an axis with an animation that A-Frame 1.7.1 never applies, so an axis kept the length of its first build. Axis lines are now written directly, and a resized axis triggers a new fit.
+  - The table fit checked the chart's size but not its position: centring the bars could push the axis off one side. The axes are now kept on the table, and a chart that still sticks out is no longer reported as fitted.
+  - The fit could measure a cached, outdated size of a line that had just changed. Sizes are now re-read when the geometry changes.
+  - Generated scenes first built every chart over all files and only then switched to the top 20/30 shown. They now build once, from the files that are shown.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30
