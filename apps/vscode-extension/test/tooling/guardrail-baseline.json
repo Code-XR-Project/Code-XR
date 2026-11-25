@@ -84,7 +84,6 @@
       "src/code_analysis/views/subsections/active_analyses/model/activeAnalysisModel.ts",
       "src/learn_more/views.ts",
       "src/python_env/views/interactions/handlePythonEnvActions.ts",
-      "src/servers/config/defaultServerConfig.ts",
       "src/visualize_data/views/browseVisualizationsTreeView.ts"
     ],
     "templates.consoleLog": 117,
@@ -97,10 +96,10 @@
     }
   },
   "informational": {
-    "src.files": 324,
-    "src.lines": 51761,
-    "src.functions": 2819,
-    "src.unreachableLines": 1090,
+    "src.files": 323,
+    "src.lines": 51715,
+    "src.functions": 2818,
+    "src.unreachableLines": 1044,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
