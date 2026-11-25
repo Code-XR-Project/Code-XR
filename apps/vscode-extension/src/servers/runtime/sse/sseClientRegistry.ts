@@ -1,4 +1,7 @@
 import * as http from 'http';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SSE_CLIENT_REGISTRY');
 
 /**
  * SSE Client Registry
@@ -9,7 +12,7 @@ export class SSEClientRegistry {
     private clients: Map<string, http.ServerResponse[]> = new Map();
 
     private constructor() {
-        console.log('[SSE_CLIENT_REGISTRY] Initializing SSE client registry');
+        logger.debug('[SSE_CLIENT_REGISTRY] Initializing SSE client registry');
     }
 
     /**
@@ -28,7 +31,7 @@ export class SSEClientRegistry {
      * @param res - HTTP response object for SSE
      */
     registerClient(fileUri: string, res: http.ServerResponse): void {
-        console.log(`[SSE_CLIENT_REGISTRY] Registering SSE client for: ${fileUri}`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Registering SSE client for: ${fileUri}`);
         
         if (!this.clients.has(fileUri)) {
             this.clients.set(fileUri, []);
@@ -37,7 +40,7 @@ export class SSEClientRegistry {
         const clientList = this.clients.get(fileUri)!;
         clientList.push(res);
         
-        console.log(`[SSE_CLIENT_REGISTRY] Client registered. Total clients for ${fileUri}: ${clientList.length}`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Client registered. Total clients for ${fileUri}: ${clientList.length}`);
         
         // Set up cleanup when client disconnects
         res.on('close', () => {
@@ -45,7 +48,7 @@ export class SSEClientRegistry {
         });
         
         res.on('error', (error) => {
-            console.error(`[SSE_CLIENT_REGISTRY] Client error for ${fileUri}:`, error);
+            logger.error(`[SSE_CLIENT_REGISTRY] Client error for ${fileUri}:`, error);
             this.unregisterClient(fileUri, res);
         });
     }
@@ -56,7 +59,7 @@ export class SSEClientRegistry {
      * @param res - HTTP response object for SSE
      */
     unregisterClient(fileUri: string, res: http.ServerResponse): void {
-        console.log(`[SSE_CLIENT_REGISTRY] Unregistering SSE client for: ${fileUri}`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Unregistering SSE client for: ${fileUri}`);
         
         const clientList = this.clients.get(fileUri);
         if (!clientList) {
@@ -66,12 +69,12 @@ export class SSEClientRegistry {
         const index = clientList.indexOf(res);
         if (index > -1) {
             clientList.splice(index, 1);
-            console.log(`[SSE_CLIENT_REGISTRY] Client unregistered. Remaining clients for ${fileUri}: ${clientList.length}`);
+            logger.debug(() => `[SSE_CLIENT_REGISTRY] Client unregistered. Remaining clients for ${fileUri}: ${clientList.length}`);
             
             // Clean up empty arrays
             if (clientList.length === 0) {
                 this.clients.delete(fileUri);
-                console.log(`[SSE_CLIENT_REGISTRY] Removed empty client list for: ${fileUri}`);
+                logger.debug(() => `[SSE_CLIENT_REGISTRY] Removed empty client list for: ${fileUri}`);
             }
         }
     }
@@ -92,17 +95,17 @@ export class SSEClientRegistry {
      */
     sendToClients(fileUri: string, message: string): void {
         const clientList = this.clients.get(fileUri);
-        console.log(`REQUEST_UPDATE: SSE Registry lookup for file: ${fileUri}`);
-        console.log(`REQUEST_UPDATE: Found ${clientList ? clientList.length : 0} client(s) for file: ${fileUri}`);
+        logger.debug(() => `REQUEST_UPDATE: SSE Registry lookup for file: ${fileUri}`);
+        logger.debug(() => `REQUEST_UPDATE: Found ${clientList ? clientList.length : 0} client(s) for file: ${fileUri}`);
         
         if (!clientList || clientList.length === 0) {
-            console.log(`REQUEST_UPDATE: No SSE clients registered for: ${fileUri}`);
-            console.log(`REQUEST_UPDATE: Available files in registry: ${Array.from(this.clients.keys()).join(', ')}`);
+            logger.debug(() => `REQUEST_UPDATE: No SSE clients registered for: ${fileUri}`);
+            logger.debug(() => `REQUEST_UPDATE: Available files in registry: ${Array.from(this.clients.keys()).join(', ')}`);
             return;
         }
         
-        console.log(`[SSE_CLIENT_REGISTRY] Sending message to ${clientList.length} client(s) for: ${fileUri}`);
-        console.log(`REQUEST_UPDATE: About to send message to ${clientList.length} client(s)`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Sending message to ${clientList.length} client(s) for: ${fileUri}`);
+        logger.debug(() => `REQUEST_UPDATE: About to send message to ${clientList.length} client(s)`);
         
         // Send to all active clients, removing any that error out
         const activeClients = [];
@@ -110,16 +113,16 @@ export class SSEClientRegistry {
             try {
                 if (!client.headersSent) {
                     // Headers not sent yet, this shouldn't happen in SSE
-                    console.warn(`[SSE_CLIENT_REGISTRY] Skipping client with unsent headers for: ${fileUri}`);
+                    logger.warn(`[SSE_CLIENT_REGISTRY] Skipping client with unsent headers for: ${fileUri}`);
                     continue;
                 }
                 
                 client.write(`data: ${message}\n\n`);
                 activeClients.push(client);
-                console.log(`REQUEST_UPDATE: Message sent to client successfully`);
+                logger.debug(`REQUEST_UPDATE: Message sent to client successfully`);
             } catch (error) {
-                console.error(`[SSE_CLIENT_REGISTRY] Error sending to client for ${fileUri}:`, error);
-                console.error(`REQUEST_UPDATE: Failed to send to client: ${error}`);
+                logger.error(`[SSE_CLIENT_REGISTRY] Error sending to client for ${fileUri}:`, error);
+                logger.error(`REQUEST_UPDATE: Failed to send to client: ${error}`);
                 // Client will be removed via error event handler
             }
         }
@@ -128,10 +131,10 @@ export class SSEClientRegistry {
         if (activeClients.length !== clientList.length) {
             if (activeClients.length === 0) {
                 this.clients.delete(fileUri);
-                console.log(`[SSE_CLIENT_REGISTRY] All clients disconnected for: ${fileUri}`);
+                logger.debug(() => `[SSE_CLIENT_REGISTRY] All clients disconnected for: ${fileUri}`);
             } else {
                 this.clients.set(fileUri, activeClients);
-                console.log(`[SSE_CLIENT_REGISTRY] Updated active clients for ${fileUri}: ${activeClients.length}`);
+                logger.debug(() => `[SSE_CLIENT_REGISTRY] Updated active clients for ${fileUri}: ${activeClients.length}`);
             }
         }
     }
@@ -144,16 +147,16 @@ export class SSEClientRegistry {
      */
     sendEventToClients(fileUri: string, eventType: string, data: string): void {
         const clientList = this.clients.get(fileUri);
-        console.log(`[SSE_CLIENT_REGISTRY] Sending SSE event '${eventType}' to clients for: ${fileUri}`);
-        console.log(`[SSE_CLIENT_REGISTRY] Found ${clientList ? clientList.length : 0} client(s) for file: ${fileUri}`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Sending SSE event '${eventType}' to clients for: ${fileUri}`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Found ${clientList ? clientList.length : 0} client(s) for file: ${fileUri}`);
         
         if (!clientList || clientList.length === 0) {
-            console.log(`[SSE_CLIENT_REGISTRY] No SSE clients registered for: ${fileUri}`);
-            console.log(`[SSE_CLIENT_REGISTRY] Available files in registry: ${Array.from(this.clients.keys()).join(', ')}`);
+            logger.debug(() => `[SSE_CLIENT_REGISTRY] No SSE clients registered for: ${fileUri}`);
+            logger.debug(() => `[SSE_CLIENT_REGISTRY] Available files in registry: ${Array.from(this.clients.keys()).join(', ')}`);
             return;
         }
         
-        console.log(`[SSE_CLIENT_REGISTRY] Sending SSE event '${eventType}' to ${clientList.length} client(s)`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Sending SSE event '${eventType}' to ${clientList.length} client(s)`);
         
         // Send to all active clients, removing any that error out
         const activeClients = [];
@@ -161,16 +164,16 @@ export class SSEClientRegistry {
             try {
                 if (!client.headersSent) {
                     // Headers not sent yet, this shouldn't happen in SSE
-                    console.warn(`[SSE_CLIENT_REGISTRY] Skipping client with unsent headers for: ${fileUri}`);
+                    logger.warn(`[SSE_CLIENT_REGISTRY] Skipping client with unsent headers for: ${fileUri}`);
                     continue;
                 }
                 
                 // Send as specific SSE event: event: eventType\ndata: data\n\n
                 client.write(`event: ${eventType}\ndata: ${data}\n\n`);
                 activeClients.push(client);
-                console.log(`[SSE_CLIENT_REGISTRY] SSE event '${eventType}' sent to client successfully`);
+                logger.debug(() => `[SSE_CLIENT_REGISTRY] SSE event '${eventType}' sent to client successfully`);
             } catch (error) {
-                console.error(`[SSE_CLIENT_REGISTRY] Error sending SSE event '${eventType}' to client for ${fileUri}:`, error);
+                logger.error(`[SSE_CLIENT_REGISTRY] Error sending SSE event '${eventType}' to client for ${fileUri}:`, error);
                 // Client will be removed via error event handler
             }
         }
@@ -179,10 +182,10 @@ export class SSEClientRegistry {
         if (activeClients.length !== clientList.length) {
             if (activeClients.length === 0) {
                 this.clients.delete(fileUri);
-                console.log(`[SSE_CLIENT_REGISTRY] All clients disconnected for: ${fileUri}`);
+                logger.debug(() => `[SSE_CLIENT_REGISTRY] All clients disconnected for: ${fileUri}`);
             } else {
                 this.clients.set(fileUri, activeClients);
-                console.log(`[SSE_CLIENT_REGISTRY] Updated active clients for ${fileUri}: ${activeClients.length}`);
+                logger.debug(() => `[SSE_CLIENT_REGISTRY] Updated active clients for ${fileUri}: ${activeClients.length}`);
             }
         }
     }
@@ -217,14 +220,14 @@ export class SSEClientRegistry {
             return;
         }
         
-        console.log(`[SSE_CLIENT_REGISTRY] Removing all ${clientList.length} client(s) for: ${fileUri}`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Removing all ${clientList.length} client(s) for: ${fileUri}`);
         
         // Close all connections
         for (const client of clientList) {
             try {
                 client.end();
             } catch (error) {
-                console.error(`[SSE_CLIENT_REGISTRY] Error closing client for ${fileUri}:`, error);
+                logger.error(`[SSE_CLIENT_REGISTRY] Error closing client for ${fileUri}:`, error);
             }
         }
         
@@ -235,15 +238,15 @@ export class SSEClientRegistry {
      * Clear all clients (useful for cleanup)
      */
     clearAll(): void {
-        console.log(`[SSE_CLIENT_REGISTRY] Clearing all clients for ${this.clients.size} file(s)`);
+        logger.debug(() => `[SSE_CLIENT_REGISTRY] Clearing all clients for ${this.clients.size} file(s)`);
         
         for (const [fileUri, clientList] of this.clients.entries()) {
-            console.log(`[SSE_CLIENT_REGISTRY] Closing ${clientList.length} client(s) for: ${fileUri}`);
+            logger.debug(() => `[SSE_CLIENT_REGISTRY] Closing ${clientList.length} client(s) for: ${fileUri}`);
             for (const client of clientList) {
                 try {
                     client.end();
                 } catch (error) {
-                    console.error(`[SSE_CLIENT_REGISTRY] Error closing client:`, error);
+                    logger.error(`[SSE_CLIENT_REGISTRY] Error closing client:`, error);
                 }
             }
         }

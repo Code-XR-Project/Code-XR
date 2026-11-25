@@ -14,6 +14,9 @@ import {
     showChartTypeSelection,
     toChartTypeInfos,
 } from '../chart_type_shared/sharedChartTypeSettingCore';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('CHART_TYPE_FILE');
 
 export type { AnalysisMode, ChartType };
 export type ChartTypeInfo = SharedChartTypeInfo<AnalysisMode>;
@@ -63,12 +66,12 @@ export class ChartTypeFileSetting {
      * Get available chart types based on analysis mode
      */
     async getAvailableChartTypes(mode: AnalysisMode): Promise<ChartTypeInfo[]> {
-        console.log(`CHART_TYPE_FILE: Getting available charts for mode: ${mode}`);
+        logger.debug(() => `Getting available charts for mode: ${mode}`);
 
         // All charts support both modes
         const chartTypeInfos = toChartTypeInfos<AnalysisMode>(this.chartRegistry.getAllCharts(), ['XR', 'LivePanel']);
 
-        console.log(`CHART_TYPE_FILE: Found ${chartTypeInfos.length} available charts`);
+        logger.debug(() => `Found ${chartTypeInfos.length} available charts`);
         return chartTypeInfos;
     }
 
@@ -91,7 +94,7 @@ export class ChartTypeFileSetting {
      * Set chart type and intelligently clean dimension mappings
      */
     async setChartType(chartType: string): Promise<void> {
-        console.log(`CHART_TYPE_FILE: Setting chart type to: ${chartType}`);
+        logger.debug(() => `Setting chart type to: ${chartType}`);
 
         // Validate chart type exists
         if (!this.chartRegistry.hasChart(chartType)) {
@@ -100,16 +103,16 @@ export class ChartTypeFileSetting {
 
         // Get current dimension mappings before changing chart type
         const currentMappings = await this.storage.getDimensionMappingFile();
-        console.log(`[DIMENSION_CLEANER] Current mappings before chart change:`, currentMappings);
+        logger.debug(`[DIMENSION_CLEANER] Current mappings before chart change:`, currentMappings);
 
         // Save the new chart type
         const validChartType = chartType as ChartType;
         await this.storage.setChartTypeFile(validChartType);
-        console.log(`CHART_TYPE_FILE: Chart type saved successfully: ${chartType}`);
+        logger.debug(() => `Chart type saved successfully: ${chartType}`);
 
         // Clear all dimension mappings when chart type changes
         await this.storage.setDimensionMappingFile({});
-        console.log(`CHART_TYPE_FILE: Dimension mappings cleared for new chart type: ${chartType}`);
+        logger.debug(() => `Dimension mappings cleared for new chart type: ${chartType}`);
     }
 
     /**

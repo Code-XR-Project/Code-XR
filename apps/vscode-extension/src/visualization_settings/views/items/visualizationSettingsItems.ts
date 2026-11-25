@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { VisualizationSettings, SETTING_FIELDS, SettingField } from '../../model/settingsModel';
 import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZATION_SETTINGS_ITEMS');
 
 /**
  * Tree item types for visualization settings
@@ -44,7 +47,7 @@ export class VisualizationSettingsItemFactory {
         settings: VisualizationSettings, 
         context: vscode.ExtensionContext
     ): Promise<VisualizationSettingsTreeItem[]> {
-        console.log('VISUALIZATION-SETTINGS: Creating settings items with dynamic color icons...');
+        logger.debug('VISUALIZATION-SETTINGS: Creating settings items with dynamic color icons...');
 
         const items = await Promise.all(
             SETTING_FIELDS.map(field => 
@@ -52,7 +55,7 @@ export class VisualizationSettingsItemFactory {
             )
         );
 
-        console.log(`VISUALIZATION-SETTINGS: Created ${items.length} setting items`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Created ${items.length} setting items`);
         return items;
     }
 
@@ -71,7 +74,7 @@ export class VisualizationSettingsItemFactory {
         let iconPath: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri };
         
         if (field.type === 'color') {
-            console.log(`COLOR-PICKER: Processing color field ${field.key} with value ${currentValue}`);
+            logger.debug(() => `COLOR-PICKER: Processing color field ${field.key} with value ${currentValue}`);
             
             try {
                 // Generate dynamic color icon
@@ -86,10 +89,10 @@ export class VisualizationSettingsItemFactory {
                 DynamicColorIconGenerator.cleanupOldColorIcons(context, field.key, normalizedColor);
                 
                 iconPath = colorIconUri;
-                console.log(`COLOR-PICKER: Successfully created color icon for ${field.key}`);
+                logger.debug(() => `COLOR-PICKER: Successfully created color icon for ${field.key}`);
                 
             } catch (error) {
-                console.error(`COLOR-PICKER: Error creating color icon for ${field.key}:`, error);
+                logger.error(`COLOR-PICKER: Error creating color icon for ${field.key}:`, error);
                 // Fallback to theme icon
                 iconPath = new vscode.ThemeIcon(field.icon);
             }

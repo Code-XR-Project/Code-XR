@@ -5,6 +5,9 @@ import { handleHttpModeClick, handlePortClick, handleAutoOpenClick, handleOpenMo
 import { MultiServerLauncher } from '../runtime/multiServerLauncher';
 import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
 import { CloudflaredBinaryManager, RemoteAccessManager } from '../../remote_access';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /**
  * Current server configuration state (legacy)
@@ -29,7 +32,7 @@ let extensionContext: vscode.ExtensionContext | null = null;
  * Opens server configuration panel
  */
 export async function configureServer(): Promise<void> {
-    console.log('SERVER: Server configuration triggered');
+    logger.debug('Server configuration triggered');
     
     const options = [
         'HTTPS (generated local certificates)',
@@ -56,7 +59,7 @@ export async function configureServer(): Promise<void> {
                 break;
         }
         
-        console.log(`SERVER: Configuration changed to ${currentServerConfig.mode}`);
+        logger.debug(() => `Configuration changed to ${currentServerConfig.mode}`);
         vscode.window.showInformationMessage(`SERVER: Configuration updated to ${currentServerConfig.mode}`);
         
         // Refresh the tree view
@@ -69,17 +72,17 @@ export async function configureServer(): Promise<void> {
  * Main entry point for the "Start Local Server" command
  */
 export async function startLocalServer(): Promise<void> {
-    console.log('SERVER: Start Local Server command triggered');
+    logger.debug('Start Local Server command triggered');
     
     try {
         // Step 1: Prompt user to select an HTML file
         const selectedFile = await promptForHtmlFile();
         if (!selectedFile) {
-            console.log('SERVER: No file selected, operation cancelled');
+            logger.debug('No file selected, operation cancelled');
             return;
         }
         
-        console.log(`SERVER: Selected HTML file: ${selectedFile}`);
+        logger.debug(() => `Selected HTML file: ${selectedFile}`);
         
         // Step 2: Get extension context and initialize multi-server launcher
         if (!extensionContext) {
@@ -96,7 +99,7 @@ export async function startLocalServer(): Promise<void> {
         await settingsManager.ensureInitialized();
         const settings = settingsManager.getServerSettings();
         
-        console.log('SERVER: Current configuration:', {
+        logger.debug('Current configuration:', {
             mode: settings.mode,
             defaultPort: settings.defaultPort,
             autoOpen: settings.launch.autoOpen,
@@ -114,23 +117,23 @@ export async function startLocalServer(): Promise<void> {
         // Step 5: Support multiple servers - show current status
         const runningCount = multiServerLauncher.getRunningServerCount();
         if (runningCount > 0) {
-            console.log(`SERVER: ${runningCount} server(s) already running, launching additional server with dynamic port allocation`);
+            logger.debug(() => `${runningCount} server(s) already running, launching additional server with dynamic port allocation`);
             vscode.window.showInformationMessage(
                 `Launching additional server (${runningCount} servers already running)`
             );
         }
         
         // Step 6: Launch the server with the selected HTML file using multi-server launcher
-        console.log('SERVER: Launching server...');
+        logger.debug('Launching server...');
         const result = await multiServerLauncher.launchServer(selectedFile);
         
         if (!result.success) {
-            console.error('SERVER: Failed to launch server:', result.error);
+            logger.error('Failed to launch server:', result.error);
             vscode.window.showErrorMessage(`Failed to start server: ${result.error}`);
             return;
         }
         
-        console.log(`SERVER: Server launched successfully at ${result.serverUrl} (Server ID: ${result.serverId})`);
+        logger.debug(() => `Server launched successfully at ${result.serverUrl} (Server ID: ${result.serverId})`);
         
         // Provide detailed messages based on port allocation and HTTPS override
         if (result.portChanged && result.httpsOverridden) {
@@ -153,7 +156,7 @@ export async function startLocalServer(): Promise<void> {
         vscode.commands.executeCommand('codexr.servers.refresh');
         
     } catch (error) {
-        console.error('SERVER: Error in startLocalServer:', error);
+        logger.error('Error in startLocalServer:', error);
         vscode.window.showErrorMessage(`Failed to start server: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
@@ -227,7 +230,7 @@ export async function configureRemoteAccess(): Promise<void> {
  * Reset server configuration to default values
  */
 export async function resetToDefault(): Promise<void> {
-    console.log('SERVER: Resetting server configuration to defaults');
+    logger.debug('Resetting server configuration to defaults');
     
     const confirm = await vscode.window.showWarningMessage(
         'This will reset all server configuration to default values. Are you sure?',
@@ -249,14 +252,14 @@ export async function resetToDefault(): Promise<void> {
         const settingsManager = ServerSettingsManager.getInstance(extensionContext);
         await settingsManager.resetSettings();
         
-        console.log('SERVER: Configuration reset to defaults successfully');
+        logger.debug('Configuration reset to defaults successfully');
         vscode.window.showInformationMessage('Server configuration reset to default values');
         
         // Refresh the tree view to show updated configuration
         vscode.commands.executeCommand('codexr.servers.refresh');
         
     } catch (error) {
-        console.error('SERVER: Error resetting configuration to defaults:', error);
+        logger.error('Error resetting configuration to defaults:', error);
         vscode.window.showErrorMessage(
             `Failed to reset configuration: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -279,7 +282,7 @@ export function setExtensionContext(context: vscode.ExtensionContext): void {
  * @returns Promise<string | undefined> - Path to selected file or undefined if cancelled
  */
 async function promptForHtmlFile(): Promise<string | undefined> {
-    console.log('SERVER: Prompting user to select HTML file');
+    logger.debug('Prompting user to select HTML file');
     
     const options: vscode.OpenDialogOptions = {
         canSelectMany: false,
@@ -295,14 +298,14 @@ async function promptForHtmlFile(): Promise<string | undefined> {
     
     if (fileUri && fileUri[0]) {
         const filePath = fileUri[0].fsPath;
-        console.log(`SERVER: User selected file: ${filePath}`);
+        logger.debug(() => `User selected file: ${filePath}`);
         
         // Validate that the file exists and is readable
         try {
             await fs.promises.access(filePath, fs.constants.R_OK);
             return filePath;
         } catch (error) {
-            console.error(`SERVER: Cannot read selected file: ${error}`);
+            logger.error(`Cannot read selected file: ${error}`);
             vscode.window.showErrorMessage(`Cannot read the selected file: ${path.basename(filePath)}`);
             return undefined;
         }
@@ -317,13 +320,13 @@ async function promptForHtmlFile(): Promise<string | undefined> {
  * @returns Promise<boolean> - True if certificates are valid
  */
 async function validateCustomCertificates(settings: ServerSettings): Promise<boolean> {
-    console.log('SERVER: Validating custom certificates');
+    logger.debug('Validating custom certificates');
     
     const certPath = settings.https.certPath;
     const keyPath = settings.https.keyPath;
     
     if (!certPath || !keyPath) {
-        console.log('SERVER: Custom certificate paths not configured');
+        logger.debug('Custom certificate paths not configured');
         vscode.window.showErrorMessage(
             'Custom certificates are not configured. Please configure certificate paths in server settings.',
             'Configure'
@@ -337,7 +340,7 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
     
     // Check if certificate file exists
     if (!fs.existsSync(certPath)) {
-        console.log(`SERVER: Certificate file not found: ${certPath}`);
+        logger.debug(() => `Certificate file not found: ${certPath}`);
         vscode.window.showErrorMessage(
             `Certificate file not found: ${path.basename(certPath)}`,
             'Configure'
@@ -351,7 +354,7 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
     
     // Check if key file exists
     if (!fs.existsSync(keyPath)) {
-        console.log(`SERVER: Private key file not found: ${keyPath}`);
+        logger.debug(() => `Private key file not found: ${keyPath}`);
         vscode.window.showErrorMessage(
             `Private key file not found: ${path.basename(keyPath)}`,
             'Configure'
@@ -367,10 +370,10 @@ async function validateCustomCertificates(settings: ServerSettings): Promise<boo
     try {
         await fs.promises.access(certPath, fs.constants.R_OK);
         await fs.promises.access(keyPath, fs.constants.R_OK);
-        console.log('SERVER: Custom certificates validated successfully');
+        logger.debug('Custom certificates validated successfully');
         return true;
     } catch (error) {
-        console.error(`SERVER: Cannot read certificate files: ${error}`);
+        logger.error(`Cannot read certificate files: ${error}`);
         vscode.window.showErrorMessage('Cannot read certificate files. Check file permissions.');
         return false;
     }

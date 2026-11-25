@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { ThemeUtils } from '../utils/themeUtils';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { AnalysisBootstrap, BootstrapProcessedRequirements } from './analysisBootstrap';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('FILE_REQUIREMENT_PROCESSOR');
 
 export interface ProcessedRequirements {
     sessionId: string;
@@ -16,29 +19,29 @@ export class FileRequirementProcessor {
     private analysisBootstrap: AnalysisBootstrap;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('FILE_REQUIREMENT_PROCESSOR: Initializing FileRequirementProcessor...');
+        logger.debug('Initializing FileRequirementProcessor...');
         this.analysisBootstrap = new AnalysisBootstrap(context);
         ThemeUtils.initialize(context);
-        console.log('FILE_REQUIREMENT_PROCESSOR: ThemeUtils initialized');
-        console.log('FILE_REQUIREMENT_PROCESSOR: AnalysisBootstrap initialized');
+        logger.debug('ThemeUtils initialized');
+        logger.debug('AnalysisBootstrap initialized');
     }
 
     public async processRequirements(session: UnifiedAnalysisSession, theme?: string): Promise<ProcessedRequirements> {
-        console.log(`FILE_REQUIREMENT_PROCESSOR:  Processing requirements for session ${session.id}`);
-        console.log(`FILE_REQUIREMENT_PROCESSOR: Analysis mode: ${session.analysisMode}, Target type: ${session.targetType}`);
-        console.log(`FILE_REQUIREMENT_PROCESSOR: Target path: ${session.targetPath}`);
-        console.log(`FILE_REQUIREMENT_PROCESSOR: Theme: ${theme || 'default'}`);
+        logger.debug(() => `Processing requirements for session ${session.id}`);
+        logger.debug(() => `Analysis mode: ${session.analysisMode}, Target type: ${session.targetType}`);
+        logger.debug(() => `Target path: ${session.targetPath}`);
+        logger.debug(() => `Theme: ${theme || 'default'}`);
 
         try {
             const requirements: BootstrapProcessedRequirements = await this.analysisBootstrap.bootstrap(session, theme);
 
-            console.log(`FILE_REQUIREMENT_PROCESSOR:  Requirements processed successfully for session ${session.id}`);
-            console.log(`FILE_REQUIREMENT_PROCESSOR: Total files loaded: ${requirements.loadedFiles.size}`);
-            console.log(`FILE_REQUIREMENT_PROCESSOR: Estimated complexity: ${requirements.estimatedComplexity}`);
+            logger.debug(() => `Requirements processed successfully for session ${session.id}`);
+            logger.debug(() => `Total files loaded: ${requirements.loadedFiles.size}`);
+            logger.debug(() => `Estimated complexity: ${requirements.estimatedComplexity}`);
 
             return requirements;
         } catch (error) {
-            console.error(`FILE_REQUIREMENT_PROCESSOR:  Error processing requirements for session ${session.id}:`, error);
+            logger.error(`Error processing requirements for session ${session.id}:`, error);
             throw error;
         }
     }

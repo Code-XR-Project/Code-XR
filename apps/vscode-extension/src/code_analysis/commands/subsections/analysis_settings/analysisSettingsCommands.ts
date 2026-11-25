@@ -28,6 +28,9 @@ import { DimensionMappingFileCommands } from './dimension_mapping_file/dimension
 import { DimensionMappingDirectoryCommands } from './dimension_mapping_directory/dimensionMappingDirectoryCommands';
 import { FilesByLanguageSortingCommands } from './filesByLanguageSortingCommands';
 import { ProfileConfigurationCommands } from './profile_configuration';
+import { getLogger } from '../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AnalysisSettingsCommands {
 
@@ -52,7 +55,7 @@ export class AnalysisSettingsCommands {
         profileConfigurationSetting: ProfileConfigurationSetting,
         refreshCallback: () => void
     ): CommandRegistration[] {
-        console.log('ANALYSIS: Collecting Analysis Settings command registrations');
+        logger.debug('Collecting Analysis Settings command registrations');
 
         const commandRegistrations: CommandRegistration[] = [];
 
@@ -110,7 +113,7 @@ export class AnalysisSettingsCommands {
             dimensionMappingDirectorySetting,
             refreshCallback
         );
-        console.log(`ANALYSIS_SETTINGS_COMMANDS: Got ${dimensionMappingDirectoryCommands.length} dimension mapping directory commands`);
+        logger.debug(() => `ANALYSIS_SETTINGS_COMMANDS: Got ${dimensionMappingDirectoryCommands.length} dimension mapping directory commands`);
         commandRegistrations.push(...dimensionMappingDirectoryCommands);
 
         // Collect auto-analysis delay command registrations
@@ -145,7 +148,7 @@ export class AnalysisSettingsCommands {
         );
         commandRegistrations.push(...profileConfigurationCommands);
 
-        console.log(`ANALYSIS: Collected ${commandRegistrations.length} Analysis Settings command registrations`);
+        logger.debug(() => `Collected ${commandRegistrations.length} Analysis Settings command registrations`);
         return commandRegistrations;
     }
 }

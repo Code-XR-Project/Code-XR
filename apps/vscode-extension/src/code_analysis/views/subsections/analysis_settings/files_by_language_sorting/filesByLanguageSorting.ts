@@ -13,6 +13,9 @@ import {
     FilesSortBy,
     FilesSortDirection
 } from '../../../../configuration/models/analysisConfiguration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('FILES_BY_LANGUAGE_SORTING');
 
 export class FilesByLanguageSortingSetting {
     private storage: AnalysisConfigurationStorage;
@@ -50,7 +53,7 @@ export class FilesByLanguageSortingSetting {
      * Get children items (sorting options)
      */
     async getChildren(): Promise<CodeAnalysisTreeItem[]> {
-        console.log('FILES_BY_LANGUAGE_SORTING: Getting children');
+        logger.debug('Getting children');
         
         const children: CodeAnalysisTreeItem[] = [];
         const currentConfig = await this.storage.getFilesByLanguageSorting();
@@ -107,7 +110,7 @@ export class FilesByLanguageSortingSetting {
             'filesSorting'
         ));
 
-        console.log(`FILES_BY_LANGUAGE_SORTING: Generated ${children.length} sorting options`);
+        logger.debug(() => `Generated ${children.length} sorting options`);
         return children;
     }
 

@@ -18,6 +18,9 @@ import { AnalysisMessageRouter } from './analysis/analysisMessageRouter';
 import { DependencyGraphBridge } from './analysis/dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './analysis/historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './analysis/projectEvolutionBridge';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /**
  * HTTP Server Configuration
@@ -122,7 +125,7 @@ export class HttpServer {
             roomHooks,
         );
 
-        console.log('SERVER: HTTP server initialized with config:', this.config);
+        logger.debug('HTTP server initialized with config:', this.config);
     }
 
     /**
@@ -140,7 +143,7 @@ export class HttpServer {
                 this.attachToNodeServer(this.server);
 
                 this.server.on('error', (error: NodeJS.ErrnoException) => {
-                    console.error('SERVER: HTTP server error:', error);
+                    logger.error('HTTP server error:', error);
                     this.isRunning = false;
                     
                     if (error.code === 'EADDRINUSE') {
@@ -154,8 +157,8 @@ export class HttpServer {
                     const address = this.server?.address();
                     const portNumber = Number(this.config.port);
                     
-                    console.log(`SERVER: HTTP server listening on http://${this.config.host}:${this.config.port}`);
-                    console.log('SERVER: Server address info:', address);
+                    logger.debug(() => `HTTP server listening on http://${this.config.host}:${this.config.port}`);
+                    logger.debug('Server address info:', address);
                     
                     // Display network information for external access
                     NetworkUtils.displayNetworkInfo(portNumber, 'http');
@@ -169,14 +172,14 @@ export class HttpServer {
 
                 // Add graceful shutdown handling
                 this.server.on('close', () => {
-                    console.log('SERVER: HTTP server closed');
+                    logger.debug('HTTP server closed');
                     this.isRunning = false;
                 });
 
                 this.server.listen(this.config.port, this.config.host);
                 
             } catch (error) {
-                console.error('SERVER: Error starting HTTP server:', error);
+                logger.error('Error starting HTTP server:', error);
                 reject(error);
             }
         });
@@ -188,7 +191,7 @@ export class HttpServer {
      */
     public async stop(): Promise<void> {
         if (!this.server || !this.isRunning) {
-            console.log('SERVER: HTTP server is not running');
+            logger.debug('HTTP server is not running');
             return;
         }
 
@@ -203,10 +206,10 @@ export class HttpServer {
         return new Promise((resolve, reject) => {
             this.server!.close((error) => {
                 if (error) {
-                    console.error('SERVER: Error stopping HTTP server:', error);
+                    logger.error('Error stopping HTTP server:', error);
                     reject(error);
                 } else {
-                    console.log('SERVER: HTTP server stopped successfully');
+                    logger.debug('HTTP server stopped successfully');
                     this.isRunning = false;
                     this.server = null;
                     resolve();
@@ -337,7 +340,7 @@ export class HttpServer {
         const safeRequestUrl = new URL(requestUrl, 'http://codexr.local').pathname;
         const method = req.method || 'GET';
         
-        console.log(`SERVER: ${method} ${safeRequestUrl} - Processing request`);
+        logger.debug(() => `${method} ${safeRequestUrl} - Processing request`);
 
         if (!this.policy.isRequestAuthorized(req, requestUrl)) {
             sendErrorResponse(res, 404, 'Resource not found');
@@ -360,10 +363,10 @@ export class HttpServer {
         this.routeRequest(req, res, requestUrl)
             .then(() => {
                 const duration = Date.now() - startTime;
-                console.log(`SERVER: ${method} ${safeRequestUrl} - Completed in ${duration}ms`);
+                logger.debug(() => `${method} ${safeRequestUrl} - Completed in ${duration}ms`);
             })
             .catch((error) => {
-                console.error(`SERVER: ${method} ${safeRequestUrl} - Error:`, error);
+                logger.error(`${method} ${safeRequestUrl} - Error:`, error);
                 sendErrorResponse(res, 500, 'Internal Server Error');
             });
     }
@@ -509,30 +512,30 @@ export class HttpServer {
      * @param res - HTTP response
      */
     private async handleSSERequest(_req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-        console.log('REQUEST_UPDATE: SSE connection request received on server');
-        console.log(`REQUEST_UPDATE: Server port: ${this.config.port}`);
+        logger.debug('REQUEST_UPDATE: SSE connection request received on server');
+        logger.debug(() => `REQUEST_UPDATE: Server port: ${this.config.port}`);
         
         // Find which analysis file this server is serving
         const serverPort = this.config.port;
         const fileUri = fileToServerMap.findFileByPort(serverPort);
         
-        console.log(`REQUEST_UPDATE: Looking up file for port ${serverPort}`);
-        console.log(`REQUEST_UPDATE: Found file mapping: ${fileUri || 'NOT FOUND'}`);
+        logger.debug(() => `REQUEST_UPDATE: Looking up file for port ${serverPort}`);
+        logger.debug(() => `REQUEST_UPDATE: Found file mapping: ${fileUri || 'NOT FOUND'}`);
         
         if (!fileUri) {
-            console.warn(`REQUEST_UPDATE: No file mapping found for server on port ${serverPort}`);
-            console.warn(`REQUEST_UPDATE: Available mappings: ${fileToServerMap.getAllFileUris().join(', ')}`);
+            logger.warn(`REQUEST_UPDATE: No file mapping found for server on port ${serverPort}`);
+            logger.warn(`REQUEST_UPDATE: Available mappings: ${fileToServerMap.getAllFileUris().join(', ')}`);
             res.writeHead(404, { 'Content-Type': 'text/plain' });
             res.end('No analysis file associated with this server');
             return;
         }
         
-        console.log(`REQUEST_UPDATE: Setting up SSE for analysis file: ${fileUri}`);
+        logger.debug(() => `REQUEST_UPDATE: Setting up SSE for analysis file: ${fileUri}`);
         
         // Register the SSE client with the manager
         sseManager.registerClient(fileUri, res);
         
-        console.log(`REQUEST_UPDATE: SSE client registration completed for ${fileUri}`);
+        logger.debug(() => `REQUEST_UPDATE: SSE client registration completed for ${fileUri}`);
     }
 
     public attachToNodeServer(server: http.Server): void {

@@ -4,6 +4,9 @@ import { COLLABORATION_AVATARS, ConnectedParticipantSummary } from '../../../col
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
 import { CollaborationTreeItem } from '../../collaboration/items/collaborationItems';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVERS');
 
 export type ActiveServerItemType =
     | 'server-item'
@@ -52,7 +55,7 @@ export class ActiveServerItemFactory {
      * Create "No active servers" message item
      */
     static createNoServersItem(): ActiveServerTreeItem {
-        console.log('ACTIVE_SERVERS: Creating "No active servers" message item');
+        logger.debug('Creating "No active servers" message item');
         
         return new ActiveServerTreeItem(
             'No active servers',
@@ -103,7 +106,7 @@ export class ActiveServerItemFactory {
      * Create "Stop All Servers" control option
      */
     static createStopAllServersItem(runningCount: number): ActiveServerTreeItem {
-        console.log(`ACTIVE_SERVERS: Creating "Stop All Servers" option for ${runningCount} running servers`);
+        logger.debug(() => `Creating "Stop All Servers" option for ${runningCount} running servers`);
         
         return new ActiveServerTreeItem(
             'Stop All Servers',
@@ -126,13 +129,13 @@ export class ActiveServerItemFactory {
     static createServerItem(server: ActiveServer, expanded = false): ActiveServerTreeItem {
         // Use custom name if provided, otherwise fallback to localhost:port
         const label = server.customName?.trim() || `localhost:${server.port}`;
-        console.log(`ACTIVE_SERVERS: Creating server item with label: "${label}" (customName: "${server.customName}", port: ${server.port})`);
+        logger.debug(() => `Creating server item with label: "${label}" (customName: "${server.customName}", port: ${server.port})`);
         
         const description = ActiveServerItemFactory.getServerDescription(server);
         const icon = ActiveServerItemFactory.getServerIcon(server);
         const tooltip = ActiveServerItemFactory.getServerTooltip(server);
         
-        console.log(`ACTIVE_SERVERS: Creating server item: ${label} (${description})`);
+        logger.debug(() => `Creating server item: ${label} (${description})`);
         
         // Create command to show server actions on left-click
         const command: vscode.Command = {

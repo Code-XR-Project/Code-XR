@@ -583,11 +583,25 @@ function isCompiledModule(filename) {
     return filename === compiledRoot || filename.startsWith(compiledRoot + path.sep);
 }
 
+const compiledLogSink = path.join(compiledRoot, 'core', 'logging', 'sink.js');
+
+/**
+ * The one exception to "modules cached before the scope are left alone": the
+ * log sink keeps process-wide state (the attached channel, the verbose flag
+ * and the pre-initialization buffer every module loaded outside a fake writes
+ * into). Each scope gets its own copy, loaded fresh and evicted afterwards, so
+ * a channel attached here never receives another suite's lines.
+ */
+function evictLogSink() {
+    delete require.cache[compiledLogSink];
+}
+
 /**
  * Runs `callback({ requireOut, fake })` with `require('vscode')` resolving to
  * `fake.vscode`. The callback may be sync or async; either way `Module._load`
  * is restored afterwards and every out/ module loaded meanwhile is evicted from
- * `require.cache`, so nothing bound to the fake survives the call.
+ * `require.cache`, so nothing bound to the fake survives the call. The log
+ * sink (out/core/logging/sink.js) is always loaded fresh inside the scope.
  */
 function withFakeVscode(fake, callback) {
     if (!fake || !fake.vscode) {
@@ -595,6 +609,7 @@ function withFakeVscode(fake, callback) {
     }
 
     const originalLoad = Module._load;
+    evictLogSink();
     const cachedBefore = new Set(Object.keys(require.cache));
     let restored = false;
 

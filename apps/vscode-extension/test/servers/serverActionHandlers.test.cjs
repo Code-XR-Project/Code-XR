@@ -28,6 +28,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { createFakeVscode, withFakeVscode } = require('../helpers/fakeVscode.cjs');
+const { observeLogsAsConsole } = require('../helpers/logCapture.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const goldenPath = path.join(__dirname, 'fixtures', 'serverActionHandlers.transcripts.json');
@@ -445,14 +446,17 @@ async function runScenario(scenario) {
         },
     });
 
+    // Console lines, and logger calls rendered in the same console shape
+    // (helpers/logCapture.cjs), so the golden outlives the logging migration.
+    const record = (level, first, rest) => {
+        if (typeof first === 'string' && /^ACTIVE_SERVER(:|_)/.test(first)) {
+            const extra = rest.length > 0 ? ` ${JSON.stringify(normalize(rest))}` : '';
+            transcript.console.push(`${level}: ${normalizeString(first)}${extra}`);
+        }
+    };
     const original = { log: console.log, warn: console.warn, error: console.error };
     for (const level of Object.keys(original)) {
-        console[level] = (first, ...rest) => {
-            if (typeof first === 'string' && /^ACTIVE_SERVER(:|_)/.test(first)) {
-                const extra = rest.length > 0 ? ` ${JSON.stringify(normalize(rest))}` : '';
-                transcript.console.push(`${level}: ${normalizeString(first)}${extra}`);
-            }
-        };
+        console[level] = (first, ...rest) => record(level, first, rest);
     }
     const realNow = Date.now;
     let localIp = scenario.localIp || '192.0.2.10';
@@ -461,6 +465,7 @@ async function runScenario(scenario) {
         await withFakeVscode(fake, async ({ requireOut }) => {
             const { ServerActionHandlers } = requireOut('active_servers/views/interactions/handleServerActions.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
+            observeLogsAsConsole(loaded('core/logging/sink.js'), record);
 
             const { PreviewRenderer } = loaded('servers/runtime/previewRenderer.js');
             PreviewRenderer.openPreview = async (...args) => {

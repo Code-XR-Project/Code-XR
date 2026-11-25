@@ -31,6 +31,7 @@ const tls = require('node:tls');
 const WebSocket = require('ws');
 
 const { createFakeVscode, fakeExtensionContext, withFakeVscode } = require('../helpers/fakeVscode.cjs');
+const { observeLogsAsConsole } = require('../helpers/logCapture.cjs');
 
 const ALLOWED_CIPHERS = [
     'ECDHE-RSA-AES128-GCM-SHA256',
@@ -66,17 +67,26 @@ function captureConsole() {
         }
         return text.replace(/\d+ms\b/g, '<n>ms');
     };
+    const record = (level, first) => {
+        // Only the server modules' own lines: module-load banners of
+        // shared singletons depend on which suite loaded them first.
+        if (typeof first === 'string' && first.startsWith('SERVER:')) {
+            lines.push(`${level}: ${normalize(first)}`);
+        }
+    };
     for (const level of Object.keys(original)) {
-        console[level] = (first) => {
-            // Only the server modules' own lines: module-load banners of
-            // shared singletons depend on which suite loaded them first.
-            if (typeof first === 'string' && first.startsWith('SERVER:')) {
-                lines.push(`${level}: ${normalize(first)}`);
-            }
-        };
+        console[level] = (first) => record(level, first);
     }
     return {
         lines,
+        /**
+         * Also records the logger calls of the modules loaded in this fake
+         * scope, in the same console shape (helpers/logCapture.cjs). Call it
+         * inside the scope, before the first line to capture.
+         */
+        observeLogger() {
+            observeLogsAsConsole(require(path.join(__dirname, '..', '..', 'out', 'core', 'logging', 'sink.js')), record);
+        },
         /** Values replaced by stable placeholders in every later line (ports, temp paths). */
         setReplacements(next) {
             replacements = next;
@@ -294,6 +304,7 @@ test('HTTPS constructors keep their guard order and messages', async () => {
         const { HttpsDefaultServer } = requireOut('servers/runtime/httpsDefaultServer.js');
         const context = sharedContext();
         const consoleCapture = captureConsole();
+        consoleCapture.observeLogger();
         try {
             const guards = {
                 customNothing: await captureGuard(() => new HttpsCustomServer({ port: 1 })),
@@ -322,6 +333,7 @@ test('HttpsDefaultServer: generated pair, TLS surface, VR toast and dispose-befo
     const consoleCapture = captureConsole();
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
+            consoleCapture.observeLogger();
             const calls = installNetworkStubs(requireOut, port);
             const { HttpsDefaultServer } = requireOut('servers/runtime/httpsDefaultServer.js');
             const certDirectory = path.join(sharedStorage, 'global', 'server-certs');
@@ -401,6 +413,7 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
     const consoleCapture = captureConsole();
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
+            consoleCapture.observeLogger();
             const calls = installNetworkStubs(requireOut, port);
             const { HttpsCustomServer } = requireOut('servers/runtime/httpsCustomServer.js');
             const { GeneratedHttpsCertificateManager } = requireOut('servers/runtime/generatedHttpsCertificateManager.js');
@@ -515,6 +528,7 @@ test('HttpServer: start, second start, health, stop order and idempotent stop', 
     const consoleCapture = captureConsole();
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
+            consoleCapture.observeLogger();
             installNetworkStubs(requireOut, port);
             const { HttpServer } = requireOut('servers/runtime/httpServer.js');
             consoleCapture.setReplacements([[String(port), '<port>']]);

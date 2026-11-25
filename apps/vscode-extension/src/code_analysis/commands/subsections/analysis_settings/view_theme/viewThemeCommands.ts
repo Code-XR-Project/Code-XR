@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { ViewThemeSetting } from '../../../../views/subsections/analysis_settings/view_theme';
 import { CommandRegistration } from '../analysis_file_mode';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('VIEW_THEME_COMMAND');
 
 export class ViewThemeCommands {
 
@@ -39,7 +42,7 @@ export class ViewThemeCommands {
      */
     private async toggleViewTheme(refreshCallback: () => void): Promise<void> {
         try {
-            console.log('VIEW_THEME_COMMAND: Starting toggle view theme command');
+            logger.debug('Starting toggle view theme command');
             const newTheme = await this.viewThemeSetting.toggleTheme();
             
             // Show notification to user
@@ -48,15 +51,15 @@ export class ViewThemeCommands {
                 { modal: false }
             );
 
-            console.log('VIEW_THEME_COMMAND: About to call refreshCallback');
+            logger.debug('About to call refreshCallback');
             // Refresh the tree view to show updated state
             refreshCallback();
-            console.log('VIEW_THEME_COMMAND: refreshCallback executed');
+            logger.debug('refreshCallback executed');
 
-            console.log(`ANALYSIS: Command executed - View theme: ${newTheme}`);
+            logger.debug(() => `ANALYSIS: Command executed - View theme: ${newTheme}`);
             
         } catch (error) {
-            console.error('ANALYSIS: Error toggling view theme:', error);
+            logger.error('ANALYSIS: Error toggling view theme:', error);
             vscode.window.showErrorMessage(`Failed to toggle view theme: ${error}`);
         }
     }

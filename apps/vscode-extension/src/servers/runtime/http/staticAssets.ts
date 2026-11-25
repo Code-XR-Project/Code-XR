@@ -2,6 +2,9 @@ import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
 import { sendErrorResponse } from './httpRespond';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /** The slice of the server configuration static serving depends on. */
 export interface StaticAssetOptions {
@@ -32,32 +35,32 @@ export class StaticAssetServer {
             } else {
                 mainPagePath = path.join(this.options.staticRoot, this.options.mainFile);
             }
-            console.log(`SERVER: Attempting to serve configured main file: ${mainPagePath}`);
-            console.log(`SERVER: Static root: ${this.options.staticRoot}`);
-            console.log(`SERVER: Main file: ${this.options.mainFile}`);
+            logger.debug(() => `Attempting to serve configured main file: ${mainPagePath}`);
+            logger.debug(() => `Static root: ${this.options.staticRoot}`);
+            logger.debug(() => `Main file: ${this.options.mainFile}`);
         } else {
             // Default to xr-visualization.html
             mainPagePath = path.join(this.options.staticRoot, 'xr', 'xr-visualization.html');
-            console.log(`SERVER: Serving default main file: ${mainPagePath}`);
+            logger.debug(() => `Serving default main file: ${mainPagePath}`);
         }
 
         // Check if file exists and serve it
         if (fs.existsSync(mainPagePath)) {
-            console.log(`SERVER: Successfully found main file, serving: ${mainPagePath}`);
+            logger.debug(() => `Successfully found main file, serving: ${mainPagePath}`);
             await this.serveFile(res, mainPagePath, 'text/html');
         } else {
-            console.error(`SERVER: Main file not found: ${mainPagePath}`);
-            console.error(`SERVER: Current working directory: ${process.cwd()}`);
-            console.error(`SERVER: Static root exists: ${fs.existsSync(this.options.staticRoot)}`);
+            logger.error(`Main file not found: ${mainPagePath}`);
+            logger.error(`Current working directory: ${process.cwd()}`);
+            logger.error(`Static root exists: ${fs.existsSync(this.options.staticRoot)}`);
             try {
                 const files = fs.readdirSync(this.options.staticRoot);
-                console.error(`SERVER: Files in static root: ${files.join(', ')}`);
+                logger.error(`Files in static root: ${files.join(', ')}`);
             } catch (e) {
-                console.error(`SERVER: Cannot read static root directory: ${e}`);
+                logger.error(`Cannot read static root directory: ${e}`);
             }
 
             // Fallback to a basic HTML page
-            console.warn(`SERVER: Serving fallback HTML instead of selected file`);
+            logger.warn(`Serving fallback HTML instead of selected file`);
             const fallbackHtml = this.generateFallbackHtml();
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(fallbackHtml);
@@ -82,23 +85,23 @@ export class StaticAssetServer {
         const filePath = path.join(this.options.staticRoot, pathname);
         const normalizedPath = path.normalize(filePath);
 
-        console.log(`SERVER_DEBUG: Request for static file: ${url}`);
-        console.log(`SERVER_DEBUG: Parsed pathname: ${pathname}`);
-        console.log(`SERVER_DEBUG: Static root: ${this.options.staticRoot}`);
-        console.log(`SERVER_DEBUG: Full file path: ${normalizedPath}`);
+        logger.debug(() => `SERVER_DEBUG: Request for static file: ${url}`);
+        logger.debug(() => `SERVER_DEBUG: Parsed pathname: ${pathname}`);
+        logger.debug(() => `SERVER_DEBUG: Static root: ${this.options.staticRoot}`);
+        logger.debug(() => `SERVER_DEBUG: Full file path: ${normalizedPath}`);
 
         // Security check: ensure the file is within the static root
         if (!normalizedPath.startsWith(path.normalize(this.options.staticRoot))) {
-            console.log(`SERVER_DEBUG: Access denied - path outside static root`);
+            logger.debug(`SERVER_DEBUG: Access denied - path outside static root`);
             sendErrorResponse(res, 403, 'Access denied');
             return;
         }
 
         if (fs.existsSync(normalizedPath) && fs.statSync(normalizedPath).isFile()) {
-            console.log(`SERVER_DEBUG: Serving file: ${normalizedPath}`);
+            logger.debug(() => `SERVER_DEBUG: Serving file: ${normalizedPath}`);
             await this.serveFile(res, normalizedPath);
         } else {
-            console.log(`SERVER_DEBUG: File not found: ${normalizedPath}`);
+            logger.debug(() => `SERVER_DEBUG: File not found: ${normalizedPath}`);
             sendErrorResponse(res, 404, 'File not found');
         }
     }
@@ -127,7 +130,7 @@ export class StaticAssetServer {
             res.writeHead(200, headers);
             res.end(content);
         } catch (error) {
-            console.error('SERVER: Error serving file:', error);
+            logger.error('Error serving file:', error);
             sendErrorResponse(res, 500, 'Error reading file');
         }
     }

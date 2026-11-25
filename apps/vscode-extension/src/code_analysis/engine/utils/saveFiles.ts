@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SAVE_FILES');
 
 /**
  * Utility para guardar archivos en el workspace storage
@@ -13,7 +16,7 @@ import * as fs from 'fs';
 export class SaveFiles {
 
     constructor() {
-        console.log('SAVE_FILES: Initializing SaveFiles utility...');
+        logger.debug('Initializing SaveFiles utility...');
     }
 
     /**
@@ -32,9 +35,9 @@ export class SaveFiles {
         context: vscode.ExtensionContext
     ): Promise<string> {
         
-        console.log(`SAVE_FILES:  Saving ${files.size} files to workspace storage...`);
-        console.log(`SAVE_FILES: Folder name: ${folderName}`);
-        console.log(`SAVE_FILES: Analysis type: ${analysisType}`);
+        logger.debug(() => `Saving ${files.size} files to workspace storage...`);
+        logger.debug(() => `Folder name: ${folderName}`);
+        logger.debug(() => `Analysis type: ${analysisType}`);
         
         try {
             // Obtener el workspace storage URI
@@ -45,7 +48,7 @@ export class SaveFiles {
             
             // Crear la ruta completa: storage/folderName/analysisType/
             const storagePath = path.join(storageUri.fsPath, folderName, analysisType);
-            console.log(`SAVE_FILES:  Storage path: ${storagePath}`);
+            logger.debug(() => `Storage path: ${storagePath}`);
             
             // Crear directorios si no existen
             await this.ensureDirectoryExists(storagePath);
@@ -56,23 +59,23 @@ export class SaveFiles {
                 const filePath = path.join(storagePath, fileName);
                 await this.ensureDirectoryExists(path.dirname(filePath));
                 
-                console.log(`SAVE_FILES:  Saving ${fileName}...`);
+                logger.debug(() => `Saving ${fileName}...`);
                 await fs.promises.writeFile(filePath, content, 'utf8');
                 savedFiles.push(fileName);
-                console.log(`SAVE_FILES:  Saved ${fileName} (${content.length} chars)`);
+                logger.debug(() => `Saved ${fileName} (${content.length} chars)`);
             }
             
             // Always copy favicon.ico from resources directory
             await this.copyFavicon(storagePath, context);
             savedFiles.push('favicon.ico');
             
-            console.log(`SAVE_FILES:  Successfully saved ${savedFiles.length} files to: ${storagePath}`);
-            console.log(`SAVE_FILES:  Files saved: ${savedFiles.join(', ')}`);
+            logger.debug(() => `Successfully saved ${savedFiles.length} files to: ${storagePath}`);
+            logger.debug(() => `Files saved: ${savedFiles.join(', ')}`);
             
             return storagePath;
             
         } catch (error) {
-            console.error(`SAVE_FILES:  Error saving files to storage:`, error);
+            logger.error(`Error saving files to storage:`, error);
             throw error;
         }
     }
@@ -82,22 +85,22 @@ export class SaveFiles {
      */
     private async ensureDirectoryExists(dirPath: string): Promise<void> {
         try {
-            console.log(`SAVE_FILES:  Checking directory: ${dirPath}`);
+            logger.debug(() => `Checking directory: ${dirPath}`);
             
             // Verificar si el directorio ya existe
             const exists = fs.existsSync(dirPath);
             if (exists) {
-                console.log(`SAVE_FILES:  Directory already exists: ${dirPath}`);
+                logger.debug(() => `Directory already exists: ${dirPath}`);
                 return;
             }
             
             // Crear el directorio recursivamente
-            console.log(`SAVE_FILES:  Creating directory: ${dirPath}`);
+            logger.debug(() => `Creating directory: ${dirPath}`);
             await fs.promises.mkdir(dirPath, { recursive: true });
-            console.log(`SAVE_FILES:  Directory created successfully: ${dirPath}`);
+            logger.debug(() => `Directory created successfully: ${dirPath}`);
             
         } catch (error) {
-            console.error(`SAVE_FILES:  Error creating directory ${dirPath}:`, error);
+            logger.error(`Error creating directory ${dirPath}:`, error);
             throw error;
         }
     }
@@ -107,26 +110,26 @@ export class SaveFiles {
      */
     public async verifyFiles(storagePath: string, expectedFiles: string[]): Promise<boolean> {
         try {
-            console.log(`SAVE_FILES:  Verifying files in: ${storagePath}`);
+            logger.debug(() => `Verifying files in: ${storagePath}`);
             
             for (const fileName of expectedFiles) {
                 const filePath = path.join(storagePath, fileName);
                 const exists = fs.existsSync(filePath);
                 
                 if (!exists) {
-                    console.error(`SAVE_FILES:  File not found: ${fileName}`);
+                    logger.error(`File not found: ${fileName}`);
                     return false;
                 }
                 
                 const stats = fs.statSync(filePath);
-                console.log(`SAVE_FILES:  Verified ${fileName} (${stats.size} bytes)`);
+                logger.debug(() => `Verified ${fileName} (${stats.size} bytes)`);
             }
             
-            console.log(`SAVE_FILES:  All files verified successfully`);
+            logger.debug(`All files verified successfully`);
             return true;
             
         } catch (error) {
-            console.error(`SAVE_FILES:  Error verifying files:`, error);
+            logger.error(`Error verifying files:`, error);
             return false;
         }
     }
@@ -145,21 +148,21 @@ export class SaveFiles {
             const faviconSourcePath = path.join(extensionPath, 'resources', 'icon.png');
             const faviconDestPath = path.join(storagePath, 'favicon.ico');
             
-            console.log(`SAVE_FILES:  Copying favicon from extension resources: ${faviconSourcePath}`);
-            console.log(`SAVE_FILES:  Copying favicon to: ${faviconDestPath}`);
+            logger.debug(() => `Copying favicon from extension resources: ${faviconSourcePath}`);
+            logger.debug(() => `Copying favicon to: ${faviconDestPath}`);
             
             // Verificar que el archivo fuente existe
             if (!fs.existsSync(faviconSourcePath)) {
-                console.warn(`SAVE_FILES:  Favicon not found at: ${faviconSourcePath}`);
+                logger.warn(`Favicon not found at: ${faviconSourcePath}`);
                 return;
             }
             
             // Copiar el archivo
             await fs.promises.copyFile(faviconSourcePath, faviconDestPath);
-            console.log(`SAVE_FILES:  Favicon copied successfully`);
+            logger.debug(`Favicon copied successfully`);
             
         } catch (error) {
-            console.error(`SAVE_FILES:  Error copying favicon:`, error);
+            logger.error(`Error copying favicon:`, error);
             // No lanzamos error para que no interrumpa el guardado de otros archivos
         }
     }

@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('PYTHON_ENV');
 
 export interface ExecutableCommand {
     executable: string;
@@ -190,7 +193,7 @@ export class PythonEnvUtils {
 
             return true;
         } catch (error) {
-            console.log(`PYTHON_ENV: Error validating venv at ${venvPath}:`, error);
+            logger.warn(`Error validating venv at ${venvPath}:`, error);
             return false;
         }
     }
@@ -217,7 +220,7 @@ export class PythonEnvUtils {
 
             return true;
         } catch (error) {
-            console.log(`PYTHON_ENV: Error validating path ${targetPath}:`, error);
+            logger.warn(`Error validating path ${targetPath}:`, error);
             return false;
         }
     }
@@ -238,7 +241,7 @@ export class PythonEnvUtils {
 
             return versionMatch ? versionMatch[1] : null;
         } catch (error) {
-            console.log(`PYTHON_ENV: Error extracting version from ${venvPath}:`, error);
+            logger.warn(`Error extracting version from ${venvPath}:`, error);
             return null;
         }
     }
@@ -260,7 +263,7 @@ export class PythonEnvUtils {
             }
             return true;
         } catch (error) {
-            console.error(`PYTHON_ENV: Failed to create directory ${dirPath}:`, error);
+            logger.error(`Failed to create directory ${dirPath}:`, error);
             return false;
         }
     }

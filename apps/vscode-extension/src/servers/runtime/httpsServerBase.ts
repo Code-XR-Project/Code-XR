@@ -8,6 +8,9 @@ import { PortManager } from './portManager';
 import { GeneratedHttpsCertificateManager } from './generatedHttpsCertificateManager';
 import { buildTlsServerOptions } from './httpsTlsOptions';
 import type { RemoteSessionAuthority } from '../../remote_access';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /** The config shape both HTTPS servers share; each narrows it in its own interface. */
 export interface HttpsServerBaseConfig extends Omit<HttpServerConfig, 'port'> {
@@ -72,7 +75,7 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
 
     public async stop(): Promise<void> {
         if (!this.server || !this.isRunning) {
-            console.log('SERVER: HTTPS server is not running');
+            logger.debug('HTTPS server is not running');
             return;
         }
 
@@ -87,10 +90,10 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
         return new Promise((resolve, reject) => {
             this.server!.close((error) => {
                 if (error) {
-                    console.error('SERVER: Error stopping HTTPS server:', error);
+                    logger.error('Error stopping HTTPS server:', error);
                     reject(error);
                 } else {
-                    console.log('SERVER: HTTPS server stopped successfully');
+                    logger.debug('HTTPS server stopped successfully');
                     this.isRunning = false;
                     this.server = null;
                     resolve();
@@ -157,14 +160,14 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
 
     /** Finds a free port from the configured one upwards and adopts it. */
     protected async resolveListeningPort(): Promise<void> {
-        console.log(`SERVER: Looking for available port starting from ${this.config.port} on host ${this.config.host}...`);
+        logger.debug(() => `Looking for available port starting from ${this.config.port} on host ${this.config.host}...`);
         const availablePort = await PortManager.findAvailablePort(this.config.port, this.config.port + 100, this.config.host);
 
         if (availablePort !== this.config.port) {
-            console.log(`SERVER: Port ${this.config.port} was busy, using ${availablePort} instead on host ${this.config.host}`);
+            logger.debug(() => `Port ${this.config.port} was busy, using ${availablePort} instead on host ${this.config.host}`);
             this.config.port = availablePort;
         } else {
-            console.log(`SERVER: Port ${this.config.port} is available on host ${this.config.host}`);
+            logger.debug(() => `Port ${this.config.port} is available on host ${this.config.host}`);
         }
     }
 
@@ -190,13 +193,13 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
                 server.on('error', (error: NodeJS.ErrnoException) => this.rejectStart(error, reject));
 
                 server.on('close', () => {
-                    console.log('SERVER: HTTPS server closed');
+                    logger.debug('HTTPS server closed');
                     this.isRunning = false;
                 });
 
                 wire(server, resolve);
             } catch (error) {
-                console.error('SERVER: Error starting HTTPS server:', error);
+                logger.error('Error starting HTTPS server:', error);
                 reject(error);
             }
         });
@@ -204,7 +207,7 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
 
     /** The listen 'error' handler; `describeStartError` lets a subclass add an arm. */
     private rejectStart(error: NodeJS.ErrnoException, reject: (reason: Error) => void): void {
-        console.error('SERVER: HTTPS server error:', error);
+        logger.error('HTTPS server error:', error);
         this.isRunning = false;
 
         if (error.code === 'EADDRINUSE') {
@@ -243,7 +246,7 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
             const cert = fs.readFileSync(this.config.certPath!, 'utf8');
             const key = fs.readFileSync(this.config.keyPath!, 'utf8');
 
-            console.log(loadedMessage);
+            logger.debug(loadedMessage);
 
             return buildTlsServerOptions(cert, key);
         } catch (error) {

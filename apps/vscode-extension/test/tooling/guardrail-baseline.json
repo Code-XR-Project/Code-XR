@@ -18,23 +18,11 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1396,
+    "console.total": 2,
     "console.byModule": {
-      "active_servers": 108,
-      "babia_examples": 49,
-      "babia_templates": 68,
-      "code_analysis": 533,
-      "commands": 4,
-      "core": 1,
-      "python_env": 24,
-      "remote_access": 1,
-      "servers": 282,
-      "utils": 38,
-      "views": 107,
-      "visualization_settings": 83,
-      "visualize_data": 98
+      "core": 2
     },
-    "catch.consoleOnly": 56,
+    "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
     "any.total": 166,
     "any.byModule": {
@@ -66,13 +54,13 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 45,
-    "complexity.over10": 71,
-    "complexity.over15": 26,
-    "complexity.over20": 7,
-    "complexity.over30": 4,
+    "complexity.over10": 69,
+    "complexity.over15": 25,
+    "complexity.over20": 6,
+    "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 554,
+    "eslint.maxWarnings": 553,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -80,70 +68,14 @@
     }
   },
   "informational": {
-    "src.files": 332,
-    "src.lines": 48337,
-    "src.functions": 2692,
+    "src.files": 334,
+    "src.lines": 48974,
+    "src.functions": 3279,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 126
-      },
-      {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 39
-      },
-      {
-        "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
-        "count": 39
-      },
-      {
-        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
-        "count": 35
-      },
-      {
-        "file": "src/servers/runtime/sse/sseClientRegistry.ts",
-        "count": 34
-      },
-      {
-        "file": "src/visualization_settings/views/interactions/handleSettingsInteraction.ts",
-        "count": 32
-      },
-      {
-        "file": "src/babia_templates/processing/templateHTMLProcessor.ts",
-        "count": 30
-      },
-      {
-        "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",
-        "count": 27
-      },
-      {
-        "file": "src/babia_examples/runtime/exampleLauncher.ts",
-        "count": 26
-      },
-      {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 26
-      },
-      {
-        "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
-        "count": 25
-      },
-      {
-        "file": "src/code_analysis/engine/utils/saveFiles.ts",
-        "count": 25
-      },
-      {
-        "file": "src/servers/runtime/sse/SSEManager.ts",
-        "count": 25
-      },
-      {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
-        "count": 24
-      },
-      {
-        "file": "src/servers/commands/serverCommands.ts",
-        "count": 23
+        "file": "src/core/logging/sink.ts",
+        "count": 2
       }
     ],
     "any.topFiles": [
@@ -228,19 +160,13 @@
         "file": "src/code_analysis/engine/parsers/fileXRParser.ts"
       },
       {
-        "ccn": 34,
-        "lines": 75,
-        "function": "<anonymous>",
-        "file": "src/code_analysis/engine/utils/executePython.ts"
-      },
-      {
         "ccn": 26,
         "lines": 100,
         "function": "listReferences",
         "file": "src/code_analysis/historical/gitRepositoryService.ts"
       },
       {
-        "ccn": 24,
+        "ccn": 23,
         "lines": 110,
         "function": "executeXRAnalysis",
         "file": "src/code_analysis/engine/utils/executePython.ts"
@@ -268,6 +194,12 @@
         "lines": 80,
         "function": "validateMappings",
         "file": "src/babia_templates/processing/dimensionValidator.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 87,
+        "function": "materializeDirectory",
+        "file": "src/code_analysis/historical/gitRepositoryService.ts"
       }
     ],
     "size.largest10": [
@@ -277,11 +209,7 @@
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-        "lines": 784
-      },
-      {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 632
+        "lines": 787
       },
       {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
@@ -289,7 +217,7 @@
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 620
+        "lines": 623
       },
       {
         "file": "src/code_analysis/export/exportManifest.ts",
@@ -301,15 +229,19 @@
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
-        "lines": 573
+        "lines": 576
+      },
+      {
+        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "lines": 572
       },
       {
         "file": "src/remote_access/services/remoteAccessManager.ts",
-        "lines": 564
+        "lines": 567
       },
       {
-        "file": "src/code_analysis/historical/gitRepositoryService.ts",
-        "lines": 560
+        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
+        "lines": 562
       }
     ]
   },
@@ -333,6 +265,13 @@
       "from": 311,
       "to": 608,
       "reason": "W3-10: type-aware no-floating-promises (296) and no-misused-promises (1) land as warn; budget 311 -> 608",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "console.byModule.core",
+      "from": 1,
+      "to": 2,
+      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1 at e16b95e8)",
       "date": "2026-11-25"
     }
   ]

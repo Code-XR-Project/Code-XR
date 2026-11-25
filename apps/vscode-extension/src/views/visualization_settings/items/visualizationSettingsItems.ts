@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { VisualizationSettingsTreeItem, VisualizationSettingsItemFactory } from '../../../visualization_settings/views/items/visualizationSettingsItems';
 import { VisualizationSettings } from '../../../visualization_settings/model/settingsModel';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZATION_SETTINGS_MODULAR');
 
 /**
  * Visualization Settings tree items for the Visualization Settings section
@@ -34,7 +37,7 @@ export class VisualizationSettingsModularItemFactory {
      * Create "Error loading settings" message item
      */
     static createErrorItem(): VisualizationSettingsModularTreeItem {
-        console.log('VISUALIZATION_SETTINGS_MODULAR: Creating error loading settings item');
+        logger.debug('Creating error loading settings item');
         
         return new VisualizationSettingsModularTreeItem(
             'Error loading settings',
@@ -70,7 +73,7 @@ export class VisualizationSettingsModularItemFactory {
      * Create visualization settings items with dynamic color icons
      */
     static async createVisualizationSettingsItems(settings: VisualizationSettings, context: vscode.ExtensionContext): Promise<VisualizationSettingsModularTreeItem[]> {
-        console.log('VISUALIZATION_SETTINGS_MODULAR: Creating visualization settings items with dynamic color icons');
+        logger.debug('Creating visualization settings items with dynamic color icons');
         
         try {
             const settingsItems = await VisualizationSettingsItemFactory.createVisualizationSettingsItems(
@@ -94,11 +97,11 @@ export class VisualizationSettingsModularItemFactory {
 
             children.push(VisualizationSettingsModularItemFactory.createResetToDefaultItem());
 
-            console.log(`VISUALIZATION_SETTINGS_MODULAR: Created ${children.length} visualization settings items with dynamic icons`);
+            logger.debug(() => `Created ${children.length} visualization settings items with dynamic icons`);
             return children;
 
         } catch (error) {
-            console.error('VISUALIZATION_SETTINGS_MODULAR: Error creating visualization settings items:', error);
+            logger.error('Error creating visualization settings items:', error);
             return [VisualizationSettingsModularItemFactory.createErrorItem()];
         }
     }

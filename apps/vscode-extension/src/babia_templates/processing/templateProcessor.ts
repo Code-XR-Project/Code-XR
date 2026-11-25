@@ -7,6 +7,9 @@ import { XRFieldTypeMap, XRSchemaTargetType } from '../../code_analysis/services
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('TEMPLATE_PROCESSOR');
 
 interface XRVisualizationGenerationOptions {
     babiaUiVisibleByDefault?: boolean;
@@ -36,19 +39,19 @@ export class TemplateProcessor {
         options?: XRVisualizationGenerationOptions,
     ): Promise<{ success: boolean; error?: string }> {
         try {
-            console.log('TEMPLATE_PROCESSOR: Starting modular XR visualization generation');
-            console.log('TEMPLATE_PROCESSOR: Chart ID:', chartId);
-            console.log('TEMPLATE_PROCESSOR: Mappings:', mappings);
-            console.log('TEMPLATE_PROCESSOR: Title:', title);
-            console.log('TEMPLATE_PROCESSOR: Data source:', dataSource);
+            logger.debug('Starting modular XR visualization generation');
+            logger.debug('Chart ID:', chartId);
+            logger.debug('Mappings:', mappings);
+            logger.debug('Title:', title);
+            logger.debug('Data source:', dataSource);
 
             // Get visualization settings
             const visualizationSettings = await this.getVisualizationSettings();
-            console.log('TEMPLATE_PROCESSOR: Using visualization settings:', visualizationSettings);
+            logger.debug('Using visualization settings:', visualizationSettings);
 
             // Detect if this is directory analysis by checking the data structure
             const isDirectoryAnalysis = this.detectDirectoryAnalysis(analysisData);
-            console.log('TEMPLATE_PROCESSOR: Detected directory analysis:', isDirectoryAnalysis);
+            logger.debug('Detected directory analysis:', isDirectoryAnalysis);
 
             // Create chart entity using CreateChart module
             const chartResult = CreateChart.createChartEntity(
@@ -125,12 +128,12 @@ export class TemplateProcessor {
 
             // Write the final HTML file
             fs.writeFileSync(outputPath, finalHtml, 'utf8');
-            console.log('TEMPLATE_PROCESSOR: Generated modular XR visualization HTML at:', outputPath);
+            logger.debug('Generated modular XR visualization HTML at:', outputPath);
 
             return { success: true };
 
         } catch (error) {
-            console.error('TEMPLATE_PROCESSOR: Error generating XR visualization:', error);
+            logger.error('Error generating XR visualization:', error);
             return { 
                 success: false, 
                 error: error instanceof Error ? error.message : String(error)
@@ -153,16 +156,16 @@ export class TemplateProcessor {
             const templatePath = path.join(context.extensionPath, 'templates', 'xr', 'file', 'xr-visualization.html');
 
             if (!fs.existsSync(templatePath)) {
-                console.error('TEMPLATE_PROCESSOR: XR template not found at:', templatePath);
+                logger.error('XR template not found at:', templatePath);
                 return null;
             }
 
             const template = fs.readFileSync(templatePath, 'utf8');
-            console.log('TEMPLATE_PROCESSOR: Loaded XR template from:', templatePath);
+            logger.debug('Loaded XR template from:', templatePath);
             return template;
 
         } catch (error) {
-            console.error('TEMPLATE_PROCESSOR: Error loading XR template:', error);
+            logger.error('Error loading XR template:', error);
             return null;
         }
     }
@@ -220,7 +223,7 @@ export class TemplateProcessor {
             const hasFileName = 'fileName' in firstItem;
             const hasFunctionName = 'functionName' in firstItem;
             
-            console.log('TEMPLATE_PROCESSOR: Data structure detection:', {
+            logger.debug('Data structure detection:', {
                 hasFileName,
                 hasFunctionName,
                 keys: Object.keys(firstItem)

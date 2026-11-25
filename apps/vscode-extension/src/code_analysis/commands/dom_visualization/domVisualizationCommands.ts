@@ -8,6 +8,9 @@ import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { LauncherVisualizeDOM } from '../../engine/launchers/launcherVisualizeDOM';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
 import { getFileSystemPathFromEditorOrInput } from '../../../utils/uriPathConverter';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DOM_VISUALIZATION_COMMANDS');
 
 export class DOMVisualizationCommands {
     constructor(private context: vscode.ExtensionContext) {}
@@ -43,7 +46,7 @@ export class DOMVisualizationCommands {
 
             await AnalysisOrchestrator.orchestrateAnalysis(fsPath, 'VisualizeDOM', 'file', this.context, false);
         } catch (error) {
-            console.error('DOM_VISUALIZATION_COMMANDS: Error visualizing DOM:', error);
+            logger.error('Error visualizing DOM:', error);
             vscode.window.showErrorMessage(
                 `Failed to visualize DOM: ${error instanceof Error ? error.message : String(error)}`,
             );

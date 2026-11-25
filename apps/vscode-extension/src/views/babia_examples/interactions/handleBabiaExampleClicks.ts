@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { BabiaExampleTreeItem } from '../items/babiaExampleItems';
 import { ExampleLauncher } from '../../../babia_examples/runtime/exampleLauncher';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('BABIA_EXAMPLES_MODULAR');
 
 /**
  * Handler for Babia Examples section interactions
@@ -16,7 +19,7 @@ export class BabiaExampleClickHandler {
      * Handle clicks on Babia example items
      */
     async handleBabiaExampleClick(item: BabiaExampleTreeItem): Promise<void> {
-        console.log(`BABIA_EXAMPLES_MODULAR: Handling click on example item: ${item.label} (type: ${item.babiaItemType})`);
+        logger.debug(() => `Handling click on example item: ${item.label} (type: ${item.babiaItemType})`);
 
         switch (item.babiaItemType) {
             case 'example-item':
@@ -27,11 +30,11 @@ export class BabiaExampleClickHandler {
             case 'loading':
             case 'error':
                 // No action needed for informational items
-                console.log(`BABIA_EXAMPLES_MODULAR: Clicked on informational item: ${item.babiaItemType}`);
+                logger.debug(() => `Clicked on informational item: ${item.babiaItemType}`);
                 break;
                 
             default:
-                console.warn(`BABIA_EXAMPLES_MODULAR: Unknown example item type: ${item.babiaItemType}`);
+                logger.warn(`Unknown example item type: ${item.babiaItemType}`);
         }
     }
 
@@ -40,17 +43,17 @@ export class BabiaExampleClickHandler {
      */
     private async handleExampleItemClick(item: BabiaExampleTreeItem): Promise<void> {
         if (!item.babiaExample) {
-            console.error('BABIA_EXAMPLES_MODULAR: No example data in example item');
+            logger.error('No example data in example item');
             return;
         }
 
         if (!item.babiaExample.isValid) {
-            console.warn('BABIA_EXAMPLES_MODULAR: Attempted to launch invalid example');
+            logger.warn('Attempted to launch invalid example');
             vscode.window.showWarningMessage(`Example "${item.babiaExample.name}" is invalid and cannot be launched.`);
             return;
         }
 
-        console.log(`BABIA_EXAMPLES_MODULAR: Launching example: ${item.babiaExample.id}`);
+        logger.debug(`Launching example: ${item.babiaExample.id}`);
         
         try {
             // Use the example launcher to handle the launch
@@ -59,7 +62,7 @@ export class BabiaExampleClickHandler {
             vscode.window.showInformationMessage(`Example "${item.babiaExample.name}" launched successfully!`);
             
         } catch (error) {
-            console.error(`BABIA_EXAMPLES_MODULAR: Error launching example ${item.babiaExample.id}:`, error);
+            logger.error(`Error launching example ${item.babiaExample.id}:`, error);
             vscode.window.showErrorMessage(`Failed to launch example "${item.babiaExample.name}": ${error}`);
         }
     }
@@ -68,44 +71,44 @@ export class BabiaExampleClickHandler {
      * Handle right-click context menu actions
      */
     async handleContextMenuAction(action: string, item: BabiaExampleTreeItem): Promise<void> {
-        console.log(`BABIA_EXAMPLES_MODULAR: Handling context menu action: ${action} on item: ${item.label}`);
+        logger.debug(() => `Handling context menu action: ${action} on item: ${item.label}`);
 
         switch (action) {
             case 'refresh':
-                console.log('BABIA_EXAMPLES_MODULAR: Refreshing examples view');
+                logger.debug('Refreshing examples view');
                 // Refresh will be triggered by the provider
                 break;
                 
             case 'launchExample':
                 if (item.babiaExample && item.babiaExample.isValid) {
-                    console.log(`BABIA_EXAMPLES_MODULAR: Launching example from context menu: ${item.babiaExample.id}`);
+                    logger.debug(`Launching example from context menu: ${item.babiaExample.id}`);
                     await this.handleExampleItemClick(item);
                 }
                 break;
                 
             case 'openInBrowser':
                 if (item.babiaExample && item.babiaExample.isValid) {
-                    console.log(`BABIA_EXAMPLES_MODULAR: Opening example in browser: ${item.babiaExample.id}`);
+                    logger.debug(`Opening example in browser: ${item.babiaExample.id}`);
                     await this.launchExampleInBrowser(item.babiaExample);
                 }
                 break;
                 
             case 'openInPanel':
                 if (item.babiaExample && item.babiaExample.isValid) {
-                    console.log(`BABIA_EXAMPLES_MODULAR: Opening example in panel: ${item.babiaExample.id}`);
+                    logger.debug(`Opening example in panel: ${item.babiaExample.id}`);
                     await this.launchExampleInPanel(item.babiaExample);
                 }
                 break;
                 
             case 'showDetails':
                 if (item.babiaExample) {
-                    console.log(`BABIA_EXAMPLES_MODULAR: Showing example details: ${item.babiaExample.id}`);
+                    logger.debug(`Showing example details: ${item.babiaExample.id}`);
                     await this.showExampleDetails(item.babiaExample);
                 }
                 break;
                 
             default:
-                console.warn(`BABIA_EXAMPLES_MODULAR: Unknown context menu action: ${action}`);
+                logger.warn(`Unknown context menu action: ${action}`);
         }
     }
 
@@ -118,7 +121,7 @@ export class BabiaExampleClickHandler {
             await this.exampleLauncher.launchExample(example);
             vscode.window.showInformationMessage(`Example "${example.name}" launched! (Uses current user configuration for launch mode)`);
         } catch (error) {
-            console.error(`BABIA_EXAMPLES_MODULAR: Error launching example:`, error);
+            logger.error(`Error launching example:`, error);
             vscode.window.showErrorMessage(`Failed to launch example: ${error}`);
         }
     }
@@ -132,7 +135,7 @@ export class BabiaExampleClickHandler {
             await this.exampleLauncher.launchExample(example);
             vscode.window.showInformationMessage(`Example "${example.name}" launched! (Uses current user configuration for launch mode)`);
         } catch (error) {
-            console.error(`BABIA_EXAMPLES_MODULAR: Error launching example:`, error);
+            logger.error(`Error launching example:`, error);
             vscode.window.showErrorMessage(`Failed to launch example: ${error}`);
         }
     }

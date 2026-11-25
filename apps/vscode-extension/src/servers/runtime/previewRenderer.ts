@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { getPanelManager } from '../../active_servers/services/panelManager';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /**
  * Preview Renderer
@@ -21,7 +24,7 @@ export class PreviewRenderer {
         openMode: 'browser' | 'lateralPanel',
         serverId?: string
     ): Promise<void> {
-        console.log(`SERVER: Opening preview for ${htmlFilePath} at ${serverUrl} in ${openMode} mode`);
+        logger.debug(() => `Opening preview for ${htmlFilePath} at ${serverUrl} in ${openMode} mode`);
         
         try {
             if (openMode === 'browser') {
@@ -35,7 +38,7 @@ export class PreviewRenderer {
                 throw new Error(`Unsupported open mode: ${openMode}`);
             }
         } catch (error) {
-            console.error(`SERVER: Error opening preview: ${error}`);
+            logger.error(`Error opening preview: ${error}`);
             vscode.window.showWarningMessage(`Failed to open preview: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -45,7 +48,7 @@ export class PreviewRenderer {
      * @private
      */
     private static async openInBrowser(serverUrl: string): Promise<void> {
-        console.log(`SERVER: Opening ${serverUrl} in external browser`);
+        logger.debug(() => `Opening ${serverUrl} in external browser`);
         await vscode.env.openExternal(vscode.Uri.parse(serverUrl));
         vscode.window.showInformationMessage(`Opened ${serverUrl} in browser`);
     }
@@ -55,7 +58,7 @@ export class PreviewRenderer {
      * @private
      */
     private static async openInWebviewPanel(serverUrl: string, htmlFilePath: string, serverId: string): Promise<void> {
-        console.log(`ACTIVE_SERVER_PANEL: Opening ${serverUrl} in VS Code webview panel for server ${serverId}`);
+        logger.debug(() => `ACTIVE_SERVER_PANEL: Opening ${serverUrl} in VS Code webview panel for server ${serverId}`);
         
         try {
             const fileName = path.basename(htmlFilePath);
@@ -75,7 +78,7 @@ export class PreviewRenderer {
             // Register panel with panel manager
             const panelManager = getPanelManager();
             panelManager.registerPanel(serverId, panel);
-            console.log(`ACTIVE_SERVER_PANEL: Panel registered for server ${serverId}`);
+            logger.debug(() => `ACTIVE_SERVER_PANEL: Panel registered for server ${serverId}`);
             
             // Create iframe HTML pointing to the server URL
             const iframeHtml = this.createIframeHtml(serverUrl, fileName);
@@ -86,7 +89,7 @@ export class PreviewRenderer {
             // Handle messages from webview
             panel.webview.onDidReceiveMessage(
                 message => {
-                    console.log(`ACTIVE_SERVER_PANEL: Webview message for server ${serverId}:`, message);
+                    logger.debug(() => `ACTIVE_SERVER_PANEL: Webview message for server ${serverId}:`, message);
                     switch (message.command) {
                         case 'openExternal':
                             vscode.env.openExternal(vscode.Uri.parse(message.url));
@@ -104,15 +107,15 @@ export class PreviewRenderer {
             
             // Handle panel disposal
             panel.onDidDispose(() => {
-                console.log(`ACTIVE_SERVER_PANEL: Webview panel disposed for server ${serverId}`);
+                logger.debug(() => `ACTIVE_SERVER_PANEL: Webview panel disposed for server ${serverId}`);
                 // Panel manager will automatically clean up via its disposal listener
             });
             
-            console.log(`SERVER: Created webview panel for ${serverUrl}`);
+            logger.debug(() => `Created webview panel for ${serverUrl}`);
             vscode.window.showInformationMessage(`Opened ${fileName} in VS Code panel`);
             
         } catch (error) {
-            console.error(`SERVER: Error creating webview panel: ${error}`);
+            logger.error(`Error creating webview panel: ${error}`);
             throw new Error(`Failed to create webview panel: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

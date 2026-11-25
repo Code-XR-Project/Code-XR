@@ -18,6 +18,9 @@ import {
     XRBabiaUiConfig,
     DEFAULT_ANALYSIS_CONFIGURATION
 } from './models/analysisConfiguration';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AnalysisConfigurationStorage {
     private static instance: AnalysisConfigurationStorage;
@@ -28,7 +31,7 @@ export class AnalysisConfigurationStorage {
 
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
-        console.log('ANALYSIS: Initializing configuration storage');
+        logger.debug('Initializing configuration storage');
     }
 
     /**
@@ -94,12 +97,12 @@ export class AnalysisConfigurationStorage {
                 };
                 
                 this.cachedConfiguration = configuration;
-                console.log('ANALYSIS: Configuration loaded from storage:', configuration);
+                logger.debug('Configuration loaded from storage:', configuration);
                 return configuration;
                 
             } catch (readError) {
                 // File doesn't exist or is corrupted, return defaults
-                console.log('ANALYSIS: Configuration file not found, using defaults');
+                logger.warn('Configuration file not found, using defaults');
                 this.cachedConfiguration = DEFAULT_ANALYSIS_CONFIGURATION;
                 
                 // Create default file
@@ -108,7 +111,7 @@ export class AnalysisConfigurationStorage {
             }
             
         } catch (error) {
-            console.error('ANALYSIS: Error loading configuration:', error);
+            logger.error('Error loading configuration:', error);
             return DEFAULT_ANALYSIS_CONFIGURATION;
         }
     }
@@ -142,10 +145,10 @@ export class AnalysisConfigurationStorage {
             // Update cache
             this.cachedConfiguration = configuration;
             
-            console.log('ANALYSIS: Configuration saved to storage:', configuration);
+            logger.debug('Configuration saved to storage:', configuration);
             
         } catch (error) {
-            console.error('ANALYSIS: Error saving configuration:', error);
+            logger.error('Error saving configuration:', error);
             throw error;
         }
     }
@@ -168,7 +171,7 @@ export class AnalysisConfigurationStorage {
             analysisFileMode: mode
         };
         await this.saveConfiguration(updatedConfig);
-        console.log(`ANALYSIS: Analysis file mode changed to: ${mode}`);
+        logger.debug(() => `Analysis file mode changed to: ${mode}`);
     }
 
     /**
@@ -189,7 +192,7 @@ export class AnalysisConfigurationStorage {
             analysisDirectoryMode: mode
         };
         await this.saveConfiguration(updatedConfig);
-        console.log(`ANALYSIS: Analysis directory mode changed to: ${mode}`);
+        logger.debug(() => `Analysis directory mode changed to: ${mode}`);
     }
 
     /**
@@ -210,7 +213,7 @@ export class AnalysisConfigurationStorage {
             viewTheme: theme
         };
         await this.saveConfiguration(updatedConfig);
-        console.log(`ANALYSIS: View theme changed to: ${theme}`);
+        logger.debug(() => `View theme changed to: ${theme}`);
     }
 
     /**
@@ -231,7 +234,7 @@ export class AnalysisConfigurationStorage {
             autoAnalysisDelay: delayConfig
         };
         await this.saveConfiguration(updatedConfig);
-        console.log(`ANALYSIS: Auto-analysis delay changed to: ${JSON.stringify(delayConfig)}`);
+        logger.debug(() => `Auto-analysis delay changed to: ${JSON.stringify(delayConfig)}`);
     }
 
     /**
@@ -255,7 +258,7 @@ export class AnalysisConfigurationStorage {
             }
         };
         await this.saveConfiguration(updatedConfig);
-        console.log(`ANALYSIS: Auto-analysis enabled changed to: ${enabled}`);
+        logger.debug(() => `Auto-analysis enabled changed to: ${enabled}`);
     }
 
     /**
@@ -268,7 +271,7 @@ export class AnalysisConfigurationStorage {
             ...updates
         };
         await this.saveConfiguration(updatedConfig);
-        console.log(`ANALYSIS: Configuration updated with: ${JSON.stringify(updates)}`);
+        logger.debug(() => `Configuration updated with: ${JSON.stringify(updates)}`);
     }
 
     /**
@@ -308,7 +311,7 @@ export class AnalysisConfigurationStorage {
             const configData = await vscode.workspace.fs.readFile(configPath);
             return Buffer.from(configData).toString('utf8');
         } catch (error) {
-            console.log('ANALYSIS: Configuration file not found or error reading:', error);
+            logger.warn('Configuration file not found or error reading:', error);
             return null;
         }
     }
@@ -378,7 +381,7 @@ export class AnalysisConfigurationStorage {
      */
     public async setFilesByLanguageSorting(sortingConfig: FilesByLanguageSortingConfig): Promise<void> {
         await this.updateConfiguration({ filesByLanguageSorting: sortingConfig });
-        console.log('ANALYSIS: Files by Language sorting configuration updated:', sortingConfig);
+        logger.debug('Files by Language sorting configuration updated:', sortingConfig);
     }
 
     // ============================================================================

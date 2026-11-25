@@ -12,6 +12,9 @@ import {
     ServerLaunchRequest, 
     SessionServerStatus 
 } from './models/sessionServerModels';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SESSION_SERVER_MANAGER');
 
 export class SessionServerManager {
     private serverOrchestrator: ServerLaunchOrchestrator;
@@ -19,7 +22,7 @@ export class SessionServerManager {
     private activeSessions: Map<string, SessionServerInfo> = new Map();
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('SESSION_SERVER_MANAGER: Initializing manager');
+        logger.debug('Initializing manager');
         this.serverOrchestrator = new ServerLaunchOrchestrator(context);
         this.sseManager = new SSENotificationManager();
     }
@@ -29,13 +32,13 @@ export class SessionServerManager {
      */
     async startServerForSession(session: UnifiedAnalysisSession): Promise<SessionServerStatus> {
         try {
-            console.log(`SESSION_SERVER_MANAGER: Starting server for session ${session.id}`);
+            logger.debug(() => `Starting server for session ${session.id}`);
 
             // Verificar si ya hay un servidor activo para esta sesión
             if (this.activeSessions.has(session.id)) {
                 const existing = this.activeSessions.get(session.id)!;
                 if (existing.isActive) {
-                    console.log(`SESSION_SERVER_MANAGER: Server already active for session ${session.id}`);
+                    logger.debug(() => `Server already active for session ${session.id}`);
                     return this.getSessionStatus(session.id);
                 }
             }
@@ -58,7 +61,7 @@ export class SessionServerManager {
                 session.assignedPort = launchResult.sessionServerInfo.port;
                 session.serverUrl = launchResult.sessionServerInfo.serverUrl;
 
-                console.log(`SESSION_SERVER_MANAGER:  Server started for session ${session.id} on port ${launchResult.sessionServerInfo.port}`);
+                logger.debug(() => `Server started for session ${session.id} on port ${session.assignedPort}`);
 
                 // Enviar notificación SSE
                 await this.sseManager.notifyServerStarted(launchResult.sessionServerInfo);
@@ -72,12 +75,12 @@ export class SessionServerManager {
                     lastUpdate: new Date()
                 };
             } else {
-                console.error(`SESSION_SERVER_MANAGER:  Failed to start server:`, launchResult.error);
+                logger.error(`Failed to start server:`, launchResult.error);
                 throw new Error(launchResult.error || 'Unknown server launch error');
             }
 
         } catch (error) {
-            console.error(`SESSION_SERVER_MANAGER:  Error starting server for session ${session.id}:`, error);
+            logger.error(`Error starting server for session ${session.id}:`, error);
             return {
                 sessionId: session.id,
                 isServerActive: false,
@@ -91,11 +94,11 @@ export class SessionServerManager {
      */
     async stopServerForSession(sessionId: string): Promise<boolean> {
         try {
-            console.log(`SESSION_SERVER_MANAGER: Stopping server for session ${sessionId}`);
+            logger.debug(() => `Stopping server for session ${sessionId}`);
 
             const sessionInfo = this.activeSessions.get(sessionId);
             if (!sessionInfo) {
-                console.log(`SESSION_SERVER_MANAGER: No active server found for session ${sessionId}`);
+                logger.debug(() => `No active server found for session ${sessionId}`);
                 return true; // Ya estaba detenido
             }
 
@@ -112,13 +115,13 @@ export class SessionServerManager {
                 // Enviar notificación SSE
                 await this.sseManager.notifyServerStopped(sessionInfo);
 
-                console.log(`SESSION_SERVER_MANAGER:  Server stopped for session ${sessionId}`);
+                logger.debug(() => `Server stopped for session ${sessionId}`);
             }
 
             return success;
 
         } catch (error) {
-            console.error(`SESSION_SERVER_MANAGER:  Error stopping server for session ${sessionId}:`, error);
+            logger.error(`Error stopping server for session ${sessionId}:`, error);
             return false;
         }
     }
@@ -180,7 +183,7 @@ export class SessionServerManager {
      * Limpia todas las sesiones activas
      */
     async cleanup(): Promise<void> {
-        console.log(`SESSION_SERVER_MANAGER: Cleaning up ${this.activeSessions.size} active sessions`);
+        logger.debug(() => `Cleaning up ${this.activeSessions.size} active sessions`);
 
         const cleanupPromises = Array.from(this.activeSessions.keys()).map(sessionId => 
             this.stopServerForSession(sessionId)
@@ -189,7 +192,7 @@ export class SessionServerManager {
         await Promise.all(cleanupPromises);
         this.activeSessions.clear();
 
-        console.log(`SESSION_SERVER_MANAGER:  Cleanup completed`);
+        logger.debug(`Cleanup completed`);
     }
 }
 

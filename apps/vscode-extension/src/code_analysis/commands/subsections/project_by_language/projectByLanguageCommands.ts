@@ -9,6 +9,9 @@ import { CommandRegistration } from '../analysis_settings/analysis_file_mode';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
 import { AnalysisOrchestrator } from '../../../engine/analysisOrchestrator';
 import { getLanguageByExtension } from '../../../../utils/supportedLanguages';
+import { getLogger } from '../../../../core/logging/sink';
+
+const logger = getLogger('PROJECT_STRUCTURE_COMMANDS');
 
 export class ProjectByLanguageCommands {
     
@@ -21,16 +24,16 @@ export class ProjectByLanguageCommands {
         context: vscode.ExtensionContext, 
         refreshCallback: () => void
     ): CommandRegistration[] {
-        console.log('ANALYSIS: Collecting Project Structure command registrations');
+        logger.debug('ANALYSIS: Collecting Project Structure command registrations');
         const commands = new ProjectByLanguageCommands(context);
         
         const commandRegistrations: CommandRegistration[] = [
             {
                 commandId: 'codeXR.analysis.projectStructure.analyzeFile',
                 callback: async (filePath: string) => {
-                    console.log(`PROJECT_STRUCTURE_COMMANDS: Analyze file command TRIGGERED for: ${filePath}`);
-                    console.log(`PROJECT_STRUCTURE_COMMANDS: Callback argument type: ${typeof filePath}`);
-                    console.log(`PROJECT_STRUCTURE_COMMANDS: Callback argument value: "${filePath}"`);
+                    logger.debug(() => `Analyze file command TRIGGERED for: ${filePath}`);
+                    logger.debug(() => `Callback argument type: ${typeof filePath}`);
+                    logger.debug(() => `Callback argument value: "${filePath}"`);
                     await commands.analyzeFile(filePath);
                     refreshCallback();
                 },
@@ -39,9 +42,9 @@ export class ProjectByLanguageCommands {
             {
                 commandId: 'codeXR.analysis.projectStructure.analyzeDirectory',
                 callback: async (directoryPath: string) => {
-                    console.log(`PROJECT_STRUCTURE_COMMANDS: Analyze directory command TRIGGERED for: ${directoryPath}`);
-                    console.log(`PROJECT_STRUCTURE_COMMANDS: Callback argument type: ${typeof directoryPath}`);
-                    console.log(`PROJECT_STRUCTURE_COMMANDS: Callback argument value: "${directoryPath}"`);
+                    logger.debug(() => `Analyze directory command TRIGGERED for: ${directoryPath}`);
+                    logger.debug(() => `Callback argument type: ${typeof directoryPath}`);
+                    logger.debug(() => `Callback argument value: "${directoryPath}"`);
                     await commands.analyzeDirectory(directoryPath);
                     refreshCallback();
                 },
@@ -49,7 +52,7 @@ export class ProjectByLanguageCommands {
             }
         ];
 
-        console.log(`ANALYSIS: Collected ${commandRegistrations.length} Project Structure command registrations`);
+        logger.debug(() => `ANALYSIS: Collected ${commandRegistrations.length} Project Structure command registrations`);
         return commandRegistrations;
     }
 
@@ -57,14 +60,14 @@ export class ProjectByLanguageCommands {
      * Analyze a file using the configured file analysis mode
      */
     private async analyzeFile(filePath: string): Promise<void> {
-        console.log(`PROJECT_STRUCTURE_COMMANDS: Analyzing file: ${filePath}`);
-        console.log(`PROJECT_STRUCTURE_COMMANDS: FilePath type: ${typeof filePath}`);
-        console.log(`PROJECT_STRUCTURE_COMMANDS: FilePath value: "${filePath}"`);
+        logger.debug(() => `Analyzing file: ${filePath}`);
+        logger.debug(() => `FilePath type: ${typeof filePath}`);
+        logger.debug(() => `FilePath value: "${filePath}"`);
         
         try {
             // Validate input
             if (!filePath || typeof filePath !== 'string') {
-                console.error('PROJECT_STRUCTURE_COMMANDS: Invalid filePath received:', filePath);
+                logger.error('Invalid filePath received:', filePath);
                 vscode.window.showErrorMessage('Invalid file path received');
                 return;
             }
@@ -72,19 +75,19 @@ export class ProjectByLanguageCommands {
             const storage = AnalysisConfigurationStorage.getInstance(this.context);
             const analysisMode = await storage.getAnalysisMode();
             
-            console.log(`PROJECT_STRUCTURE_COMMANDS: Using analysis mode: ${analysisMode}`);
+            logger.debug(() => `Using analysis mode: ${analysisMode}`);
             
             // Get file extension and language
             const ext = path.extname(filePath).toLowerCase();
             const languageConfig = getLanguageByExtension(ext);
             const languageName = languageConfig?.name || 'Unknown';
             
-            console.log(`PROJECT_STRUCTURE_COMMANDS: Running analysis for ${filePath} (${languageName}) in ${analysisMode} mode`);
+            logger.debug(() => `Running analysis for ${filePath} (${languageName}) in ${analysisMode} mode`);
 
             // Determine which analysis to run based on file type and configuration
             if (languageName === 'HTML') {
                 // HTML files always use DOM Visualization using NEW ENGINE
-                console.log('PROJECT_STRUCTURE_COMMANDS: Running DOM Visualization for HTML file using NEW ENGINE');
+                logger.debug('Running DOM Visualization for HTML file using NEW ENGINE');
                 await AnalysisOrchestrator.orchestrateAnalysis(
                     filePath,
                     'VisualizeDOM',
@@ -95,7 +98,7 @@ export class ProjectByLanguageCommands {
             } else {
                 // For other files, use the configured analysis mode with NEW ENGINE
                 if (analysisMode === 'XR') {
-                    console.log('PROJECT_STRUCTURE_COMMANDS: Running XR Analysis using NEW ENGINE');
+                    logger.debug('Running XR Analysis using NEW ENGINE');
                     await AnalysisOrchestrator.orchestrateAnalysis(
                         filePath,
                         'XR',
@@ -104,7 +107,7 @@ export class ProjectByLanguageCommands {
                         false
                     );
                 } else if (analysisMode === 'LivePanel') {
-                    console.log('PROJECT_STRUCTURE_COMMANDS: Running LivePanel Analysis using NEW ENGINE');
+                    logger.debug('Running LivePanel Analysis using NEW ENGINE');
                     await AnalysisOrchestrator.orchestrateAnalysis(
                         filePath,
                         'LivePanel',
@@ -120,7 +123,7 @@ export class ProjectByLanguageCommands {
             vscode.window.showInformationMessage(`Started ${analysisMode} analysis for file: ${path.basename(filePath)}`);
             
         } catch (error) {
-            console.error('PROJECT_STRUCTURE_COMMANDS: Error analyzing file:', error);
+            logger.error('Error analyzing file:', error);
             vscode.window.showErrorMessage(`Failed to analyze file: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -129,14 +132,14 @@ export class ProjectByLanguageCommands {
      * Analyze a directory using the configured directory analysis mode
      */
     private async analyzeDirectory(directoryPath: string): Promise<void> {
-        console.log(`PROJECT_STRUCTURE_COMMANDS: Analyzing directory: ${directoryPath}`);
-        console.log(`PROJECT_STRUCTURE_COMMANDS: DirectoryPath type: ${typeof directoryPath}`);
-        console.log(`PROJECT_STRUCTURE_COMMANDS: DirectoryPath value: "${directoryPath}"`);
+        logger.debug(() => `Analyzing directory: ${directoryPath}`);
+        logger.debug(() => `DirectoryPath type: ${typeof directoryPath}`);
+        logger.debug(() => `DirectoryPath value: "${directoryPath}"`);
         
         try {
             // Validate input
             if (!directoryPath || typeof directoryPath !== 'string') {
-                console.error('PROJECT_STRUCTURE_COMMANDS: Invalid directoryPath received:', directoryPath);
+                logger.error('Invalid directoryPath received:', directoryPath);
                 vscode.window.showErrorMessage('Invalid directory path received');
                 return;
             }
@@ -144,7 +147,7 @@ export class ProjectByLanguageCommands {
             const storage = AnalysisConfigurationStorage.getInstance(this.context);
             const directoryAnalysisMode = await storage.getAnalysisDirectoryMode();
             
-            console.log(`PROJECT_STRUCTURE_COMMANDS: Using directory analysis mode: ${directoryAnalysisMode}`);
+            logger.debug(() => `Using directory analysis mode: ${directoryAnalysisMode}`);
             
             // Map directory analysis mode to AnalysisOrchestrator parameters
             let analysisMode: 'XR' | 'LivePanel';
@@ -172,7 +175,7 @@ export class ProjectByLanguageCommands {
                     return;
             }
             
-            console.log(`PROJECT_STRUCTURE_COMMANDS: Running ${analysisMode} Directory Analysis (Deep: ${isDeep}) using NEW ENGINE`);
+            logger.debug(() => `Running ${analysisMode} Directory Analysis (Deep: ${isDeep}) using NEW ENGINE`);
             await AnalysisOrchestrator.orchestrateAnalysis(
                 directoryPath,
                 analysisMode,
@@ -184,7 +187,7 @@ export class ProjectByLanguageCommands {
             vscode.window.showInformationMessage(`Started ${directoryAnalysisMode} analysis for directory: ${path.basename(directoryPath)}`);
             
         } catch (error) {
-            console.error('PROJECT_STRUCTURE_COMMANDS: Error analyzing directory:', error);
+            logger.error('Error analyzing directory:', error);
             vscode.window.showErrorMessage(`Failed to analyze directory: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DIRECTORY_ANALYSIS_LIVEPANEL_COMMANDS');
 
 export class DirectoryAnalysisLivePanelCommands {
     constructor(private context: vscode.ExtensionContext) {}
@@ -67,7 +70,7 @@ export class DirectoryAnalysisLivePanelCommands {
 
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'LivePanel', 'directory', this.context, false);
         } catch (error) {
-            console.error('DIRECTORY_ANALYSIS_LIVEPANEL_COMMANDS: Error in LivePanel analyze directory command:', error);
+            logger.error('Error in LivePanel analyze directory command:', error);
             vscode.window.showErrorMessage(`CodeXR: Directory LivePanel analysis failed - ${error}`);
         }
     }
@@ -99,7 +102,7 @@ export class DirectoryAnalysisLivePanelCommands {
 
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'LivePanel', 'directory', this.context, true);
         } catch (error) {
-            console.error('DIRECTORY_ANALYSIS_LIVEPANEL_COMMANDS: Error in LivePanel Deep analyze directory command:', error);
+            logger.error('Error in LivePanel Deep analyze directory command:', error);
             vscode.window.showErrorMessage(`CodeXR: Directory LivePanel Deep analysis failed - ${error}`);
         }
     }

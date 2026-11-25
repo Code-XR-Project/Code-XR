@@ -13,6 +13,9 @@ import { FileRequirementProcessor } from '../processors/FileRequirementProcessor
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { AnalysisConfigurationStorage } from '../../configuration/analysisConfigurationStorage';
 import { executeLaunchPipeline } from './launchPipeline';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('LAUNCHER_LIVE_PANEL');
 
 const LOG_PREFIX = 'NEW_LAUNCHER_LIVEPANEL_ANALYSIS';
 
@@ -35,16 +38,16 @@ export class LauncherLivePanel {
 
             preValidation: async () => {
                 if (!session.hash256) {
-                    console.error(`${LOG_PREFIX}: File hash not found in session ${session.id}`);
+                    logger.error(`${LOG_PREFIX}: File hash not found in session ${session.id}`);
                     registry.updateSessionStatus(session.id, 'error', 100);
                     throw new Error('File hash not found');
                 }
-                console.log(`${LOG_PREFIX}: File hash from session: ${session.hash256.substring(0, 12)}...`);
+                logger.debug(() => `${LOG_PREFIX}: File hash from session: ${session.hash256.substring(0, 12)}...`);
             },
 
             processRequirements: async () => {
                 const currentTheme = await configStorage.getViewTheme();
-                console.log(`${LOG_PREFIX}: Using theme: ${currentTheme}`);
+                logger.debug(() => `${LOG_PREFIX}: Using theme: ${currentTheme}`);
                 const processor = new FileRequirementProcessor(context);
                 return processor.processRequirements(session, currentTheme);
             },
@@ -72,19 +75,19 @@ export class LauncherLivePanel {
 
             preValidation: async () => {
                 const files = session.filesToHash || [];
-                console.log(`${LOG_PREFIX}: Directory session target path: ${session.targetPath}`);
-                console.log(`${LOG_PREFIX}: Directory session deep mode: ${session.isDeep ? 'enabled' : 'disabled'}`);
-                console.log(`${LOG_PREFIX}: Session currently tracks ${files.length} hashed files`);
-                console.log(`${LOG_PREFIX}: Directory targets will be resolved by the Python coordinator during the initial analysis`);
+                logger.debug(() => `${LOG_PREFIX}: Directory session target path: ${session.targetPath}`);
+                logger.debug(() => `${LOG_PREFIX}: Directory session deep mode: ${session.isDeep ? 'enabled' : 'disabled'}`);
+                logger.debug(() => `${LOG_PREFIX}: Session currently tracks ${files.length} hashed files`);
+                logger.debug(() => `${LOG_PREFIX}: Directory targets will be resolved by the Python coordinator during the initial analysis`);
 
                 if (files.length === 0) {
-                    console.log(`${LOG_PREFIX}: filesToHash will be populated after the initial directory analysis completes`);
+                    logger.debug(() => `${LOG_PREFIX}: filesToHash will be populated after the initial directory analysis completes`);
                 }
             },
 
             processRequirements: async () => {
                 const currentTheme = await configStorage.getViewTheme();
-                console.log(`${LOG_PREFIX}: Using theme: ${currentTheme}`);
+                logger.debug(() => `${LOG_PREFIX}: Using theme: ${currentTheme}`);
                 const processor = new FileRequirementProcessor(context);
                 return processor.processRequirements(session, currentTheme);
             },

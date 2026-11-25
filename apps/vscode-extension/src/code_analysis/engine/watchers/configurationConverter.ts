@@ -4,6 +4,9 @@
  */
 
 import { AutoAnalysisDelayConfig } from '../../configuration/models/analysisConfiguration';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('CONFIG_CONVERTER');
 
 export class ConfigurationConverter {
     
@@ -11,7 +14,7 @@ export class ConfigurationConverter {
      * Convierte AutoAnalysisDelayConfig a milisegundos
      */
     public static convertToMilliseconds(config: AutoAnalysisDelayConfig): number {
-        console.log(`CONFIG_CONVERTER: Converting delay config`, config);
+        logger.debug(`Converting delay config`, config);
         
         switch (config.type) {
             case 'RealTime':
@@ -27,7 +30,7 @@ export class ConfigurationConverter {
             case 'Custom':
                 return config.customMs || 3000; // Default a 3s si no hay valor custom
             default:
-                console.warn(`CONFIG_CONVERTER: Unknown delay type ${config.type}, defaulting to 3s`);
+                logger.warn(`Unknown delay type ${config.type}, defaulting to 3s`);
                 return 3000;
         }
     }

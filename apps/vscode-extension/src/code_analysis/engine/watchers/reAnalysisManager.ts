@@ -12,6 +12,9 @@ import { SSEManager } from '../../../servers/runtime/sse/SSEManager';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
 import { analysisUpdateEvents } from '../../historical';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('RE_ANALYSIS_MANAGER');
 
 export class ReAnalysisManager {
     private executePython: ExecutePython;
@@ -57,7 +60,7 @@ export class ReAnalysisManager {
 
             return true;
         } catch (error) {
-            console.error('RE_ANALYSIS_MANAGER: Error in data.json regeneration:', error);
+            logger.error('Error in data.json regeneration:', error);
             return false;
         }
     }
@@ -100,7 +103,7 @@ export class ReAnalysisManager {
 
             return true;
         } catch (error) {
-            console.error('RE_ANALYSIS_MANAGER: Error in VisualizeDOM regeneration:', error);
+            logger.error('Error in VisualizeDOM regeneration:', error);
             return false;
         }
     }
@@ -134,7 +137,7 @@ export class ReAnalysisManager {
         } catch (error) {
             const code = (error as NodeJS.ErrnoException)?.code;
             if (code !== 'ENOENT') {
-                console.warn('RE_ANALYSIS_MANAGER: Failed to remove legacy DOM data.json:', error);
+                logger.warn('Failed to remove legacy DOM data.json:', error);
             }
         }
     }

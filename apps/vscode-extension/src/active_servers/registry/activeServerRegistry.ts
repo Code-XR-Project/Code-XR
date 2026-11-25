@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { ActiveServer, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from '../model/activeServerModel';
 import { RemoteAccessState } from '../../remote_access/model/remoteAccessModel';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVERS');
 
 /**
  * Active Server Registry
@@ -15,7 +18,7 @@ export class ActiveServerRegistry {
     public readonly onRegistryChange: vscode.Event<RegistryEvent> = this.eventEmitter.event;
 
     private constructor() {
-        console.log('ACTIVE_SERVERS: Registry initialized');
+        logger.debug('Registry initialized');
     }
 
     /**
@@ -42,7 +45,7 @@ export class ActiveServerRegistry {
         serverInstance?: any;
         metadata?: any;
     }): ActiveServer {
-        console.log('SERVER: registerServer called with config:', {
+        logger.debug('SERVER: registerServer called with config:', {
             port: config.port,
             htmlFile: config.htmlFile,
             customName: config.customName,
@@ -68,13 +71,13 @@ export class ActiveServerRegistry {
         this.servers.set(serverId, server);
         
         // Enhanced logging for custom names
-        console.log(`ACTIVE_SERVERS: Registered server ${serverId} at ${config.url} (${config.certMode}/${config.launchMode})`);
+        logger.debug(() => `Registered server ${serverId} at ${config.url} (${config.certMode}/${config.launchMode})`);
         if (config.customName && config.customName.trim().length > 0) {
-            console.log(`ACTIVE_SERVERS: Received custom name from launcher: ${config.customName}`);
-            console.log(`ACTIVE_SERVERS: Registering server with name: ${config.customName}`);
+            logger.debug(() => `Received custom name from launcher: ${config.customName}`);
+            logger.debug(() => `Registering server with name: ${config.customName}`);
         } else {
             const fallbackName = `localhost:${config.port}`;
-            console.log(`ACTIVE_SERVERS: No custom name provided. Using default name: ${fallbackName}`);
+            logger.debug(() => `No custom name provided. Using default name: ${fallbackName}`);
         }
         
         this.emitEvent('serverAdded', serverId, server);
@@ -88,13 +91,13 @@ export class ActiveServerRegistry {
     public unregisterServer(serverId: string): boolean {
         const server = this.servers.get(serverId);
         if (!server) {
-            console.warn(`ACTIVE_SERVERS: Attempted to unregister non-existent server: ${serverId}`);
+            logger.warn(`Attempted to unregister non-existent server: ${serverId}`);
             return false;
         }
 
         this.servers.delete(serverId);
         
-        console.log(`ACTIVE_SERVERS: Unregistered server ${serverId} (${server.url})`);
+        logger.debug(() => `Unregistered server ${serverId} (${server.url})`);
         
         this.emitEvent('serverRemoved', serverId, server);
         
@@ -107,13 +110,13 @@ export class ActiveServerRegistry {
     public updateServerStatus(serverId: string, status: 'running' | 'stopped' | 'error'): boolean {
         const server = this.servers.get(serverId);
         if (!server) {
-            console.warn(`ACTIVE_SERVERS: Attempted to update status of non-existent server: ${serverId}`);
+            logger.warn(`Attempted to update status of non-existent server: ${serverId}`);
             return false;
         }
 
         server.status = status;
         
-        console.log(`ACTIVE_SERVERS: Updated server ${serverId} status to ${status}`);
+        logger.debug(() => `Updated server ${serverId} status to ${status}`);
         
         this.emitEvent('serverUpdated', serverId, server);
         
@@ -186,7 +189,7 @@ export class ActiveServerRegistry {
         const count = this.servers.size;
         this.servers.clear();
         
-        console.log(`ACTIVE_SERVERS: Cleared all servers (${count} removed)`);
+        logger.debug(() => `Cleared all servers (${count} removed)`);
         
         this.emitEvent('registryCleared');
     }
@@ -207,7 +210,7 @@ export class ActiveServerRegistry {
         }
 
         if (removedCount > 0) {
-            console.log(`ACTIVE_SERVERS: Cleaned up ${removedCount} inactive servers`);
+            logger.debug(() => `Cleaned up ${removedCount} inactive servers`);
         }
 
         return removedCount;
@@ -255,7 +258,7 @@ export class ActiveServerRegistry {
     public dispose(): void {
         this.eventEmitter.dispose();
         this.clearAll();
-        console.log('ACTIVE_SERVERS: Registry disposed');
+        logger.debug('Registry disposed');
     }
 
     /**

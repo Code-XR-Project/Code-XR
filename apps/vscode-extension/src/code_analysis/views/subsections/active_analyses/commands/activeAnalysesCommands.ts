@@ -45,6 +45,9 @@ import {
     publishExportPackage,
     validateExportPackage,
 } from '../../../../export/exportPackageTransaction';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_ANALYSES_COMMANDS');
 
 /** The Git steps of the export wizard: a request to run, or the wizard stops. */
 type GitExportPrompt =
@@ -690,7 +693,7 @@ export class ActiveAnalysesCommands {
 
     private async refreshAnalyses(): Promise<void> {
         ActiveAnalysesDataService.getInstance().refresh();
-        console.log('ACTIVE_ANALYSES_COMMANDS: Refresh triggered via data service');
+        logger.debug('Refresh triggered via data service');
     }
 
     /**

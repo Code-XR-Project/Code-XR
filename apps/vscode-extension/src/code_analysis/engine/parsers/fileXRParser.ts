@@ -54,6 +54,9 @@ import {
     copyLogoRuntimeToOutput,
     LOGO_RUNTIME_OUTPUT_NAME,
 } from '../components/customComponents';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('FILE_XR_PARSER');
 
 interface FileXRSharedBootstrap {
     payload: any[];
@@ -234,7 +237,7 @@ export class FileXRParser {
             vscode.window.showWarningMessage(`XR config needs attention: ${summaryMessage}`);
         }
 
-        console.log('FILE_XR_PARSER: Current XR file configuration', {
+        logger.debug('Current XR file configuration', {
             chartType,
             dimensionMappings,
             validationResult,

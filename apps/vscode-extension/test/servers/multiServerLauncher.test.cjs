@@ -26,6 +26,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { createFakeVscode, withFakeVscode } = require('../helpers/fakeVscode.cjs');
+const { observeLogsAsConsole } = require('../helpers/logCapture.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const goldenPath = path.join(__dirname, 'fixtures', 'multiServerLauncher.transcripts.json');
@@ -210,14 +211,17 @@ async function runScenario(scenario) {
         results: [],
     };
 
+    // Console lines, and logger calls rendered in the same console shape
+    // (helpers/logCapture.cjs), so the golden outlives the logging migration.
+    const record = (level, first, rest) => {
+        if (typeof first === 'string' && /^(SERVER|ACTIVE_SERVER)/.test(first)) {
+            const extra = rest.length > 0 ? ` ${JSON.stringify(normalize(rest, context))}` : '';
+            transcript.console.push(`${level}: ${normalizeString(first)}${extra}`);
+        }
+    };
     const original = { log: console.log, warn: console.warn, error: console.error };
     for (const level of Object.keys(original)) {
-        console[level] = (first, ...rest) => {
-            if (typeof first === 'string' && /^(SERVER|ACTIVE_SERVER)/.test(first)) {
-                const extra = rest.length > 0 ? ` ${JSON.stringify(normalize(rest, context))}` : '';
-                transcript.console.push(`${level}: ${normalizeString(first)}${extra}`);
-            }
-        };
+        console[level] = (first, ...rest) => record(level, first, rest);
     }
 
     try {
@@ -227,6 +231,7 @@ async function runScenario(scenario) {
             // dependency would build a fresh copy nobody else references.
             const { MultiServerLauncher } = requireOut('servers/runtime/multiServerLauncher.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
+            observeLogsAsConsole(loaded('core/logging/sink.js'), record);
             const makeFakeServer = (kind) => class {
                 constructor(config) {
                     this.isFakeServer = true;

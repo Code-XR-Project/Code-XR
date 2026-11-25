@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { VisualizeDataStateManager, VisualizeDataState } from '../../state/visualizeDataState';
 import { ChartDimension } from '../../../babia_templates/models/chartModels';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_ITEMS');
 
 /**
  * Tree item types for visualize data items
@@ -39,7 +42,7 @@ export class VisualizeDataItemFactory {
      * Create all visualize data items with current state
      */
     public static createVisualizeDataItems(context?: vscode.ExtensionContext): VisualizeDataTreeItem[] {
-        console.log('BABIA-TEMPLATES: Creating visualize data items...');
+        logger.debug('BABIA-TEMPLATES: Creating visualize data items...');
         
         // Get current state if context is available and state manager exists
         let stateManager: VisualizeDataStateManager | undefined;
@@ -49,7 +52,7 @@ export class VisualizeDataItemFactory {
             if (context && VisualizeDataStateManager.hasInstance()) {
                 stateManager = VisualizeDataStateManager.getInstance(context);
                 state = stateManager.getState();
-                console.log('BABIA-TEMPLATES: Retrieved state from manager', {
+                logger.debug('BABIA-TEMPLATES: Retrieved state from manager', {
                     hasChart: !!state.selectedChart,
                     chartName: state.selectedChart?.name,
                     hasJson: !!state.selectedJsonName,
@@ -59,13 +62,13 @@ export class VisualizeDataItemFactory {
                 // Try to initialize state manager if context is available
                 stateManager = VisualizeDataStateManager.getInstance(context);
                 state = stateManager.getState();
-                console.log('BABIA-TEMPLATES: Initialized new state manager');
+                logger.debug('BABIA-TEMPLATES: Initialized new state manager');
             } else {
-                console.log('BABIA-TEMPLATES: No context available, using default state');
+                logger.debug('BABIA-TEMPLATES: No context available, using default state');
             }
         } catch (error) {
             // State manager not initialized yet, use default values
-            console.log('BABIA-TEMPLATES: Error accessing state manager, using defaults:', error);
+            logger.warn('BABIA-TEMPLATES: Error accessing state manager, using defaults:', error);
         }
 
         const chartDescription = state?.selectedChart 
@@ -84,7 +87,7 @@ export class VisualizeDataItemFactory {
             ? 'Ready to launch' 
             : 'Configure required settings';
 
-        console.log('BABIA-TEMPLATES: Item descriptions:', {
+        logger.debug('BABIA-TEMPLATES: Item descriptions:', {
             chart: chartDescription,
             json: jsonDescription,
             dimension: dimensionDescription,
@@ -231,7 +234,7 @@ export class VisualizeDataItemFactory {
             if (isDuplicateField) {
                 description += ' (duplicate)';
                 tooltip += '\nWarning: This field is used in multiple mappings';
-                console.log(`DIMENSION-MAPPING: Duplicate field usage detected - '${currentMapping.dataField}' is used for multiple dimensions`);
+                logger.debug(() => `DIMENSION-MAPPING: Duplicate field usage detected - '${currentMapping.dataField}' is used for multiple dimensions`);
             }
         } else {
             description = 'Not Mapped';

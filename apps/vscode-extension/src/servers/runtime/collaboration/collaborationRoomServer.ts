@@ -46,6 +46,9 @@ export type {
     SharedEntityState,
     SharedPresenceState,
 } from './roomTypes';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('COLLABORATION_ROOM_SERVER');
 
 export interface CollaborationRoomServerOptions {
     authorizeUpgrade?: (request: http.IncomingMessage) => boolean;
@@ -256,7 +259,7 @@ export class CollaborationRoomServer {
                 sharedState.updateEntityLock(this.registry, peer, message, false);
                 return;
             default:
-                console.log('[Code-XR Fix][Room] application message received:', message.type, '(peer:', peer.id, ')');
+                logger.debug(() => `[Code-XR Fix][Room] application message received: ${message.type} (peer: ${peer.id})`);
                 void this.handleApplicationMessage(peer, message);
         }
     }

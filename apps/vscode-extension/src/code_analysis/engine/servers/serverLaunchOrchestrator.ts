@@ -15,13 +15,16 @@ import {
     ServerLaunchResult,
     SessionServerInfo,
 } from './models/sessionServerModels';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVER_LAUNCH_ORCHESTRATOR');
 
 export class ServerLaunchOrchestrator {
     private multiServerLauncher: MultiServerLauncher | null = null;
     private serverSettingsManager: ServerSettingsManager;
 
     constructor(private context: vscode.ExtensionContext) {
-        console.log('SERVER_LAUNCH_ORCHESTRATOR: Initializing orchestrator');
+        logger.debug('Initializing orchestrator');
         this.serverSettingsManager = ServerSettingsManager.getInstance(context);
     }
 
@@ -98,7 +101,7 @@ export class ServerLaunchOrchestrator {
                 error: launchResult.error || 'Unknown server launch error',
             };
         } catch (error) {
-            console.error('SERVER_LAUNCH_ORCHESTRATOR: Error launching server:', error);
+            logger.error('Error launching server:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
@@ -109,10 +112,10 @@ export class ServerLaunchOrchestrator {
     async stopServerForSession(sessionId: string, targetPath: string): Promise<boolean> {
         try {
             fileToServerMap.unregisterMapping(targetPath);
-            console.log(`SERVER_LAUNCH_ORCHESTRATOR: Stopped server for session ${sessionId}`);
+            logger.debug(() => `Stopped server for session ${sessionId}`);
             return true;
         } catch (error) {
-            console.error('SERVER_LAUNCH_ORCHESTRATOR: Error stopping server:', error);
+            logger.error('Error stopping server:', error);
             return false;
         }
     }
@@ -165,7 +168,7 @@ export class ServerLaunchOrchestrator {
                 }
             }
         } catch (error) {
-            console.error(`SERVER_LAUNCH_ORCHESTRATOR: Error reading directory ${dir}:`, error);
+            logger.error(`Error reading directory ${dir}:`, error);
         }
 
         return htmlFiles;

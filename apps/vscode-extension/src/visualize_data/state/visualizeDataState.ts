@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { ChartMetadata, DimensionMapping } from '../../babia_templates/models/chartModels';
 import { JsonAnalysisResult } from '../../utils/jsonFieldAnalyzer';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_STATE');
 
 /**
  * Visualize Data State
@@ -46,7 +49,7 @@ export class VisualizeDataStateManager {
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.state = this.loadState();
-        console.log('VISUALIZE-STATE: State manager initialized with state:', {
+        logger.debug('VISUALIZE-STATE: State manager initialized with state:', {
             hasChart: !!this.state.selectedChart,
             hasJsonPath: !!this.state.selectedJsonPath,
             mappingsCount: this.state.dimensionMappings.length,
@@ -100,7 +103,7 @@ export class VisualizeDataStateManager {
      * Update selected chart
      */
     public updateSelectedChart(chart: ChartMetadata): void {
-        console.log('VISUALIZE-STATE: Chart selected:', {
+        logger.debug('VISUALIZE-STATE: Chart selected:', {
             chartId: chart.id,
             chartName: chart.name,
             requiredDimensions: chart.dimensions.filter(d => d.required).map(d => d.name),
@@ -118,7 +121,7 @@ export class VisualizeDataStateManager {
         this.saveState();
         this.notifyStateChange();
         
-        console.log('VISUALIZE-STATE: Chart selection updated, cleared previous mappings');
+        logger.debug('VISUALIZE-STATE: Chart selection updated, cleared previous mappings');
     }
 
     /**
@@ -127,7 +130,7 @@ export class VisualizeDataStateManager {
     public updateSelectedJson(filePath: string, fileName: string): void {
         const isValidPath = filePath && fs.existsSync(filePath);
         
-        console.log('VISUALIZE-STATE: JSON file selection:', {
+        logger.debug('VISUALIZE-STATE: JSON file selection:', {
             fileName: fileName || 'none',
             filePath: filePath || 'none',
             fileExists: isValidPath,
@@ -148,7 +151,7 @@ export class VisualizeDataStateManager {
         this.notifyStateChange();
         
         if (!isValidPath && filePath) {
-            console.warn('VISUALIZE-STATE: Invalid or non-existent file path provided:', filePath);
+            logger.warn('VISUALIZE-STATE: Invalid or non-existent file path provided:', filePath);
         }
     }
 
@@ -156,7 +159,7 @@ export class VisualizeDataStateManager {
      * Update dimension mapping configuration
      */
     public updateDimensionMapping(isConfigured: boolean): void {
-        console.log(`BABIA-TEMPLATES: Dimension mapping configured: ${isConfigured}`);
+        logger.debug(() => `BABIA-TEMPLATES: Dimension mapping configured: ${isConfigured}`);
         this.state = {
             ...this.state,
             isDimensionMappingConfigured: isConfigured,
@@ -180,7 +183,7 @@ export class VisualizeDataStateManager {
      * Reset state
      */
     public reset(): void {
-        console.log('BABIA-TEMPLATES: State reset');
+        logger.debug('BABIA-TEMPLATES: State reset');
         this.state = this.getInitialState();
         this.notifyStateChange();
     }
@@ -224,7 +227,7 @@ export class VisualizeDataStateManager {
      * Update JSON analysis result
      */
     updateJsonAnalysis(jsonAnalysis: JsonAnalysisResult): void {
-        console.log('DIMENSION-MAPPING: Updating JSON analysis result');
+        logger.debug('DIMENSION-MAPPING: Updating JSON analysis result');
         
         this.state.jsonAnalysis = jsonAnalysis;
         
@@ -235,7 +238,7 @@ export class VisualizeDataStateManager {
         this.saveState();
         this._onStateChanged.fire(this.state);
         
-        console.log('DIMENSION-MAPPING: JSON analysis updated', {
+        logger.debug('DIMENSION-MAPPING: JSON analysis updated', {
             fieldsCount: jsonAnalysis.fields.length,
             numericFieldsCount: jsonAnalysis.fields.filter(f => f.isNumeric).length
         });
@@ -245,7 +248,7 @@ export class VisualizeDataStateManager {
      * Update dimension mappings
      */
     updateDimensionMappings(mappings: DimensionMapping[]): void {
-        console.log('DIMENSION-MAPPING: Updating dimension mappings');
+        logger.debug('DIMENSION-MAPPING: Updating dimension mappings');
         
         this.state.dimensionMappings = mappings;
         
@@ -253,7 +256,7 @@ export class VisualizeDataStateManager {
         this.saveState();
         this._onStateChanged.fire(this.state);
         
-        console.log('DIMENSION-MAPPING: Dimension mappings updated', {
+        logger.debug('DIMENSION-MAPPING: Dimension mappings updated', {
             count: mappings.length,
             mappings: mappings.map(m => `${m.dimension} -> ${m.dataField}`)
         });
@@ -263,7 +266,7 @@ export class VisualizeDataStateManager {
      * Update single dimension mapping
      */
     updateSingleDimensionMapping(dimensionName: string, fieldName: string): void {
-        console.log(`DIMENSION-MAPPING: Updating mapping for dimension '${dimensionName}' to field '${fieldName}'`);
+        logger.debug(() => `DIMENSION-MAPPING: Updating mapping for dimension '${dimensionName}' to field '${fieldName}'`);
         
         // Remove existing mapping for this dimension
         this.state.dimensionMappings = this.state.dimensionMappings.filter(
@@ -285,11 +288,11 @@ export class VisualizeDataStateManager {
         
         if (duplicateMappings.length > 1) {
             const affectedDimensions = duplicateMappings.map(m => m.dimension).join(', ');
-            console.log(`DIMENSION-MAPPING: Warning - Field '${fieldName}' is used in multiple dimensions: ${affectedDimensions}`);
+            logger.debug(() => `DIMENSION-MAPPING: Warning - Field '${fieldName}' is used in multiple dimensions: ${affectedDimensions}`);
             
             // Log each duplicate mapping for clarity
             duplicateMappings.forEach(mapping => {
-                console.log(`DIMENSION-MAPPING: Field '${fieldName}' mapped to dimension '${mapping.dimension}'`);
+                logger.debug(() => `DIMENSION-MAPPING: Field '${fieldName}' mapped to dimension '${mapping.dimension}'`);
             });
         }
         
@@ -297,7 +300,7 @@ export class VisualizeDataStateManager {
         this.saveState();
         this._onStateChanged.fire(this.state);
         
-        console.log('DIMENSION-MAPPING: Single dimension mapping updated', {
+        logger.debug('DIMENSION-MAPPING: Single dimension mapping updated', {
             dimension: dimensionName,
             field: fieldName,
             totalMappings: this.state.dimensionMappings.length
@@ -346,9 +349,9 @@ export class VisualizeDataStateManager {
     private saveState(): void {
         try {
             this.context.workspaceState.update('visualizeDataState', this.state);
-            console.log('BABIA-TEMPLATES: State saved to workspace storage');
+            logger.debug('BABIA-TEMPLATES: State saved to workspace storage');
         } catch (error) {
-            console.error('BABIA-TEMPLATES: Failed to save state:', error);
+            logger.error('BABIA-TEMPLATES: Failed to save state:', error);
         }
     }
 
@@ -359,7 +362,7 @@ export class VisualizeDataStateManager {
         try {
             const savedState = this.context.workspaceState.get<VisualizeDataState>('visualizeDataState');
             if (savedState) {
-                console.log('VISUALIZE-STATE: Loading saved state from workspace storage:', {
+                logger.debug('VISUALIZE-STATE: Loading saved state from workspace storage:', {
                     selectedChart: savedState.selectedChart || 'none',
                     selectedJsonPath: savedState.selectedJsonPath || 'none',
                     hasJsonAnalysis: !!savedState.jsonAnalysis,
@@ -371,7 +374,7 @@ export class VisualizeDataStateManager {
                 const isValidJsonPath = savedState.selectedJsonPath && fs.existsSync(savedState.selectedJsonPath);
                 
                 if (savedState.selectedJsonPath && !isValidJsonPath) {
-                    console.warn('VISUALIZE-STATE: Stored JSON file no longer exists:', savedState.selectedJsonPath);
+                    logger.warn('VISUALIZE-STATE: Stored JSON file no longer exists:', savedState.selectedJsonPath);
                 }
                 
                 // Ensure all required properties exist with validation
@@ -393,7 +396,7 @@ export class VisualizeDataStateManager {
                     validatedState.isDimensionMappingConfigured
                 );
                 
-                console.log('VISUALIZE-STATE: State loaded and validated:', {
+                logger.debug('VISUALIZE-STATE: State loaded and validated:', {
                     finalChart: validatedState.selectedChart,
                     finalJsonPath: validatedState.selectedJsonPath,
                     finalJsonExists: validatedState.selectedJsonPath ? fs.existsSync(validatedState.selectedJsonPath) : false,
@@ -405,10 +408,10 @@ export class VisualizeDataStateManager {
                 return validatedState;
             }
         } catch (error) {
-            console.error('VISUALIZE-STATE: Failed to load state:', error);
+            logger.error('VISUALIZE-STATE: Failed to load state:', error);
         }
         
-        console.log('VISUALIZE-STATE: No stored state found, using initial state');
+        logger.debug('VISUALIZE-STATE: No stored state found, using initial state');
         return this.getInitialState();
     }
 

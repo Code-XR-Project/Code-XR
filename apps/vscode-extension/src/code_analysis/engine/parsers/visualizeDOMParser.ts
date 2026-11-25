@@ -17,6 +17,9 @@ import {
     readImmersiveRigRuntimeContent,
     IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
 } from '../components/customComponents';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DOM_PARSER');
 
 /**
  * VisualizeDOM Parser - Bridge to TemplateHTMLProcessor
@@ -30,9 +33,9 @@ export class VisualizeDOMParser {
     private context: vscode.ExtensionContext;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('VISUALIZE_DOM_PARSER:  Initializing VisualizeDOMParser...');
+        logger.debug('Initializing VisualizeDOMParser...');
         this.context = context;
-        console.log('VISUALIZE_DOM_PARSER:  VisualizeDOMParser initialized successfully');
+        logger.debug('VisualizeDOMParser initialized successfully');
     }
 
     /**
@@ -48,23 +51,23 @@ export class VisualizeDOMParser {
         theme?: string,
         _virtualScreenSessionId?: string,
     ): Promise<Map<string, string>> {
-        console.log(`VISUALIZE_DOM_PARSER:  Processing HTML templates for DOM visualization`);
-        console.log(`VISUALIZE_DOM_PARSER: File: ${templateData.fileName}`);
-        console.log(`VISUALIZE_DOM_PARSER: HTML content length: ${templateData.htmlContent.length}`);
-        console.log(`VISUALIZE_DOM_PARSER: Theme: ${theme || 'default'}`);
+        logger.debug(`Processing HTML templates for DOM visualization`);
+        logger.debug(() => `File: ${templateData.fileName}`);
+        logger.debug(() => `HTML content length: ${templateData.htmlContent.length}`);
+        logger.debug(() => `Theme: ${theme || 'default'}`);
 
         try {
             // STEP 1: Validate template data
-            console.log(`VISUALIZE_DOM_PARSER:  Step 1 - Validating template data...`);
+            logger.debug(`Step 1 - Validating template data...`);
             if (!TemplateHTMLProcessor.validateTemplateData(templateData)) {
-                console.error(`VISUALIZE_DOM_PARSER:  Template data validation failed`);
+                logger.error(`Template data validation failed`);
                 throw new Error('Invalid template data provided');
             }
-            console.log(`VISUALIZE_DOM_PARSER:  Template data validation passed`);
+            logger.debug(`Template data validation passed`);
 
             // STEP 2: Call templateHTMLProcessor to get processed HTML and JS
-            console.log(`VISUALIZE_DOM_PARSER:  Step 2 - Calling TemplateHTMLProcessor...`);
-            console.log(`VISUALIZE_DOM_PARSER:  Calling with templateData:`, {
+            logger.debug(`Step 2 - Calling TemplateHTMLProcessor...`);
+            logger.debug(`Calling with templateData:`, {
                 fileName: templateData.fileName,
                 filePath: templateData.filePath,
                 title: templateData.title,
@@ -77,7 +80,7 @@ export class VisualizeDOMParser {
             );
 
             // DEBUG: Log detailed information about what templateHTMLProcessor returned
-            console.log(`VISUALIZE_DOM_PARSER:  TemplateHTMLProcessor returned:`, {
+            logger.debug(`TemplateHTMLProcessor returned:`, {
                 
                 success: processingResult.success,
                 hasIndexHtml: !!processingResult.indexHtml,
@@ -88,74 +91,61 @@ export class VisualizeDOMParser {
             });
 
             if (!processingResult.success) {
-                console.error(`VISUALIZE_DOM_PARSER:  TemplateHTMLProcessor failed:`, processingResult.error);
+                logger.error(`TemplateHTMLProcessor failed:`, processingResult.error);
                 throw new Error(`Template processing failed: ${processingResult.error}`);
             }
 
             if (!processingResult.indexHtml || !processingResult.jsContent) {
-                console.error(`VISUALIZE_DOM_PARSER:  TemplateHTMLProcessor returned incomplete data:`, {
+                logger.error(`TemplateHTMLProcessor returned incomplete data:`, {
                     hasIndexHtml: !!processingResult.indexHtml,
                     hasJsContent: !!processingResult.jsContent
                 });
                 throw new Error('TemplateHTMLProcessor returned incomplete data');
             }
 
-            console.log(`VISUALIZE_DOM_PARSER:  TemplateHTMLProcessor returned complete data`);
-            console.log(`VISUALIZE_DOM_PARSER:  indexHtml: ${processingResult.indexHtml.length} chars`);
-            console.log(`VISUALIZE_DOM_PARSER:  jsContent: ${processingResult.jsContent.length} chars`);
+            const { indexHtml, jsContent } = processingResult;
+            logger.debug(`TemplateHTMLProcessor returned complete data`);
+            logger.debug(() => `indexHtml: ${indexHtml.length} chars`);
+            logger.debug(() => `jsContent: ${jsContent.length} chars`);
 
             // STEP 3: Create result Map with the two files from templateHTMLProcessor
-            console.log(`VISUALIZE_DOM_PARSER:  Step 3 - Creating result Map...`);
+            logger.debug(`Step 3 - Creating result Map...`);
             const resultFiles = new Map<string, string>();
 
             // Add index.html from templateHTMLProcessor
-            resultFiles.set('index.html', processingResult.indexHtml);
-            console.log(`VISUALIZE_DOM_PARSER:  Added index.html (${processingResult.indexHtml.length} chars)`);
+            resultFiles.set('index.html', indexHtml);
+            logger.debug(() => `Added index.html (${indexHtml.length} chars)`);
 
             // Add main.js from templateHTMLProcessor 
-            resultFiles.set('main.js', processingResult.jsContent);
-            console.log(`VISUALIZE_DOM_PARSER:  Added main.js (${processingResult.jsContent.length} chars)`);
+            resultFiles.set('main.js', jsContent);
+            logger.debug(() => `Added main.js (${jsContent.length} chars)`);
             const avatarRuntime = await readCodeXrAvatarRuntimeContent(this.context.extensionPath);
             resultFiles.set(CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, avatarRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${CODEXR_AVATAR_RUNTIME_OUTPUT_NAME} (${avatarRuntime.length} chars)`);
+            logger.debug(() => `Added ${CODEXR_AVATAR_RUNTIME_OUTPUT_NAME} (${avatarRuntime.length} chars)`);
             const collaborationRuntime = await readCodeXrCollaborationRuntimeContent(this.context.extensionPath);
             resultFiles.set(CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, collaborationRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME} (${collaborationRuntime.length} chars)`);
+            logger.debug(() => `Added ${CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME} (${collaborationRuntime.length} chars)`);
             const virtualScreenRuntime = await readVirtualScreenRuntimeContent(this.context.extensionPath);
             resultFiles.set(VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME, virtualScreenRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME} (${virtualScreenRuntime.length} chars)`);
+            logger.debug(() => `Added ${VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME} (${virtualScreenRuntime.length} chars)`);
             const virtualScreenManagerRuntime = await readVirtualScreenManagerRuntimeContent(this.context.extensionPath);
             resultFiles.set(VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, virtualScreenManagerRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME} (${virtualScreenManagerRuntime.length} chars)`);
+            logger.debug(() => `Added ${VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME} (${virtualScreenManagerRuntime.length} chars)`);
             const domSceneCollaborationRuntime = await readCodeXrDomSceneCollaborationRuntimeContent(this.context.extensionPath);
             resultFiles.set(CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME, domSceneCollaborationRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME} (${domSceneCollaborationRuntime.length} chars)`);
+            logger.debug(() => `Added ${CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME} (${domSceneCollaborationRuntime.length} chars)`);
             const pointerPolicyRuntime = await readPointerPolicyRuntimeContent(this.context.extensionPath);
             resultFiles.set(POINTER_POLICY_RUNTIME_OUTPUT_NAME, pointerPolicyRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${POINTER_POLICY_RUNTIME_OUTPUT_NAME} (${pointerPolicyRuntime.length} chars)`);
+            logger.debug(() => `Added ${POINTER_POLICY_RUNTIME_OUTPUT_NAME} (${pointerPolicyRuntime.length} chars)`);
             const immersiveRigRuntime = await readImmersiveRigRuntimeContent(this.context.extensionPath);
             resultFiles.set(IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME, immersiveRigRuntime);
-            console.log(`VISUALIZE_DOM_PARSER:  Added ${IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME} (${immersiveRigRuntime.length} chars)`);
+            logger.debug(() => `Added ${IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME} (${immersiveRigRuntime.length} chars)`);
 
-            // FINAL DEBUG: Verify the result Map
-            console.log(`VISUALIZE_DOM_PARSER:  FINAL DEBUG - Result Map verification:`);
-            console.log(`VISUALIZE_DOM_PARSER:  Map size: ${resultFiles.size}`);
-            console.log(`VISUALIZE_DOM_PARSER:  Map keys: [${Array.from(resultFiles.keys()).join(', ')}]`);
-            console.log(`VISUALIZE_DOM_PARSER:  Map instanceof Map: ${resultFiles instanceof Map}`);
-
-            // Test iteration
-            console.log(`VISUALIZE_DOM_PARSER:  Testing iteration:`);
-            let count = 0;
-            for (const [fileName, content] of resultFiles) {
-                count++;
-                console.log(`VISUALIZE_DOM_PARSER:  File ${count}: ${fileName} (${content.length} chars)`);
-            }
-
-            console.log(`VISUALIZE_DOM_PARSER:  Successfully created Map with ${resultFiles.size} files`);
+            logger.debug(() => `Successfully created Map with ${resultFiles.size} files`);
             return resultFiles;
 
         } catch (error) {
-            console.error(`VISUALIZE_DOM_PARSER:  Error processing HTML templates:`, error);
+            logger.error(`Error processing HTML templates:`, error);
             throw error;
         }
     }
@@ -174,14 +164,14 @@ export class VisualizeDOMParser {
         const supportedExtensions = this.getSupportedExtensions();
         const fileExtension = path.extname(filePath).toLowerCase();
         
-        console.log(`VISUALIZE_DOM_PARSER:  Checking if file can be processed: ${filePath}`);
-        console.log(`VISUALIZE_DOM_PARSER:  File extension: ${fileExtension}`);
+        logger.debug(() => `Checking if file can be processed: ${filePath}`);
+        logger.debug(() => `File extension: ${fileExtension}`);
         
         const canProcess = supportedExtensions.includes(fileExtension);
         if (canProcess) {
-            console.log(`VISUALIZE_DOM_PARSER:  File ${filePath} can be processed`);
+            logger.debug(() => `File ${filePath} can be processed`);
         } else {
-            console.log(`VISUALIZE_DOM_PARSER:  File ${filePath} cannot be processed. Supported: ${supportedExtensions.join(', ')}`);
+            logger.debug(() => `File ${filePath} cannot be processed. Supported: ${supportedExtensions.join(', ')}`);
         }
         
         return canProcess;

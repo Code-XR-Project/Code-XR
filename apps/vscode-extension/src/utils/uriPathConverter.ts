@@ -4,6 +4,9 @@
  */
 
 import * as vscode from 'vscode';
+import { getLogger } from '../core/logging/sink';
+
+const logger = getLogger('URI_PATH_CONVERTER');
 
 /**
  * Convert VS Code URI or file path to a standard file system path
@@ -16,18 +19,18 @@ export function convertToFileSystemPath(input: any): string | null {
             return null;
         }
 
-        console.log('URI_PATH_CONVERTER: Processing input:', typeof input, input);
+        logger.debug(() => `Processing input (${typeof input})`, input);
 
         // If it's already a string path
         if (typeof input === 'string') {
             // Check if it's a URI string
             if (input.startsWith('file://') || input.startsWith('vscode-')) {
                 const uri = vscode.Uri.parse(input);
-                console.log('URI_PATH_CONVERTER: Converted URI string to path:', uri.fsPath);
+                logger.debug('Converted URI string to path:', uri.fsPath);
                 return uri.fsPath;
             }
             // It's already a file system path
-            console.log('URI_PATH_CONVERTER: Input is already a file system path:', input);
+            logger.debug('Input is already a file system path:', input);
             return input;
         }
 
@@ -35,14 +38,14 @@ export function convertToFileSystemPath(input: any): string | null {
         if (input && typeof input === 'object') {
             // Check if it has fsPath property (VS Code URI)
             if ('fsPath' in input && typeof input.fsPath === 'string') {
-                console.log('URI_PATH_CONVERTER: Extracted fsPath from URI object:', input.fsPath);
+                logger.debug('Extracted fsPath from URI object:', input.fsPath);
                 return input.fsPath;
             }
 
             // Check if it has scheme and path properties (URI-like object)
             if ('scheme' in input && 'path' in input) {
                 const uri = vscode.Uri.from(input);
-                console.log('URI_PATH_CONVERTER: Created URI from object and extracted path:', uri.fsPath);
+                logger.debug('Created URI from object and extracted path:', uri.fsPath);
                 return uri.fsPath;
             }
 
@@ -50,16 +53,16 @@ export function convertToFileSystemPath(input: any): string | null {
             const stringified = String(input);
             if (stringified.startsWith('file://') || stringified.startsWith('vscode-')) {
                 const uri = vscode.Uri.parse(stringified);
-                console.log('URI_PATH_CONVERTER: Converted stringified object to path:', uri.fsPath);
+                logger.debug('Converted stringified object to path:', uri.fsPath);
                 return uri.fsPath;
             }
         }
 
-        console.warn('URI_PATH_CONVERTER: Could not convert input to file system path:', input);
+        logger.warn('Could not convert input to file system path:', input);
         return null;
 
     } catch (error) {
-        console.error('URI_PATH_CONVERTER: Error converting input to file system path:', error);
+        logger.error('Error converting input to file system path:', error);
         return null;
     }
 }
@@ -81,15 +84,15 @@ export function getFileSystemPathFromEditorOrInput(input?: any): string | null {
         const activeEditor = vscode.window.activeTextEditor;
         if (activeEditor) {
             const editorPath = activeEditor.document.uri.fsPath;
-            console.log('URI_PATH_CONVERTER: Using active editor path:', editorPath);
+            logger.debug('Using active editor path:', editorPath);
             return editorPath;
         }
 
-        console.warn('URI_PATH_CONVERTER: No valid file path found from input or active editor');
+        logger.warn('No valid file path found from input or active editor');
         return null;
 
     } catch (error) {
-        console.error('URI_PATH_CONVERTER: Error getting file system path:', error);
+        logger.error('Error getting file system path:', error);
         return null;
     }
 }

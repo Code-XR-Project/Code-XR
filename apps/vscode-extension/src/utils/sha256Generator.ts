@@ -5,6 +5,9 @@
 
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import { getLogger } from '../core/logging/sink';
+
+const logger = getLogger('SHA256_GENERATOR');
 
 export class SHA256Generator {
     
@@ -18,7 +21,7 @@ export class SHA256Generator {
             hash.update(fileBuffer);
             return hash.digest('hex');
         } catch (error) {
-            console.error(`SHA256_GENERATOR: Error generating hash for file ${filePath}:`, error);
+            logger.error(`Error generating hash for file ${filePath}:`, error);
             throw new Error(`Failed to generate SHA256 hash: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -32,7 +35,7 @@ export class SHA256Generator {
             hash.update(content, 'utf8');
             return hash.digest('hex');
         } catch (error) {
-            console.error(`SHA256_GENERATOR: Error generating hash for string content:`, error);
+            logger.error(`Error generating hash for string content:`, error);
             throw new Error(`Failed to generate SHA256 hash: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -45,7 +48,7 @@ export class SHA256Generator {
             const currentHash = await SHA256Generator.generateFileHash(filePath);
             return currentHash === expectedHash;
         } catch (error) {
-            console.error(`SHA256_GENERATOR: Error verifying hash for file ${filePath}:`, error);
+            logger.error(`Error verifying hash for file ${filePath}:`, error);
             return false;
         }
     }

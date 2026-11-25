@@ -7,6 +7,9 @@ import {
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../../code_analysis/refresh';
 import { sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DEPENDENCY_GRAPH_BRIDGE');
 
 /** Room access shared by every analysis bridge. */
 export interface AnalysisBridgeRoomHooks {
@@ -186,7 +189,7 @@ export class DependencyGraphBridge {
         if (!this.dependencyGraphService) {
             // Answer instead of silently dropping: the scene shows the reason
             // and the extension host log names the misconfiguration.
-            console.warn('[Code-XR Fix][Server] dependency-graph-start received but no dependency service is attached (mode:', this.host.analysisMode, ')');
+            logger.warn(`[Code-XR Fix][Server] dependency-graph-start received but no dependency service is attached (mode: ${this.host.analysisMode})`);
             messageContext.send({
                 type: 'dependency-graph-error',
                 payload: { message: 'Dependency analysis is not attached to this analysis server.' },
@@ -216,7 +219,7 @@ export class DependencyGraphBridge {
         const hasCachedDataset = typeof existingDependencyState?.datasetUrl === 'string'
             && existingDependencyState.datasetUrl.length > 0;
         const forceFullRefresh = message.payload?.forceFull === true;
-        console.log('[Code-XR Fix][Server] dependency-graph-start accepted (cached:', hasCachedDataset, ', forceFull:', forceFullRefresh, ')');
+        logger.debug(() => `[Code-XR Fix][Server] dependency-graph-start accepted (cached: ${hasCachedDataset}, forceFull: ${forceFullRefresh})`);
         analysisRefreshCoordinator.setSnapshotAvailable(
             this.host.sessionId,
             'dependency-graph',
@@ -259,7 +262,7 @@ export class DependencyGraphBridge {
             },
         });
         if (!hasCachedDataset || forceFullRefresh) {
-            console.log('[Code-XR Fix][Server] dependency-graph refresh requested for session', this.host.sessionId);
+            logger.debug('[Code-XR Fix][Server] dependency-graph refresh requested for session', this.host.sessionId);
             analysisRefreshCoordinator.requestRefresh(
                 this.host.sessionId,
                 'dependency-graph',
@@ -277,7 +280,7 @@ export class DependencyGraphBridge {
         if (!this.dependencyGraphService) {
             return;
         }
-        console.log('[Code-XR Fix][Server] dependency analysis starting (revision', batch.sourceRevision, ')');
+        logger.debug(() => `[Code-XR Fix][Server] dependency analysis starting (revision ${batch.sourceRevision})`);
         try {
             this.room.getRoom()?.upsertServerEntity(this.room.getRoomId(), {
                 entityKind: 'dependency-graph',
@@ -342,7 +345,7 @@ export class DependencyGraphBridge {
             });
             this.host.notifyLivePanelDependencyUpdated(dataset.revision);
         } catch (error) {
-            console.error('[Code-XR Fix][Server] dependency analysis failed:', error);
+            logger.error('[Code-XR Fix][Server] dependency analysis failed:', error);
             this.room.getRoom()?.upsertServerEntity(this.room.getRoomId(), {
                 entityKind: 'dependency-graph',
                 entityId: 'main',

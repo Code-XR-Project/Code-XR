@@ -3,6 +3,9 @@ import { NetworkUtils } from '../utils/networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
 import { isCertificateRejectedByClient } from './httpsTlsOptions';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 export type HttpsDefaultServerConfig = HttpsServerBaseConfig;
 
@@ -14,7 +17,7 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
 
         super(config, (httpConfig) => new HttpServer(httpConfig));
 
-        console.log('SERVER: HTTPS server (generated local certificates) initialized with config:', {
+        logger.debug('HTTPS server (generated local certificates) initialized with config:', {
             ...this.config,
             certPath: this.config.certPath ? '***REDACTED***' : undefined,
             keyPath: this.config.keyPath ? '***REDACTED***' : undefined,
@@ -29,7 +32,7 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
         await this.resolveListeningPort();
 
         const loadSslOptions = () => this.loadSslOptions(
-            'SERVER: SSL certificates loaded successfully',
+            'SSL certificates loaded successfully',
             'SERVER: Failed to load SSL certificates',
         );
         return this.listenWithTls(loadSslOptions, (server, resolve) => {
@@ -39,12 +42,12 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
                 const urls = NetworkUtils.generateServerUrls(port, 'https');
                 const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
 
-                console.log('SERVER: HTTPS server successfully listening.');
-                console.log('SERVER: Address object:', address);
-                console.log(`SERVER: Config host: "${this.config.host}"`);
-                console.log(`SERVER: Config port: ${this.config.port}`);
-                console.log(`SERVER: Generated local certificates loaded from ${this.config.certPath}`);
-                console.log('SERVER: NOTE: Using self-signed certificate - browsers may show security warnings');
+                logger.debug('HTTPS server successfully listening.');
+                logger.debug('Address object:', address);
+                logger.debug(() => `Config host: "${this.config.host}"`);
+                logger.debug(() => `Config port: ${this.config.port}`);
+                logger.debug(() => `Generated local certificates loaded from ${this.config.certPath}`);
+                logger.debug('NOTE: Using self-signed certificate - browsers may show security warnings');
 
                 NetworkUtils.displayNetworkInfo(port, 'https');
                 this.showVRCertificateInstructions(primaryExternalUrl, urls.localhost);
@@ -55,17 +58,17 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
 
             server.on('tlsClientError', (err) => {
                 if (isCertificateRejectedByClient(err)) {
-                    console.warn('SERVER: Client rejected self-signed certificate - this is expected behavior');
-                    console.warn('SERVER: VR solution: open the server URL in a browser first and accept the certificate');
-                    console.warn(`SERVER: Navigate to https://${this.config.host}:${this.config.port} and proceed manually`);
+                    logger.warn('Client rejected self-signed certificate - this is expected behavior');
+                    logger.warn('VR solution: open the server URL in a browser first and accept the certificate');
+                    logger.warn(`Navigate to https://${this.config.host}:${this.config.port} and proceed manually`);
                 } else {
-                    console.warn('SERVER: TLS client error (non-critical):', err.message);
+                    logger.warn('TLS client error (non-critical):', err.message);
                 }
             });
 
-            console.log(`SERVER: About to call server.listen with ${this.config.host}:${this.config.port}`);
+            logger.debug(() => `About to call server.listen with ${this.config.host}:${this.config.port}`);
             server.listen(this.config.port, this.config.host, () => {
-                console.log('SERVER: Listen callback executed successfully');
+                logger.debug('Listen callback executed successfully');
             });
         });
     }
@@ -88,9 +91,9 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
             throw new Error('SERVER: Generated local certificate paths are not available.');
         }
 
-        console.log('SERVER: Validating generated local certificates...');
-        console.log('SERVER: Certificate path:', certPath);
-        console.log('SERVER: Key path:', keyPath);
+        logger.debug('Validating generated local certificates...');
+        logger.debug('Certificate path:', certPath);
+        logger.debug('Key path:', keyPath);
 
         await this.assertCertificatePairReadable(certPath, keyPath);
     }
@@ -109,14 +112,14 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
             `   - Now your VR headset can access securely\n\n` +
             `This accepts the self-signed certificate for your session.`;
 
-        console.log('SERVER: VR certificate instructions:');
-        console.log('SERVER: =====================================');
-        console.log(`SERVER: VR/Mobile URL: ${primaryUrl}`);
-        console.log(`SERVER: Local URL: ${fallbackUrl}`);
-        console.log('SERVER: 1. Navigate to the VR/Mobile URL from your device');
-        console.log('SERVER: 2. Accept certificate warning in browser');
-        console.log('SERVER: 3. Then use VR headset to access the same URL');
-        console.log('SERVER: =====================================');
+        logger.debug('VR certificate instructions:');
+        logger.debug('=====================================');
+        logger.debug(() => `VR/Mobile URL: ${primaryUrl}`);
+        logger.debug(() => `Local URL: ${fallbackUrl}`);
+        logger.debug('1. Navigate to the VR/Mobile URL from your device');
+        logger.debug('2. Accept certificate warning in browser');
+        logger.debug('3. Then use VR headset to access the same URL');
+        logger.debug('=====================================');
 
         vscode.window.showInformationMessage(
             `HTTPS server ready. VR/Mobile: ${primaryUrl}`,

@@ -7,6 +7,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { ChartMetadata } from '../../../../../babia_templates/models/chartModels';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('SHARED_CHART_TYPE_SETTING_CORE');
 
 export interface ChartTypeInfo<Mode extends string = string> {
     id: string;
@@ -72,14 +75,14 @@ export function createChartTypeSettingItem(
 
 export async function showChartTypeSelection<Mode extends string>(adapter: ChartTypeSelectionAdapter<Mode>): Promise<void> {
     const prefix = adapter.logPrefix;
-    console.log(`${prefix}: Opening chart type selection dialog`);
+    logger.debug(() => `${prefix}: Opening chart type selection dialog`);
 
     try {
         const currentMode = await adapter.getCurrentAnalysisMode();
         const availableCharts = await adapter.getAvailableChartTypes(currentMode);
 
         if (availableCharts.length === 0) {
-            console.error(`${prefix}: No chart types found`);
+            logger.error(`${prefix}: No chart types found`);
             vscode.window.showErrorMessage('No chart templates available');
             return;
         }
@@ -101,13 +104,13 @@ export async function showChartTypeSelection<Mode extends string>(adapter: Chart
             const selectedChart = selectedItem.chart;
             await adapter.setChartType(selectedChart.id);
 
-            console.log(`${prefix}: Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
+            logger.debug(() => `${prefix}: Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
             vscode.window.showInformationMessage(adapter.confirmation(selectedChart.name, currentMode));
         } else {
-            console.log(`${prefix}: Chart type selection cancelled`);
+            logger.debug(() => `${prefix}: Chart type selection cancelled`);
         }
     } catch (error) {
-        console.error(`${prefix}: Error in chart type selection:`, error);
+        logger.error(`${prefix}: Error in chart type selection:`, error);
         vscode.window.showErrorMessage(`Failed to select chart type: ${error instanceof Error ? error.message : String(error)}`);
     }
 }

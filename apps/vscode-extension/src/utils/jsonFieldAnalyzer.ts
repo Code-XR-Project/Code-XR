@@ -1,4 +1,7 @@
 import * as fs from 'fs';
+import { getLogger } from '../core/logging/sink';
+
+const logger = getLogger('JSON_FIELD_ANALYZER');
 
 /**
  * JSON field information
@@ -50,27 +53,27 @@ export class JsonFieldAnalyzer {
      * Analyze a JSON file and extract field information
      */
     public static async analyzeJsonFile(filePath: string): Promise<JsonAnalysisResult> {
-        console.log(`DIMENSION-MAPPING: Analyzing JSON file: ${filePath}`);
+        logger.debug(() => `DIMENSION-MAPPING: Analyzing JSON file: ${filePath}`);
         
         try {
             // Read and parse JSON file
             const fileContent = fs.readFileSync(filePath, 'utf8');
             const jsonData = JSON.parse(fileContent);
             
-            console.log(`DIMENSION-MAPPING: JSON parsed successfully`);
+            logger.debug(`DIMENSION-MAPPING: JSON parsed successfully`);
             
             // Analyze the data structure
             const analysisResult = this.analyzeDataStructure(jsonData, filePath);
             
-            console.log(`DIMENSION-MAPPING: Found ${analysisResult.fields.length} fields in ${analysisResult.recordCount} records`);
+            logger.debug(() => `DIMENSION-MAPPING: Found ${analysisResult.fields.length} fields in ${analysisResult.recordCount} records`);
             analysisResult.fields.forEach(field => {
-                console.log(`DIMENSION-MAPPING: Field '${field.name}' - Type: ${field.type}, Numeric: ${field.isNumeric}, Values: ${field.valueCount}`);
+                logger.debug(() => `DIMENSION-MAPPING: Field '${field.name}' - Type: ${field.type}, Numeric: ${field.isNumeric}, Values: ${field.valueCount}`);
             });
             
             return analysisResult;
             
         } catch (error) {
-            console.error(`DIMENSION-MAPPING: Error analyzing JSON file:`, error);
+            logger.error(`DIMENSION-MAPPING: Error analyzing JSON file:`, error);
             return {
                 success: false,
                 fields: [],

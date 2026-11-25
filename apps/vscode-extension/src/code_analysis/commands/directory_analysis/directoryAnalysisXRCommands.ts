@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DIRECTORY_ANALYSIS_XR_COMMANDS');
 
 export class DirectoryAnalysisXRCommands {
     constructor(private context: vscode.ExtensionContext) {}
@@ -53,7 +56,7 @@ export class DirectoryAnalysisXRCommands {
 
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'XR', 'directory', this.context, false);
         } catch (error) {
-            console.error('DIRECTORY_ANALYSIS_XR_COMMANDS: Error in analyzeDirectoryXR:', error);
+            logger.error('Error in analyzeDirectoryXR:', error);
             vscode.window.showErrorMessage(
                 `Failed to start directory XR analysis: ${error instanceof Error ? error.message : String(error)}`,
             );
@@ -69,7 +72,7 @@ export class DirectoryAnalysisXRCommands {
 
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'XR', 'directory', this.context, true);
         } catch (error) {
-            console.error('DIRECTORY_ANALYSIS_XR_COMMANDS: Error in analyzeDirectoryXRDeep:', error);
+            logger.error('Error in analyzeDirectoryXRDeep:', error);
             vscode.window.showErrorMessage(
                 `Failed to start directory XR Deep analysis: ${error instanceof Error ? error.message : String(error)}`,
             );

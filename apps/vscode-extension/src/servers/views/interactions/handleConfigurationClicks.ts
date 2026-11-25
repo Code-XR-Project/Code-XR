@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
 import { ensureServerConfigReady, updateServerConfig, getServerConfig } from '../items/configurationItems';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /**
  * Handle HTTP Mode configuration click
  */
 export async function handleHttpModeClick(): Promise<void> {
-    console.log('SERVER: HTTP Mode configuration clicked');
+    logger.debug('HTTP Mode configuration clicked');
     
     const options = [
         'HTTP',
@@ -29,16 +32,16 @@ export async function handleHttpModeClick(): Promise<void> {
             );
             
             if (confirmed !== 'Yes') {
-                console.log('SERVER: HTTP mode selection cancelled by user');
+                logger.debug('HTTP mode selection cancelled by user');
                 return;
             }
             
-            console.log('SERVER: HTTP mode confirmed by user');
+            logger.debug('HTTP mode confirmed by user');
         }
         
         // Handle HTTPS with custom certificates
         if (selected === 'HTTPS (custom certificates)') {
-            console.log('SERVER: HTTPS custom certificates selected, opening file pickers');
+            logger.debug('HTTPS custom certificates selected, opening file pickers');
             
             // First: Select certificate file (cert.pem)
             const certFileUri = await vscode.window.showOpenDialog({
@@ -52,12 +55,12 @@ export async function handleHttpModeClick(): Promise<void> {
             });
             
             if (!certFileUri || certFileUri.length === 0) {
-                console.log('SERVER: Certificate file selection cancelled');
+                logger.debug('Certificate file selection cancelled');
                 return;
             }
             
             const certPath = certFileUri[0].fsPath;
-            console.log(`SERVER: Certificate file selected: ${certPath}`);
+            logger.debug(() => `Certificate file selected: ${certPath}`);
             
             // Second: Select private key file (key.pem)
             const keyFileUri = await vscode.window.showOpenDialog({
@@ -71,13 +74,13 @@ export async function handleHttpModeClick(): Promise<void> {
             });
             
             if (!keyFileUri || keyFileUri.length === 0) {
-                console.log('SERVER: Private key file selection cancelled');
+                logger.debug('Private key file selection cancelled');
                 return;
             }
             
             const keyPath = keyFileUri[0].fsPath;
-            console.log(`SERVER: Private key file selected: ${keyPath}`);
-            console.log(`SERVER: Custom certificate configuration - Cert: ${certPath}, Key: ${keyPath}`);
+            logger.debug(() => `Private key file selected: ${keyPath}`);
+            logger.debug(() => `Custom certificate configuration - Cert: ${certPath}, Key: ${keyPath}`);
             
             // Store the custom certificate configuration in a single update
             await updateServerConfig({ 
@@ -86,12 +89,12 @@ export async function handleHttpModeClick(): Promise<void> {
                 customKeyPath: keyPath
             });
             
-            console.log(`SERVER: HTTP mode changed to ${selected} with custom certificates`);
+            logger.debug(() => `HTTP mode changed to ${selected} with custom certificates`);
             vscode.window.showInformationMessage(`SERVER: HTTPS mode updated with custom certificates`);
         } else {
             // Handle HTTP and HTTPS with generated local certificates
             await updateServerConfig({ httpMode: selected });
-            console.log(`SERVER: HTTP mode changed to ${selected}`);
+            logger.debug(() => `HTTP mode changed to ${selected}`);
             vscode.window.showInformationMessage(`SERVER: HTTP mode updated to ${selected}`);
         }
     }
@@ -101,7 +104,7 @@ export async function handleHttpModeClick(): Promise<void> {
  * Handle Default Port configuration click
  */
 export async function handlePortClick(): Promise<void> {
-    console.log('SERVER: Port configuration clicked');
+    logger.debug('Port configuration clicked');
     
     const input = await vscode.window.showInputBox({
         prompt: 'Enter port number (3000-8080)',
@@ -121,7 +124,7 @@ export async function handlePortClick(): Promise<void> {
     if (input) {
         const port = parseInt(input);
         await updateServerConfig({ port });
-        console.log(`SERVER: Port changed to ${port}`);
+        logger.debug(() => `Port changed to ${port}`);
         vscode.window.showInformationMessage(`SERVER: Port updated to ${port}`);
     }
 }
@@ -130,14 +133,14 @@ export async function handlePortClick(): Promise<void> {
  * Handle Auto-Open toggle click
  */
 export async function handleAutoOpenClick(): Promise<void> {
-    console.log('SERVER: Auto-Open toggle clicked');
+    logger.debug('Auto-Open toggle clicked');
 
     await ensureServerConfigReady();
     const currentConfig = getServerConfig();
     const newValue = !currentConfig.autoOpen;
     
     await updateServerConfig({ autoOpen: newValue });
-    console.log(`SERVER: Auto-Open toggled to ${newValue ? 'Yes' : 'No'}`);
+    logger.debug(() => `Auto-Open toggled to ${newValue ? 'Yes' : 'No'}`);
     
     const message = newValue ? 'Auto-Open enabled' : 'Auto-Open disabled';
     vscode.window.showInformationMessage(`SERVER: ${message}`);
@@ -147,14 +150,14 @@ export async function handleAutoOpenClick(): Promise<void> {
  * Handle Open Mode configuration click
  */
 export async function handleOpenModeClick(): Promise<void> {
-    console.log('SERVER: Open Mode configuration clicked');
+    logger.debug('Open Mode configuration clicked');
 
     await ensureServerConfigReady();
     const currentConfig = getServerConfig();
     const newMode = currentConfig.openMode === 'Browser' ? 'Lateral Panel' : 'Browser';
     
     await updateServerConfig({ openMode: newMode });
-    console.log(`SERVER: Open Mode changed to ${newMode}`);
+    logger.debug(() => `Open Mode changed to ${newMode}`);
     vscode.window.showInformationMessage(`SERVER: Open Mode set to ${newMode}`);
 }
 

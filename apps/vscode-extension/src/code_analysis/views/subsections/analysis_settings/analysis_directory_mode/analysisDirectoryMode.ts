@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, AnalysisDirectoryMode } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { AnalysisDirectoryMode } from '../../../../configuration';
 
@@ -14,7 +17,7 @@ export class AnalysisDirectorySetting {
     private storage: AnalysisConfigurationStorage;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('ANALYSIS: Initializing Analysis Directory setting');
+        logger.debug('Initializing Analysis Directory setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedMode();
     }
@@ -151,7 +154,7 @@ export class AnalysisDirectorySetting {
     async setMode(mode: AnalysisDirectoryMode): Promise<void> {
         this.currentMode = mode;
         await this.saveModeToSettings();
-        console.log(`ANALYSIS: Analysis directory mode set to ${mode}`);
+        logger.debug(() => `Analysis directory mode set to ${mode}`);
     }
 
     /**
@@ -160,9 +163,9 @@ export class AnalysisDirectorySetting {
     private async loadSavedMode(): Promise<void> {
         try {
             this.currentMode = await this.storage.getAnalysisDirectoryMode();
-            console.log(`ANALYSIS: Loaded analysis directory mode: ${this.currentMode}`);
+            logger.debug(() => `Loaded analysis directory mode: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error loading analysis directory mode:', error);
+            logger.error('Error loading analysis directory mode:', error);
             // Keep default mode
         }
     }
@@ -173,9 +176,9 @@ export class AnalysisDirectorySetting {
     private async saveModeToSettings(): Promise<void> {
         try {
             await this.storage.setAnalysisDirectoryMode(this.currentMode);
-            console.log(`ANALYSIS: Saved analysis directory mode: ${this.currentMode}`);
+            logger.debug(() => `Saved analysis directory mode: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error saving analysis directory mode:', error);
+            logger.error('Error saving analysis directory mode:', error);
         }
     }
 }

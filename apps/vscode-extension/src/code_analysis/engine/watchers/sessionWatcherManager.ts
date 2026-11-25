@@ -8,6 +8,9 @@ import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { FileWatcherOrchestrator } from './fileWatcherOrchestrator';
 import { DirectoryWatcherOrchestrator } from './directoryWatcherOrchestrator';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SESSION_WATCHER_MANAGER');
 
 interface ManagedWatcher {
     startWatching(): Promise<string | null>;
@@ -29,12 +32,12 @@ export class SessionWatcherManager {
             }
 
             if (!fs.existsSync(session.targetPath)) {
-                console.error(`SESSION_WATCHER_MANAGER: Target does not exist: ${session.targetPath}`);
+                logger.error(`Target does not exist: ${session.targetPath}`);
                 return null;
             }
 
             if (!session.savedFilesPath) {
-                console.error(`SESSION_WATCHER_MANAGER: Session ${session.id} does not have saved files path`);
+                logger.error(`Session ${session.id} does not have saved files path`);
                 return null;
             }
 
@@ -53,7 +56,7 @@ export class SessionWatcherManager {
             SessionWatcherManager.activeWatchers.set(session.id, orchestrator);
             return watcherId;
         } catch (error) {
-            console.error(`SESSION_WATCHER_MANAGER: Error starting watcher for session ${session.id}:`, error);
+            logger.error(`Error starting watcher for session ${session.id}:`, error);
             return null;
         }
     }
@@ -69,7 +72,7 @@ export class SessionWatcherManager {
             SessionWatcherManager.activeWatchers.delete(sessionId);
             return true;
         } catch (error) {
-            console.error(`SESSION_WATCHER_MANAGER: Error stopping watcher for session ${sessionId}:`, error);
+            logger.error(`Error stopping watcher for session ${sessionId}:`, error);
             return false;
         }
     }
@@ -97,7 +100,7 @@ export class SessionWatcherManager {
                 await orchestrator.updateDebounceConfiguration();
                 updatedCount++;
             } catch (error) {
-                console.error(`SESSION_WATCHER_MANAGER: Error updating watcher configuration for session ${sessionId}:`, error);
+                logger.error(`Error updating watcher configuration for session ${sessionId}:`, error);
             }
         }
 

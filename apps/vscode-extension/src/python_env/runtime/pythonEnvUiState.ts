@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('PYTHON_ENV');
 
 export type PythonEnvUiStatus = 'idle' | 'installing' | 'ready' | 'error';
 
@@ -105,7 +108,7 @@ export class PythonEnvUiStateService {
             await vscode.commands.executeCommand('setContext', 'codeXR.pythonEnv.uiLocked', this.state.isUiRestricted);
             await vscode.commands.executeCommand('setContext', 'codeXR.pythonEnv.retryAvailable', this.state.status === 'error');
         } catch (error) {
-            console.warn('PYTHON_ENV: Failed to update VS Code context keys:', error);
+            logger.warn('Failed to update VS Code context keys:', error);
         }
     }
 }

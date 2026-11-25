@@ -3,6 +3,9 @@ import type { ServerSettings } from '../../storage/serverSettingsManager';
 import type { LaunchMode } from '../../../active_servers/model/activeServerModel';
 import { openServerInBrowser, openServerInPanel } from '../../../active_servers/services/serverOpenActions';
 import { NetworkUtils } from '../../utils/networkUtils';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /*
  * What the user sees around a MultiServerLauncher launch: the HTTPS-to-HTTP
@@ -50,10 +53,10 @@ export async function handleAutoOpening(
 ): Promise<void> {
     const isAutoOpenEnabled = settings.launch.autoOpen;
     
-    console.log(`SERVER: Auto-open configuration: enabled=${isAutoOpenEnabled}, mode=${launchMode}`);
+    logger.debug(() => `Auto-open configuration: enabled=${isAutoOpenEnabled}, mode=${launchMode}`);
     
     if (!isAutoOpenEnabled) {
-        console.log('SERVER: Auto-open is disabled, showing success notification only');
+        logger.debug('Auto-open is disabled, showing success notification only');
         
         // Extract port from serverUrl to generate network URLs
         const portMatch = serverUrl.match(/:(\d+)/);
@@ -68,7 +71,7 @@ export async function handleAutoOpening(
             if (localIP !== 'localhost') {
                 const networkUrl = `${protocol}://${localIP}:${port}`;
                 notificationMessage = `Server launched successfully! Network: ${networkUrl} Local: ${serverUrl}`;
-                console.log(`SERVER: Network access URL: ${networkUrl}`);
+                logger.debug(() => `Network access URL: ${networkUrl}`);
             }
         }
         
@@ -95,7 +98,7 @@ export async function handleAutoOpening(
         return;
     }
     
-    console.log(`SERVER: Auto-opening server in ${launchMode} mode`);
+    logger.debug(() => `Auto-opening server in ${launchMode} mode`);
     
     try {
         // Auto-open using the configured launch mode
@@ -105,7 +108,7 @@ export async function handleAutoOpening(
             await openLaunchedServerInPanel(activeServerId);
         }
     } catch (error) {
-        console.error('SERVER: Error during auto-opening:', error);
+        logger.error('Error during auto-opening:', error);
         vscode.window.showWarningMessage(
             `Server launched but failed to auto-open: ${error instanceof Error ? error.message : String(error)}`,
             'Open Manually'
@@ -125,11 +128,11 @@ export async function handleAutoOpening(
  * Open server in browser using shared handler
  */
 async function openLaunchedServerInBrowser(activeServerId: string): Promise<void> {
-    console.log(`SERVER: Opening server ${activeServerId} in browser via shared handler`);
+    logger.debug(() => `Opening server ${activeServerId} in browser via shared handler`);
     try {
         await openServerInBrowser(activeServerId);
     } catch (error) {
-        console.error(`SERVER: Failed to open server in browser: ${error}`);
+        logger.error(`Failed to open server in browser: ${error}`);
         throw error;
     }
 }
@@ -138,11 +141,11 @@ async function openLaunchedServerInBrowser(activeServerId: string): Promise<void
  * Open server in lateral panel using shared handler
  */
 async function openLaunchedServerInPanel(activeServerId: string): Promise<void> {
-    console.log(`SERVER: Opening server ${activeServerId} in lateral panel via shared handler`);
+    logger.debug(() => `Opening server ${activeServerId} in lateral panel via shared handler`);
     try {
         await openServerInPanel(activeServerId);
     } catch (error) {
-        console.error(`SERVER: Failed to open server in lateral panel: ${error}`);
+        logger.error(`Failed to open server in lateral panel: ${error}`);
         throw error;
     }
 }

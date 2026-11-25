@@ -7,6 +7,9 @@ import { ChartMetadata } from '../../../../../babia_templates/models/chartModels
 import { chartTemplates } from '../../../../../babia_templates/charts/templateCharts';
 import { DimensionMapping } from '../../../../configuration/models/analysisConfiguration';
 import { XRFieldTypeMap } from '../../../../services/xrFieldSchemaService';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('DIMENSION_MAPPING_VALIDATOR');
 
 export interface DimensionValidationResult {
     isValid: boolean;
@@ -41,8 +44,8 @@ export class DimensionMappingValidator {
         currentMappings: DimensionMapping,
         fieldTypes?: XRFieldTypeMap,
     ): DimensionValidationResult {
-        console.log(`[DIMENSION_VALIDATOR] Validating mappings for chart: ${chartType}`);
-        console.log(`[DIMENSION_VALIDATOR] Current mappings:`, currentMappings);
+        logger.debug(() => `[DIMENSION_VALIDATOR] Validating mappings for chart: ${chartType}`);
+        logger.debug(`[DIMENSION_VALIDATOR] Current mappings:`, currentMappings);
 
         const chart = chartTemplates.find((candidate) => candidate.id === chartType);
         if (!chart) {
@@ -98,7 +101,7 @@ export class DimensionMappingValidator {
             errors,
         };
 
-        console.log('[DIMENSION_VALIDATOR] Validation result:', result);
+        logger.debug('[DIMENSION_VALIDATOR] Validation result:', result);
         return result;
     }
 

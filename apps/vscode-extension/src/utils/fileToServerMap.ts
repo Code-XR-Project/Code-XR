@@ -1,4 +1,7 @@
 import * as http from 'http';
+import { getLogger } from '../core/logging/sink';
+
+const logger = getLogger('REQUEST_UPDATE');
 
 /**
  * Information about a server associated with an analysis file
@@ -20,7 +23,7 @@ class FileToServerMapping {
     private fileToServer: Map<string, ServerInfo> = new Map();
 
     private constructor() {
-        console.log('[FILE_TO_SERVER_MAP] Initializing file-to-server mapping registry');
+        logger.debug('[FILE_TO_SERVER_MAP] Initializing file-to-server mapping registry');
     }
 
     /**
@@ -39,13 +42,13 @@ class FileToServerMapping {
      * @param serverInfo - Information about the server serving this analysis
      */
     registerMapping(fileUri: string, serverInfo: ServerInfo): void {
-        console.log(`REQUEST_UPDATE: Registering file-to-server mapping`);
-        console.log(`REQUEST_UPDATE: File URI: ${fileUri}`);
-        console.log(`REQUEST_UPDATE: Server port: ${serverInfo.port}`);
-        console.log(`REQUEST_UPDATE: Temp dir: ${serverInfo.tempDir}`);
-        console.log(`[FILE_TO_SERVER_MAP] Registering mapping: ${fileUri} -> port ${serverInfo.port}`);
+        logger.debug(`Registering file-to-server mapping`);
+        logger.debug(() => `File URI: ${fileUri}`);
+        logger.debug(() => `Server port: ${serverInfo.port}`);
+        logger.debug(() => `Temp dir: ${serverInfo.tempDir}`);
+        logger.debug(() => `[FILE_TO_SERVER_MAP] Registering mapping: ${fileUri} -> port ${serverInfo.port}`);
         this.fileToServer.set(fileUri, serverInfo);
-        console.log(`REQUEST_UPDATE: Total mappings after registration: ${this.fileToServer.size}`);
+        logger.debug(() => `Total mappings after registration: ${this.fileToServer.size}`);
     }
 
     /**
@@ -53,7 +56,7 @@ class FileToServerMapping {
      * @param fileUri - URI of the analyzed file
      */
     unregisterMapping(fileUri: string): void {
-        console.log(`[FILE_TO_SERVER_MAP] Unregistering mapping for: ${fileUri}`);
+        logger.debug(() => `[FILE_TO_SERVER_MAP] Unregistering mapping for: ${fileUri}`);
         this.fileToServer.delete(fileUri);
     }
 
@@ -72,17 +75,17 @@ class FileToServerMapping {
      * @returns File URI or null if not found
      */
     findFileByPort(port: number): string | null {
-        console.log(`REQUEST_UPDATE: Looking up file for port ${port}`);
-        console.log(`REQUEST_UPDATE: Available ports: ${Array.from(this.fileToServer.values()).map(info => info.port).join(', ')}`);
+        logger.debug(() => `Looking up file for port ${port}`);
+        logger.debug(() => `Available ports: ${Array.from(this.fileToServer.values()).map(info => info.port).join(', ')}`);
         
         for (const [fileUri, serverInfo] of this.fileToServer.entries()) {
             if (serverInfo.port === port) {
-                console.log(`REQUEST_UPDATE: Found file ${fileUri} for port ${port}`);
+                logger.debug(() => `Found file ${fileUri} for port ${port}`);
                 return fileUri;
             }
         }
         
-        console.log(`REQUEST_UPDATE: No file found for port ${port}`);
+        logger.debug(() => `No file found for port ${port}`);
         return null;
     }
 
@@ -143,7 +146,7 @@ class FileToServerMapping {
      * Clear all mappings (useful for cleanup)
      */
     clearAll(): void {
-        console.log(`[FILE_TO_SERVER_MAP] Clearing all ${this.fileToServer.size} mappings`);
+        logger.debug(() => `[FILE_TO_SERVER_MAP] Clearing all ${this.fileToServer.size} mappings`);
         this.fileToServer.clear();
     }
 

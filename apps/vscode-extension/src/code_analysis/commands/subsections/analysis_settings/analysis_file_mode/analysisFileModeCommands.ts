@@ -5,6 +5,9 @@
 
 import * as vscode from 'vscode';
 import { AnalysisFileSetting } from '../../../../views/subsections/analysis_settings/analysis_file_mode';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export interface CommandRegistration {
     commandId: string;
@@ -44,9 +47,9 @@ export class AnalysisFileModeCommands {
             const newMode = await this.analysisFileSetting.toggleMode();
             vscode.window.showInformationMessage(`Analysis File mode switched to: ${newMode}`, { modal: false });
             refreshCallback();
-            console.log(`ANALYSIS: Command executed - Analysis file mode: ${newMode}`);
+            logger.debug(() => `Command executed - Analysis file mode: ${newMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error toggling analysis file mode:', error);
+            logger.error('Error toggling analysis file mode:', error);
             vscode.window.showErrorMessage(`Failed to toggle analysis file mode: ${error}`);
         }
     }

@@ -9,6 +9,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { getVisualizationConfiguration, VisualizationSettings } from '../../utils/getVisualizationConfiguration';
 import { generateNonce } from '../../utils/nonceGenerator';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('TEMPLATE_HTML_PROCESSOR');
 
 export interface HTMLTemplateData {
     htmlContent: string;
@@ -40,9 +43,9 @@ export class TemplateHTMLProcessor {
         context: vscode.ExtensionContext
     ): Promise<HTMLProcessingResult> {
         try {
-            console.log('TEMPLATE_HTML_PROCESSOR: Starting HTML template processing...');
-            console.log('TEMPLATE_HTML_PROCESSOR: File:', templateData.fileName);
-            console.log('TEMPLATE_HTML_PROCESSOR: HTML content length:', templateData.htmlContent.length);
+            logger.debug('Starting HTML template processing...');
+            logger.debug('File:', templateData.fileName);
+            logger.debug('HTML content length:', templateData.htmlContent.length);
 
             // 1. Load DOM visualization template
             const templateHtml = await this.loadDOMTemplate(context);
@@ -77,9 +80,9 @@ export class TemplateHTMLProcessor {
             // 6. Process JavaScript if needed (for now, return as-is)
             const processedJs = jsContent;
 
-            console.log('TEMPLATE_HTML_PROCESSOR: Template processing completed successfully');
-            console.log('TEMPLATE_HTML_PROCESSOR: Generated HTML length:', processedHtml.length);
-            console.log('TEMPLATE_HTML_PROCESSOR: Generated JS length:', processedJs.length);
+            logger.debug('Template processing completed successfully');
+            logger.debug('Generated HTML length:', processedHtml.length);
+            logger.debug('Generated JS length:', processedJs.length);
 
             // DEBUG: Verify what we're about to return
             const returnResult = {
@@ -88,7 +91,7 @@ export class TemplateHTMLProcessor {
                 jsContent: processedJs
             };
 
-            console.log('TEMPLATE_HTML_PROCESSOR:  DEBUG - About to return result:', {
+            logger.debug('DEBUG - About to return result:', {
                 success: returnResult.success,
                 hasIndexHtml: !!returnResult.indexHtml,
                 hasJsContent: !!returnResult.jsContent,
@@ -98,13 +101,13 @@ export class TemplateHTMLProcessor {
                 jsContentType: typeof returnResult.jsContent
             });
 
-            console.log('TEMPLATE_HTML_PROCESSOR:  DEBUG - indexHtml preview:', returnResult.indexHtml?.substring(0, 100) + '...');
-            console.log('TEMPLATE_HTML_PROCESSOR:  DEBUG - jsContent preview:', returnResult.jsContent?.substring(0, 100) + '...');
+            logger.debug('DEBUG - indexHtml preview:', returnResult.indexHtml?.substring(0, 100) + '...');
+            logger.debug('DEBUG - jsContent preview:', returnResult.jsContent?.substring(0, 100) + '...');
 
             return returnResult;
 
         } catch (error) {
-            console.error('TEMPLATE_HTML_PROCESSOR: Error processing HTML template:', error);
+            logger.error('Error processing HTML template:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error)
@@ -126,20 +129,20 @@ export class TemplateHTMLProcessor {
                 'dom-visualization-template.html'
             );
 
-            console.log('TEMPLATE_HTML_PROCESSOR: Loading template from:', templatePath);
+            logger.debug('Loading template from:', templatePath);
 
             if (!fs.existsSync(templatePath)) {
-                console.error('TEMPLATE_HTML_PROCESSOR: Template file not found:', templatePath);
+                logger.error('Template file not found:', templatePath);
                 return null;
             }
 
             const templateContent = fs.readFileSync(templatePath, 'utf-8');
-            console.log('TEMPLATE_HTML_PROCESSOR: Template loaded successfully, length:', templateContent.length);
+            logger.debug('Template loaded successfully, length:', templateContent.length);
             
             return templateContent;
 
         } catch (error) {
-            console.error('TEMPLATE_HTML_PROCESSOR: Error loading DOM template:', error);
+            logger.error('Error loading DOM template:', error);
             return null;
         }
     }
@@ -158,20 +161,20 @@ export class TemplateHTMLProcessor {
                 'live_sse_fileDOM.js'
             );
 
-            console.log('TEMPLATE_HTML_PROCESSOR: Loading JS from:', jsPath);
+            logger.debug('Loading JS from:', jsPath);
 
             if (!fs.existsSync(jsPath)) {
-                console.error('TEMPLATE_HTML_PROCESSOR: JS file not found:', jsPath);
+                logger.error('JS file not found:', jsPath);
                 return null;
             }
 
             const jsContent = fs.readFileSync(jsPath, 'utf-8');
-            console.log('TEMPLATE_HTML_PROCESSOR: JS loaded successfully, length:', jsContent.length);
+            logger.debug('JS loaded successfully, length:', jsContent.length);
             
             return jsContent;
 
         } catch (error) {
-            console.error('TEMPLATE_HTML_PROCESSOR: Error loading HTML live reload JS:', error);
+            logger.error('Error loading HTML live reload JS:', error);
             return null;
         }
     }
@@ -211,14 +214,14 @@ export class TemplateHTMLProcessor {
             scriptUri: './main.js'
         };
 
-        console.log('TEMPLATE_HTML_PROCESSOR: Template variables prepared:');
-        console.log('TEMPLATE_HTML_PROCESSOR: - Title:', variables.TITLE);
-        console.log('TEMPLATE_HTML_PROCESSOR: - File:', variables.FILE_NAME);
-        console.log('TEMPLATE_HTML_PROCESSOR: - HTML content length:', templateData.htmlContent.length);
-        console.log('TEMPLATE_HTML_PROCESSOR: - Environment:', variables.ENVIRONMENT_PRESET);
-        console.log('TEMPLATE_HTML_PROCESSOR: - Background:', variables.BACKGROUND_COLOR);
-        console.log('TEMPLATE_HTML_PROCESSOR: - Nonce:', variables.nonce);
-        console.log('TEMPLATE_HTML_PROCESSOR: - Script URI:', variables.scriptUri);
+        logger.debug('Template variables prepared:');
+        logger.debug('- Title:', variables.TITLE);
+        logger.debug('- File:', variables.FILE_NAME);
+        logger.debug('- HTML content length:', templateData.htmlContent.length);
+        logger.debug('- Environment:', variables.ENVIRONMENT_PRESET);
+        logger.debug('- Background:', variables.BACKGROUND_COLOR);
+        logger.debug('- Nonce:', variables.nonce);
+        logger.debug('- Script URI:', variables.scriptUri);
 
         return variables;
     }
@@ -236,7 +239,7 @@ export class TemplateHTMLProcessor {
             const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
             processedTemplate = processedTemplate.replace(regex, value);
             
-            console.log(`TEMPLATE_HTML_PROCESSOR: Replaced ${placeholder} with value (${value.length} chars)`);
+            logger.debug(() => `Replaced ${placeholder} with value (${value.length} chars)`);
         }
 
         return processedTemplate;
@@ -276,17 +279,17 @@ export class TemplateHTMLProcessor {
      */
     static validateTemplateData(templateData: HTMLTemplateData): boolean {
         if (!templateData.htmlContent || templateData.htmlContent.trim().length === 0) {
-            console.error('TEMPLATE_HTML_PROCESSOR: No HTML content provided');
+            logger.error('No HTML content provided');
             return false;
         }
 
         if (!templateData.fileName || templateData.fileName.trim().length === 0) {
-            console.error('TEMPLATE_HTML_PROCESSOR: No file name provided');
+            logger.error('No file name provided');
             return false;
         }
 
         if (!templateData.filePath || templateData.filePath.trim().length === 0) {
-            console.error('TEMPLATE_HTML_PROCESSOR: No file path provided');
+            logger.error('No file path provided');
             return false;
         }
 

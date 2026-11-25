@@ -10,6 +10,9 @@ import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { DependencyGraphBridge } from './dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './projectEvolutionBridge';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS_MESSAGE_ROUTER');
 
 /** Room access the mode-activation handler needs to probe cached snapshots. */
 export interface AnalysisRouterRoomHooks {
@@ -77,7 +80,7 @@ export class AnalysisMessageRouter {
             return this.dependencyGraph.handleDependencyFileScopeRequestMessage(messageContext, message);
         }
         if (message.type === 'dependency-graph-start') {
-            console.log('[Code-XR Fix][Server] dependency-graph-start received (room:', messageContext.roomId, ')');
+            logger.debug(() => `[Code-XR Fix][Server] dependency-graph-start received (room: ${messageContext.roomId})`);
             return this.dependencyGraph.handleDependencyGraphStartMessage(messageContext, message);
         }
         if (!this.historicalComparisonService) {

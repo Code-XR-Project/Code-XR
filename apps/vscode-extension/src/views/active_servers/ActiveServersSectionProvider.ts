@@ -5,6 +5,9 @@ import { CollaborationSectionProvider } from '../collaboration';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
 import { ConnectedParticipantSummary } from '../../collaboration';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVERS_MODULAR');
 
 interface ParticipantAwareServer {
     getConnectedParticipants(): ConnectedParticipantSummary[];
@@ -29,7 +32,7 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
     private readonly collaborationSubscription: vscode.Disposable;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('ACTIVE_SERVERS_MODULAR: Initializing Active Servers section provider');
+        logger.debug('Initializing Active Servers section provider');
 
         // Collaboration lives as a nested group inside this section; its provider
         // stays the single source of truth for the shared profile items.
@@ -38,10 +41,10 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
 
         // Listen to registry changes for active servers
         const registry = getActiveServerRegistry();
-        console.log(`ACTIVE_SERVERS_MODULAR: Connected to active server registry, current servers: ${registry.getAllServers().length}`);
+        logger.debug(() => `Connected to active server registry, current servers: ${registry.getAllServers().length}`);
         
         this.registrySubscription = registry.onRegistryChange(() => {
-            console.log('ACTIVE_SERVERS_MODULAR: Active servers registry changed, refreshing section');
+            logger.debug('Active servers registry changed, refreshing section');
             this.reconcileParticipantSubscriptions();
             this.refresh();
         });
@@ -111,13 +114,13 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
             return [];
         }
 
-        console.log('ACTIVE_SERVERS_MODULAR: Loading active servers section children');
+        logger.debug('Loading active servers section children');
         
         const registry = getActiveServerRegistry();
         const activeServers = registry.getAllServers();
         const runningServers = activeServers.filter(server => server.status === 'running');
 
-        console.log(`ACTIVE_SERVERS_MODULAR: Found ${activeServers.length} total servers, ${runningServers.length} running`);
+        logger.debug(() => `Found ${activeServers.length} total servers, ${runningServers.length} running`);
         
         // The collaboration group is always reachable: joining a remote session
         // does not require a local server.
@@ -125,7 +128,7 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
 
         // Only running servers are listed: a stopped one leaves the tree.
         if (runningServers.length === 0) {
-            console.log('ACTIVE_SERVERS_MODULAR: No running servers, showing "No active servers" message');
+            logger.debug('No running servers, showing "No active servers" message');
             return [collaborationGroup, ActiveServerItemFactory.createNoServersItem()];
         }
 
@@ -133,19 +136,19 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
 
         // Add "Stop All Servers" option if there are 2 or more running servers
         if (runningServers.length >= 2) {
-            console.log(`ACTIVE_SERVERS_MODULAR: Adding "Stop All Servers" option for ${runningServers.length} running servers`);
+            logger.debug(() => `Adding "Stop All Servers" option for ${runningServers.length} running servers`);
             children.push(ActiveServerItemFactory.createStopAllServersItem(runningServers.length));
         }
 
         // A lone server opens expanded; with several, they stay compact.
-        console.log(`ACTIVE_SERVERS_MODULAR: Creating ${runningServers.length} individual server items`);
+        logger.debug(() => `Creating ${runningServers.length} individual server items`);
         const serverItems = runningServers.map(server =>
             ActiveServerItemFactory.createServerItem(server, runningServers.length === 1)
         );
 
         children.push(...serverItems);
         
-        console.log(`ACTIVE_SERVERS_MODULAR: Returning ${children.length} children for Active Servers section`);
+        logger.debug(() => `Returning ${children.length} children for Active Servers section`);
         return children;
     }
 
@@ -153,7 +156,7 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
      * Refresh the section
      */
     refresh(): void {
-        console.log('ACTIVE_SERVERS_MODULAR: Refreshing Active Servers section');
+        logger.debug('Refreshing Active Servers section');
         this._onDidChangeTreeData.fire();
     }
 

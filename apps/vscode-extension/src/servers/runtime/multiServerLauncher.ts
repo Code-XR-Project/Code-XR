@@ -12,6 +12,9 @@ import {
     ServerInstance,
     ServerType,
 } from './serverFactory';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 export type { ServerInstance, ServerType } from './serverFactory';
 
@@ -65,7 +68,7 @@ export class MultiServerLauncher {
 
     constructor(private context: vscode.ExtensionContext) {
         this.settingsManager = ServerSettingsManager.getInstance(context);
-        console.log('SERVER: Multi-server launcher initialized');
+        logger.debug('Multi-server launcher initialized');
     }
 
     /**
@@ -80,13 +83,13 @@ export class MultiServerLauncher {
         additionalMetadata?: Record<string, any>,
     ): Promise<MultiServerLaunchResult> {
         try {
-            console.log('SERVER: Starting multi-server launch process...');
-            console.log('SERVER: launchServer called with parameters:', { htmlFile, customName });
+            logger.debug('Starting multi-server launch process...');
+            logger.debug('launchServer called with parameters:', { htmlFile, customName });
 
             // Load current settings
             await this.settingsManager.ensureInitialized();
             const settings = this.settingsManager.getServerSettings();
-            console.log('SERVER: Loaded settings:', {
+            logger.debug('Loaded settings:', {
                 ...settings,
                 https: settings.https ? {
                     ...settings.https,
@@ -103,9 +106,9 @@ export class MultiServerLauncher {
                 warnHttpsOverriddenForPanel();
             }
 
-            console.log('SERVER: Determined server type:', serverType);
+            logger.debug('Determined server type:', serverType);
             if (isHttpsOverridden) {
-                console.log('SERVER: *** IMPORTANT *** Temporarily overriding HTTPS to HTTP for lateral panel compatibility');
+                logger.debug('*** IMPORTANT *** Temporarily overriding HTTPS to HTTP for lateral panel compatibility');
             }
 
             // Find available port using dynamic allocation
@@ -114,15 +117,15 @@ export class MultiServerLauncher {
             const portChanged = finalPort !== requestedPort;
 
             if (portChanged) {
-                console.log(`SERVER: Port ${requestedPort} already in use. Using port ${finalPort} instead.`);
+                logger.debug(() => `Port ${requestedPort} already in use. Using port ${finalPort} instead.`);
                 notifyPortChanged(requestedPort, finalPort);
             } else {
-                console.log(`SERVER: Using requested port ${finalPort}`);
+                logger.debug(() => `Using requested port ${finalPort}`);
             }
 
             // Launch the server - Use 0.0.0.0 to listen on all network interfaces for external access
             const host = '0.0.0.0';
-            console.log(`SERVER: DEBUG - Configuring server to listen on ${host}:${finalPort} for network access`);
+            logger.debug(() => `DEBUG - Configuring server to listen on ${host}:${finalPort} for network access`);
             const result = await launchServerByType(
                 this.context,
                 serverType,
@@ -134,7 +137,7 @@ export class MultiServerLauncher {
             );
             
             if (result.success && result.serverUrl) {
-                console.log(`SERVER: Successfully launched ${serverType} server on port ${finalPort}`);
+                logger.debug(() => `Successfully launched ${serverType} server on port ${finalPort}`);
                 
                 // Generate unique server ID
                 const serverId = this.generateServerId();
@@ -154,10 +157,10 @@ export class MultiServerLauncher {
                     const launchMode: LaunchMode = determineLaunchMode(settings);
                     const certMode: CertMode = determineCertMode(serverType, result.httpsOverridden);
                     
-                    console.log('SERVER:  DEBUG - About to register server with the following details:');
-                    console.log('SERVER:  DEBUG - customName:', customName);
-                    console.log('SERVER:  DEBUG - port:', finalPort);
-                    console.log('SERVER:  DEBUG - url:', result.serverUrl);
+                    logger.debug('DEBUG - About to register server with the following details:');
+                    logger.debug('DEBUG - customName:', customName);
+                    logger.debug('DEBUG - port:', finalPort);
+                    logger.debug('DEBUG - url:', result.serverUrl);
                     
                     const registrar = getServerRegistrar();
                     const activeServer = registrar.registerServer({
@@ -180,21 +183,21 @@ export class MultiServerLauncher {
                         }
                     });
                     
-                    console.log('SERVER:  Successfully registered server with registry:');
-                    console.log('SERVER:  Registered server ID:', activeServer.id);
-                    console.log('SERVER:  Registered server customName:', activeServer.customName);
+                    logger.debug('Successfully registered server with registry:');
+                    logger.debug('Registered server ID:', activeServer.id);
+                    logger.debug('Registered server customName:', activeServer.customName);
                     
                     serverInfo.activeServerId = activeServer.id;
                     this.servers.set(serverId, serverInfo);
                     
-                    console.log(`SERVER: Successfully registered server ${serverId} (active ID: ${activeServer.id}) via registrar service`);
-                    console.log(`SERVER: Currently managing ${this.servers.size} server(s)`);
+                    logger.debug(() => `Successfully registered server ${serverId} (active ID: ${activeServer.id}) via registrar service`);
+                    logger.debug(() => `Currently managing ${this.servers.size} server(s)`);
                     
                     // Handle auto-opening based on configuration
                     await handleAutoOpening(settings, result.serverUrl, htmlFile, launchMode, serverInfo.activeServerId);
                     
                 } catch (error) {
-                    console.error('SERVER: Failed to register server in registry:', error);
+                    logger.error('Failed to register server in registry:', error);
                     // Don't fail the launch if registry registration fails
                 }
 
@@ -218,7 +221,7 @@ export class MultiServerLauncher {
             }
 
         } catch (error) {
-            console.error('SERVER: Error during multi-server launch:', error);
+            logger.error('Error during multi-server launch:', error);
             return {
                 success: false,
                 error: `Failed to launch server: ${error instanceof Error ? error.message : String(error)}`
@@ -239,22 +242,22 @@ export class MultiServerLauncher {
      * @private
      */
     private async findAvailablePortWithLogging(requestedPort: number): Promise<number> {
-        console.log(`SERVER: Checking availability of port ${requestedPort}...`);
+        logger.debug(() => `Checking availability of port ${requestedPort}...`);
         
         const isAvailable = await PortManager.isPortAvailable(requestedPort);
         if (isAvailable) {
-            console.log(`SERVER: Port ${requestedPort} is available`);
+            logger.debug(() => `Port ${requestedPort} is available`);
             return requestedPort;
         }
 
-        console.log(`SERVER: Port ${requestedPort} already in use. Searching for next available port (${requestedPort + 1})...`);
+        logger.debug(() => `Port ${requestedPort} already in use. Searching for next available port (${requestedPort + 1})...`);
         
         try {
             const availablePort = await PortManager.findAvailablePort(requestedPort + 1);
-            console.log(`SERVER: Free port found at ${availablePort}. Launching server...`);
+            logger.debug(() => `Free port found at ${availablePort}. Launching server...`);
             return availablePort;
         } catch (error) {
-            console.error(`SERVER: Failed to find available port starting from ${requestedPort + 1}:`, error);
+            logger.error(`Failed to find available port starting from ${requestedPort + 1}:`, error);
             throw new Error(`No available ports found starting from ${requestedPort}: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

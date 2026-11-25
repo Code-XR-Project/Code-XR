@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('COLOR_PICKER_UTILS');
 
 export interface ColorPickerOptions {
     fieldName: string;
@@ -28,7 +31,7 @@ export class ColorPickerUtils {
             
             return templateContent;
         } catch (error) {
-            console.error('[VISUALIZATION-SETTINGS] Error loading color picker template:', error);
+            logger.error('[VISUALIZATION-SETTINGS] Error loading color picker template:', error);
             throw new Error(`Failed to load color picker template: ${error}`);
         }
     }

@@ -7,6 +7,9 @@ import * as vscode from 'vscode';
 import { AutoAnalysisEnabledSetting } from '../../../../views/subsections/analysis_settings/auto_analysis_enabled';
 import { CommandRegistration } from '../analysis_file_mode';
 import { SessionWatcherManager } from '../../../../engine/watchers/sessionWatcherManager';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AutoAnalysisEnabledCommands {
 
@@ -44,16 +47,16 @@ export class AutoAnalysisEnabledCommands {
      */
     private async toggleAutoAnalysisEnabled(refreshCallback: () => void): Promise<void> {
         try {
-            console.log('ANALYSIS: Toggling auto-analysis enabled state');
+            logger.debug('Toggling auto-analysis enabled state');
             
             const newState = await this.autoAnalysisEnabledSetting.toggleEnabled();
             await this.refreshActiveWatchers();
-            console.log(`ANALYSIS: Auto-analysis enabled toggled to: ${newState}`);
+            logger.debug(() => `Auto-analysis enabled toggled to: ${newState}`);
             
             refreshCallback();
             
         } catch (error) {
-            console.error('ANALYSIS: Error toggling auto-analysis enabled state:', error);
+            logger.error('Error toggling auto-analysis enabled state:', error);
             vscode.window.showErrorMessage(`Failed to toggle auto-analysis state: ${error}`);
         }
     }

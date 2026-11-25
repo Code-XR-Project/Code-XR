@@ -15,6 +15,9 @@ import {
     SessionCreationParams
 } from './analysisSession';
 import { SHA256Generator } from '../../../utils/sha256Generator';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('UNIFIED_REGISTRY');
 
 
 export class UnifiedSessionRegistry {
@@ -24,7 +27,7 @@ export class UnifiedSessionRegistry {
     public readonly onSessionChanged = this._onSessionChanged.event;
 
     private constructor(_context: vscode.ExtensionContext) {
-        console.log('UNIFIED_REGISTRY: Initializing session registry');
+        logger.debug('Initializing session registry');
     }
 
     static getInstance(context: vscode.ExtensionContext): UnifiedSessionRegistry {
@@ -55,7 +58,7 @@ export class UnifiedSessionRegistry {
                 session.status !== 'error';
 
             if (isDuplicate) {
-                console.log(`UNIFIED_REGISTRY: Duplicate session detected for ${params.targetPath}`);
+                logger.debug(() => `Duplicate session detected for ${params.targetPath}`);
                 return session;
             }
         }
@@ -68,7 +71,7 @@ export class UnifiedSessionRegistry {
      */
     async createSession(params: SessionCreationParams): Promise<UnifiedAnalysisSession | null> {
         try {
-            console.log(`UNIFIED_REGISTRY: Creating session`, {
+            logger.debug(`Creating session`, {
                 targetPath: params.targetPath,
                 analysisMode: params.analysisMode,
                 targetType: params.targetType,
@@ -111,17 +114,17 @@ export class UnifiedSessionRegistry {
                 // completes the first analysis, keeping the startup path lightweight.
                 session.directoriesToAnalyze = [];
                 session.filesToHash = [];
-                console.log('UNIFIED_REGISTRY: Directory session will populate tracked files after initial analysis');
+                logger.debug('Directory session will populate tracked files after initial analysis');
             }
 
             this.sessions.set(id, session);
             this._onSessionChanged.fire(session);
 
-            console.log(`UNIFIED_REGISTRY: Created session ${id} for ${targetName}`);
+            logger.debug(() => `Created session ${id} for ${targetName}`);
             return session;
 
         } catch (error) {
-            console.error('UNIFIED_REGISTRY: Error creating session:', error);
+            logger.error('Error creating session:', error);
             throw error;
         }
     }
@@ -175,7 +178,7 @@ export class UnifiedSessionRegistry {
         try {
             return await SHA256Generator.generateFileHash(targetPath);
         } catch (hashError) {
-            console.error(`UNIFIED_REGISTRY: Error calculating file hash:`, hashError);
+            logger.error(`Error calculating file hash:`, hashError);
             throw new Error(`Failed to calculate file hash: ${hashError instanceof Error ? hashError.message : String(hashError)}`);
         }
     }
@@ -187,7 +190,7 @@ export class UnifiedSessionRegistry {
                 throw new Error(`Target path is not a directory: ${targetPath}`);
             }
         } catch (statError) {
-            console.error(`UNIFIED_REGISTRY: Error accessing target path ${targetPath}:`, statError);
+            logger.error(`Error accessing target path ${targetPath}:`, statError);
             throw statError;
         }
     }
@@ -261,7 +264,7 @@ export class UnifiedSessionRegistry {
         const removed = this.sessions.delete(sessionId);
         
         if (removed) {
-            console.log(`UNIFIED_REGISTRY: Removed session ${sessionId} (${session.targetName})`);
+            logger.debug(() => `Removed session ${sessionId} (${session.targetName})`);
             this._onSessionChanged.fire(session);
         }
         
@@ -302,14 +305,14 @@ export class UnifiedSessionRegistry {
     registerSessionPort(sessionId: string, port: number): boolean {
         const session = this.sessions.get(sessionId);
         if (!session) {
-            console.warn(`UNIFIED_REGISTRY: Session ${sessionId} not found for port registration`);
+            logger.warn(`Session ${sessionId} not found for port registration`);
             return false;
         }
 
         session.port = port;
         session.assignedPort = port;
 
-        console.log(`UNIFIED_REGISTRY: Registered port ${port} for session ${sessionId}`);
+        logger.debug(() => `Registered port ${port} for session ${sessionId}`);
 
         this._onSessionChanged.fire(session);
         return true;
@@ -394,7 +397,7 @@ export class UnifiedSessionRegistry {
      * Dispose of registry - SIMPLIFIED
      */
     dispose(): void {
-        console.log('UNIFIED_REGISTRY: Disposing session registry');
+        logger.debug('Disposing session registry');
         
         this._onSessionChanged.dispose();
         this.sessions.clear();

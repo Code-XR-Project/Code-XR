@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { DimensionMappingDirectorySetting } from '../../../../views/subsections/analysis_settings/dimension_mapping_directory';
 import { CommandRegistration } from '../analysis_file_mode';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('DIMENSION_MAPPING_DIRECTORY_COMMANDS');
 
 export class DimensionMappingDirectoryCommands {
     constructor(private readonly dimensionMappingDirectorySetting: DimensionMappingDirectorySetting) {}
@@ -34,7 +37,7 @@ export class DimensionMappingDirectoryCommands {
         try {
             await this.dimensionMappingDirectorySetting.showDimensionMappingSelection(dimensionName);
         } catch (error) {
-            console.error('DIMENSION_MAPPING_DIRECTORY_COMMANDS: Error in selectDimensionMapping:', error);
+            logger.error('Error in selectDimensionMapping:', error);
             vscode.window.showErrorMessage(`Failed to show dimension mapping selection: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

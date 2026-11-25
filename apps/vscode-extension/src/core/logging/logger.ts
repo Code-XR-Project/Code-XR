@@ -1,56 +1,52 @@
 import * as vscode from 'vscode';
+import { CodeXRExtensionMode, CodeXRLogLevel, isVerboseLoggingEnabled } from './logPolicy';
 import {
-    CodeXRExtensionMode,
-    CodeXRLogLevel,
-    isVerboseLoggingEnabled,
-    shouldEmitLog,
-} from './logPolicy';
+    attachLogTarget,
+    detachLogTarget,
+    getLogger,
+    isVerboseLogging,
+    LogMetadata,
+    MessageFactory,
+    ScopedLogger,
+    setVerboseLogging,
+    writeLog,
+} from './sink';
 
-type MessageFactory = string | (() => string);
-
-export interface ScopedLogger {
-    debug(message: MessageFactory, metadata?: unknown): void;
-    info(message: MessageFactory, metadata?: unknown): void;
-    warn(message: MessageFactory, metadata?: unknown): void;
-    error(message: MessageFactory, metadata?: unknown): void;
-}
-
-class LoggerImpl implements ScopedLogger {
-    constructor(private readonly scope: string) {}
-
-    debug(message: MessageFactory, metadata?: unknown): void {
-        CodeXRLogger.write('debug', this.scope, message, metadata);
-    }
-
-    info(message: MessageFactory, metadata?: unknown): void {
-        CodeXRLogger.write('info', this.scope, message, metadata);
-    }
-
-    warn(message: MessageFactory, metadata?: unknown): void {
-        CodeXRLogger.write('warn', this.scope, message, metadata);
-    }
-
-    error(message: MessageFactory, metadata?: unknown): void {
-        CodeXRLogger.write('error', this.scope, message, metadata);
-    }
-}
+export type { LogMetadata, MessageFactory, ScopedLogger } from './sink';
 
 /**
- * Shared logger for CodeXR. Uses a dedicated VS Code output channel and keeps
- * verbose logging disabled in production unless the user opts in explicitly.
+ * The VS Code side of CodeXR logging: it attaches the "CodeXR" output channel
+ * to the vscode-free sink (`sink.ts`) and keeps verbose logging in step with
+ * the extension mode and `codeXR.debug.verboseLogs`. Verbose (debug/info)
+ * logging stays off in production unless the user opts in explicitly.
+ *
+ * Modules that only need to log import `getLogger` from `./sink` instead, so
+ * they do not depend on `vscode`; `CodeXRLogger.getLogger` is the same thing.
  */
 export class CodeXRLogger {
     private static outputChannel: vscode.OutputChannel | undefined;
-    private static verboseLoggingEnabled = false;
     private static initialized = false;
 
     public static initialize(context: vscode.ExtensionContext): void {
-        if (!this.outputChannel) {
-            this.outputChannel = vscode.window.createOutputChannel('CodeXR');
-            context.subscriptions.push(this.outputChannel);
-        }
-
         this.updateLoggingMode(context);
+
+        if (!this.outputChannel) {
+            const outputChannel = vscode.window.createOutputChannel('CodeXR');
+            this.outputChannel = outputChannel;
+            // Disposed with the extension. The sink lets go of the channel
+            // first, so later lines go back to the buffer (and warnings and
+            // errors to the console) instead of into a dead channel.
+            context.subscriptions.push({
+                dispose: () => {
+                    if (this.outputChannel === outputChannel) {
+                        this.outputChannel = undefined;
+                        detachLogTarget();
+                    }
+                    outputChannel.dispose();
+                },
+            });
+            attachLogTarget(outputChannel);
+        }
 
         if (this.initialized) {
             return;
@@ -62,7 +58,7 @@ export class CodeXRLogger {
                 this.write(
                     'info',
                     'LOGGER',
-                    () => `Verbose logging ${this.verboseLoggingEnabled ? 'enabled' : 'disabled'}.`,
+                    () => `Verbose logging ${isVerboseLogging() ? 'enabled' : 'disabled'}.`,
                 );
             }
         }));
@@ -71,31 +67,16 @@ export class CodeXRLogger {
     }
 
     public static getLogger(scope: string): ScopedLogger {
-        return new LoggerImpl(scope);
+        return getLogger(scope);
     }
 
     public static write(
         level: CodeXRLogLevel,
         scope: string,
         message: MessageFactory,
-        metadata?: unknown,
+        ...metadata: LogMetadata
     ): void {
-        if (!shouldEmitLog(level, this.verboseLoggingEnabled)) {
-            return;
-        }
-
-        const outputChannel = this.outputChannel;
-        if (!outputChannel) {
-            return;
-        }
-
-        const renderedMessage = typeof message === 'function' ? message() : message;
-        const timestamp = new Date().toISOString();
-        outputChannel.appendLine(`[${timestamp}] [${level.toUpperCase()}] [${scope}] ${renderedMessage}`);
-
-        if (metadata !== undefined) {
-            outputChannel.appendLine(this.formatMetadata(metadata));
-        }
+        writeLog(level, scope, message, ...metadata);
     }
 
     private static updateLoggingMode(context: vscode.ExtensionContext): void {
@@ -107,22 +88,6 @@ export class CodeXRLogger {
             ? 'development'
             : 'production';
 
-        this.verboseLoggingEnabled = isVerboseLoggingEnabled(extensionMode, verboseSettingEnabled);
-    }
-
-    private static formatMetadata(metadata: unknown): string {
-        if (metadata instanceof Error) {
-            return metadata.stack ?? metadata.message;
-        }
-
-        if (typeof metadata === 'string') {
-            return metadata;
-        }
-
-        try {
-            return JSON.stringify(metadata, null, 2);
-        } catch (error) {
-            return String(metadata);
-        }
+        setVerboseLogging(isVerboseLoggingEnabled(extensionMode, verboseSettingEnabled));
     }
 }

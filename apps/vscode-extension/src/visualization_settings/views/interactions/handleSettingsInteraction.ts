@@ -12,6 +12,9 @@ import {
 import { VisualizationSettingsStorage } from '../../storage/settingsStorage';
 import { ColorPickerUtils, ColorPickerOptions } from '../../utils/colorPickerUtils';
 import { DynamicColorIconGenerator } from '../../utils/dynamicColorIconGenerator';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('HANDLE_SETTINGS_INTERACTION');
 
 /**
  * Handle Visualization Settings Interactions
@@ -21,7 +24,7 @@ export class VisualizationSettingsInteractionHandler {
     private storage: VisualizationSettingsStorage;
 
     constructor(private context: vscode.ExtensionContext) {
-        console.log('VISUALIZATION-SETTINGS: Interaction handler initialized');
+        logger.debug('VISUALIZATION-SETTINGS: Interaction handler initialized');
         this.storage = new VisualizationSettingsStorage(context);
     }
 
@@ -29,7 +32,7 @@ export class VisualizationSettingsInteractionHandler {
      * Handle configuration of a specific setting field
      */
     public async handleSettingConfiguration(settingKey: SettingFieldType): Promise<void> {
-        console.log(`VISUALIZATION-SETTINGS: Configuring setting '${settingKey}'`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Configuring setting '${settingKey}'`);
 
         try {
             switch (settingKey) {
@@ -47,7 +50,7 @@ export class VisualizationSettingsInteractionHandler {
                     throw new Error(`Unknown setting key: ${settingKey}`);
             }
         } catch (error) {
-            console.error(`VISUALIZATION-SETTINGS: Error configuring ${settingKey}:`, error);
+            logger.error(`VISUALIZATION-SETTINGS: Error configuring ${settingKey}:`, error);
             vscode.window.showErrorMessage(`Failed to configure ${settingKey}: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -56,7 +59,7 @@ export class VisualizationSettingsInteractionHandler {
      * Restore every visualization setting to its default value
      */
     public async handleResetToDefaults(): Promise<void> {
-        console.log('VISUALIZATION-SETTINGS: Resetting all settings to defaults');
+        logger.debug('VISUALIZATION-SETTINGS: Resetting all settings to defaults');
 
         const current = this.storage.getSettings();
         const alreadyDefault = (Object.keys(DEFAULT_VISUALIZATION_SETTINGS) as (keyof typeof DEFAULT_VISUALIZATION_SETTINGS)[])
@@ -82,7 +85,7 @@ export class VisualizationSettingsInteractionHandler {
         );
 
         if (confirmation !== 'Reset to Default') {
-            console.log('VISUALIZATION-SETTINGS: Reset to defaults cancelled');
+            logger.debug('VISUALIZATION-SETTINGS: Reset to defaults cancelled');
             return;
         }
 
@@ -97,7 +100,7 @@ export class VisualizationSettingsInteractionHandler {
                 await DynamicColorIconGenerator.getOrCreateColorIcon(this.context, colorKey, defaultColor);
                 DynamicColorIconGenerator.cleanupOldColorIcons(this.context, colorKey, defaultColor);
             } catch (iconError) {
-                console.error(`COLOR-PICKER: Error restoring default icon for ${colorKey}:`, iconError);
+                logger.error(`COLOR-PICKER: Error restoring default icon for ${colorKey}:`, iconError);
                 // The tree regenerates the icon on render, so keep going.
             }
         }
@@ -117,7 +120,7 @@ export class VisualizationSettingsInteractionHandler {
      * Handle color configuration (background or ground color) using HTML-based color picker
      */
     private async handleColorConfiguration(colorType: 'backgroundColor' | 'groundColor'): Promise<void> {
-        console.log(`VISUALIZATION-SETTINGS: Configuring ${colorType} with HTML color picker`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Configuring ${colorType} with HTML color picker`);
 
         const currentSettings = this.storage.getSettings();
         const currentValue = currentSettings[colorType];
@@ -143,8 +146,8 @@ export class VisualizationSettingsInteractionHandler {
                     switch (message.type) {
                         case 'colorPicker.confirm':
                             const newColor = ColorPickerUtils.normalizeColor(message.color);
-                            console.log(`VISUALIZATION-SETTINGS: Color confirmed for ${colorType}: ${newColor}`);
-                            console.log(`COLOR-PICKER: Generating new icon for ${colorType} with color ${newColor}`);
+                            logger.debug(() => `VISUALIZATION-SETTINGS: Color confirmed for ${colorType}: ${newColor}`);
+                            logger.debug(() => `COLOR-PICKER: Generating new icon for ${colorType} with color ${newColor}`);
                             
                             try {
                                 // Generate new color icon
@@ -153,13 +156,13 @@ export class VisualizationSettingsInteractionHandler {
                                     colorType, 
                                     newColor
                                 );
-                                console.log(`COLOR-PICKER: Successfully generated icon for ${colorType}: ${iconUri.toString()}`);
+                                logger.debug(() => `COLOR-PICKER: Successfully generated icon for ${colorType}: ${iconUri.toString()}`);
                                 
                                 // Clean up old icons
                                 DynamicColorIconGenerator.cleanupOldColorIcons(this.context, colorType, newColor);
                                 
                             } catch (iconError) {
-                                console.error(`COLOR-PICKER: Error generating icon for ${colorType}:`, iconError);
+                                logger.error(`COLOR-PICKER: Error generating icon for ${colorType}:`, iconError);
                                 // Continue with setting update even if icon generation fails
                             }
                             
@@ -178,7 +181,7 @@ export class VisualizationSettingsInteractionHandler {
                             break;
                             
                         case 'colorPicker.cancel':
-                            console.log(`VISUALIZATION-SETTINGS: Color picker cancelled for ${colorType}`);
+                            logger.debug(() => `VISUALIZATION-SETTINGS: Color picker cancelled for ${colorType}`);
                             panel.dispose();
                             break;
                     }
@@ -188,11 +191,11 @@ export class VisualizationSettingsInteractionHandler {
             // Clean up when panel is disposed
             panel.onDidDispose(() => {
                 messageDisposable.dispose();
-                console.log(`VISUALIZATION-SETTINGS: Color picker panel disposed for ${colorType}`);
+                logger.debug(() => `VISUALIZATION-SETTINGS: Color picker panel disposed for ${colorType}`);
             });
 
         } catch (error) {
-            console.error(`VISUALIZATION-SETTINGS: Error opening color picker for ${colorType}:`, error);
+            logger.error(`VISUALIZATION-SETTINGS: Error opening color picker for ${colorType}:`, error);
             vscode.window.showErrorMessage(`Failed to open color picker: ${error}`);
             
             // Fallback to the original QuickPick method
@@ -204,7 +207,7 @@ export class VisualizationSettingsInteractionHandler {
      * Fallback color configuration using QuickPick (in case HTML color picker fails)
      */
     private async handleColorConfigurationFallback(colorType: 'backgroundColor' | 'groundColor'): Promise<void> {
-        console.log(`VISUALIZATION-SETTINGS: Using fallback QuickPick for ${colorType}`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Using fallback QuickPick for ${colorType}`);
 
         const currentSettings = this.storage.getSettings();
         const currentValue = currentSettings[colorType];
@@ -230,7 +233,7 @@ export class VisualizationSettingsInteractionHandler {
         });
 
         if (!selectedOption) {
-            console.log(`VISUALIZATION-SETTINGS: ${colorType} configuration cancelled`);
+            logger.debug(() => `VISUALIZATION-SETTINGS: ${colorType} configuration cancelled`);
             return;
         }
 
@@ -248,20 +251,20 @@ export class VisualizationSettingsInteractionHandler {
 
         // Generate color icon before updating setting
         try {
-            console.log(`COLOR-PICKER: Generating fallback icon for ${colorType} with color ${newColor}`);
+            logger.debug(() => `COLOR-PICKER: Generating fallback icon for ${colorType} with color ${newColor}`);
             
             const iconUri = await DynamicColorIconGenerator.getOrCreateColorIcon(
                 this.context, 
                 colorType, 
                 newColor
             );
-            console.log(`COLOR-PICKER: Successfully generated fallback icon for ${colorType}: ${iconUri.toString()}`);
+            logger.debug(() => `COLOR-PICKER: Successfully generated fallback icon for ${colorType}: ${iconUri.toString()}`);
             
             // Clean up old icons
             DynamicColorIconGenerator.cleanupOldColorIcons(this.context, colorType, newColor);
             
         } catch (iconError) {
-            console.error(`COLOR-PICKER: Error generating fallback icon for ${colorType}:`, iconError);
+            logger.error(`COLOR-PICKER: Error generating fallback icon for ${colorType}:`, iconError);
             // Continue with setting update even if icon generation fails
         }
 
@@ -271,7 +274,7 @@ export class VisualizationSettingsInteractionHandler {
         // Refresh the tree view
         vscode.commands.executeCommand('codexr.servers.refresh');
 
-        console.log(`VISUALIZATION-SETTINGS: ${colorType} updated to '${newColor}'`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: ${colorType} updated to '${newColor}'`);
         vscode.window.showInformationMessage(`${colorType.replace(/([A-Z])/g, ' $1')} set to: ${newColor}`);
     }
 
@@ -298,17 +301,17 @@ export class VisualizationSettingsInteractionHandler {
             });
 
             if (customColor === undefined) {
-                console.log(`VISUALIZATION-SETTINGS: Custom ${colorType} input cancelled`);
+                logger.debug(() => `VISUALIZATION-SETTINGS: Custom ${colorType} input cancelled`);
                 return undefined;
             }
 
             if (isValidHexColor(customColor)) {
-                console.log(`VISUALIZATION-SETTINGS: Valid custom ${colorType} entered: ${customColor}`);
+                logger.debug(() => `VISUALIZATION-SETTINGS: Valid custom ${colorType} entered: ${customColor}`);
                 return customColor;
             }
 
             attempts++;
-            console.log(`VISUALIZATION-SETTINGS: Invalid ${colorType} format attempt ${attempts}/${maxAttempts}: ${customColor}`);
+            logger.debug(() => `VISUALIZATION-SETTINGS: Invalid ${colorType} format attempt ${attempts}/${maxAttempts}: ${customColor}`);
             
             if (attempts < maxAttempts) {
                 const retry = await vscode.window.showErrorMessage(
@@ -318,12 +321,12 @@ export class VisualizationSettingsInteractionHandler {
                 );
                 
                 if (retry !== 'Try Again') {
-                    console.log(`VISUALIZATION-SETTINGS: Custom ${colorType} input cancelled after ${attempts} attempts`);
+                    logger.debug(() => `VISUALIZATION-SETTINGS: Custom ${colorType} input cancelled after ${attempts} attempts`);
                     return undefined;
                 }
             } else {
                 vscode.window.showErrorMessage(`Failed to set ${colorType} after ${maxAttempts} attempts. Please try again later.`);
-                console.log(`VISUALIZATION-SETTINGS: Custom ${colorType} input failed after ${maxAttempts} attempts`);
+                logger.debug(() => `VISUALIZATION-SETTINGS: Custom ${colorType} input failed after ${maxAttempts} attempts`);
                 return undefined;
             }
         }
@@ -335,7 +338,7 @@ export class VisualizationSettingsInteractionHandler {
      * Handle environment preset configuration
      */
     private async handleEnvironmentPresetConfiguration(): Promise<void> {
-        console.log('VISUALIZATION-SETTINGS: Configuring environment preset');
+        logger.debug('VISUALIZATION-SETTINGS: Configuring environment preset');
 
         const currentSettings = this.storage.getSettings();
         const currentValue = currentSettings.environmentPreset;
@@ -354,7 +357,7 @@ export class VisualizationSettingsInteractionHandler {
         });
 
         if (!selectedPreset) {
-            console.log('VISUALIZATION-SETTINGS: Environment preset configuration cancelled');
+            logger.debug('VISUALIZATION-SETTINGS: Environment preset configuration cancelled');
             return;
         }
 
@@ -364,7 +367,7 @@ export class VisualizationSettingsInteractionHandler {
         // Refresh the tree view
         vscode.commands.executeCommand('codexr.servers.refresh');
 
-        console.log(`VISUALIZATION-SETTINGS: Environment preset updated to '${selectedPreset.value}'`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Environment preset updated to '${selectedPreset.value}'`);
         vscode.window.showInformationMessage(`Environment preset set to: ${selectedPreset.label} - ${selectedPreset.description}`);
     }
 
@@ -372,7 +375,7 @@ export class VisualizationSettingsInteractionHandler {
      * Handle chart palette configuration
      */
     private async handleChartPaletteConfiguration(): Promise<void> {
-        console.log('VISUALIZATION-SETTINGS: Configuring chart palette');
+        logger.debug('VISUALIZATION-SETTINGS: Configuring chart palette');
 
         const currentSettings = this.storage.getSettings();
         const currentValue = currentSettings.chartPalette;
@@ -391,7 +394,7 @@ export class VisualizationSettingsInteractionHandler {
         });
 
         if (!selectedPalette) {
-            console.log('VISUALIZATION-SETTINGS: Chart palette configuration cancelled');
+            logger.debug('VISUALIZATION-SETTINGS: Chart palette configuration cancelled');
             return;
         }
 
@@ -401,7 +404,7 @@ export class VisualizationSettingsInteractionHandler {
         // Refresh the tree view
         vscode.commands.executeCommand('codexr.servers.refresh');
 
-        console.log(`VISUALIZATION-SETTINGS: Chart palette updated to '${selectedPalette.value}'`);
+        logger.debug(() => `VISUALIZATION-SETTINGS: Chart palette updated to '${selectedPalette.value}'`);
         vscode.window.showInformationMessage(`Chart palette set to: ${selectedPalette.label} - ${selectedPalette.description}`);
     }
 
@@ -416,6 +419,6 @@ export class VisualizationSettingsInteractionHandler {
      * Cleanup resources
      */
     public dispose(): void {
-        console.log('VISUALIZATION-SETTINGS: Interaction handler disposed');
+        logger.debug('VISUALIZATION-SETTINGS: Interaction handler disposed');
     }
 }

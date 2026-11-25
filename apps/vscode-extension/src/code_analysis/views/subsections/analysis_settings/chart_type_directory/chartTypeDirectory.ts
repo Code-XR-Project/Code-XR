@@ -14,6 +14,9 @@ import {
     showChartTypeSelection,
     toChartTypeInfos,
 } from '../chart_type_shared/sharedChartTypeSettingCore';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('CHART_TYPE_DIRECTORY');
 
 export type { AnalysisMode, ChartType };
 export type ChartTypeInfo = SharedChartTypeInfo<AnalysisMode>;
@@ -65,11 +68,11 @@ export class ChartTypeDirectorySetting {
      */
     async setChartType(chartType: ChartType): Promise<void> {
         await this.storage.setDirectoryChartType(chartType);
-        console.log(`CHART_TYPE_DIRECTORY: Set chart type: ${chartType}`);
+        logger.debug(() => `Set chart type: ${chartType}`);
 
         // Clear all dimension mappings when chart type changes
         await this.storage.setDimensionMappingDirectory({});
-        console.log(`CHART_TYPE_DIRECTORY: Dimension mappings cleared for new chart type: ${chartType}`);
+        logger.debug(() => `Dimension mappings cleared for new chart type: ${chartType}`);
     }
 
     /**

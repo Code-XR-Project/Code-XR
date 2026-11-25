@@ -1,4 +1,7 @@
 import * as net from 'net';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /**
  * Port availability checker and manager
@@ -21,17 +24,17 @@ export class PortManager {
             
             server.listen(port, host, () => {
                 server.close(() => {
-                    console.log(`SERVER: Port ${port} is available on ${host}`);
+                    logger.debug(() => `Port ${port} is available on ${host}`);
                     resolve(true);
                 });
             });
             
             server.on('error', (err: NodeJS.ErrnoException) => {
                 if (err.code === 'EADDRINUSE') {
-                    console.log(`SERVER: Port ${port} is already in use on ${host}`);
+                    logger.debug(() => `Port ${port} is already in use on ${host}`);
                     resolve(false);
                 } else {
-                    console.error(`SERVER: Error checking port ${port}:`, err);
+                    logger.error(`Error checking port ${port}:`, err);
                     resolve(false);
                 }
             });
@@ -51,7 +54,7 @@ export class PortManager {
         endPort: number = PortManager.DEFAULT_END_PORT,
         host: string = '0.0.0.0'
     ): Promise<number> {
-        console.log(`SERVER: Searching for available port starting from ${startPort} on host ${host}`);
+        logger.debug(() => `Searching for available port starting from ${startPort} on host ${host}`);
         
         // Validate inputs
         if (startPort < 1 || startPort > 65535) {
@@ -76,20 +79,20 @@ export class PortManager {
                 }
             }
             
-            console.log(`SERVER: Checking ${ports.length} ports sequentially from ${startPort} to ${startPort + maxRange - 1}`);
+            logger.debug(() => `Checking ${ports.length} ports sequentially from ${startPort} to ${startPort + maxRange - 1}`);
             
             const availablePort = await getPort({
                 port: ports,
                 host: '0.0.0.0'  // Use 0.0.0.0 to check availability on all interfaces
             });
 
-            console.log(`SERVER: Found available port: ${availablePort} (sequential search successful)`);
+            logger.debug(() => `Found available port: ${availablePort} (sequential search successful)`);
             return availablePort;
         } catch (error) {
-            console.error(`SERVER: get-port failed, using manual sequential detection:`, error);
+            logger.error(`get-port failed, using manual sequential detection:`, error);
             
             // Fallback to manual sequential implementation  
-            console.log(`SERVER: Manual port scanning from ${startPort} to ${endPort}`);
+            logger.debug(() => `Manual port scanning from ${startPort} to ${endPort}`);
             let currentPort = startPort;
             let attempts = 0;
             const maxAttempts = Math.min(endPort - startPort + 1, PortManager.MAX_RETRIES);
@@ -99,12 +102,12 @@ export class PortManager {
                     break;
                 }
 
-                console.log(`SERVER: Testing port ${currentPort} availability on ${host}`);
+                logger.debug(() => `Testing port ${currentPort} availability on ${host}`);
                 if (await PortManager.isPortAvailable(currentPort, host)) {
-                    console.log(`SERVER: Port ${currentPort} is available and ready for use`);
+                    logger.debug(() => `Port ${currentPort} is available and ready for use`);
                     return currentPort;
                 } else {
-                    console.log(`SERVER: Port ${currentPort} is occupied, trying next port ${currentPort + 1}`);
+                    logger.debug(() => `Port ${currentPort} is occupied, trying next port ${currentPort + 1}`);
                 }
 
                 currentPort++;

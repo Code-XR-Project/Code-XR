@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { AutoAnalysisDelayConfig, AutoAnalysisDelay } from '../../../../configuration';
 
@@ -100,7 +103,7 @@ export class AutoAnalysisDelaySetting {
             autoAnalysisEnabled: this.currentDelayConfig.autoAnalysisEnabled
         };
         
-        console.log(`ANALYSIS: Auto-analysis delay cycled to ${this.currentDelayConfig.type}`);
+        logger.debug(() => `Auto-analysis delay cycled to ${this.currentDelayConfig.type}`);
         
         await this.saveDelayToSettings();
         
@@ -120,7 +123,7 @@ export class AutoAnalysisDelaySetting {
             autoAnalysisEnabled: this.currentDelayConfig.autoAnalysisEnabled
         };
         
-        console.log(`ANALYSIS: Auto-analysis delay set to custom ${clampedMs}ms`);
+        logger.debug(() => `Auto-analysis delay set to custom ${clampedMs}ms`);
         
         await this.saveDelayToSettings();
         
@@ -163,9 +166,9 @@ export class AutoAnalysisDelaySetting {
         try {
             const savedDelay = await this.storage.getAutoAnalysisDelay();
             this.currentDelayConfig = savedDelay;
-            console.log(`ANALYSIS: Loaded auto-analysis delay from storage:`, savedDelay);
+            logger.debug(`Loaded auto-analysis delay from storage:`, savedDelay);
         } catch (error) {
-            console.error('ANALYSIS: Error loading saved delay, using default:', error);
+            logger.error('Error loading saved delay, using default:', error);
             this.currentDelayConfig = { type: 'RealTime', autoAnalysisEnabled: true }; // Fallback to default
         }
     }
@@ -176,9 +179,9 @@ export class AutoAnalysisDelaySetting {
     private async saveDelayToSettings(): Promise<void> {
         try {
             await this.storage.setAutoAnalysisDelay(this.currentDelayConfig);
-            console.log(`ANALYSIS: Saved auto-analysis delay to storage:`, this.currentDelayConfig);
+            logger.debug(`Saved auto-analysis delay to storage:`, this.currentDelayConfig);
         } catch (error) {
-            console.error('ANALYSIS: Error saving delay to storage:', error);
+            logger.error('Error saving delay to storage:', error);
         }
     }
 }

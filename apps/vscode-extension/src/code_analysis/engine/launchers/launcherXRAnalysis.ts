@@ -18,6 +18,9 @@ import { BabiaChartRegistry } from '../../../babia_templates/registry/chartRegis
 import { DimensionMapping } from '../../../babia_templates/models/chartModels';
 import { executeLaunchPipeline } from './launchPipeline';
 import { XRFieldSchemaService } from '../../services/xrFieldSchemaService';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('LAUNCHER_XR_ANALYSIS');
 
 const LOG_PREFIX = 'NEW_LAUNCHER_XR_ANALYSIS';
 
@@ -30,7 +33,7 @@ export class LauncherXRAnalysis {
         sessionId: string,
         context: vscode.ExtensionContext,
     ): Promise<{ isValid: boolean; error?: string }> {
-        console.log(`${LOG_PREFIX}: Validating ${analysisType} XR configuration...`);
+        logger.debug(() => `${LOG_PREFIX}: Validating ${analysisType} XR configuration...`);
         const label = analysisType.charAt(0).toUpperCase() + analysisType.slice(1);
 
         if (!chartType) {
@@ -67,22 +70,22 @@ export class LauncherXRAnalysis {
         const validationResult = DimensionValidator.validateMappings(chartMetadata, mappingsArray, fieldTypes);
         if (!validationResult.isValid) {
             const msg = `${label} XR Analysis Error: Invalid dimension mappings:\n${validationResult.errors.join('\n')}`;
-            console.error('Validation errors:', validationResult.errors);
+            logger.error('Validation errors:', validationResult.errors);
             if (validationResult.warnings.length > 0) {
-                console.warn('Validation warnings:', validationResult.warnings);
+                logger.warn('Validation warnings:', validationResult.warnings);
             }
             registry.updateSessionStatus(sessionId, 'error', undefined, msg);
             return { isValid: false, error: msg };
         }
 
         if (validationResult.warnings.length > 0) {
-            console.warn(`${label} XR Analysis Warnings:`, validationResult.warnings);
+            logger.warn(`${label} XR Analysis Warnings:`, validationResult.warnings);
         }
 
-        console.log(`${LOG_PREFIX}: ${label} XR configuration validated successfully`);
-        console.log(`Chart Type: ${chartType}`);
+        logger.debug(() => `${LOG_PREFIX}: ${label} XR configuration validated successfully`);
+        logger.debug(() => `Chart Type: ${chartType}`);
         for (const [dimension, dataField] of Object.entries(dimensionMappings)) {
-            console.log(`      ${dimension}  ${dataField}`);
+            logger.debug(() => `      ${dimension}  ${dataField}`);
         }
 
         return { isValid: true };
@@ -94,7 +97,7 @@ export class LauncherXRAnalysis {
         sessionId: string,
         context: vscode.ExtensionContext,
     ): Promise<{ chartType: string; dimensionMappings: Record<string, string> }> {
-        console.log(`${LOG_PREFIX}: STEP 0 - Validating ${analysisType} XR configuration...`);
+        logger.debug(() => `${LOG_PREFIX}: STEP 0 - Validating ${analysisType} XR configuration...`);
         registry.updateSessionStatus(sessionId, 'analyzing', 10);
 
         const storage = AnalysisConfigurationStorage.getInstance(context);
@@ -120,7 +123,7 @@ export class LauncherXRAnalysis {
         }
 
         const label = analysisType.charAt(0).toUpperCase() + analysisType.slice(1);
-        console.log(`${LOG_PREFIX}: STEP 0 completed - ${label} XR configuration validated`);
+        logger.debug(() => `${LOG_PREFIX}: STEP 0 completed - ${label} XR configuration validated`);
 
         return { chartType, dimensionMappings };
     }
@@ -170,7 +173,7 @@ export class LauncherXRAnalysis {
             progress: { process: 30, save: 50, watcherOrServer: 80, serverOrWatcher: 90, done: 100 },
 
             preValidation: async () => {
-                console.log(`${LOG_PREFIX}: Target: ${session.targetName}${session.isDeep ? ' (Deep mode)' : ' (Normal mode)'}`);
+                logger.debug(() => `${LOG_PREFIX}: Target: ${session.targetName}${session.isDeep ? ' (Deep mode)' : ' (Normal mode)'}`);
                 await LauncherXRAnalysis.validateAndGetXRConfiguration('directory', registry, session.id, context);
             },
 

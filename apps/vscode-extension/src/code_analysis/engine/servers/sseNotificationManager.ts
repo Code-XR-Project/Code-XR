@@ -5,17 +5,20 @@
 
 import { SessionServerInfo, SSENotification } from './models/sessionServerModels';
 import { SSEManager } from '../../../servers/runtime/sse/SSEManager';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SSE_NOTIFICATION_MANAGER');
 
 export class SSENotificationManager {
 
     constructor() {
-        console.log('SSE_NOTIFICATION_MANAGER: Initializing SSE manager');
+        logger.debug('Initializing SSE manager');
     }    /**
      * Notifica que un servidor ha sido iniciado
      */
     async notifyServerStarted(sessionInfo: SessionServerInfo): Promise<void> {
         try {
-            console.log(`SSE_NOTIFICATION_MANAGER: Notifying server started for session ${sessionInfo.sessionId}`);
+            logger.debug(() => `Notifying server started for session ${sessionInfo.sessionId}`);
 
             const notification: SSENotification = {
                 type: 'server-started',
@@ -31,7 +34,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying server started:`, error);
+            logger.error(`Error notifying server started:`, error);
         }
     }
 
@@ -40,7 +43,7 @@ export class SSENotificationManager {
      */
     async notifyServerStopped(sessionInfo: SessionServerInfo): Promise<void> {
         try {
-            console.log(`SSE_NOTIFICATION_MANAGER: Notifying server stopped for session ${sessionInfo.sessionId}`);
+            logger.debug(() => `Notifying server stopped for session ${sessionInfo.sessionId}`);
 
             const notification: SSENotification = {
                 type: 'server-stopped',
@@ -55,7 +58,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying server stopped:`, error);
+            logger.error(`Error notifying server stopped:`, error);
         }
     }
 
@@ -64,7 +67,7 @@ export class SSENotificationManager {
      */
     async notifyAnalysisUpdated(sessionInfo: SessionServerInfo): Promise<void> {
         try {
-            console.log(`SSE_NOTIFICATION_MANAGER: Notifying analysis updated for session ${sessionInfo.sessionId}`);
+            logger.debug(() => `Notifying analysis updated for session ${sessionInfo.sessionId}`);
 
             const notification: SSENotification = {
                 type: 'analysis-updated',
@@ -80,7 +83,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying analysis updated:`, error);
+            logger.error(`Error notifying analysis updated:`, error);
         }
     }
 
@@ -89,7 +92,7 @@ export class SSENotificationManager {
      */
     async notifyFileChanged(sessionInfo: SessionServerInfo, changedFile: string): Promise<void> {
         try {
-            console.log(`SSE_NOTIFICATION_MANAGER: Notifying file changed for session ${sessionInfo.sessionId}`);
+            logger.debug(() => `Notifying file changed for session ${sessionInfo.sessionId}`);
 
             const notification: SSENotification = {
                 type: 'file-changed',
@@ -105,7 +108,7 @@ export class SSENotificationManager {
             await this.sendSSENotification(notification);
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER: Error notifying file changed:`, error);
+            logger.error(`Error notifying file changed:`, error);
         }
     }
 
@@ -114,7 +117,7 @@ export class SSENotificationManager {
      */
     private async sendSSENotification(notification: SSENotification): Promise<void> {
         try {
-            console.log(`SSE_NOTIFICATION_MANAGER: Sending SSE notification:`, {
+            logger.debug(`Sending SSE notification:`, {
                 type: notification.type,
                 sessionId: notification.sessionId,
                 timestamp: notification.timestamp
@@ -127,7 +130,7 @@ export class SSENotificationManager {
             const targetPath = notification.data?.targetPath;
             
             if (targetPath) {
-                console.log(`SSE_NOTIFICATION_MANAGER: Sending to clients of: ${targetPath}`);
+                logger.debug(() => `Sending to clients of: ${targetPath}`);
                 
                 // Crear el mensaje SSE en el formato esperado por el cliente
                 const sseMessage = {
@@ -141,13 +144,13 @@ export class SSENotificationManager {
                 // Enviar usando el SSEManager real
                 sseManager.sendCustomMessage(targetPath, sseMessage);
                 
-                console.log(`SSE_NOTIFICATION_MANAGER:  SSE notification sent successfully to ${targetPath}`);
+                logger.debug(() => `SSE notification sent successfully to ${targetPath}`);
             } else {
-                console.warn(`SSE_NOTIFICATION_MANAGER:  No targetPath found in notification data`);
+                logger.warn(`No targetPath found in notification data`);
             }
 
         } catch (error) {
-            console.error(`SSE_NOTIFICATION_MANAGER:  Error sending SSE notification:`, error);
+            logger.error(`Error sending SSE notification:`, error);
             throw error;
         }
     }

@@ -4,6 +4,9 @@ import { ExampleClickHandler } from '../views/interactions/handleExampleClicks';
 import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
 import { ExtensionCommandRegistration } from '../../commands/shared';
 import { DetailRow, formatDetailSections } from '../../utils/detailDialog';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('EXAMPLES');
 
 /**
  * Babia Examples command declarations.
@@ -24,7 +27,7 @@ export class BabiaExamplesCommands {
                 module: 'EXAMPLES',
                 description: 'Launch Babia example',
                 handler: async (example: BabiaExample) => {
-                    console.log(`EXAMPLES: Launch command triggered for "${example.name}"`);
+                    logger.debug(() => `Launch command triggered for "${example.name}"`);
                     await clickHandler.handleExampleClick(example);
                 },
                 errorMessage: 'Failed to launch Babia example'
@@ -84,7 +87,7 @@ export class BabiaExamplesCommands {
                         return;
                     }
 
-                    console.log('EXAMPLES: Refresh command triggered');
+                    logger.debug('Refresh command triggered');
                     await treeDataProvider.rescan();
                     vscode.window.showInformationMessage('Babia examples refreshed');
                 },
@@ -160,7 +163,7 @@ export class BabiaExamplesCommands {
                     try {
                         await vscode.commands.executeCommand('codeXR.babiaExamplesView.focus');
                     } catch (error) {
-                        console.error('EXAMPLES: Error in open view command:', error);
+                        logger.error('Error in open view command:', error);
                     }
                 },
                 silentErrors: true,

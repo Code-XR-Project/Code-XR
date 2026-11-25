@@ -6,6 +6,9 @@ import { fileToServerMap } from '../../utils/fileToServerMap';
 import { sseManager } from '../../servers/runtime/sse/SSEManager';
 import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
 import { handleError, ErrorDomain, ErrorSeverity } from '../../utils/errorHandler';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ACTIVE_SERVERS');
 
 /** How long a graceful shutdown may take before it is forced. */
 const STOP_TIMEOUT_MS = 4000;
@@ -28,18 +31,18 @@ export class ServerControl {
      * Stop an active server
      */
     public static async stopServer(serverId: string): Promise<boolean> {
-        console.log(`ACTIVE_SERVERS:  DEBUG - Attempting to stop server ${serverId}`);
+        logger.debug(() => `DEBUG - Attempting to stop server ${serverId}`);
         
         const registry = getActiveServerRegistry();
         const server = registry.getServer(serverId);
         
         if (!server) {
-            console.error(`ACTIVE_SERVERS:  Server ${serverId} not found in registry`);
+            logger.error(`Server ${serverId} not found in registry`);
             vscode.window.showErrorMessage(`Server not found: ${serverId}`);
             return false;
         }
 
-        console.log(`ACTIVE_SERVERS:  DEBUG - Server found:`, {
+        logger.debug(`DEBUG - Server found:`, {
             id: server.id,
             port: server.port,
             url: server.url,
@@ -54,45 +57,45 @@ export class ServerControl {
             // Close associated lateral panel if it exists
             const panelManager = getPanelManager();
             if (server.launchMode === 'lateralPanel' && panelManager.hasPanel(serverId)) {
-                console.log(`ACTIVE_SERVER_PANEL:  DEBUG - Closing lateral panel for server ${serverId}`);
+                logger.debug(() => `ACTIVE_SERVER_PANEL:  DEBUG - Closing lateral panel for server ${serverId}`);
                 panelManager.removePanel(serverId);
             }
 
             // Check if this server is associated with an analysis file and clean up
-            console.log(`ACTIVE_SERVERS:  DEBUG - Checking for file-to-server mapping for server on port ${server.port}`);
+            logger.debug(() => `DEBUG - Checking for file-to-server mapping for server on port ${server.port}`);
             const fileUri = fileToServerMap.findFileByPort(server.port);
             if (fileUri) {
-                console.log(`ACTIVE_SERVERS:  Found associated analysis file: ${fileUri}`);
+                logger.debug(() => `Found associated analysis file: ${fileUri}`);
                 
                 // Clean up SSE clients for this file
-                console.log(`ACTIVE_SERVERS:  DEBUG - Cleaning up SSE clients for ${fileUri}`);
+                logger.debug(() => `DEBUG - Cleaning up SSE clients for ${fileUri}`);
                 sseManager.removeAllClients(fileUri);
                 
                 // Remove the file-to-server mapping
-                console.log(`ACTIVE_SERVERS:  DEBUG - Removing file-to-server mapping for ${fileUri}`);
+                logger.debug(() => `DEBUG - Removing file-to-server mapping for ${fileUri}`);
                 fileToServerMap.unregisterMapping(fileUri);
             } else {
-                console.log(`ACTIVE_SERVERS:  No associated analysis file found for server on port ${server.port}`);
+                logger.debug(() => `No associated analysis file found for server on port ${server.port}`);
             }
 
             // Close associated analysis session if it exists
-            console.log(`ACTIVE_SERVERS:  DEBUG - Attempting to close associated analysis session`);
+            logger.debug(`DEBUG - Attempting to close associated analysis session`);
             await this.closeAssociatedAnalysisSession(serverId, server);
 
             // Update status to indicate stopping
-            console.log(`ACTIVE_SERVERS:  DEBUG - Updating server status to 'stopped'`);
+            logger.debug(`DEBUG - Updating server status to 'stopped'`);
             registry.updateServerStatus(serverId, 'stopped');
 
             // Stop the actual server instance if available
             let cleanShutdown = true;
             if (server.serverInstance && typeof server.serverInstance.stop === 'function') {
-                console.log(`ACTIVE_SERVERS:  DEBUG - Stopping server instance for ${serverId}`);
+                logger.debug(() => `DEBUG - Stopping server instance for ${serverId}`);
                 cleanShutdown = await this.stopInstanceOrForce(serverId, server.serverInstance);
             } else {
-                console.log(`ACTIVE_SERVERS:  No server instance or stop method for ${serverId}`);
+                logger.debug(() => `No server instance or stop method for ${serverId}`);
             }
 
-            console.log(`ACTIVE_SERVERS:  Stopped server ${serverId} (${server.url}), clean: ${cleanShutdown}`);
+            logger.debug(() => `Stopped server ${serverId} (${server.url}), clean: ${cleanShutdown}`);
             if (cleanShutdown) {
                 vscode.window.showInformationMessage(`Server stopped: ${server.url}`);
             }
@@ -105,7 +108,7 @@ export class ServerControl {
         } finally {
             // The row always leaves the list: a runtime that refuses to shut
             // down must never leave a zombie entry behind.
-            console.log(`ACTIVE_SERVERS:  DEBUG - Removing server from registry`);
+            logger.debug(`DEBUG - Removing server from registry`);
             registry.unregisterServer(serverId);
         }
     }
@@ -126,17 +129,17 @@ export class ServerControl {
                     );
                 }),
             ]);
-            console.log(`ACTIVE_SERVERS:  Server instance stopped for ${serverId}`);
+            logger.debug(() => `Server instance stopped for ${serverId}`);
             return true;
         } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
-            console.error(`ACTIVE_SERVERS:  Graceful stop failed for ${serverId}: ${reason}`);
+            logger.error(`Graceful stop failed for ${serverId}: ${reason}`);
             if (typeof instance.forceStop === 'function') {
                 try {
                     instance.forceStop();
-                    console.log(`ACTIVE_SERVERS:  Forced shutdown for ${serverId}`);
+                    logger.debug(() => `Forced shutdown for ${serverId}`);
                 } catch (forceError) {
-                    console.error(`ACTIVE_SERVERS:  Forced shutdown failed for ${serverId}:`, forceError);
+                    logger.error(`Forced shutdown failed for ${serverId}:`, forceError);
                 }
             }
             vscode.window.showWarningMessage(
@@ -154,13 +157,13 @@ export class ServerControl {
      * Stop all active servers
      */
     public static async stopAllServers(): Promise<number> {
-        console.log('ACTIVE_SERVERS: Stopping all active servers');
+        logger.debug('Stopping all active servers');
         
         const registry = getActiveServerRegistry();
         const runningServers = registry.getServersByStatus('running');
         
         if (runningServers.length === 0) {
-            console.log('ACTIVE_SERVERS: No running servers to stop');
+            logger.debug('No running servers to stop');
             vscode.window.showInformationMessage('No active servers to stop');
             return 0;
         }
@@ -170,10 +173,10 @@ export class ServerControl {
         const lateralPanelServers = runningServers.filter(server => server.launchMode === 'lateralPanel');
         
         if (lateralPanelServers.length > 0) {
-            console.log(`ACTIVE_SERVER_PANEL: Closing ${lateralPanelServers.length} lateral panels before stopping servers`);
+            logger.debug(() => `ACTIVE_SERVER_PANEL: Closing ${lateralPanelServers.length} lateral panels before stopping servers`);
             const serverIdsWithPanels = lateralPanelServers.map(server => server.id);
             const closedPanelCount = panelManager.removePanelsForServers(serverIdsWithPanels);
-            console.log(`ACTIVE_SERVER_PANEL: Closed ${closedPanelCount}/${lateralPanelServers.length} lateral panels`);
+            logger.debug(() => `ACTIVE_SERVER_PANEL: Closed ${closedPanelCount}/${lateralPanelServers.length} lateral panels`);
         }
 
         let stoppedCount = 0;
@@ -187,7 +190,7 @@ export class ServerControl {
 
         await Promise.all(stopPromises);
 
-        console.log(`ACTIVE_SERVERS: Stopped ${stoppedCount}/${runningServers.length} servers`);
+        logger.debug(() => `Stopped ${stoppedCount}/${runningServers.length} servers`);
         
         if (stoppedCount === runningServers.length) {
             vscode.window.showInformationMessage(`All ${stoppedCount} servers stopped successfully`);
@@ -205,8 +208,8 @@ export class ServerControl {
      */
     private static async closeAssociatedAnalysisSession(serverId: string, server: ActiveServer): Promise<void> {
         try {
-            console.log(`ACTIVE_SERVERS:  DEBUG - Looking for analysis session associated with server ${serverId}`);
-            console.log(`ACTIVE_SERVERS:  DEBUG - Server details:`, {
+            logger.debug(() => `DEBUG - Looking for analysis session associated with server ${serverId}`);
+            logger.debug(`DEBUG - Server details:`, {
                 id: serverId,
                 port: server.port,
                 htmlFile: server.htmlFile,
@@ -216,9 +219,9 @@ export class ServerControl {
             const sessionRegistry = UnifiedSessionRegistry.getInstance(ServerControl.extensionContext);
             const allSessions = sessionRegistry.getAllSessions();
             
-            console.log(`ACTIVE_SERVERS:  DEBUG - Found ${allSessions.length} active analysis sessions`);
+            logger.debug(() => `DEBUG - Found ${allSessions.length} active analysis sessions`);
             allSessions.forEach((session: any, index: number) => {
-                console.log(`ACTIVE_SERVERS:  DEBUG - Session ${index + 1}:`, {
+                logger.debug(() => `DEBUG - Session ${index + 1}:`, {
                     id: session.id,
                     targetPath: session.targetPath,
                     outputPath: session.outputPath,
@@ -232,22 +235,22 @@ export class ServerControl {
             // Try to find by sessionId in server metadata (when implemented)
             if (server.metadata && (server.metadata as any).sessionId) {
                 const sessionId = (server.metadata as any).sessionId;
-                console.log(`ACTIVE_SERVERS:  DEBUG - Trying to find session by metadata sessionId: ${sessionId}`);
+                logger.debug(() => `DEBUG - Trying to find session by metadata sessionId: ${sessionId}`);
                 associatedSession = sessionRegistry.getSession(sessionId);
                 if (associatedSession) {
-                    console.log(`ACTIVE_SERVERS:  Found session by metadata sessionId: ${sessionId}`);
+                    logger.debug(() => `Found session by metadata sessionId: ${sessionId}`);
                 } else {
-                    console.log(`ACTIVE_SERVERS:  No session found with sessionId: ${sessionId}`);
+                    logger.debug(() => `No session found with sessionId: ${sessionId}`);
                 }
             }
             
             // If not found, try to find by matching output directory or static root
             if (!associatedSession) {
                 const serverRoot = server.metadata?.staticRoot || server.htmlFile;
-                console.log(`ACTIVE_SERVERS:  DEBUG - Trying to find session by server root: ${serverRoot}`);
+                logger.debug(() => `DEBUG - Trying to find session by server root: ${serverRoot}`);
                 
                 for (const session of allSessions) {
-                    console.log(`ACTIVE_SERVERS:  DEBUG - Checking session ${session.id} with outputPath: ${session.outputPath}`);
+                    logger.debug(() => `DEBUG - Checking session ${session.id} with outputPath: ${session.outputPath}`);
                     
                     if (session.outputPath && serverRoot && (
                         session.outputPath === serverRoot ||
@@ -255,29 +258,29 @@ export class ServerControl {
                         session.outputPath.includes(serverRoot)
                     )) {
                         associatedSession = session;
-                        console.log(`ACTIVE_SERVERS:  Found session by output directory match: ${session.id}`);
+                        logger.debug(() => `Found session by output directory match: ${session.id}`);
                         break;
                     }
                 }
                 
                 if (!associatedSession) {
-                    console.log(`ACTIVE_SERVERS:  No session found by directory matching`);
+                    logger.debug(`No session found by directory matching`);
                 }
             }
             
             // If found, close the session
             if (associatedSession) {
-                console.log(`ACTIVE_SERVERS:  DEBUG - Closing associated analysis session ${associatedSession.id}`);
+                logger.debug(() => `DEBUG - Closing associated analysis session ${associatedSession.id}`);
                 
                 const success = sessionRegistry.closeSession(associatedSession.id);
                 
                 if (success) {
-                    console.log(`ACTIVE_SERVERS:  Successfully closed associated analysis session ${associatedSession.id}`);
+                    logger.debug(() => `Successfully closed associated analysis session ${associatedSession.id}`);
                 } else {
-                    console.warn(`ACTIVE_SERVERS:  Failed to close associated analysis session ${associatedSession.id}`);
+                    logger.warn(`Failed to close associated analysis session ${associatedSession.id}`);
                 }
             } else {
-                console.log(`ACTIVE_SERVERS:  No associated analysis session found for server ${serverId}`);
+                logger.debug(() => `No associated analysis session found for server ${serverId}`);
             }
             
         } catch (error) {

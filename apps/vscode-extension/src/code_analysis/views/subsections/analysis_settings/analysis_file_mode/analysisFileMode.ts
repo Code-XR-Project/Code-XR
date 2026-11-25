@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage, AnalysisFileMode } from '../../../../configuration';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export { AnalysisFileMode } from '../../../../configuration';
 
@@ -14,7 +17,7 @@ export class AnalysisFileSetting {
     private storage: AnalysisConfigurationStorage;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('ANALYSIS: Initializing Analysis File setting');
+        logger.debug('Initializing Analysis File setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedMode();
     }
@@ -54,7 +57,7 @@ export class AnalysisFileSetting {
      */
     async toggleMode(): Promise<AnalysisFileMode> {
         this.currentMode = this.currentMode === 'XR' ? 'LivePanel' : 'XR';
-        console.log(`ANALYSIS: Analysis file mode switched to ${this.currentMode}`);
+        logger.debug(() => `Analysis file mode switched to ${this.currentMode}`);
         
         await this.saveModeToSettings();
         
@@ -83,9 +86,9 @@ export class AnalysisFileSetting {
         try {
             const savedMode = await this.storage.getAnalysisFileMode();
             this.currentMode = savedMode;
-            console.log(`ANALYSIS: Loaded analysis file mode from storage: ${this.currentMode}`);
+            logger.debug(() => `Loaded analysis file mode from storage: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error loading saved mode, using default:', error);
+            logger.error('Error loading saved mode, using default:', error);
             this.currentMode = 'XR'; // Fallback to default
         }
     }
@@ -96,9 +99,9 @@ export class AnalysisFileSetting {
     private async saveModeToSettings(): Promise<void> {
         try {
             await this.storage.setAnalysisFileMode(this.currentMode);
-            console.log(`ANALYSIS: Saved analysis file mode to storage: ${this.currentMode}`);
+            logger.debug(() => `Saved analysis file mode to storage: ${this.currentMode}`);
         } catch (error) {
-            console.error('ANALYSIS: Error saving mode to storage:', error);
+            logger.error('Error saving mode to storage:', error);
         }
     }
 }
