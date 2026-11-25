@@ -130,7 +130,7 @@ COMMENT_ANALYZER_LANGUAGES_WITHOUT_AN_ARM = frozenset()
 # live session: the TypeScript watcher gate (DIRECTORY_ANALYSIS_EXTENSIONS in
 # src/code_analysis/engine/watchers/analysisFilePolicy.ts) is wider than the
 # contract, and the re-analysis of a changed file
-# (sumaryFiles/file_reanalysis_coordinator.py -> build_file_snapshot) applies no
+# (summaryFiles/file_reanalysis_coordinator.py -> build_file_snapshot) applies no
 # contract filter of its own. The arms below are therefore live, although no
 # per-language fixture touches them and the contract does not list them.
 # Aliases that no gate admits ('.phps') are left unpinned on purpose: removing
