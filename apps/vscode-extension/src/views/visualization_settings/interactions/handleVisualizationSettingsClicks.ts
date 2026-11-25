@@ -85,7 +85,7 @@ export class VisualizationSettingsClickHandler {
             if (item.originalSettingsItem?.settingField) {
                 await vscode.commands.executeCommand('codeXR.visualizationSettings.configure', item.originalSettingsItem.settingField.key);
             } else {
-                vscode.window.showWarningMessage(`Cannot configure: ${item.label}`);
+                void vscode.window.showWarningMessage(`Cannot configure: ${item.label}`);
             }
         }
     }
@@ -99,13 +99,13 @@ export class VisualizationSettingsClickHandler {
         try {
             if (item.originalSettingsItem?.settingField) {
                 await vscode.commands.executeCommand('codeXR.visualizationSettings.reset', item.originalSettingsItem.settingField.key);
-                vscode.window.showInformationMessage(`Reset ${item.label} to default value`);
+                void vscode.window.showInformationMessage(`Reset ${item.label} to default value`);
             } else {
-                vscode.window.showWarningMessage(`Cannot reset: ${item.label}`);
+                void vscode.window.showWarningMessage(`Cannot reset: ${item.label}`);
             }
         } catch (error) {
             logger.error(`Error resetting setting:`, error);
-            vscode.window.showErrorMessage(`Failed to reset ${item.label}: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to reset ${item.label}: ${error}`);
         }
     }
 
@@ -125,10 +125,10 @@ export class VisualizationSettingsClickHandler {
         if (confirmation === 'Reset All') {
             try {
                 await vscode.commands.executeCommand('codeXR.visualizationSettings.resetAll');
-                vscode.window.showInformationMessage('All visualization settings have been reset to default values');
+                void vscode.window.showInformationMessage('All visualization settings have been reset to default values');
             } catch (error) {
                 logger.error('Error resetting all settings:', error);
-                vscode.window.showErrorMessage(`Failed to reset all settings: ${error}`);
+                void vscode.window.showErrorMessage(`Failed to reset all settings: ${error}`);
             }
         }
     }
@@ -143,7 +143,7 @@ export class VisualizationSettingsClickHandler {
             await vscode.commands.executeCommand('codeXR.visualizationSettings.export');
         } catch (error) {
             logger.error('Error exporting settings:', error);
-            vscode.window.showErrorMessage(`Failed to export settings: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to export settings: ${error}`);
         }
     }
 
@@ -157,7 +157,7 @@ export class VisualizationSettingsClickHandler {
             await vscode.commands.executeCommand('codeXR.visualizationSettings.import');
         } catch (error) {
             logger.error('Error importing settings:', error);
-            vscode.window.showErrorMessage(`Failed to import settings: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to import settings: ${error}`);
         }
     }
 }

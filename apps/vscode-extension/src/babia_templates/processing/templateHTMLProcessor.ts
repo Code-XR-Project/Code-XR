@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { getVisualizationConfiguration, VisualizationSettings } from '../../utils/getVisualizationConfiguration';
+import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../../utils/getVisualizationConfiguration';
 import { generateNonce } from '../../utils/nonceGenerator';
 import { getLogger } from '../../core/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
@@ -183,7 +183,7 @@ export class TemplateHTMLProcessor {
      */
     private static prepareTemplateVariables(
         templateData: HTMLTemplateData,
-        visualizationSettings: VisualizationSettings
+        visualizationSettings: TemplateVisualizationSettings
     ): Record<string, string> {
         // Escape HTML content for safe injection into babia-html attribute
         const escapedHtmlContent = this.escapeHtmlForAttribute(templateData.htmlContent);

@@ -100,13 +100,13 @@ export class SharedDimensionMappingSettingCore {
         const chartType = await this.adapter.getChartType(this.storage);
         const chart = chartType ? this.getChartMetadata(chartType) : undefined;
         if (!chart) {
-            vscode.window.showErrorMessage('Chart type not found. Please select a valid chart type first.');
+            void vscode.window.showErrorMessage('Chart type not found. Please select a valid chart type first.');
             return;
         }
 
         const dimension = chart.dimensions.find((candidate) => candidate.name === dimensionName);
         if (!dimension) {
-            vscode.window.showErrorMessage(`Dimension ${dimensionName} not found in chart ${chartType}.`);
+            void vscode.window.showErrorMessage(`Dimension ${dimensionName} not found in chart ${chartType}.`);
             return;
         }
 
@@ -116,7 +116,7 @@ export class SharedDimensionMappingSettingCore {
             true,
         );
         if (!availableFields) {
-            vscode.window.showWarningMessage('Python Environment Not Ready. CodeXR could not load the XR field schema yet.');
+            void vscode.window.showWarningMessage('Python Environment Not Ready. CodeXR could not load the XR field schema yet.');
             return;
         }
 
@@ -152,7 +152,7 @@ export class SharedDimensionMappingSettingCore {
 
         if (selection.fieldId === '') {
             await this.clearDimensionMapping(dimension.name);
-            vscode.window.showInformationMessage(`Cleared mapping for ${dimension.label}`);
+            void vscode.window.showInformationMessage(`Cleared mapping for ${dimension.label}`);
             return;
         }
 
@@ -175,7 +175,7 @@ export class SharedDimensionMappingSettingCore {
         }
 
         await this.setDimensionMapping(dimension.name, selection.fieldId);
-        vscode.window.showInformationMessage(`Mapped ${dimension.label} → ${selection.label}`);
+        void vscode.window.showInformationMessage(`Mapped ${dimension.label} → ${selection.label}`);
     }
 
     async getCurrentMappings(): Promise<Record<string, string>> {

@@ -39,7 +39,7 @@ export class PreviewRenderer {
             }
         } catch (error) {
             logger.error(`Error opening preview: ${error}`);
-            vscode.window.showWarningMessage(`Failed to open preview: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showWarningMessage(`Failed to open preview: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
     
@@ -50,7 +50,7 @@ export class PreviewRenderer {
     private static async openInBrowser(serverUrl: string): Promise<void> {
         logger.debug(() => `Opening ${serverUrl} in external browser`);
         await vscode.env.openExternal(vscode.Uri.parse(serverUrl));
-        vscode.window.showInformationMessage(`Opened ${serverUrl} in browser`);
+        void vscode.window.showInformationMessage(`Opened ${serverUrl} in browser`);
     }
     
     /**
@@ -92,13 +92,13 @@ export class PreviewRenderer {
                     logger.debug(() => `ACTIVE_SERVER_PANEL: Webview message for server ${serverId}:`, message);
                     switch (message.command) {
                         case 'openExternal':
-                            vscode.env.openExternal(vscode.Uri.parse(message.url));
+                            void vscode.env.openExternal(vscode.Uri.parse(message.url));
                             break;
                         case 'showError':
-                            vscode.window.showErrorMessage(message.text);
+                            void vscode.window.showErrorMessage(message.text);
                             break;
                         case 'serverError':
-                            vscode.window.showWarningMessage(`Server Error: ${message.text}`);
+                            void vscode.window.showWarningMessage(`Server Error: ${message.text}`);
                             break;
                     }
                 },
@@ -112,7 +112,7 @@ export class PreviewRenderer {
             });
             
             logger.debug(() => `Created webview panel for ${serverUrl}`);
-            vscode.window.showInformationMessage(`Opened ${fileName} in VS Code panel`);
+            void vscode.window.showInformationMessage(`Opened ${fileName} in VS Code panel`);
             
         } catch (error) {
             logger.error(`Error creating webview panel: ${error}`);

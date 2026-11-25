@@ -7,7 +7,7 @@ const logger = getLogger('VISUALIZATION_CONFIG');
  * Common functions for retrieving visualization settings across templates
  */
 
-export interface VisualizationSettings {
+export interface TemplateVisualizationSettings {
     palette: string;
     environment: string;
     backgroundColor: string;
@@ -18,7 +18,7 @@ export interface VisualizationSettings {
  * Get visualization settings (palette, environment, colors)
  * Centralized function used by all template processors
  */
-export async function getVisualizationConfiguration(): Promise<VisualizationSettings> {
+export async function getVisualizationConfiguration(): Promise<TemplateVisualizationSettings> {
     try {
         logger.debug('Retrieving visualization settings...');
         

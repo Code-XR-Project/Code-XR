@@ -18,7 +18,7 @@ export class ViewThemeSetting {
 
     constructor(context: vscode.ExtensionContext) {
         this.storage = AnalysisConfigurationStorage.getInstance(context);
-        this.loadSavedTheme();
+        void this.loadSavedTheme();
     }
 
     /**

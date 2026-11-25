@@ -1,4 +1,4 @@
-import { VisualizationSettings } from '../../../utils/getVisualizationConfiguration';
+import { TemplateVisualizationSettings } from '../../../utils/getVisualizationConfiguration';
 import { generateNonce } from '../../../utils/nonceGenerator';
 import {
     BOATS_BASE_COMPONENT_ATTRIBUTES,
@@ -26,7 +26,7 @@ export class CreateStructure {
     public static createStructuralPlaceholders(
         title: string,
         dataSource: string,
-        visualizationSettings: VisualizationSettings,
+        visualizationSettings: TemplateVisualizationSettings,
         analysisType: 'xr' | 'dom' | 'none' = 'none',
         context: vscode.ExtensionContext,
         chartType?: string,
@@ -200,7 +200,7 @@ export class CreateStructure {
      * Create environment-specific placeholders
      */
     public static createEnvironmentPlaceholders(
-        visualizationSettings: VisualizationSettings
+        visualizationSettings: TemplateVisualizationSettings
     ): Map<string, string> {
         const placeholders = new Map<string, string>();
 

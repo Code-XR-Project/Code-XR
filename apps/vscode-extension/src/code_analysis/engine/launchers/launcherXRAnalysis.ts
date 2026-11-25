@@ -10,7 +10,7 @@
 import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { UnifiedSessionRegistry } from '../core/sessionRegistry';
-import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
+import { FileRequirementProcessor, ProcessedRequirements } from '../processors/FileRequirementProcessor';
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { AnalysisConfigurationStorage } from '../../configuration/analysisConfigurationStorage';
 import { DimensionValidator } from '../../../babia_templates/processing/dimensionValidator';
@@ -23,6 +23,24 @@ import { getLogger } from '../../../core/logging/sink';
 const logger = getLogger('LAUNCHER_XR_ANALYSIS');
 
 const LOG_PREFIX = 'NEW_LAUNCHER_XR_ANALYSIS';
+
+/** Step 1 of both XR launches. */
+async function processRequirements(
+    session: UnifiedAnalysisSession,
+    context: vscode.ExtensionContext,
+): Promise<ProcessedRequirements> {
+    const processor = new FileRequirementProcessor(context);
+    return processor.processRequirements(session);
+}
+
+/** The watcher step of both XR launches; a failure rejects (the pipeline reports it). */
+async function startSessionWatcher(
+    session: UnifiedAnalysisSession,
+    context: vscode.ExtensionContext,
+): Promise<string | undefined | null> {
+    const watcher = new SessionWatcherManager(context);
+    return watcher.startWatchingSession(session);
+}
 
 export class LauncherXRAnalysis {
     private static async validateXRConfiguration(
@@ -118,7 +136,7 @@ export class LauncherXRAnalysis {
         );
 
         if (!result.isValid) {
-            vscode.window.showErrorMessage(result.error!);
+            void vscode.window.showErrorMessage(result.error!);
             throw new Error(result.error!);
         }
 
@@ -143,18 +161,11 @@ export class LauncherXRAnalysis {
                 await LauncherXRAnalysis.validateAndGetXRConfiguration('file', registry, session.id, context);
             },
 
-            processRequirements: async () => {
-                const processor = new FileRequirementProcessor(context);
-                return processor.processRequirements(session);
-            },
-
-            startWatcher: async () => {
-                const watcher = new SessionWatcherManager(context);
-                return watcher.startWatchingSession(session);
-            },
+            processRequirements: () => processRequirements(session, context),
+            startWatcher: () => startSessionWatcher(session, context),
 
             onSuccess: (port) => {
-                vscode.window.showInformationMessage(
+                void vscode.window.showInformationMessage(
                     `XR Analysis completed for file: ${session.targetName} - Server running on port ${port}`,
                 );
             },
@@ -177,18 +188,11 @@ export class LauncherXRAnalysis {
                 await LauncherXRAnalysis.validateAndGetXRConfiguration('directory', registry, session.id, context);
             },
 
-            processRequirements: async () => {
-                const processor = new FileRequirementProcessor(context);
-                return processor.processRequirements(session);
-            },
-
-            startWatcher: async () => {
-                const watcher = new SessionWatcherManager(context);
-                return watcher.startWatchingSession(session);
-            },
+            processRequirements: () => processRequirements(session, context),
+            startWatcher: () => startSessionWatcher(session, context),
 
             onSuccess: (port) => {
-                vscode.window.showInformationMessage(
+                void vscode.window.showInformationMessage(
                     `XR Directory Analysis completed for: ${session.targetName}${session.isDeep ? ' (Deep)' : ''} - Server running on port ${port}`,
                 );
             },

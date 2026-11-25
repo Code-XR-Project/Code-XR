@@ -121,7 +121,7 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
         logger.debug('3. Then use VR headset to access the same URL');
         logger.debug('=====================================');
 
-        vscode.window.showInformationMessage(
+        void vscode.window.showInformationMessage(
             `HTTPS server ready. VR/Mobile: ${primaryUrl}`,
             'Copy VR URL',
             'Copy Local URL',

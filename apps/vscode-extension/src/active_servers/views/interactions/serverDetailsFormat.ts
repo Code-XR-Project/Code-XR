@@ -21,7 +21,7 @@ export function formatServerDetails(server: ActiveServer): string {
     const metadata = (server.metadata || {}) as Record<string, unknown>;
     const remote = server.remoteAccess;
     const protocol = server.certMode === 'http' ? 'http' : 'https';
-    const lanUrl = `${protocol}://${NetworkUtils.getLocalIPAddress()}:${server.port}`;
+    const lanUrl = NetworkUtils.getPrimaryExternalUrl(server.port, protocol);
 
     return formatDetailSections([
         [

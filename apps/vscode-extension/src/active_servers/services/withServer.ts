@@ -19,7 +19,7 @@ export async function withServer(
 
     if (!server) {
         logger.error(`Server ${serverId} not found`);
-        vscode.window.showErrorMessage(`Server not found: ${serverId}`);
+        void vscode.window.showErrorMessage(`Server not found: ${serverId}`);
         return;
     }
 

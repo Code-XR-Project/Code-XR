@@ -38,7 +38,7 @@ export class ServerControl {
         
         if (!server) {
             logger.error(`Server ${serverId} not found in registry`);
-            vscode.window.showErrorMessage(`Server not found: ${serverId}`);
+            void vscode.window.showErrorMessage(`Server not found: ${serverId}`);
             return false;
         }
 
@@ -97,7 +97,7 @@ export class ServerControl {
 
             logger.debug(() => `Stopped server ${serverId} (${server.url}), clean: ${cleanShutdown}`);
             if (cleanShutdown) {
-                vscode.window.showInformationMessage(`Server stopped: ${server.url}`);
+                void vscode.window.showInformationMessage(`Server stopped: ${server.url}`);
             }
 
             return cleanShutdown;
@@ -142,7 +142,7 @@ export class ServerControl {
                     logger.error(`Forced shutdown failed for ${serverId}:`, forceError);
                 }
             }
-            vscode.window.showWarningMessage(
+            void vscode.window.showWarningMessage(
                 `Server removed from the list, but its runtime did not shut down cleanly: ${reason}`,
             );
             return false;
@@ -164,7 +164,7 @@ export class ServerControl {
         
         if (runningServers.length === 0) {
             logger.debug('No running servers to stop');
-            vscode.window.showInformationMessage('No active servers to stop');
+            void vscode.window.showInformationMessage('No active servers to stop');
             return 0;
         }
 
@@ -193,9 +193,9 @@ export class ServerControl {
         logger.debug(() => `Stopped ${stoppedCount}/${runningServers.length} servers`);
         
         if (stoppedCount === runningServers.length) {
-            vscode.window.showInformationMessage(`All ${stoppedCount} servers stopped successfully`);
+            void vscode.window.showInformationMessage(`All ${stoppedCount} servers stopped successfully`);
         } else {
-            vscode.window.showWarningMessage(
+            void vscode.window.showWarningMessage(
                 `Stopped ${stoppedCount}/${runningServers.length} servers. Some servers may require manual intervention.`
             );
         }

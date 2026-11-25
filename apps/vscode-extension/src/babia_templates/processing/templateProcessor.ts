@@ -1,6 +1,6 @@
 import { ChartMetadata, DimensionDataType, DimensionMapping, DimensionValueRule } from '../models/chartModels';
 import { chartTemplates } from '../charts/templateCharts';
-import { getVisualizationConfiguration, VisualizationSettings } from '../../utils/getVisualizationConfiguration';
+import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../../utils/getVisualizationConfiguration';
 import { CreateChart } from './placeholders/createChart';
 import { CreateStructure } from './placeholders/createStructure';
 import { XRFieldTypeMap, XRSchemaTargetType } from '../models/xrFieldModels';
@@ -144,7 +144,7 @@ export class TemplateProcessor {
     /**
      * Get visualization settings (palette, environment, colors)
      */
-    private static async getVisualizationSettings(): Promise<VisualizationSettings> {
+    private static async getVisualizationSettings(): Promise<TemplateVisualizationSettings> {
         return await getVisualizationConfiguration();
     }
 

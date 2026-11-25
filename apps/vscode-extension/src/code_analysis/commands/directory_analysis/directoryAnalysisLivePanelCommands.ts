@@ -39,7 +39,7 @@ export class DirectoryAnalysisLivePanelCommands {
 
             if (uri) {
                 if (uri.scheme !== 'file') {
-                    vscode.window.showWarningMessage('CodeXR: Invalid URI for directory analysis');
+                    void vscode.window.showWarningMessage('CodeXR: Invalid URI for directory analysis');
                     return;
                 }
 
@@ -62,7 +62,7 @@ export class DirectoryAnalysisLivePanelCommands {
             } else {
                 const activeEditor = vscode.window.activeTextEditor;
                 if (!activeEditor) {
-                    vscode.window.showWarningMessage('CodeXR: No directory selected for LivePanel analysis');
+                    void vscode.window.showWarningMessage('CodeXR: No directory selected for LivePanel analysis');
                     return;
                 }
                 directoryPath = require('path').dirname(activeEditor.document.fileName);
@@ -71,7 +71,7 @@ export class DirectoryAnalysisLivePanelCommands {
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'LivePanel', 'directory', this.context, false);
         } catch (error) {
             logger.error('Error in LivePanel analyze directory command:', error);
-            vscode.window.showErrorMessage(`CodeXR: Directory LivePanel analysis failed - ${error}`);
+            void vscode.window.showErrorMessage(`CodeXR: Directory LivePanel analysis failed - ${error}`);
         }
     }
 
@@ -81,7 +81,7 @@ export class DirectoryAnalysisLivePanelCommands {
 
             if (uri) {
                 if (uri.scheme !== 'file') {
-                    vscode.window.showErrorMessage('CodeXR: Invalid directory URI for LivePanel Deep analysis');
+                    void vscode.window.showErrorMessage('CodeXR: Invalid directory URI for LivePanel Deep analysis');
                     return;
                 }
 
@@ -94,7 +94,7 @@ export class DirectoryAnalysisLivePanelCommands {
             } else {
                 const activeEditor = vscode.window.activeTextEditor;
                 if (!activeEditor) {
-                    vscode.window.showWarningMessage('CodeXR: No directory selected for LivePanel Deep analysis');
+                    void vscode.window.showWarningMessage('CodeXR: No directory selected for LivePanel Deep analysis');
                     return;
                 }
                 directoryPath = require('path').dirname(activeEditor.document.fileName);
@@ -103,7 +103,7 @@ export class DirectoryAnalysisLivePanelCommands {
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'LivePanel', 'directory', this.context, true);
         } catch (error) {
             logger.error('Error in LivePanel Deep analyze directory command:', error);
-            vscode.window.showErrorMessage(`CodeXR: Directory LivePanel Deep analysis failed - ${error}`);
+            void vscode.window.showErrorMessage(`CodeXR: Directory LivePanel Deep analysis failed - ${error}`);
         }
     }
 }

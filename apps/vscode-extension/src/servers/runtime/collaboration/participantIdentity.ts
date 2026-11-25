@@ -1,5 +1,9 @@
 import { buildStarWarsDisplayName } from '../../../collaboration/model/anonymousName';
-import { CollaborationProfile } from '../../../collaboration/model/collaborationProfile';
+import {
+    COLLABORATION_AVATARS,
+    CollaborationProfile,
+    VALID_AVATAR_IDS,
+} from '../../../collaboration/model/collaborationProfile';
 import { normalizeId } from './roomMessageCodec';
 import {
     CollaborationPeer,
@@ -15,17 +19,8 @@ import {
  * functions over the room state; nothing here sends or broadcasts.
  */
 
-/** Sentinel meaning "this room picks a free colour for me". */
-export const AUTO_AVATAR_ID = 'auto';
-export const CODEXR_AVATAR_IDS = [
-    'avatar-1',
-    'avatar-2',
-    'avatar-3',
-    'avatar-4',
-    'avatar-5',
-    'avatar-6',
-] as const;
-const VALID_AVATAR_IDS = new Set<string>(CODEXR_AVATAR_IDS);
+/** The room's allocation order: the model palette, `auto` excluded. */
+export const CODEXR_AVATAR_IDS: readonly string[] = COLLABORATION_AVATARS.map((avatar) => avatar.id);
 
 export function getParticipantPresence(participant: ParticipantState): Pick<
     SharedPresenceState,
@@ -133,7 +128,7 @@ function assignDistinctAvatarId(room: CollaborationRoomState, peerId: string): s
         }
     }
 
-    let chosen = CODEXR_AVATAR_IDS[0] as string;
+    let chosen = CODEXR_AVATAR_IDS[0];
     let lowest = Number.POSITIVE_INFINITY;
     for (const [avatarId, count] of usage) {
         if (count < lowest) {

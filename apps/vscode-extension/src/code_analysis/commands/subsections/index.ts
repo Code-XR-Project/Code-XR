@@ -4,7 +4,7 @@
  */
 
 export { AnalysisSettingsCommands } from './analysis_settings/analysisSettingsCommands';
-export { ActiveAnalysesCommands } from './active_analyses/activeAnalysesCommands';
+export { ActiveAnalysesCommandRegistrations } from './active_analyses/activeAnalysesCommands';
 export { ProjectByLanguageCommands } from './project_by_language/projectByLanguageCommands';
 export { FilesByLanguageCommands } from './files_by_language/filesByLanguageCommands';
 

@@ -88,9 +88,10 @@ export default [{
     },
 }, {
     // Type-aware rules need the TypeScript program, so they are scoped to the
-    // sources tsconfig.json covers. Warn-only: an un-awaited promise is often
-    // deliberate fire-and-forget, and marking each one `void` is a separate,
-    // per-module cleanup.
+    // sources tsconfig.json covers. no-floating-promises is an error since
+    // ROADMAP T56-T59 marked every deliberate fire-and-forget `void`; a new
+    // un-awaited promise is either awaited or voided on purpose.
+    // no-misused-promises stays in the warning budget.
     files: ["src/**/*.ts"],
 
     languageOptions: {
@@ -101,7 +102,7 @@ export default [{
     },
 
     rules: {
-        "@typescript-eslint/no-floating-promises": ["warn", { checkThenables: true }],
+        "@typescript-eslint/no-floating-promises": ["error", { checkThenables: true }],
         "@typescript-eslint/no-misused-promises": "warn",
     },
 }, {
