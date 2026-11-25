@@ -9,6 +9,27 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
 
+/** The record executePythonScript resolves instead of throwing when a run fails. */
+interface PythonScriptFailure {
+    success: false;
+    error?: string;
+    rawOutput?: string;
+    stderr?: string;
+    stdout?: string;
+}
+
+/**
+ * The failure carried by a script outcome, or `undefined` when the outcome
+ * counts as a payload: any truthy value whose `success` is not `false`.
+ * A falsy outcome is a failure with no message.
+ */
+function scriptFailureOf(result: unknown): Partial<PythonScriptFailure> | undefined {
+    if (!result) {
+        return {};
+    }
+    return (result as { success?: unknown }).success === false ? result as PythonScriptFailure : undefined;
+}
+
 /**
  * Utility para ejecutar análisis Python
  * 
@@ -211,74 +232,52 @@ export class ExecutePython {
             if (session.targetType === 'directory') {
                 logger.debug('XR_ANALYSIS: Python coordinator will scan and filter directory contents internally');
                 progress?.report({ message: session.isDeep ? 'Preparing deep XR analysis...' : 'Preparing XR directory analysis...' });
+                if (session.isDeep) {
+                    logger.debug('XR_ANALYSIS: Adding --deep flag for deep directory analysis');
+                    args.push('--deep');
+                }
             }
 
-            if (session.targetType === 'directory' && session.isDeep) {
-                logger.debug('XR_ANALYSIS: Adding --deep flag for deep directory analysis');
-                args.push('--deep');
-            }
-
-            logger.debug('XR_ANALYSIS: Starting XR analysis with main.py');
-            logger.debug(() => `XR_ANALYSIS: Args: ${args.join(' ')}`);
+            logger.debug(() => `XR_ANALYSIS: Starting XR analysis with main.py, args: ${args.join(' ')}`);
             progress?.report({ message: 'Starting XR analysis...' });
 
             const result = await this.executePythonScript('main.py', args, progress);
-
-            logger.debug('XR_ANALYSIS: Raw Python result received:', {
-                resultType: typeof result,
-                isArray: Array.isArray(result),
-                isObject: typeof result === 'object',
-                hasSuccessProperty: result && typeof result === 'object' && 'success' in result,
-                hasErrorProperty: result && typeof result === 'object' && 'error' in result,
-                success: result?.success,
-                error: result?.error,
-                rawOutputLength: result?.rawOutput?.length || 0,
-            });
-
-            if (result?.success === false && result?.rawOutput && result?.error?.includes('JSON markers not found')) {
-                // parsePythonOutput already tried the trimmed stdout as bare JSON. JSON.parse
-                // accepts only JSON whitespace around a value, and trim() removes all of it,
-                // so the untrimmed rawOutput can never parse where the trimmed one failed.
-                logger.error('XR_ANALYSIS: Failed to parse rawOutput as JSON');
-                logger.error('XR_ANALYSIS: Raw output content:', result.rawOutput);
-                throw new Error(`XR analysis failed: Unable to parse result - ${result.error}`);
-            }
-
-            if (result && result.success !== false) {
-                logger.debug('XR_ANALYSIS: Direct result received (no error wrapper)');
-                logger.debug('XR_ANALYSIS: Analysis result details:', {
-                    functionsCount: Array.isArray(result) ? result.length : 0,
-                    isArray: Array.isArray(result),
-                    resultType: typeof result,
-                });
-
-                if (Array.isArray(result)) {
-                    logger.debug(() => `XR_ANALYSIS: Generated ${result.length} XR function records`);
-                    logger.debug(() => `XR_ANALYSIS: Successfully completed analysis for ${session.targetPath}`);
-
-                    if (result.length > 0) {
-                        logger.debug('XR_ANALYSIS: Sample function:', {
-                            functionName: result[0].functionName,
-                            complexity: result[0].complexity,
-                            parameters: result[0].parameters,
-                            lineCount: result[0].lineCount,
-                            fileName: result[0].fileName,
-                        });
-                    }
-                } else {
-                    logger.debug(() => `XR_ANALYSIS: Result is not an array, type: ${typeof result}`);
-                }
-
-                progress?.report({ message: 'XR analysis completed!' });
-                return result;
-            }
-
-            logger.error('XR_ANALYSIS: XR analysis failed with error:', result);
-            throw new Error(`XR analysis failed: ${result?.error || 'Unknown error'}`);
+            return this.recoverXRResult(result, session, progress);
         } catch (error) {
             logger.error('XR_ANALYSIS: Error during XR analysis:', error);
             throw error;
         }
+    }
+
+    /**
+     * Maps the outcome of an XR run to its payload, or throws the run's error.
+     * A non-empty stdout without parseable JSON gets its own message: the
+     * trimmed stdout was already tried as bare JSON by parsePythonOutput, and
+     * JSON.parse accepts only whitespace that trim() removes, so nothing is
+     * left to recover from it.
+     */
+    private recoverXRResult(
+        result: unknown,
+        session: UnifiedAnalysisSession,
+        progress?: vscode.Progress<{message?: string; increment?: number}>,
+    ): unknown {
+        const failure = scriptFailureOf(result);
+        if (failure?.success === false && failure.rawOutput && failure.error?.includes('JSON markers not found')) {
+            logger.error('XR_ANALYSIS: Failed to parse rawOutput as JSON');
+            logger.error('XR_ANALYSIS: Raw output content:', failure.rawOutput);
+            throw new Error(`XR analysis failed: Unable to parse result - ${failure.error}`);
+        }
+
+        if (!failure) {
+            logger.debug(() => Array.isArray(result)
+                ? `XR_ANALYSIS: Generated ${result.length} XR function records for ${session.targetPath}`
+                : `XR_ANALYSIS: Result is not an array, type: ${typeof result}`);
+            progress?.report({ message: 'XR analysis completed!' });
+            return result;
+        }
+
+        logger.error('XR_ANALYSIS: XR analysis failed with error:', result);
+        throw new Error(`XR analysis failed: ${failure.error || 'Unknown error'}`);
     }
 
     private async executeHTMLDOMAnalysis(
