@@ -5,6 +5,7 @@ import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
 import { ExecutePython } from '../engine/utils/executePython';
 import { buildAnalyzerCacheKey, toPortableRelativePath } from './gitAnalysisShared';
+import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';
 import {
     GitAnalysisSourceCatalog,
@@ -29,12 +30,6 @@ const DEFAULT_MAX_FRAMES = 24;
 const DEFAULT_ANALYSIS_CONCURRENCY = 4;
 const TIMELINE_SCAN_LIMIT = 240;
 
-interface CachedPayload {
-    payload: Record<string, unknown>[];
-    missingTarget: boolean;
-    warnings: string[];
-}
-
 interface ResolvedEvolutionSources {
     sources: ComparisonSource[];
     exclusions: GitAnalysisExclusion[];
@@ -42,11 +37,8 @@ interface ResolvedEvolutionSources {
 
 export class ProjectEvolutionService {
     private readonly gitService: GitRepositoryService;
-    private readonly sourceCatalog: GitAnalysisSourceCatalog;
-    private readonly ownsSourceCatalog: boolean;
-    private readonly cache = new Map<string, CachedPayload>();
-    private activeJob: Promise<ProjectEvolutionResult> | null = null;
-    private activeRequest: ProjectEvolutionRequest | null = null;
+    private readonly analysis: GitAnalysisSessionContext;
+    private readonly jobs = new SingleJobGate<ProjectEvolutionRequest, ProjectEvolutionResult>('project-evolution-busy');
     private revision = 0;
     private cancellationRevision = 0;
 
@@ -62,12 +54,20 @@ export class ProjectEvolutionService {
             session.targetPath,
             path.join(privateStorageRoot, 'project-evolution', sessionId, 'snapshots'),
         );
-        this.ownsSourceCatalog = !sourceCatalog;
-        this.sourceCatalog = sourceCatalog || new GitAnalysisSourceCatalog(
-            session.targetType,
-            session.isDeep === true,
-            path.join(session.savedFilesPath || staticRoot, 'data.json'),
-        );
+        this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog);
+    }
+
+    private get sourceCatalog(): GitAnalysisSourceCatalog {
+        return this.analysis.sourceCatalog;
+    }
+
+    private get cache(): Map<string, CachedPayload> {
+        return this.analysis.cache;
+    }
+
+    /** The request of the last successful movie (what the room shows). */
+    private get activeRequest(): ProjectEvolutionRequest | null {
+        return this.jobs.lastRequest;
     }
 
     public getAvailability(): Promise<{ enabled: boolean; reason: string | null }> {
@@ -100,38 +100,23 @@ export class ProjectEvolutionService {
     }
 
     public isBusy(): boolean {
-        return this.activeJob !== null;
+        return this.jobs.isBusy();
     }
 
     public async generate(
         request: ProjectEvolutionRequest,
         onProgress: (progress: ProjectEvolutionProgress) => void,
     ): Promise<ProjectEvolutionResult> {
-        if (this.activeJob) {
-            throw new Error('project-evolution-busy');
-        }
-        const job = this.executeEvolution(request, onProgress);
-        this.activeJob = job;
-        try {
-            const result = await job;
-            this.activeRequest = { ...request };
-            return result;
-        } finally {
-            this.activeJob = null;
-        }
+        return this.jobs.run(request, () => this.executeEvolution(request, onProgress));
     }
 
-    public async dispose(): Promise<void> {
-        await this.gitService.dispose();
-        if (this.ownsSourceCatalog) {
-            await this.sourceCatalog.dispose();
-        }
-        this.cache.clear();
+    public dispose(): Promise<void> {
+        return this.analysis.dispose();
     }
 
     public async clearGeneratedMovie(): Promise<void> {
         this.cancellationRevision += 1;
-        this.activeRequest = null;
+        this.jobs.forgetLastRequest();
         this.cache.clear();
         if (this.revision < 1) {
             return;

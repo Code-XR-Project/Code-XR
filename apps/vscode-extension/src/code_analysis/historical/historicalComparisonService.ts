@@ -6,6 +6,7 @@ import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
 import { ExecutePython } from '../engine/utils/executePython';
 import { buildAnalyzerCacheKey, toPortableRelativePath } from './gitAnalysisShared';
+import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';
 import {
     GitAnalysisSourceCatalog,
@@ -27,20 +28,11 @@ import {
 
 const ANALYZER_CACHE_VERSION = 'historical-v1';
 
-interface CachedPayload {
-    payload: Record<string, unknown>[];
-    missingTarget: boolean;
-    warnings: string[];
-}
-
 export class HistoricalComparisonService {
     private readonly gitService: GitRepositoryService;
-    private readonly sourceCatalog: GitAnalysisSourceCatalog;
-    private readonly ownsSourceCatalog: boolean;
-    private readonly cache = new Map<string, CachedPayload>();
+    private readonly analysis: GitAnalysisSessionContext;
+    private readonly jobs = new SingleJobGate<HistoricalComparisonRequest, HistoricalComparisonResult>('comparison-busy');
     private references: HistoricalComparisonReferences | null = null;
-    private activeJob: Promise<HistoricalComparisonResult> | null = null;
-    private activeRequest: HistoricalComparisonRequest | null = null;
     private revision = 0;
 
     public constructor(
@@ -58,12 +50,20 @@ export class HistoricalComparisonService {
             'snapshots',
         );
         this.gitService = new GitRepositoryService(session.targetPath, snapshotRoot);
-        this.ownsSourceCatalog = !sourceCatalog;
-        this.sourceCatalog = sourceCatalog || new GitAnalysisSourceCatalog(
-            session.targetType,
-            session.isDeep === true,
-            path.join(session.savedFilesPath || staticRoot, 'data.json'),
-        );
+        this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog);
+    }
+
+    private get sourceCatalog(): GitAnalysisSourceCatalog {
+        return this.analysis.sourceCatalog;
+    }
+
+    private get cache(): Map<string, CachedPayload> {
+        return this.analysis.cache;
+    }
+
+    /** The request of the last successful comparison (what the room shows). */
+    private get activeRequest(): HistoricalComparisonRequest | null {
+        return this.jobs.lastRequest;
     }
 
     public async getReferences(): Promise<HistoricalComparisonReferences> {
@@ -92,22 +92,11 @@ export class HistoricalComparisonService {
         request: HistoricalComparisonRequest,
         onProgress?: (progress: HistoricalComparisonProgress) => void,
     ): Promise<HistoricalComparisonResult> {
-        if (this.activeJob) {
-            throw new Error('comparison-busy');
-        }
-        const job = this.executeComparison(request, onProgress);
-        this.activeJob = job;
-        try {
-            const result = await job;
-            this.activeRequest = { ...request };
-            return result;
-        } finally {
-            this.activeJob = null;
-        }
+        return this.jobs.run(request, () => this.executeComparison(request, onProgress));
     }
 
     public isBusy(): boolean {
-        return this.activeJob !== null;
+        return this.jobs.isBusy();
     }
 
     public hasLiveSource(): boolean {
@@ -125,15 +114,11 @@ export class HistoricalComparisonService {
     }
 
     public clearActiveComparison(): void {
-        this.activeRequest = null;
+        this.jobs.forgetLastRequest();
     }
 
-    public async dispose(): Promise<void> {
-        await this.gitService.dispose();
-        if (this.ownsSourceCatalog) {
-            await this.sourceCatalog.dispose();
-        }
-        this.cache.clear();
+    public dispose(): Promise<void> {
+        return this.analysis.dispose();
     }
 
     private async executeComparison(

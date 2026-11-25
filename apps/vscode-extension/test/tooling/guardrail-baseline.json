@@ -140,9 +140,9 @@
     }
   },
   "informational": {
-    "src.files": 372,
-    "src.lines": 52596,
-    "src.functions": 2838,
+    "src.files": 373,
+    "src.lines": 52657,
+    "src.functions": 2853,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -356,10 +356,6 @@
         "lines": 678
       },
       {
-        "file": "src/code_analysis/historical/projectEvolutionService.ts",
-        "lines": 641
-      },
-      {
         "file": "src/views/ModularTreeDataProvider.ts",
         "lines": 634
       },
@@ -370,6 +366,10 @@
       {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
+      },
+      {
+        "file": "src/code_analysis/historical/projectEvolutionService.ts",
+        "lines": 626
       }
     ]
   },
