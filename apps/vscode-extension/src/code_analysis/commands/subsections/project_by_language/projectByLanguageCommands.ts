@@ -68,7 +68,7 @@ export class ProjectByLanguageCommands {
             // Validate input
             if (!filePath || typeof filePath !== 'string') {
                 logger.error('Invalid filePath received:', filePath);
-                vscode.window.showErrorMessage('Invalid file path received');
+                void vscode.window.showErrorMessage('Invalid file path received');
                 return;
             }
 
@@ -116,15 +116,15 @@ export class ProjectByLanguageCommands {
                         false
                     );
                 } else {
-                    vscode.window.showWarningMessage(`Unknown analysis mode: ${analysisMode}`);
+                    void vscode.window.showWarningMessage(`Unknown analysis mode: ${analysisMode}`);
                 }
             }
             
-            vscode.window.showInformationMessage(`Started ${analysisMode} analysis for file: ${path.basename(filePath)}`);
+            void vscode.window.showInformationMessage(`Started ${analysisMode} analysis for file: ${path.basename(filePath)}`);
             
         } catch (error) {
             logger.error('Error analyzing file:', error);
-            vscode.window.showErrorMessage(`Failed to analyze file: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to analyze file: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -140,7 +140,7 @@ export class ProjectByLanguageCommands {
             // Validate input
             if (!directoryPath || typeof directoryPath !== 'string') {
                 logger.error('Invalid directoryPath received:', directoryPath);
-                vscode.window.showErrorMessage('Invalid directory path received');
+                void vscode.window.showErrorMessage('Invalid directory path received');
                 return;
             }
 
@@ -171,7 +171,7 @@ export class ProjectByLanguageCommands {
                     isDeep = true;
                     break;
                 default:
-                    vscode.window.showWarningMessage(`Unknown directory analysis mode: ${directoryAnalysisMode}`);
+                    void vscode.window.showWarningMessage(`Unknown directory analysis mode: ${directoryAnalysisMode}`);
                     return;
             }
             
@@ -184,11 +184,11 @@ export class ProjectByLanguageCommands {
                 isDeep
             );
             
-            vscode.window.showInformationMessage(`Started ${directoryAnalysisMode} analysis for directory: ${path.basename(directoryPath)}`);
+            void vscode.window.showInformationMessage(`Started ${directoryAnalysisMode} analysis for directory: ${path.basename(directoryPath)}`);
             
         } catch (error) {
             logger.error('Error analyzing directory:', error);
-            vscode.window.showErrorMessage(`Failed to analyze directory: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to analyze directory: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

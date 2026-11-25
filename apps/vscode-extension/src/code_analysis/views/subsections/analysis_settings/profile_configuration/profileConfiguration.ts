@@ -176,11 +176,11 @@ export class ProfileConfigurationSetting {
             await this.storage.setXRBabiaUiConfig(defaults.xrBabiaUi);
             
             logger.debug('Successfully reset to defaults:', defaults);
-            vscode.window.showInformationMessage('Analysis settings reset to default values');
+            void vscode.window.showInformationMessage('Analysis settings reset to default values');
             
         } catch (error) {
             logger.error('Error resetting to defaults:', error);
-            vscode.window.showErrorMessage(`Failed to reset to defaults: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to reset to defaults: ${error}`);
             throw error;
         }
     }

@@ -136,7 +136,7 @@ export class LauncherXRAnalysis {
         );
 
         if (!result.isValid) {
-            vscode.window.showErrorMessage(result.error!);
+            void vscode.window.showErrorMessage(result.error!);
             throw new Error(result.error!);
         }
 
@@ -165,7 +165,7 @@ export class LauncherXRAnalysis {
             startWatcher: () => startSessionWatcher(session, context),
 
             onSuccess: (port) => {
-                vscode.window.showInformationMessage(
+                void vscode.window.showInformationMessage(
                     `XR Analysis completed for file: ${session.targetName} - Server running on port ${port}`,
                 );
             },
@@ -192,7 +192,7 @@ export class LauncherXRAnalysis {
             startWatcher: () => startSessionWatcher(session, context),
 
             onSuccess: (port) => {
-                vscode.window.showInformationMessage(
+                void vscode.window.showInformationMessage(
                     `XR Directory Analysis completed for: ${session.targetName}${session.isDeep ? ' (Deep)' : ''} - Server running on port ${port}`,
                 );
             },

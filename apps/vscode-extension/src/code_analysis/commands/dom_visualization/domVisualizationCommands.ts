@@ -35,19 +35,19 @@ export class DOMVisualizationCommands {
         try {
             const fsPath = getFileSystemPathFromEditorOrInput(filePath);
             if (!fsPath) {
-                vscode.window.showErrorMessage('No HTML file selected or file path could not be determined');
+                void vscode.window.showErrorMessage('No HTML file selected or file path could not be determined');
                 return;
             }
 
             if (!LauncherVisualizeDOM.canVisualizeFile(fsPath)) {
-                vscode.window.showWarningMessage(`File "${fsPath}" is not a supported HTML file for DOM visualization`);
+                void vscode.window.showWarningMessage(`File "${fsPath}" is not a supported HTML file for DOM visualization`);
                 return;
             }
 
             await AnalysisOrchestrator.orchestrateAnalysis(fsPath, 'VisualizeDOM', 'file', this.context, false);
         } catch (error) {
             logger.error('Error visualizing DOM:', error);
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 `Failed to visualize DOM: ${error instanceof Error ? error.message : String(error)}`,
             );
         }

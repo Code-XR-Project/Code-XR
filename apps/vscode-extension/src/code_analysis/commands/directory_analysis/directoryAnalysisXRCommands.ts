@@ -57,7 +57,7 @@ export class DirectoryAnalysisXRCommands {
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'XR', 'directory', this.context, false);
         } catch (error) {
             logger.error('Error in analyzeDirectoryXR:', error);
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 `Failed to start directory XR analysis: ${error instanceof Error ? error.message : String(error)}`,
             );
         }
@@ -73,7 +73,7 @@ export class DirectoryAnalysisXRCommands {
             await AnalysisOrchestrator.orchestrateAnalysis(directoryPath, 'XR', 'directory', this.context, true);
         } catch (error) {
             logger.error('Error in analyzeDirectoryXRDeep:', error);
-            vscode.window.showErrorMessage(
+            void vscode.window.showErrorMessage(
                 `Failed to start directory XR Deep analysis: ${error instanceof Error ? error.message : String(error)}`,
             );
         }
@@ -100,7 +100,7 @@ export class DirectoryAnalysisXRCommands {
     private async resolveDirectoryPath(uri: vscode.Uri | undefined, dialogLabel: string): Promise<string | undefined> {
         if (uri) {
             if (uri.scheme !== 'file') {
-                vscode.window.showErrorMessage('Invalid file path for directory analysis');
+                void vscode.window.showErrorMessage('Invalid file path for directory analysis');
                 return undefined;
             }
 
@@ -123,7 +123,7 @@ export class DirectoryAnalysisXRCommands {
     private async resolveProjectPath(placeHolder: string): Promise<string | undefined> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
-            vscode.window.showErrorMessage('No workspace folder found. Please open a project folder first.');
+            void vscode.window.showErrorMessage('No workspace folder found. Please open a project folder first.');
             return undefined;
         }
 

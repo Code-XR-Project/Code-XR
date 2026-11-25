@@ -201,7 +201,7 @@ export class FileWatcherOrchestrator {
                 { notifyClients: this.session.analysisMode !== 'XR', silent: true },
             );
         if (!success) {
-            vscode.window.showErrorMessage(`Failed to update analysis for ${path.basename(this.session.targetPath)}`);
+            void vscode.window.showErrorMessage(`Failed to update analysis for ${path.basename(this.session.targetPath)}`);
             sessionRegistry.updateSessionStatus(this.session.id, 'monitoring', 100);
             throw new Error('File re-analysis failed.');
         }

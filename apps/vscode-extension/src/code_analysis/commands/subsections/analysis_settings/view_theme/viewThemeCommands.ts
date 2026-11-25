@@ -46,7 +46,7 @@ export class ViewThemeCommands {
             const newTheme = await this.viewThemeSetting.toggleTheme();
             
             // Show notification to user
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `View theme switched to: ${newTheme}`,
                 { modal: false }
             );
@@ -60,7 +60,7 @@ export class ViewThemeCommands {
             
         } catch (error) {
             logger.error('ANALYSIS: Error toggling view theme:', error);
-            vscode.window.showErrorMessage(`Failed to toggle view theme: ${error}`);
+            void vscode.window.showErrorMessage(`Failed to toggle view theme: ${error}`);
         }
     }
 }

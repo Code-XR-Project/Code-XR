@@ -29,7 +29,7 @@ export class ChartTypeFileCommands {
             logger,
             reportError: (error) => {
                 logger.error('Error selecting chart type:', error);
-                vscode.window.showErrorMessage(`Failed to select chart type: ${error}`);
+                void vscode.window.showErrorMessage(`Failed to select chart type: ${error}`);
             },
         });
     }

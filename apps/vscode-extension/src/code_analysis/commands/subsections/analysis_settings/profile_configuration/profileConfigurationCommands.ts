@@ -106,7 +106,7 @@ export class ProfileConfigurationCommands {
             
         } catch (error) {
             logger.error('Error resetting to defaults:', error);
-            vscode.window.showErrorMessage(`Failed to reset to defaults: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to reset to defaults: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -178,11 +178,11 @@ export class ProfileConfigurationCommands {
             fs.writeFileSync(profilePath, JSON.stringify(profileData, null, 2));
             
             logger.debug(() => `Profile "${profileName}" saved successfully`);
-            vscode.window.showInformationMessage(`Configuration profile "${profileName}" saved successfully`);
+            void vscode.window.showInformationMessage(`Configuration profile "${profileName}" saved successfully`);
             
         } catch (error) {
             logger.error('Error saving profile:', error);
-            vscode.window.showErrorMessage(`Failed to save profile: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to save profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -230,11 +230,11 @@ export class ProfileConfigurationCommands {
             await storage.updateConfiguration(profileData.configuration);
             
             logger.debug(() => `Profile "${selectedProfile.label}" loaded successfully`);
-            vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" loaded successfully`);
+            void vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" loaded successfully`);
             
         } catch (error) {
             logger.error('Error loading profile:', error);
-            vscode.window.showErrorMessage(`Failed to load profile: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to load profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -276,11 +276,11 @@ export class ProfileConfigurationCommands {
             fs.unlinkSync(selectedProfile.profilePath);
             
             logger.debug(() => `Profile "${selectedProfile.label}" deleted successfully`);
-            vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" deleted successfully`);
+            void vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" deleted successfully`);
             
         } catch (error) {
             logger.error('Error deleting profile:', error);
-            vscode.window.showErrorMessage(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -293,7 +293,7 @@ export class ProfileConfigurationCommands {
 
         // Check if profiles directory exists
         if (!fs.existsSync(profilesDir)) {
-            vscode.window.showInformationMessage('No saved profiles found');
+            void vscode.window.showInformationMessage('No saved profiles found');
             return undefined;
         }
 
@@ -301,7 +301,7 @@ export class ProfileConfigurationCommands {
         const profileFiles = fs.readdirSync(profilesDir).filter(file => file.endsWith('.json'));
 
         if (profileFiles.length === 0) {
-            vscode.window.showInformationMessage('No saved profiles found');
+            void vscode.window.showInformationMessage('No saved profiles found');
             return undefined;
         }
 

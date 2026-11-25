@@ -38,7 +38,7 @@ export class DimensionMappingFileCommands {
             await this.dimensionMappingSetting.showDimensionMappingSelection(dimensionName);
         } catch (error) {
             logger.error('Error selecting dimension mapping:', error);
-            vscode.window.showErrorMessage(`Failed to select dimension mapping: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to select dimension mapping: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }
