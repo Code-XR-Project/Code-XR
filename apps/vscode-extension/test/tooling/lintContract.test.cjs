@@ -21,6 +21,8 @@ const WARN_BUDGET_RULES = [
     'max-params',
     'max-lines-per-function',
     'max-lines',
+    '@typescript-eslint/no-floating-promises',
+    '@typescript-eslint/no-misused-promises',
 ];
 
 async function loadEslintConfig() {
@@ -68,13 +70,15 @@ test('the pre-existing style rules are errors and the lint script has a warning 
 });
 
 test('the warn-only budget rules are configured as warnings over src', async () => {
+    // The type-aware ones live in their own block (they need the TypeScript
+    // program); the merge below follows flat-config order, last block wins.
     // A budget rule set to "off" would let its count drift while the
     // --max-warnings ceiling still looks tight.
     const config = await loadEslintConfig();
-    const tsBlock = config.find((block) => Array.isArray(block.files) && block.files.includes('**/*.ts'));
+    const rules = Object.assign({}, ...config.filter((block) => block.rules).map((block) => block.rules));
 
     for (const rule of WARN_BUDGET_RULES) {
-        const value = tsBlock.rules[rule];
+        const value = rules[rule];
         assert.equal(Array.isArray(value) ? value[0] : value, 'warn', `${rule} is a warning`);
     }
 });

@@ -63,4 +63,22 @@ export default [{
         "no-throw-literal": "error",
         semi: "error",
     },
+}, {
+    // Type-aware rules need the TypeScript program, so they are scoped to the
+    // sources tsconfig.json covers. Warn-only: an un-awaited promise is often
+    // deliberate fire-and-forget, and marking each one `void` is a separate,
+    // per-module cleanup.
+    files: ["src/**/*.ts"],
+
+    languageOptions: {
+        parserOptions: {
+            projectService: true,
+            tsconfigRootDir: import.meta.dirname,
+        },
+    },
+
+    rules: {
+        "@typescript-eslint/no-floating-promises": ["warn", { checkThenables: true }],
+        "@typescript-eslint/no-misused-promises": "warn",
+    },
 }];

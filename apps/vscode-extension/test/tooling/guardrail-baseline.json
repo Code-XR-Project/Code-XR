@@ -74,7 +74,7 @@
     "complexity.over30": 5,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 311,
+    "eslint.maxWarnings": 608,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -328,6 +328,13 @@
       "from": 201,
       "to": 311,
       "reason": "W3-09: complexity 15, max-depth 4, max-params 5, max-lines-per-function 80, max-lines 600 land as warn; budget +110 (37+5+28+35+5)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "eslint.maxWarnings",
+      "from": 311,
+      "to": 608,
+      "reason": "W3-10: type-aware no-floating-promises (296) and no-misused-promises (1) land as warn; budget 311 -> 608",
       "date": "2026-11-25"
     }
   ]
