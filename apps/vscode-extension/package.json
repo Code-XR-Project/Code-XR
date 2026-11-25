@@ -759,18 +759,19 @@
     "test": "npm run test:basic",
     "test:basic": "npm run typecheck && npm run lint && npm run compile-tests && npm run test:unit",
     "test:unit": "node test/runners/run-node-tests.cjs",
-    "test:python": "node test/runners/run-python-tests.cjs",
+    "test:python": "node ../../backend/scripts/run-python-tests.cjs",
     "test:all": "npm run test:basic && npm run test:python",
     "package:vsix": "npm run package && node scripts/package-vsix.mjs",
-    "test:analysis": "node test/runners/run-analysis-tests.cjs",
+    "test:analysis": "node ../../backend/scripts/run-analysis-tests.cjs",
     "test:htmlanalysis": "node test/runners/run-html-analysis-tests.cjs",
     "test:xr-harness": "node test/runners/run-xr-containment-harness.cjs",
     "test:xr-mode-harness": "node test/runners/run-xr-mode-cycle-harness.cjs",
     "test:xr-immersive-harness": "node test/runners/run-xr-immersive-harness.cjs",
     "test:project-evolution-harness": "node test/runners/run-project-evolution-harness.cjs",
-    "report:manual-metrics": "node test/runners/run-analysis-tests.cjs --report-only",
+    "report:manual-metrics": "node ../../backend/scripts/run-analysis-tests.cjs --report-only",
     "guardrails:measure": "node test/tooling/measureGuardrails.cjs",
-    "guardrails:update": "node test/tooling/measureGuardrails.cjs --write"
+    "guardrails:update": "node test/tooling/measureGuardrails.cjs --write",
+    "python:requirements": "npm run compile-tests && node test/tooling/pythonRequirements.cjs --write"
   },
   "devDependencies": {
     "@types/node": "20.x",

@@ -19,13 +19,13 @@
 
 ## Playbook: new feature
 
-1. Read: `ARCHITECTURE.md`, `V1.2.0_STATUS.md`, plus the area doc (`XR_COMPONENTS.md` and/or `PYTHON_ANALYSIS.md`) and any relevant `docs/*.md` feature doc.
-2. Check the roadmap (`docs/project/ROADMAP_V1.2.0.md`) — is the feature in scope for this version? Respect scope decisions (e.g., boats/Code City is paused).
+1. Read: `ARCHITECTURE.md`, `V1.2.1_STATUS.md` (the active status doc), plus the area doc (`XR_COMPONENTS.md` and/or `PYTHON_ANALYSIS.md`) and any relevant `docs/*.md` feature doc.
+2. Check the scope of the active version — 1.2.1 is maintenance only (`V1.2.1_STATUS.md`, `v1.2.1/ROADMAP.md`), so a feature belongs in 1.3.0; `docs/project/ROADMAP_V1.2.0.md` is the historical 1.2.0 plan. Respect scope decisions (e.g., boats/Code City is paused).
 3. Follow the per-feature module convention (`commands/` + `model/` + `runtime|services/` + `views/{items,interactions}`); register commands through the module's registration array consumed by `src/commands/index.ts` (IDs must be unique — `assertUniqueCommandIds` enforces this).
 4. If the feature adds metrics or chart dimensions, plan the Python schema ↔ TS validator sync first (`PYTHON_ANALYSIS.md` → field-schema contract).
 5. Add tests: unit `.test.cjs` in `test/<area>/`; runtime changes under `templates/components/` get a runtime test; consider a manual harness for visual behavior.
 6. Validate: narrow test script → `npm run test:basic` → F5 manual flow (`DEVELOPMENT.md`).
-7. Update: CHANGELOG Unreleased, `V1.2.0_STATUS.md`, and the area doc if the mechanism changed.
+7. Update: CHANGELOG (the active version's section, `[1.2.1]` today), `V1.2.1_STATUS.md`, and the area doc if the mechanism changed.
 
 ## Playbook: bug fix
 
@@ -57,19 +57,19 @@ Full procedure lives in the **`cleanup` skill** — invoke it. Summary:
 
 ## Playbook: documentation update
 
-1. Read `INDEX.md` + the target doc. Check `V1.2.0_STATUS.md` → "Documentation debt" — your task may already be catalogued there.
+1. Read `INDEX.md` + the target doc. Check `V1.2.1_STATUS.md` → "Carried-over debt from 1.2.0" and the historical `V1.2.0_STATUS.md` → "Documentation debt" — your task may already be catalogued there.
 2. Rules: never delete existing docs; record inconsistencies instead of silently rewriting history; keep `docs/*` (user-shipped, mixed ES/EN) separate in tone from `.claude/docs/*` (internal, English).
 3. Remember `docs/**` ships in the VSIX; `.claude/**` does not.
-4. If you fix an inconsistency listed in `V1.2.0_STATUS.md`, remove it from the debt list in the same session.
+4. If you fix a catalogued inconsistency, record the fix in `V1.2.1_STATUS.md` in the same session (`V1.2.0_STATUS.md` is a closed historical record).
 
 ## Playbook: release preparation
 
-1. Read: `V1.2.0_STATUS.md` (entire file), `docs/project/ROADMAP_V1.2.0.md` (exit criteria + delivery sequence), `DEVELOPMENT.md` (packaging).
-2. Resolve every "Needs verification" row in `V1.2.0_STATUS.md` (each has a how-to-verify hint).
-3. Reconcile docs: README "What's New" → v1.2.0 content; CHANGELOG `[1.2.0] – Unreleased` → dated release entry; roadmap statuses; language-count claim fixed against `src/utils/languageMetadata.ts`; rename leftovers.
+1. Read: `V1.2.1_STATUS.md` (entire file), `v1.2.1/ROADMAP.md` (decisions and exit criteria; `docs/project/ROADMAP_V1.2.0.md` holds the historical 1.2.0 ones), `DEVELOPMENT.md` (packaging).
+2. Resolve every open verification row in `V1.2.1_STATUS.md` (each has a how-to-verify hint).
+3. Reconcile docs: README "What's New" → the release's content; CHANGELOG `[1.2.1]` → its provisional date moved to the real release date; roadmap statuses; language-count claim fixed against `src/utils/languageMetadata.ts`; rename leftovers.
 4. Quality gate: `npm run test:all` + `npm run test:analysis` + harnesses for touched runtimes; F5 smoke of the three analysis modes.
 5. Package: `npm run package:vsix`; **inspect the VSIX contents** against the package.json `files` allowlist (no `.vscodeignore` exists — the allowlist is the only control). Verify no unintended files ship and nothing required is missing.
-6. Respect the pre-release sequence (`1.2.0-alpha.1` → … → `rc.1` → stable) — do not jump to stable.
+6. Respect the pre-release sequence a feature release used (1.2.0: `1.2.0-alpha.1` → … → `rc.1` → stable) — do not jump to stable.
 7. Roadmap exit criteria are hard requirements: no analysis-flow regressions vs 1.1.0, server-validated admin ops, collaboration works without avatar download, no downloads without consent.
 
 ## Context-efficiency rules (cost control)

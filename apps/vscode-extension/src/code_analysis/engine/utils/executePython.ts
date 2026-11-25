@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as cp from 'child_process';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { VenvManager } from '../../../python_env/runtime/venvManager';
+import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
 
 /**
  * Utility para ejecutar análisis Python
@@ -391,24 +392,23 @@ export class ExecutePython {
             console.log('EXECUTE_PYTHON:  Python executable verified to exist');
 
             const extensionPath = this.context.extensionPath;
-            let scriptPath = path.join(extensionPath, 'dist', 'code_analysis', 'python', scriptName);
+            // The shipped dist copy, or in ExtensionMode.Development only the
+            // monorepo sources at <repo>/backend/src (see backendScriptPath.ts).
+            const { distPath, developmentPath } = getBackendScriptCandidates(this.context, scriptName);
+            const scriptPath = resolveBackendScriptPath(this.context, scriptName);
 
-            if (!require('fs').existsSync(scriptPath)) {
-                // Development fallback: the backend sources live outside this
-                // package, at <repo>/backend/src (see the repository README).
-                scriptPath = path.join(extensionPath, '..', '..', 'backend', 'src', scriptName);
+            if (scriptPath !== distPath) {
                 console.log('EXECUTE_PYTHON: Script not found in dist, trying src directory');
             }
 
             console.log(`EXECUTE_PYTHON: Script path: ${scriptPath}`);
 
             if (!require('fs').existsSync(scriptPath)) {
-                const distPath = path.join(extensionPath, 'dist', 'code_analysis', 'python', scriptName);
-                const srcPath = path.join(extensionPath, '..', '..', 'backend', 'src', scriptName);
-
                 console.error('EXECUTE_PYTHON:  Python script not found in either location:');
                 console.error(`EXECUTE_PYTHON:  Dist path: ${distPath} (exists: ${require('fs').existsSync(distPath)})`);
-                console.error(`EXECUTE_PYTHON:  Src path: ${srcPath} (exists: ${require('fs').existsSync(srcPath)})`);
+                if (developmentPath !== undefined) {
+                    console.error(`EXECUTE_PYTHON:  Src path: ${developmentPath} (exists: ${require('fs').existsSync(developmentPath)})`);
+                }
                 console.error(`EXECUTE_PYTHON:  Extension path: ${extensionPath}`);
 
                 try {

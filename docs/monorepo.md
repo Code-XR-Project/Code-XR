@@ -11,7 +11,10 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 │   └── ide/                the Code-XR IDE, placeholder only
 ├── backend/
 │   ├── src/                Python analysis backend
-│   └── tests/              its unittest suites and goldens
+│   ├── requirements.txt    its exact Python pins, generated from the extension's manifest
+│   ├── tests/              its unittest suites, goldens and fixtures
+│   ├── manual_test/        per-language analysis corpus (npm run test:analysis)
+│   └── scripts/            its test runners and the manual-metrics report
 ├── packages/               shared workspaces, planned (see packages/README.md)
 ├── docs/                   repository-level docs (this file)
 ├── media/                  release screenshots, GIFs, video index (not shipped)
@@ -27,12 +30,15 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 
 | Before | After |
 |---|---|
-| `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` | `apps/vscode-extension/<same name>/` |
+| `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `manual_test/`, `docs/` | `apps/vscode-extension/<same name>/` (`manual_test/` then moved on to `backend/`, see below) |
 | `package.json`, `tsconfig.json`, `webpack.config.js`, `eslint.config.mjs`, `esbuild.config.mjs` | `apps/vscode-extension/` (`.vscode-test.mjs` moved too and was deleted in 1.2.1: the integration lane it configured had no tests) |
 | `README.md`, `CHANGELOG.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md` | `apps/vscode-extension/` (they ship in the VSIX). The root has its own `README.md` and a copy of `LICENSE`. |
 | `src/code_analysis/python/` | `backend/src/` |
 | `test/python/` | `backend/tests/` |
 | `package-lock.json` | stays at the root (workspace lockfile) |
+| `apps/vscode-extension/test/fixtures/dependency-languages/` (moved in 1.2.1: only the backend suites read it) | `backend/tests/fixtures/dependency-languages/` |
+| `apps/vscode-extension/manual_test/`, `test/analysis/manual_metrics_suite.py`, `scripts/report-manual-metrics.py` (moved in 1.2.1: they only exercise the backend) | `backend/manual_test/`, `backend/tests/manual_metrics_suite.py`, `backend/scripts/report-manual-metrics.py` |
+| `apps/vscode-extension/test/runners/run-python-tests.cjs`, `run-analysis-tests.cjs` (moved in 1.2.1: Python-only; `run-html-analysis-tests.cjs` stays, it also runs an extension suite) | `backend/scripts/` |
 | `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `.nvmrc`, `.mcp.json`, `CLAUDE.md` | unchanged, at the root |
 
 Inside `apps/vscode-extension/` every relative path is the same as it was at the old repository root. Documents and skills written before the move that say `src/...`, `test/...` or `templates/...` mean `apps/vscode-extension/src/...` and so on; `src/code_analysis/python/` means `backend/src/` and `test/python/` means `backend/tests/`.
@@ -42,7 +48,7 @@ Inside `apps/vscode-extension/` every relative path is the same as it was at the
 - **Workspaces.** The root `package.json` declares `apps/*` and `packages/*` and mirrors every extension script (`npm test`, `npm run package:vsix`, ...) by delegating to the `code-xr` workspace. `overrides` moved to the root because npm ignores it inside a workspace. Dependency versions in the lockfile are unchanged.
 - **Hoisted `node_modules`.** The extension scripts call their tools as `node ../../node_modules/<tool>/...`, keeping the original "run the JS entry with node, no shell shims" approach. `scripts/package-vsix.mjs` resolves `@vscode/vsce` through Node instead of a fixed path.
 - **VSIX packaging.** vsce now runs with `--no-dependencies` (webpack already bundles every runtime dependency; without the flag vsce would pull the hoisted root `node_modules` into the VSIX) and with `--baseContentUrl` / `--baseImagesUrl` pointing at `apps/vscode-extension`, so the README's relative links keep working on the Marketplace.
-- **Backend copy.** `webpack.config.js` copies `../../backend/src` into `dist/code_analysis/python` (same destination as before, so the packaged extension is unchanged) and now fails the build if the backend is missing. The development fallbacks in `executePython.ts` and `gitRevisionExporter.ts` point at `<repo>/backend/src`.
+- **Backend copy.** `webpack.config.js` copies `../../backend/src` into `dist/code_analysis/python` (same destination as before, so the packaged extension is unchanged) and now fails the build if the backend is missing. The development fallbacks in `executePython.ts` and `gitRevisionExporter.ts` point at `<repo>/backend/src`; since 1.2.1 they resolve through `backendScriptPath.ts` and only in `ExtensionMode.Development`, because in an installed extension `../..` is the user's home folder.
 - **Tests.** Tests that read backend sources or repository-level config (`.vscode/`, `.claude/`) were retargeted. The text-scanning policies in `uiPolicy.test.cjs` now fail when a scanned folder does not exist, so a future move cannot turn them into silent passes.
 - **Editor.** `.vscode/launch.json` and `tasks.json` stay at the root and point into `apps/vscode-extension`.
 - **CI.** Runs from the root, on Windows, Linux and macOS, for pull requests to `master` and to release branches (`v1.2.1`, ...).
@@ -63,3 +69,4 @@ Linux, Windows and macOS are all first-class. In practice:
 - Build paths with `path.join` / `path.resolve` (TypeScript, JS) and `pathlib` (Python), never with string concatenation or hard-coded separators.
 - Prefer `node <script>` in npm scripts over shell-specific syntax; npm runs scripts with `cmd.exe` on Windows and `sh` elsewhere.
 - Keep the CI matrix on all three operating systems. Linux and macOS currently report without blocking (the repository was developed on Windows with a CRLF working tree); make them required once their fallout is fixed.
+- **`.mcp.json` is the one Windows-only file, on purpose.** It registers the IWER emulator bridge for Claude Code as `cmd /c npx -y @iwer/extension-bridge`, because on native Windows Claude Code cannot spawn `npx` (a `.cmd` shim) without the `cmd /c` wrapper, and the file format has no per-platform variant or comments. On Linux and macOS, override it once in your local scope, which takes precedence over the project file: `claude mcp add --scope local iwer -- npx -y @iwer/extension-bridge`. The portable form is also the one shown in `apps/vscode-extension/docs/xr-testing/WEBXR_EMULATOR_TUTORIAL.md` §9.

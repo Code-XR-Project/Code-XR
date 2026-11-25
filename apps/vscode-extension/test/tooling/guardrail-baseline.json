@@ -142,9 +142,9 @@
     }
   },
   "informational": {
-    "src.files": 369,
-    "src.lines": 52974,
-    "src.functions": 2864,
+    "src.files": 370,
+    "src.lines": 53038,
+    "src.functions": 2867,
     "src.unreachableLines": 2317,
     "console.topFiles": [
       {
@@ -366,12 +366,12 @@
         "lines": 634
       },
       {
-        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 630
+        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "lines": 632
       }
     ]
   },
