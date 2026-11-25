@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { defaultControllerView } from '../refresh/analysisViewModes';
 import { ExportGitData } from './gitRevisionExportCore';
 import type { ExportSelection } from './exportModeSelection';
 
@@ -155,21 +156,6 @@ function resolveSelectedModes(options: ExportManifestOptions): ExportManifest['s
         historicalComparison: options.serverCapabilities.historicalComparison,
         projectEvolution: options.serverCapabilities.projectEvolution,
     };
-}
-
-function defaultControllerView(mode: string): string {
-    switch (mode) {
-        case 'selection':
-            return 'visualization-menu';
-        case 'dependency-graph':
-            return 'dependency.settings';
-        case 'historical-compare':
-            return 'historical.selection';
-        case 'project-evolution':
-            return 'project-evolution';
-        default:
-            return 'single.mapping';
-    }
 }
 
 /**

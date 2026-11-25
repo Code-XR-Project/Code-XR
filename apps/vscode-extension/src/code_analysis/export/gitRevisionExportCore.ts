@@ -5,12 +5,12 @@ import {
     ComparisonSource,
     GitAnalysisExclusion,
     HistoricalComparisonReferences,
-    buildBabiaStyleFilePath,
 } from '../historical/historicalComparisonModels';
 import {
     createGitAnalysisExclusion,
     validateGitAnalysisPayload,
 } from '../historical/gitAnalysisEligibility';
+import { decorateDirectoryEntries } from '../historical/gitAnalysisShared';
 import { sampleTimeline } from '../historical/gitTimelineSampler';
 import {
     GitRevisionExportRequest,
@@ -107,27 +107,6 @@ export interface GitRevisionExportOptions {
     progress?: ProgressSink;
 }
 
-/** Mirror of the services' private helper (kept local to stay vscode-free). */
-function toPortableRelativePath(root: string, candidate: string): string {
-    if (!candidate) {
-        return 'unknown';
-    }
-    if (!path.isAbsolute(candidate)) {
-        return candidate
-            .replace(/\\/g, '/')
-            .replace(/^\.\/+/, '')
-            .replace(/\/+/g, '/')
-            .replace(/^\/|\/$/g, '') || 'unknown';
-    }
-    const normalizedCandidate = path.resolve(candidate);
-    const normalizedRoot = path.resolve(root);
-    const relativePath = path.relative(normalizedRoot, normalizedCandidate);
-    if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
-        return relativePath.split(path.sep).join('/');
-    }
-    return path.basename(candidate);
-}
-
 /**
  * The unified decorator: one payload serves both git modes.
  *
@@ -147,18 +126,7 @@ export function decorateRevisionPayload(
     analyzedTargetPath: string,
 ): Record<string, unknown>[] {
     if (targetType === 'directory') {
-        return entries.map((entry) => {
-            const sourcePath = String(entry.filePath || entry.relativePath || entry.fileName || '');
-            const relativePath = toPortableRelativePath(analyzedTargetPath, sourcePath);
-            const key = `file:${relativePath.toLocaleLowerCase()}`;
-            return {
-                ...entry,
-                filePath: buildBabiaStyleFilePath(originalTargetPath, relativePath),
-                relativePath,
-                comparisonKey: key,
-                evolutionKey: key,
-            };
-        });
+        return decorateDirectoryEntries(entries, originalTargetPath, analyzedTargetPath, ['comparisonKey', 'evolutionKey']);
     }
 
     const occurrences = new Map<string, number>();

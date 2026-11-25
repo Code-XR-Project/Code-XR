@@ -8,6 +8,7 @@ const ts = require('typescript');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { readAssembledRuntime } = require(path.join(projectRoot, 'test', 'helpers', 'runtimeAssembly.cjs'));
+const { readConcatenated } = require(path.join(projectRoot, 'test', 'helpers', 'sourceText.cjs'));
 
 function readProjectFile(...segments) {
     return fs.readFileSync(path.join(projectRoot, ...segments), 'utf8');
@@ -339,7 +340,14 @@ test('historical snapshots use private extension storage and publish only immuta
     // Directory payloads rebuild filePath against the ORIGINAL target (the
     // normal-analysis shape the boats tree splits) while the comparison key
     // stays relative so both sides match the same file.
-    assert.match(source, /filePath: buildBabiaStyleFilePath\(session\.targetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}comparisonKey:/);
+    // Since #38 the directory branch is the shared decorateDirectoryEntries
+    // (gitAnalysisShared.ts); the service hands it the ORIGINAL target and
+    // its key name. Exact output: gitHistoryServices.test.cjs.
+    assert.match(source, /decorateDirectoryEntries\(payload, session\.targetPath, analyzedTargetPath, \['comparisonKey'\]\)/);
+    assert.match(
+        readConcatenated(['src/code_analysis/historical/gitAnalysisShared.ts']),
+        /filePath: buildBabiaStyleFilePath\(originalTargetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}decorated\[field\] = key/,
+    );
     assert.match(source, /let added = 0/);
     assert.match(source, /let removed = 0/);
     assert.match(source, /let modified = 0/);
@@ -420,7 +428,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     // Same boats tree contract as the normal analysis: directory frames
     // rebuild filePath against the ORIGINAL target while the evolution key
     // stays relative so the same file matches across commits.
-    assert.match(service, /filePath: buildBabiaStyleFilePath\(session\.targetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}evolutionKey:/);
+    assert.match(service, /decorateDirectoryEntries\(payload, session\.targetPath, analyzedTargetPath, \['evolutionKey'\]\)/);
     assert.match(gitService, /listTimelineSources/);
     assert.match(gitService, /'--reverse'/);
     // Precise committer time travels with every source: the short date is
@@ -706,8 +714,16 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.doesNotMatch(runtime, /function scheduleFrameRenormalization\(\)/);
     assert.match(runtime, /function namespaceEvolutionTreeNodes/);
     assert.match(runtime, /copy\.uid = rawUid\.indexOf\(safeNamespace \+ ':'\)/);
-    assert.match(service, /if \(!path\.isAbsolute\(candidate\)\)/);
-    assert.ok(service.includes(".replace(/\\\\/g, '/')"));
+    // Evolution keys survive Windows separators: the portable-path helper the
+    // service shares with historical comparison and the export lives in
+    // gitAnalysisShared.ts since #38 (retargeted haystack, same assertions).
+    const portablePaths = readConcatenated([
+        'src/code_analysis/historical/projectEvolutionService.ts',
+        'src/code_analysis/historical/gitAnalysisShared.ts',
+    ]);
+    assert.match(portablePaths, /toPortableRelativePath\(analyzedTargetPath, sourcePath\)/, 'canary: the service still routes paths through the shared helper');
+    assert.match(portablePaths, /if \(!path\.isAbsolute\(candidate\)\)/);
+    assert.ok(portablePaths.includes(".replace(/\\\\/g, '/')"));
     assert.match(runtime, /play: play/);
     assert.match(runtime, /seek: seek/);
     assert.doesNotMatch(runtime, /data\.data = prepared\.payload/);

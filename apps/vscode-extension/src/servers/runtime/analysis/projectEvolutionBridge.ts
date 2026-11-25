@@ -9,6 +9,11 @@ import {
 import { analysisRefreshCoordinator } from '../../../code_analysis/refresh';
 import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/sessionWatcherManager';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
+import {
+    broadcastFilteredGitReferences,
+    describeBridgeError,
+    replyWithReferences,
+} from './analysisBridgeReplies';
 
 /**
  * Project-evolution feature bridge: the collaboration-room messages that list
@@ -28,21 +33,12 @@ export class ProjectEvolutionBridge {
         if (!this.projectEvolutionService) {
             return false;
         }
-        try {
-            const references = await this.projectEvolutionService.getReferences();
-            messageContext.send({
-                type: 'project-evolution-references',
-                payload: references,
-            });
-        } catch (error) {
-            messageContext.send({
-                type: 'project-evolution-error',
-                payload: {
-                    code: 'references-unavailable',
-                    message: error instanceof Error ? error.message : String(error),
-                },
-            });
-        }
+        const service = this.projectEvolutionService;
+        await replyWithReferences(messageContext, {
+            load: () => service.getReferences(),
+            referencesType: 'project-evolution-references',
+            errorType: 'project-evolution-error',
+        });
         return true;
     }
 
@@ -215,33 +211,11 @@ export class ProjectEvolutionBridge {
                     return;
                 }
                 if (error instanceof GitAnalysisSourceError) {
-                    const [historical, evolution] = await Promise.all([
-                        this.host.historicalComparisonService?.getReferences(),
-                        this.host.projectEvolutionService?.getReferences(),
-                    ]);
-                    if (historical) {
-                        messageContext.broadcast({
-                            type: 'historical-comparison-references',
-                            payload: historical,
-                        });
-                    }
-                    if (evolution) {
-                        messageContext.broadcast({
-                            type: 'project-evolution-references',
-                            payload: evolution,
-                        });
-                    }
+                    await broadcastFilteredGitReferences(this.host, messageContext);
                 }
                 messageContext.broadcast({
                     type: 'project-evolution-error',
-                    payload: {
-                        code: error instanceof GitAnalysisSourceError
-                            ? error.code
-                            : error instanceof Error
-                                ? error.message
-                                : 'project-evolution-failed',
-                        message: error instanceof Error ? error.message : String(error),
-                    },
+                    payload: describeBridgeError(error, 'project-evolution-failed'),
                 });
             }
         })();

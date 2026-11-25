@@ -13,6 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { readConcatenated } = require('../helpers/sourceText.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 
@@ -81,9 +82,16 @@ test('file comparisons only offer versions that actually contain the analyzed fi
     assert.match(index, /if \(this\.targetType === 'file'\)/);
     assert.match(index, /metricAnalyzable: isMetricAnalysisFile\(fileName\)/);
     // A raw API request is protected as well and removes the SHA from both
-    // selectors through the same deterministic exclusion catalogue.
-    assert.match(service, /if \(!materialized\.targetPath\)[\s\S]*this\.excludeSource\([\s\S]*'target-missing'/);
-    assert.match(service, /recordDeterministicExclusion/);
+    // selectors through the same deterministic exclusion catalogue. Since #38
+    // the revision analysis is shared with project evolution and lives in
+    // gitAnalysisSessionContext.ts; the service selects the 'throw' policy.
+    const analysis = readConcatenated([
+        'src/code_analysis/historical/historicalComparisonService.ts',
+        'src/code_analysis/historical/gitAnalysisSessionContext.ts',
+    ]);
+    assert.match(analysis, /missingTarget: 'throw'/, 'canary: historical comparison refuses a revision without the target');
+    assert.match(analysis, /if \(!materialized\.targetPath\)[\s\S]*this\.excludeSource\([\s\S]*'target-missing'/);
+    assert.match(analysis, /recordDeterministicExclusion/);
 });
 
 test('file comparisons analyze only the analyzed file itself, at function scope', () => {
@@ -94,8 +102,14 @@ test('file comparisons analyze only the analyzed file itself, at function scope'
     // surrounding directory.
     assert.match(gitService, /this\.materializeFile\(repositoryRoot, source\.commitSha, targetRelativePath, destinationPath\)/);
     assert.match(gitService, /\['show', objectSpec\]/);
-    // The historical session analyzes that single materialized file...
-    assert.match(service, /targetPath: materialized\.targetPath/);
+    // The historical session analyzes that single materialized file (the
+    // per-revision session is built by the shared gitAnalysisSessionContext)...
+    const analysis = readConcatenated([
+        'src/code_analysis/historical/historicalComparisonService.ts',
+        'src/code_analysis/historical/gitAnalysisSessionContext.ts',
+    ]);
+    assert.match(analysis, /new GitAnalysisSessionContext\(/, 'canary: the service delegates revision analysis to the shared context');
+    assert.match(analysis, /targetPath: materialized\.targetPath/);
     // ...and file sessions key comparison rows per function of the file.
     assert.match(service, /comparisonKey: `function:\$\{targetKey\}:\$\{signature\.toLocaleLowerCase\(\)\}:\$\{ordinal\}`/);
     // The client labels function-scoped rows by function name, not the (shared) file path.

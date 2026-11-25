@@ -1,46 +1,30 @@
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
-import { ExecutePython } from '../engine/utils/executePython';
+import { decorateDirectoryEntries } from './gitAnalysisShared';
+import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';
-import {
-    GitAnalysisSourceCatalog,
-    GitAnalysisSourceError,
-    isDeterministicNoDataError,
-    validateGitAnalysisPayload,
-} from './gitAnalysisEligibility';
+import { GitAnalysisSourceCatalog } from './gitAnalysisEligibility';
 import {
     ComparisonDataset,
     ComparisonDeltaSummary,
     ComparisonSource,
-    GitAnalysisExclusionCode,
     HistoricalComparisonProgress,
     HistoricalComparisonReferences,
     HistoricalComparisonRequest,
     HistoricalComparisonResult,
-    buildBabiaStyleFilePath,
 } from './historicalComparisonModels';
 
 const ANALYZER_CACHE_VERSION = 'historical-v1';
 
-interface CachedPayload {
-    payload: Record<string, unknown>[];
-    missingTarget: boolean;
-    warnings: string[];
-}
-
 export class HistoricalComparisonService {
     private readonly gitService: GitRepositoryService;
-    private readonly sourceCatalog: GitAnalysisSourceCatalog;
-    private readonly ownsSourceCatalog: boolean;
-    private readonly cache = new Map<string, CachedPayload>();
+    private readonly analysis: GitAnalysisSessionContext;
+    private readonly jobs = new SingleJobGate<HistoricalComparisonRequest, HistoricalComparisonResult>('comparison-busy');
     private references: HistoricalComparisonReferences | null = null;
-    private activeJob: Promise<HistoricalComparisonResult> | null = null;
-    private activeRequest: HistoricalComparisonRequest | null = null;
     private revision = 0;
 
     public constructor(
@@ -58,12 +42,23 @@ export class HistoricalComparisonService {
             'snapshots',
         );
         this.gitService = new GitRepositoryService(session.targetPath, snapshotRoot);
-        this.ownsSourceCatalog = !sourceCatalog;
-        this.sourceCatalog = sourceCatalog || new GitAnalysisSourceCatalog(
-            session.targetType,
-            session.isDeep === true,
-            path.join(session.savedFilesPath || staticRoot, 'data.json'),
-        );
+        this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog, context, {
+            cacheVersion: ANALYZER_CACHE_VERSION,
+            errorCode: 'comparison-source-no-data',
+            sessionIdInfix: 'comparison',
+            metadataKey: 'comparisonSource',
+            missingTarget: 'throw',
+            decorate: (payload, current, analyzedTargetPath) => this.decoratePayload(payload, current, analyzedTargetPath),
+        });
+    }
+
+    private get sourceCatalog(): GitAnalysisSourceCatalog {
+        return this.analysis.sourceCatalog;
+    }
+
+    /** The request of the last successful comparison (what the room shows). */
+    private get activeRequest(): HistoricalComparisonRequest | null {
+        return this.jobs.lastRequest;
     }
 
     public async getReferences(): Promise<HistoricalComparisonReferences> {
@@ -92,22 +87,11 @@ export class HistoricalComparisonService {
         request: HistoricalComparisonRequest,
         onProgress?: (progress: HistoricalComparisonProgress) => void,
     ): Promise<HistoricalComparisonResult> {
-        if (this.activeJob) {
-            throw new Error('comparison-busy');
-        }
-        const job = this.executeComparison(request, onProgress);
-        this.activeJob = job;
-        try {
-            const result = await job;
-            this.activeRequest = { ...request };
-            return result;
-        } finally {
-            this.activeJob = null;
-        }
+        return this.jobs.run(request, () => this.executeComparison(request, onProgress));
     }
 
     public isBusy(): boolean {
-        return this.activeJob !== null;
+        return this.jobs.isBusy();
     }
 
     public hasLiveSource(): boolean {
@@ -125,15 +109,11 @@ export class HistoricalComparisonService {
     }
 
     public clearActiveComparison(): void {
-        this.activeRequest = null;
+        this.jobs.forgetLastRequest();
     }
 
-    public async dispose(): Promise<void> {
-        await this.gitService.dispose();
-        if (this.ownsSourceCatalog) {
-            await this.sourceCatalog.dispose();
-        }
-        this.cache.clear();
+    public dispose(): Promise<void> {
+        return this.analysis.dispose();
     }
 
     private async executeComparison(
@@ -150,17 +130,14 @@ export class HistoricalComparisonService {
         ]);
 
         onProgress?.({ state: 'analyzing', message: `Analyzing ${leftSource.label}...` });
-        const leftPayload = await this.analyzeSource(leftSource);
+        const leftPayload = await this.analysis.analyzeSource(leftSource, this.getSession());
         onProgress?.({ state: 'analyzing', message: `Analyzing ${rightSource.label}...` });
-        const rightPayload = await this.analyzeSource(rightSource);
+        const rightPayload = await this.analysis.analyzeSource(rightSource, this.getSession());
 
+        // A side whose revision lacks the target never gets here: the request
+        // API accepts raw source ids, so analyzeSource refuses that revision
+        // itself (a target-missing exclusion) before any comparison is built.
         const session = this.getSession();
-        // Filtered references make this unreachable through the UI, but the
-        // request API accepts raw source ids: a single-file comparison against
-        // a version that lacks the file is meaningless, so refuse it.
-        if (session.targetType === 'file' && (leftPayload.missingTarget || rightPayload.missingTarget)) {
-            throw new Error('comparison-target-missing-in-version');
-        }
         const mappings = await this.getSelectedMetricFields(session);
         const delta = this.buildDelta(
             leftPayload.payload,
@@ -204,124 +181,8 @@ export class HistoricalComparisonService {
         return result;
     }
 
-    private async analyzeSource(source: ComparisonSource): Promise<CachedPayload> {
-        const session = this.getSession();
-        if (source.kind === 'workingCopy') {
-            const dataPath = path.join(session.savedFilesPath || this.staticRoot, 'data.json');
-            let payload: unknown;
-            try {
-                payload = JSON.parse(await fs.promises.readFile(dataPath, 'utf8'));
-            } catch {
-                throw this.excludeSource(
-                    source,
-                    'invalid-payload',
-                    'The working copy data.json is missing or unreadable.',
-                );
-            }
-            const validation = this.requireUsablePayload(source, payload);
-            return {
-                payload: this.decoratePayload(
-                    validation,
-                    session,
-                    session.targetPath,
-                ),
-                missingTarget: false,
-                warnings: [],
-            };
-        }
 
-        const cacheKey = crypto.createHash('sha256')
-            .update([
-                ANALYZER_CACHE_VERSION,
-                source.commitSha,
-                session.targetPath,
-                session.targetType,
-                session.isDeep ? 'deep' : 'shallow',
-            ].join('\0'))
-            .digest('hex');
-        const cached = this.cache.get(cacheKey);
-        if (cached) {
-            return cached;
-        }
 
-        const materialized = await this.gitService.materialize(source);
-        if (!materialized.targetPath) {
-            throw this.excludeSource(
-                source,
-                'target-missing',
-                'The analyzed target does not exist in this revision.',
-            );
-        }
-
-        const historicalSession: UnifiedAnalysisSession = {
-            ...session,
-            id: `${session.id}-comparison-${source.commitSha.slice(0, 8)}`,
-            targetPath: materialized.targetPath,
-            targetName: path.basename(materialized.targetPath),
-            status: 'analyzing',
-            startTime: new Date(),
-            requiredFiles: new Map(),
-            templatePaths: new Map(),
-            metadata: { comparisonSource: source },
-        };
-        let analysisResult: unknown;
-        try {
-            analysisResult = await new ExecutePython(this.context).executeAnalysis(historicalSession);
-        } catch (error) {
-            if (isDeterministicNoDataError(error)) {
-                throw this.excludeSource(
-                    source,
-                    'invalid-payload',
-                    'The analyzer did not produce a readable JSON payload.',
-                );
-            }
-            throw error;
-        }
-        const payload = this.decoratePayload(
-            this.requireUsablePayload(source, analysisResult),
-            session,
-            materialized.targetPath,
-        );
-        const result = {
-            payload,
-            missingTarget: false,
-            warnings: materialized.warnings,
-        };
-        this.cache.set(cacheKey, result);
-        return result;
-    }
-
-    private requireUsablePayload(
-        source: ComparisonSource,
-        payload: unknown,
-    ): Record<string, unknown>[] {
-        const validation = validateGitAnalysisPayload(payload);
-        if (!validation.usable) {
-            throw this.excludeSource(
-                source,
-                validation.code || 'invalid-payload',
-                validation.reason || 'The analysis produced no usable data.',
-            );
-        }
-        return validation.entries;
-    }
-
-    private excludeSource(
-        source: ComparisonSource,
-        code: GitAnalysisExclusionCode,
-        reason: string,
-    ): GitAnalysisSourceError {
-        const exclusion = this.sourceCatalog.recordDeterministicExclusion(
-            source,
-            code,
-            reason,
-        );
-        return new GitAnalysisSourceError(
-            'comparison-source-no-data',
-            `"${source.label}" was removed from Git analyses: ${reason}`,
-            [exclusion],
-        );
-    }
 
     private decoratePayload(
         payload: Record<string, unknown>[],
@@ -329,22 +190,9 @@ export class HistoricalComparisonService {
         analyzedTargetPath: string,
     ): Record<string, unknown>[] {
         if (session.targetType === 'directory') {
-            return payload.map((entry) => {
-                const sourcePath = String(entry.filePath || entry.relativePath || entry.fileName || '');
-                const relativePath = this.toPortableRelativePath(analyzedTargetPath, sourcePath);
-                return {
-                    ...entry,
-                    // Both comparison sides rebuild filePath against the
-                    // ORIGINAL target (normal-analysis shape): the working
-                    // copy and the materialized commit then paint identical
-                    // quarters for the same file.
-                    filePath: buildBabiaStyleFilePath(session.targetPath, relativePath),
-                    relativePath,
-                    // Cross-side identity stays RELATIVE, independent of
-                    // where each side was analyzed.
-                    comparisonKey: `file:${relativePath.toLocaleLowerCase()}`,
-                };
-            });
+            // Both sides rebuild filePath against the ORIGINAL target, so the
+            // working copy and a materialized commit paint identical quarters.
+            return decorateDirectoryEntries(payload, session.targetPath, analyzedTargetPath, ['comparisonKey']);
         }
 
         const occurrences = new Map<string, number>();
@@ -475,26 +323,6 @@ export class HistoricalComparisonService {
             missingTarget: payload.missingTarget,
             warnings: payload.warnings,
         };
-    }
-
-    private toPortableRelativePath(root: string, candidate: string): string {
-        if (!candidate) {
-            return 'unknown';
-        }
-        if (!path.isAbsolute(candidate)) {
-            return candidate
-                .replace(/\\/g, '/')
-                .replace(/^\.\/+/, '')
-                .replace(/\/+/g, '/')
-                .replace(/^\/|\/$/g, '') || 'unknown';
-        }
-        const normalizedCandidate = path.resolve(candidate);
-        const normalizedRoot = path.resolve(root);
-        const relativePath = path.relative(normalizedRoot, normalizedCandidate);
-        if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
-            return relativePath.split(path.sep).join('/');
-        }
-        return path.basename(candidate);
     }
 
     private getSession(): UnifiedAnalysisSession {
