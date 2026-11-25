@@ -420,7 +420,11 @@ test('historical compare (directory): decorated payloads, delta, artifacts and t
         await other.getReferences();
         await other.compare({ leftSourceId: left.id, rightSourceId: 'working-copy' });
         assert.equal(analyzer.calls.length, 2);
-        await Promise.all([service.dispose(), other.dispose()]);
+        // Sequential, not Promise.all: both instances share one snapshot root,
+        // and two concurrent recursive rm calls on the same tree race on
+        // Windows (EPERM on rmdir while the other holds a pending delete).
+        await service.dispose();
+        await other.dispose();
     });
 });
 
