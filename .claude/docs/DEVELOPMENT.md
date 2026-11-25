@@ -2,7 +2,7 @@
 
 > **Purpose**: Build, test, run and package the extension. Read this before running any command or claiming a change "works".
 > **Stability**: Stable — update when scripts, launch configs, or test layers change.
-> Verified against `package.json`, `.vscode/launch.json`, `.vscode/tasks.json` and `test/runners/` on 2026-07-08.
+> Verified against `package.json`, `.vscode/launch.json`, `.vscode/tasks.json` and `test/runners/` on 2026-07-08; scripts, paths and the test layout re-verified on 2026-11-25 (story #43).
 
 > **Monorepo (2026-11-25):** run `npm ci` and every `npm run …` from the repository root; scripts delegate to the `code-xr` workspace in `apps/vscode-extension/`, where the paths below live (the Python backend is `backend/src/`, its tests `backend/tests/`). See `docs/monorepo.md`.
 
@@ -16,7 +16,7 @@
 
 | Script | What it does | When to use |
 |---|---|---|
-| `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python` into `dist/code_analysis/python`; `templates/` and `examples/` ship as they are, not copied, since 1.2.1) | Before F5 "workspace direct"; quick build check |
+| `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `<repo>/backend/src` into `dist/code_analysis/python`; `templates/` and `examples/` ship as they are, not copied, since 1.2.1) | Before F5 "workspace direct"; quick build check |
 | `npm run compile:dev-host` | `compile` + `scripts/prepare-dev-extension.mjs` → stages an isolated dev copy under `.vscode-test/dev-extension` | Used automatically by the primary F5 launch config |
 | `npm run watch` | webpack watch mode | Iterating on TS changes |
 | `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project with `tsconfig.check.json`, which extends `tsconfig.json` and adds `noUnusedLocals`, `noFallthroughCasesInSwitch`, `noImplicitReturns` and `noUnusedParameters` (an unused parameter kept for a signature is named `_x`). `compile`, `compile-tests` and webpack stay on `tsconfig.json`, so an unused symbol fails the gate but never the F5 build. Then a second pass, `tsconfig.tooling.json`: `checkJs` over `scripts/*.mjs`, `webpack.config.js` and `eslint.config.mjs` (strict except `noImplicitAny`; a JSDoc `@type` is the fix for a finding there) | Fast correctness gate; part of `test:basic` |
@@ -25,14 +25,14 @@
 | `npm run watch-tests` | `tsc -p . -w --outDir out`: keeps `out/` current while iterating on tests (the runner's stale-output check is per file, so this stays valid) | Iterating with `npm run test:unit` |
 | `npm test` = `npm run test:basic` | `typecheck` + `lint` + `compile-tests` (tsc → `out/`) + `test:unit`. Needs **no** webpack build | **The default gate. Run before declaring any change done.** |
 | `npm run test:unit` | `test/runners/run-node-tests.cjs` → first refuses to start if `out/` does not match `src/` (a source newer than its output, an uncompiled source, or a compiled file whose source is gone), then collects `test/**/*.test.cjs` and runs `node --test --test-isolation=none --test-concurrency=1` — **every suite in one process**, so a test must never leave global state behind | Unit/runtime tests only (fast) |
-| `npm run test:python` (root `test:backend` runs the same file directly) | `backend/scripts/run-python-tests.cjs` → `unittest discover` over `backend/tests/`. A test folder **needs an `__init__.py`** or discovery skips it silently. With no interpreter it skips locally and **fails under `CI`** | After touching `src/code_analysis/python/` |
+| `npm run test:python` (root `test:backend` runs the same file directly) | `backend/scripts/run-python-tests.cjs` → `unittest discover` over `backend/tests/`. A test folder **needs an `__init__.py`** or discovery skips it silently. With no interpreter it skips locally and **fails under `CI`** | After touching `backend/src/` |
 | `npm run lint:python` (root only) | `backend/scripts/run-ruff.cjs` → `ruff check` in `backend/` with `backend/ruff.toml`: pyflakes (`F`) plus the pycodestyle error classes `E4`/`E7`/`E9` and the modernization lock-ins of story #56 (`E722`, `UP004`, `UP008`, `UP031`, `UP032`, and `FA100`/`UP006`/`UP007`/`UP037`/`UP045`: builtin generics in annotations behind `from __future__ import annotations`, and `UP012`/`UP015`/`RUF010`; `docs/cleanup/modernization.md`), target Python 3.7, fixture corpora (`manual_test/`, `tests/fixtures/`) excluded, `E402` ignored per file (with the reason) where a module bootstraps `sys.path` before its imports. **Lint only — no formatter, no isort**: tests pin import lines and statement order. Ruff is pinned in `backend/requirements-dev.txt` (`python -m pip install -r backend/requirements-dev.txt`); a missing ruff is a failure, never a skip | After touching `backend/` |
 | `npm run test:all` | `test:basic` + `test:python` | Pre-release / after cross-language changes |
 | `npm run test:analysis` | `backend/scripts/run-analysis-tests.cjs` (venv in `backend/artifacts/analysis-test-venv`) over the `backend/manual_test/` fixtures (one per supported language); asserts XR and LivePanel produce the same `data.json`. Its venv installs the **lizard version the extension pins** (read from `backend/requirements.txt`, the generated mirror of `pythonPackageManifest.ts`) | After changing analysis output or language support |
-| `npm run test:htmlanalysis` | HTML/DOM analysis tests | After touching `python/html/html_dom_parser.py` or DOM mode |
+| `npm run test:htmlanalysis` | `test/runners/run-html-analysis-tests.cjs`: `test/analysis/livePanelDomIntegration.test.cjs` plus the Python suite `backend/tests/html_dom/` | After touching `backend/src/html/html_dom_parser.py` or DOM mode |
 | `npm run test:xr-harness` | `test/runners/run-xr-containment-harness.cjs` (browser harness, uses Playwright) | After touching table/containment runtimes |
 | `npm run test:xr-mode-harness` | `test/runners/run-xr-mode-cycle-harness.cjs` — static contract over `test/manual/xr-mode-cycle-harness.html`, then (with Playwright) walks the analysis selector through every mode and back, asserting the controller's view/mode state at each step | After touching the analysis-mode controller, mapping UI, historical comparison or dependency graph runtimes |
-| `npm run test:project-evolution-harness` | Project Evolution playback harness | After touching project-evolution runtime |
+| `npm run test:project-evolution-harness` | `test/runners/run-project-evolution-harness.cjs` — Project Evolution playback harness (screenshots under `output/project-evolution-harness/`) | After touching project-evolution runtime |
 | `npm run test:xr-immersive-harness` | `test/runners/run-xr-immersive-harness.cjs` — AR/VR semantics against real A-Frame: AR hide/keep sets, rig floor-align + AR recenter, pointer handover; plus a static contract over both scene templates | After touching the scene templates, pointer-policy or immersive-rig |
 | `npm run package` | Production webpack build (hidden source maps) | Pre-packaging |
 | `npm run package:vsix` | `package` + `scripts/package-vsix.mjs` → builds the `.vsix` (refuses to package without `dist/extension.js`) | Release preparation |
@@ -58,18 +58,20 @@ Manual validation flow for a change: F5 → open a workspace with source files �
 
 ```
 test/
-├── analysis/            ~33 .test.cjs suites — runtimes (common, boats, visual style, charts,
-│                        tables, mapping), collaboration, historical, dependency graph, watchers…
+├── analysis/            80 .test.cjs suites — runtimes (common, boats, charts, tables, mapping),
+│                        collaboration, historical, dependency graph, export, watchers…
 ├── commands/            commandRegistry.test.cjs (unique-ID checks on synthetic arrays) +
 │                        commandContributions.test.cjs: executes the REAL registerAllCommands under the
 │                        fake vscode and ties it to package.json; internalCommandIds.cjs lists every
 │                        registered-but-uncontributed command with how it is reached
 ├── directory_analysis/  directory-mode tests
-├── logging/, python_env/, servers/, startup/, collaboration/, packaging/, utils/,
+├── logging/, python_env/, servers/, startup/, collaboration/, packaging/, utils/, views/,
 │   visualize_data/, visualization_settings/   focused suites per subsystem
+│                        (126 .test.cjs files in all, 1,064 tests at the end of 1.2.1)
 ├── helpers/             sourceText.cjs (LF readers, assertAbsent with a mandatory canary),
 │                        fakeVscode.cjs (scoped fake `vscode` to EXECUTE out/ modules),
-│                        runtimeAssembly.cjs (test-side mirror of the runtime assembler)
+│                        runtimeAssembly.cjs (test-side mirror of the runtime assembler),
+│                        logCapture.cjs, templatesRoot.cjs, sceneAssetModules.cjs
 ├── baseline/            the feature baseline of the cleanup epic: snapshot of the user-visible
 │                        surface + the register of authorized removals (featureSurface.cjs --write)
 ├── tooling/             measureGuardrails.cjs + guardrail-baseline.json + the ratchet test;
