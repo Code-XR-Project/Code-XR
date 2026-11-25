@@ -7,19 +7,21 @@ It supports multiple programming languages with comprehensive pattern matching.
 Imported by utils/file_analysis_engine.py; it has no command line of its own.
 """
 
+from __future__ import annotations
+
 import os
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 # Python: dataclasses first (they would otherwise also match the plain class pattern)
-_PYTHON_DATACLASS_PATTERNS: List[Tuple[str, str]] = [
+_PYTHON_DATACLASS_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*@dataclass\s*\n\s*class\s+(\w+)', 'dataclass'),
     (r'^\s*@dataclasses\.dataclass\s*\n\s*class\s+(\w+)', 'dataclass'),
 ]
 
 # JavaScript/TypeScript classes, interfaces, types
-_JS_TS_PATTERNS: List[Tuple[str, str]] = [
+_JS_TS_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*export\s+class\s+(\w+)', 'exported_class'),
     (r'^\s*export\s+default\s+class\s+(\w+)', 'default_class'),
@@ -36,7 +38,7 @@ _JS_TS_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Java classes, interfaces, enums, annotations, records
-_JAVA_PATTERNS: List[Tuple[str, str]] = [
+_JAVA_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*public\s+class\s+(\w+)', 'public_class'),
     (r'^\s*private\s+class\s+(\w+)', 'private_class'),
     (r'^\s*protected\s+class\s+(\w+)', 'protected_class'),
@@ -61,7 +63,7 @@ _JAVA_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Scala classes, objects, traits, case classes
-_SCALA_PATTERNS: List[Tuple[str, str]] = [
+_SCALA_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*abstract\s+class\s+(\w+)', 'abstract_class'),
     (r'^\s*case\s+class\s+(\w+)', 'case_class'),
@@ -77,7 +79,7 @@ _SCALA_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # C++ classes, structs, unions, templates
-_CPP_PATTERNS: List[Tuple[str, str]] = [
+_CPP_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*struct\s+(\w+)', 'struct'),
     (r'^\s*union\s+(\w+)', 'union'),
@@ -91,7 +93,7 @@ _CPP_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # C# classes, interfaces, structs, enums, delegates, records
-_CSHARP_PATTERNS: List[Tuple[str, str]] = [
+_CSHARP_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*public\s+class\s+(\w+)', 'public_class'),
     (r'^\s*private\s+class\s+(\w+)', 'private_class'),
     (r'^\s*protected\s+class\s+(\w+)', 'protected_class'),
@@ -122,14 +124,14 @@ _CSHARP_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Ruby classes, modules
-_RUBY_PATTERNS: List[Tuple[str, str]] = [
+_RUBY_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*module\s+(\w+)', 'module'),
     (r'^\s*class\s+<<\s*(\w+)', 'singleton_class'),
 ]
 
 # PHP classes, interfaces, traits
-_PHP_PATTERNS: List[Tuple[str, str]] = [
+_PHP_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*abstract\s+class\s+(\w+)', 'abstract_class'),
     (r'^\s*final\s+class\s+(\w+)', 'final_class'),
@@ -139,7 +141,7 @@ _PHP_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Swift classes, structs, protocols, enums
-_SWIFT_PATTERNS: List[Tuple[str, str]] = [
+_SWIFT_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*struct\s+(\w+)', 'struct'),
     (r'^\s*protocol\s+(\w+)', 'protocol'),
@@ -154,14 +156,14 @@ _SWIFT_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Go structs, interfaces, types
-_GO_PATTERNS: List[Tuple[str, str]] = [
+_GO_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*type\s+(\w+)\s+struct', 'struct'),
     (r'^\s*type\s+(\w+)\s+interface', 'interface'),
     (r'^\s*type\s+(\w+)\s+\w+', 'type_alias'),
 ]
 
 # Rust structs, enums, traits, impl blocks
-_RUST_PATTERNS: List[Tuple[str, str]] = [
+_RUST_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*struct\s+(\w+)', 'struct'),
     (r'^\s*enum\s+(\w+)', 'enum'),
     (r'^\s*trait\s+(\w+)', 'trait'),
@@ -175,7 +177,7 @@ _RUST_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Kotlin classes, interfaces, objects, data classes
-_KOTLIN_PATTERNS: List[Tuple[str, str]] = [
+_KOTLIN_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*data\s+class\s+(\w+)', 'data_class'),
     (r'^\s*sealed\s+class\s+(\w+)', 'sealed_class'),
@@ -191,7 +193,7 @@ _KOTLIN_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Objective-C classes, protocols, categories
-_OBJC_PATTERNS: List[Tuple[str, str]] = [
+_OBJC_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*@interface\s+(\w+)', 'interface'),
     (r'^\s*@implementation\s+(\w+)', 'implementation'),
     (r'^\s*@protocol\s+(\w+)', 'protocol'),
@@ -199,7 +201,7 @@ _OBJC_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Lua "classes" (tables with metatables, modules)
-_LUA_PATTERNS: List[Tuple[str, str]] = [
+_LUA_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*local\s+(\w+)\s*=\s*\{\}', 'table_class'),
     (r'^\s*(\w+)\s*=\s*\{\}', 'global_table'),
     (r'^\s*function\s+(\w+):new', 'class_constructor'),
@@ -207,7 +209,7 @@ _LUA_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Erlang modules, records
-_ERLANG_PATTERNS: List[Tuple[str, str]] = [
+_ERLANG_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*-module\s*\(\s*(\w+)', 'module'),
     (r'^\s*-record\s*\(\s*(\w+)', 'record'),
     (r'^\s*-behaviour\s*\(\s*(\w+)', 'behaviour'),
@@ -215,14 +217,14 @@ _ERLANG_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Perl packages, modules
-_PERL_PATTERNS: List[Tuple[str, str]] = [
+_PERL_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*package\s+(\w+(?:::\w+)*)', 'package'),
     (r'^\s*use\s+Moose;.*?package\s+(\w+)', 'moose_class'),
     (r'^\s*use\s+Mouse;.*?package\s+(\w+)', 'mouse_class'),
 ]
 
 # C files - detect structs and typedefs as "classes"
-_C_PATTERNS: List[Tuple[str, str]] = [
+_C_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*typedef\s+struct\s+(\w+)', 'typedef_struct'),
     (r'^\s*struct\s+(\w+)\s*{', 'struct'),
     (r'^\s*typedef\s+enum\s+(\w+)', 'typedef_enum'),
@@ -233,7 +235,7 @@ _C_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Solidity contracts (equivalent to classes)
-_SOLIDITY_PATTERNS: List[Tuple[str, str]] = [
+_SOLIDITY_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*contract\s+(\w+)', 'contract'),
     (r'^\s*interface\s+(\w+)', 'interface'),
     (r'^\s*library\s+(\w+)', 'library'),
@@ -241,7 +243,7 @@ _SOLIDITY_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Fortran types (equivalent to classes/structs)
-_FORTRAN_PATTERNS: List[Tuple[str, str]] = [
+_FORTRAN_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*type\s*::\s*(\w+)', 'type'),
     (r'^\s*type\s+(\w+)', 'type'),
     (r'^\s*module\s+(\w+)', 'module'),
@@ -249,7 +251,7 @@ _FORTRAN_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # GDScript classes and class_name declarations
-_GDSCRIPT_PATTERNS: List[Tuple[str, str]] = [
+_GDSCRIPT_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*class_name\s+(\w+)', 'class_name'),
     (r'^\s*extends\s+(\w+)', 'extends'),
@@ -257,7 +259,7 @@ _GDSCRIPT_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 # Vue.js files - extract classes from <script> blocks
-_VUE_PATTERNS: List[Tuple[str, str]] = [
+_VUE_PATTERNS: list[tuple[str, str]] = [
     (r'^\s*class\s+(\w+)', 'class'),
     (r'^\s*export\s+class\s+(\w+)', 'exported_class'),
     (r'^\s*export\s+default\s+class\s+(\w+)', 'default_class'),
@@ -272,7 +274,7 @@ _VUE_PATTERNS: List[Tuple[str, str]] = [
 
 # Extension -> (ordered patterns, re flags). Order of extensions and patterns is the
 # order of the former if/elif chain; .py and .vue are special-cased in analyze_classes.
-_CLASS_PATTERN_ARMS: List[Tuple[List[str], List[Tuple[str, str]], int]] = [
+_CLASS_PATTERN_ARMS: list[tuple[list[str], list[tuple[str, str]], int]] = [
     (['.js', '.ts', '.jsx', '.tsx'], _JS_TS_PATTERNS, re.MULTILINE),
     (['.java'], _JAVA_PATTERNS, re.MULTILINE),
     (['.scala', '.sc'], _SCALA_PATTERNS, re.MULTILINE),
@@ -294,14 +296,14 @@ _CLASS_PATTERN_ARMS: List[Tuple[List[str], List[Tuple[str, str]], int]] = [
     (['.gd'], _GDSCRIPT_PATTERNS, re.MULTILINE),
 ]
 
-CLASS_PATTERNS_BY_EXTENSION: Dict[str, Tuple[List[Tuple[str, str]], int]] = {
+CLASS_PATTERNS_BY_EXTENSION: dict[str, tuple[list[tuple[str, str]], int]] = {
     extension: (patterns, flags)
     for extensions, patterns, flags in _CLASS_PATTERN_ARMS
     for extension in extensions
 }
 
 
-def _scan(content: str, patterns: List[Tuple[str, str]], flags: int) -> List[Dict[str, Any]]:
+def _scan(content: str, patterns: list[tuple[str, str]], flags: int) -> list[dict[str, Any]]:
     """Every match of every pattern, pattern by pattern, with its 1-based line."""
     class_details = []
     for pattern, class_type in patterns:
@@ -315,7 +317,7 @@ def _scan(content: str, patterns: List[Tuple[str, str]], flags: int) -> List[Dic
     return class_details
 
 
-def _python_classes(content: str) -> List[Dict[str, Any]]:
+def _python_classes(content: str) -> list[dict[str, Any]]:
     """Python classes; a @dataclass class is reported once, as 'dataclass'."""
     class_details = _scan(content, _PYTHON_DATACLASS_PATTERNS, re.MULTILINE)
     dataclass_classes = {detail['name'] for detail in class_details}
@@ -325,7 +327,7 @@ def _python_classes(content: str) -> List[Dict[str, Any]]:
     return class_details
 
 
-def _vue_classes(content: str) -> List[Dict[str, Any]]:
+def _vue_classes(content: str) -> list[dict[str, Any]]:
     """Vue single-file components: the first <script> block, lines relative to it."""
     script_content = extract_script_from_vue(content)
     if not script_content:

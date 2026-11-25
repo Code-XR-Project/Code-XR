@@ -150,6 +150,9 @@ Landed on `claude/project-thread-n2s3q6-modernize-py-js` (session log `.claude/d
 | Plan row | Idiom × area | Before | After | Lock-in |
 |---|---|---:|---:|---|
 | 1 (Python part) | bare `except:`, `class X(object)`, `super(X, self)`, `%` and `.format()` in `backend/` | 0 | 0 | ruff `E722`, `UP004`, `UP008`, `UP031`, `UP032` in `backend/ruff.toml` |
+| 2 | `typing.List/Dict/Tuple/Set/Optional` in `backend/src` (A.3 grep; ruff `FA100`) | 310 (FA100 309) in 13 files | 12 (FA100 11) in 3 files | ruff `FA100`, `UP006`, `UP007`, `UP037`, `UP045`; `FA100` ignored per file for the two exceptions |
+
+Row 2 leaves exactly three places on `typing` generics: `TargetTuple` (a runtime alias, see §3), `utils/xr_field_schema.py` (contract, 9) and `html/html_dom_parser.py` (2), whose `def emit_json_result(result: Dict[str, Any]) -> None:` line `livePanelDomIntegration.test.cjs` pins verbatim (an S pin: relaxing it needs its own characterization commit first, so the file was left whole rather than half-converted).
 
 ## Appendix: how to re-run the numbers
 

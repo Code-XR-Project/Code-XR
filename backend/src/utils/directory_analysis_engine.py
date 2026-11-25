@@ -3,10 +3,12 @@
 Shared directory-analysis engine used by XR and LivePanel.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Iterable
 
 from babia_path_utils import normalize_output_paths
 from directory_scan_utils import filter_explicit_files_for_analysis, scan_directory_files_for_analysis
@@ -20,10 +22,10 @@ ProgressCallback = Callable[[int, int, str], None]
 def collect_directory_targets(
     directory_path: str,
     recursive: bool = False,
-    filtered_files: Optional[Iterable[str]] = None,
+    filtered_files: Iterable[str] | None = None,
     max_entries_per_directory: int = 1000,
     max_total_files: int = 5000,
-) -> List[str]:
+) -> list[str]:
     if filtered_files is not None:
         return filter_explicit_files_for_analysis(filtered_files, max_total_files=max_total_files)
 
@@ -38,16 +40,16 @@ def collect_directory_targets(
 def analyze_directory_entries(
     directory_path: str,
     recursive: bool = False,
-    filtered_files: Optional[Iterable[str]] = None,
-    progress_callback: Optional[ProgressCallback] = None,
-) -> List[Dict[str, object]]:
+    filtered_files: Iterable[str] | None = None,
+    progress_callback: ProgressCallback | None = None,
+) -> list[dict[str, object]]:
     files_to_analyze = collect_directory_targets(
         directory_path,
         recursive=recursive,
         filtered_files=filtered_files,
     )
 
-    entries: List[Dict[str, object]] = []
+    entries: list[dict[str, object]] = []
     total_files = len(files_to_analyze)
 
     for index, file_path in enumerate(files_to_analyze, start=1):
@@ -64,10 +66,10 @@ def analyze_directory_entries(
 def run_directory_analysis(
     directory_path: str,
     recursive: bool,
-    filtered_files: Optional[Iterable[str]],
+    filtered_files: Iterable[str] | None,
     log_label: str,
     start_message: str,
-) -> List[Dict[str, object]]:
+) -> list[dict[str, object]]:
     """The shared body of the three directory coordinators: log, analyse with progress, normalise."""
     print(json.dumps({'debug': f'{log_label}: {start_message}'}), file=sys.stderr)
     entries = analyze_directory_entries(

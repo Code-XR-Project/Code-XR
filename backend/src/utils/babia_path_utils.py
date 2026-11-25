@@ -3,7 +3,9 @@
 Shared path normalization utilities for BabiaXR-facing payloads.
 """
 
-from typing import Any, Iterable, Optional, Set
+from __future__ import annotations
+
+from typing import Any, Iterable
 
 DEFAULT_BABIA_PATH_KEYS = frozenset({
     "filePath",
@@ -14,7 +16,7 @@ DEFAULT_BABIA_PATH_KEYS = frozenset({
 })
 
 
-def sanitize_tree_segment(value: Optional[str], fallback: str) -> str:
+def sanitize_tree_segment(value: str | None, fallback: str) -> str:
     """
     Prepare a tree segment so it cannot create accidental hierarchy levels.
     """
@@ -28,7 +30,7 @@ def sanitize_tree_segment(value: Optional[str], fallback: str) -> str:
     return normalized.replace("\\", "_").replace("/", "_")
 
 
-def build_tree_path(file_name: Optional[str], function_name: Optional[str]) -> str:
+def build_tree_path(file_name: str | None, function_name: str | None) -> str:
     """
     Build a stable BabiaXR tree path for file analyses.
     """
@@ -37,7 +39,7 @@ def build_tree_path(file_name: Optional[str], function_name: Optional[str]) -> s
     return f"{safe_file_name}/{safe_function_name}"
 
 
-def normalize_path_for_babia(path_str: Optional[str]) -> Optional[str]:
+def normalize_path_for_babia(path_str: str | None) -> str | None:
     """
     Normalize file paths to use Unix-style forward slashes and remove drive letters.
     """
@@ -58,11 +60,11 @@ def normalize_path_for_babia(path_str: Optional[str]) -> Optional[str]:
     return normalized
 
 
-def normalize_output_paths(payload: Any, path_keys: Optional[Iterable[str]] = None) -> Any:
+def normalize_output_paths(payload: Any, path_keys: Iterable[str] | None = None) -> Any:
     """
     Recursively normalize whitelisted path fields in BabiaXR-facing payloads.
     """
-    normalized_keys: Set[str] = set(path_keys) if path_keys is not None else set(DEFAULT_BABIA_PATH_KEYS)
+    normalized_keys: set[str] = set(path_keys) if path_keys is not None else set(DEFAULT_BABIA_PATH_KEYS)
 
     if isinstance(payload, dict):
         normalized_payload = {}

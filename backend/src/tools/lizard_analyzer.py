@@ -3,13 +3,15 @@
 Lizard Code Analyzer Wrapper.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable
 
 import lizard
 
@@ -43,7 +45,7 @@ def _noop_cleanup() -> None:
     return None
 
 
-def _prepare_analysis_source(file_path: str) -> Tuple[str, int, CleanupFn]:
+def _prepare_analysis_source(file_path: str) -> tuple[str, int, CleanupFn]:
     extension = Path(file_path).suffix.lower()
     if extension != '.vue':
         return file_path, 0, _noop_cleanup
@@ -76,7 +78,7 @@ def _prepare_analysis_source(file_path: str) -> Tuple[str, int, CleanupFn]:
     return tmp.name, line_offset, _cleanup
 
 
-def _read_source_lines(file_path: str) -> List[str]:
+def _read_source_lines(file_path: str) -> list[str]:
     try:
         return Path(file_path).read_text(encoding='utf-8', errors='ignore').splitlines()
     except OSError:
@@ -93,7 +95,7 @@ def _count_top_level_arguments(argument_text: str) -> int:
         return 0
 
     count = 0
-    token: List[str] = []
+    token: list[str] = []
     depths = dict.fromkeys(_OPENING_BRACKETS, 0)
 
     for character in text:
@@ -126,7 +128,7 @@ def _count_parameters_from_parenthesized_signature(signature_text: str) -> int:
     return _count_top_level_arguments(match.group(1))
 
 
-def _get_signature_excerpt(source_lines: List[str], line_start: int, line_end: int, max_lines: int = 6) -> str:
+def _get_signature_excerpt(source_lines: list[str], line_start: int, line_end: int, max_lines: int = 6) -> str:
     if not source_lines or line_start <= 0:
         return ''
 
@@ -143,7 +145,7 @@ def _count_objective_c_parameters(long_name: str, name: str) -> int:
     return (name or '').count(':')
 
 
-def _count_lua_parameters(source_lines: List[str], line_start: int, line_end: int) -> int:
+def _count_lua_parameters(source_lines: list[str], line_start: int, line_end: int) -> int:
     excerpt = _get_signature_excerpt(source_lines, line_start, line_end)
     match = re.search(r'function\s+[^\(]+\((.*?)\)', excerpt, re.DOTALL)
     if not match:
@@ -151,7 +153,7 @@ def _count_lua_parameters(source_lines: List[str], line_start: int, line_end: in
     return _count_top_level_arguments(match.group(1))
 
 
-def _count_perl_parameters(source_lines: List[str], line_start: int, line_end: int, long_name: str) -> int:
+def _count_perl_parameters(source_lines: list[str], line_start: int, line_end: int, long_name: str) -> int:
     excerpt = _get_signature_excerpt(source_lines, line_start, line_end)
 
     unpack_match = re.search(r'my\s*\(\s*(.*?)\s*\)\s*=\s*@_', excerpt, re.DOTALL)
@@ -168,7 +170,7 @@ def _count_perl_parameters(source_lines: List[str], line_start: int, line_end: i
     return 0
 
 
-def _resolve_parameter_count(func: Any, extension: str, source_lines: List[str]) -> int:
+def _resolve_parameter_count(func: Any, extension: str, source_lines: list[str]) -> int:
     parameter_count = getattr(func, 'parameter_count', None)
     if parameter_count is None:
         parameter_count = len(getattr(func, 'parameters', []) or [])
@@ -198,7 +200,7 @@ def _resolve_parameter_count(func: Any, extension: str, source_lines: List[str])
     return _count_parameters_from_parenthesized_signature(long_name)
 
 
-def _unsupported_result(file_path: str, message: str) -> Dict[str, Any]:
+def _unsupported_result(file_path: str, message: str) -> dict[str, Any]:
     """The five-key envelope for a file Lizard cannot measure."""
     return {
         'error': message,
@@ -219,7 +221,7 @@ def _is_unsupported_language_error(error: Exception) -> bool:
     return 'unsupported' in error_msg or 'unknown' in error_msg or 'not supported' in error_msg
 
 
-def _build_function_record(func: Any, line_offset: int, extension: str, source_lines: List[str]) -> Dict[str, Any]:
+def _build_function_record(func: Any, line_offset: int, extension: str, source_lines: list[str]) -> dict[str, Any]:
     line_start = (getattr(func, 'start_line', 0) or 0) + line_offset
     line_end = (getattr(func, 'end_line', line_start) or line_start) + line_offset
     line_count = getattr(func, 'nloc', 0) or max((line_end - line_start) + 1, 0)
@@ -240,7 +242,7 @@ def _build_function_record(func: Any, line_offset: int, extension: str, source_l
     }
 
 
-def analyze_file(file_path: str) -> Dict[str, Any]:
+def analyze_file(file_path: str) -> dict[str, Any]:
     if not os.path.exists(file_path):
         return {
             'error': f'File not found: {file_path}',

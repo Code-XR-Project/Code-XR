@@ -7,11 +7,12 @@ Language. HTML remains DOM-only and is intentionally excluded from the metric
 analysis contract.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 
-_LANGUAGE_SPECS: List[Tuple[str, List[str]]] = [
+_LANGUAGE_SPECS: list[tuple[str, list[str]]] = [
     ("Python", [".py", ".pyw", ".pyi"]),
     ("Ruby", [".rb", ".rbw"]),
     ("Java", [".java"]),
@@ -37,37 +38,37 @@ _LANGUAGE_SPECS: List[Tuple[str, List[str]]] = [
     ("Zig", [".zig"]),
 ]
 
-DOM_ONLY_LANGUAGE_EXTENSION_MAP: Dict[str, List[str]] = {
+DOM_ONLY_LANGUAGE_EXTENSION_MAP: dict[str, list[str]] = {
     "HTML": [".html", ".htm", ".xhtml"],
 }
 
-LANGUAGE_EXTENSION_MAP: Dict[str, List[str]] = {
+LANGUAGE_EXTENSION_MAP: dict[str, list[str]] = {
     language: list(extensions)
     for language, extensions in _LANGUAGE_SPECS
 }
 
-EXTENSION_LANGUAGE_MAP: Dict[str, str] = {}
+EXTENSION_LANGUAGE_MAP: dict[str, str] = {}
 for language, extensions in _LANGUAGE_SPECS:
     for extension in extensions:
         EXTENSION_LANGUAGE_MAP[extension] = language
 
-SUPPORTED_METRIC_EXTENSIONS: List[str] = sorted(EXTENSION_LANGUAGE_MAP.keys())
+SUPPORTED_METRIC_EXTENSIONS: list[str] = sorted(EXTENSION_LANGUAGE_MAP.keys())
 
 
 def get_metric_language(file_path: str, default: str = "Unknown") -> str:
     return EXTENSION_LANGUAGE_MAP.get(Path(file_path).suffix.lower(), default)
 
 
-def get_supported_metric_extensions() -> List[str]:
+def get_supported_metric_extensions() -> list[str]:
     return list(SUPPORTED_METRIC_EXTENSIONS)
 
 
-def get_metric_language_contract() -> Dict[str, List[str]]:
+def get_metric_language_contract() -> dict[str, list[str]]:
     return {
         language: list(extensions)
         for language, extensions in LANGUAGE_EXTENSION_MAP.items()
     }
 
 
-def get_metric_language_names() -> List[str]:
+def get_metric_language_names() -> list[str]:
     return list(LANGUAGE_EXTENSION_MAP.keys())

@@ -26,7 +26,16 @@ extend-exclude = ["manual_test", "tests/fixtures"]
 # backend no longer contains, kept at zero. E722 bare `except:` (it also catches
 # KeyboardInterrupt and SystemExit), UP004 `class X(object)`, UP008
 # `super(X, self)`, UP031 `%` formatting, UP032 `.format()` calls.
-select = ["E4", "E7", "E9", "F", "E722", "UP004", "UP008", "UP031", "UP032"]
+# FA100 + UP006/UP007/UP045/UP037: annotations use builtin generics and
+# `X | None` behind `from __future__ import annotations` (PEP 563, Python 3.7+),
+# so they are never evaluated at runtime. A runtime alias such as
+# `TargetTuple = Tuple[str, str, str]` is not an annotation and keeps `typing`:
+# `tuple[...]` there would be a TypeError before Python 3.9.
+select = [
+    "E4", "E7", "E9", "F",
+    "E722", "UP004", "UP008", "UP031", "UP032",
+    "FA100", "UP006", "UP007", "UP037", "UP045",
+]
 
 [lint.per-file-ignores]
 # E402 (import not at top of file): these modules put their own directory, or
@@ -39,7 +48,7 @@ select = ["E4", "E7", "E9", "F", "E722", "UP004", "UP008", "UP031", "UP032"]
 "src/XR/xr_directory_analysis_coordinator.py" = ["E402"]
 "src/XR/xr_file_analysis_coordinator.py" = ["E402"]
 "src/export/git_export_analysis_worker.py" = ["E402"]
-"src/html/html_dom_parser.py" = ["E402"]
+"src/html/html_dom_parser.py" = ["E402", "FA100"]
 "src/livePanels/livePanel_directory_analysis_coordinator.py" = ["E402"]
 "src/livePanels/livePanel_directory_deep_analysis_coordinator.py" = ["E402"]
 "src/livePanels/livePanel_file_analysis_coordinator.py" = ["E402"]
@@ -54,3 +63,8 @@ select = ["E4", "E7", "E9", "F", "E722", "UP004", "UP008", "UP031", "UP032"]
 "tests/html_dom/test_html_dom_protocol.py" = ["E402"]
 "tests/xr_file_analysis/test_empty_file_handling.py" = ["E402"]
 "tests/xr_schema/test_xr_schema.py" = ["E402"]
+# FA100: these two keep their `typing` generics. xr_field_schema.py is the XR
+# field-schema contract (cleanup skill, section 4: off-limits), and a test pins
+# html_dom_parser.py's `def emit_json_result(result: Dict[str, Any]) -> None:`
+# line verbatim (livePanelDomIntegration.test.cjs).
+"src/utils/xr_field_schema.py" = ["FA100"]

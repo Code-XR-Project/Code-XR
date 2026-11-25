@@ -3,12 +3,14 @@
 Shared code-analysis engine used by XR and LivePanel file/directory analysis.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 TOOLS_DIR = Path(__file__).resolve().parent.parent / 'tools'
 if str(TOOLS_DIR) not in sys.path:
@@ -46,7 +48,7 @@ def _get_file_timestamp(file_path: str) -> str:
         return time.strftime('%Y-%m-%d %H:%M:%S')
 
 
-def _get_file_modified_metadata(file_path: str) -> Dict[str, Any]:
+def _get_file_modified_metadata(file_path: str) -> dict[str, Any]:
     try:
         modified_at = os.path.getmtime(file_path)
     except OSError:
@@ -58,8 +60,8 @@ def _get_file_modified_metadata(file_path: str) -> Dict[str, Any]:
     }
 
 
-def _normalize_function_metrics(raw_functions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    normalized: List[Dict[str, Any]] = []
+def _normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
 
     for func in raw_functions or []:
         function_name = str(func.get('name') or 'unknown').strip() or 'unknown'
@@ -95,7 +97,7 @@ def _normalize_function_metrics(raw_functions: List[Dict[str, Any]]) -> List[Dic
     return normalized
 
 
-def build_file_snapshot(file_path: str) -> Dict[str, Any]:
+def build_file_snapshot(file_path: str) -> dict[str, Any]:
     timestamp = _get_file_timestamp(file_path)
     modified_metadata = _get_file_modified_metadata(file_path)
     language = get_metric_language(file_path)
@@ -169,11 +171,11 @@ def build_file_snapshot(file_path: str) -> Dict[str, Any]:
     return normalize_output_paths(snapshot)
 
 
-def build_file_payload(file_path: str, snapshot: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+def build_file_payload(file_path: str, snapshot: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     file_snapshot = snapshot or build_file_snapshot(file_path)
     file_name = file_snapshot.get('fileName', os.path.basename(file_path))
 
-    payload: List[Dict[str, Any]] = []
+    payload: list[dict[str, Any]] = []
     for function in file_snapshot.get('functions', []):
         payload.append(
             {

@@ -6,12 +6,14 @@ This module centralizes the list of analyzable extensions and the directory/file
 ignore rules used by directory XR and LivePanel coordinators.
 """
 
+from __future__ import annotations
+
 import os
-from typing import Iterable, Iterator, List, Optional, Sequence
+from typing import Iterable, Iterator, Sequence
 
 from metric_language_contract import get_supported_metric_extensions
 
-ANALYZABLE_EXTENSIONS: List[str] = get_supported_metric_extensions()
+ANALYZABLE_EXTENSIONS: list[str] = get_supported_metric_extensions()
 
 EXCLUDED_DIRECTORIES = {
     '.git', '.svn', '.hg', '.bzr',
@@ -38,7 +40,7 @@ def should_skip_file_name(name: str) -> bool:
     return not name or name.startswith('.')
 
 
-def is_analyzable_file_path(file_path: str, extensions: Optional[Sequence[str]] = None) -> bool:
+def is_analyzable_file_path(file_path: str, extensions: Sequence[str] | None = None) -> bool:
     current_extensions = set(extensions or ANALYZABLE_EXTENSIONS)
     if not os.path.isfile(file_path):
         return False
@@ -48,13 +50,13 @@ def is_analyzable_file_path(file_path: str, extensions: Optional[Sequence[str]] 
 
 
 def filter_explicit_files_for_analysis(
-    file_paths: Optional[Iterable[str]],
-    max_total_files: Optional[int] = None,
-) -> List[str]:
+    file_paths: Iterable[str] | None,
+    max_total_files: int | None = None,
+) -> list[str]:
     if not file_paths:
         return []
 
-    filtered: List[str] = []
+    filtered: list[str] = []
     for file_path in file_paths:
         if is_analyzable_file_path(file_path):
             filtered.append(file_path)
@@ -100,9 +102,9 @@ def scan_directory_files_for_analysis(
     directory_path: str,
     recursive: bool = False,
     max_entries_per_directory: int = 1000,
-    max_total_files: Optional[int] = None,
-) -> List[str]:
-    analyzable_files: List[str] = []
+    max_total_files: int | None = None,
+) -> list[str]:
+    analyzable_files: list[str] = []
     extensions = set(ANALYZABLE_EXTENSIONS)
 
     for full_path in _iter_candidate_paths(directory_path, recursive, max_entries_per_directory):

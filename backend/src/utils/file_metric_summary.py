@@ -3,13 +3,15 @@
 Shared helpers to turn file-analysis snapshots into directory/file summary metrics.
 """
 
+from __future__ import annotations
+
 import os
-from typing import Any, Dict
+from typing import Any
 
 from metric_language_contract import get_metric_language
 
 
-def build_file_metric_summary(file_analysis: Dict[str, Any], file_path: str, relative_path: str = None) -> Dict[str, Any]:
+def build_file_metric_summary(file_analysis: dict[str, Any], file_path: str, relative_path: str = None) -> dict[str, Any]:
     return {
         'fileName': os.path.basename(file_path),
         'filePath': file_path,
