@@ -12,7 +12,7 @@ CodeXR is a VS Code extension (~337 TS files) that analyzes source code with a *
 
 ```
 User command (context menu / tree / palette)
-  └─> src/code_analysis/commands/...            (per-mode command handlers)
+  └─> src/features/analysis/commands/...        (per-mode command handlers)
       └─> src/core/analysis/launchers/launcherXRAnalysis.ts | launcherLivePanel.ts | launcherVisualizeDOM.ts
           └─> launchers/launchPipeline.ts  → creates a UnifiedAnalysisSession
               ├─> python/executePython.ts   → spawns managed venv, runs python/main.py → JSON metrics
@@ -45,13 +45,12 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 
 | Module | Responsibility | Key files |
 |---|---|---|
-| `code_analysis/` | The analysis sidebar section, its commands and services (moving to `features/analysis/` in B13) | `views/`, `commands/`, `services/` |
+| `features/analysis/` | The ANALYSES section: the per-mode analysis commands (file, directory, DOM, clean), the tree and its subsections (active analyses, files/project by language, analysis settings), the workspace scan and the server watcher integration | `commands/analysisCommandRegistrations.ts`, `commands/analysisCommands.ts`, `commands/{file,directory,dom}/`, `views/AnalysisSectionProvider.ts`, `sections/active-analyses/activeAnalysesCommands.ts` (Active Analyses actions and export), `sections/settings/` (one folder per setting; `chartTypeCommandFactory.ts` and the two `shared*SettingCore.ts` at its root), `workspace/workspaceSnapshotService.ts`, `workspace/workspaceFileScanner.ts`, `services/serverWatcherIntegration.ts` |
 | `core/analysis/` | **The analysis engine.** Pipeline: launchers, parsers, the requirement processor, sessions, session servers, watchers, refresh, the Python bridge, the scene-asset injection, the language tables | `analysisOrchestrator.ts`, `launchers/launchPipeline.ts`, `launchers/launcherXRAnalysis.ts`, `session/analysisSession.ts`, `session/sessionRegistry.ts`, `session-servers/sessionServerManager.ts`, `watchers/sessionWatcherManager.ts`, `python/executePython.ts`, `python/xrFieldSchemaService.ts`, `configuration/analysisConfigurationStorage.ts`, `languages/languageMetadata.ts`, `languages/supportedLanguages.ts` |
 | `code_analysis/python/` | Python analysis backend (see `PYTHON_ANALYSIS.md`) | `main.py`, `tools/lizard_analyzer.py`, `utils/xr_field_schema.py` |
 | `core/dependencies/` | Dependency-graph analysis service (see `docs/features/DEPENDENCY_GRAPH_XR.md`) | `DependencyGraphService` *[inferred name from docs]* |
 | `core/export/` | Analysis export: the manifest, the package transaction and the Git-revision exporter with its Python worker pool | `exportManifest.ts`, `exportPackageTransaction.ts`, `gitRevisionExporter.ts`, `gitRevisionExportCore.ts`, `gitTimelineBlobAnalyzer.ts` |
 | `core/history/` | Git history: comparator + Project Evolution. Both services compose a `GitAnalysisSessionContext` (catalogue, per-commit payload cache, analyze/exclude) and a `SingleJobGate` (one job at a time, last successful request); `gitAnalysisShared.ts` holds the pure helpers the export core shares | `gitRepositoryService.ts`, `historicalComparisonService.ts`, `projectEvolutionService.ts`, `gitAnalysisSessionContext.ts`, `gitAnalysisShared.ts` |
-| `code_analysis/services/` | Cross-cutting services | `workspaceSnapshotService.ts`, `serverWatcherIntegration.ts` |
 | `core/charts/` | Chart template system: registry, models, dimension validation, HTML placeholder processing, the visualization configuration read by every launch | `chartRegistry.ts`, `chartModels.ts`, `xrFieldModels.ts`, `templateCharts.ts`, `chartPresentation.ts`, `getVisualizationConfiguration.ts` (lazy `require` of `settings/settingsAccessors.ts`), `processing/dimensionValidator.ts`, `processing/templateHTMLProcessor.ts`, `processing/templateProcessor.ts`, `processing/placeholders/` |
 | `features/examples/` | Bundled BabiaXR demo examples (tree section + launcher) | `services/exampleLauncher.ts`, `commands/babiaExamplesCommands.ts`, `commands/babiaExamplesCommandRegistrations.ts`, `model/babiaExampleModel.ts`, `views/BabiaExamplesSectionProvider.ts`, `views/babiaExamplesTreeView.ts`, `views/{exampleItems,babiaExampleItems}.ts`, `views/{handleExampleClicks,handleBabiaExampleClicks}.ts` (two factories and two click handlers: a duplication recorded for 1.3.0, src-layout.md §2.1) |
 | `core/server/` | Server **infrastructure**: HTTP/HTTPS, ports, self-signed certs, SSE, collaboration/broadcast signaling, server settings, the running-server registry and its control | `httpServer.ts` (façade + composition root), `httpsServerBase.ts` (state, port search, TLS wiring and delegation shared by `httpsCustomServer.ts`/`httpsDefaultServer.ts`; TLS literal in `httpsTlsOptions.ts`), `sse/SSEManager.ts`, `collaboration/collaborationRoomServer.ts`, `multiServerLauncher.ts` (launch orchestration; `serverFactory.ts` picks, builds and starts the server class; the toasts after a launch are in `features/active-servers/views/launchNotifications.ts`, the one allow-listed upward edge), `launchServerWithFile.ts` (was `servers/runtime/index.ts`), `serverControl.ts`, `serverSettingsManager.ts`, `networkUtils.ts`, `fileToServerMap.ts` |
@@ -122,6 +121,6 @@ Every diagnostic of the extension host goes through `src/platform/logging`. A mo
 
 ## How future agents should use this document
 
-- Use the module map to jump straight to the right folder instead of scanning `src/` (`code_analysis/` alone is 246 files).
+- Use the module map to jump straight to the right folder instead of scanning `src/` (`core/analysis/` and `features/analysis/` together are about 120 files).
 - Use the "cross-module contracts" section to know what else must change when you touch a seam (especially Python metrics ↔ field schema ↔ dimension validation).
 - For feature-specific depth (dependency graph, historical comparison, project evolution, remote access), read the existing docs in `docs/` — this file deliberately does not duplicate them. See `INDEX.md` for the task → docs mapping.

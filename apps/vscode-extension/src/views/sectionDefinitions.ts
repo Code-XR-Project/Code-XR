@@ -5,7 +5,7 @@ import { ActiveServersSectionProvider } from '../features/active-servers/views/A
 import { BabiaExamplesSectionProvider } from '../features/examples/views/BabiaExamplesSectionProvider';
 import { VisualizeDataSectionProvider } from '../features/visualize-data/views/VisualizeDataSectionProvider';
 import { PythonEnvSectionProvider } from '../features/python-env/views/PythonEnvSectionProvider';
-import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
+import { AnalysisSectionProvider } from '../features/analysis/views/AnalysisSectionProvider';
 import { VisualizationSettingsSectionProvider } from '../features/visualization-settings/views/VisualizationSettingsSectionProvider';
 import { LearnMoreSectionProvider } from '../features/learn-more/views/LearnMoreSectionProvider';
 import type { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiState';

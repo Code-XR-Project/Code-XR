@@ -72,7 +72,7 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: ['visualizeDataItem'],
     }],
     ['analysis', {
-        load: () => require('../code_analysis/views/items/analysisItems').CodeAnalysisTreeItem,
+        load: () => require('../features/analysis/views/analysisItems').CodeAnalysisTreeItem,
         itemTypeKeys: ['analysisItemType', 'type'],
         defaultItemType: 'item',
         constructorExtras: [],

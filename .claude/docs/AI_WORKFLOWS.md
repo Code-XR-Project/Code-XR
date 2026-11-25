@@ -7,7 +7,7 @@
 
 0. **Know the version's scope.** The active version is **v1.2.1, a maintenance release: cleanup, optimization and hygiene, no new features.** Read `V1.2.1_STATUS.md` for the ranked backlog and the baseline numbers. If a task would add user-visible behaviour, it belongs in 1.3.0 — say so instead of quietly widening 1.2.1.
 1. **One unit of work per session** — one feature, one bug, one refactor, or one docs/release task. Finish and validate it before starting anything else. **Exception — the v1.2.1 cleanup programme:** there the unit is the *commit*, not the session. One roadmap item = one bisectable commit, a session may land several in roadmap order with the gate run after each, and a red gate ends the session at the last green commit (`cleanup` skill §1).
-2. **Start from `INDEX.md`** and read only the documents mapped to your task type. Do not scan `src/` broadly; `src/code_analysis/` alone is 246 files.
+2. **Start from `INDEX.md`** and read only the documents mapped to your task type. Do not scan `src/` broadly; `src/core/analysis/` and `src/features/analysis/` together are about 120 files.
 3. **Distinguish claim levels** in everything you report and write: confirmed (you verified it), self-assessed (a doc claims it), inferred, open question.
 4. **Validate before declaring done**: at minimum `npm run test:basic`; plus the narrowest specialized script for the touched area (matrix in `DEVELOPMENT.md`).
 5. **End-of-session checklist**:

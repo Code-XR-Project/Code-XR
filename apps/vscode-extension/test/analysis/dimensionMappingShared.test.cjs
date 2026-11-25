@@ -12,29 +12,28 @@ function readProjectFile(...segments) {
 test('file and directory dimension mapping settings delegate to the shared core', () => {
     const sharedCore = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_shared',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
         'sharedDimensionMappingSettingCore.ts',
     );
     const fileSetting = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_file',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-file',
         'dimensionMappingFile.ts',
     );
     const directorySetting = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_directory',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-directory',
         'dimensionMappingDirectory.ts',
     );
 
@@ -61,20 +60,20 @@ test('file and directory dimension mapping settings delegate to the shared core'
 test('file and directory dimension mapping commands use the same dimension-name flow', () => {
     const fileCommands = readProjectFile(
         'src',
-        'code_analysis',
-        'commands',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_file',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-file',
         'dimensionMappingFileCommands.ts',
     );
     const directoryCommands = readProjectFile(
         'src',
-        'code_analysis',
-        'commands',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_directory',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-directory',
         'dimensionMappingDirectoryCommands.ts',
     );
 

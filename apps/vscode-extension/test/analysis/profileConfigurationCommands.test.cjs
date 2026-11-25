@@ -1,7 +1,7 @@
 /**
  * Behavioural characterization of the Load Profile and Delete Profile
- * commands (src/code_analysis/commands/subsections/analysis_settings/
- * profile_configuration/profileConfigurationCommands.ts), written before
+ * commands (src/features/analysis/sections/settings/
+ * profile-configuration/profileConfigurationCommands.ts), written before
  * ROADMAP T37 folded their byte-identical profile-listing block into one
  * helper. No test exercised the file before this suite.
  *
@@ -18,7 +18,7 @@ const path = require('node:path');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
-const COMMANDS_MODULE = 'code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.js';
+const COMMANDS_MODULE = 'features/analysis/sections/settings/profile-configuration/profileConfigurationCommands.js';
 const STORAGE_MODULE = 'core/analysis/configuration/analysisConfigurationStorage.js';
 
 async function withProfileCommands(body) {

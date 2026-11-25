@@ -26,25 +26,24 @@
     "catch.emptyNoComment": 0,
     "any.total": 84,
     "any.byModule": {
-      "code_analysis": 4,
-      "commands": 6,
+      "commands": 1,
       "core/analysis": 14,
       "core/charts": 6,
       "core/python-env": 5,
       "core/server": 10,
       "features/active-servers": 1,
+      "features/analysis": 10,
       "features/examples": 3,
       "features/learn-more": 1,
       "features/servers": 1,
       "features/visualization-settings": 3,
       "features/visualize-data": 10,
       "platform": 12,
-      "utils": 3,
+      "utils": 2,
       "views": 5
     },
     "suppressions.total": 0,
     "size.filesOver500": [
-      "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
       "src/core/analysis/python/executePython.ts",
       "src/core/analysis/refresh/analysisRefreshCoordinator.ts",
       "src/core/export/exportManifest.ts",
@@ -56,7 +55,8 @@
       "src/core/server/collaboration/collaborationRoomServer.ts",
       "src/core/server/httpServer.ts",
       "src/features/active-servers/views/activeServerItems.ts",
-      "src/features/active-servers/views/handleServerActions.ts"
+      "src/features/active-servers/views/handleServerActions.ts",
+      "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
     ],
     "functions.over80Lines": 36,
     "complexity.over10": 53,
@@ -87,11 +87,6 @@
       }
     ],
     "any.byFile": {
-      "src/code_analysis/commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands.ts": 1,
-      "src/code_analysis/utils/filesByLanguageSortingUtils.ts": 1,
-      "src/code_analysis/views/AnalysisSectionProvider.ts": 1,
-      "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": 1,
-      "src/commands/analysis/AnalysisCommands.ts": 5,
       "src/commands/index.ts": 1,
       "src/core/analysis/parsers/directoryXRParser.ts": 2,
       "src/core/analysis/parsers/fileXRParser.ts": 3,
@@ -113,6 +108,12 @@
       "src/core/server/serverSettingsManager.ts": 4,
       "src/core/server/sse/SSEManager.ts": 1,
       "src/features/active-servers/views/activeServerItems.ts": 1,
+      "src/features/analysis/commands/analysisCommandRegistrations.ts": 5,
+      "src/features/analysis/commands/dom/uriPathConverter.ts": 1,
+      "src/features/analysis/sections/settings/analysis-file-mode/analysisFileModeCommands.ts": 1,
+      "src/features/analysis/sections/settings/files-by-language-sorting/filesByLanguageSortingUtils.ts": 1,
+      "src/features/analysis/sections/settings/profile-configuration/profileConfiguration.ts": 1,
+      "src/features/analysis/views/AnalysisSectionProvider.ts": 1,
       "src/features/examples/views/handleBabiaExampleClicks.ts": 3,
       "src/features/learn-more/views/handleLearnMoreClicks.ts": 1,
       "src/features/servers/views/configurationItems.ts": 1,
@@ -127,16 +128,15 @@
       "src/platform/commands/commandRegistry.ts": 2,
       "src/platform/tree/baseInterfaces.ts": 5,
       "src/utils/commonCommands.ts": 2,
-      "src/utils/uriPathConverter.ts": 1,
       "src/views/ModularTreeDataProvider.ts": 5
     },
     "any.topFiles": [
       {
-        "file": "src/commands/analysis/AnalysisCommands.ts",
+        "file": "src/core/python-env/venvManager.ts",
         "count": 5
       },
       {
-        "file": "src/core/python-env/venvManager.ts",
+        "file": "src/features/analysis/commands/analysisCommandRegistrations.ts",
         "count": 5
       },
       {
@@ -209,7 +209,7 @@
         "ccn": 18,
         "lines": 47,
         "function": "closeAnalysis",
-        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts"
+        "file": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
       },
       {
         "ccn": 17,
@@ -260,7 +260,7 @@
         "lines": 851
       },
       {
-        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
+        "file": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts",
         "lines": 803
       },
       {

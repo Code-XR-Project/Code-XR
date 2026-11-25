@@ -1,7 +1,7 @@
 /**
  * Behavioural characterization of the two chart-type commands
- * (code_analysis/commands/subsections/analysis_settings/chart_type_file|
- * chart_type_directory), written before ROADMAP T45 built both from one
+ * (features/analysis/sections/settings/chart-type-file|
+ * chart-type-directory), written before ROADMAP T45 built both from one
  * factory. Their error toasts speak two dialects (the file one interpolates
  * the error itself, the directory one its message) and both are kept
  * verbatim, so they are pinned here side by side.
@@ -13,10 +13,10 @@ const path = require('node:path');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
-const BASE = 'code_analysis/commands/subsections/analysis_settings';
+const BASE = 'features/analysis/sections/settings';
 const CASES = [
     {
-        module: `${BASE}/chart_type_file/chartTypeFileCommands.js`,
+        module: `${BASE}/chart-type-file/chartTypeFileCommands.js`,
         className: 'ChartTypeFileCommands',
         commandId: 'codeXR.analysis.selectChartTypeFile',
         description: 'Select chart type for file analysis visualization',
@@ -24,7 +24,7 @@ const CASES = [
         nonErrorToast: 'Failed to select chart type: plain failure',
     },
     {
-        module: `${BASE}/chart_type_directory/chartTypeDirectoryCommands.js`,
+        module: `${BASE}/chart-type-directory/chartTypeDirectoryCommands.js`,
         className: 'ChartTypeDirectoryCommands',
         commandId: 'codeXR.analysis.selectChartTypeDirectory',
         description: 'Select chart type for directory analysis visualization',

@@ -24,14 +24,13 @@ test('Active Analyses contributes the new action commands and removes the legacy
 });
 
 test('Active Analyses tree items use showActions on left click', () => {
-    const sectionProvider = readProjectFile('src', 'code_analysis', 'views', 'AnalysisSectionProvider.ts');
+    const sectionProvider = readProjectFile('src', 'features', 'analysis', 'views', 'AnalysisSectionProvider.ts');
     const dataService = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'services',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesDataService.ts',
     );
 
@@ -44,11 +43,10 @@ test('Active Analyses tree items use showActions on left click', () => {
 test('Active Analyses commands implement quick pick actions and recursive export from savedFilesPath first', () => {
     const source = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'commands',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesCommands.ts',
     );
 
@@ -64,19 +62,18 @@ test('Active Analyses commands implement quick pick actions and recursive export
 test('Active Analyses command registration injects ExtensionContext into its singleton', () => {
     const registrationSource = readProjectFile(
         'src',
-        'code_analysis',
-        'commands',
-        'subsections',
-        'active_analyses',
-        'activeAnalysesCommands.ts',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
+        'activeAnalysesCommandRegistrations.ts',
     );
     const commandSource = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'commands',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesCommands.ts',
     );
 
@@ -97,11 +94,10 @@ test('Active Analyses command registration injects ExtensionContext into its sin
 test('Export produces a self-contained copy: dependency pre-generation plus destination-only post-processing', () => {
     const source = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'commands',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesCommands.ts',
     );
 
@@ -144,11 +140,10 @@ test('Export produces a self-contained copy: dependency pre-generation plus dest
 test('the export modal decides what ships, before the destination is picked', () => {
     const source = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'commands',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesCommands.ts',
     );
 
@@ -216,11 +211,10 @@ test('the export modal decides what ships, before the destination is picked', ()
 test('Close Analysis confirmation uses the improved modal copy', () => {
     const source = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'commands',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesCommands.ts',
     );
 

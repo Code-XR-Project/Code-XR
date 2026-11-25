@@ -78,7 +78,7 @@
 | `node_modules/`, `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/` | Generated / dependencies; never read or edit |
 | `tsconfig.tsbuildinfo`, `package-lock.json` | Build cache / lockfile; huge, no signal |
 | `resources/` (media), `examples/` | Binary/media assets; only relevant when explicitly working on them |
-| `src/code_analysis/` *as a whole* | 246 files — enter via `ARCHITECTURE.md` module map, never scan |
+| `src/core/analysis/` + `src/features/analysis/` *as a whole* | about 120 files — enter via `ARCHITECTURE.md` module map, never scan |
 | `package.json` *as a whole* | ~70 commands; grep the section you need |
 
 ## Keeping this index current

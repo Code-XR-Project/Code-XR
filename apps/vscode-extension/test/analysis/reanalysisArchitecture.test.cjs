@@ -13,7 +13,7 @@ function readProjectFile(...segments) {
 test('watcher startup and cleanup go through SessionWatcherManager for XR and VisualizeDOM', () => {
     const xrLauncher = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherXRAnalysis.ts');
     const domLauncher = readProjectFile('src', 'core', 'analysis', 'launchers', 'launcherVisualizeDOM.ts');
-    const integration = readProjectFile('src', 'code_analysis', 'services', 'serverWatcherIntegration.ts');
+    const integration = readProjectFile('src', 'features', 'analysis', 'services', 'serverWatcherIntegration.ts');
 
     assert.match(xrLauncher, /import \{ SessionWatcherManager \} from '\.\.\/watchers\/sessionWatcherManager';/);
     assert.equal(xrLauncher.includes('new FileWatcherOrchestrator('), false);
@@ -65,15 +65,14 @@ test('coding-agent integration surfaces are removed', () => {
     const packageJson = JSON.parse(readProjectFile('package.json'));
     const webpackConfig = readProjectFile('webpack.config.js');
     const extension = readProjectFile('src', 'extension.ts');
-    const analysisCommands = readProjectFile('src', 'code_analysis', 'commands', 'analysisCommands.ts');
-    const analysisProvider = readProjectFile('src', 'code_analysis', 'views', 'AnalysisSectionProvider.ts');
+    const analysisCommands = readProjectFile('src', 'features', 'analysis', 'commands', 'analysisCommands.ts');
+    const analysisProvider = readProjectFile('src', 'features', 'analysis', 'views', 'AnalysisSectionProvider.ts');
     const activeAnalysesCommands = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'active_analyses',
-        'commands',
+        'features',
+        'analysis',
+        'sections',
+        'active-analyses',
         'activeAnalysesCommands.ts',
     );
     const httpServer = readProjectFile('src', 'core', 'server', 'httpServer.ts')
@@ -112,9 +111,9 @@ test('coding-agent integration surfaces are removed', () => {
         );
     }
 
-    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', underscoredFolder)), false);
-    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', 'commands', underscoredFolder)), false);
-    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', 'views', 'subsections', underscoredFolder)), false);
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'features', 'analysis', underscoredFolder)), false);
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'features', 'analysis', 'commands', underscoredFolder)), false);
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'features', 'analysis', 'sections', underscoredFolder)), false);
     assert.equal(fs.existsSync(path.join(projectRoot, 'docs', `${underscoredFolder.toUpperCase()}.md`)), false);
     assert.equal(fs.existsSync(path.join(projectRoot, 'docs', `${underscoredFolder.toUpperCase()}_AGENT_USAGE.md`)), false);
 
@@ -125,8 +124,8 @@ test('coding-agent integration surfaces are removed', () => {
 
 test('watcher configuration changes propagate to active sessions and directory rename events trigger partial refresh', () => {
     const sessionWatcherManager = readProjectFile('src', 'core', 'analysis', 'watchers', 'sessionWatcherManager.ts');
-    const delayCommands = readProjectFile('src', 'code_analysis', 'commands', 'subsections', 'analysis_settings', 'auto_analysis_delay', 'autoAnalysisDelayCommands.ts');
-    const enabledCommands = readProjectFile('src', 'code_analysis', 'commands', 'subsections', 'analysis_settings', 'auto_analysis_enabled', 'autoAnalysisEnabledCommands.ts');
+    const delayCommands = readProjectFile('src', 'features', 'analysis', 'sections', 'settings', 'auto-analysis-delay', 'autoAnalysisDelayCommands.ts');
+    const enabledCommands = readProjectFile('src', 'features', 'analysis', 'sections', 'settings', 'auto-analysis-enabled', 'autoAnalysisEnabledCommands.ts');
     const fileWatcher = readProjectFile('src', 'core', 'analysis', 'watchers', 'fileWatcherOrchestrator.ts');
     const directoryWatcher = readProjectFile('src', 'core', 'analysis', 'watchers', 'directoryWatcherOrchestrator.ts');
     const analysisBootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');

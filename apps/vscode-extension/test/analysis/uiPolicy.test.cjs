@@ -70,20 +70,20 @@ test('auto-analysis delay defaults to RealTime and selector labels are plain tex
     const model = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
     const profile = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'profile_configuration',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'profile-configuration',
         'profileConfiguration.ts',
     );
     const commands = readProjectFile(
         'src',
-        'code_analysis',
-        'commands',
-        'subsections',
-        'analysis_settings',
-        'auto_analysis_delay',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'auto-analysis-delay',
         'autoAnalysisDelayCommands.ts',
     );
 

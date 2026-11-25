@@ -10,8 +10,8 @@ import { getActiveServerRegistry } from './core/server/registry/activeServerRegi
 import { ServerControl } from './core/server/serverControl';
 import { sseManager } from './core/server/sse/SSEManager';
 import { fileToServerMap } from './core/server/fileToServerMap';
-import { ServerWatcherIntegration } from './code_analysis/services/serverWatcherIntegration';
-import { CleanAnalysisCommands } from './code_analysis/commands/clean_analysis/cleanAnalysisCommands';
+import { ServerWatcherIntegration } from './features/analysis/services/serverWatcherIntegration';
+import { CleanAnalysisCommands } from './features/analysis/commands/cleanAnalysisCommands';
 import { AnalysisConfigurationStorage } from './core/analysis/configuration/analysisConfigurationStorage';
 import { handleError, ErrorDomain, ErrorSeverity } from './platform/ui/errorHandler';
 import { initializeExtensionContext } from './platform/extensionContext';

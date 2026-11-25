@@ -74,11 +74,11 @@ test('Babia Boats is the default XR file and directory chart while CodeXR Boats 
     const config = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
     const profile = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'profile_configuration',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'profile-configuration',
         'profileConfiguration.ts',
     );
     const templateCharts = readProjectFile('src', 'core', 'charts', 'templateCharts.ts');

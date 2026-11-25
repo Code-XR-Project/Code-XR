@@ -147,7 +147,7 @@ export default [{
         "src/core/server/collaboration/roomSharedState.ts",
         "src/core/server/serverSettingsManager.ts",
         "src/features/visualize-data/model/visualizeDataState.ts",
-        "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts",
+        "src/features/analysis/sections/settings/sharedDimensionMappingSettingCore.ts",
     ],
     rules: {
         "@typescript-eslint/prefer-nullish-coalescing": "off",
@@ -178,8 +178,9 @@ export default [{
         "src/platform/webview/**/*.ts",
         "src/core/analysis/python/**/*.ts",
         "src/core/analysis/watchers/**/*.ts",
-        "src/code_analysis/services/**/*.ts",
-        "src/code_analysis/views/subsections/active_analyses/**/*.ts",
+        "src/features/analysis/services/**/*.ts",
+        "src/features/analysis/workspace/**/*.ts",
+        "src/features/analysis/sections/active-analyses/**/*.ts",
     ],
     ignores: [
         "src/core/server/http/httpRespond.ts",

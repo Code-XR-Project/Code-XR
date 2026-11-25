@@ -77,15 +77,15 @@ test('package manifest keeps runtime artifacts inside dist-based packaging', () 
 
 test('analysis settings no longer expose the XR mapping UI toggle', () => {
     const analysisProvider = fs.readFileSync(
-        path.join(projectRoot, 'src', 'code_analysis', 'views', 'subsections', 'analysis_settings', 'analysisSettingsSubsectionProvider.ts'),
+        path.join(projectRoot, 'src', 'features', 'analysis', 'sections', 'settings', 'analysisSettingsSubsectionProvider.ts'),
         'utf8',
     );
     const analysisCommands = fs.readFileSync(
-        path.join(projectRoot, 'src', 'code_analysis', 'commands', 'subsections', 'analysis_settings', 'analysisSettingsCommands.ts'),
+        path.join(projectRoot, 'src', 'features', 'analysis', 'sections', 'settings', 'analysisSettingsCommands.ts'),
         'utf8',
     );
     const commandCollector = fs.readFileSync(
-        path.join(projectRoot, 'src', 'code_analysis', 'commands', 'analysisCommands.ts'),
+        path.join(projectRoot, 'src', 'features', 'analysis', 'commands', 'analysisCommands.ts'),
         'utf8',
     );
 

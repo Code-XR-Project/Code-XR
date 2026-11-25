@@ -84,5 +84,5 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 ## Context management
 
 - Never scan `node_modules/`, `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `package-lock.json`.
-- `src/code_analysis/` is 246 files and `package.json` is ~1,000 lines — navigate via the module map in `ARCHITECTURE.md` and targeted Grep, never wholesale reads.
+- `src/core/analysis/` + `src/features/analysis/` are about 120 files and `package.json` is ~1,000 lines — navigate via the module map in `ARCHITECTURE.md` and targeted Grep, never wholesale reads.
 - Long-form knowledge lives in `.claude/docs/`, decisions live in the repo (status doc, CHANGELOG) — not in chat history. If you learn something durable, write it into the right doc before the session ends.

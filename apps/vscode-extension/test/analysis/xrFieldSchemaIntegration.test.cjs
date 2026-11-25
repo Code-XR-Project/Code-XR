@@ -30,29 +30,28 @@ test('XR schema registry includes the new file and directory metrics used by the
 test('shared dimension mapping core consumes the schema service instead of hardcoded field lists', () => {
     const sharedCore = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_shared',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
         'sharedDimensionMappingSettingCore.ts',
     );
     const fileSetting = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_file',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-file',
         'dimensionMappingFile.ts',
     );
     const directorySetting = readProjectFile(
         'src',
-        'code_analysis',
-        'views',
-        'subsections',
-        'analysis_settings',
-        'dimension_mapping_directory',
+        'features',
+        'analysis',
+        'sections',
+        'settings',
+        'dimension-mapping-directory',
         'dimensionMappingDirectory.ts',
     );
 

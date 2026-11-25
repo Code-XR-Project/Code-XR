@@ -36,7 +36,7 @@ test('Python analysis uses the Lizard analyzer directly', () => {
 
 test('analysis configuration uses the active storage module and no legacy storage shims', () => {
     const legacyStoragePath = path.join(projectRoot, 'src', 'utils', 'analysisSettingsStorage.ts');
-    const emptyStoragePath = path.join(projectRoot, 'src', 'code_analysis', 'storage');
+    const emptyStoragePath = path.join(projectRoot, 'src', 'core', 'analysis', 'storage');
     const activeStoragePath = path.join(projectRoot, 'src', 'core', 'analysis', 'configuration', 'analysisConfigurationStorage.ts');
 
     assert.equal(fs.existsSync(legacyStoragePath), false);
