@@ -104,7 +104,6 @@ export class HttpsCustomServer {
 
                 this.server.on('listening', () => {
                     const port = this.config.port;
-                    NetworkUtils.generateServerUrls(port, 'https');
                     const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
 
                     console.log(`SERVER: HTTPS server listening on port ${port}`);
