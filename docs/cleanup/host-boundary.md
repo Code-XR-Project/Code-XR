@@ -47,7 +47,7 @@ Two-way cycles between top-level folders (A→B / B→A import edges):
 `commands` is also in cycles with `utils`, `python_env`, `learn_more`, `visualization_settings`, `visualize_data`, `babia_examples` and `active_servers`, because they import `commands/shared`.
 
 Layering violations:
-- `code_analysis/engine/core/sessionRegistry.ts` (core session state) shows warnings, runs `workbench.view…` commands and uses `vscode.EventEmitter`.
+- `code_analysis/engine/core/sessionRegistry.ts` (core session state) shows warnings, runs `workbench.view…` commands and uses `vscode.EventEmitter`. **#42:** `createSession` now returns `{ kind: 'created' | 'duplicate' }` and `AnalysisOrchestrator` shows the warnings (texts unchanged, pinned by `analysisOrchestratorDuplicate.test.cjs`); the `vscode.EventEmitter` and the `ExtensionContext` type remain.
 - `servers/runtime/multiServerLauncher.ts` imports the UI module `active_servers/views/interactions/handleServerActions.ts`; `previewRenderer.ts` imports the webview `panelManager`.
 - `code_analysis/services/serverWatcherIntegration.ts` imports `active_servers/registry` and `serverControl`.
 - `executePython.ts` and `gitRevisionExporter.ts` import `python_env/runtime/venvManager.ts` (vscode-bound).

@@ -16,6 +16,31 @@ const logger = getLogger('ANALYSIS_ORCHESTRATOR');
 export type AnalysisMode = 'LivePanel' | 'XR' | 'VisualizeDOM';
 export type TargetType = 'file' | 'directory';
 
+/**
+ * Tells the user why a duplicate request was refused. A finished analysis
+ * offers to open the Active Analyses view.
+ */
+function warnAboutDuplicateSession(duplicateSession: UnifiedAnalysisSession): void {
+    if (duplicateSession.status === 'monitoring') {
+        vscode.window.showWarningMessage(
+            `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
+            'Open Active Analyses'
+        ).then(choice => {
+            if (choice === 'Open Active Analyses') {
+                vscode.commands.executeCommand('workbench.view.extension.codeXRView');
+            }
+        });
+    } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
+        vscode.window.showWarningMessage(
+            `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
+        );
+    } else {
+        vscode.window.showWarningMessage(
+            `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
+        );
+    }
+}
+
 export class AnalysisOrchestrator {
     
     /**
@@ -33,7 +58,7 @@ export class AnalysisOrchestrator {
         try {
             // Create unified session first - CENTRALIZED SESSION CREATION
             const registry = UnifiedSessionRegistry.getInstance(context);
-            let session: UnifiedAnalysisSession | null;
+            let session: UnifiedAnalysisSession;
             
             try {
                 logger.debug(`DEBUG - Creating session with parameters:`, {
@@ -43,7 +68,7 @@ export class AnalysisOrchestrator {
                     isDeep
                 });
                 
-                session = await registry.createSession({
+                const creation = await registry.createSession({
                     targetPath,
                     targetType,
                     analysisMode,
@@ -51,11 +76,12 @@ export class AnalysisOrchestrator {
                     context
                 });
                 
-                // Check if session creation was skipped due to duplicate
-                if (!session) {
+                if (creation.kind === 'duplicate') {
                     logger.debug(`Session creation skipped (duplicate detected) - stopping orchestration`);
-                    return; // Stop here if duplicate was detected
+                    warnAboutDuplicateSession(creation.existing);
+                    return;
                 }
+                session = creation.session;
                 
             } catch (sessionError) {
                 // Handle session creation errors (e.g., unsupported file types)

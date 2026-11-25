@@ -83,7 +83,7 @@ for (const scenario of SCENARIOS) {
         await withOrchestrator(async ({ registry, AnalysisOrchestrator, fake, context, workRoot, fired }) => {
             const target = path.join(workRoot, 'dup.ts');
             fs.writeFileSync(target, 'let a = 1;\n');
-            const existing = await registry.createSession({ targetPath: target, analysisMode: 'XR', targetType: 'file', context });
+            const { session: existing } = await registry.createSession({ targetPath: target, analysisMode: 'XR', targetType: 'file', context });
             registry.updateSessionStatus(existing.id, scenario.status);
             fired.length = 0;
             if (scenario.answer) {
