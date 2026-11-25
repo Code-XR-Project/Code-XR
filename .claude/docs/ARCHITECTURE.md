@@ -75,6 +75,8 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 
 **Per-feature layout convention** (followed by most modules): `commands/` + `model(s)/` + `runtime/` or `services/` + `views/{items,interactions}` + `registry|storage|state/`. When adding a feature, mirror this pattern.
 
+**Folder dependencies** (story #42): which top-level folder may import which is data in `test/tooling/folderDependencies.json`, checked by `test/tooling/dependencyDirection.test.cjs` (type imports count). A new cross-folder direction fails the gate until it is added there; a new two-way pair also needs a written reason. Five pairs remain, each documented in that file (all inside the server/analysis subsystems: `active_servers`, `servers`, `remote_access`, `code_analysis`). `platform/` and `core/` import no feature folder.
+
 **Barrel policy** (decided 2026-09-18, measured): 82% of the relative imports in `src/` (807 of 981) already name a concrete file, and 32 of the 82 `index.ts` barrels have no importer at all. So: **import the concrete file; do not add a barrel "for symmetry"**. A barrel earns its place only with real fan-in (e.g. `src/views/index.ts`, `src/commands/shared/index.ts`, `engine/components/customComponents/index.ts`). An unimported barrel is dead code and keeps otherwise-dead modules looking referenced.
 
 **Export convention**: export what another file or a test consumes. A symbol used only inside its own file does not need `export`; an exported symbol with no consumer anywhere in `src/` **and** `test/` is dead (tests load compiled code from `out/`, so a test-only consumer counts as a consumer).
