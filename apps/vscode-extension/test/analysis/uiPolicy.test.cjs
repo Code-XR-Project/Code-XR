@@ -100,7 +100,7 @@ test('XR mapping UI is always injected and no longer has an enabled config flag'
     const directoryParser = readProjectFile('src', 'code_analysis', 'engine', 'parsers', 'directoryXRParser.ts');
     const storage = readProjectFile('src', 'code_analysis', 'configuration', 'analysisConfigurationStorage.ts');
     const model = readProjectFile('src', 'code_analysis', 'configuration', 'models', 'analysisConfiguration.ts');
-    const templateProcessor = readProjectFile('src', 'babia_templates', 'processing', 'templateProcessor.ts');
+    const templateProcessor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
 
     assert.match(fileParser, /babiaUiVisibleByDefault: babiaUiConfig\.visibleByDefault/);
     assert.match(directoryParser, /babiaUiVisibleByDefault: babiaUiConfig\.visibleByDefault/);

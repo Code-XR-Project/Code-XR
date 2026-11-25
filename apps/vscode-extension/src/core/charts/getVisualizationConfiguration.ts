@@ -1,4 +1,4 @@
-import { getLogger } from '../platform/logging/sink';
+import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZATION_CONFIG');
 
@@ -28,7 +28,7 @@ export async function getVisualizationConfiguration(): Promise<TemplateVisualiza
             getSelectedEnvironment,
             getSelectedBackgroundColor,
             getSelectedGroundColor
-        } = require('../core/charts/settings/settingsAccessors');
+        } = require('./settings/settingsAccessors');
 
         const settings = {
             palette: await getSelectedPalette(),

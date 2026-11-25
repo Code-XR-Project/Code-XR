@@ -1,5 +1,5 @@
-import { ChartMetadata, DimensionMapping, ChartValidationResult } from '../models/chartModels';
-import { XRFieldTypeMap } from '../models/xrFieldModels';
+import { ChartMetadata, DimensionMapping, ChartValidationResult } from '../chartModels';
+import { XRFieldTypeMap } from '../xrFieldModels';
 
 /** What every mapping rule sees. */
 interface MappingRuleContext {

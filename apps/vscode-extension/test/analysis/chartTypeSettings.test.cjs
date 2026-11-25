@@ -48,7 +48,7 @@ async function withSetting(kind, values, body) {
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
             const Setting = requireOut(kind.module)[kind.className];
-            const { BabiaChartRegistry } = requireOut('babia_templates/registry/chartRegistry.js');
+            const { BabiaChartRegistry } = requireOut('core/charts/chartRegistry.js');
             const setting = new Setting(context);
             const { storage, calls } = recordingStorage(values);
             setting.storage = storage;

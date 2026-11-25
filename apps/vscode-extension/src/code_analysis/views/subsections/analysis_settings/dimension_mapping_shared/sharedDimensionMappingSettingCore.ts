@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
-import { chartTemplates } from '../../../../../babia_templates/charts/templateCharts';
-import { ChartDimension, ChartMetadata } from '../../../../../babia_templates/models/chartModels';
+import { chartTemplates } from '../../../../../core/charts/templateCharts';
+import { ChartDimension, ChartMetadata } from '../../../../../core/charts/chartModels';
 import { DimensionMappingValidator } from '../dimension_mapping_file/dimensionMappingValidator';
 import { XRFieldDefinition, XRFieldSchemaService, XRSchemaTargetType } from '../../../../services/xrFieldSchemaService';
 

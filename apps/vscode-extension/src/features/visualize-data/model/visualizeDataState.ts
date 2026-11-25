@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { ChartMetadata, DimensionMapping } from '../../../babia_templates/models/chartModels';
+import { ChartMetadata, DimensionMapping } from '../../../core/charts/chartModels';
 import { JsonAnalysisResult } from '../services/jsonFieldAnalyzer';
 import { getLogger } from '../../../platform/logging/sink';
 

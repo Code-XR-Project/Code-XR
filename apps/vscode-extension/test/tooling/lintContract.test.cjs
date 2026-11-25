@@ -246,7 +246,7 @@ test('only the three files with deliberate lazy require() may use it', async () 
     assert.equal(exemptions.length, 1, 'one exemption block');
     assert.deepEqual([...exemptions[0].files].sort(), [
         'src/code_analysis/engine/watchers/directoryReAnalyzer.ts',
-        'src/utils/getVisualizationConfiguration.ts',
+        'src/core/charts/getVisualizationConfiguration.ts',
         'src/views/ModularTreeDataProvider.ts',
     ]);
     for (const file of exemptions[0].files) {

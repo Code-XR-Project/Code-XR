@@ -1,13 +1,13 @@
-import { ChartMetadata, DimensionDataType, DimensionMapping, DimensionValueRule } from '../models/chartModels';
-import { chartTemplates } from '../charts/templateCharts';
-import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../../utils/getVisualizationConfiguration';
+import { ChartMetadata, DimensionDataType, DimensionMapping, DimensionValueRule } from '../chartModels';
+import { chartTemplates } from '../templateCharts';
+import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../getVisualizationConfiguration';
 import { CreateChart } from './placeholders/createChart';
 import { CreateStructure } from './placeholders/createStructure';
-import { XRFieldTypeMap, XRSchemaTargetType } from '../models/xrFieldModels';
+import { XRFieldTypeMap, XRSchemaTargetType } from '../xrFieldModels';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { getLogger } from '../../platform/logging/sink';
-import { resolveTemplatePath } from '../../platform/templatePaths';
+import { getLogger } from '../../../platform/logging/sink';
+import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('TEMPLATE_PROCESSOR');
 

@@ -8,7 +8,7 @@ const { createFakeVscode, fakeExtensionContext, withFakeVscode } = require('../h
 /**
  * First behavioural net for src/visualization_settings, which had no test of
  * any kind. It executes the compiled storage and the accessors that scene
- * generation reads (through utils/getVisualizationConfiguration), against a
+ * generation reads (through core/charts/getVisualizationConfiguration), against a
  * real temp globalStorage folder and an in-memory globalState.
  *
  * Planned changes that must leave all of this as it is: the logging migration,

@@ -1,6 +1,6 @@
-import { ChartMetadata, DimensionMapping } from '../../models/chartModels';
-import { chartTemplates } from '../../charts/templateCharts';
-import { getLogger } from '../../../platform/logging/sink';
+import { ChartMetadata, DimensionMapping } from '../../chartModels';
+import { chartTemplates } from '../../templateCharts';
+import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('CREATE_CHART');
 

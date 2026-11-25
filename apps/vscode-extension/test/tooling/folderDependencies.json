@@ -35,14 +35,9 @@
       "servers",
       "utils"
     ],
-    "babia_templates": [
-      "platform",
-      "shared",
-      "utils"
-    ],
     "code_analysis": [
       "active_servers",
-      "babia_templates",
+      "core/charts",
       "core/python-env",
       "platform",
       "servers",
@@ -65,7 +60,8 @@
       "utils"
     ],
     "core/charts": [
-      "platform"
+      "platform",
+      "shared"
     ],
     "core/python-env": [
       "platform"
@@ -88,7 +84,7 @@
     ],
     "features/visualize-data": [
       "active_servers",
-      "babia_templates",
+      "core/charts",
       "platform",
       "servers",
       "shared"
@@ -111,7 +107,6 @@
     ],
     "shared": [],
     "utils": [
-      "core/charts",
       "platform"
     ],
     "views": [

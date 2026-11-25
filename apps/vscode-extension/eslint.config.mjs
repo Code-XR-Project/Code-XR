@@ -159,7 +159,7 @@ export default [{
     files: [
         "src/views/ModularTreeDataProvider.ts",
         "src/code_analysis/engine/watchers/directoryReAnalyzer.ts",
-        "src/utils/getVisualizationConfiguration.ts",
+        "src/core/charts/getVisualizationConfiguration.ts",
     ],
     rules: {
         "@typescript-eslint/no-require-imports": "off",

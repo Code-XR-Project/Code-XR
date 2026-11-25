@@ -46,7 +46,7 @@ src/code_analysis/python/
 
 1. `python/utils/xr_field_schema.py` defines which metric fields exist per analysis type.
 2. TS fetches it via `main.py --mode schema`, cached/served by `src/code_analysis/services/xrFieldSchemaService.ts` (prefetched at startup by the `StartupCoordinator`).
-3. `src/babia_templates/processing/dimensionValidator.ts` validates user dimension mappings against that schema before launching an XR scene.
+3. `src/core/charts/processing/dimensionValidator.ts` validates user dimension mappings against that schema before launching an XR scene.
 
 **Rule**: any metric added/renamed/removed in Python must flow through the schema, and the analysis/manual-metrics tests must be re-run. A mismatch surfaces as dimension-mapping validation failures or empty charts.
 

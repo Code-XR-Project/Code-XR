@@ -1,5 +1,5 @@
-import { ChartMetadata } from '../models/chartModels';
-import { chartTemplates } from '../charts/templateCharts';
+import { ChartMetadata } from './chartModels';
+import { chartTemplates } from './templateCharts';
 import { getLogger } from '../../platform/logging/sink';
 
 const logger = getLogger('BABIA_TEMPLATES');

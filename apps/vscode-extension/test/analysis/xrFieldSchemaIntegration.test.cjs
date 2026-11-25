@@ -75,13 +75,14 @@ test('XR schema consumers support text-only dimensions for categorical chart axe
     );
     const templateProcessor = readProjectFile(
         'src',
-        'babia_templates',
+        'core',
+        'charts',
         'processing',
         'templateProcessor.ts',
     );
     const templateCharts = readProjectFile(
         'src',
-        'babia_templates',
+        'core',
         'charts',
         'templateCharts.ts',
     );
@@ -108,8 +109,8 @@ test('XR launcher validates mappings with schema-provided field types before exe
 });
 
 test('boats chart metadata keeps numeric-only area and height with any-valued color', () => {
-    const templateCharts = readProjectFile('src', 'babia_templates', 'charts', 'templateCharts.ts');
-    const createChart = readProjectFile('src', 'babia_templates', 'processing', 'placeholders', 'createChart.ts');
+    const templateCharts = readProjectFile('src', 'core', 'charts', 'templateCharts.ts');
+    const createChart = readProjectFile('src', 'core', 'charts', 'processing', 'placeholders', 'createChart.ts');
 
     assert.doesNotMatch(templateCharts, /id: 'codexr-boats'/);
 

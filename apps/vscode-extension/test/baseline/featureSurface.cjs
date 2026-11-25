@@ -95,7 +95,7 @@ async function collectRuntime() {
             requireOut('commands/index.js').registerAllCommands(context);
             await new Promise((resolve) => setImmediate(resolve));
             await new Promise((resolve) => setImmediate(resolve));
-            chartTypes = requireOut('babia_templates/charts/templateCharts.js').chartTemplates
+            chartTypes = requireOut('core/charts/templateCharts.js').chartTemplates
                 .map((chart) => `${chart.id} | ${chart.name}`);
         });
     } finally {

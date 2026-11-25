@@ -3,8 +3,8 @@
  * Validates dimension mappings for conflicts, completeness, and data-type compatibility.
  */
 
-import { ChartMetadata } from '../../../../../babia_templates/models/chartModels';
-import { chartTemplates } from '../../../../../babia_templates/charts/templateCharts';
+import { ChartMetadata } from '../../../../../core/charts/chartModels';
+import { chartTemplates } from '../../../../../core/charts/templateCharts';
 import { DimensionMapping } from '../../../../configuration/models/analysisConfiguration';
 import { XRFieldTypeMap } from '../../../../services/xrFieldSchemaService';
 import { getLogger } from '../../../../../platform/logging/sink';

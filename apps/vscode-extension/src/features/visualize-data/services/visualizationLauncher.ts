@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { BabiaChartRegistry } from '../../../babia_templates/registry/chartRegistry';
+import { BabiaChartRegistry } from '../../../core/charts/chartRegistry';
 import { VisualizeDataStateManager, VisualizeDataState } from '../model/visualizeDataState';
 import { JsonFieldAnalyzer } from './jsonFieldAnalyzer';
-import { DimensionMapping } from '../../../babia_templates/models/chartModels';
+import { DimensionMapping } from '../../../core/charts/chartModels';
 import { generateNonce } from '../../../shared/nonceGenerator';
-import { TemplateProcessor } from '../../../babia_templates/processing/templateProcessor';
+import { TemplateProcessor } from '../../../core/charts/processing/templateProcessor';
 import { launchServerWithFile } from '../../../servers/runtime/index';
 import { getLogger } from '../../../platform/logging/sink';
 

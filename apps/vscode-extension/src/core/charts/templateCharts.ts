@@ -1,4 +1,4 @@
-import { ChartMetadata } from '../models/chartModels';
+import { ChartMetadata } from './chartModels';
 import {
     BOATS_BASE_COMPONENT_ATTRIBUTES,
     DEFAULT_BOATS_LEGEND_TEXT,

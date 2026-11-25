@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { TemplateHTMLProcessor, HTMLTemplateData } from '../../../babia_templates/processing/templateHTMLProcessor';
+import { TemplateHTMLProcessor, HTMLTemplateData } from '../../../core/charts/processing/templateHTMLProcessor';
 import { CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, readCodeXrAvatarRuntimeContent } from '../components/customComponents/avatarComponentAsset';
 import { CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, CODEXR_DOM_SCENE_COLLAB_RUNTIME_OUTPUT_NAME, readCodeXrCollaborationRuntimeContent, readCodeXrDomSceneCollaborationRuntimeContent } from '../components/customComponents/collaborationComponentAsset';
 import { readVirtualScreenManagerRuntimeContent, VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, readVirtualScreenRuntimeContent, VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME } from '../components/customComponents/virtualScreenComponentAsset';

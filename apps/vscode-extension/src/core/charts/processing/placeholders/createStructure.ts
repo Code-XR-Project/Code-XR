@@ -1,14 +1,14 @@
-import { TemplateVisualizationSettings } from '../../../utils/getVisualizationConfiguration';
-import { generateNonce } from '../../../shared/nonceGenerator';
+import { TemplateVisualizationSettings } from '../../getVisualizationConfiguration';
+import { generateNonce } from '../../../../shared/nonceGenerator';
 import {
     BOATS_BASE_COMPONENT_ATTRIBUTES,
     CHART_PRESENTATION_PROFILES,
     XR_BOATS_TREE_FIELDS,
-} from '../../charts/chartPresentation';
+} from '../../chartPresentation';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { getLogger } from '../../../platform/logging/sink';
-import { resolveTemplatePath } from '../../../platform/templatePaths';
+import { getLogger } from '../../../../platform/logging/sink';
+import { resolveTemplatePath } from '../../../../platform/templatePaths';
 
 const logger = getLogger('CREATE_STRUCTURE');
 

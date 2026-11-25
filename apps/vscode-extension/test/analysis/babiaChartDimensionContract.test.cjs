@@ -29,8 +29,8 @@ function assertChartContract(source, chartId, dimensions) {
 }
 
 test('BabiaXR chart templates keep the audited dimension type contract', () => {
-    const templateCharts = readProjectFile('src', 'babia_templates', 'charts', 'templateCharts.ts');
-    const createChart = readProjectFile('src', 'babia_templates', 'processing', 'placeholders', 'createChart.ts');
+    const templateCharts = readProjectFile('src', 'core', 'charts', 'templateCharts.ts');
+    const createChart = readProjectFile('src', 'core', 'charts', 'processing', 'placeholders', 'createChart.ts');
 
     assertChartContract(templateCharts, 'bars', [
         { name: 'x_axis', type: 'any' },

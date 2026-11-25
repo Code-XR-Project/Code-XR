@@ -115,7 +115,7 @@ test('VisualizeDOM runtime mounts babia-html from a JSON payload so full documen
     const template = readProjectFile('templates', 'xr', 'html', 'dom-visualization-template.html');
     const sseClient = readProjectFile('templates', 'xr', 'sse', 'live_sse_fileDOM.js');
     const reanalysisManager = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'reAnalysisManager.ts');
-    const templateProcessor = readProjectFile('src', 'babia_templates', 'processing', 'templateHTMLProcessor.ts');
+    const templateProcessor = readProjectFile('src', 'core', 'charts', 'processing', 'templateHTMLProcessor.ts');
 
     assert.match(template, /html2canvas\.min\.js/);
     assert.match(template, /babia-html="renderHTML: true; renderHTMLOnlyLeafs: true; distanceLevels: 0\.7"/);

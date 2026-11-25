@@ -26,10 +26,9 @@
     "catch.emptyNoComment": 0,
     "any.total": 84,
     "any.byModule": {
-      "babia_templates": 2,
       "code_analysis": 18,
       "commands": 6,
-      "core/charts": 4,
+      "core/charts": 6,
       "core/python-env": 5,
       "features/examples": 3,
       "features/learn-more": 1,
@@ -85,7 +84,6 @@
       }
     ],
     "any.byFile": {
-      "src/babia_templates/processing/templateProcessor.ts": 2,
       "src/code_analysis/commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands.ts": 1,
       "src/code_analysis/engine/core/analysisSession.ts": 1,
       "src/code_analysis/engine/parsers/directoryXRParser.ts": 2,
@@ -100,6 +98,7 @@
       "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": 1,
       "src/commands/analysis/AnalysisCommands.ts": 5,
       "src/commands/index.ts": 1,
+      "src/core/charts/processing/templateProcessor.ts": 2,
       "src/core/charts/settings/settingsAccessors.ts": 1,
       "src/core/charts/settings/settingsStorage.ts": 3,
       "src/core/python-env/venvManager.ts": 5,
@@ -170,10 +169,6 @@
         "count": 3
       },
       {
-        "file": "src/babia_templates/processing/templateProcessor.ts",
-        "count": 2
-      },
-      {
         "file": "src/code_analysis/engine/parsers/directoryXRParser.ts",
         "count": 2
       },
@@ -187,6 +182,10 @@
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
+        "count": 2
+      },
+      {
+        "file": "src/core/charts/processing/templateProcessor.ts",
         "count": 2
       }
     ],
