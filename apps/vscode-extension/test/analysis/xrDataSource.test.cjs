@@ -275,22 +275,22 @@ test('XR parsers include CodeXR room runtime in generated assets', () => {
     assert.match(directoryParser, /readCodeXrRoomTextureContents/);
     assert.match(directoryParser, /readVirtualScreenManagerRuntimeContent/);
     assert.match(directoryParser, /readAnalysisTableRuntimeContent/);
-    assert.match(directoryParser, /generatedFiles\.set\(VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, virtualScreenManagerRuntimeContent\)/);
-    assert.match(directoryParser, /generatedFiles\.set\(CODEXR_COMMON_RUNTIME_OUTPUT_NAME, codexrCommonRuntimeContent\)/);
-    assert.doesNotMatch(directoryParser, /generatedFiles\.set\(CODEXR_VISUAL_STYLE_RUNTIME_OUTPUT_NAME, codexrVisualStyleRuntimeContent\)/);
+    assert.match(directoryParser, /\[VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME, readVirtualScreenManagerRuntimeContent\]/);
+    assert.match(directoryParser, /\[CODEXR_COMMON_RUNTIME_OUTPUT_NAME, readCodeXrCommonRuntimeContent\]/);
+    assert.doesNotMatch(directoryParser, /\[CODEXR_VISUAL_STYLE_RUNTIME_OUTPUT_NAME, readCodeXrVisualStyleRuntimeContent\]/);
     // The abandoned visual-style feature was deleted in 1.2.1 (W2-55): neither
     // its asset module nor its runtime may come back unwired.
     assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'components', 'customComponents', 'visualStyleComponentAsset.ts')), false);
     assert.equal(fs.existsSync(path.join(projectRoot, 'templates', 'components', 'common', 'codexrVisualStyleRuntime.js')), false);
-    assert.doesNotMatch(directoryParser, /generatedFiles\.set\(CODEXR_BOATS_RUNTIME_OUTPUT_NAME, codeXrBoatsRuntimeContent\)/);
+    assert.doesNotMatch(directoryParser, /\[CODEXR_BOATS_RUNTIME_OUTPUT_NAME, readCodeXrBoatsRuntimeContent\]/);
     assert.doesNotMatch(directoryParser, /codeXrBoatsTextures\.forEach\(\(asset\) => \{/);
-    assert.match(directoryParser, /generatedFiles\.set\(CODEXR_ROOM_RUNTIME_OUTPUT_NAME, codexrRoomRuntimeContent\)/);
-    assert.match(directoryParser, /generatedFiles\.set\(ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME, analysisTableRuntimeContent\)/);
-    assert.match(directoryParser, /generatedFiles\.set\(HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME, historicalComparisonRuntimeContent\)/);
+    assert.match(directoryParser, /\[CODEXR_ROOM_RUNTIME_OUTPUT_NAME, readCodeXrRoomRuntimeContent\]/);
+    assert.match(directoryParser, /\[ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME, readAnalysisTableRuntimeContent\]/);
+    assert.match(directoryParser, /\[HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME, readHistoricalComparisonRuntimeContent\]/);
     assert.match(fileParser, /copyProjectEvolutionRuntimeToOutput/);
     assert.match(fileParser, /PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME/);
     assert.match(directoryParser, /readProjectEvolutionRuntimeContent/);
-    assert.match(directoryParser, /generatedFiles\.set\(PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME, projectEvolutionRuntimeContent\)/);
+    assert.match(directoryParser, /\[PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME, readProjectEvolutionRuntimeContent\]/);
     assert.match(directoryParser, /generatedFiles\.set\(asset\.relativeOutputPath, asset\.content\)/);
 });
 

@@ -257,8 +257,8 @@ test('analysis asset pipeline packages collaboration, screen, manager, and DOM s
     assert.match(directoryParser, /readCodeXrCollaborationRuntimeContent/);
     assert.match(directoryParser, /readCodeXrAvatarRuntimeContent/);
     assert.doesNotMatch(directoryParser, /CollaborationUi/);
-    assert.match(directoryParser, /generatedFiles\.set\(VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME, virtualScreenRuntimeContent\)/);
-    assert.match(directoryParser, /generatedFiles\.set\(CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, collaborationRuntimeContent\)/);
+    assert.match(directoryParser, /\[VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME, readVirtualScreenRuntimeContent\]/);
+    assert.match(directoryParser, /\[CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME, readCodeXrCollaborationRuntimeContent\]/);
     assert.match(domParser, /readVirtualScreenRuntimeContent/);
     assert.match(domParser, /readCodeXrCollaborationRuntimeContent/);
     assert.match(domParser, /readCodeXrAvatarRuntimeContent/);
