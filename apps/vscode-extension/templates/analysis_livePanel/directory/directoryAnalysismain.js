@@ -169,7 +169,7 @@ function formatFileSize(bytes) {
 }
 
 function loadAnalysisData(data) {
-  console.log(' loadAnalysisData called with:', data);
+  debugLog(' loadAnalysisData called with:', data);
   debugLog('Loading analysis data:', data);
   
   //  NEW: Preserve scroll position during updates
@@ -179,45 +179,45 @@ function loadAnalysisData(data) {
   analysisData = normalizeIncomingDirectoryAnalysisData(data);
   fileData = analysisData.files || [];
   
-  console.log(' File data loaded:', fileData.length, 'files');
+  debugLog(' File data loaded:', fileData.length, 'files');
   debugLog('File data loaded:', fileData.length, 'files');
   
   const noDataEl = document.getElementById('no-data');
   const resultsEl = document.getElementById('results');
   
-  console.log(' Elements found - noData:', !!noDataEl, 'results:', !!resultsEl);
+  debugLog(' Elements found - noData:', !!noDataEl, 'results:', !!resultsEl);
   
   if (noDataEl) {
-    console.log(' Hiding no-data element');
+    debugLog(' Hiding no-data element');
     noDataEl.classList.add('hidden');
   }
   if (resultsEl) {
-    console.log(' Showing results element');
+    debugLog(' Showing results element');
     resultsEl.classList.remove('hidden');
   }
   
   try {
-    console.log(' Updating header information...');
+    debugLog(' Updating header information...');
     updateHeaderInfo();
     debugLog('Header info updated');
     
-    console.log(' Updating summary...');
+    debugLog(' Updating summary...');
     updateSummary();
     debugLog('Summary updated');
     
-    console.log(' Updating complexity distribution...');
+    debugLog(' Updating complexity distribution...');
     updateComplexityDistribution();
     debugLog('Complexity distribution updated');
     
-    console.log(' Updating language distribution...');
+    debugLog(' Updating language distribution...');
     updateLanguageDistribution();
     debugLog('Language distribution updated');
     
-    console.log(' Updating file size distribution...');
+    debugLog(' Updating file size distribution...');
     updateFileSizeDistribution();
     debugLog('File size distribution updated');
     
-    console.log(' Updating complexity overview...');
+    debugLog(' Updating complexity overview...');
     updateComplexityOverview();
     debugLog('Complexity overview updated');
     
@@ -230,10 +230,10 @@ function loadAnalysisData(data) {
     //  NEW: Restore scroll position after updates
     setTimeout(() => {
       window.scrollTo(scrollLeft, scrollTop);
-      console.log(` Restored scroll position: ${scrollLeft}, ${scrollTop}`);
+      debugLog(` Restored scroll position: ${scrollLeft}, ${scrollTop}`);
     }, 10);
     
-    console.log(' All sections updated successfully');
+    debugLog(' All sections updated successfully');
     
   } catch (error) {
     console.error(' Error updating sections:', error);
@@ -247,7 +247,7 @@ function loadAnalysisData(data) {
 function initializeSSE() {
   createLivePanelSse({
     label: 'DIRECTORY_ANALYSIS',
-    trace: (...args) => console.log(...args),
+    trace: debugLog,
     onAnalysisUpdated: () => {
       showUpdateNotification();
       reloadAnalysisData();
@@ -261,7 +261,7 @@ function initializeSSE() {
  * Reload analysis data after SSE update notification
  */
 function reloadAnalysisData() {
-  console.log('DIRECTORY_ANALYSIS: Reloading analysis data due to SSE update...');
+  debugLog('DIRECTORY_ANALYSIS: Reloading analysis data due to SSE update...');
   
   // Add cache busting to ensure fresh data
   fetch('./data.json?t=' + Date.now())
@@ -272,7 +272,7 @@ function reloadAnalysisData() {
       return response.json();
     })
     .then(data => {
-      console.log('DIRECTORY_ANALYSIS: Successfully reloaded data.json via SSE');
+      debugLog('DIRECTORY_ANALYSIS: Successfully reloaded data.json via SSE');
       loadAnalysisData(data);
       showReloadNotification();
     })
@@ -769,29 +769,29 @@ const historicalPanel = new CodexrHistoricalPanel();
 // Handle messages from the extension
 window.addEventListener('message', event => {
   const message = event.data;
-  console.log(' Received message from extension:', message);
+  debugLog(' Received message from extension:', message);
   switch (message.command) {
     case 'updateData':
-      console.log(' Processing updateData message with:', message.data);
+      debugLog(' Processing updateData message with:', message.data);
       // Store the new data
       window.analysisData = message.data;
       // Reload the analysis with new data
       loadAnalysisData(message.data);
-      console.log(' Data updated successfully');
+      debugLog(' Data updated successfully');
       break;
     case 'refresh':
-      console.log(' Processing refresh command');
+      debugLog(' Processing refresh command');
       // Try to reload from window.analysisData if available
       if (window.analysisData) {
-        console.log(' Refreshing with existing window.analysisData');
+        debugLog(' Refreshing with existing window.analysisData');
         loadAnalysisData(window.analysisData);
       } else {
-        console.log(' No analysisData available, attempting to fetch from data.json');
+        debugLog(' No analysisData available, attempting to fetch from data.json');
         // Attempt to fetch data.json directly
         fetch('./data.json')
           .then(response => response.json())
           .then(data => {
-            console.log(' Fetched data from data.json:', data);
+            debugLog(' Fetched data from data.json:', data);
             window.analysisData = data;
             loadAnalysisData(data);
           })
@@ -801,22 +801,22 @@ window.addEventListener('message', event => {
       }
       break;
     default:
-      console.log(' Unknown message command:', message.command);
+      debugLog(' Unknown message command:', message.command);
   }
 });
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log(' DOMContentLoaded event fired');
+  debugLog(' DOMContentLoaded event fired');
   
   // Initialize theme from window.initialTheme (set by server) or localStorage fallback
   let initialTheme = 'light';
   if (window.initialTheme) {
     initialTheme = window.initialTheme;
-    console.log(' Using server-provided theme:', initialTheme);
+    debugLog(' Using server-provided theme:', initialTheme);
   } else {
     initialTheme = getStoredTheme();
-    console.log(' Using stored theme:', initialTheme);
+    debugLog(' Using stored theme:', initialTheme);
   }
   applyTheme(initialTheme);
   
@@ -835,16 +835,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Listen for the analysisDataLoaded event from the template
   window.addEventListener('analysisDataLoaded', function(event) {
-    console.log(' Received analysisDataLoaded event, initializing...');
+    debugLog(' Received analysisDataLoaded event, initializing...');
     loadAnalysisData(event.detail);
   });
   
   // Check if we have analysis data available immediately (fallback)
   if (window.analysisData) {
-    console.log(' Found window.analysisData immediately, initializing...');
+    debugLog(' Found window.analysisData immediately, initializing...');
     loadAnalysisData(window.analysisData);
   } else {
-    console.log('Waiting for analysisDataLoaded event...');
+    debugLog('Waiting for analysisDataLoaded event...');
   }
   
   // Live updates arrive over SSE; the tables re-render themselves on reload.
