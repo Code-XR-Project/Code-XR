@@ -50,7 +50,7 @@ export class ExampleClickHandler {
         } catch (error) {
             const errorMsg = `Failed to handle example click: ${error instanceof Error ? error.message : String(error)}`;
             logger.error(errorMsg);
-            vscode.window.showErrorMessage(errorMsg);
+            void vscode.window.showErrorMessage(errorMsg);
         }
     }
 
@@ -126,22 +126,22 @@ export class ExampleClickHandler {
             logger.debug(() => `Rescan complete. Found ${result.validCount} valid, ${result.invalidCount} invalid examples`);
             
             // Refresh the tree view
-            vscode.commands.executeCommand('codeXR.babiaExamples.refresh');
+            void vscode.commands.executeCommand('codeXR.babiaExamples.refresh');
             
             // Show result message
             if (result.errors.length > 0) {
-                vscode.window.showWarningMessage(
+                void vscode.window.showWarningMessage(
                     `Rescan complete: ${result.validCount} valid, ${result.invalidCount} invalid examples. ${result.errors.length} errors occurred.`
                 );
             } else {
-                vscode.window.showInformationMessage(
+                void vscode.window.showInformationMessage(
                     `Rescan complete: Found ${result.validCount} valid and ${result.invalidCount} invalid examples.`
                 );
             }
             
         } catch (error) {
             logger.error('Error during rescan:', error);
-            vscode.window.showErrorMessage(`Failed to rescan examples: ${error instanceof Error ? error.message : String(error)}`);
+            void vscode.window.showErrorMessage(`Failed to rescan examples: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             scanning.dispose();
         }

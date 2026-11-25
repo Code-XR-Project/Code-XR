@@ -119,7 +119,7 @@ export class VisualizeDataClickHandler {
                 break;
                 
             default:
-                vscode.window.showInformationMessage(`Reset not available for ${item.label}`);
+                void vscode.window.showInformationMessage(`Reset not available for ${item.label}`);
         }
     }
 
@@ -146,7 +146,7 @@ export class VisualizeDataClickHandler {
                 break;
                 
             default:
-                vscode.window.showInformationMessage(`Configuration not available for ${item.label}`);
+                void vscode.window.showInformationMessage(`Configuration not available for ${item.label}`);
         }
     }
 
@@ -186,6 +186,6 @@ Tooltip: ${item.tooltip || 'No tooltip available'}`;
             details += `\nContext: ${item.contextValue}`;
         }
 
-        vscode.window.showInformationMessage(details, { modal: true });
+        void vscode.window.showInformationMessage(details, { modal: true });
     }
 }
