@@ -90,7 +90,6 @@ Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:ana
 - **`esbuild.config.mjs` is unreferenced** by any npm script — webpack is the active bundler. Likely legacy from the 0.0.8-era ESBuild migration. *Needs verification before removal.*
 - `tsconfig.json` `outDir` is `out/` (used for `compile-tests`/typecheck output); the shipped bundle goes to `dist/` via webpack. Don't confuse the two.
 - `tsconfig.tsbuildinfo` at root is a build cache — never edit or commit-review it.
-- A leftover `CodeXR.helloWorld` command exists in package.json (scaffolding; see `V1.2.0_STATUS.md` documentation debt).
 
 ## How future agents should use this document
 

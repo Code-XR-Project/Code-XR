@@ -94,6 +94,7 @@
     "commandPalette | codeXR.analysis.runLast.analyzeProjectXR |  | false",
     "commandPalette | codeXR.analysis.runLast.analyzeProjectXRDeep |  | false",
     "commandPalette | codeXR.analysis.runLast.visualizeDOM |  | false",
+    "commandPalette | codeXR.pythonEnv.debugFailInstallation |  | false",
     "editor/context | codeXR.analysis.runLast.analyzeFile | codexr@1 | codeXR.analysis.lastKind == analyzeFile && resourceExtname =~ /\\.(py|pyw|pyi|rb|rbw|java|c|h|cpp|cxx|cc|hpp|hxx|cs|erl|hrl|f|f90|f95|f03|f08|gd|go|js|mjs|cjs|kt|kts|lua|m|mm|php|phtml|php3|php4|php5|pl|pm|scala|sc|sol|swift|ts|tsx|ttcn|ttcn3|vue|zig)$/ && !codeXR.pythonEnv.uiLocked",
     "editor/context | codeXR.analysis.runLast.analyzeFileXR | codexr@2 | codeXR.analysis.lastKind == analyzeFileXR && resourceExtname =~ /\\.(py|pyw|pyi|rb|rbw|java|c|h|cpp|cxx|cc|hpp|hxx|cs|erl|hrl|f|f90|f95|f03|f08|gd|go|js|mjs|cjs|kt|kts|lua|m|mm|php|phtml|php3|php4|php5|pl|pm|scala|sc|sol|swift|ts|tsx|ttcn|ttcn3|vue|zig)$/ && !codeXR.pythonEnv.uiLocked",
     "editor/context | codeXR.analysis.runLast.analyzeProject | codexr@3 | codeXR.analysis.lastKind == analyzeProject && !codeXR.pythonEnv.uiLocked",

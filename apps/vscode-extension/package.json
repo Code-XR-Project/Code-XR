@@ -64,10 +64,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "CodeXR.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "codeXR.collaboration.selectIdentity",
         "title": "CodeXR: Select Collaboration Identity"
       },
@@ -486,7 +482,6 @@
         {
           "id": "codexrTree",
           "name": "CodeXR",
-          "when": "true",
           "icon": "$(server-environment)"
         }
       ]
@@ -735,6 +730,10 @@
         },
         {
           "command": "codeXR.analysis.runLast.visualizeDOM",
+          "when": "false"
+        },
+        {
+          "command": "codeXR.pythonEnv.debugFailInstallation",
           "when": "false"
         }
       ]

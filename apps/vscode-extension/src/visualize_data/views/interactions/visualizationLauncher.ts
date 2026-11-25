@@ -457,69 +457,6 @@ export class VisualizationLauncher {
     }
 
     /**
-     * Handle debug state command (for troubleshooting)
-     */
-    public async handleDebugState(): Promise<void> {
-        console.log('VISUALIZE_DATA: Debug state action triggered');
-        
-        try {
-            const state = this.stateManager.getState();
-            
-            // Validate file path existence
-            const fileExists = state.selectedJsonPath ? fs.existsSync(state.selectedJsonPath) : false;
-            
-            // Prepare state information
-            const stateInfo = {
-                selectedChart: state.selectedChart?.name || 'None',
-                selectedJsonPath: state.selectedJsonPath || 'None',
-                selectedJsonName: state.selectedJsonName || 'None',
-                fileExists: fileExists,
-                jsonAnalysisPresent: !!state.jsonAnalysis,
-                jsonAnalysisFields: state.jsonAnalysis ? state.jsonAnalysis.fields.map(f => f.name) : [],
-                dimensionMappingsCount: state.dimensionMappings.length,
-                isDimensionMappingConfigured: state.isDimensionMappingConfigured,
-                isReadyToLaunch: state.isReadyToLaunch,
-                requiredDimensions: state.selectedChart?.dimensions.map(d => d.name) || [],
-                mappedDimensions: state.dimensionMappings.map(m => `${m.dimension}: ${m.dataField}`)
-            };
-            
-            // Create diagnostic message
-            const message = [
-                'Visualize Data State Diagnostic:',
-                '',
-                `Chart: ${stateInfo.selectedChart}`,
-                `Required Dimensions: [${stateInfo.requiredDimensions.join(', ')}]`,
-                '',
-                `JSON File: ${stateInfo.selectedJsonName}`,
-                `Path: ${stateInfo.selectedJsonPath}`,
-                `File Exists: ${stateInfo.fileExists}`,
-                `Analysis Present: ${stateInfo.jsonAnalysisPresent}`,
-                `Available Fields: [${stateInfo.jsonAnalysisFields.join(', ')}]`,
-                '',
-                `Mapped Dimensions: ${stateInfo.mappedDimensions.length}`,
-                ...stateInfo.mappedDimensions.map(mapping => `  - ${mapping}`),
-                '',
-                `Configuration Complete: ${stateInfo.isDimensionMappingConfigured}`,
-                `Ready to Launch: ${stateInfo.isReadyToLaunch}`
-            ].join('\n');
-            
-            console.log('VISUALIZE_DATA: State diagnostic:', stateInfo);
-            
-            // Show diagnostic information
-            await vscode.window.showInformationMessage(
-                'Visualize Data state diagnostic sent to console. Check Output > Log (Extension Host) for details.',
-                { modal: false }
-            );
-            
-            console.log('VISUALIZE_DATA: Full state diagnostic:\n' + message);
-            
-        } catch (error) {
-            console.error('VISUALIZE_DATA: Error generating debug state:', error);
-            vscode.window.showErrorMessage(`Debug state failed: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    }
-
-    /**
      * Cleanup resources
      */
     public cleanup(): void {

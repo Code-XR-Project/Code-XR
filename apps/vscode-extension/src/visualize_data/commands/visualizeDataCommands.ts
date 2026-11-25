@@ -72,13 +72,6 @@ export class VisualizeDataCommands {
                 handler: withLauncher(launcher => launcher.handleLaunchVisualization()),
             },
             {
-                id: 'codeXR.visualizeData.debugState',
-                module: MODULE,
-                description: 'Debug State',
-                errorMessage: 'Failed to show debug state',
-                handler: withLauncher(launcher => launcher.handleDebugState()),
-            },
-            {
                 id: 'codeXR.browseVisualizations.launch',
                 module: BROWSE,
                 description: 'Launch stored visualization',

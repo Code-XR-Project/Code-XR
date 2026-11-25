@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1646,
+    "console.total": 1589,
     "console.byModule": {
       "active_servers": 127,
       "babia_examples": 49,
       "babia_templates": 72,
-      "code_analysis": 676,
+      "code_analysis": 623,
       "commands": 4,
       "core": 1,
       "python_env": 26,
@@ -32,9 +32,9 @@
       "utils": 50,
       "views": 130,
       "visualization_settings": 83,
-      "visualize_data": 108
+      "visualize_data": 104
     },
-    "catch.consoleOnly": 65,
+    "catch.consoleOnly": 61,
     "catch.emptyNoComment": 0,
     "any.total": 219,
     "any.byModule": {
@@ -68,8 +68,7 @@
       "src/servers/runtime/httpsCustomServer.ts",
       "src/servers/runtime/multiServerLauncher.ts",
       "src/views/ModularTreeDataProvider.ts",
-      "src/views/active_servers/items/activeServerItems.ts",
-      "src/visualize_data/views/interactions/visualizationLauncher.ts"
+      "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 57,
     "complexity.over10": 81,
@@ -82,6 +81,7 @@
       "src/babia_examples/views/index.ts",
       "src/babia_templates/index.ts",
       "src/babia_templates/processing/placeholders/index.ts",
+      "src/code_analysis/commands/clean_analysis/index.ts",
       "src/code_analysis/commands/index.ts",
       "src/code_analysis/commands/subsections/active_analyses/index.ts",
       "src/code_analysis/commands/subsections/analysis_settings/chart_type_directory/index.ts",
@@ -136,16 +136,15 @@
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
-      "pending-removal": 17,
       "programmatic": 2,
       "tree-item": 32
     }
   },
   "informational": {
-    "src.files": 370,
-    "src.lines": 53038,
-    "src.functions": 2867,
-    "src.unreachableLines": 2317,
+    "src.files": 369,
+    "src.lines": 52582,
+    "src.functions": 2835,
+    "src.unreachableLines": 2324,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -160,19 +159,11 @@
         "count": 46
       },
       {
-        "file": "src/code_analysis/configuration/debugThemeProblem.ts",
-        "count": 46
-      },
-      {
         "file": "src/code_analysis/configuration/configurationManagerExample.ts",
         "count": 44
       },
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
-        "count": 39
-      },
-      {
-        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
         "count": 39
       },
       {
@@ -182,6 +173,10 @@
       {
         "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 37
+      },
+      {
+        "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
+        "count": 35
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
@@ -206,6 +201,10 @@
       {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
         "count": 26
+      },
+      {
+        "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
+        "count": 25
       }
     ],
     "any.topFiles": [
@@ -375,5 +374,13 @@
       }
     ]
   },
-  "waivers": []
+  "waivers": [
+    {
+      "metric": "reachability.unreachable",
+      "from": 54,
+      "to": 55,
+      "reason": "W2-47 leaves clean_analysis/index.ts unreachable until W2-05 (#29) deletes it",
+      "date": "2026-11-25"
+    }
+  ]
 }
