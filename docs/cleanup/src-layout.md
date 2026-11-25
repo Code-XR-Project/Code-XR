@@ -1,16 +1,16 @@
 # `src/` layout: analysis and move plan (story #55)
 
-> **Status:** analysis only, 2026-11-25, measured on `v1.2.1` at `d233d1d3` (after PRs #44–#54). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
+> **Status:** analysis only, 2026-11-25, measured on `v1.2.1` at `e16b95e8` (after PRs #44–#57, #40 included). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
 > Paths are relative to `apps/vscode-extension/` (so `src/…` is the extension source) unless stated otherwise. Every number below comes from the scripts in the [appendix](#appendix-scripts) and can be re-run.
 
 ## 0. Summary
 
-- `src/` today: **328 files, 47,969 lines, 168 folders**, 15 top-level folders. A feature is spread over two or three layer folders (`views/<feature>/`, `commands/<feature>/`, `<feature>/views/`, `<feature>/commands/`), 55 folder names are snake_case and one is camelCase, 68 leaf folders hold a single file, and 49 `index.ts` barrels (47 pure re-exports) are 15% of all files.
+- `src/` today: **332 files, 48,005 lines, 169 folders**, 15 top-level folders. A feature is spread over two or three layer folders (`views/<feature>/`, `commands/<feature>/`, `<feature>/views/`, `<feature>/commands/`), 56 folder names are snake_case and one is camelCase, 68 leaf folders hold a single file, and 49 `index.ts` barrels (47 pure re-exports) are 15% of all files.
 - Target: **five top-level areas with one dependency direction** — `app/` → `features/` → `core/` → `platform/` → `shared/` — and one kebab-case folder per feature or subsystem inside them. 9 features, 9 core subsystems.
-- Move map: **280 files move, 47 barrels are dissolved, 1 file stays** (`src/extension.ts`). Basenames are kept, except 13 files renamed to resolve a collision or to name an `index.ts` that holds code.
+- Move map: **284 files move, 47 barrels are dissolved, 1 file stays** (`src/extension.ts`). Basenames are kept, except 13 files renamed to resolve a collision or to name an `index.ts` that holds code.
 - After the move, the folder graph (measured with barrels resolved to the declaring file) has **one upward edge** (`core/server/multiServerLauncher.ts` → `features/active-servers/views/launchNotifications.ts`, already on #42's list), **one cross-feature pair** (`active-servers` → `collaboration`, the nested COLLABORATION group, by design) and **five two-way pairs inside `core/`** that #42 must break. Today there are 15 two-way pairs between top-level folders.
-- Plan: batch 0 dissolves the barrels, then **14 move batches**, one per feature area, each one bisectable commit. **It must run after #34, #35, #40 and #42 have merged**, in a window with no other open PR touching `src/`.
-- Behaviour-neutrality cannot be proved with H1 (identical bundle hash), because webpack embeds module paths. The proposed proof (H3) compares every compiled module after `tsc --removeComments`, with each relative `require()` replaced by the module it resolves to. This was piloted on a scratch copy of the visualize-data and learn-more batches: 17 files moved, 18 files rewritten, 328/328 modules equivalent, and an injected one-character change was caught.
+- Plan: batch 0 dissolves the barrels, then **14 move batches**, one per feature area, each one bisectable commit. **It must run after #34, #35 and #42 have merged** (#40 merged as PR #57 and is already in this map), in a window with no other open PR touching `src/`.
+- Behaviour-neutrality cannot be proved with H1 (identical bundle hash), because webpack embeds module paths. The proposed proof (H3) compares every compiled module after `tsc --removeComments`, with each relative `require()` replaced by the module it resolves to. This was piloted on a scratch copy of the visualize-data and learn-more batches: 17 files moved, 19 files rewritten, 332/332 modules equivalent, and an injected one-character change was caught.
 
 **Decisions for the maintainer** (each with the recommendation used in this document):
 
@@ -25,11 +25,11 @@
 
 | Folder | Files | Lines | What it holds |
 |---|---:|---:|---|
-| `code_analysis/` | 164 | 21,463 | Analysis engine, commands, sidebar section and settings, history, export, dependencies |
+| `code_analysis/` | 166 | 21,453 | Analysis engine, commands, sidebar section and settings, history, export, dependencies |
 | `servers/` | 44 | 8,632 | HTTP/HTTPS/SSE/WebSocket runtime, collaboration room, broadcast, server commands and configuration views |
-| `views/` | 30 | 3,437 | `ModularTreeDataProvider` plus one sub-folder per sidebar section |
+| `views/` | 32 | 3,467 | `ModularTreeDataProvider`, #40's `sectionDefinitions.ts`, and one sub-folder per sidebar section |
 | `python_env/` | 7 | 2,088 | Managed venv, its commands and tree items |
-| `babia_templates/` | 9 | 2,206 | Chart registry, models and HTML template processing |
+| `babia_templates/` | 9 | 2,222 | Chart registry, models and HTML template processing |
 | `active_servers/` | 10 | 2,049 | Running-server registry and control, plus actions |
 | `visualize_data/` | 7 | 1,720 | "Visualize your own JSON" |
 | `visualization_settings/` | 9 | 1,512 | Palette, environment, colours |
@@ -45,7 +45,7 @@
 <details><summary>Full current tree: folder → direct files / lines (subtree files / lines)</summary>
 
 ```text
-src/  1 files 148 lines (subtree 328 / 47969)
+src/  1 files 148 lines (subtree 332 / 48005)
   active_servers/  0 files 0 lines (subtree 10 / 2049)
     commands/  1 files 265 lines (subtree 1 / 265)
     model/  1 files 85 lines (subtree 1 / 85)
@@ -61,13 +61,13 @@ src/  1 files 148 lines (subtree 328 / 47969)
     views/  1 files 146 lines (subtree 3 / 461)
       interactions/  1 files 161 lines (subtree 1 / 161)
       items/  1 files 154 lines (subtree 1 / 154)
-  babia_templates/  0 files 0 lines (subtree 9 / 2206)
+  babia_templates/  0 files 0 lines (subtree 9 / 2222)
     charts/  2 files 656 lines (subtree 2 / 656)
     models/  1 files 84 lines (subtree 1 / 84)
-    processing/  3 files 861 lines (subtree 5 / 1375)
+    processing/  3 files 877 lines (subtree 5 / 1391)
       placeholders/  2 files 514 lines (subtree 2 / 514)
     registry/  1 files 91 lines (subtree 1 / 91)
-  code_analysis/  0 files 0 lines (subtree 164 / 21463)
+  code_analysis/  0 files 0 lines (subtree 166 / 21453)
     commands/  1 files 81 lines (subtree 35 / 2400)
       clean_analysis/  1 files 95 lines (subtree 1 / 95)
       directory_analysis/  5 files 370 lines (subtree 5 / 370)
@@ -88,13 +88,13 @@ src/  1 files 148 lines (subtree 328 / 47969)
           view_theme/  2 files 70 lines (subtree 2 / 70)
         files_by_language/  1 files 106 lines (subtree 1 / 106)
         project_by_language/  1 files 192 lines (subtree 1 / 192)
-    configuration/  2 files 451 lines (subtree 4 / 653)
-      models/  2 files 202 lines (subtree 2 / 202)
+    configuration/  2 files 451 lines (subtree 4 / 654)
+      models/  2 files 203 lines (subtree 2 / 203)
     dependencies/  3 files 325 lines (subtree 3 / 325)
-    engine/  1 files 163 lines (subtree 55 / 6816)
-      components/  0 files 0 lines (subtree 22 / 827)
-        customComponents/  22 files 827 lines (subtree 22 / 827)
-      core/  2 files 464 lines (subtree 2 / 464)
+    engine/  1 files 163 lines (subtree 56 / 6798)
+      components/  0 files 0 lines (subtree 23 / 785)
+        customComponents/  23 files 785 lines (subtree 23 / 785)
+      core/  2 files 488 lines (subtree 2 / 488)
       launchers/  4 files 583 lines (subtree 4 / 583)
       parsers/  4 files 909 lines (subtree 4 / 909)
       processors/  2 files 301 lines (subtree 2 / 301)
@@ -107,20 +107,21 @@ src/  1 files 148 lines (subtree 328 / 47969)
     refresh/  3 files 543 lines (subtree 3 / 543)
     services/  4 files 855 lines (subtree 4 / 855)
     utils/  2 files 292 lines (subtree 2 / 292)
-    views/  2 files 198 lines (subtree 38 / 4288)
+    views/  2 files 198 lines (subtree 39 / 4295)
       interactions/  2 files 68 lines (subtree 2 / 68)
       items/  2 files 45 lines (subtree 2 / 45)
-      subsections/  1 files 9 lines (subtree 32 / 3977)
+      subsections/  1 files 9 lines (subtree 33 / 3984)
         active_analyses/  0 files 0 lines (subtree 2 / 1256)
           commands/  1 files 783 lines (subtree 1 / 783)
           services/  1 files 473 lines (subtree 1 / 473)
-        analysis_settings/  2 files 269 lines (subtree 25 / 2351)
+        analysis_settings/  2 files 269 lines (subtree 26 / 2358)
           analysis_directory_mode/  2 files 187 lines (subtree 2 / 187)
           analysis_file_mode/  2 files 111 lines (subtree 2 / 111)
           auto_analysis_delay/  2 files 191 lines (subtree 2 / 191)
           auto_analysis_enabled/  2 files 127 lines (subtree 2 / 127)
-          chart_type_directory/  2 files 162 lines (subtree 2 / 162)
-          chart_type_file/  2 files 182 lines (subtree 2 / 182)
+          chart_type_directory/  2 files 111 lines (subtree 2 / 111)
+          chart_type_file/  2 files 127 lines (subtree 2 / 127)
+          chart_type_shared/  1 files 113 lines (subtree 1 / 113)
           dimension_mapping_directory/  2 files 61 lines (subtree 2 / 61)
           dimension_mapping_file/  2 files 284 lines (subtree 2 / 284)
           dimension_mapping_shared/  1 files 303 lines (subtree 1 / 303)
@@ -176,7 +177,7 @@ src/  1 files 148 lines (subtree 328 / 47969)
       interactions/  2 files 308 lines (subtree 2 / 308)
       items/  1 files 24 lines (subtree 1 / 24)
   utils/  12 files 1038 lines (subtree 12 / 1038)
-  views/  2 files 639 lines (subtree 30 / 3437)
+  views/  3 files 644 lines (subtree 32 / 3467)
     active_servers/  2 files 216 lines (subtree 3 / 750)
       items/  1 files 534 lines (subtree 1 / 534)
     babia_examples/  2 files 92 lines (subtree 4 / 391)
@@ -184,7 +185,7 @@ src/  1 files 148 lines (subtree 328 / 47969)
       items/  1 files 144 lines (subtree 1 / 144)
     collaboration/  2 files 33 lines (subtree 3 / 112)
       items/  1 files 79 lines (subtree 1 / 79)
-    common/  1 files 125 lines (subtree 1 / 125)
+    common/  2 files 150 lines (subtree 2 / 150)
     learn_more/  2 files 60 lines (subtree 4 / 181)
       interactions/  1 files 23 lines (subtree 1 / 23)
       items/  1 files 98 lines (subtree 1 / 98)
@@ -220,9 +221,9 @@ src/  1 files 148 lines (subtree 328 / 47969)
 
 | Metric | Now | Target |
 |---|---:|---:|
-| Files / lines | 328 / 47,969 | 281 / 47,601 (−47 barrels, −368 lines) |
-| Folders (including `src/`) | 168 | 99 |
-| snake_case / camelCase / kebab-case folder names | 55 / 1 / 0 | 0 / 0 / 23 (all others are single words) |
+| Files / lines | 332 / 48,005 | 285 / 47,636 (−47 barrels, −369 lines) |
+| Folders (including `src/`) | 169 | 99 |
+| snake_case / camelCase / kebab-case folder names | 56 / 1 / 0 | 0 / 0 / 23 (all others are single words) |
 | Leaf folders that hold exactly one file | 68 | 8 (canonical names only: `commands/`, `services/`, `model/`, `startup/`, `tree/`, `webview/`, `ws/`) |
 | `index.ts` barrels | 49 | 0 |
 | Maximum folder depth under `src/` | 5 | 5 |
@@ -246,7 +247,7 @@ Each sidebar section is split between a layer folder and a feature folder, so fi
 | Collaboration | `collaboration/{model,services}` | `views/collaboration/{…}` | `commands/collaboration/collaborationCommands.ts` (the real implementation, not a wrapper) |
 | Analysis | `code_analysis/**` | `code_analysis/views/**` (its own; only `views/index.ts` re-exports it) | `commands/analysis/AnalysisCommands.ts` (holds the "run last analysis" logic) |
 
-Inside the analysis feature the same split repeats one level down: each of the 11 analysis settings has its tree item in `code_analysis/views/subsections/analysis_settings/<setting>/` and its commands in `code_analysis/commands/subsections/analysis_settings/<setting>/`, 43 files in two mirrored trees (18 + 25), each with its own `index.ts`.
+Inside the analysis feature the same split repeats one level down: each of the 11 analysis settings has its tree item in `code_analysis/views/subsections/analysis_settings/<setting>/` and its commands in `code_analysis/commands/subsections/analysis_settings/<setting>/`, 44 files in two mirrored trees (18 + 26), each with its own `index.ts`.
 
 The split creates **10 pairs of files with the same basename**: `activeServersCommands.ts`, `babiaExamplesCommands.ts`, `learnMoreCommands.ts`, `pythonEnvCommands.ts`, `serverCommands.ts`, `visualizationSettingsCommands.ts`, `visualizeDataCommands.ts` (feature module + wrapper), `visualizationSettingsItems.ts` and `visualizeDataItems.ts` (feature items + sidebar adapter), and `activeAnalysesCommands.ts` (`code_analysis/commands/subsections/active_analyses/` and `code_analysis/views/subsections/active_analyses/commands/`, **two classes both named `ActiveAnalysesCommands`**). `commands/analysis/AnalysisCommands.ts` and `code_analysis/commands/analysisCommands.ts` differ only by the case of one letter. The examples feature also has two click handlers (`babia_examples/views/interactions/handleExampleClicks.ts`, `views/babia_examples/interactions/handleBabiaExampleClicks.ts`) and two item factories (`exampleItems.ts`, `babiaExampleItems.ts`). That is a duplication to record for 1.3.0, not something a move should merge.
 
@@ -258,15 +259,15 @@ The split creates **10 pairs of files with the same basename**: `activeServersCo
 
 ### 2.3 Folders that hold one file
 
-68 leaf folders hold exactly one file, and 36 more hold one file plus its `index.ts`. Examples of the first kind: `active_servers/{model,registry,runtime}/`, `babia_examples/{commands,model,runtime}/`, `babia_templates/{models,registry}/`, `learn_more/commands/`, `python_env/{commands,storage,utils,views/items}/`, `servers/{commands,storage,utils}/`, `visualize_data/{commands,model,runtime,state}/`. All but one of the per-setting folders of §2.1 are one of the two kinds. `learn_more/` is a top-level folder for one 72-line file.
+68 leaf folders hold exactly one file, and 35 more hold one file plus its `index.ts`. Examples of the first kind: `active_servers/{model,registry,runtime}/`, `babia_examples/{commands,model,runtime}/`, `babia_templates/{models,registry}/`, `learn_more/commands/`, `python_env/{commands,storage,utils,views/items}/`, `servers/{commands,storage,utils}/`, `visualize_data/{commands,model,runtime,state}/`. All but one of the per-setting folders of §2.1 are one of the two kinds. `learn_more/` is a top-level folder for one 72-line file.
 
 ### 2.4 Barrels
 
-49 `index.ts` files. 47 only re-export, and 24 of those have exactly one importer. `code_analysis/commands/subsections/analysis_settings/analysis_file_mode/index.ts` is imported by **25 files across the analysis commands**, only to reach the `CommandRegistration` type that `analysisFileModeCommands.ts` re-exports: a reach-in through an unrelated setting's folder. The barrels `remote_access/index.ts` and `collaboration/index.ts` (12 importers each) are what makes `servers/runtime/*` look dependent on the remote-access and collaboration *services*, when the server only uses `RemoteSessionAuthority` and the profile model (#42 item 1). `views/index.ts` re-exports every section with `export *`.
+49 `index.ts` files. 47 only re-export, and 23 of those have exactly one importer. `code_analysis/commands/subsections/analysis_settings/analysis_file_mode/index.ts` is imported by **25 files across the analysis commands**, only to reach the `CommandRegistration` type that `analysisFileModeCommands.ts` re-exports: a reach-in through an unrelated setting's folder. The barrels `remote_access/index.ts` and `collaboration/index.ts` (12 importers each) are what makes `servers/runtime/*` look dependent on the remote-access and collaboration *services*, when the server only uses `RemoteSessionAuthority` and the profile model (#42 item 1). `views/index.ts` re-exports every section with `export *`.
 
 ### 2.5 Deep reach-ins and misplaced files
 
-- 185 relative imports climb 3 or more levels (`../../../`). 54 climb 4 or more, and all 54 come from 26 files under `code_analysis/{views,commands}/subsections/`.
+- 188 relative imports climb 3 or more levels (`../../../`). 56 climb 4 or more, and all 56 come from 27 files under `code_analysis/{views,commands}/subsections/`.
 - Files whose importers all live in **one other** folder (measured by `misplaced`, appendix A.3):
 
 | File | Only importer folder | Target |
@@ -320,7 +321,7 @@ src/
 
 **Why this shape, and not a flat `features/<feature>/` holding everything:** the server, the analysis engine, the chart system and git history are not sidebar features. Three or more features use each of them (`core/server` is imported by analysis, examples, visualize-data, active-servers and servers), and they are the code that `packages/core` (story #13) will take. Putting them under one feature would make every other feature import that feature, which is the cross-feature tangle the move is meant to remove. Inside each feature the tree is **feature-first**: `commands/`, `views/`, `services/`, `model/`, created only when needed. The analysis feature adds `sections/<subsection>/`, where the tree item and the commands of one subsection or setting sit together.
 
-**`packages/core` readiness (no host ports designed here):** after the move, 54 of the 152 files in `core/` import `vscode` (36%), compared with 105 of the 112 in `features/` (94%). So `core/` is the extraction candidate, folder by folder: `core/history` (3 of 11 import vscode), `core/export` (1 of 8), `core/server` (11 of 44) and `core/charts` (5 of 13) come first. Removing the remaining `vscode` imports is #13's work.
+**`packages/core` readiness (no host ports designed here):** after the move, 54 of the 153 files in `core/` import `vscode` (35%), compared with 106 of the 113 in `features/` (94%). So `core/` is the extraction candidate, folder by folder: `core/history` (3 of 11 import vscode), `core/export` (1 of 8), `core/server` (11 of 44) and `core/charts` (5 of 13) come first. Removing the remaining `vscode` imports is #13's work.
 
 ### 3.2 Naming convention
 
@@ -355,7 +356,7 @@ src/
 ├── extension.ts
 ├── app/
 │   ├── commands/           [2]  registerAllCommands.ts, generalCommands.ts
-│   ├── sidebar/            [2]  ModularTreeDataProvider.ts, commonCommands.ts  (+ #40's sectionDefinitions.ts)
+│   ├── sidebar/            [4]  ModularTreeDataProvider.ts, sectionDefinitions.ts, sectionChild.ts, commonCommands.ts
 │   └── startup/            [1]  startupCoordinator.ts
 ├── features/
 │   ├── active-servers/
@@ -371,7 +372,7 @@ src/
 │   │   │   ├── active-analyses/     [3]  commands, data service, registrations
 │   │   │   ├── files-by-language/   [2]  subsection provider + commands
 │   │   │   ├── project-by-language/ [2]  subsection provider + commands
-│   │   │   └── settings/            [3]  provider, settings commands, shared dimension-mapping core
+│   │   │   └── settings/            [4]  provider, settings commands, shared chart-type and dimension-mapping cores
 │   │   │       ├── analysis-directory-mode/  analysis-file-mode/  auto-analysis-delay/  auto-analysis-enabled/
 │   │   │       ├── chart-type-directory/  chart-type-file/  dimension-mapping-directory/  dimension-mapping-file/
 │   │   │       └── files-by-language-sorting/  profile-configuration/  view-theme/     [2–3 each: tree item + commands]
@@ -393,7 +394,7 @@ src/
 │   ├── analysis/           [1]  analysisOrchestrator.ts
 │   │   ├── configuration/  [2]   languages/ [2]   launchers/ [4]   parsers/ [4]   processors/ [2]
 │   │   ├── python/         [3]  executePython.ts, backendScriptPath.ts, xrFieldSchemaService.ts
-│   │   ├── refresh/        [2]   scene-assets/ [21]  (was engine/components/customComponents)
+│   │   ├── refresh/        [2]   scene-assets/ [22]  (was engine/components/customComponents)
 │   │   ├── session/        [2]   session-servers/ [4]   utils/ [3]   watchers/ [11]
 │   ├── charts/             [5]  chartModels.ts, chartRegistry.ts, chartPresentation.ts, templateCharts.ts, getVisualizationConfiguration.ts
 │   │   ├── processing/     [3]  └── placeholders/ [2]
@@ -411,7 +412,7 @@ src/
 ├── platform/               [1]  extensionContext.ts
 │   ├── commands/           [2]  commandRegistry.ts, commandBuilder.ts
 │   ├── logging/            [2]  logger.ts, logPolicy.ts
-│   ├── tree/               [1]  baseInterfaces.ts  (+ #40's sectionChild.ts)
+│   ├── tree/               [1]  baseInterfaces.ts
 │   ├── ui/                 [2]  detailDialog.ts, errorHandler.ts
 │   └── webview/            [1]  panelManager.ts
 └── shared/                 [2]  nonceGenerator.ts, sha256Generator.ts
@@ -425,7 +426,7 @@ Notes on choices that are not obvious:
 - **The Python venv is `core/python-env/`**, because `executePython.ts` and `gitRevisionExporter.ts` need it (host-boundary §4). `features/python-env/` keeps only its commands and tree.
 - **The visualization-settings store is `core/charts/settings/`**, because `core/charts/getVisualizationConfiguration.ts` reads it. Today it does so through a lazy `require('../visualization_settings')` of the whole barrel (tree items included). After the move the `require` targets `settingsAccessors.ts` directly. Keep it lazy and keep it a `require` until #42 decides on that cycle.
 - **`commands/shared/commandRegistry.ts` → `platform/commands/`** (story #42 item 6 under the new names). 18 files import it through its barrel today. Every feature can import `platform/`, so the seven `commands↔<feature>` cycles disappear.
-- **The 8 lazy `require()` calls in `ModularTreeDataProvider.ts` stay lazy `require()` calls** (cleanup skill §4). Only their specifier strings change, and the codemod rewrites `require()` specifiers like imports. #40 is reshaping this file, so the move must take #40's version.
+- **The 8 lazy `require()` calls in `ModularTreeDataProvider.ts` stay lazy `require()` calls** (cleanup skill §4). Only their specifier strings change, and the codemod rewrites `require()` specifiers like imports. #40 reshaped this file (PR #57); the eight `require()` calls survived it.
 
 ### 3.4 Interplay with concurrent and later stories
 
@@ -433,7 +434,7 @@ Notes on choices that are not obvious:
 |---|---|---|
 | #34 logging | `console.*` → logger in almost every file (1,401 calls) | Run the move **after** it merges: a move first would turn #34's hundreds of hunks into rename conflicts. |
 | #35 pipeline / export / settings | `executePython.ts`, `exportManifest.ts`, settings storage | Move after it. The map rows stand, unless #35 splits files; new files go where their parent goes (§3.1 rule). |
-| #40 data-driven tree + scene assets | `ModularTreeDataProvider.ts` (−500 lines), new `views/sectionDefinitions.ts` and `views/common/sectionChild.ts`, and the 22 `customComponents/*ComponentAsset.ts` may collapse into a table | Move after it. Add `views/sectionDefinitions.ts` → `app/sidebar/`, `views/common/sectionChild.ts` → `platform/tree/`, and map whatever replaces the asset files to `core/analysis/scene-assets/`. |
+| #40 data-driven tree + scene assets | **Merged (PR #57) while this analysis ran; the numbers here include it.** New `views/sectionDefinitions.ts`, `views/common/sectionChild.ts`, `customComponents/singleFileRuntimeAssets.ts`, `analysis_settings/chart_type_shared/sharedChartTypeSettingCore.ts` | Mapped. `sectionChild.ts` goes to `app/sidebar/`, not `platform/tree/`: it is the union of every section's item type, so it imports eight features. |
 | #42 layering | barrel imports in `servers/runtime/*`, `activeServerRegistry` emitter, `resolveTemplatePath()`, `commandRegistry` move, folder-direction test | Its direction test should read the layer list of §3.1 from **one data file** (e.g. `test/tooling/layers.json`), so the move updates data instead of test code. Its cycle fixes should target the five `core/` pairs of §3.5. |
 | #13 host ports (epic #11) | not started | Nothing here designs ports. `core/` is the set of folders a port would cut off. |
 
@@ -447,7 +448,7 @@ Notes on choices that are not obvious:
 
 ## 4. Move map
 
-Every `.ts` file under `src/` (328), relative to `src/`. **B0** = re-export barrel, dissolved in batch 0 (its importers are retargeted to the declaring files, the barrel is deleted). **—** = stays. The batch numbers refer to §5.
+Every `.ts` file under `src/` (332), relative to `src/`. **B0** = re-export barrel, dissolved in batch 0 (its importers are retargeted to the declaring files, the barrel is deleted). **—** = stays. The batch numbers refer to §5.
 
 | Old (`src/…`) | New (`src/…`) | Batch |
 |---|---|---|
@@ -538,6 +539,7 @@ Every `.ts` file under `src/` (328), relative to `src/`. **B0** = re-export barr
 | `code_analysis/engine/components/customComponents/projectEvolutionComponentAsset.ts` | `core/analysis/scene-assets/projectEvolutionComponentAsset.ts` | B12 |
 | `code_analysis/engine/components/customComponents/renderBudgetComponentAsset.ts` | `core/analysis/scene-assets/renderBudgetComponentAsset.ts` | B12 |
 | `code_analysis/engine/components/customComponents/runtimeAssembly.ts` | `core/analysis/scene-assets/runtimeAssembly.ts` | B12 |
+| `code_analysis/engine/components/customComponents/singleFileRuntimeAssets.ts` | `core/analysis/scene-assets/singleFileRuntimeAssets.ts` | B12 |
 | `code_analysis/engine/components/customComponents/virtualScreenComponentAsset.ts` | `core/analysis/scene-assets/virtualScreenComponentAsset.ts` | B12 |
 | `code_analysis/engine/components/customComponents/xrChartDebugComponentAsset.ts` | `core/analysis/scene-assets/xrChartDebugComponentAsset.ts` | B12 |
 | `code_analysis/engine/components/customComponents/xrChartMappingUiComponentAsset.ts` | `core/analysis/scene-assets/xrChartMappingUiComponentAsset.ts` | B12 |
@@ -623,6 +625,7 @@ Every `.ts` file under `src/` (328), relative to `src/`. **B0** = re-export barr
 | `code_analysis/views/subsections/analysis_settings/chart_type_directory/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `code_analysis/views/subsections/analysis_settings/chart_type_file/chartTypeFile.ts` | `features/analysis/sections/settings/chart-type-file/chartTypeFile.ts` | B13 |
 | `code_analysis/views/subsections/analysis_settings/chart_type_file/index.ts` | *(dissolved: re-export barrel)* | B0 |
+| `code_analysis/views/subsections/analysis_settings/chart_type_shared/sharedChartTypeSettingCore.ts` | `features/analysis/sections/settings/sharedChartTypeSettingCore.ts` | B13 |
 | `code_analysis/views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory.ts` | `features/analysis/sections/settings/dimension-mapping-directory/dimensionMappingDirectory.ts` | B13 |
 | `code_analysis/views/subsections/analysis_settings/dimension_mapping_directory/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `code_analysis/views/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFile.ts` | `features/analysis/sections/settings/dimension-mapping-file/dimensionMappingFile.ts` | B13 |
@@ -744,6 +747,7 @@ Every `.ts` file under `src/` (328), relative to `src/`. **B0** = re-export barr
 | `views/collaboration/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/collaboration/items/collaborationItems.ts` | `features/collaboration/views/collaborationItems.ts` | B8 |
 | `views/common/baseInterfaces.ts` | `platform/tree/baseInterfaces.ts` | B1 |
+| `views/common/sectionChild.ts` | `app/sidebar/sectionChild.ts` | B14 |
 | `views/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/learn_more/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/learn_more/interactions/handleLearnMoreClicks.ts` | `features/learn-more/views/handleLearnMoreClicks.ts` | B2 |
@@ -752,6 +756,7 @@ Every `.ts` file under `src/` (328), relative to `src/`. **B0** = re-export barr
 | `views/ModularTreeDataProvider.ts` | `app/sidebar/ModularTreeDataProvider.ts` | B14 |
 | `views/python_env/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/python_env/PythonEnvSectionProvider.ts` | `features/python-env/views/PythonEnvSectionProvider.ts` | B3 |
+| `views/sectionDefinitions.ts` | `app/sidebar/sectionDefinitions.ts` | B14 |
 | `views/servers/index.ts` | *(dissolved: re-export barrel)* | B0 |
 | `views/servers/items/serverItems.ts` | `features/servers/views/serverItems.ts` | B10 |
 | `views/servers/ServersSectionProvider.ts` | `features/servers/views/ServersSectionProvider.ts` | B10 |
@@ -782,7 +787,7 @@ Every `.ts` file under `src/` (328), relative to `src/`. **B0** = re-export barr
 
 Machine-readable form: keys and values use the `src/…` form that tests and docs use, and `null` means dissolved.
 
-<details><summary>Move map as JSON (328 entries)</summary>
+<details><summary>Move map as JSON (332 entries)</summary>
 
 ```json
 {
@@ -873,6 +878,7 @@ Machine-readable form: keys and values use the `src/…` form that tests and doc
   "src/code_analysis/engine/components/customComponents/projectEvolutionComponentAsset.ts": "src/core/analysis/scene-assets/projectEvolutionComponentAsset.ts",
   "src/code_analysis/engine/components/customComponents/renderBudgetComponentAsset.ts": "src/core/analysis/scene-assets/renderBudgetComponentAsset.ts",
   "src/code_analysis/engine/components/customComponents/runtimeAssembly.ts": "src/core/analysis/scene-assets/runtimeAssembly.ts",
+  "src/code_analysis/engine/components/customComponents/singleFileRuntimeAssets.ts": "src/core/analysis/scene-assets/singleFileRuntimeAssets.ts",
   "src/code_analysis/engine/components/customComponents/virtualScreenComponentAsset.ts": "src/core/analysis/scene-assets/virtualScreenComponentAsset.ts",
   "src/code_analysis/engine/components/customComponents/xrChartDebugComponentAsset.ts": "src/core/analysis/scene-assets/xrChartDebugComponentAsset.ts",
   "src/code_analysis/engine/components/customComponents/xrChartMappingUiComponentAsset.ts": "src/core/analysis/scene-assets/xrChartMappingUiComponentAsset.ts",
@@ -958,6 +964,7 @@ Machine-readable form: keys and values use the `src/…` form that tests and doc
   "src/code_analysis/views/subsections/analysis_settings/chart_type_directory/index.ts": null,
   "src/code_analysis/views/subsections/analysis_settings/chart_type_file/chartTypeFile.ts": "src/features/analysis/sections/settings/chart-type-file/chartTypeFile.ts",
   "src/code_analysis/views/subsections/analysis_settings/chart_type_file/index.ts": null,
+  "src/code_analysis/views/subsections/analysis_settings/chart_type_shared/sharedChartTypeSettingCore.ts": "src/features/analysis/sections/settings/sharedChartTypeSettingCore.ts",
   "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_directory/dimensionMappingDirectory.ts": "src/features/analysis/sections/settings/dimension-mapping-directory/dimensionMappingDirectory.ts",
   "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_directory/index.ts": null,
   "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_file/dimensionMappingFile.ts": "src/features/analysis/sections/settings/dimension-mapping-file/dimensionMappingFile.ts",
@@ -1079,6 +1086,7 @@ Machine-readable form: keys and values use the `src/…` form that tests and doc
   "src/views/collaboration/index.ts": null,
   "src/views/collaboration/items/collaborationItems.ts": "src/features/collaboration/views/collaborationItems.ts",
   "src/views/common/baseInterfaces.ts": "src/platform/tree/baseInterfaces.ts",
+  "src/views/common/sectionChild.ts": "src/app/sidebar/sectionChild.ts",
   "src/views/index.ts": null,
   "src/views/learn_more/index.ts": null,
   "src/views/learn_more/interactions/handleLearnMoreClicks.ts": "src/features/learn-more/views/handleLearnMoreClicks.ts",
@@ -1087,6 +1095,7 @@ Machine-readable form: keys and values use the `src/…` form that tests and doc
   "src/views/ModularTreeDataProvider.ts": "src/app/sidebar/ModularTreeDataProvider.ts",
   "src/views/python_env/index.ts": null,
   "src/views/python_env/PythonEnvSectionProvider.ts": "src/features/python-env/views/PythonEnvSectionProvider.ts",
+  "src/views/sectionDefinitions.ts": "src/app/sidebar/sectionDefinitions.ts",
   "src/views/servers/index.ts": null,
   "src/views/servers/items/serverItems.ts": "src/features/servers/views/serverItems.ts",
   "src/views/servers/ServersSectionProvider.ts": "src/features/servers/views/ServersSectionProvider.ts",
@@ -1122,7 +1131,7 @@ Machine-readable form: keys and values use the `src/…` form that tests and doc
 
 ### 5.1 Preconditions and sequencing
 
-1. **#34, #35, #40 and #42 have merged.** The move runs as its own wave, and no other open PR touches `src/` while it runs (a rename is cheap to replay but expensive to rebase onto).
+1. **#34, #35 and #42 have merged** (#40 already has). The move runs as its own wave, and no other open PR touches `src/` while it runs (a rename is cheap to replay but expensive to rebase onto).
 2. **Re-generate the map on the tree as it is then.** `graph` + the map rules (A.1, A.4) flag any file the map does not cover. Every new file gets a row by the placement rule.
 3. **One preparatory tooling commit.** `npm run guardrails:update` treats new `byModule` keys and new paths in `size.filesOver500` / `functions.over80Lines` as regressions, so a pure move would need `--allow-regression` and would leave a waiver behind (today `waivers` is `[]`). Teach `test/tooling/measureGuardrails.cjs` to accept `--renamed <map.json>`, which re-keys the old baseline through the map before comparing. The ratchet then stays tight, and a move reports "no change". `console.byModule` / `any.byModule` group by the first folder under `src/`. After the move that is `core`, `features`, …, which is too coarse, so group by the first **two** levels for `core/` and `features/` (same commit).
 4. **`rm -rf out` before `npm run compile-tests`** in every batch. `test/runners/run-node-tests.cjs` fails on compiled files with no source left ("no source left: out/…"), and a stale `out/` keeps old paths importable, which would hide a missed specifier.
@@ -1138,38 +1147,38 @@ One commit per area (analysis commands, analysis views, servers, views, collabor
 
 ### 5.3 Batches 1–14
 
-Columns: files moved / their lines / **importers** (files outside the batch whose specifiers the codemod rewrites) / **test files** that name a moved path (any of `src/a/b.ts`, compiled `a/b.js`, `out/a/b.js`, or `'a', 'b', 'c.ts'` path segments; `guardrail-baseline.json` counted) / **tooling** files outside `test/` / **living docs** / **historical docs** (AUDIT, session logs, STATUS, ROADMAP/DESIGN/CRITIC, CHANGELOG, `docs/cleanup/*`, ADRs: never rewritten). Doc counts are a lower bound: they count full paths only, and prose that names a file relative to its module (the `ARCHITECTURE.md` module map does) is found by grepping the old folder name. That grep (`grep -rl <old-folder> --include=*.md`, step 4 of §5.4) finds 33 Markdown files naming `code_analysis`, 19 naming `python_env`, 16 naming `active_servers` and 14 naming `servers/runtime`, historical ones included.
+Columns: files moved / their lines / **importers** (files outside the batch whose specifiers the codemod rewrites) / **test files** that name a moved path (any of `src/a/b.ts`, compiled `a/b.js`, `out/a/b.js`, or `'a', 'b', 'c.ts'` path segments; `guardrail-baseline.json` counted) / **tooling** files outside `test/` / **living docs** / **historical docs** (AUDIT, session logs, STATUS, ROADMAP/DESIGN/CRITIC, CHANGELOG, `docs/cleanup/*`, ADRs: never rewritten). Doc counts are a lower bound: they count full paths only, and prose that names a file relative to its module (the `ARCHITECTURE.md` module map does) is found by grepping the old folder name. That grep (`grep -rl <old-folder> --include=*.md`, step 4 of §5.4) finds 33 Markdown files naming `code_analysis`, 19 naming `python_env`, 17 naming `active_servers` and 14 naming `servers/runtime` (historical ones included, these two documents excluded).
 
 | Batch | Area | Files | Lines | Importers | Test files | Tooling | Living docs | Historical docs | Risk |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| B1 | platform/ + shared/ | 11 | 762 | 41 | 8 | 0 | 0 | 9 | medium |
-| B2 | learn-more | 5 | 254 | 3 | 0 | 0 | 0 | 3 | low |
-| B3 | python-env (core + feature) | 9 | 2158 | 6 | 5 | 1 | 2 | 9 | low |
-| B4 | visualization-settings (core/charts/settings + feature) | 12 | 1882 | 4 | 2 | 0 | 0 | 4 | low |
-| B5 | visualize-data | 12 | 2478 | 3 | 2 | 0 | 0 | 3 | low |
-| B6 | examples | 10 | 1410 | 3 | 2 | 0 | 0 | 3 | low |
-| B7 | core/charts | 10 | 2259 | 12 | 11 | 0 | 3 | 6 | medium |
-| B8 | collaboration + remote-access (core + feature) | 11 | 2014 | 11 | 7 | 0 | 0 | 4 | medium |
-| B9 | core/server | 44 | 8571 | 22 | 19 | 0 | 2 | 12 | high |
-| B10 | servers + active-servers features | 16 | 3177 | 5 | 4 | 0 | 1 | 9 | medium |
-| B11 | core/history + core/export + core/dependencies | 21 | 5608 | 3 | 15 | 0 | 0 | 7 | medium |
-| B12 | core/analysis | 61 | 8371 | 47 | 28 | 1 | 5 | 8 | high |
-| B13 | features/analysis | 53 | 7652 | 29 | 11 | 0 | 0 | 7 | medium |
-| B14 | app/ composition root | 5 | 857 | 2 | 7 | 0 | 4 | 9 | medium |
+| B1 | platform/ + shared/ | 11 | 762 | 42 | 8 | 0 | 0 | 11 | medium |
+| B2 | learn-more | 5 | 254 | 4 | 0 | 0 | 0 | 4 | low |
+| B3 | python-env (core + feature) | 9 | 2158 | 8 | 5 | 1 | 2 | 11 | low |
+| B4 | visualization-settings (core/charts/settings + feature) | 12 | 1882 | 5 | 2 | 0 | 0 | 6 | low |
+| B5 | visualize-data | 12 | 2478 | 4 | 2 | 0 | 0 | 4 | low |
+| B6 | examples | 10 | 1410 | 4 | 2 | 0 | 0 | 5 | low |
+| B7 | core/charts | 10 | 2275 | 13 | 13 | 0 | 3 | 8 | medium |
+| B8 | collaboration + remote-access (core + feature) | 11 | 2014 | 11 | 7 | 0 | 0 | 6 | medium |
+| B9 | core/server | 44 | 8571 | 22 | 20 | 0 | 2 | 14 | high |
+| B10 | servers + active-servers features | 16 | 3177 | 6 | 4 | 0 | 1 | 11 | medium |
+| B11 | core/history + core/export + core/dependencies | 21 | 5608 | 3 | 15 | 0 | 0 | 9 | medium |
+| B12 | core/analysis | 62 | 8353 | 47 | 29 | 1 | 5 | 10 | high |
+| B13 | features/analysis | 54 | 7659 | 31 | 12 | 0 | 0 | 9 | medium |
+| B14 | app/ composition root | 7 | 887 | 2 | 8 | 0 | 4 | 13 | medium |
 
-Totals: 280 files move. 70 distinct test files name a moved path, in 325 (file, path) pairs. Tooling outside `test/` names a moved path in exactly 2 places: `backend/scripts/run-analysis-tests.cjs` (`python_env/runtime/pythonPackageManifest`, B3) and `backend/tests/analyzers/test_analyzer_extension_coverage.py` (`code_analysis/engine/watchers/analysisFilePolicy.ts`, B12). `webpack.config.js` (entry `./src/extension.ts`), `package.json`, `eslint.config.mjs` (`src/**/*.ts`), `tsconfig*.json` and `.vscode/` name no moved path. The webpack copy `to: 'code_analysis/python'` and `backendScriptPath.ts`'s `dist/code_analysis/python` are **the shipped location of the Python backend, not a `src/` folder: they must not change** (the VSIX layout and `scripts/vsix-listing.mjs` depend on them).
+Totals: 284 files move. 76 distinct test files name a moved path, in 338 (file, path) pairs. Tooling outside `test/` names a moved path in exactly 2 places: `backend/scripts/run-analysis-tests.cjs` (`python_env/runtime/pythonPackageManifest`, B3) and `backend/tests/analyzers/test_analyzer_extension_coverage.py` (`code_analysis/engine/watchers/analysisFilePolicy.ts`, B12). `webpack.config.js` (entry `./src/extension.ts`), `package.json`, `eslint.config.mjs` (`src/**/*.ts`), `tsconfig*.json` and `.vscode/` name no moved path. The webpack copy `to: 'code_analysis/python'` and `backendScriptPath.ts`'s `dist/code_analysis/python` are **the shipped location of the Python backend, not a `src/` folder: they must not change** (the VSIX layout and `scripts/vsix-listing.mjs` depend on them).
 
 Risk notes per batch:
 
-- **B1 platform/shared (medium):** few files, but the most importers (41): `logger.ts` is imported by 15 files, `commandRegistry` by 18 via its barrel. Logging tests load `core/logging/logger.js` through `requireOut`. Do it right after #34, while the logger import lines are fresh.
+- **B1 platform/shared (medium):** few files, but the most importers (42): `logger.ts` is imported by 15 files, `commandRegistry` by 18 via its barrel. Logging tests load `core/logging/logger.js` through `requireOut`. Do it right after #34, while the logger import lines are fresh.
 - **B2–B6 small features (low):** learn-more first, as the pilot. The pilot of B2+B5 passed H3 (§0).
-- **B7 core/charts (medium):** 11 test files, including `featureSurface.cjs` and `run-xr-immersive-harness.cjs`. The chart registry is a cross-module contract (ARCHITECTURE "Cross-module contracts" §2): path only, no content change.
+- **B7 core/charts (medium):** 13 test files, including `featureSurface.cjs` and `run-xr-immersive-harness.cjs`. The chart registry is a cross-module contract (ARCHITECTURE "Cross-module contracts" §2): path only, no content change.
 - **B8 collaboration + remote access (medium):** follows the barrel dissolution of `remote_access/index.ts` and `collaboration/index.ts`. `remoteSessionAuthority.ts` and the room server are pinned by the server suites.
-- **B9 core/server (high):** 44 files, 19 test files, the `__dirname` depth constraint (§3.3), the `HttpServer.stop()` dispose-before-close order (cleanup skill §4, untouched by a move but in these files), and `test/servers/*` reading the runtime by path. Run `npm run test:xr-harness` as well.
+- **B9 core/server (high):** 44 files, 20 test files, the `__dirname` depth constraint (§3.3), the `HttpServer.stop()` dispose-before-close order (cleanup skill §4, untouched by a move but in these files), and `test/servers/*` reading the runtime by path. Run `npm run test:xr-harness` as well.
 - **B10 servers + active-servers features (medium).**
 - **B11 history/export/dependencies (medium):** 15 test files. `featureSurface.cjs` reads `gitRevisionExporter.ts`. `npm run test:analysis` as well.
-- **B12 core/analysis (high):** 61 files, 47 importers, 28 test files, the Python backend coverage test, `executePython.ts` (7 test pins), `scene-assets/` read by directory in `test/helpers/runtimeAssembly.cjs`, `packagedLayout.test.cjs`, `runtimeAssemblyParity.test.cjs` and two runtime tests, plus the `runtime-component` and `add-language` skills. Gates: `npm test`, `npm run test:python`, `npm run test:analysis`, the XR harness.
-- **B13 features/analysis (medium):** 53 files but mostly UI. `analysisNamespace.test.cjs` and `activeAnalysesCommands.test.cjs` pin command modules.
+- **B12 core/analysis (high):** 62 files, 47 importers, 29 test files, the Python backend coverage test, `executePython.ts` (7 test pins), `scene-assets/` read by directory in `test/helpers/runtimeAssembly.cjs`, `packagedLayout.test.cjs`, `runtimeAssemblyParity.test.cjs` and two runtime tests, plus the `runtime-component` and `add-language` skills. Gates: `npm test`, `npm run test:python`, `npm run test:analysis`, the XR harness.
+- **B13 features/analysis (medium):** 54 files but mostly UI. `analysisNamespace.test.cjs` and `activeAnalysesCommands.test.cjs` pin command modules.
 - **B14 app/ (medium):** `featureSurface.cjs`, `commandContributions.test.cjs` and `analysisTreeBridge.test.cjs` read `commands/index.ts` and `ModularTreeDataProvider.ts`. CLAUDE.md and the cleanup skill name both files.
 
 ### 5.4 What every batch commit contains
@@ -1185,7 +1194,7 @@ Risk notes per batch:
 
 The bundle cannot be byte-identical. In `npm run compile` (webpack `mode: 'none'`) every module is keyed by its path (`"./src/…"`), and in `npm run package` (production) the numeric module ids are derived from the path. So H1 does not apply. The proof for a pure move has four parts:
 
-1. **Compiled-module equivalence (primary).** Compile the tree before and after with `tsc --removeComments` (comments may legitimately mention paths). For every compiled module of the old tree, the new tree must have a byte-identical twin at its mapped path once each relative `require("…")` is replaced by the module it resolves to (in new-tree terms), and once tsc's import binding names, which follow the file's basename (`visualizeDataItems_1`), are canonicalized to that target. `compare-out.mjs` (A.6) does exactly this and exits 1 on any difference, missing or extra module. Piloted on B2+B5 against today's tree: 328/328 equivalent. A one-character change injected into one moved module was reported.
+1. **Compiled-module equivalence (primary).** Compile the tree before and after with `tsc --removeComments` (comments may legitimately mention paths). For every compiled module of the old tree, the new tree must have a byte-identical twin at its mapped path once each relative `require("…")` is replaced by the module it resolves to (in new-tree terms), and once tsc's import binding names, which follow the file's basename (`visualizeDataItems_1`), are canonicalized to that target. `compare-out.mjs` (A.6) does exactly this and exits 1 on any difference, missing or extra module. Piloted on B2+B5 against today's tree: 332/332 equivalent. A one-character change injected into one moved module was reported.
 2. **Same bundle contents.** `npm run package` before and after: identical module **count** in webpack's stats (`--json`), and `scripts/dist-fingerprint.mjs` / `dist-diff.mjs` showing every non-bundle file in `dist/` identical (the Python copy). The bundle size may differ only by the length of path strings.
 3. **Same user surface.** `test/baseline/featureBaseline.test.cjs` green, with **no** `--write`: commands, menus, views, settings, persisted keys, shipped files, chart types, in-scene modes and Python CLI are unchanged. The command set is also pinned by `assertUniqueCommandIds` at activation.
 4. **All gates:** `npm test`, `npm run lint` (warning budget unchanged), `npm run typecheck`, the reachability guardrail (`unreachable = 0`), plus the batch's specialised suites (§5.3). The maintainer runs one F5 smoke after B9, B12 and B14 (open the sidebar, run one XR analysis, start and stop a server).
