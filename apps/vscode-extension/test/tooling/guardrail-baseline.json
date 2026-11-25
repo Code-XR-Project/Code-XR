@@ -18,22 +18,22 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 398,
+    "console.total": 384,
     "console.byModule": {
-      "active_servers": 112,
+      "active_servers": 107,
       "core": 2,
-      "servers": 284
+      "servers": 275
     },
-    "catch.consoleOnly": 0,
+    "catch.consoleOnly": 1,
     "catch.emptyNoComment": 0,
-    "any.total": 201,
+    "any.total": 200,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
       "code_analysis": 87,
       "commands": 8,
       "python_env": 5,
-      "servers": 12,
+      "servers": 11,
       "utils": 14,
       "views": 54,
       "visualization_settings": 6,
@@ -53,18 +53,17 @@
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
-      "src/servers/runtime/multiServerLauncher.ts",
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 50,
+    "functions.over80Lines": 48,
     "complexity.over10": 72,
     "complexity.over15": 28,
     "complexity.over20": 8,
     "complexity.over30": 4,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 607,
+    "eslint.maxWarnings": 597,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -72,33 +71,25 @@
     }
   },
   "informational": {
-    "src.files": 314,
-    "src.lines": 48617,
-    "src.functions": 3015,
+    "src.files": 330,
+    "src.lines": 48822,
+    "src.functions": 3032,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 44
-      },
-      {
         "file": "src/active_servers/runtime/serverControl.ts",
         "count": 38
-      },
-      {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "count": 38
-      },
-      {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
-        "count": 34
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
         "count": 29
       },
       {
-        "file": "src/servers/runtime/httpsCustomServer.ts",
+        "file": "src/servers/runtime/multiServerLauncher.ts",
+        "count": 26
+      },
+      {
+        "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 24
       },
       {
@@ -108,6 +99,10 @@
       {
         "file": "src/servers/commands/serverCommands.ts",
         "count": 23
+      },
+      {
+        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "count": 22
       },
       {
         "file": "src/servers/utils/networkUtils.ts",
@@ -124,6 +119,10 @@
       {
         "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
         "count": 17
+      },
+      {
+        "file": "src/servers/runtime/httpsCustomServer.ts",
+        "count": 14
       },
       {
         "file": "src/active_servers/registry/activeServerRegistry.ts",
@@ -264,28 +263,20 @@
     ],
     "size.largest10": [
       {
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 1175
-      },
-      {
         "file": "src/python_env/runtime/venvManager.ts",
         "lines": 852
-      },
-      {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 816
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
         "lines": 787
       },
       {
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 782
-      },
-      {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
+      },
+      {
+        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "lines": 620
       },
       {
         "file": "src/views/ModularTreeDataProvider.ts",
@@ -296,12 +287,20 @@
         "lines": 595
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "lines": 593
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 581
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
         "lines": 573
+      },
+      {
+        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "lines": 572
+      },
+      {
+        "file": "src/remote_access/services/remoteAccessManager.ts",
+        "lines": 567
       }
     ]
   },
@@ -330,15 +329,8 @@
     {
       "metric": "console.byModule.core",
       "from": 1,
-      "to": 3,
-      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src",
-      "date": "2026-11-25"
-    },
-    {
-      "metric": "console.total",
-      "from": 1416,
-      "to": 1418,
-      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src",
+      "to": 2,
+      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1)",
       "date": "2026-11-25"
     }
   ]

@@ -1,99 +1,51 @@
 import * as http from 'http';
-import * as net from 'net';
 import { EventEmitter } from 'events';
-import { RawData, WebSocket, WebSocketServer } from 'ws';
-import { buildStarWarsDisplayName } from '../../../collaboration/model/anonymousName';
+import { RawData, WebSocket } from 'ws';
 import { CollaborationProfile } from '../../../collaboration/model/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import {
     AuthenticatedCollaborationSession,
 } from '../../../remote_access';
+import { attachWebSocketEndpoint, WebSocketEndpoint } from '../ws/webSocketEndpoint';
+import {
+    CollaborationMessage,
+    CollaborationPeer,
+    CollaborationRole,
+    CollaborationRoomState,
+    IdentityMode,
+    ParticipantRemovalResult,
+    ParticipantState,
+    SharedEntityState,
+} from './roomTypes';
+import {
+    createId,
+    getEntityKey,
+    normalizeId,
+    parseMessage,
+    resolveRoomId,
+    send,
+    sendError,
+} from './roomMessageCodec';
+import { CollaborationRoomRegistry } from './roomRegistry';
+import * as sharedState from './roomSharedState';
+import {
+    applyProfileToParticipant,
+    AUTO_AVATAR_ID,
+    createAnonymousName,
+    getParticipantPresence,
+} from './participantIdentity';
 
-interface Vector3Like {
-    x: number;
-    y: number;
-    z: number;
-}
+export { CODEXR_AVATAR_IDS } from './participantIdentity';
 
-interface TransformState {
-    position?: Vector3Like | null;
-    rotation?: Vector3Like | null;
-}
-
-export type CollaborationRole = 'host' | 'guest';
-export type IdentityMode = 'anonymous' | 'custom';
-
-export interface ParticipantState {
-    peerId: string;
-    displayName: string;
-    identityMode: IdentityMode;
-    avatarId: string;
-    role: CollaborationRole;
-    isPresenter: boolean;
-    connectedAt: string;
-}
-
-export interface SharedEntityState extends Record<string, unknown> {
-    entityKind?: string;
-    entityId?: string;
-    gestureOwnerPeerId?: string | null;
-    transform?: TransformState | null;
-    updatedAt?: string;
-}
-
-export interface SharedPresenceState extends Record<string, unknown> {
-    peerId: string;
-    displayName: string;
-    identityMode: IdentityMode;
-    avatarId: string;
-    role: CollaborationRole;
-    isPresenter: boolean;
-    head?: unknown;
-    body?: unknown;
-    leftHand?: unknown;
-    rightHand?: unknown;
-    ray?: unknown;
-    cursor?: unknown;
-    viewport?: unknown;
-    lastSeenAt?: string;
-}
-
-interface CollaborationPeer {
-    id: string;
-    socket: WebSocket;
-    session: AuthenticatedCollaborationSession | null;
-    joinedRoom: boolean;
-    roomId: string | null;
-    anonymousDisplayName: string;
-    remoteAddress: string;
-}
-
-interface CollaborationRoomState {
-    id: string;
-    revision: number;
-    entities: Map<string, SharedEntityState>;
-    presence: Map<string, SharedPresenceState>;
-    participants: Map<string, ParticipantState>;
-    presenterPeerId: string | null;
-    nextDisplayNameIndex: number;
-}
-
-/** Outcome of an extension-initiated participant removal. */
-export interface ParticipantRemovalResult {
-    removed: boolean;
-    /** Authenticated session behind the removed peer, when it had one. */
-    sessionId: string | null;
-    remote: boolean;
-}
-
-export interface CollaborationMessage {
-    type: string;
-    roomId?: string;
-    peerId: string;
-    entityKind: string;
-    entityId: string;
-    payload?: Record<string, unknown>;
-}
+export type {
+    CollaborationMessage,
+    CollaborationRole,
+    IdentityMode,
+    ParticipantRemovalResult,
+    ParticipantState,
+    SharedEntityState,
+    SharedPresenceState,
+} from './roomTypes';
 
 export interface CollaborationRoomServerOptions {
     authorizeUpgrade?: (request: http.IncomingMessage) => boolean;
@@ -113,39 +65,20 @@ export interface CollaborationApplicationMessageContext {
     removeSharedEntity: (entityKind: string, entityId: string) => void;
 }
 
-const DEFAULT_ROOM_ID = 'codexr-session:default';
-/** Sentinel meaning "this room picks a free colour for me". */
-const AUTO_AVATAR_ID = 'auto';
-export const CODEXR_AVATAR_IDS = [
-    'avatar-1',
-    'avatar-2',
-    'avatar-3',
-    'avatar-4',
-    'avatar-5',
-    'avatar-6',
-] as const;
-const VALID_AVATAR_IDS = new Set<string>(CODEXR_AVATAR_IDS);
 export class CollaborationRoomServer {
-    private readonly path: string;
-    private readonly socketServer: WebSocketServer;
-    private readonly peers = new Map<string, CollaborationPeer>();
-    private readonly rooms = new Map<string, CollaborationRoomState>();
+    private readonly endpoint: WebSocketEndpoint;
+    private readonly registry = new CollaborationRoomRegistry();
     private readonly events = new EventEmitter();
-    private readonly upgradeHandler: (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => void;
     private disposed = false;
 
     constructor(
-        private readonly server: http.Server,
+        server: http.Server,
         path = '/codexr-room',
         private readonly options: CollaborationRoomServerOptions = {},
     ) {
-        this.path = path.startsWith('/') ? path : `/${path}`;
-        this.socketServer = new WebSocketServer({ noServer: true });
-        this.upgradeHandler = this.handleUpgrade.bind(this);
-
-        this.server.on('upgrade', this.upgradeHandler);
-        this.socketServer.on('connection', (socket: WebSocket, request: http.IncomingMessage) => {
-            this.handleConnection(socket, request);
+        this.endpoint = attachWebSocketEndpoint(server, path, {
+            authorize: (req) => !this.options.authorizeUpgrade || this.options.authorizeUpgrade(req),
+            onConnection: (socket, request) => this.handleConnection(socket, request),
         });
     }
 
@@ -154,14 +87,14 @@ export class CollaborationRoomServer {
             return;
         }
         this.disposed = true;
-        this.server.off('upgrade', this.upgradeHandler);
+        this.endpoint.detach();
 
-        for (const peer of this.peers.values()) {
+        for (const peer of this.registry.peers.values()) {
             try {
                 // Tell browsers this is a deliberate shutdown, not a network
                 // drop, so they can show the session-ended screen instead of
                 // reconnecting forever.
-                this.send(peer, {
+                send(peer, {
                     type: 'session-ended',
                     roomId: peer.roomId || undefined,
                     payload: { reason: 'host-closed' },
@@ -172,9 +105,9 @@ export class CollaborationRoomServer {
             }
         }
 
-        this.peers.clear();
-        this.rooms.clear();
-        this.socketServer.close();
+        this.registry.peers.clear();
+        this.registry.rooms.clear();
+        this.endpoint.socketServer.close();
         this.events.removeAllListeners();
     }
 
@@ -186,13 +119,7 @@ export class CollaborationRoomServer {
     }
 
     public getConnectedParticipants(roomId: string): ConnectedParticipantSummary[] {
-        const room = this.rooms.get(this.resolveRoomId(roomId, null));
-        if (!room) {
-            return [];
-        }
-        return Array.from(room.participants.values())
-            .map((participant) => this.toConnectedParticipantSummary(participant))
-            .sort((left, right) => left.connectedAt.localeCompare(right.connectedAt));
+        return this.registry.getConnectedParticipants(roomId);
     }
 
     /**
@@ -202,9 +129,9 @@ export class CollaborationRoomServer {
      * back so the caller can revoke it (this room knows nothing about tokens).
      */
     public removeParticipant(roomId: string, peerId: string): ParticipantRemovalResult {
-        const room = this.rooms.get(this.resolveRoomId(roomId, null));
-        const normalizedPeerId = this.normalizeId(peerId);
-        const targetPeer = this.peers.get(normalizedPeerId);
+        const room = this.registry.rooms.get(resolveRoomId(roomId, null));
+        const normalizedPeerId = normalizeId(peerId);
+        const targetPeer = this.registry.peers.get(normalizedPeerId);
         if (!room || !targetPeer || !room.participants.has(normalizedPeerId)) {
             return { removed: false, sessionId: null, remote: false };
         }
@@ -218,7 +145,7 @@ export class CollaborationRoomServer {
     }
 
     public upsertServerEntity(roomId: string, entity: SharedEntityState): void {
-        const room = this.ensureRoom(roomId);
+        const room = this.registry.ensureRoom(roomId);
         this.upsertAuthoritativeEntity(room, entity, 'server');
     }
 
@@ -227,14 +154,14 @@ export class CollaborationRoomServer {
         entityKind: string,
         entityId: string,
     ): SharedEntityState | null {
-        const room = this.rooms.get(this.resolveRoomId(roomId, null));
-        const entity = room?.entities.get(this.getEntityKey(entityKind, entityId));
+        const room = this.registry.rooms.get(resolveRoomId(roomId, null));
+        const entity = room?.entities.get(getEntityKey(entityKind, entityId));
         return entity ? { ...entity } : null;
     }
 
     public broadcastServerMessage(roomId: string, payload: Record<string, unknown>): void {
-        const room = this.ensureRoom(roomId);
-        this.broadcast(room, {
+        const room = this.registry.ensureRoom(roomId);
+        this.registry.broadcast(room, {
             ...payload,
             roomId: room.id,
             revision: room.revision,
@@ -242,39 +169,24 @@ export class CollaborationRoomServer {
     }
 
     public updateSessionProfile(sessionId: string, profile: CollaborationProfile): void {
-        for (const peer of this.peers.values()) {
+        for (const peer of this.registry.peers.values()) {
             if (peer.session?.sessionId !== sessionId) {
                 continue;
             }
             peer.session.profile = { ...profile };
-            const room = this.getRoomForPeer(peer);
+            const room = this.registry.getRoomForPeer(peer);
             const participant = room?.participants.get(peer.id);
             if (!room || !participant) {
                 continue;
             }
-            this.applyProfileToParticipant(room, peer, participant, profile);
+            applyProfileToParticipant(room, peer, participant, profile);
             this.broadcastParticipantUpdate(room, participant);
             this.emitParticipantsChanged(room);
         }
     }
 
-    private handleUpgrade(req: http.IncomingMessage, socket: net.Socket, head: Buffer): void {
-        const pathname = new URL(req.url || '/', 'http://codexr.local').pathname;
-        if (pathname !== this.path) {
-            return;
-        }
-        if (this.options.authorizeUpgrade && !this.options.authorizeUpgrade(req)) {
-            socket.destroy();
-            return;
-        }
-
-        this.socketServer.handleUpgrade(req, socket, head, (ws: WebSocket) => {
-            this.socketServer.emit('connection', ws, req);
-        });
-    }
-
     private handleConnection(socket: WebSocket, request: http.IncomingMessage): void {
-        const peerId = this.createId('peer');
+        const peerId = createId('peer');
         const peer: CollaborationPeer = {
             id: peerId,
             socket,
@@ -292,16 +204,16 @@ export class CollaborationRoomServer {
             peer.anonymousDisplayName = peer.session.anonymousAlias;
         }
 
-        this.peers.set(peerId, peer);
+        this.registry.peers.set(peerId, peer);
         socket.on('message', (raw: RawData) => this.handleMessage(peer, raw));
         socket.on('close', () => this.handleDisconnect(peer));
         socket.on('error', () => this.handleDisconnect(peer));
     }
 
     private handleMessage(peer: CollaborationPeer, raw: RawData): void {
-        const message = this.parseMessage(raw);
+        const message = parseMessage(raw);
         if (!message) {
-            this.sendError(peer, 'invalid-payload', 'Invalid collaboration payload.');
+            sendError(peer, 'invalid-payload', 'Invalid collaboration payload.');
             return;
         }
 
@@ -317,31 +229,31 @@ export class CollaborationRoomServer {
                 this.kickParticipant(peer, message.payload || {});
                 return;
             case 'presenter-started':
-                this.startPresenter(peer);
+                sharedState.startPresenter(this.registry, peer);
                 return;
             case 'presenter-stopped':
-                this.stopPresenter(peer, message.payload || {});
+                sharedState.stopPresenter(this.registry, peer, message.payload || {});
                 return;
             case 'presence-update':
-                this.updatePresence(peer, message.payload || {});
+                sharedState.updatePresence(this.registry, peer, message.payload || {});
                 return;
             case 'entity-added':
-                this.upsertEntity(peer, message, 'entity-added');
+                sharedState.upsertEntity(this.registry, peer, message, 'entity-added');
                 return;
             case 'entity-updated':
-                this.upsertEntity(peer, message, 'entity-updated');
+                sharedState.upsertEntity(this.registry, peer, message, 'entity-updated');
                 return;
             case 'entity-transform':
-                this.updateEntityTransform(peer, message);
+                sharedState.updateEntityTransform(this.registry, peer, message);
                 return;
             case 'entity-removed':
-                this.removeEntity(peer, message);
+                sharedState.removeEntity(this.registry, peer, message);
                 return;
             case 'entity-lock':
-                this.updateEntityLock(peer, message, true);
+                sharedState.updateEntityLock(this.registry, peer, message, true);
                 return;
             case 'entity-unlock':
-                this.updateEntityLock(peer, message, false);
+                sharedState.updateEntityLock(this.registry, peer, message, false);
                 return;
             default:
                 console.log('[Code-XR Fix][Room] application message received:', message.type, '(peer:', peer.id, ')');
@@ -353,9 +265,9 @@ export class CollaborationRoomServer {
         peer: CollaborationPeer,
         message: CollaborationMessage,
     ): Promise<void> {
-        const room = this.getRoomForPeer(peer);
+        const room = this.registry.getRoomForPeer(peer);
         if (!room || !this.options.handleApplicationMessage) {
-            this.sendError(
+            sendError(
                 peer,
                 'unsupported-message',
                 `Unsupported collaboration message type: ${message.type}`,
@@ -367,11 +279,11 @@ export class CollaborationRoomServer {
             const handled = await this.options.handleApplicationMessage({
                 peerId: peer.id,
                 roomId: room.id,
-                send: (payload) => this.send(peer, {
+                send: (payload) => send(peer, {
                     ...payload,
                     roomId: room.id,
                 }),
-                broadcast: (payload) => this.broadcast(room, {
+                broadcast: (payload) => this.registry.broadcast(room, {
                     ...payload,
                     roomId: room.id,
                 }),
@@ -379,14 +291,14 @@ export class CollaborationRoomServer {
                 removeSharedEntity: (entityKind, entityId) => this.removeAuthoritativeEntity(room, entityKind, entityId, peer.id),
             }, message);
             if (!handled) {
-                this.sendError(
+                sendError(
                     peer,
                     'unsupported-message',
                     `Unsupported collaboration message type: ${message.type}`,
                 );
             }
         } catch (error) {
-            this.sendError(
+            sendError(
                 peer,
                 'application-message-failed',
                 error instanceof Error ? error.message : String(error),
@@ -399,37 +311,19 @@ export class CollaborationRoomServer {
         entity: SharedEntityState,
         peerId: string,
     ): void {
-        const normalized = this.normalizeEntityState(entity);
-        if (!normalized) {
-            throw new Error('invalid-authoritative-entity');
-        }
-        const key = this.getEntityKey(normalized.entityKind, normalized.entityId);
-        const nextEntity = {
-            ...(room.entities.get(key) || {}),
-            ...normalized,
-            updatedAt: new Date().toISOString(),
-        };
-        room.entities.set(key, nextEntity);
-        room.revision += 1;
-        this.broadcast(room, {
-            type: 'entity-updated',
-            peerId,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextEntity,
-        });
+        sharedState.upsertAuthoritativeEntity(this.registry, room, entity, peerId);
     }
 
     private joinRoom(peer: CollaborationPeer, message: CollaborationMessage): void {
-        const nextRoomId = this.resolveRoomId(message.roomId, peer.roomId);
+        const nextRoomId = resolveRoomId(message.roomId, peer.roomId);
         if (peer.joinedRoom && peer.roomId && peer.roomId !== nextRoomId) {
             this.leaveRoom(peer);
         }
 
-        const room = this.ensureRoom(nextRoomId);
+        const room = this.registry.ensureRoom(nextRoomId);
         const existingParticipant = room.participants.get(peer.id);
         if (!existingParticipant) {
-            peer.anonymousDisplayName = peer.anonymousDisplayName || this.createAnonymousName(room);
+            peer.anonymousDisplayName = peer.anonymousDisplayName || createAnonymousName(room);
         }
 
         const role: CollaborationRole = room.participants.size === 0 ? 'host' : 'guest';
@@ -444,7 +338,7 @@ export class CollaborationRoomServer {
             connectedAt: new Date().toISOString(),
         };
 
-        this.applyProfileToParticipant(
+        applyProfileToParticipant(
             room,
             peer,
             participant,
@@ -461,7 +355,7 @@ export class CollaborationRoomServer {
         room.participants.set(peer.id, participant);
         this.emitParticipantsChanged(room);
 
-        this.send(peer, {
+        send(peer, {
             type: 'room-joined',
             peerId: peer.id,
             displayName: participant.displayName,
@@ -469,7 +363,7 @@ export class CollaborationRoomServer {
             revision: room.revision,
             payload: { participant },
         });
-        this.send(peer, {
+        send(peer, {
             type: 'room-snapshot',
             peerId: peer.id,
             roomId: room.id,
@@ -483,7 +377,7 @@ export class CollaborationRoomServer {
         });
 
         room.revision += 1;
-        this.broadcast(room, {
+        this.registry.broadcast(room, {
             type: 'participant-updated',
             peerId: peer.id,
             roomId: room.id,
@@ -493,17 +387,17 @@ export class CollaborationRoomServer {
     }
 
     private transferHost(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        const room = this.getRoomForPeer(peer);
+        const room = this.registry.getRoomForPeer(peer);
         const actor = room?.participants.get(peer.id);
         if (!room || !actor || actor.role !== 'host') {
-            this.sendError(peer, 'forbidden', 'Only the host can transfer the host role.');
+            sendError(peer, 'forbidden', 'Only the host can transfer the host role.');
             return;
         }
 
-        const targetPeerId = this.normalizeId(payload.peerId || payload.targetPeerId);
+        const targetPeerId = normalizeId(payload.peerId || payload.targetPeerId);
         const target = room.participants.get(targetPeerId);
         if (!target || target.peerId === actor.peerId) {
-            this.sendError(peer, 'invalid-participant', 'Select a connected guest to transfer the host role.');
+            sendError(peer, 'invalid-participant', 'Select a connected guest to transfer the host role.');
             return;
         }
 
@@ -515,18 +409,18 @@ export class CollaborationRoomServer {
     }
 
     private kickParticipant(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        const room = this.getRoomForPeer(peer);
+        const room = this.registry.getRoomForPeer(peer);
         const actor = room?.participants.get(peer.id);
         if (!room || !actor || actor.role !== 'host') {
-            this.sendError(peer, 'forbidden', 'Only the host can remove a participant.');
+            sendError(peer, 'forbidden', 'Only the host can remove a participant.');
             return;
         }
 
-        const targetPeerId = this.normalizeId(payload.peerId || payload.targetPeerId);
-        const targetPeer = this.peers.get(targetPeerId);
+        const targetPeerId = normalizeId(payload.peerId || payload.targetPeerId);
+        const targetPeer = this.registry.peers.get(targetPeerId);
         const targetParticipant = room.participants.get(targetPeerId);
         if (!targetPeer || !targetParticipant || targetPeerId === peer.id) {
-            this.sendError(peer, 'invalid-participant', 'The selected participant cannot be removed.');
+            sendError(peer, 'invalid-participant', 'The selected participant cannot be removed.');
             return;
         }
 
@@ -543,7 +437,7 @@ export class CollaborationRoomServer {
         targetPeer: CollaborationPeer,
         actorPeerId?: string,
     ): void {
-        this.send(targetPeer, {
+        send(targetPeer, {
             type: 'participant-kick',
             peerId: actorPeerId || targetPeer.id,
             roomId: room.id,
@@ -552,252 +446,25 @@ export class CollaborationRoomServer {
         targetPeer.socket.close(4001, 'Removed by room host');
     }
 
-    private startPresenter(peer: CollaborationPeer): void {
-        const room = this.getRoomForPeer(peer);
-        const participant = room?.participants.get(peer.id);
-        if (!room || !participant) {
-            return;
-        }
-        if (room.presenterPeerId === peer.id) {
-            return;
-        }
-
-        if (room.presenterPeerId) {
-            const previous = room.participants.get(room.presenterPeerId);
-            if (previous) {
-                previous.isPresenter = false;
-                room.revision += 1;
-                this.broadcastPresenterEvent(room, 'presenter-stopped', previous);
-            }
-        }
-
-        participant.isPresenter = true;
-        room.presenterPeerId = peer.id;
-        room.revision += 1;
-        this.broadcastPresenterEvent(room, 'presenter-started', participant);
-    }
-
-    private stopPresenter(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        const room = this.getRoomForPeer(peer);
-        const actor = room?.participants.get(peer.id);
-        if (!room || !actor || !room.presenterPeerId) {
-            return;
-        }
-
-        const requestedPeerId = this.normalizeId(payload.peerId || payload.targetPeerId);
-        const targetPeerId = requestedPeerId || peer.id;
-        if (targetPeerId !== room.presenterPeerId) {
-            return;
-        }
-        if (targetPeerId !== peer.id && actor.role !== 'host') {
-            this.sendError(peer, 'forbidden', 'Only the host can stop another participant presentation.');
-            return;
-        }
-
-        const presenter = room.participants.get(room.presenterPeerId);
-        room.presenterPeerId = null;
-        if (presenter) {
-            presenter.isPresenter = false;
-            room.revision += 1;
-            this.broadcastPresenterEvent(room, 'presenter-stopped', presenter);
-        }
-    }
-
-    private updatePresence(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        const room = this.getRoomForPeer(peer);
-        const participant = room?.participants.get(peer.id);
-        if (!room || !participant) {
-            return;
-        }
-
-        const previous = room.presence.get(peer.id) || null;
-        const nextPresence: SharedPresenceState = {
-            ...(previous || {}),
-            ...payload,
-            ...this.getParticipantPresence(participant),
-            peerId: peer.id,
-            lastSeenAt: new Date().toISOString(),
-        };
-
-        room.presence.set(peer.id, nextPresence);
-        room.revision += 1;
-        this.broadcast(room, {
-            type: previous ? 'presence-updated' : 'presence-joined',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextPresence,
-        }, peer.id);
-    }
-
-    private upsertEntity(
-        peer: CollaborationPeer,
-        message: CollaborationMessage,
-        eventType: 'entity-added' | 'entity-updated',
-    ): void {
-        const room = this.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        const entity = this.normalizeEntityState(message.payload || message);
-        if (!entity) {
-            this.sendError(peer, 'invalid-entity', 'Entity updates require entityKind and entityId.');
-            return;
-        }
-
-        const key = this.getEntityKey(entity.entityKind, entity.entityId);
-        const previous = room.entities.get(key) || null;
-        const nextEntity: SharedEntityState = {
-            ...(previous || {}),
-            ...entity,
-            entityKind: entity.entityKind,
-            entityId: entity.entityId,
-            updatedAt: new Date().toISOString(),
-        };
-
-        room.entities.set(key, nextEntity);
-        room.revision += 1;
-        this.broadcast(room, {
-            type: eventType,
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextEntity,
-        }, peer.id);
-    }
-
-    private updateEntityTransform(peer: CollaborationPeer, message: CollaborationMessage): void {
-        const room = this.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        const entityKind = this.normalizeId(message.entityKind || message.payload?.entityKind);
-        const entityId = this.normalizeId(message.entityId || message.payload?.entityId);
-        if (!entityKind || !entityId) {
-            return;
-        }
-
-        const key = this.getEntityKey(entityKind, entityId);
-        const previous = room.entities.get(key);
-        if (!previous) {
-            // Never resurrect an entity from a bare transform: the rebuilt
-            // record would lack its typed fields (contentKind, screen config…)
-            // and clients would materialize a broken copy. Entity-added always
-            // precedes transforms in every runtime.
-            return;
-        }
-        const nextEntity: SharedEntityState = {
-            ...previous,
-            entityKind,
-            entityId,
-            transform: this.normalizeTransform(message.payload?.transform),
-            updatedAt: new Date().toISOString(),
-        };
-
-        room.entities.set(key, nextEntity);
-        room.revision += 1;
-        this.broadcast(room, {
-            type: 'entity-transform',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: nextEntity,
-        }, peer.id);
-    }
-
-    private removeEntity(peer: CollaborationPeer, message: CollaborationMessage): void {
-        const room = this.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        this.removeAuthoritativeEntity(
-            room,
-            String(message.entityKind || message.payload?.entityKind || ''),
-            String(message.entityId || message.payload?.entityId || ''),
-            peer.id,
-        );
-    }
-
     private removeAuthoritativeEntity(
         room: CollaborationRoomState,
         rawEntityKind: string,
         rawEntityId: string,
         peerId: string,
     ): void {
-        const entityKind = this.normalizeId(rawEntityKind);
-        const entityId = this.normalizeId(rawEntityId);
-        if (!entityKind || !entityId || !room.entities.delete(this.getEntityKey(entityKind, entityId))) {
-            return;
-        }
-
-        room.revision += 1;
-        this.broadcast(room, {
-            type: 'entity-removed',
-            peerId,
-            roomId: room.id,
-            revision: room.revision,
-            payload: { entityKind, entityId },
-        }, peerId);
-    }
-
-    private updateEntityLock(peer: CollaborationPeer, message: CollaborationMessage, isLock: boolean): void {
-        const room = this.getRoomForPeer(peer);
-        if (!room) {
-            return;
-        }
-
-        const entityKind = this.normalizeId(message.entityKind || message.payload?.entityKind);
-        const entityId = this.normalizeId(message.entityId || message.payload?.entityId);
-        if (!entityKind || !entityId) {
-            return;
-        }
-
-        const entity = room.entities.get(this.getEntityKey(entityKind, entityId));
-        if (!entity) {
-            return;
-        }
-
-        const currentOwner = this.normalizeId(entity.gestureOwnerPeerId);
-        if (isLock) {
-            if (currentOwner && currentOwner !== peer.id) {
-                this.send(peer, {
-                    type: 'entity-lock-denied',
-                    peerId: peer.id,
-                    roomId: room.id,
-                    revision: room.revision,
-                    payload: { entityKind, entityId, gestureOwnerPeerId: currentOwner },
-                });
-                return;
-            }
-            entity.gestureOwnerPeerId = peer.id;
-        } else if (!currentOwner || currentOwner === peer.id) {
-            entity.gestureOwnerPeerId = null;
-        }
-
-        entity.updatedAt = new Date().toISOString();
-        room.revision += 1;
-        this.broadcast(room, {
-            type: isLock ? 'entity-lock' : 'entity-unlock',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: entity,
-        }, peer.id);
+        sharedState.removeAuthoritativeEntity(this.registry, room, rawEntityKind, rawEntityId, peerId);
     }
 
     private handleDisconnect(peer: CollaborationPeer): void {
-        if (!this.peers.has(peer.id)) {
+        if (!this.registry.peers.has(peer.id)) {
             return;
         }
         this.leaveRoom(peer);
-        this.peers.delete(peer.id);
+        this.registry.peers.delete(peer.id);
     }
 
     private leaveRoom(peer: CollaborationPeer): void {
-        const room = this.getRoomForPeer(peer);
+        const room = this.registry.getRoomForPeer(peer);
         if (!room) {
             peer.joinedRoom = false;
             peer.roomId = null;
@@ -810,7 +477,7 @@ export class CollaborationRoomServer {
             if (participant) {
                 participant.isPresenter = false;
                 room.revision += 1;
-                this.broadcastPresenterEvent(room, 'presenter-stopped', participant);
+                sharedState.broadcastPresenterEvent(this.registry, room, 'presenter-stopped', participant);
             }
         }
 
@@ -818,24 +485,10 @@ export class CollaborationRoomServer {
         room.participants.delete(peer.id);
         this.emitParticipantsChanged(room);
 
-        for (const entity of room.entities.values()) {
-            if (entity.gestureOwnerPeerId !== peer.id) {
-                continue;
-            }
-            entity.gestureOwnerPeerId = null;
-            entity.updatedAt = new Date().toISOString();
-            room.revision += 1;
-            this.broadcast(room, {
-                type: 'entity-unlock',
-                peerId: peer.id,
-                roomId: room.id,
-                revision: room.revision,
-                payload: entity,
-            }, peer.id);
-        }
+        sharedState.releaseEntityLocks(this.registry, room, peer.id);
 
         room.revision += 1;
-        this.broadcast(room, {
+        this.registry.broadcast(room, {
             type: 'presence-left',
             peerId: peer.id,
             roomId: room.id,
@@ -850,7 +503,7 @@ export class CollaborationRoomServer {
         peer.joinedRoom = false;
         peer.roomId = null;
         if (room.participants.size === 0 && room.entities.size === 0) {
-            this.rooms.delete(room.id);
+            this.registry.rooms.delete(room.id);
         }
     }
 
@@ -870,7 +523,7 @@ export class CollaborationRoomServer {
         if (presence) {
             presence.role = participant.role;
         }
-        this.broadcast(room, {
+        this.registry.broadcast(room, {
             type: 'role-updated',
             peerId: participant.peerId,
             roomId: room.id,
@@ -879,271 +532,19 @@ export class CollaborationRoomServer {
         });
     }
 
-    private broadcastPresenterEvent(
-        room: CollaborationRoomState,
-        type: 'presenter-started' | 'presenter-stopped',
-        participant: ParticipantState,
-    ): void {
-        const presence = room.presence.get(participant.peerId);
-        if (presence) {
-            presence.isPresenter = participant.isPresenter;
-        }
-        this.broadcast(room, {
-            type,
-            peerId: participant.peerId,
-            roomId: room.id,
-            revision: room.revision,
-            payload: participant,
-        });
-    }
-
-    private getParticipantPresence(participant: ParticipantState): Pick<
-        SharedPresenceState,
-        'displayName' | 'identityMode' | 'avatarId' | 'role' | 'isPresenter'
-    > {
-        return {
-            displayName: participant.displayName,
-            identityMode: participant.identityMode,
-            avatarId: participant.avatarId,
-            role: participant.role,
-            isPresenter: participant.isPresenter,
-        };
-    }
-
-    private sanitizeDisplayName(value: unknown): string {
-        if (typeof value !== 'string') {
-            return '';
-        }
-        const sanitized = value
-            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-        const characterCount = Array.from(sanitized).length;
-        return characterCount >= 2 && characterCount <= 32 ? sanitized : '';
-    }
-
-    private createUniqueDisplayName(room: CollaborationRoomState, requestedName: string, peerId: string): string {
-        const existingNames = new Set(
-            Array.from(room.participants.values())
-                .filter((participant) => participant.peerId !== peerId)
-                .map((participant) => participant.displayName.toLocaleLowerCase()),
-        );
-        if (!existingNames.has(requestedName.toLocaleLowerCase())) {
-            return requestedName;
-        }
-
-        for (let suffix = 2; suffix < 10_000; suffix += 1) {
-            const suffixText = ` ${suffix}`;
-            const maxBaseLength = 32 - suffixText.length;
-            const base = Array.from(requestedName).slice(0, maxBaseLength).join('').trimEnd();
-            const candidate = `${base}${suffixText}`;
-            if (!existingNames.has(candidate.toLocaleLowerCase())) {
-                return candidate;
-            }
-        }
-        return `${Array.from(requestedName).slice(0, 23).join('')} ${peerId.slice(-6)}`;
-    }
-
-    private applyProfileToParticipant(
-        room: CollaborationRoomState,
-        peer: CollaborationPeer,
-        participant: ParticipantState,
-        profile: CollaborationProfile,
-    ): void {
-        // An explicit colour always wins; `auto` (and anything invalid) gets a
-        // colour nobody else in this room is wearing.
-        const avatarId = this.normalizeAvatarId(profile.avatarId)
-            || this.assignDistinctAvatarId(room, peer.id);
-        const customName = profile.identityMode === 'custom'
-            ? this.sanitizeDisplayName(profile.customName)
-            : '';
-        if (customName) {
-            participant.identityMode = 'custom';
-            participant.displayName = this.createUniqueDisplayName(room, customName, peer.id);
-        } else {
-            participant.identityMode = 'anonymous';
-            const anonymousName = peer.anonymousDisplayName || this.createAnonymousName(room);
-            participant.displayName = this.createUniqueDisplayName(room, anonymousName, peer.id);
-            peer.anonymousDisplayName = participant.displayName;
-        }
-        participant.avatarId = avatarId;
-    }
-
     private broadcastParticipantUpdate(room: CollaborationRoomState, participant: ParticipantState): void {
         const presence = room.presence.get(participant.peerId);
         if (presence) {
-            Object.assign(presence, this.getParticipantPresence(participant));
+            Object.assign(presence, getParticipantPresence(participant));
         }
         room.revision += 1;
-        this.broadcast(room, {
+        this.registry.broadcast(room, {
             type: 'participant-updated',
             peerId: participant.peerId,
             roomId: room.id,
             revision: room.revision,
             payload: participant,
         });
-    }
-
-    private createAnonymousName(room: CollaborationRoomState): string {
-        let candidate = '';
-        do {
-            candidate = buildStarWarsDisplayName(room.nextDisplayNameIndex);
-            room.nextDisplayNameIndex += 1;
-        } while (
-            Array.from(room.participants.values())
-                .some((participant) => participant.displayName.toLocaleLowerCase() === candidate.toLocaleLowerCase())
-        );
-        return candidate;
-    }
-
-    private normalizeAvatarId(value: unknown): string {
-        const avatarId = this.normalizeId(value);
-        return VALID_AVATAR_IDS.has(avatarId) ? avatarId : '';
-    }
-
-    /**
-     * Pick a palette colour none of the other participants is using, so a room
-     * of players who never chose one still reads as distinct people. Past the
-     * palette size the least-used colour is reused.
-     */
-    private assignDistinctAvatarId(room: CollaborationRoomState, peerId: string): string {
-        const usage = new Map<string, number>(CODEXR_AVATAR_IDS.map((id) => [id, 0]));
-        for (const participant of room.participants.values()) {
-            if (participant.peerId === peerId) {
-                continue;
-            }
-            const current = usage.get(participant.avatarId);
-            if (current !== undefined) {
-                usage.set(participant.avatarId, current + 1);
-            }
-        }
-
-        let chosen = CODEXR_AVATAR_IDS[0] as string;
-        let lowest = Number.POSITIVE_INFINITY;
-        for (const [avatarId, count] of usage) {
-            if (count < lowest) {
-                chosen = avatarId;
-                lowest = count;
-            }
-        }
-        return chosen;
-    }
-
-    private parseMessage(raw: RawData): CollaborationMessage | null {
-        try {
-            const parsed = JSON.parse(raw.toString('utf8'));
-            return parsed && typeof parsed === 'object' ? parsed as CollaborationMessage : null;
-        } catch {
-            return null;
-        }
-    }
-
-    private send(peer: CollaborationPeer, payload: Record<string, unknown>): void {
-        if (peer.socket.readyState === WebSocket.OPEN) {
-            peer.socket.send(JSON.stringify(payload));
-        }
-    }
-
-    private sendError(peer: CollaborationPeer, code: string, message: string): void {
-        this.send(peer, {
-            type: 'error',
-            roomId: peer.roomId || undefined,
-            payload: { code, message },
-        });
-    }
-
-    private broadcast(room: CollaborationRoomState, payload: Record<string, unknown>, excludedPeerId?: string): void {
-        for (const peer of this.peers.values()) {
-            if (!peer.joinedRoom || peer.roomId !== room.id || peer.id === excludedPeerId) {
-                continue;
-            }
-            this.send(peer, payload);
-        }
-    }
-
-    private ensureRoom(roomId: string): CollaborationRoomState {
-        const normalizedRoomId = this.resolveRoomId(roomId, null);
-        const existing = this.rooms.get(normalizedRoomId);
-        if (existing) {
-            return existing;
-        }
-
-        const created: CollaborationRoomState = {
-            id: normalizedRoomId,
-            revision: 0,
-            entities: new Map<string, SharedEntityState>(),
-            presence: new Map<string, SharedPresenceState>(),
-            participants: new Map<string, ParticipantState>(),
-            presenterPeerId: null,
-            nextDisplayNameIndex: 0,
-        };
-        this.rooms.set(normalizedRoomId, created);
-        return created;
-    }
-
-    private getRoomForPeer(peer: CollaborationPeer): CollaborationRoomState | null {
-        if (!peer.joinedRoom || !peer.roomId) {
-            return null;
-        }
-        return this.rooms.get(peer.roomId) || null;
-    }
-
-    private normalizeEntityState(value: unknown): (SharedEntityState & { entityKind: string; entityId: string }) | null {
-        if (!value || typeof value !== 'object') {
-            return null;
-        }
-        const entityKind = this.normalizeId((value as SharedEntityState).entityKind);
-        const entityId = this.normalizeId((value as SharedEntityState).entityId);
-        if (!entityKind || !entityId) {
-            return null;
-        }
-        return {
-            ...(value as SharedEntityState),
-            entityKind,
-            entityId,
-            gestureOwnerPeerId: this.normalizeOptionalId((value as SharedEntityState).gestureOwnerPeerId),
-            transform: this.normalizeTransform((value as SharedEntityState).transform),
-            updatedAt: new Date().toISOString(),
-        };
-    }
-
-    private normalizeTransform(value: unknown): TransformState | null {
-        if (!value || typeof value !== 'object') {
-            return null;
-        }
-        const record = value as TransformState;
-        return {
-            position: this.normalizeVector(record.position),
-            rotation: this.normalizeVector(record.rotation),
-        };
-    }
-
-    private normalizeVector(value: unknown): Vector3Like | null {
-        if (!value || typeof value !== 'object') {
-            return null;
-        }
-        const vector = value as Vector3Like;
-        return {
-            x: Number.isFinite(vector.x) ? vector.x : 0,
-            y: Number.isFinite(vector.y) ? vector.y : 0,
-            z: Number.isFinite(vector.z) ? vector.z : 0,
-        };
-    }
-
-    private resolveRoomId(preferred: unknown, fallback: string | null): string {
-        return this.normalizeId(preferred) || this.normalizeId(fallback) || DEFAULT_ROOM_ID;
-    }
-
-    private normalizeId(value: unknown): string {
-        return typeof value === 'string' ? value.trim() : '';
-    }
-
-    private normalizeOptionalId(value: unknown): string | null {
-        return this.normalizeId(value) || null;
-    }
-
-    private getEntityKey(entityKind: string, entityId: string): string {
-        return `${entityKind}:${entityId}`;
     }
 
     private emitParticipantsChanged(room: CollaborationRoomState): void {
@@ -1154,21 +555,4 @@ export class CollaborationRoomServer {
         );
     }
 
-    private toConnectedParticipantSummary(participant: ParticipantState): ConnectedParticipantSummary {
-        const peer = this.peers.get(participant.peerId);
-        return {
-            peerId: participant.peerId,
-            displayName: participant.displayName,
-            avatarId: participant.avatarId,
-            clientKind: peer?.session?.clientKind || 'browser',
-            connectionScope: peer?.session?.remote ? 'remote' : 'local',
-            connectedAt: participant.connectedAt,
-            role: participant.role,
-            remoteAddress: peer?.remoteAddress || 'unknown',
-        };
-    }
-
-    private createId(prefix: string): string {
-        return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-    }
 }

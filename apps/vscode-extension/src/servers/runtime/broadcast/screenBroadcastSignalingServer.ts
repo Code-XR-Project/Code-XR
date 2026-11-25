@@ -1,100 +1,43 @@
 import * as http from 'http';
-import * as net from 'net';
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+import { WebSocket, RawData } from 'ws';
+import { attachWebSocketEndpoint, DEFAULT_ROOM_ID, WebSocketEndpoint } from '../ws/webSocketEndpoint';
+import {
+    BroadcastClient,
+    BroadcastClientScope,
+    BroadcastMessage,
+    BroadcastScreenState,
+} from './broadcastTypes';
+import { toFrameBuffer } from './mediaFrame';
+import {
+    promoteViewerToRelay,
+    publishRelayAudience,
+    RelayContext,
+    relayFrameToViewers,
+    removeRelayViewer,
+} from './relayPolicy';
 
-type BroadcastRole = 'none' | 'sender' | 'viewer';
-
-/**
- * Where a client reached this server from. Peer-to-peer WebRTC only survives
- * inside one network: across the tunnel the two browsers sit behind different
- * NATs and, with no TURN server, ICE never connects. Remote viewers therefore
- * take their media through this server, which they can always reach.
- */
-export type BroadcastClientScope = 'local' | 'remote';
-
-interface BroadcastClient {
-    id: string;
-    roomId: string | null;
-    socket: WebSocket;
-    screenId: string | null;
-    role: BroadcastRole;
-    hasAudio: boolean;
-    scope: BroadcastClientScope;
-}
-
-interface BroadcastScreenState {
-    roomId: string;
-    screenId: string;
-    broadcasterId: string | null;
-    hasAudio: boolean;
-    /** Viewers served by direct WebRTC. */
-    viewers: Set<string>;
-    /** Viewers served by media relayed through this server. */
-    relayViewers: Set<string>;
-}
-
-interface BroadcastMessage {
-    type: string;
-    roomId?: string;
-    clientId?: string;
-    screenId?: string;
-    hasAudio?: boolean;
-    targetId?: string;
-    viewerId?: string;
-    broadcasterId?: string;
-    reason?: string;
-    description?: unknown;
-    candidate?: unknown;
-}
-
-const DEFAULT_ROOM_ID = 'codexr-session:default';
-
-/**
- * Media frame wire format, mirrored by the runtime relay transport. The kind
- * byte packs both values: low nibble the frame kind, high nibble the temporal
- * layer the encoder put it in, so one encoded stream can be thinned per viewer
- * without ever encoding it twice.
- */
-const FRAME_HEADER_BYTES = 12;
-const FRAME_MAGIC_0 = 0x43; // 'C'
-const FRAME_MAGIC_1 = 0x58; // 'X'
-const FRAME_KIND_OFFSET = 3;
-const FRAME_KIND_MASK = 0x0f;
-const FRAME_LAYER_SHIFT = 4;
-/** Delta video frames are droppable; keyframes, audio and config never are. */
-const FRAME_KIND_VIDEO_DELTA = 2;
-/** A single frame larger than this is a bug or an attack, not a screen. */
-const MAX_FRAME_BYTES = 4 * 1024 * 1024;
-/**
- * Backlog thresholds per viewer socket. A viewer that falls behind loses the
- * top temporal layer first (fewer frames per second, still a moving picture)
- * and only then every delta, until its next keyframe puts it back together.
- * Nobody else is affected, and nobody is ever refused.
- */
-const RELAY_THIN_TOP_LAYER_BYTES = 512 * 1024;
-const RELAY_THIN_ALL_DELTAS_BYTES = 2 * 1024 * 1024;
+export type { BroadcastClientScope } from './broadcastTypes';
 
 export class ScreenBroadcastSignalingServer {
-    private readonly path: string;
-    private readonly socketServer: WebSocketServer;
+    private readonly endpoint: WebSocketEndpoint;
     private readonly clients = new Map<string, BroadcastClient>();
     private readonly screens = new Map<string, BroadcastScreenState>();
-    private readonly upgradeHandler: (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => void;
+    private readonly relayContext: RelayContext = {
+        clients: this.clients,
+        send: (client, payload) => this.send(client, payload),
+        ensureScreenState: (roomId, screenId) => this.ensureScreenState(roomId, screenId),
+    };
     private disposed = false;
 
     constructor(
-        private readonly server: http.Server,
+        server: http.Server,
         path = '/codexr-broadcast',
         private readonly authorizeUpgrade: (request: http.IncomingMessage) => boolean = () => true,
         private readonly resolveScope: (request: http.IncomingMessage) => BroadcastClientScope = () => 'local',
     ) {
-        this.path = path.startsWith('/') ? path : `/${path}`;
-        this.socketServer = new WebSocketServer({ noServer: true });
-        this.upgradeHandler = this.handleUpgrade.bind(this);
-
-        this.server.on('upgrade', this.upgradeHandler);
-        this.socketServer.on('connection', (socket: WebSocket, request: http.IncomingMessage) => {
-            this.handleConnection(socket, this.resolveScope(request));
+        this.endpoint = attachWebSocketEndpoint(server, path, {
+            authorize: (req) => this.authorizeUpgrade(req),
+            onConnection: (socket, request) => this.handleConnection(socket, this.resolveScope(request)),
         });
     }
 
@@ -104,7 +47,7 @@ export class ScreenBroadcastSignalingServer {
         }
         this.disposed = true;
 
-        this.server.off('upgrade', this.upgradeHandler);
+        this.endpoint.detach();
 
         for (const client of this.clients.values()) {
             try {
@@ -115,22 +58,7 @@ export class ScreenBroadcastSignalingServer {
         }
         this.clients.clear();
         this.screens.clear();
-        this.socketServer.close();
-    }
-
-    private handleUpgrade(req: http.IncomingMessage, socket: net.Socket, head: Buffer): void {
-        const pathname = new URL(req.url || '/', 'http://codexr.local').pathname;
-        if (pathname !== this.path) {
-            return;
-        }
-        if (!this.authorizeUpgrade(req)) {
-            socket.destroy();
-            return;
-        }
-
-        this.socketServer.handleUpgrade(req, socket, head, (ws: WebSocket) => {
-            this.socketServer.emit('connection', ws, req);
-        });
+        this.endpoint.socketServer.close();
     }
 
     private handleConnection(socket: WebSocket, scope: BroadcastClientScope): void {
@@ -190,7 +118,7 @@ export class ScreenBroadcastSignalingServer {
             case 'relay-request':
                 // A viewer whose direct connection never delivered media asks
                 // to be served through the relay instead.
-                this.promoteViewerToRelay(client);
+                promoteViewerToRelay(this.relayContext, client);
                 return;
             case 'viewer-leave':
                 this.removeViewer(client);
@@ -318,7 +246,7 @@ export class ScreenBroadcastSignalingServer {
                     });
                 }
             }
-            this.publishRelayAudience(screen);
+            publishRelayAudience(this.relayContext, screen);
         }
 
         for (const candidate of this.clients.values()) {
@@ -423,7 +351,7 @@ export class ScreenBroadcastSignalingServer {
                     relayViewerCount: screen.relayViewers.size,
                 });
             }
-            this.publishRelayAudience(screen);
+            publishRelayAudience(this.relayContext, screen);
             return;
         }
 
@@ -453,79 +381,13 @@ export class ScreenBroadcastSignalingServer {
     }
 
     /** Move a viewer off the direct path and onto the relay. */
-    private promoteViewerToRelay(client: BroadcastClient): void {
-        if (!client.roomId || !client.screenId) {
-            return;
-        }
-        const screen = this.ensureScreenState(client.roomId, client.screenId);
-        if (screen.relayViewers.has(client.id)) {
-            return;
-        }
-        if (!screen.broadcasterId) {
-            // No broadcast yet: the viewer asked for the relay, so it waits on
-            // the relay side (whatever its scope) rather than vanishing.
-            screen.viewers.delete(client.id);
-            screen.relayViewers.add(client.id);
-            client.role = 'viewer';
-            this.send(client, {
-                type: 'viewer-waiting',
-                roomId: screen.roomId,
-                screenId: screen.screenId,
-            });
-            return;
-        }
-
-        const wasIdle = screen.relayViewers.size === 0;
-        screen.viewers.delete(client.id);
-        screen.relayViewers.add(client.id);
-        client.role = 'viewer';
-
-        this.send(client, {
-            type: 'relay-ready',
-            roomId: screen.roomId,
-            screenId: screen.screenId,
-            broadcasterId: screen.broadcasterId,
-            hasAudio: screen.hasAudio,
-        });
-
-        const broadcaster = this.clients.get(screen.broadcasterId);
-        if (broadcaster) {
-            this.send(broadcaster, {
-                type: wasIdle ? 'relay-start' : 'relay-keyframe',
-                roomId: screen.roomId,
-                screenId: screen.screenId,
-                viewerId: client.id,
-                relayViewerCount: screen.relayViewers.size,
-            });
-        }
-        this.publishRelayAudience(screen);
-    }
-
-    /**
-     * Tell the broadcaster how many viewers it is feeding, so it can pick a
-     * quality the host's uplink can actually carry. One encoding serves them
-     * all — the audience only changes how that single encoding is configured.
-     */
-    private publishRelayAudience(screen: BroadcastScreenState): void {
-        const broadcaster = screen.broadcasterId ? this.clients.get(screen.broadcasterId) : null;
-        if (!broadcaster) {
-            return;
-        }
-        this.send(broadcaster, {
-            type: 'relay-audience',
-            roomId: screen.roomId,
-            screenId: screen.screenId,
-            relayViewerCount: screen.relayViewers.size,
-        });
-    }
-
     /**
      * Relay one encoded media frame from the broadcaster to the viewers that
      * cannot be reached peer-to-peer. The payload is never inspected beyond
      * its header: this server is a pipe, not a transcoder.
      */
     private forwardMediaFrame(client: BroadcastClient, raw: RawData): void {
-        const frame = this.toFrameBuffer(raw);
+        const frame = toFrameBuffer(raw);
         if (!frame) {
             return;
         }
@@ -535,70 +397,7 @@ export class ScreenBroadcastSignalingServer {
             return;
         }
 
-        const kindByte = frame[FRAME_KIND_OFFSET];
-        const droppable = (kindByte & FRAME_KIND_MASK) === FRAME_KIND_VIDEO_DELTA;
-        const temporalLayer = kindByte >> FRAME_LAYER_SHIFT;
-
-        for (const viewerId of screen.relayViewers) {
-            const viewer = this.clients.get(viewerId);
-            if (!viewer || viewer.socket.readyState !== WebSocket.OPEN) {
-                continue;
-            }
-            if (droppable && this.shouldThinFrame(viewer, temporalLayer)) {
-                continue;
-            }
-            viewer.socket.send(frame, { binary: true });
-        }
-    }
-
-    /**
-     * Whether this viewer is far enough behind to skip this frame. Thinning is
-     * per viewer and per layer: one congested guest drops to a lower frame rate
-     * while everybody else keeps the full stream from the same encoding.
-     */
-    private shouldThinFrame(viewer: BroadcastClient, temporalLayer: number): boolean {
-        const backlog = viewer.socket.bufferedAmount;
-        if (backlog > RELAY_THIN_ALL_DELTAS_BYTES) {
-            return true;
-        }
-        return backlog > RELAY_THIN_TOP_LAYER_BYTES && temporalLayer > 0;
-    }
-
-    private toFrameBuffer(raw: RawData): Buffer | null {
-        const frame = Array.isArray(raw)
-            ? Buffer.concat(raw)
-            : Buffer.isBuffer(raw)
-                ? raw
-                : Buffer.from(raw as ArrayBufferLike);
-
-        if (frame.length < FRAME_HEADER_BYTES || frame.length > MAX_FRAME_BYTES) {
-            return null;
-        }
-        if (frame[0] !== FRAME_MAGIC_0 || frame[1] !== FRAME_MAGIC_1) {
-            return null;
-        }
-        return frame;
-    }
-
-    private removeRelayViewer(screen: BroadcastScreenState, clientId: string): void {
-        if (!screen.relayViewers.delete(clientId)) {
-            return;
-        }
-        if (screen.relayViewers.size > 0) {
-            // A smaller audience may allow better quality again.
-            this.publishRelayAudience(screen);
-            return;
-        }
-        // Nobody left to relay to: tell the broadcaster to shut the encoder
-        // down instead of encoding into the void.
-        const broadcaster = screen.broadcasterId ? this.clients.get(screen.broadcasterId) : null;
-        if (broadcaster) {
-            this.send(broadcaster, {
-                type: 'relay-stop',
-                roomId: screen.roomId,
-                screenId: screen.screenId,
-            });
-        }
+        relayFrameToViewers(this.relayContext, screen, frame);
     }
 
     private removeViewer(client: BroadcastClient): void {
@@ -625,7 +424,7 @@ export class ScreenBroadcastSignalingServer {
                 });
             }
         }
-        this.removeRelayViewer(screen, client.id);
+        removeRelayViewer(this.relayContext, screen, client.id);
 
         client.role = 'none';
         this.pruneScreen(roomId, screenId);
