@@ -212,7 +212,7 @@
         this.panelPlane.setAttribute('height', '2');
         this.panelPlane.setAttribute('color', '#0f172a');
         this.panelPlane.setAttribute('position', '0 -1 -0.01');
-        this.panelPlane.setAttribute('material', 'opacity: 0.9; transparent: true; shader: flat;');
+        this.panelPlane.setAttribute('material', 'shader: flat;');
 
         const title = document.createElement('a-text');
         title.setAttribute('value', 'Virtual screens');

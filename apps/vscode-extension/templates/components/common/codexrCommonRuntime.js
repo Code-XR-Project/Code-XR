@@ -98,26 +98,33 @@
       position: '0 0 -0.012',
       width: width + .06,
       height: height + .06,
-      material: 'color: ' + accentColor + '; opacity: .5; shader: flat; side: double; transparent: true; depthTest: false'
+      material: 'color: ' + accentColor + '; opacity: .5; shader: flat; side: double; transparent: true'
     });
+    // The backing is opaque and depth-tested, and it absorbs the pointer ray.
+    // depthTest:false here once let every screen behind the card paint over it
+    // (A-Frame 1.7.1 draws transparent objects in DOM order, not by distance),
+    // and a card without the raycaster class let clicks fall through to
+    // whatever was behind it.
     const background = createEntity('a-plane', {
       width: width,
       height: height,
-      material: 'color: #0e1626; opacity: .97; shader: flat; side: double; transparent: true; depthTest: false'
+      class: opts.raycastClass === undefined ? 'babiaxraycasterclass' : opts.raycastClass,
+      'data-codexr-role': 'tooltip background',
+      material: 'color: #0e1626; shader: flat; side: double'
     });
     // Left vertical accent bar carries the selected element's type colour.
     const accent = createEntity('a-plane', {
       position: (-(width / 2) + .035) + ' 0 .008',
       width: .07,
       height: height,
-      material: 'color: ' + accentColor + '; shader: flat; depthTest: false'
+      material: 'color: ' + accentColor + '; shader: flat'
     });
     // Thin accent divider under the header.
     const divider = createEntity('a-plane', {
       position: '0 0 .01',
       width: width - .3,
       height: .006,
-      material: 'color: ' + accentColor + '; opacity: .4; shader: flat; depthTest: false'
+      material: 'color: ' + accentColor + '; opacity: .4; shader: flat'
     });
     const textX = -(width / 2) + .2;
     const title = tooltipText('', (textX + .02) + ' .26 .018', width - .4, '#f8fafc', 'left');
@@ -183,7 +190,7 @@
         segmentsHeight: 6,
         class: 'codexr-tooltip-connector-marker codexr-tooltip-auxiliary',
         'data-codexr-role': 'tooltip connector marker',
-        material: 'color: #f59e0b; shader: flat; opacity: .92; transparent: true; depthTest: false'
+        material: 'color: #f59e0b; shader: flat; opacity: .92; transparent: true'
       });
       connectorRoot.appendChild(tooltip.connectorMarker);
     }
@@ -226,7 +233,7 @@
       opacity: Number(opts.opacity) || .88
     });
     tooltip.connectorMarker.setAttribute('position', formatPosition(end));
-    tooltip.connectorMarker.setAttribute('material', 'color: ' + color + '; shader: flat; opacity: .92; transparent: true; depthTest: false');
+    tooltip.connectorMarker.setAttribute('material', 'color: ' + color + '; shader: flat; opacity: .92; transparent: true');
     connectorRoot.setAttribute('visible', true);
     return true;
   }

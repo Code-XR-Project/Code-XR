@@ -173,13 +173,13 @@
             position: SCOPE_LABEL_HOME,
             class: 'codexr-scope-breadcrumb'
           });
-          // Dark contrast chip behind the breadcrumb so the path stays legible
-          // over the graph and the white table; depthTest:false keeps it from
-          // being occluded by nodes/edges at either the home or docked position.
+          // Dark, opaque contrast chip behind the breadcrumb so the path stays
+          // legible over the graph and the white table. It is depth-tested like
+          // every panel: depthTest:false let farther surfaces paint over it.
           this.scopeLabelChip = entity('a-plane', {
             position: '0 0 -0.01',
             width: 3, height: 0.34,
-            material: 'color: #0b1220; opacity: 0.82; shader: flat; side: double; transparent: true; depthTest: false'
+            material: 'color: #0b1220; shader: flat; side: double'
           });
           this.scopeLabel = text('', '0 0 0.02', 5.4, '#67e8f9');
           this.scopeLabel.setAttribute('side', 'double');
