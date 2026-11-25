@@ -294,14 +294,3 @@ export class VisualizeDataItemFactory {
         );
     }
 }
-
-/**
- * Icons for visualize data items
- */
-export class VisualizeDataIcons {
-    public static readonly chartType = new vscode.ThemeIcon('graph');
-    public static readonly selectJson = new vscode.ThemeIcon('file-code');
-    public static readonly dimensionMapping = new vscode.ThemeIcon('settings-gear');
-    public static readonly launchVisualization = new vscode.ThemeIcon('play');
-    public static readonly section = new vscode.ThemeIcon('chart-scatter');
-}

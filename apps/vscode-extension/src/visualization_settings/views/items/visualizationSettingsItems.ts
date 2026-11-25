@@ -130,14 +130,3 @@ export class VisualizationSettingsItemFactory {
         return await this.createSettingItem(field, dummySettings, context);
     }
 }
-
-/**
- * Icons for visualization settings items
- */
-export class VisualizationSettingsIcons {
-    public static readonly backgroundColor = new vscode.ThemeIcon('color-mode');
-    public static readonly groundColor = new vscode.ThemeIcon('symbol-color');
-    public static readonly environmentPreset = new vscode.ThemeIcon('globe');
-    public static readonly chartPalette = new vscode.ThemeIcon('symbol-misc');
-    public static readonly section = new vscode.ThemeIcon('settings-gear');
-}
