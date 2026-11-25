@@ -571,6 +571,70 @@ test('a congested viewer loses its top temporal layer while the others keep the 
     }
 });
 
+test('past the all-deltas threshold a viewer loses every delta but never a keyframe, audio or config; oversized frames reach nobody', async () => {
+    const { server, signaling, url } = await createRelayServer();
+    const broadcaster = connectScoped(url, 'local');
+    const viewer = connectScoped(url, 'remote');
+
+    try {
+        await Promise.all([waitForOpen(broadcaster), waitForOpen(viewer)]);
+        await registerClient(broadcaster, 'sender-1', 'codexr-session:alpha', 'default');
+        await registerClient(viewer, 'viewer-1', 'codexr-session:alpha', 'default');
+
+        const live = waitForMessage(broadcaster, (payload) => payload.type === 'broadcast-live');
+        broadcaster.send(JSON.stringify({ type: 'broadcast-start', clientId: 'sender-1' }));
+        await live;
+        const ready = waitForMessage(viewer, (payload) => payload.type === 'relay-ready');
+        viewer.send(JSON.stringify({ type: 'viewer-join', clientId: 'viewer-1' }));
+        await ready;
+
+        // Frame size limit (4 MiB): one byte over is dropped, exactly at it passes.
+        const limit = 4 * 1024 * 1024;
+        const oversized = relayFrame(1, 'x'.repeat(limit - RELAY_HEADER_BYTES + 1));
+        const silence = expectNoBinary(viewer, 400);
+        broadcaster.send(oversized);
+        await silence;
+        const atLimit = relayFrame(1, 'y'.repeat(limit - RELAY_HEADER_BYTES));
+        const received = waitForBinary(viewer, 5000);
+        broadcaster.send(atLimit);
+        assert.equal((await received).length, limit);
+
+        // Thresholds: 512 KiB thins the top layers, 2 MiB thins every delta.
+        const viewerClient = [...signaling.clients.values()].find((client) => client.id === 'viewer-1');
+        let backlog = 512 * 1024;
+        Object.defineProperty(viewerClient.socket, 'bufferedAmount', { configurable: true, get: () => backlog });
+
+        // Exactly at 512 KiB nothing is thinned yet.
+        const atTopThreshold = waitForBinary(viewer);
+        broadcaster.send(relayFrame(2, 'layer-1-at-threshold', 1));
+        assert.deepEqual(await atTopThreshold, relayFrame(2, 'layer-1-at-threshold', 1));
+
+        // Exactly at 2 MiB a base-layer delta still passes; one byte more and it is dropped.
+        backlog = 2 * 1024 * 1024;
+        const atAllThreshold = waitForBinary(viewer);
+        broadcaster.send(relayFrame(2, 'base-at-threshold', 0));
+        assert.deepEqual(await atAllThreshold, relayFrame(2, 'base-at-threshold', 0));
+
+        backlog = 2 * 1024 * 1024 + 1;
+        const deltasDropped = expectNoBinary(viewer, 300);
+        broadcaster.send(relayFrame(2, 'base-delta', 0));
+        broadcaster.send(relayFrame(2, 'top-delta', 3));
+        await deltasDropped;
+
+        // Only kind 2 (video delta) is ever droppable, whatever its layer.
+        for (const [kind, layer] of [[1, 2], [3, 0], [4, 1], [5, 0]]) {
+            const frame = relayFrame(kind, `kind-${kind}`, layer);
+            const delivered = waitForBinary(viewer);
+            broadcaster.send(frame);
+            assert.deepEqual(await delivered, frame, `kind ${kind} layer ${layer} must pass under congestion`);
+        }
+    } finally {
+        [broadcaster, viewer].forEach((socket) => socket.close());
+        signaling.dispose();
+        await new Promise((resolve) => server.close(resolve));
+    }
+});
+
 test('viewers that join before the broadcast starts are parked and served, never told it stopped', async () => {
     const { server, signaling, url } = await createRelayServer();
     const broadcaster = connectScoped(url, 'local');

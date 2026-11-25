@@ -84,6 +84,19 @@ Every characterization commit landed before its reshaping and was green on uncha
 - `npm run test:analysis` was green (24 root fixtures, 3 deep) after W5-37 and W5-39.
 - H1 (`CODEXR_NO_SOURCEMAPS=1 npm run package`) gave the same `dist/extension.js` before and after for W5-18 and W5-42, the two type-only commits.
 - `test/baseline` feature surface: unchanged, so no `--allow` was needed.
+- **Merge of `origin/v1.2.1` at `d233d1d3`** (#39, the server splits). There were three conflicts:
+  - `ARCHITECTURE.md` module map: kept #39's `active_servers/` row and this story's `views/` row.
+  - `--max-warnings`: re-measured on the merged tree at **554**.
+  - `guardrail-baseline.json`: regenerated on the merged tree.
+
+  Against upstream's baseline:
+  - ESLint warnings 598 → 554;
+  - `any` 200 → 166;
+  - `console` 1401 → 1396;
+  - `over80Lines` 48 → 45;
+  - `complexity.over10/15/20/30` 74/29/9/5 → 71/26/7/4.
+
+  On the merged tree, `npm test` passed 908/908, `test:analysis` was green, and the scene capture was still 59/59 identical.
 
 ## Deliberately not done
 

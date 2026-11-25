@@ -18,9 +18,9 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1411,
+    "console.total": 1396,
     "console.byModule": {
-      "active_servers": 113,
+      "active_servers": 108,
       "babia_examples": 49,
       "babia_templates": 68,
       "code_analysis": 533,
@@ -28,7 +28,7 @@
       "core": 1,
       "python_env": 24,
       "remote_access": 1,
-      "servers": 292,
+      "servers": 282,
       "utils": 38,
       "views": 107,
       "visualization_settings": 83,
@@ -36,14 +36,14 @@
     },
     "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 167,
+    "any.total": 166,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
       "code_analysis": 87,
       "commands": 8,
       "python_env": 5,
-      "servers": 12,
+      "servers": 11,
       "utils": 14,
       "views": 20,
       "visualization_settings": 6,
@@ -63,17 +63,16 @@
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
-      "src/servers/runtime/multiServerLauncher.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 47,
+    "functions.over80Lines": 45,
     "complexity.over10": 71,
     "complexity.over15": 26,
     "complexity.over20": 7,
     "complexity.over30": 4,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 564,
+    "eslint.maxWarnings": 554,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -81,18 +80,14 @@
     }
   },
   "informational": {
-    "src.files": 316,
-    "src.lines": 48129,
-    "src.functions": 2675,
+    "src.files": 332,
+    "src.lines": 48337,
+    "src.functions": 2692,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "count": 126
-      },
-      {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 45
       },
       {
         "file": "src/active_servers/runtime/serverControl.ts",
@@ -103,16 +98,8 @@
         "count": 39
       },
       {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "count": 38
-      },
-      {
         "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
         "count": 35
-      },
-      {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
-        "count": 34
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
@@ -135,6 +122,10 @@
         "count": 26
       },
       {
+        "file": "src/servers/runtime/multiServerLauncher.ts",
+        "count": 26
+      },
+      {
         "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
         "count": 25
       },
@@ -145,6 +136,14 @@
       {
         "file": "src/servers/runtime/sse/SSEManager.ts",
         "count": 25
+      },
+      {
+        "file": "src/servers/runtime/httpsDefaultServer.ts",
+        "count": 24
+      },
+      {
+        "file": "src/servers/commands/serverCommands.ts",
+        "count": 23
       }
     ],
     "any.topFiles": [
@@ -273,24 +272,12 @@
     ],
     "size.largest10": [
       {
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 1175
-      },
-      {
         "file": "src/python_env/runtime/venvManager.ts",
         "lines": 852
       },
       {
-        "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 816
-      },
-      {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
         "lines": 784
-      },
-      {
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 782
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -301,16 +288,28 @@
         "lines": 632
       },
       {
+        "file": "src/active_servers/views/interactions/handleServerActions.ts",
+        "lines": 620
+      },
+      {
         "file": "src/code_analysis/export/exportManifest.ts",
         "lines": 595
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "lines": 590
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 581
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
         "lines": 573
+      },
+      {
+        "file": "src/remote_access/services/remoteAccessManager.ts",
+        "lines": 564
+      },
+      {
+        "file": "src/code_analysis/historical/gitRepositoryService.ts",
+        "lines": 560
       }
     ]
   },

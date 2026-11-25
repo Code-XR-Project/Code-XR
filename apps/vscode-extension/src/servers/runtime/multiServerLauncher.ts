@@ -1,24 +1,19 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import { HttpServer } from './httpServer';
-import { HttpsDefaultServer } from './httpsDefaultServer';
-import { HttpsCustomServer } from './httpsCustomServer';
+import type * as vscode from 'vscode';
 import { PortManager } from './portManager';
-import { ServerSettingsManager, ServerSettings } from '../storage/serverSettingsManager';
+import { ServerSettingsManager } from '../storage/serverSettingsManager';
 import { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
-import { ServerActionHandlers } from '../../active_servers/views/interactions/handleServerActions';
 import { getServerRegistrar } from '../../active_servers/services/serverRegistrar';
-import { NetworkUtils } from '../utils/networkUtils';
+import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../views/interactions/launchNotifications';
+import {
+    determineCertMode,
+    determineLaunchMode,
+    launchServerByType,
+    resolveServerTypeForOpenMode,
+    ServerInstance,
+    ServerType,
+} from './serverFactory';
 
-/**
- * Server types supported by the launcher
- */
-export type ServerType = 'http' | 'https-default' | 'https-custom';
-
-/**
- * Server instance type for the running server
- */
-export type ServerInstance = HttpServer | HttpsDefaultServer | HttpsCustomServer;
+export type { ServerInstance, ServerType } from './serverFactory';
 
 /**
  * Launch result interface (consolidated from launcher.ts)
@@ -101,9 +96,12 @@ export class MultiServerLauncher {
             });
 
             // Check for HTTPS + lateral panel conflict and handle appropriately
-            const serverTypeResult = this.checkAndHandleLateralPanelHttpsConflict(settings);
+            const serverTypeResult = resolveServerTypeForOpenMode(settings);
             const serverType = serverTypeResult.serverType;
             const isHttpsOverridden = serverTypeResult.isOverridden;
+            if (isHttpsOverridden) {
+                warnHttpsOverriddenForPanel();
+            }
 
             console.log('SERVER: Determined server type:', serverType);
             if (isHttpsOverridden) {
@@ -117,9 +115,7 @@ export class MultiServerLauncher {
 
             if (portChanged) {
                 console.log(`SERVER: Port ${requestedPort} already in use. Using port ${finalPort} instead.`);
-                vscode.window.showInformationMessage(
-                    `Port ${requestedPort} was busy, launching server on port ${finalPort} instead.`
-                );
+                notifyPortChanged(requestedPort, finalPort);
             } else {
                 console.log(`SERVER: Using requested port ${finalPort}`);
             }
@@ -127,7 +123,8 @@ export class MultiServerLauncher {
             // Launch the server - Use 0.0.0.0 to listen on all network interfaces for external access
             const host = '0.0.0.0';
             console.log(`SERVER: DEBUG - Configuring server to listen on ${host}:${finalPort} for network access`);
-            const result = await this.launchServerByType(
+            const result = await launchServerByType(
+                this.context,
                 serverType,
                 settings,
                 finalPort,
@@ -154,8 +151,8 @@ export class MultiServerLauncher {
 
                 // Register server in active servers registry
                 try {
-                    const launchMode: LaunchMode = this.determineLaunchMode(settings);
-                    const certMode: CertMode = this.determineCertMode(serverType, result.httpsOverridden);
+                    const launchMode: LaunchMode = determineLaunchMode(settings);
+                    const certMode: CertMode = determineCertMode(serverType, result.httpsOverridden);
                     
                     console.log('SERVER:  DEBUG - About to register server with the following details:');
                     console.log('SERVER:  DEBUG - customName:', customName);
@@ -194,7 +191,7 @@ export class MultiServerLauncher {
                     console.log(`SERVER: Currently managing ${this.servers.size} server(s)`);
                     
                     // Handle auto-opening based on configuration
-                    await this.handleAutoOpening(settings, result.serverUrl, htmlFile, launchMode, serverInfo.activeServerId);
+                    await handleAutoOpening(settings, result.serverUrl, htmlFile, launchMode, serverInfo.activeServerId);
                     
                 } catch (error) {
                     console.error('SERVER: Failed to register server in registry:', error);
@@ -270,320 +267,6 @@ export class MultiServerLauncher {
         const timestamp = Date.now();
         const random = Math.random().toString(36).substr(2, 5);
         return `server_${timestamp}_${random}`;
-    }
-
-    /**
-     * Determine server type based on settings
-     * @private
-     */
-    private determineServerType(settings: ServerSettings): ServerType {
-        if (settings.mode === 'HTTP') {
-            return 'http';
-        } else if (settings.mode === 'HTTPS') {
-            return settings.https.certSource === 'default' ? 'https-default' : 'https-custom';
-        }
-        
-        throw new Error(`Invalid server mode: ${settings.mode}`);
-    }
-
-    /**
-     * Determine launch mode based on settings
-     * @private
-     */
-    private determineLaunchMode(settings: ServerSettings): LaunchMode {
-        return settings.launch.openMode === 'lateralPanel' ? 'lateralPanel' as LaunchMode : 'browser' as LaunchMode;
-    }
-
-    /**
-     * Determine certificate mode based on server type and overrides
-     * @private
-     */
-    private determineCertMode(serverType: ServerType, httpsOverridden?: boolean): CertMode {
-        if (httpsOverridden) {
-            return 'http';
-        }
-        
-        switch (serverType) {
-            case 'http':
-                return 'http';
-            case 'https-default':
-                return 'https-default';
-            case 'https-custom':
-                return 'https-custom';
-            default:
-                return 'http';
-        }
-    }
-
-    /**
-     * Launch server by type - delegates to existing server implementations
-     * @private
-     */
-    private async launchServerByType(
-        serverType: ServerType,
-        settings: ServerSettings,
-        port: number,
-        host: string,
-        htmlFile?: string,
-        additionalMetadata?: Record<string, any>,
-    ): Promise<{
-        success: boolean;
-        serverUrl?: string;
-        serverType?: ServerType;
-        port?: number;
-        error?: string;
-        httpsOverridden?: boolean;
-        serverInstance?: ServerInstance;
-    }> {
-        try {
-            let server: ServerInstance;
-            let serverUrl: string;
-
-            // Default server configuration
-            const staticRoot = htmlFile ? path.dirname(htmlFile) : path.join(__dirname, '../../../templates');
-            const mainFile = htmlFile ? path.basename(htmlFile) : undefined;
-            const enableCors = true;
-            const allowedOrigins = ['*'];
-
-            console.log(`SERVER: Using static root: ${staticRoot}`);
-            if (mainFile) {
-                console.log(`SERVER: Main file configured: ${mainFile}`);
-            }
-
-            switch (serverType) {
-                case 'http':
-                    console.log('SERVER: Creating HTTP server...');
-                    server = new HttpServer({
-                        port,
-                        host,
-                        staticRoot,
-                        enableCors,
-                        allowedOrigins,
-                        mainFile,
-                        extensionContext: this.context,
-                        analysisSessionId: typeof additionalMetadata?.sessionId === 'string'
-                            ? additionalMetadata.sessionId
-                            : undefined,
-                    });
-                    break;
-
-                case 'https-default':
-                    console.log('SERVER: Creating HTTPS server with generated local certificates...');
-                    server = new HttpsDefaultServer({
-                        port,
-                        host,
-                        staticRoot,
-                        enableCors,
-                        allowedOrigins,
-                        mainFile,
-                        extensionContext: this.context,
-                        analysisSessionId: typeof additionalMetadata?.sessionId === 'string'
-                            ? additionalMetadata.sessionId
-                            : undefined,
-                    });
-                    break;
-
-                case 'https-custom':
-                    console.log('SERVER: Creating HTTPS server with custom certificates...');
-                    if (!settings.https?.certPath || !settings.https.keyPath) {
-                        throw new Error('Custom certificate paths are required for custom HTTPS server');
-                    }
-                    server = new HttpsCustomServer({
-                        port,
-                        host,
-                        staticRoot,
-                        enableCors,
-                        allowedOrigins,
-                        mainFile,
-                        certPath: settings.https.certPath,
-                        keyPath: settings.https.keyPath,
-                        extensionContext: this.context,
-                        analysisSessionId: typeof additionalMetadata?.sessionId === 'string'
-                            ? additionalMetadata.sessionId
-                            : undefined,
-                    });
-                    break;
-
-                default:
-                    throw new Error(`Unsupported server type: ${serverType}`);
-            }
-
-            // Start the server
-            console.log(`SERVER: Starting ${serverType} server...`);
-            serverUrl = await server.start();
-
-            return {
-                success: true,
-                serverUrl,
-                serverType,
-                port,
-                serverInstance: server
-            };
-
-        } catch (error) {
-            console.error(`SERVER: Error launching ${serverType} server:`, error);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                serverType
-            };
-        }
-    }
-
-    /**
-     * Check for lateral panel + HTTPS conflict and provide fallback
-     * @private
-     * @param settings - Server settings
-     * @returns Modified server type if fallback needed, original type otherwise
-     */
-    private checkAndHandleLateralPanelHttpsConflict(settings: ServerSettings): {
-        serverType: ServerType;
-        isOverridden: boolean;
-    } {
-        const originalServerType = this.determineServerType(settings);
-        
-        // Check if we have lateral panel + HTTPS combination
-        const isLateralPanel = settings.launch.openMode === 'lateralPanel';
-        const isHttps = originalServerType === 'https-default' || originalServerType === 'https-custom';
-        
-        if (isLateralPanel && isHttps) {
-            console.log('SERVER: HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility');
-            console.log(`SERVER: Original server type would have been: ${originalServerType}`);
-            console.log('SERVER: VS Code webview panels do not support HTTPS content, using HTTP fallback');
-            
-            // Show non-blocking warning to user with actionable information
-            vscode.window.showWarningMessage(
-                'Launching in HTTP mode due to VS Code limitations: lateral panel views do not support HTTPS content. Use browser mode to preserve HTTPS.',
-                'Change to Browser Mode'
-            ).then(action => {
-                if (action === 'Change to Browser Mode') {
-                    // Open the configuration to change open mode
-                    vscode.commands.executeCommand('codexr.server.config.openMode');
-                }
-            });
-            
-            return {
-                serverType: 'http',
-                isOverridden: true
-            };
-        }
-        
-        return {
-            serverType: originalServerType,
-            isOverridden: false
-        };
-    }
-
-    /**
-     * Handle auto-opening based on configuration
-     * @private
-     */
-    private async handleAutoOpening(
-        settings: ServerSettings, 
-        serverUrl: string, 
-        _htmlFile: string | undefined, 
-        launchMode: LaunchMode, 
-        activeServerId: string
-    ): Promise<void> {
-        const isAutoOpenEnabled = settings.launch.autoOpen;
-        
-        console.log(`SERVER: Auto-open configuration: enabled=${isAutoOpenEnabled}, mode=${launchMode}`);
-        
-        if (!isAutoOpenEnabled) {
-            console.log('SERVER: Auto-open is disabled, showing success notification only');
-            
-            // Extract port from serverUrl to generate network URLs
-            const portMatch = serverUrl.match(/:(\d+)/);
-            const port = portMatch ? parseInt(portMatch[1]) : null;
-            const protocol = serverUrl.startsWith('https') ? 'https' : 'http';
-            
-            let notificationMessage = `Server launched successfully on ${serverUrl}`;
-            
-            // Add network access information if port is available
-            if (port) {
-                const localIP = NetworkUtils.getLocalIPAddress();
-                if (localIP !== 'localhost') {
-                    const networkUrl = `${protocol}://${localIP}:${port}`;
-                    notificationMessage = `Server launched successfully! Network: ${networkUrl} Local: ${serverUrl}`;
-                    console.log(`SERVER: Network access URL: ${networkUrl}`);
-                }
-            }
-            
-            vscode.window.showInformationMessage(
-                notificationMessage,
-                'Open Now', 'Copy Network URL'
-            ).then(action => {
-                if (action === 'Open Now') {
-                    // Use the active server action handler to respect the configured mode
-                    if (launchMode === 'browser') {
-                        this.openServerInBrowser(activeServerId);
-                    } else {
-                        this.openServerInPanel(activeServerId);
-                    }
-                } else if (action === 'Copy Network URL' && port) {
-                    const localIP = NetworkUtils.getLocalIPAddress();
-                    if (localIP !== 'localhost') {
-                        const networkUrl = `${protocol}://${localIP}:${port}`;
-                        vscode.env.clipboard.writeText(networkUrl);
-                        vscode.window.showInformationMessage('Network URL copied to clipboard');
-                    }
-                }
-            });
-            return;
-        }
-        
-        console.log(`SERVER: Auto-opening server in ${launchMode} mode`);
-        
-        try {
-            // Auto-open using the configured launch mode
-            if (launchMode === 'browser') {
-                await this.openServerInBrowser(activeServerId);
-            } else {
-                await this.openServerInPanel(activeServerId);
-            }
-        } catch (error) {
-            console.error('SERVER: Error during auto-opening:', error);
-            vscode.window.showWarningMessage(
-                `Server launched but failed to auto-open: ${error instanceof Error ? error.message : String(error)}`,
-                'Open Manually'
-            ).then(action => {
-                if (action === 'Open Manually') {
-                    if (launchMode === 'browser') {
-                        this.openServerInBrowser(activeServerId);
-                    } else {
-                        this.openServerInPanel(activeServerId);
-                    }
-                }
-            });
-        }
-    }
-
-    /**
-     * Open server in browser using shared handler
-     * @private
-     */
-    private async openServerInBrowser(activeServerId: string): Promise<void> {
-        console.log(`SERVER: Opening server ${activeServerId} in browser via shared handler`);
-        try {
-            await ServerActionHandlers.openInBrowser(activeServerId);
-        } catch (error) {
-            console.error(`SERVER: Failed to open server in browser: ${error}`);
-            throw error;
-        }
-    }
-
-    /**
-     * Open server in lateral panel using shared handler
-     * @private
-     */
-    private async openServerInPanel(activeServerId: string): Promise<void> {
-        console.log(`SERVER: Opening server ${activeServerId} in lateral panel via shared handler`);
-        try {
-            await ServerActionHandlers.openInPanel(activeServerId);
-        } catch (error) {
-            console.error(`SERVER: Failed to open server in lateral panel: ${error}`);
-            throw error;
-        }
     }
 }
 
