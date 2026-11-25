@@ -17,8 +17,8 @@ import { handleError, ErrorDomain, ErrorSeverity } from './utils/errorHandler';
 import { initializeExtensionContext } from './core/extensionContext';
 import { CodeXRLogger } from './core/logging/logger';
 import { StartupCoordinator } from './core/startup/startupCoordinator';
-import { CollaborationProfileManager } from './collaboration';
-import { RemoteAccessManager } from './remote_access';
+import { CollaborationProfileManager } from './collaboration/services/collaborationProfileManager';
+import { RemoteAccessManager } from './remote_access/services/remoteAccessManager';
 
 const startupLogger = CodeXRLogger.getLogger('STARTUP');
 

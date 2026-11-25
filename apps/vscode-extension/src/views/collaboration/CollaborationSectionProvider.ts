@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
-import { CollaborationProfileManager } from '../../collaboration';
+import { CollaborationProfileManager } from '../../collaboration/services/collaborationProfileManager';
 import { CollaborationItemFactory, CollaborationTreeItem } from './items/collaborationItems';
 
 export class CollaborationSectionProvider extends BaseSectionProvider<CollaborationTreeItem> {

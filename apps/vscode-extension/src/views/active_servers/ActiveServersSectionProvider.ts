@@ -4,7 +4,7 @@ import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeSer
 import { CollaborationSectionProvider } from '../collaboration/CollaborationSectionProvider';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
-import { ConnectedParticipantSummary } from '../../collaboration';
+import { ConnectedParticipantSummary } from '../../collaboration/model/connectedParticipant';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('ACTIVE_SERVERS_MODULAR');

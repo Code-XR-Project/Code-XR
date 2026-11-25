@@ -1,7 +1,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ActiveServer } from '../../../active_servers/model/activeServerModel';
-import { COLLABORATION_AVATARS, ConnectedParticipantSummary } from '../../../collaboration';
+import { COLLABORATION_AVATARS } from '../../../collaboration/model/collaborationProfile';
+import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
 import { CollaborationTreeItem } from '../../collaboration/items/collaborationItems';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';

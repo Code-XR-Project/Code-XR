@@ -5,9 +5,10 @@ import { ServerControl } from '../../runtime/serverControl';
 import { openServerInBrowser, openServerInPanel } from '../../services/serverOpenActions';
 import { withServer } from '../../services/withServer';
 import { NetworkUtils } from '../../../servers/utils/networkUtils';
-import { RemoteAccessManager } from '../../../remote_access';
+import { RemoteAccessManager } from '../../../remote_access/services/remoteAccessManager';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
-import { COLLABORATION_AVATARS, ConnectedParticipantSummary } from '../../../collaboration';
+import { COLLABORATION_AVATARS } from '../../../collaboration/model/collaborationProfile';
+import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import type { PairingRequestSummary } from '../../../remote_access/security/remoteSessionAuthority';
 import { formatDetailSections, formatDuration } from '../../../utils/detailDialog';
 import {

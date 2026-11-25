@@ -68,8 +68,8 @@
     }
   },
   "informational": {
-    "src.files": 301,
-    "src.lines": 49236,
+    "src.files": 299,
+    "src.lines": 49222,
     "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.byFile": {
@@ -268,7 +268,7 @@
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 623
+        "lines": 624
       },
       {
         "file": "src/code_analysis/historical/gitRepositoryService.ts",
