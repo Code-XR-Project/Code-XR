@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
  *
  * - utils/supportedLanguages decides what is ANALYSED: getAllSupportedExtensions
  *   (minus HTML) is the metric-analysis extension set of the watchers,
- *   isSupportedExtension is the code-analysis file predicate, and
+ *   isSupportedExtension is the table's membership predicate (its two src
+ *   callers, both dead, went in 1.2.1 W2-26 / W2-30), and
  *   getLanguageByExtension routes HTML files to the DOM view by language name.
  * - utils/languageMetadata decides what is LABELLED: getLanguageForFile groups the
  *   "Files by Language" tree, marks files as supported in the workspace snapshot,

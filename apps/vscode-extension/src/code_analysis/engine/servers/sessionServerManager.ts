@@ -18,7 +18,7 @@ export class SessionServerManager {
     private sseManager: SSENotificationManager;
     private activeSessions: Map<string, SessionServerInfo> = new Map();
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('SESSION_SERVER_MANAGER: Initializing manager');
         this.serverOrchestrator = new ServerLaunchOrchestrator(context);
         this.sseManager = new SSENotificationManager();

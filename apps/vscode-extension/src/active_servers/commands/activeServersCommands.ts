@@ -262,26 +262,4 @@ export class ActiveServersCommands {
         console.error('ACTIVE_SERVER: Could not extract server ID from tree item:', treeItem);
         return null;
     }
-
-    public static getCommandIds(): Record<string, string> {
-        return {
-            showActions: 'codeXR.activeServers.showActions',
-            openInBrowser: 'codeXR.activeServers.openInBrowser',
-            openInPanel: 'codeXR.activeServers.openInPanel',
-            copyUrl: 'codeXR.activeServers.copyUrl',
-            copyLanUrl: 'codeXR.activeServers.copyLanUrl',
-            startRemoteAccess: 'codeXR.activeServers.startRemoteAccess',
-            copyRemoteInvitation: 'codeXR.activeServers.copyRemoteInvitation',
-            stopRemoteAccess: 'codeXR.activeServers.stopRemoteAccess',
-            showRemoteStatus: 'codeXR.activeServers.showRemoteStatus',
-            regeneratePairingCode: 'codeXR.activeServers.regeneratePairingCode',
-            stopServer: 'codeXR.activeServers.stopServer',
-            showDetails: 'codeXR.activeServers.showDetails',
-            showParticipantDetails: 'codeXR.activeServers.showParticipantDetails',
-            removeParticipant: 'codeXR.activeServers.removeParticipant',
-            stopAllServers: 'codeXR.activeServers.stopAllServers',
-            refreshServers: 'codeXR.activeServers.refreshServers',
-            openView: 'codeXR.activeServers.openView'
-        };
-    }
 }

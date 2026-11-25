@@ -51,25 +51,3 @@ export async function getVisualizationConfiguration(): Promise<VisualizationSett
         return defaultSettings;
     }
 }
-
-/**
- * Get individual setting with fallback
- */
-export async function getIndividualSetting(settingType: keyof VisualizationSettings): Promise<string> {
-    try {
-        const settings = await getVisualizationConfiguration();
-        return settings[settingType];
-    } catch (error) {
-        console.error(`VISUALIZATION_CONFIG: Error getting ${settingType}:`, error);
-        
-        // Default fallbacks
-        const defaults: VisualizationSettings = {
-            palette: 'blues',
-            environment: 'forest',
-            backgroundColor: '#001122',
-            groundColor: '#553311'
-        };
-        
-        return defaults[settingType];
-    }
-}

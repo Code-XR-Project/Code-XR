@@ -8,9 +8,7 @@ import * as path from 'path';
 import {
     FilesByLanguageSortingConfig,
     LanguageGroupSortBy,
-    LanguageGroupSortDirection,
-    FilesSortBy,
-    FilesSortDirection
+    LanguageGroupSortDirection
 } from '../configuration/models/analysisConfiguration';
 import { FilesByLanguage } from './workspaceFileScanner';
 

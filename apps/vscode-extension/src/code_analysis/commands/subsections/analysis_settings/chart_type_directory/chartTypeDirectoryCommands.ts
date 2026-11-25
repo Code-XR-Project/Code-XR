@@ -10,7 +10,7 @@ import { CommandRegistration } from '../analysis_file_mode';
 export class ChartTypeDirectoryCommands {
 
     constructor(
-        private context: vscode.ExtensionContext,
+        context: vscode.ExtensionContext,
         private chartTypeDirectorySetting: ChartTypeDirectorySetting
     ) {}
 

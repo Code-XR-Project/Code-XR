@@ -22,7 +22,7 @@ export class AutoAnalysisDelaySetting {
         '10s': 10000
     };
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedDelay();
     }

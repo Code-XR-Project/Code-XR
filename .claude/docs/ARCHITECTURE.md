@@ -27,7 +27,7 @@ Live updates: engine/watchers/* detect file changes → re-run Python →
   engine/servers/sseNotificationManager.ts → src/servers/runtime/sse/SSEManager.ts → browser reloads data
 ```
 
-Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/headset), **LivePanel** (2D webview panel), **DOM visualization** (HTML DOM structure in XR). Each mode has its own launcher, parser (`engine/parsers/`), and requirement rules (`engine/processors/requirementRules/`) that decide which artifacts must be generated.
+Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/headset), **LivePanel** (2D webview panel), **DOM visualization** (HTML DOM structure in XR). Each mode has its own launcher and parser (`engine/parsers/`); one shared requirement processor (`engine/processors/FileRequirementProcessor.ts` → `analysisBootstrap.ts`) loads the templates the mode needs.
 
 ## Activation flow (`src/extension.ts`)
 
@@ -46,7 +46,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | Module | Responsibility | Key files |
 |---|---|---|
 | `code_analysis/` | **The core (246 files).** Analysis engine, sessions, watchers, Python backend, dependency + historical analysis | `engine/launchers/launcherXRAnalysis.ts`, `engine/core/analysisSession.ts`, `engine/orchestrator` → `analysisOrchestrator.ts` |
-| `code_analysis/engine/` | Pipeline: launchers, parsers, processors/requirement rules, session servers, watchers, component-asset injection | `launchPipeline.ts`, `servers/sessionServerManager.ts`, `watchers/sessionWatcherManager.ts`, `utils/executePython.ts` |
+| `code_analysis/engine/` | Pipeline: launchers, parsers, the requirement processor, session servers, watchers, component-asset injection | `launchPipeline.ts`, `servers/sessionServerManager.ts`, `watchers/sessionWatcherManager.ts`, `utils/executePython.ts` |
 | `code_analysis/python/` | Python analysis backend (see `PYTHON_ANALYSIS.md`) | `main.py`, `tools/lizard_analyzer.py`, `utils/xr_field_schema.py` |
 | `code_analysis/dependencies/` | Dependency-graph analysis service (see `docs/features/DEPENDENCY_GRAPH_XR.md`) | `DependencyGraphService` *[inferred name from docs]* |
 | `code_analysis/historical/` | Git history: comparator + Project Evolution. Both services compose a `GitAnalysisSessionContext` (catalogue, per-commit payload cache, analyze/exclude) and a `SingleJobGate` (one job at a time, last successful request); `gitAnalysisShared.ts` holds the pure helpers the export core shares | `gitRepositoryService.ts`, `historicalComparisonService.ts`, `projectEvolutionService.ts`, `gitAnalysisSessionContext.ts`, `gitAnalysisShared.ts` |

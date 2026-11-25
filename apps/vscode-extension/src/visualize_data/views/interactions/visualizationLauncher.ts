@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { BabiaChartRegistry } from '../../../babia_templates/registry/chartRegistry';
 import { VisualizeDataStateManager, VisualizeDataState } from '../../state/visualizeDataState';
 import { JsonFieldAnalyzer } from '../../../utils/jsonFieldAnalyzer';
-import { DimensionDataType, DimensionMapping } from '../../../babia_templates/models/chartModels';
+import { DimensionMapping } from '../../../babia_templates/models/chartModels';
 import { generateNonce } from '../../../utils/nonceGenerator';
 import { TemplateProcessor } from '../../../babia_templates/processing/templateProcessor';
 import { launchServerWithFile } from '../../../servers/runtime/index';

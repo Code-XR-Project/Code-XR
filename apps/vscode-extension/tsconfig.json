@@ -26,10 +26,6 @@
 	],
 	"exclude": [
 		"node_modules",
-		"out",
-		"src/configuration/serverConfigurationManager.ts",
-		"src/test/integration/analysisTreeViewSimple.test.ts",
-		"test_dimension_mapping.ts",
-		"test_visualization.ts"
+		"out"
 	]
 }

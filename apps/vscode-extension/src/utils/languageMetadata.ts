@@ -74,17 +74,3 @@ function getFileExtension(filePath: string): string {
     }
     return filePath.substring(lastDot).toLowerCase();
 }
-
-/**
- * Get all supported language names
- */
-export function getAllLanguageNames(): string[] {
-    return SupportedLanguages.map(lang => lang.name);
-}
-
-/**
- * Check if a language is supported
- */
-export function isLanguageSupported(languageName: string): boolean {
-    return SupportedLanguages.some(lang => lang.name === languageName);
-}

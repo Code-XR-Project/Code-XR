@@ -130,7 +130,6 @@ test('watcher configuration changes propagate to active sessions and directory r
     const fileWatcher = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'fileWatcherOrchestrator.ts');
     const directoryWatcher = readProjectFile('src', 'code_analysis', 'engine', 'watchers', 'directoryWatcherOrchestrator.ts');
     const analysisBootstrap = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'analysisBootstrap.ts');
-    const livePanelDirectoryRequirements = readProjectFile('src', 'code_analysis', 'engine', 'processors', 'requirementRules', 'LivePanelDirectoryRequirements.ts');
 
     assert.match(sessionWatcherManager, /async updateAllWatcherConfigurations\(\): Promise<number>/);
     assert.match(sessionWatcherManager, /static async refreshActiveWatcherConfigurations\(context: vscode\.ExtensionContext\): Promise<number>/);
@@ -151,7 +150,6 @@ test('watcher configuration changes propagate to active sessions and directory r
         { canary: /if \(newDelayMs === -1\) \{\s*this\.debounceManager\?\.cancel\(\);/ },
     );
     assert.match(analysisBootstrap, /resolveTrackedSystemPath\(session\.targetPath, entry\)/);
-    assert.match(livePanelDirectoryRequirements, /return this\.analysisBootstrap\.bootstrap\(session, theme\);/);
 });
 
 test('mode activation reconciles watcher hashes without forcing a full analysis', () => {

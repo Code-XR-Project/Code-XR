@@ -74,16 +74,8 @@ export class CodeAnalysisCommands {
         registrations.push(...DirectoryAnalysisCommands.getCommandRegistrations(context));
         registrations.push(...ProjectAnalysisCommands.getCommandRegistrations(context));
         registrations.push(...DOMVisualizationCommands.getCommandRegistrations(context, defaultRefreshCallback));
-        registrations.push(...CodeAnalysisCommands.getMainCommandRegistrations(context, defaultRefreshCallback));
 
         return registrations;
-    }
-
-    private static getMainCommandRegistrations(
-        _context: vscode.ExtensionContext,
-        _refreshCallback: () => void,
-    ): CommandRegistration[] {
-        return [];
     }
 }
 

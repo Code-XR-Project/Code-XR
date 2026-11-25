@@ -3,5 +3,5 @@
  * Exports for view items
  */
 
-export { CodeAnalysisTreeItem, CodeAnalysisItemFactory } from './analysisItems';
+export { CodeAnalysisTreeItem } from './analysisItems';
 

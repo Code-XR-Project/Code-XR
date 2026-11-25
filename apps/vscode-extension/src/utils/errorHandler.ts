@@ -71,20 +71,3 @@ export function handleError(
             break;
     }
 }
-
-/**
- * Convenience wrapper for async operations with consistent error handling.
- */
-export async function withErrorHandler<T>(
-    domain: ErrorDomain,
-    operation: string,
-    fn: () => Promise<T>,
-    severity: ErrorSeverity = ErrorSeverity.Log,
-): Promise<T | undefined> {
-    try {
-        return await fn();
-    } catch (error) {
-        handleError(domain, operation, error, severity);
-        return undefined;
-    }
-}

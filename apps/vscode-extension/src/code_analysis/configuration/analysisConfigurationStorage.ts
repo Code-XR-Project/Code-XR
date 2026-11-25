@@ -16,7 +16,6 @@ import {
     DimensionMapping,
     FilesByLanguageSortingConfig,
     XRBabiaUiConfig,
-    DEFAULT_CONFIGURATION_FILE,
     DEFAULT_ANALYSIS_CONFIGURATION
 } from './models/analysisConfiguration';
 

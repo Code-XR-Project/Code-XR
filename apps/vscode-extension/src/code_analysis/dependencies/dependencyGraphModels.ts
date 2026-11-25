@@ -73,19 +73,3 @@ export interface DependencyRefreshRequest {
     removedFiles: string[];
     forceFullScan?: boolean;
 }
-
-export interface DependencyGraphViewState {
-    entityKind: 'dependency-graph';
-    entityId: 'main';
-    mode: 'dependency-graph' | 'single';
-    status: 'idle' | 'analyzing' | 'ready' | 'error';
-    message: string;
-    datasetUrl: string | null;
-    revision: number;
-    layout: DependencyGraphLayout;
-    showExternal: boolean;
-    edgeEncoding: DependencyEdgeEncoding;
-    relationFilters: Record<DependencyRelationKind, boolean>;
-    mapping: Record<string, string>;
-    scope: DependencyGraphScope;
-}

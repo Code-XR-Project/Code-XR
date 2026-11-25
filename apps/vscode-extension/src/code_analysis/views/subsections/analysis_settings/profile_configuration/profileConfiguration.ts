@@ -10,7 +10,7 @@ import { AnalysisConfigurationStorage } from '../../../../configuration/analysis
 export class ProfileConfigurationSetting {
 
     constructor(
-        private context: vscode.ExtensionContext,
+        context: vscode.ExtensionContext,
         private storage: AnalysisConfigurationStorage
     ) {
         console.log('PROFILE_CONFIGURATION: Initializing Profile Configuration setting');
@@ -145,19 +145,6 @@ export class ProfileConfigurationSetting {
                 visibleByDefault: true,
             }
         };
-    }
-
-    /**
-     * Detect user's VS Code theme
-     */
-    private detectVSCodeTheme(): 'light' | 'dark' | 'auto' {
-        const colorTheme = vscode.window.activeColorTheme;
-        if (colorTheme.kind === vscode.ColorThemeKind.Light) {
-            return 'light';
-        } else if (colorTheme.kind === vscode.ColorThemeKind.Dark || colorTheme.kind === vscode.ColorThemeKind.HighContrast) {
-            return 'dark';
-        }
-        return 'dark'; // Default fallback
     }
 
     /**

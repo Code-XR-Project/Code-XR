@@ -19,8 +19,8 @@
 | `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python` into `dist/code_analysis/python`; `templates/` and `examples/` ship as they are, not copied, since 1.2.1) | Before F5 "workspace direct"; quick build check |
 | `npm run compile:dev-host` | `compile` + `scripts/prepare-dev-extension.mjs` → stages an isolated dev copy under `.vscode-test/dev-extension` | Used automatically by the primary F5 launch config |
 | `npm run watch` | webpack watch mode | Iterating on TS changes |
-| `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project | Fast correctness gate; part of `test:basic` |
-| `npm run lint` | ESLint (flat config, `eslint.config.mjs`) over `src/` | Part of `test:basic`; rules are mostly "warn" |
+| `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project with `tsconfig.check.json`, which extends `tsconfig.json` and adds `noUnusedLocals`. `compile`, `compile-tests` and webpack stay on `tsconfig.json`, so an unused symbol fails the gate but never the F5 build | Fast correctness gate; part of `test:basic` |
+| `npm run lint` | ESLint (flat config, `eslint.config.mjs`) over `src/` | Part of `test:basic`; rules are mostly "warn"; `@typescript-eslint/no-unused-vars` (imports and locals) is an error |
 | `npm run compile-tests` | Removes `out/`, then `tsc -p . --outDir out`. Starting empty matters: tsc never deletes output for a source that is gone, so a module deleted from `src/` would keep a compiled twin the suites still load | Part of `test:basic` |
 | `npm test` = `npm run test:basic` | `typecheck` + `lint` + `compile-tests` (tsc → `out/`) + `test:unit`. Needs **no** webpack build | **The default gate. Run before declaring any change done.** |
 | `npm run test:unit` | `test/runners/run-node-tests.cjs` → first refuses to start if `out/` does not match `src/` (a source newer than its output, an uncompiled source, or a compiled file whose source is gone), then collects `test/**/*.test.cjs` and runs `node --test --test-isolation=none --test-concurrency=1` — **every suite in one process**, so a test must never leave global state behind | Unit/runtime tests only (fast) |
@@ -87,7 +87,7 @@ Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:ana
 ## Known tooling quirks (do not "fix" casually)
 
 - **CI** (`.github/workflows/ci.yml`, since 1.2.1) runs on pull requests to `master`: `npm test` and the Python suites on `windows-latest` and `ubuntu-latest`, plus a job that packages the VSIX and uploads it with its dist fingerprint. It runs exactly the local gates — nothing is CI-only. `ubuntu-latest` reports without blocking until its first LF/POSIX fallout is fixed. The browser harnesses stay local (they need Playwright's Chromium and live CDNs). The other workflow, `deploy-pages-redirect.yml`, only publishes the GitHub Pages redirect.
-- **`esbuild.config.mjs` is unreferenced** by any npm script — webpack is the active bundler. Likely legacy from the 0.0.8-era ESBuild migration. *Needs verification before removal.*
+- **webpack is the only bundler.** The orphan `esbuild.config.mjs` (no script ran it, `esbuild` was never a dependency) was deleted in 1.2.1.
 - `tsconfig.json` `outDir` is `out/` (used for `compile-tests`/typecheck output); the shipped bundle goes to `dist/` via webpack. Don't confuse the two.
 - `tsconfig.tsbuildinfo` at root is a build cache — never edit or commit-review it.
 

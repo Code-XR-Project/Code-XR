@@ -93,30 +93,3 @@ export function getFileSystemPathFromEditorOrInput(input?: any): string | null {
         return null;
     }
 }
-
-/**
- * Validate that a path is a valid file system path
- */
-export function isValidFileSystemPath(path: string): boolean {
-    try {
-        if (!path || typeof path !== 'string') {
-            return false;
-        }
-
-        // Basic validation - path should not contain URI schemes
-        if (path.includes('://')) {
-            return false;
-        }
-
-        // Should contain file separators (/ or \)
-        if (!path.includes('/') && !path.includes('\\')) {
-            return false;
-        }
-
-        return true;
-
-    } catch (error) {
-        console.error('URI_PATH_CONVERTER: Error validating file system path:', error);
-        return false;
-    }
-}

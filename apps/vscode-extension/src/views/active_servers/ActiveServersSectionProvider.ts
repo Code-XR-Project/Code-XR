@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { SectionProvider } from '../common/baseInterfaces';
 import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
-import { ActiveServerClickHandler } from './interactions/handleActiveServerClicks';
 import { CollaborationSectionProvider } from '../collaboration';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';
 import { ActiveServer } from '../../active_servers/model/activeServerModel';
@@ -24,15 +23,13 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
     readonly onDidChangeTreeData: vscode.Event<ActiveServerTreeItem | undefined | null | void> = 
         this._onDidChangeTreeData.event;
 
-    private clickHandler: ActiveServerClickHandler;
     private readonly participantSubscriptions = new Map<string, () => void>();
     private readonly registrySubscription: vscode.Disposable;
     private readonly collaborationProvider: CollaborationSectionProvider;
     private readonly collaborationSubscription: vscode.Disposable;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('ACTIVE_SERVERS_MODULAR: Initializing Active Servers section provider');
-        this.clickHandler = new ActiveServerClickHandler(context);
 
         // Collaboration lives as a nested group inside this section; its provider
         // stays the single source of truth for the shared profile items.
@@ -169,20 +166,6 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
         }
         this.participantSubscriptions.clear();
         this._onDidChangeTreeData.dispose();
-    }
-
-    /**
-     * Handle item clicks (additional method for interaction)
-     */
-    async handleClick(item: ActiveServerTreeItem): Promise<void> {
-        await this.clickHandler.handleActiveServerClick(item);
-    }
-
-    /**
-     * Handle context menu actions (additional method for interaction)
-     */
-    async handleContextMenu(action: string, item: ActiveServerTreeItem): Promise<void> {
-        await this.clickHandler.handleContextMenuAction(action, item);
     }
 
     private getParticipants(server: ActiveServer): ConnectedParticipantSummary[] {

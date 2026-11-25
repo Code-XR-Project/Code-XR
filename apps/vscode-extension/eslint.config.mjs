@@ -20,6 +20,15 @@ export default [{
             format: ["camelCase", "PascalCase"],
         }],
 
+        // Unused imports and locals are errors. Parameters and caught errors
+        // stay allowed (noUnusedParameters is a separate, later step); a
+        // leading underscore marks a deliberately unused binding.
+        "@typescript-eslint/no-unused-vars": ["error", {
+            args: "none",
+            caughtErrors: "none",
+            varsIgnorePattern: "^_",
+        }],
+
         curly: "warn",
         eqeqeq: "warn",
         "no-throw-literal": "warn",

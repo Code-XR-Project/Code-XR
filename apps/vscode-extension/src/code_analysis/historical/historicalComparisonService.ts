@@ -108,10 +108,6 @@ export class HistoricalComparisonService {
         return this.compare({ ...this.activeRequest }, onProgress);
     }
 
-    public clearActiveComparison(): void {
-        this.jobs.forgetLastRequest();
-    }
-
     public dispose(): Promise<void> {
         return this.analysis.dispose();
     }

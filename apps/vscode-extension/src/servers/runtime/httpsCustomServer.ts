@@ -1,7 +1,6 @@
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
-import { X509Certificate } from 'crypto';
 import * as vscode from 'vscode';
 import { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
 import { ConnectedParticipantSummary } from '../../collaboration';
@@ -105,7 +104,6 @@ export class HttpsCustomServer {
 
                 this.server.on('listening', () => {
                     const port = this.config.port;
-                    NetworkUtils.generateServerUrls(port, 'https');
                     const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
 
                     console.log(`SERVER: HTTPS server listening on port ${port}`);
@@ -206,10 +204,6 @@ export class HttpsCustomServer {
         };
     }
 
-    public getFullConfig(): HttpsCustomServerConfig {
-        return { ...this.config };
-    }
-
     public getServerUrl(): string | null {
         if (!this.isRunning) {
             return null;
@@ -245,43 +239,6 @@ export class HttpsCustomServer {
         listener: (participants: ConnectedParticipantSummary[]) => void,
     ): () => void {
         return this.httpHandler.onConnectedParticipantsChanged(listener);
-    }
-
-    public getCertificateInfo(): {
-        certPath: string;
-        keyPath: string;
-        certExists: boolean;
-        keyExists: boolean;
-        isValid: boolean;
-        certSize?: number;
-        keySize?: number;
-    } {
-        const certExists = fs.existsSync(this.config.certPath);
-        const keyExists = fs.existsSync(this.config.keyPath);
-
-        let certSize: number | undefined;
-        let keySize: number | undefined;
-
-        try {
-            if (certExists) {
-                certSize = fs.statSync(this.config.certPath).size;
-            }
-            if (keyExists) {
-                keySize = fs.statSync(this.config.keyPath).size;
-            }
-        } catch (error) {
-            console.warn('SERVER: Could not get certificate file sizes:', error);
-        }
-
-        return {
-            certPath: this.config.certPath,
-            keyPath: this.config.keyPath,
-            certExists,
-            keyExists,
-            isValid: certExists && keyExists,
-            certSize,
-            keySize,
-        };
     }
 
     private async resolveCertificatePaths(): Promise<void> {
@@ -384,150 +341,6 @@ export class HttpsCustomServer {
             };
         } catch (error) {
             throw new Error(`SERVER: Failed to load custom SSL certificates: ${error}`);
-        }
-    }
-
-    public getDetailedStatus(): {
-        isRunning: boolean;
-        url: string | null;
-        config: HttpsCustomServerConfig;
-        certificates: {
-            certPath: string;
-            keyPath: string;
-            certExists: boolean;
-            keyExists: boolean;
-            isValid: boolean;
-            certSize?: number;
-            keySize?: number;
-        };
-        uptime?: number;
-    } {
-        return {
-            isRunning: this.isRunning,
-            url: this.getServerUrl(),
-            config: this.getConfig(),
-            certificates: this.getCertificateInfo(),
-            uptime: this.isRunning ? process.uptime() : undefined,
-        };
-    }
-
-    public async testCertificates(): Promise<boolean> {
-        try {
-            await this.resolveCertificatePaths();
-            await this.validateCertificates();
-            this.loadSslOptions();
-            console.log('SERVER: Custom certificate test passed');
-            return true;
-        } catch (error) {
-            console.error('SERVER: Custom certificate test failed:', error);
-            return false;
-        }
-    }
-
-    public async updateCertificates(certPath: string, keyPath: string): Promise<boolean> {
-        if (this.isRunning) {
-            throw new Error('SERVER: Cannot update certificates while server is running. Stop the server first.');
-        }
-
-        const oldCertPath = this.config.certPath;
-        const oldKeyPath = this.config.keyPath;
-
-        try {
-            this.config.certPath = certPath;
-            this.config.keyPath = keyPath;
-            this.usingFallbackCerts = false;
-
-            await this.validateCertificatePair(certPath, keyPath);
-            console.log('SERVER: Certificate paths updated successfully');
-            return true;
-        } catch (error) {
-            this.config.certPath = oldCertPath;
-            this.config.keyPath = oldKeyPath;
-            console.error('SERVER: Failed to update certificates:', error);
-            return false;
-        }
-    }
-
-    public async getCertificateExpiration(): Promise<{
-        notBefore?: Date;
-        notAfter?: Date;
-        isExpired?: boolean;
-        daysUntilExpiry?: number;
-    } | null> {
-        try {
-            const cert = fs.readFileSync(this.config.certPath, 'utf8');
-            const certificate = new X509Certificate(cert);
-            const notBefore = new Date(certificate.validFrom);
-            const notAfter = new Date(certificate.validTo);
-            const now = new Date();
-            const isExpired = now > notAfter;
-            const daysUntilExpiry = Math.ceil((notAfter.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-            return {
-                notBefore,
-                notAfter,
-                isExpired,
-                daysUntilExpiry,
-            };
-        } catch (error) {
-            console.error('SERVER: Error parsing certificate expiration:', error);
-            return null;
-        }
-    }
-
-    public static async validateCertificateFiles(certPath: string, keyPath: string): Promise<{
-        isValid: boolean;
-        errors: string[];
-    }> {
-        const errors: string[] = [];
-
-        try {
-            if (!fs.existsSync(certPath)) {
-                errors.push(`Certificate file not found: ${certPath}`);
-            }
-            if (!fs.existsSync(keyPath)) {
-                errors.push(`Private key file not found: ${keyPath}`);
-            }
-
-            if (errors.length > 0) {
-                return { isValid: false, errors };
-            }
-
-            try {
-                await fs.promises.access(certPath, fs.constants.R_OK);
-            } catch {
-                errors.push(`Cannot read certificate file: ${certPath}`);
-            }
-
-            try {
-                await fs.promises.access(keyPath, fs.constants.R_OK);
-            } catch {
-                errors.push(`Cannot read private key file: ${keyPath}`);
-            }
-
-            if (errors.length > 0) {
-                return { isValid: false, errors };
-            }
-
-            const certContent = await fs.promises.readFile(certPath, 'utf8');
-            const keyContent = await fs.promises.readFile(keyPath, 'utf8');
-
-            if (!certContent.includes('BEGIN CERTIFICATE')) {
-                errors.push('Certificate file does not appear to be a valid certificate');
-            }
-
-            if (
-                !keyContent.includes('BEGIN PRIVATE KEY') &&
-                !keyContent.includes('BEGIN RSA PRIVATE KEY') &&
-                !keyContent.includes('BEGIN EC PRIVATE KEY')
-            ) {
-                errors.push('Key file does not appear to be a valid private key');
-            }
-
-            return { isValid: errors.length === 0, errors };
-        } catch (error) {
-            errors.push(`Error validating certificates: ${error}`);
-            return { isValid: false, errors };
         }
     }
 }

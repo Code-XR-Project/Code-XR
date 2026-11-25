@@ -13,7 +13,7 @@ export class AnalysisDirectorySetting {
     private currentMode: AnalysisDirectoryMode = 'XR'; // Default mode (will be loaded from storage)
     private storage: AnalysisConfigurationStorage;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('ANALYSIS: Initializing Analysis Directory setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedMode();
@@ -179,13 +179,3 @@ export class AnalysisDirectorySetting {
         }
     }
 }
-
-/**
- * Command registration interface for the nested dolls pattern
- */
-export interface CommandRegistration {
-    commandId: string;
-    callback: (...args: any[]) => any;
-    description?: string;
-}
-

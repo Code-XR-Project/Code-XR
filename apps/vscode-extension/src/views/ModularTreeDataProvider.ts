@@ -215,24 +215,6 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         return this.ensureSectionProvider(sectionName);
     }
 
-    async handleItemClick(item: ModularTreeItem): Promise<void> {
-        const provider = this.ensureSectionProvider(item.sectionType);
-
-        if (provider && typeof (provider as any).handleClick === 'function') {
-            const sectionItem = this.convertToSectionItem(item);
-            await (provider as any).handleClick(sectionItem);
-        }
-    }
-
-    async handleContextMenu(action: string, item: ModularTreeItem): Promise<void> {
-        const provider = this.ensureSectionProvider(item.sectionType);
-
-        if (provider && typeof (provider as any).handleContextMenu === 'function') {
-            const sectionItem = this.convertToSectionItem(item);
-            await (provider as any).handleContextMenu(action, sectionItem);
-        }
-    }
-
     dispose(): void {
         this.pythonEnvUiStateSubscription.dispose();
 

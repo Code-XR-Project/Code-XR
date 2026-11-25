@@ -47,7 +47,7 @@ export class CollaborationProfileManager implements vscode.Disposable {
 
     public readonly onDidChange = this.onDidChangeEmitter.event;
 
-    private constructor(private readonly context: vscode.ExtensionContext) {
+    private constructor(context: vscode.ExtensionContext) {
         this.configurationDirectory = path.join(context.globalStorageUri.fsPath, 'collaboration');
         this.profilePath = path.join(this.configurationDirectory, 'profile.v1.json');
         this.installationIdPath = path.join(this.configurationDirectory, 'installation-id');

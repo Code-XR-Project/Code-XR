@@ -11,7 +11,7 @@ export class AutoAnalysisEnabledSetting {
     private currentEnabled: boolean = true; // Default enabled
     private storage: AnalysisConfigurationStorage;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         console.log('ANALYSIS: Initializing Auto-Analysis Enabled setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedState();

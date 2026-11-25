@@ -5,7 +5,7 @@ import {
     CollaborationRoomServer,
 } from '../collaboration/collaborationRoomServer';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../../../code_analysis/refresh';
-import { readJsonBody, sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
+import { sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 import { AnalysisFeatureHost } from './analysisFeatureHost';
 
 /** Room access shared by every analysis bridge. */

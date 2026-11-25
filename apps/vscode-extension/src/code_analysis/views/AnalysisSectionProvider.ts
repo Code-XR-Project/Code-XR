@@ -31,7 +31,7 @@ export class AnalysisSectionProvider implements SectionProvider<CodeAnalysisTree
     private readonly workspaceSnapshotSubscription: vscode.Disposable;
     private readonly sessionRegistrySubscription: vscode.Disposable;
 
-    constructor(private readonly context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext) {
         this.activeAnalysesDataService = ActiveAnalysesDataService.getInstance();
         this.activeAnalysesDataService.initialize(context);
 

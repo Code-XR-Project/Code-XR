@@ -18,34 +18,34 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1589,
+    "console.total": 1416,
     "console.byModule": {
-      "active_servers": 127,
+      "active_servers": 113,
       "babia_examples": 49,
-      "babia_templates": 72,
-      "code_analysis": 623,
+      "babia_templates": 68,
+      "code_analysis": 538,
       "commands": 4,
       "core": 1,
-      "python_env": 26,
+      "python_env": 24,
       "remote_access": 1,
-      "servers": 319,
-      "utils": 50,
-      "views": 130,
+      "servers": 292,
+      "utils": 38,
+      "views": 107,
       "visualization_settings": 83,
-      "visualize_data": 104
+      "visualize_data": 98
     },
-    "catch.consoleOnly": 61,
+    "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 219,
+    "any.total": 201,
     "any.byModule": {
-      "active_servers": 12,
-      "babia_templates": 3,
-      "code_analysis": 96,
+      "active_servers": 11,
+      "babia_templates": 2,
+      "code_analysis": 87,
       "commands": 8,
-      "python_env": 6,
-      "servers": 13,
+      "python_env": 5,
+      "servers": 12,
       "utils": 14,
-      "views": 59,
+      "views": 54,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -63,72 +63,16 @@
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
-      "src/servers/runtime/httpsCustomServer.ts",
       "src/servers/runtime/multiServerLauncher.ts",
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 52,
-    "complexity.over10": 77,
+    "functions.over80Lines": 50,
+    "complexity.over10": 74,
     "complexity.over15": 29,
     "complexity.over20": 9,
     "complexity.over30": 5,
-    "reachability.unreachable": [
-      "src/active_servers/views/index.ts",
-      "src/active_servers/views/items/serverItems.ts",
-      "src/babia_examples/views/index.ts",
-      "src/babia_templates/index.ts",
-      "src/babia_templates/processing/placeholders/index.ts",
-      "src/code_analysis/commands/clean_analysis/index.ts",
-      "src/code_analysis/commands/index.ts",
-      "src/code_analysis/commands/subsections/active_analyses/index.ts",
-      "src/code_analysis/commands/subsections/analysis_settings/chart_type_directory/index.ts",
-      "src/code_analysis/commands/subsections/analysis_settings/chart_type_file/index.ts",
-      "src/code_analysis/commands/subsections/analysis_settings/dimension_mapping_directory/index.ts",
-      "src/code_analysis/commands/subsections/analysis_settings/dimension_mapping_file/index.ts",
-      "src/code_analysis/commands/subsections/analysis_settings/index.ts",
-      "src/code_analysis/commands/subsections/files_by_language/index.ts",
-      "src/code_analysis/commands/subsections/project_by_language/index.ts",
-      "src/code_analysis/config/analysisConfigurationManager.ts",
-      "src/code_analysis/configuration/configurationManager.ts",
-      "src/code_analysis/configuration/configurationManagerExample.ts",
-      "src/code_analysis/engine/components/index.ts",
-      "src/code_analysis/engine/core/index.ts",
-      "src/code_analysis/engine/index.ts",
-      "src/code_analysis/engine/interfaces/fileRequirements.ts",
-      "src/code_analysis/engine/launchers/index.ts",
-      "src/code_analysis/engine/parsers/index.ts",
-      "src/code_analysis/engine/processors/index.ts",
-      "src/code_analysis/engine/processors/requirementRules/LivePanelDirectoryRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/LivePanelFileRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/VisualizeDOMRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/XRDirectoryRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/XRFileRequirements.ts",
-      "src/code_analysis/engine/servers/index.ts",
-      "src/code_analysis/engine/utils/directoryFilter.ts",
-      "src/code_analysis/engine/utils/index.ts",
-      "src/code_analysis/engine/watchers/index.ts",
-      "src/code_analysis/index.ts",
-      "src/code_analysis/model/analysisModel.ts",
-      "src/code_analysis/runtime/analysisEngine.ts",
-      "src/code_analysis/views/subsections/active_analyses/activeAnalysesSubsectionProvider.ts",
-      "src/code_analysis/views/subsections/active_analyses/index.ts",
-      "src/code_analysis/views/subsections/active_analyses/items/activeAnalysisItems.ts",
-      "src/code_analysis/views/subsections/active_analyses/model/activeAnalysisModel.ts",
-      "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_file/index.ts",
-      "src/learn_more/index.ts",
-      "src/learn_more/views.ts",
-      "src/python_env/index.ts",
-      "src/python_env/views/index.ts",
-      "src/python_env/views/interactions/handlePythonEnvActions.ts",
-      "src/servers/config/defaultServerConfig.ts",
-      "src/servers/views/index.ts",
-      "src/utils/fileDisplayUtils.ts",
-      "src/views/analysis/index.ts",
-      "src/visualization_settings/views/index.ts",
-      "src/visualize_data/views/browseVisualizationsTreeView.ts",
-      "src/visualize_data/views/index.ts"
-    ],
+    "reachability.unreachable": [],
     "templates.consoleLog": 31,
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
@@ -138,10 +82,10 @@
     }
   },
   "informational": {
-    "src.files": 372,
-    "src.lines": 52666,
-    "src.functions": 2857,
-    "src.unreachableLines": 2285,
+    "src.files": 312,
+    "src.lines": 48089,
+    "src.functions": 2641,
+    "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -149,15 +93,11 @@
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 54
+        "count": 45
       },
       {
         "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 46
-      },
-      {
-        "file": "src/code_analysis/configuration/configurationManagerExample.ts",
-        "count": 44
+        "count": 39
       },
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
@@ -168,12 +108,12 @@
         "count": 38
       },
       {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
-        "count": 37
-      },
-      {
         "file": "src/visualize_data/views/interactions/visualizationLauncher.ts",
         "count": 35
+      },
+      {
+        "file": "src/servers/runtime/httpsDefaultServer.ts",
+        "count": 34
       },
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
@@ -188,10 +128,6 @@
         "count": 30
       },
       {
-        "file": "src/servers/runtime/httpsCustomServer.ts",
-        "count": 30
-      },
-      {
         "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",
         "count": 27
       },
@@ -202,12 +138,20 @@
       {
         "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
         "count": 25
+      },
+      {
+        "file": "src/code_analysis/engine/utils/saveFiles.ts",
+        "count": 25
+      },
+      {
+        "file": "src/servers/runtime/sse/SSEManager.ts",
+        "count": 25
       }
     ],
     "any.topFiles": [
       {
         "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 43
+        "count": 39
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -234,10 +178,6 @@
         "count": 7
       },
       {
-        "file": "src/active_servers/runtime/serverControl.ts",
-        "count": 5
-      },
-      {
         "file": "src/commands/analysis/AnalysisCommands.ts",
         "count": 5
       },
@@ -259,6 +199,10 @@
       },
       {
         "file": "src/active_servers/registry/activeServerRegistry.ts",
+        "count": 4
+      },
+      {
+        "file": "src/active_servers/runtime/serverControl.ts",
         "count": 4
       },
       {
@@ -350,14 +294,6 @@
         "lines": 782
       },
       {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "lines": 678
-      },
-      {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "lines": 634
-      },
-      {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
@@ -366,18 +302,18 @@
         "lines": 632
       },
       {
+        "file": "src/views/ModularTreeDataProvider.ts",
+        "lines": 616
+      },
+      {
         "file": "src/code_analysis/export/exportManifest.ts",
         "lines": 595
+      },
+      {
+        "file": "src/servers/runtime/multiServerLauncher.ts",
+        "lines": 590
       }
     ]
   },
-  "waivers": [
-    {
-      "metric": "reachability.unreachable",
-      "from": 54,
-      "to": 55,
-      "reason": "W2-47 leaves clean_analysis/index.ts unreachable until W2-05 (#29) deletes it",
-      "date": "2026-11-25"
-    }
-  ]
+  "waivers": []
 }
