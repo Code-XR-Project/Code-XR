@@ -53,14 +53,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 42,
-    "complexity.over10": 62,
-    "complexity.over15": 17,
-    "complexity.over20": 4,
-    "complexity.over30": 2,
+    "functions.over80Lines": 41,
+    "complexity.over10": 61,
+    "complexity.over15": 16,
+    "complexity.over20": 3,
+    "complexity.over30": 1,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 506,
+    "eslint.maxWarnings": 504,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49157,
-    "src.functions": 3294,
+    "src.lines": 49300,
+    "src.functions": 3308,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -142,12 +142,6 @@
     ],
     "complexity.worst10": [
       {
-        "ccn": 61,
-        "lines": 180,
-        "function": "buildExportManifest",
-        "file": "src/code_analysis/export/exportManifest.ts"
-      },
-      {
         "ccn": 46,
         "lines": 240,
         "function": "runGitRevisionExport",
@@ -200,6 +194,12 @@
         "lines": 47,
         "function": "closeAnalysis",
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 51,
+        "function": "recalculateLivePanelSummary",
+        "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts"
       }
     ],
     "size.largest10": [
@@ -212,16 +212,16 @@
         "lines": 787
       },
       {
+        "file": "src/code_analysis/export/exportManifest.ts",
+        "lines": 738
+      },
+      {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
         "lines": 623
-      },
-      {
-        "file": "src/code_analysis/export/exportManifest.ts",
-        "lines": 595
       },
       {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
