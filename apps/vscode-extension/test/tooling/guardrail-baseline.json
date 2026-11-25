@@ -141,9 +141,9 @@
     }
   },
   "informational": {
-    "src.files": 368,
-    "src.lines": 52532,
-    "src.functions": 2833,
+    "src.files": 369,
+    "src.lines": 52582,
+    "src.functions": 2835,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -379,7 +379,7 @@
       "metric": "reachability.unreachable",
       "from": 54,
       "to": 55,
-      "reason": "W2-47: the cleanAnalysis registration was the last user of the clean_analysis/ barrel (extension.ts imports cleanAnalysisCommands.ts directly); the barrel is only re-exported by the unreachable code_analysis/commands/index.ts, which W2-05 deletes",
+      "reason": "W2-47 leaves clean_analysis/index.ts unreachable until W2-05 (#29) deletes it",
       "date": "2026-11-25"
     }
   ]

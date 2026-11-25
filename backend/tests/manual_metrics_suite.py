@@ -2,8 +2,8 @@ import sys
 import unittest
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PYTHON_ROOT = PROJECT_ROOT.parents[1] / 'backend' / 'src'
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_ROOT = BACKEND_ROOT / 'src'
 for extra_path in [
     PYTHON_ROOT,
     PYTHON_ROOT / 'utils',
@@ -24,7 +24,7 @@ from xr_directory_analysis_coordinator import analyze_directory_xr
 from xr_field_schema import get_xr_schema
 from xr_file_analysis_coordinator import analyze_file_for_xr
 
-MANUAL_TEST_ROOT = PROJECT_ROOT / 'manual_test'
+MANUAL_TEST_ROOT = BACKEND_ROOT / 'manual_test'
 HTML_FIXTURE = MANUAL_TEST_ROOT / 'html_dom_fixture.html'
 FILE_SCHEMA_FIELDS = {field['id'] for field in get_xr_schema('file')['fields']}
 DIRECTORY_SCHEMA_FIELDS = {field['id'] for field in get_xr_schema('directory')['fields']}

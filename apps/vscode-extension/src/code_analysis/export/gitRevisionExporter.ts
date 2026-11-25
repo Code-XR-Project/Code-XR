@@ -10,6 +10,7 @@ import {
 } from './gitExportOptions';
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
 import { VenvManager } from '../../python_env/runtime/venvManager';
+import { resolveBackendScriptPath } from '../engine/utils/backendScriptPath';
 
 /**
  * VS Code-side wrapper for the export-time Git analysis. It resolves the
@@ -76,10 +77,9 @@ export async function exportGitRevisionData(
         };
     }
     const workerFile = path.join('export', 'git_export_analysis_worker.py');
-    const distWorkerPath = path.join(context.extensionPath, 'dist', 'code_analysis', 'python', workerFile);
-    // Development fallback: the backend sources live at <repo>/backend/src.
-    const srcWorkerPath = path.join(context.extensionPath, '..', '..', 'backend', 'src', workerFile);
-    const workerScriptPath = fs.existsSync(distWorkerPath) ? distWorkerPath : srcWorkerPath;
+    // The shipped dist copy, or in ExtensionMode.Development only the monorepo
+    // sources at <repo>/backend/src (see backendScriptPath.ts).
+    const workerScriptPath = resolveBackendScriptPath(context, workerFile);
     const workerPlan = calculateGitExportWorkerPlan(request.performanceProfile);
 
     const readWorkingCopyPayload = async (): Promise<unknown> => {

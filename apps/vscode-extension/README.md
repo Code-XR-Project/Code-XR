@@ -72,7 +72,7 @@ Not on toy fixtures. These are silent walkthroughs of the four analyses on three
 
 ![JetUML analyzed with CodeXR: the four analyses on the prmr/JetUML repository](https://raw.githubusercontent.com/aMonteSl/CodeXR/v1.2.0/media/v1.2.0/videos/testedProjects/JetUML/JetUML.gif)
 
-Every video on the channel, with its GIF and duration, is listed in [media/v1.2.0/videos/VIDEOS.md](../../media/v1.2.0/videos/VIDEOS.md).
+Every video on the channel, with its GIF and duration, is listed in [media/v1.2.0/videos/VIDEOS.md](https://github.com/aMonteSl/CodeXR/blob/v1.2.0/media/v1.2.0/videos/VIDEOS.md).
 
 ## What's New in v1.2.0: "Threads, Timelines & Global Networks"
 

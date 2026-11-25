@@ -5,14 +5,18 @@ const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const executePythonSource = fs.readFileSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'utils', 'executePython.ts'), 'utf8');
+// executePython and the Git export resolve backend scripts through this helper.
+const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'code_analysis', 'engine', 'utils', 'backendScriptPath.ts'), 'utf8');
+const pythonPathSources = executePythonSource + backendScriptPathSource;
 const webpackConfigSource = fs.readFileSync(path.join(projectRoot, 'webpack.config.js'), 'utf8');
 
 test('executePython resolves runtime scripts from code_analysis paths', () => {
-    assert.match(executePythonSource, /'dist', 'code_analysis', 'python'/);
+    assert.match(executePythonSource, /resolveBackendScriptPath\(this\.context, scriptName\)/);
+    assert.match(pythonPathSources, /'dist', 'code_analysis', 'python'/);
     // Development fallback: the backend sources live at <repo>/backend/src.
-    assert.match(executePythonSource, /'\.\.', '\.\.', 'backend', 'src'/);
-    assert.equal(executePythonSource.includes("'dist', 'analysis', 'python'"), false);
-    assert.equal(executePythonSource.includes("'src', 'analysis', 'python'"), false);
+    assert.match(pythonPathSources, /'\.\.', '\.\.', 'backend', 'src'/);
+    assert.equal(pythonPathSources.includes("'dist', 'analysis', 'python'"), false);
+    assert.equal(pythonPathSources.includes("'src', 'analysis', 'python'"), false);
 });
 
 test('webpack copies Python assets from <repo>/backend/src into dist/code_analysis/python', () => {

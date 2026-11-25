@@ -18,7 +18,7 @@ from metric_language_contract import get_metric_language_names
 
 class DependencyAnalysisTests(unittest.TestCase):
     def setUp(self):
-        self.fixture = ROOT / "apps" / "vscode-extension" / "test" / "fixtures" / "dependency-languages"
+        self.fixture = ROOT / "backend" / "tests" / "fixtures" / "dependency-languages"
 
     def test_fixture_covers_every_metric_language(self):
         result = analyze_dependencies(str(self.fixture), recursive=True)

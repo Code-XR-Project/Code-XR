@@ -9,6 +9,8 @@ Never claim a change works without running tests or the F5 flow. Route by what w
 
 ## 1. Pick the narrowest script for the touched area
 
+**Where to run what.** `npm run …` runs from the repository root (it delegates to the `code-xr` workspace). Every `node --test test/…` line below runs from `apps/vscode-extension/` (`cd apps/vscode-extension` first); the paths in the table follow the pre-monorepo convention in `CLAUDE.md` (`src/code_analysis/python/` = `backend/src/`, `test/…` = `apps/vscode-extension/test/…`).
+
 | Touched | Run first |
 |---|---|
 | `src/code_analysis/python/**` | `npm run test:python`, then `npm run test:analysis` if output schema/metrics changed |

@@ -2,8 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const projectRoot = path.resolve(__dirname, '..', '..');
-const artifactsRoot = path.join(projectRoot, 'artifacts');
+/**
+ * End-to-end check of the backend over backend/manual_test: builds a venv with
+ * the pinned lizard, runs tests/manual_metrics_suite.py, then writes the
+ * reports with scripts/report-manual-metrics.py. Node builtins only, so it runs
+ * without npm ci: `node backend/scripts/run-analysis-tests.cjs [--report-only]`.
+ */
+const backendRoot = path.resolve(__dirname, '..');
+const artifactsRoot = path.join(backendRoot, 'artifacts');
 const venvRoot = path.join(artifactsRoot, 'analysis-test-venv');
 const isWindows = process.platform === 'win32';
 const venvPython = path.join(venvRoot, isWindows ? 'Scripts' : 'bin', isWindows ? 'python.exe' : 'python');
@@ -11,7 +17,7 @@ const reportOnly = process.argv.includes('--report-only');
 
 function run(command, args, options = {}) {
     const result = spawnSync(command, args, {
-        cwd: projectRoot,
+        cwd: backendRoot,
         stdio: 'inherit',
         ...options,
     });
@@ -51,7 +57,7 @@ function getPythonCandidates() {
 function findSystemPython() {
     for (const candidate of getPythonCandidates()) {
         const result = spawnSync(candidate.command, [...candidate.args, '--version'], {
-            cwd: projectRoot,
+            cwd: backendRoot,
             encoding: 'utf8',
         });
 
@@ -72,16 +78,19 @@ function ensureVenv(systemPython) {
 
 /**
  * The extension installs an exact lizard version into the user's managed venv
- * (src/python_env/runtime/pythonPackageManifest.ts). The fixtures must be
- * measured with that same version, so the requirement is read from the
- * manifest instead of being repeated here.
+ * (apps/vscode-extension/src/python_env/runtime/pythonPackageManifest.ts). The
+ * fixtures must be measured with that same version, so the requirement is read
+ * from backend/requirements.txt, the generated mirror of that manifest
+ * (apps/vscode-extension/test/python_env/pythonRequirements.test.cjs keeps the
+ * two equal), instead
+ * of being repeated here. Only lizard is installed, as before.
  */
 function readPinnedLizardRequirement() {
-    const manifestPath = path.join(projectRoot, 'src', 'python_env', 'runtime', 'pythonPackageManifest.ts');
-    const manifest = fs.readFileSync(manifestPath, 'utf8');
-    const match = /distribution:\s*'lizard',[\s\S]*?version:\s*'([0-9][0-9A-Za-z.+-]*)'/.exec(manifest);
+    const requirementsPath = path.join(backendRoot, 'requirements.txt');
+    const requirements = fs.readFileSync(requirementsPath, 'utf8');
+    const match = /^lizard==([0-9][0-9A-Za-z.+-]*)\s*(?:#.*)?$/m.exec(requirements);
     if (!match) {
-        throw new Error(`ANALYSIS_TEST_RUNNER: could not read the pinned lizard version from ${manifestPath}`);
+        throw new Error(`ANALYSIS_TEST_RUNNER: could not read the pinned lizard version from ${requirementsPath}`);
     }
     return `lizard==${match[1]}`;
 }
@@ -102,10 +111,10 @@ function main() {
     installDependencies();
 
     if (!reportOnly) {
-        run(venvPython, ['test/analysis/manual_metrics_suite.py']);
+        run(venvPython, [path.join(backendRoot, 'tests', 'manual_metrics_suite.py')]);
     }
 
-    run(venvPython, ['scripts/report-manual-metrics.py']);
+    run(venvPython, [path.join(backendRoot, 'scripts', 'report-manual-metrics.py')]);
 }
 
 if (require.main === module) {

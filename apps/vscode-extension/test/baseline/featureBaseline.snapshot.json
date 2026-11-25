@@ -160,6 +160,7 @@
     "lint",
     "package",
     "package:vsix",
+    "python:requirements",
     "report:manual-metrics",
     "test",
     "test:all",

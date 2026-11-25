@@ -31,6 +31,7 @@
 #### Fixed
 
 - **Historical comparison and project evolution no longer refuse a folder opened through a link.** When the analyzed folder was reached through a symbolic link, a junction, or a shortened Windows path (`C:\Users\JOHNDO~1\...`), Code-XR compared it with the repository path Git reports and wrongly concluded the folder was outside the repository, so the Git-based analyses were unavailable. Both paths are now resolved to their real location before they are compared.
+- **The installed extension only ever runs the Python analysis scripts it ships with.** If its bundled copy of an analysis script was missing (a damaged or partially deleted install), Code-XR fell back to a developer location two folders above the extension, which in an installed copy is your home folder, and could have run a file found there. That fallback is now limited to development builds; an installed extension reports the missing script instead.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 #### Removed

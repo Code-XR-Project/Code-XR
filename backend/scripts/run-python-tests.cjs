@@ -2,9 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const projectRoot = path.resolve(__dirname, '..', '..');
-// The backend owns its tests: <repo>/backend/tests.
-const testRoot = path.join(projectRoot, '..', '..', 'backend', 'tests');
+// Runs the backend unittest suites (backend/tests) with the first Python found.
+// Node builtins only: `node backend/scripts/run-python-tests.cjs` needs no npm ci.
+const backendRoot = path.resolve(__dirname, '..');
+const testRoot = path.join(backendRoot, 'tests');
 
 function getPythonCandidates() {
     const candidates = [];
@@ -34,7 +35,7 @@ let blockedBySandbox = false;
 
 function tryInterpreter(candidate) {
     const versionCheck = spawnSync(candidate.command, [...candidate.args, '--version'], {
-        cwd: projectRoot,
+        cwd: backendRoot,
         encoding: 'utf8',
     });
 
@@ -62,7 +63,7 @@ function tryInterpreter(candidate) {
             'test_*.py',
         ],
         {
-            cwd: projectRoot,
+            cwd: backendRoot,
             stdio: 'inherit',
         },
     );

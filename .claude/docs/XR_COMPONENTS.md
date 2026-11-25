@@ -29,7 +29,7 @@ The analysis table is the central XR surface; the old "pedestal" was split into 
 | `single` | One analysis (file/directory/project) as a BabiaXR chart on the table | — (default mode) |
 | `historical-compare` | Side-by-side working copy vs branch/tag/commit, read-only Git access, `codexr-left:`/`codexr-right:` babia-boats ID isolation | `docs/features/HISTORICAL_COMPARISON_XR.md` (Spanish) |
 | `dependency-graph` | CodeXR-owned 3D dependency graph: 23 languages, fanIn/fanOut/cycles, 3 layouts in a Web Worker, render budget (600 nodes / 2,000 edges) | `docs/features/DEPENDENCY_GRAPH_XR.md` (English) |
-| `project-evolution` | Chronological "movie" of git history on one full-table chart with player controls (**in progress for v1.2.0**) | `docs/features/PROJECT_EVOLUTION_XR.md` (English) |
+| `project-evolution` | Chronological "movie" of git history on one full-table chart with player controls (shipped in v1.2.0) | `docs/features/PROJECT_EVOLUTION_XR.md` (English) |
 
 ## Chart system
 
