@@ -200,8 +200,10 @@ test('the host can remove a guest from the participant modal and the tree contex
     // must survive both conversions or the context menu has no target at all
     // (this is exactly what broke the right-click path once).
     const modularTree = readProjectFile('src', 'views', 'ModularTreeDataProvider.ts');
-    assert.match(modularTree, /\(modularItem as any\)\.participant = child\.participant;/);
-    assert.match(modularTree, /\(element as any\)\.activeServer,\s*\n\s*\(element as any\)\.participant,/);
+    // Both conversions are characterized behaviourally by
+    // test/views/modularTreeSnapshot.test.cjs; these keep the intent readable.
+    assert.match(modularTree, /payloadKeys: \['activeServer', 'participant'\]/);
+    assert.match(modularTree, /constructorExtras: \['activeServer', 'participant'\]/);
 
     // Contributed, and shown only on guest rows.
     const contributed = manifest.contributes.commands

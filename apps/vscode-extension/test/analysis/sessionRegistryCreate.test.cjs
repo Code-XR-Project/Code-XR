@@ -1,0 +1,189 @@
+'use strict';
+
+/**
+ * Behavioural characterization of UnifiedSessionRegistry.createSession,
+ * executed from out/ under the fake vscode: the session it builds for a file
+ * and for a directory (ids, output paths, hash, tracked-file lists), the
+ * three refusals (no workspace storage, a file that cannot be hashed, a
+ * directory target that is not a directory), and the duplicate detection
+ * with its three warnings and the "Open Active Analyses" action.
+ */
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require('../helpers/fakeVscode.cjs');
+
+function silenceConsole() {
+    const methods = ['log', 'info', 'warn', 'error', 'debug'];
+    const original = methods.map((method) => console[method]);
+    methods.forEach((method) => {
+        console[method] = () => {};
+    });
+    return () => methods.forEach((method, index) => {
+        console[method] = original[index];
+    });
+}
+
+async function withRegistry(body, fakeOptions = {}) {
+    const fake = createFakeVscode(fakeOptions);
+    const context = fakeExtensionContext();
+    const workRoot = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-session-registry-')));
+    const restoreConsole = silenceConsole();
+    try {
+        await withFakeVscode(fake, async ({ requireOut }) => {
+            const { UnifiedSessionRegistry } = requireOut('code_analysis/engine/core/sessionRegistry.js');
+            const registry = UnifiedSessionRegistry.getInstance(context);
+            const fired = [];
+            registry.onSessionChanged((session) => fired.push(session));
+            await body({ registry, fired, fake, context, workRoot });
+        });
+    } finally {
+        restoreConsole();
+        context.cleanup();
+        fs.rmSync(workRoot, { recursive: true, force: true });
+    }
+}
+
+test('a file session gets a nonce id, its output folder under fileAnalysis and the file hash', async () => {
+    await withRegistry(async ({ registry, fired, context, workRoot }) => {
+        const target = path.join(workRoot, 'sample.module.ts');
+        fs.writeFileSync(target, 'export const answer = 42;\n');
+
+        const session = await registry.createSession({ targetPath: target, analysisMode: 'XR', targetType: 'file', context });
+
+        assert.match(session.id, /^[0-9a-f]{32}$/);
+        assert.equal(session.targetPath, target);
+        assert.equal(session.targetType, 'file');
+        assert.equal(session.targetName, 'sample.module.ts');
+        assert.equal(session.analysisMode, 'XR');
+        assert.equal(session.isDeep, false);
+        assert.equal(session.status, 'creating');
+        assert.ok(session.startTime instanceof Date);
+        assert.equal(session.hash256, crypto.createHash('sha256').update(fs.readFileSync(target)).digest('hex'));
+        assert.equal(session.outputDirectory, `sample.module_XR_file_${session.id}`);
+        assert.equal(session.outputPath, path.join(context.storageUri.fsPath, 'fileAnalysis', session.outputDirectory));
+        assert.ok(session.requiredFiles instanceof Map && session.requiredFiles.size === 0);
+        assert.ok(session.templatePaths instanceof Map && session.templatePaths.size === 0);
+        assert.deepEqual(session.metadata, {});
+        assert.equal('directoriesToAnalyze' in session, false);
+        assert.equal('filesToHash' in session, false);
+        assert.deepEqual(Object.keys(session), [
+            'id', 'targetPath', 'targetType', 'targetName', 'analysisMode', 'isDeep', 'status', 'startTime',
+            'hash256', 'outputDirectory', 'outputPath', 'requiredFiles', 'templatePaths', 'metadata',
+        ]);
+
+        assert.equal(registry.getSession(session.id), session);
+        assert.deepEqual(fired, [session]);
+    });
+});
+
+test('a directory session has no hash, lives under directoryAnalysis and starts with empty tracked lists', async () => {
+    await withRegistry(async ({ registry, fired, context, workRoot }) => {
+        const target = path.join(workRoot, 'my.project');
+        fs.mkdirSync(target);
+
+        const session = await registry.createSession({ targetPath: target, analysisMode: 'LivePanel', targetType: 'directory', isDeep: true, context });
+
+        assert.equal(session.isDeep, true);
+        assert.equal(session.hash256, '');
+        assert.equal(session.targetName, 'my.project');
+        assert.equal(session.outputDirectory, `my_LivePanel_directory_${session.id}`);
+        assert.equal(session.outputPath, path.join(context.storageUri.fsPath, 'directoryAnalysis', session.outputDirectory));
+        assert.deepEqual(session.directoriesToAnalyze, []);
+        assert.deepEqual(session.filesToHash, []);
+        assert.deepEqual(Object.keys(session).slice(-2), ['directoriesToAnalyze', 'filesToHash']);
+        assert.deepEqual(fired, [session]);
+    });
+});
+
+test('createSession refuses without workspace storage, an unreadable file, or a directory target that is a file', async () => {
+    await withRegistry(async ({ registry, fired, context, workRoot }) => {
+        const file = path.join(workRoot, 'plain.txt');
+        fs.writeFileSync(file, 'x');
+
+        await assert.rejects(
+            registry.createSession({ targetPath: file, analysisMode: 'XR', targetType: 'file', context: { ...context, storageUri: undefined } }),
+            { message: 'Workspace storage URI is not available' },
+        );
+        await assert.rejects(
+            registry.createSession({ targetPath: path.join(workRoot, 'missing.ts'), analysisMode: 'XR', targetType: 'file', context }),
+            (error) => error.message.startsWith('Failed to calculate file hash: '),
+        );
+        await assert.rejects(
+            registry.createSession({ targetPath: file, analysisMode: 'XR', targetType: 'directory', context }),
+            { message: `Target path is not a directory: ${file}` },
+        );
+        await assert.rejects(
+            registry.createSession({ targetPath: path.join(workRoot, 'missing-dir'), analysisMode: 'XR', targetType: 'directory', context }),
+            (error) => error.code === 'ENOENT',
+        );
+
+        assert.equal(registry.getAllSessions().length, 0);
+        assert.deepEqual(fired, []);
+    });
+});
+
+test('a duplicate session is refused with a status-specific warning and re-announced', async () => {
+    await withRegistry(async ({ registry, fired, fake, context, workRoot }) => {
+        const target = path.join(workRoot, 'dup.ts');
+        fs.writeFileSync(target, 'let a = 1;\n');
+        const params = { targetPath: target, analysisMode: 'XR', targetType: 'file', context };
+
+        const original = await registry.createSession(params);
+        fired.length = 0;
+
+        // creating / analyzing: in progress.
+        assert.equal(await registry.createSession(params), null);
+        registry.updateSessionStatus(original.id, 'analyzing');
+        fired.length = 0;
+        assert.equal(await registry.createSession({ ...params, isDeep: false }), null);
+
+        // monitoring: done, with an action that opens the CodeXR view.
+        registry.updateSessionStatus(original.id, 'monitoring');
+        fired.length = 0;
+        fake.queueAnswer('Open Active Analyses');
+        assert.equal(await registry.createSession(params), null);
+        await new Promise((resolve) => setImmediate(resolve));
+
+        assert.deepEqual(fake.messages, [
+            { kind: 'warning', message: 'Analysis for "dup.ts" is already in progress (creating)...', items: [] },
+            { kind: 'warning', message: 'Analysis for "dup.ts" is already in progress (analyzing)...', items: [] },
+            { kind: 'warning', message: 'Analysis already complete for "dup.ts". Use Active Analyses panel to view results.', items: ['Open Active Analyses'] },
+        ]);
+        assert.deepEqual(fake.executedCommands.map((entry) => entry.id), ['workbench.view.extension.codeXRView']);
+        assert.deepEqual(fired, [original]);
+        assert.equal(registry.getAllSessions().length, 1);
+
+        // Another mode, another depth, another type: not duplicates.
+        const live = await registry.createSession({ ...params, analysisMode: 'LivePanel' });
+        const deep = await registry.createSession({ ...params, isDeep: true });
+        assert.ok(live && deep);
+
+        // A closed or failed session does not block a new one.
+        registry.updateSessionStatus(original.id, 'closed');
+        const again = await registry.createSession(params);
+        assert.ok(again && again.id !== original.id);
+        registry.updateSessionStatus(again.id, 'error');
+        assert.ok(await registry.createSession(params));
+    });
+});
+
+test('a monitoring duplicate dismissed without the action runs no command', async () => {
+    await withRegistry(async ({ registry, fake, context, workRoot }) => {
+        const target = path.join(workRoot, 'done.ts');
+        fs.writeFileSync(target, 'let b = 2;\n');
+        const params = { targetPath: target, analysisMode: 'VisualizeDOM', targetType: 'file', context };
+        const original = await registry.createSession(params);
+        registry.updateSessionStatus(original.id, 'monitoring');
+
+        assert.equal(await registry.createSession(params), null);
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(fake.messages.length, 1);
+        assert.deepEqual(fake.executedCommands, []);
+    });
+});

@@ -24,7 +24,7 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 200,
+    "any.total": 166,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
@@ -33,7 +33,7 @@
       "python_env": 5,
       "servers": 11,
       "utils": 14,
-      "views": 54,
+      "views": 20,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -51,17 +51,16 @@
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
       "src/servers/runtime/collaboration/collaborationRoomServer.ts",
       "src/servers/runtime/httpServer.ts",
-      "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 48,
-    "complexity.over10": 72,
-    "complexity.over15": 28,
-    "complexity.over20": 8,
-    "complexity.over30": 4,
+    "functions.over80Lines": 45,
+    "complexity.over10": 69,
+    "complexity.over15": 25,
+    "complexity.over20": 6,
+    "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 597,
+    "eslint.maxWarnings": 553,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,9 +68,9 @@
     }
   },
   "informational": {
-    "src.files": 330,
-    "src.lines": 48931,
-    "src.functions": 3244,
+    "src.files": 334,
+    "src.lines": 48974,
+    "src.functions": 3279,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -80,10 +79,6 @@
       }
     ],
     "any.topFiles": [
-      {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 39
-      },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
         "count": 19
@@ -129,6 +124,10 @@
         "count": 5
       },
       {
+        "file": "src/views/ModularTreeDataProvider.ts",
+        "count": 5
+      },
+      {
         "file": "src/active_servers/registry/activeServerRegistry.ts",
         "count": 4
       },
@@ -155,12 +154,6 @@
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
       {
-        "ccn": 42,
-        "lines": 117,
-        "function": "convertToSectionItem",
-        "file": "src/views/ModularTreeDataProvider.ts"
-      },
-      {
         "ccn": 34,
         "lines": 139,
         "function": "parseFileAnalysis",
@@ -185,12 +178,6 @@
         "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
       },
       {
-        "ccn": 21,
-        "lines": 58,
-        "function": "createModularChild",
-        "file": "src/views/ModularTreeDataProvider.ts"
-      },
-      {
         "ccn": 20,
         "lines": 71,
         "function": "applyIncrementalChanges",
@@ -201,6 +188,18 @@
         "lines": 73,
         "function": "sampleTimeline",
         "file": "src/code_analysis/historical/gitTimelineSampler.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 80,
+        "function": "validateMappings",
+        "file": "src/babia_templates/processing/dimensionValidator.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 87,
+        "function": "materializeDirectory",
+        "file": "src/code_analysis/historical/gitRepositoryService.ts"
       }
     ],
     "size.largest10": [
@@ -221,10 +220,6 @@
         "lines": 623
       },
       {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "lines": 616
-      },
-      {
         "file": "src/code_analysis/export/exportManifest.ts",
         "lines": 595
       },
@@ -243,6 +238,10 @@
       {
         "file": "src/remote_access/services/remoteAccessManager.ts",
         "lines": 567
+      },
+      {
+        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
+        "lines": 562
       }
     ]
   },
@@ -272,7 +271,7 @@
       "metric": "console.byModule.core",
       "from": 1,
       "to": 2,
-      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1)",
+      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1 at e16b95e8)",
       "date": "2026-11-25"
     }
   ]

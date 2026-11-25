@@ -18,7 +18,7 @@
 | Configuration settings (VS Code `contributes.configuration`) | **1** (`codeXR.debug.verboseLogs`) | `package.json:465-474` | `node -p "Object.keys(require('./package.json').contributes.configuration.properties)"` |
 | Internal settings stores (not VS Code settings) | 6 stores (server, analysis, visualization, collaboration, visualize-data, python env) | section 0.2 | file names under `globalStorageUri` |
 | View containers / views | 1 activity-bar container `codexr` / 1 tree view `codexrTree` | `package.json:475-493` | node one-liner in 1.1 |
-| Root sidebar sections | **8** (+ nested COLLABORATION group inside ACTIVE SERVERS) | `src/views/ModularTreeDataProvider.ts:56-193` | [M] F5 |
+| Root sidebar sections | **8** (+ nested COLLABORATION group inside ACTIVE SERVERS) | `src/views/sectionDefinitions.ts:77-194` | [M] F5 |
 | Menus | 6 menu ids, **49** entries: `view/title` 2, `explorer/context` 12, `editor/context` 8, `view/item/context` 5, `codeXR.analysis.contextMenu` 11, `commandPalette` 11 | `package.json:494-741` | node one-liner in 1.4 |
 | Submenus | 1 (`codeXR.analysis.contextMenu`, label "Code-XR: Analysis") | `package.json:742-747` | node one-liner |
 | Keybindings | **0** (none contributed) | `package.json` (no `keybindings` key) | node one-liner |
@@ -399,22 +399,22 @@ After the cleanup, expected: rows 1-36 unchanged (32 tree-item, 2 programmatic, 
 
 ## 3. Sidebar tree (`codexrTree`) — sections and what each row does
 
-One `ModularTreeDataProvider` (`src/views/ModularTreeDataProvider.ts`) lazily mounts eight root sections, in this order (`registerSection` calls at `:57-190`). The Python env and Learn More sections stay interactive while the UI is locked (`interactiveWhenRestricted: true`, `:160`, `:190`); every other section is inert while `codeXR.pythonEnv.uiLocked` is set.
+One `ModularTreeDataProvider` (`src/views/ModularTreeDataProvider.ts`) lazily mounts eight root sections, in this order (the literals returned by `createSectionDefinitions` in `src/views/sectionDefinitions.ts:77-194`). The Python env and Learn More sections stay interactive while the UI is locked (`interactiveWhenRestricted: true`, `:166`, `:192`); every other section is inert while `codeXR.pythonEnv.uiLocked` is set.
 
 | # | Root header (label) | Section key | Default state | Provider | Header source |
 |---|---|---|---|---|---|
-| 1 | `SERVERS` | `SERVERS` | expanded | `src/views/servers/ServersSectionProvider.ts` | `ModularTreeDataProvider.ts:57-68` |
-| 2 | `ACTIVE SERVERS` / `ACTIVE SERVERS (N running)` | `activeServers` | expanded | `src/views/active_servers/ActiveServersSectionProvider.ts` | `:70-91` |
-| 3 | `BABIA EXAMPLES` | `babiaExamples` | collapsed | `src/views/babia_examples/BabiaExamplesSectionProvider.ts` | `:93-106` |
-| 4 | `VISUALIZE DATA` | `visualizeData` | collapsed | `src/views/visualize_data/VisualizeDataSectionProvider.ts` | `:108-121` |
-| 5 | `ANALYSIS` | `analysis` | expanded | `src/code_analysis/views/AnalysisSectionProvider.ts` | `:123-136` |
-| 6 | `PYTHON ENV` (status-dependent header) | `pythonEnv` | dynamic | `src/views/python_env/PythonEnvSectionProvider.ts`, items `src/python_env/views/items/pythonEnvItems.ts:51` | `:138-160` |
-| 7 | `VISUALIZATION SETTINGS` | `visualizationSettings` | collapsed | `src/views/visualization_settings/VisualizationSettingsSectionProvider.ts` | `:162-175` |
-| 8 | `LEARN MORE & SUPPORT` | `learnMore` | expanded | `src/views/learn_more/LearnMoreSectionProvider.ts` | `:177-190` |
+| 1 | `SERVERS` | `SERVERS` | expanded | `src/views/servers/ServersSectionProvider.ts` | `sectionDefinitions.ts:78-88` |
+| 2 | `ACTIVE SERVERS` / `ACTIVE SERVERS (N running)` | `activeServers` | expanded | `src/views/active_servers/ActiveServersSectionProvider.ts` | `:89-108` |
+| 3 | `BABIA EXAMPLES` | `babiaExamples` | collapsed | `src/views/babia_examples/BabiaExamplesSectionProvider.ts` | `:109-120` |
+| 4 | `VISUALIZE DATA` | `visualizeData` | collapsed | `src/views/visualize_data/VisualizeDataSectionProvider.ts` | `:121-132` |
+| 5 | `ANALYSIS` | `analysis` | expanded | `src/code_analysis/views/AnalysisSectionProvider.ts` | `:133-144` |
+| 6 | `PYTHON ENV` (status-dependent header) | `pythonEnv` | dynamic | `src/views/python_env/PythonEnvSectionProvider.ts`, items `src/python_env/views/items/pythonEnvItems.ts:51` | `:145-167` |
+| 7 | `VISUALIZATION SETTINGS` | `visualizationSettings` | collapsed | `src/views/visualization_settings/VisualizationSettingsSectionProvider.ts` | `:168-179` |
+| 8 | `LEARN MORE & SUPPORT` | `learnMore` | expanded | `src/views/learn_more/LearnMoreSectionProvider.ts` | `:180-193` |
 
 View-title actions (both sections share the view): **Refresh** (`codeXR.activeServers.refreshServers`) and **Stop All Servers** (`codeXR.activeServers.stopAllServers`), `package.json:495-506`.
 
-**[A]** `grep -c "this.registerSection({" src/views/ModularTreeDataProvider.ts` → 8; `test/analysis/analysisTreeBridge.test.cjs`, `test/analysis/uiPolicy.test.cjs` (locked-UI behaviour).
+**[A]** `grep -c "sectionName: '" src/views/sectionDefinitions.ts` → 8; `test/analysis/analysisTreeBridge.test.cjs`, `test/analysis/uiPolicy.test.cjs` (locked-UI behaviour).
 **[M]** F5 → open the CodeXR view → the 8 headers above appear in this order with the stated expansion state; while the venv is being created only PYTHON ENV and LEARN MORE react to clicks.
 
 ### 3.1 SERVERS
@@ -450,7 +450,7 @@ Provider `src/views/active_servers/ActiveServersSectionProvider.ts`, items `src/
 | └ `Cross-network connection` (group, only when the global cross-network setting is on or a tunnel is live) | `Start remote connection` → `startRemoteAccess`; when shared: `Generate new pairing code` → `regeneratePairingCode` (internal), `View remote status` → `showRemoteStatus` (internal), `Stop remote connection` → `stopRemoteAccess`; on error `View remote error` | `activeServerItems.ts:302-390`, status text `:440-458` |
 | └ `Actions` (group) | `Open in browser` (`openInBrowser`), `Open in panel` (`openInPanel`, **only when the server is HTTP**), `Copy address` (`copyUrl`), `Server information` (`showDetails`), `Stop server` (`stopServer`) | `activeServerItems.ts:211-217`, `:393-412` |
 
-Header counter: `ACTIVE SERVERS (N running)` (`ModularTreeDataProvider.ts:73-77`). `codeXR.activeServers.openView` focuses the section.
+Header counter: `ACTIVE SERVERS (N running)` (`sectionDefinitions.ts:92-96`). `codeXR.activeServers.openView` focuses the section.
 
 #### 3.2.1 COLLABORATION rows (`src/views/collaboration/items/collaborationItems.ts:36-77`)
 
@@ -1022,7 +1022,7 @@ Run from the repository root unless noted. "Expected" values assume every author
 12. Python CLI: `python3 -B backend/src/main.py --help` still lists `--mode {livePanel,xr,schema,dependencies}`, `--target`, `--files`, `--deep`, `--cache`, `--dependency-refresh`, `--project-root` (only `--output` and the `project` type may be gone, R7). `backend/src/html/html_dom_parser.py`, `backend/src/summaryFiles/file_reanalysis_coordinator.py`, `backend/src/export/git_export_analysis_worker.py` exist.
 13. Runtimes (in `apps/vscode-extension/`): `ls src/code_analysis/engine/components/customComponents/*ComponentAsset.ts | wc -l` → 20; `find templates/components -name manifest.json | wc -l` → 11; `grep -rhoE "root\.CodeXR[A-Za-z]+ *=" templates/components | sort -u | wc -l` → 21; `ls templates/components/livepanel` → the 9 files of section 7; the 23 flat output names of table 7 minus `codexrVisualStyleRuntime.js` (22) still appear as `*_OUTPUT_NAME` constants.
 14. Server surface: `grep -c "case '/" src/servers/runtime/httpServer.ts` → 12; `/codexr-room` and `/codexr-broadcast` still registered; room message types (6.4) and broadcast message types (6.5) all still handled (`grep -c "case '" src/servers/runtime/collaboration/collaborationRoomServer.ts src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts`).
-15. Sidebar: `grep -c "this.registerSection({" src/views/ModularTreeDataProvider.ts` → 8.
+15. Sidebar: `grep -c "sectionName: '" src/views/sectionDefinitions.ts` → 8.
 16. Capabilities: `test/analysis/analysisServerCapabilities.test.cjs` green (XR 3/3, LivePanel 2/3, VisualizeDOM 0/3).
 17. Persisted keys (0.2): each key/file name still greps to its owner, e.g. `grep -rn "codeXR.analysis.lastKind\|codeXR.analysis.xrFieldSchemaCache.v1\|codeXR.analysis.filesByLanguage.summaryCache\|visualizeDataState\|codexr.cloudflaredDownloadConsented\|server-settings.json\|server-certs\|codexr_analysis\|visualization-configuration\|python-env" src --include=*.ts` returns every one.
 18. Pinned versions unchanged: `lizard 1.17.31`, `tree-sitter-language-pack 1.8.1` (`pythonPackageManifest.ts`), `cloudflared 2026.5.2`; CDN script versions in `templates/xr/file/xr-visualization.html:8-20` (A-Frame 1.7.1, aframe-extras 7.5.4, babia 1.3.4, environment 1.5.0, geometry-merger 2.0.1).

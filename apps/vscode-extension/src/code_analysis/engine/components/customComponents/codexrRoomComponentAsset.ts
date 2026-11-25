@@ -1,20 +1,15 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import {
+    SINGLE_FILE_RUNTIME_ASSETS,
+    assertRuntimeAssetSourceExists,
+    resolveRuntimeAssetSourcePath,
+} from './singleFileRuntimeAssets';
 
-export const CODEXR_ROOM_RUNTIME_OUTPUT_NAME = 'codexrRoomRuntime.js';
+const ROOM_RUNTIME = SINGLE_FILE_RUNTIME_ASSETS.room;
+
+export const CODEXR_ROOM_RUNTIME_OUTPUT_NAME = ROOM_RUNTIME.outputName;
 export const CODEXR_ROOM_TEXTURE_OUTPUT_DIRECTORY = 'assets/codexr/xr-room/textures';
-
-const CODEXR_ROOM_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'xr-room',
-] as const;
-
-const CODEXR_ROOM_TEXTURE_SOURCE_SEGMENTS = [
-    ...CODEXR_ROOM_SOURCE_SEGMENTS,
-    'textures',
-] as const;
 
 export interface TextAssetFile {
     relativeOutputPath: string;
@@ -22,20 +17,17 @@ export interface TextAssetFile {
 }
 
 export function resolveCodeXrRoomRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_ROOM_SOURCE_SEGMENTS, CODEXR_ROOM_RUNTIME_OUTPUT_NAME);
+    return resolveRuntimeAssetSourcePath(ROOM_RUNTIME, extensionPath);
 }
 
 export function resolveCodeXrRoomTextureSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_ROOM_TEXTURE_SOURCE_SEGMENTS);
+    return path.join(extensionPath, 'templates', 'components', ...ROOM_RUNTIME.folder, 'textures');
 }
 
+/** The runtime is checked first, then the texture directory; every entry point needs both. */
 export function assertCodeXrRoomAssetsExist(extensionPath: string): { runtimePath: string; textureDirectory: string } {
-    const runtimePath = resolveCodeXrRoomRuntimeSourcePath(extensionPath);
+    const runtimePath = assertRuntimeAssetSourceExists(ROOM_RUNTIME, extensionPath);
     const textureDirectory = resolveCodeXrRoomTextureSourcePath(extensionPath);
-
-    if (!fs.existsSync(runtimePath)) {
-        throw new Error(`CodeXR room runtime not found at ${runtimePath}`);
-    }
 
     if (!fs.existsSync(textureDirectory)) {
         throw new Error(`CodeXR room texture directory not found at ${textureDirectory}`);
