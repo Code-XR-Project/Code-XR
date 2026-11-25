@@ -36,23 +36,6 @@ export class BrowseVisualizationTreeItem extends vscode.TreeItem {
  */
 export class BrowseVisualizationItemFactory {
     /**
-     * Create browse visualizations section
-     */
-    public static createBrowseVisualizationsSection(): BrowseVisualizationTreeItem {
-        return new BrowseVisualizationTreeItem(
-            'Browse Visualizations',
-            vscode.TreeItemCollapsibleState.Expanded,
-            'browse-section',
-            undefined,
-            undefined,
-            new vscode.ThemeIcon('folder-opened'),
-            'Browse previously generated visualizations',
-            undefined,
-            'browse-visualizations-section'
-        );
-    }
-
-    /**
      * Create items for stored visualizations
      */
     public static createStoredVisualizationItems(visualizations: StoredVisualization[]): BrowseVisualizationTreeItem[] {
