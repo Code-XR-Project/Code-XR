@@ -11,7 +11,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `test/collaboration`: collaborative XR sessions.
 - `test/commands`: command registration contract tests (the real `registerAllCommands` under the fake vscode, tied to package.json).
 - `test/directory_analysis`: directory watcher and reanalysis data tests.
-- `test/helpers`: shared helpers (`sourceText.cjs`, `fakeVscode.cjs`, `runtimeAssembly.cjs`) and their own tests.
+- `test/helpers`: shared helpers (`sourceText.cjs`, `fakeVscode.cjs`, `runtimeAssembly.cjs`, `logCapture.cjs`) and their own tests.
 - `test/logging`, `test/python_env`, `test/servers`, `test/startup`, `test/utils`, `test/visualization_settings`, `test/visualize_data`: focused suites per subsystem.
 - `test/manual`: the HTML pages the browser harnesses load, their data, and `buildAssembledRuntimes.cjs`.
 - `test/packaging`: what ships (VSIX layout, dist characterization, Marketplace listing, the menu surface).

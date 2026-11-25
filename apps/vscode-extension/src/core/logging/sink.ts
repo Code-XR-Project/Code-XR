@@ -28,6 +28,16 @@ export interface LogTarget {
     appendLine(line: string): void;
 }
 
+/** One log call, as observers see it: the message already rendered. */
+export interface LogEntry {
+    readonly level: CodeXRLogLevel;
+    readonly scope: string;
+    readonly message: string;
+    readonly metadata: unknown;
+}
+
+export type LogObserver = (entry: LogEntry) => void;
+
 interface PendingEntry {
     readonly level: CodeXRLogLevel;
     readonly scope: string;
@@ -43,6 +53,7 @@ let target: LogTarget | undefined;
 let verboseLoggingEnabled = false;
 let pending: PendingEntry[] = [];
 let droppedWhileDetached = 0;
+const observers = new Set<LogObserver>();
 
 class ScopedLoggerImpl implements ScopedLogger {
     constructor(private readonly scope: string) {}
@@ -76,6 +87,10 @@ export function writeLog(
     metadata?: unknown,
 ): void {
     const timestamp = new Date().toISOString();
+
+    if (observers.size > 0) {
+        notifyObservers({ level, scope, message: renderMessage(message), metadata });
+    }
 
     if (!target) {
         bufferEntry({ level, scope, message, metadata, timestamp });
@@ -122,6 +137,24 @@ export function attachLogTarget(newTarget: LogTarget): void {
 /** Stops writing to the target (it is being disposed); later lines are buffered again. */
 export function detachLogTarget(): void {
     target = undefined;
+}
+
+/**
+ * Sees every log call, at every level, whatever the target and the verbose
+ * flag. A seam for the characterization tests that pin what a module logs;
+ * nothing in the extension observes. Returns the unsubscribe function.
+ */
+export function observeLogEntries(observer: LogObserver): () => void {
+    observers.add(observer);
+    return () => {
+        observers.delete(observer);
+    };
+}
+
+function notifyObservers(entry: LogEntry): void {
+    for (const observer of observers) {
+        observer(entry);
+    }
 }
 
 export function setVerboseLogging(enabled: boolean): void {
