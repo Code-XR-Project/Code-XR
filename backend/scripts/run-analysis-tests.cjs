@@ -78,7 +78,7 @@ function ensureVenv(systemPython) {
 
 /**
  * The extension installs an exact lizard version into the user's managed venv
- * (apps/vscode-extension/src/python_env/runtime/pythonPackageManifest.ts). The
+ * (apps/vscode-extension/src/core/python-env/pythonPackageManifest.ts). The
  * fixtures must be measured with that same version, so the requirement is read
  * from backend/requirements.txt, the generated mirror of that manifest
  * (apps/vscode-extension/test/python_env/pythonRequirements.test.cjs keeps the

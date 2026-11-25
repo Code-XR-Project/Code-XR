@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
-import { PythonEnvStorage, PythonEnvMetadata } from '../storage/pythonEnvStorage';
-import { ExecutableCommand, PythonEnvUtils } from '../utils/pythonEnvUtils';
+import { PythonEnvStorage, PythonEnvMetadata } from './pythonEnvStorage';
+import { ExecutableCommand, PythonEnvUtils } from './pythonEnvUtils';
 import { PythonEnvUiStateService } from './pythonEnvUiState';
 import { CodeXRLogger } from '../../platform/logging/logger';
 import {

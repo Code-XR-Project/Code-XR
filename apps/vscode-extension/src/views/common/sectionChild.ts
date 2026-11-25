@@ -5,7 +5,7 @@ import type { ActiveServerTreeItem } from '../active_servers/items/activeServerI
 import type { BabiaExampleTreeItem } from '../babia_examples/items/babiaExampleItems';
 import type { VisualizeDataModularTreeItem } from '../visualize_data/items/visualizeDataItems';
 import type { CodeAnalysisTreeItem } from '../../code_analysis/views/items/analysisItems';
-import type { PythonEnvModularTreeItem } from '../../python_env/views/items/pythonEnvItems';
+import type { PythonEnvModularTreeItem } from '../../features/python-env/views/pythonEnvItems';
 import type { VisualizationSettingsModularTreeItem } from '../visualization_settings/items/visualizationSettingsItems';
 import type { LearnMoreModularTreeItem } from '../../features/learn-more/views/learnMoreItems';
 

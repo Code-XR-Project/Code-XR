@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterfaces';
 import { createSectionDefinitions, LazySectionDefinition } from './sectionDefinitions';
 import type { SectionChild } from './common/sectionChild';
-import { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
-import { VenvManager } from '../python_env/runtime/venvManager';
+import { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiState';
+import { VenvManager } from '../core/python-env/venvManager';
 import { CodeXRLogger } from '../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('MODULAR_TREE');
@@ -79,7 +79,7 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: ['originalAnalysisItem'],
     }],
     ['pythonEnv', {
-        load: () => require('../python_env/views/items/pythonEnvItems').PythonEnvModularTreeItem,
+        load: () => require('../features/python-env/views/pythonEnvItems').PythonEnvModularTreeItem,
         itemTypeKeys: ['pythonEnvItemType'],
         defaultItemType: 'info',
         constructorExtras: [],

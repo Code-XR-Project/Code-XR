@@ -9,7 +9,7 @@ import {
     GitRevisionExportRequest,
 } from './gitExportOptions';
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
-import { VenvManager } from '../../python_env/runtime/venvManager';
+import { VenvManager } from '../../core/python-env/venvManager';
 import { resolveBackendScriptPath } from '../engine/utils/backendScriptPath';
 
 /**

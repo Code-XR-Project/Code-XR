@@ -60,7 +60,7 @@ src/code_analysis/python/
 
 Python source is also pinned on **quote style and import order** by source-text tests (`main.py`'s `choices=['livePanel', …]`, `print('=== JSON_START ===')`, the imports that follow the `sys.path` setup). No formatter, no isort.
 
-## Virtual environment (`src/python_env/`)
+## Virtual environment (`src/core/python-env/`, commands and tree in `src/features/python-env/`)
 
 - `runtime/venvManager.ts` creates/verifies/reinstalls the venv; package manifest and env UI state live alongside it. User-facing commands: `codeXR.pythonEnv.*` (create/delete/status/reinitialize/verify/debug).
 - Python dependencies (e.g. `lizard`, `tree-sitter-language-pack`) are installed into this venv at runtime. **Needs verification**: the exact dependency manifest location (there is no top-level `requirements.txt`; the manifest appears to live inside `src/python_env/` — confirm before changing dependencies).

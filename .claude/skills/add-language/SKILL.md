@@ -18,7 +18,7 @@ Language support spans two worlds that must change together. The **source of tru
 4. **Fixtures**:
    - `backend/manual_test/<lang>_metrics.<ext>` (flat, one or more files per language; `deep/` holds the recursive-directory extras) — consumed by `npm run test:analysis` (see `backend/manual_test/README.md`).
    - `backend/tests/fixtures/dependency-languages/` — sample source for dependency-graph tests.
-5. **Venv dependencies**: if a new Python package is needed, it goes through the managed venv manifest in `src/python_env/` (`venvManager.ts`) — never assume system Python, never add an implicit download (no downloads without explicit user consent).
+5. **Venv dependencies**: if a new Python package is needed, it goes through the managed venv manifest in `src/core/python-env/` (`venvManager.ts`, `pythonPackageManifest.ts`) — never assume system Python, never add an implicit download (no downloads without explicit user consent).
 
 ## Validation
 

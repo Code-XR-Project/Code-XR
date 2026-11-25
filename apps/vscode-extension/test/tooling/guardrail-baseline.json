@@ -29,9 +29,9 @@
       "babia_templates": 2,
       "code_analysis": 18,
       "commands": 6,
+      "core/python-env": 5,
       "features/learn-more": 1,
       "platform": 12,
-      "python_env": 5,
       "servers": 11,
       "utils": 8,
       "views": 14,
@@ -46,7 +46,7 @@
       "src/code_analysis/historical/gitRepositoryService.ts",
       "src/code_analysis/refresh/analysisRefreshCoordinator.ts",
       "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-      "src/python_env/runtime/venvManager.ts",
+      "src/core/python-env/venvManager.ts",
       "src/remote_access/security/remoteSessionAuthority.ts",
       "src/remote_access/services/remoteAccessManager.ts",
       "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
@@ -98,11 +98,11 @@
       "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": 1,
       "src/commands/analysis/AnalysisCommands.ts": 5,
       "src/commands/index.ts": 1,
+      "src/core/python-env/venvManager.ts": 5,
       "src/features/learn-more/views/handleLearnMoreClicks.ts": 1,
       "src/platform/commands/commandBuilder.ts": 5,
       "src/platform/commands/commandRegistry.ts": 2,
       "src/platform/tree/baseInterfaces.ts": 5,
-      "src/python_env/runtime/venvManager.ts": 5,
       "src/servers/runtime/http/httpRespond.ts": 1,
       "src/servers/runtime/httpsTlsOptions.ts": 1,
       "src/servers/runtime/index.ts": 1,
@@ -132,15 +132,15 @@
         "count": 5
       },
       {
+        "file": "src/core/python-env/venvManager.ts",
+        "count": 5
+      },
+      {
         "file": "src/platform/commands/commandBuilder.ts",
         "count": 5
       },
       {
         "file": "src/platform/tree/baseInterfaces.ts",
-        "count": 5
-      },
-      {
-        "file": "src/python_env/runtime/venvManager.ts",
         "count": 5
       },
       {
@@ -252,7 +252,7 @@
     ],
     "size.largest10": [
       {
-        "file": "src/python_env/runtime/venvManager.ts",
+        "file": "src/core/python-env/venvManager.ts",
         "lines": 851
       },
       {

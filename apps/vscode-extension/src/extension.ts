@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { registerAllCommands } from './commands/index';
-import { initializePythonEnvOnStartup } from './commands/python_env/pythonEnvCommands';
+import { initializePythonEnvOnStartup } from './features/python-env/commands/pythonEnvCommandRegistrations';
 import { XRFieldSchemaService } from './code_analysis/services/xrFieldSchemaService';
 import { ModularTreeDataProvider } from './views/ModularTreeDataProvider';
 import { CommonCommands } from './utils/commonCommands';

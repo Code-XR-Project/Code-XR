@@ -20,6 +20,7 @@
       "collaboration",
       "commands",
       "core/startup",
+      "features/python-env",
       "platform",
       "remote_access",
       "servers",
@@ -46,8 +47,8 @@
     "code_analysis": [
       "active_servers",
       "babia_templates",
+      "core/python-env",
       "platform",
-      "python_env",
       "servers",
       "shared",
       "utils"
@@ -59,22 +60,26 @@
       "code_analysis",
       "collaboration",
       "features/learn-more",
+      "features/python-env",
       "platform",
-      "python_env",
       "remote_access",
       "servers",
       "utils",
       "visualization_settings",
       "visualize_data"
     ],
+    "core/python-env": [
+      "platform"
+    ],
     "core/startup": [],
     "features/learn-more": [
       "platform"
     ],
-    "platform": [],
-    "python_env": [
+    "features/python-env": [
+      "core/python-env",
       "platform"
     ],
+    "platform": [],
     "remote_access": [
       "active_servers",
       "collaboration",
@@ -100,9 +105,10 @@
       "babia_examples",
       "code_analysis",
       "collaboration",
+      "core/python-env",
       "features/learn-more",
+      "features/python-env",
       "platform",
-      "python_env",
       "servers",
       "visualization_settings",
       "visualize_data"

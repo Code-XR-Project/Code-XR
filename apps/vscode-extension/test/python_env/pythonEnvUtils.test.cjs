@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { PythonEnvUtils } = require('../../out/python_env/utils/pythonEnvUtils.js');
+const { PythonEnvUtils } = require('../../out/core/python-env/pythonEnvUtils.js');
 
 function normalizePath(value) {
     return value.replace(/\\/g, '/');

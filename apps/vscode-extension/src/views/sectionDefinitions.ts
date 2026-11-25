@@ -4,13 +4,13 @@ import { ServersSectionProvider } from './servers/ServersSectionProvider';
 import { ActiveServersSectionProvider } from './active_servers/ActiveServersSectionProvider';
 import { BabiaExamplesSectionProvider } from './babia_examples/BabiaExamplesSectionProvider';
 import { VisualizeDataSectionProvider } from './visualize_data/VisualizeDataSectionProvider';
-import { PythonEnvSectionProvider } from './python_env/PythonEnvSectionProvider';
+import { PythonEnvSectionProvider } from '../features/python-env/views/PythonEnvSectionProvider';
 import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
 import { VisualizationSettingsSectionProvider } from './visualization_settings/VisualizationSettingsSectionProvider';
 import { LearnMoreSectionProvider } from '../features/learn-more/views/LearnMoreSectionProvider';
-import type { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
-import type { VenvManager } from '../python_env/runtime/venvManager';
-import { PythonEnvItems } from '../python_env/views/items/pythonEnvItems';
+import type { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiState';
+import type { VenvManager } from '../core/python-env/venvManager';
+import { PythonEnvItems } from '../features/python-env/views/pythonEnvItems';
 import type { SectionChild } from './common/sectionChild';
 import { getActiveServerRegistry } from '../active_servers/registry/activeServerRegistry';
 

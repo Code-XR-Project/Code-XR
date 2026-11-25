@@ -65,7 +65,8 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `commands/` | Central command registration aggregator | `index.ts` (`registerAllCommands`, `assertUniqueCommandIds`) |
 | `collaboration/` | Identity/profiles for collaborative sessions (names, avatars) | `CollaborationProfileManager` |
 | `remote_access/` | Cross-network sharing via pinned `cloudflared` Quick Tunnel | `cloudflaredBinaryManager`, `remoteAccessManager`, `remoteSessionAuthority` |
-| `python_env/` | Managed Python virtual environment (create/verify/reinstall + UI state) | `runtime/venvManager.ts` |
+| `core/python-env/` | Managed Python virtual environment (create/verify/reinstall + UI state); used by the analysis engine and the git export | `venvManager.ts`, `pythonPackageManifest.ts`, `pythonEnvStorage.ts`, `pythonEnvUtils.ts`, `pythonEnvUiState.ts` |
+| `features/python-env/` | The Python-environment commands and sidebar section | `commands/pythonEnvCommands.ts`, `commands/pythonEnvCommandRegistrations.ts`, `views/PythonEnvSectionProvider.ts`, `views/pythonEnvItems.ts` |
 | `visualize_data/` | User-driven "visualize your own JSON" flow | commands + launcher |
 | `visualization_settings/` | Visualization settings (colors, chart config) + color picker | storage + model |
 | `core/` | Startup coordination (moves to `app/` in #55 B14) | `startup/startupCoordinator.ts` |

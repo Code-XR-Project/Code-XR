@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
-import { VenvManager } from '../../../python_env/runtime/venvManager';
+import { VenvManager } from '../../../core/python-env/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
 import { classifyStderrLine } from './pythonStderrStream';
 import { getLogger } from '../../../platform/logging/sink';

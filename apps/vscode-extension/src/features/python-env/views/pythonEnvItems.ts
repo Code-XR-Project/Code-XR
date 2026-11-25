@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { PythonEnvUiState } from '../../runtime/pythonEnvUiState';
+import { PythonEnvUiState } from '../../../core/python-env/pythonEnvUiState';
 
 export type PythonEnvItemType = 'section' | 'status' | 'action' | 'warning' | 'error' | 'loading' | 'info';
 

@@ -4,7 +4,7 @@ import { getActiveServersCommandRegistrations } from './active_servers/activeSer
 import { getBabiaExamplesCommandRegistrations } from './babia_examples/babiaExamplesCommands';
 import { getVisualizeDataCommandRegistrations } from './visualize_data/visualizeDataCommands';
 import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';
-import { getPythonEnvCommandRegistrations } from './python_env/pythonEnvCommands';
+import { getPythonEnvCommandRegistrations } from '../features/python-env/commands/pythonEnvCommandRegistrations';
 import { getVisualizationSettingsCommandRegistrations } from './visualization_settings/visualizationSettingsCommands';
 import { getLearnMoreCommandRegistrations } from '../features/learn-more/commands/learnMoreCommandRegistrations';
 import { getGeneralCommandRegistrations } from './common/generalCommands';
