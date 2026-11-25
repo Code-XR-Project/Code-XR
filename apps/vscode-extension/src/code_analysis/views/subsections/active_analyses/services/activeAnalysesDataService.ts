@@ -5,7 +5,9 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
+import type { CodeAnalysisTreeItem } from '../../../../views/items/analysisItems';
 import { getLogger } from '../../../../../core/logging/sink';
 
 const logger = getLogger('ACTIVE_ANALYSES_DATA_SERVICE');
@@ -26,8 +28,18 @@ export interface ActiveAnalysisItem {
     serverUrl?: string;
     assignedPort?: number;
     // Direct session reference for commands - NO MORE COMPLEX TRANSFORMATIONS
-    session: any;
+    session: UnifiedAnalysisSession;
 }
+
+/**
+ * The session fields copied onto the TreeItem: VS Code passes the TreeItem,
+ * not the element, to context-menu commands, and they locate the session
+ * through these.
+ */
+type ActiveAnalysisTreeItem = vscode.TreeItem & Pick<
+    ActiveAnalysisItem,
+    'sessionId' | 'analysisType' | 'status' | 'targetPath' | 'serverUrl' | 'assignedPort'
+>;
 
 /** Icon colour per analysis mode for file targets; legacy mode names included. */
 const FILE_ICON_COLORS: Readonly<Record<string, string>> = {
@@ -144,13 +156,13 @@ export class ActiveAnalysesDataService {
             
             // CRITICAL: Add sessionId to the TreeItem so commands can locate the session
             // VS Code passes the TreeItem object to context menu commands, not the original element
-            (item as any).sessionId = element.sessionId;
-            (item as any).id = element.id;
-            (item as any).analysisType = element.analysisType;
-            (item as any).status = element.status;
-            (item as any).targetPath = element.targetPath;
-            (item as any).serverUrl = element.serverUrl;
-            (item as any).assignedPort = element.assignedPort;
+            (item as ActiveAnalysisTreeItem).sessionId = element.sessionId;
+            (item as ActiveAnalysisTreeItem).id = element.id;
+            (item as ActiveAnalysisTreeItem).analysisType = element.analysisType;
+            (item as ActiveAnalysisTreeItem).status = element.status;
+            (item as ActiveAnalysisTreeItem).targetPath = element.targetPath;
+            (item as ActiveAnalysisTreeItem).serverUrl = element.serverUrl;
+            (item as ActiveAnalysisTreeItem).assignedPort = element.assignedPort;
             
             logger.debug('Created TreeItem with session info:', {
                 sessionId: element.sessionId,
@@ -239,7 +251,7 @@ export class ActiveAnalysesDataService {
     /**
      * Create analysis item for tree view
      */
-    private createAnalysisItem(session: any, type: 'file' | 'directory'): ActiveAnalysisItem | null {
+    private createAnalysisItem(session: UnifiedAnalysisSession, type: 'file' | 'directory'): ActiveAnalysisItem | null {
         try {
             if (!session) {
                 logger.warn('Cannot create analysis item - session is null/undefined');
@@ -365,7 +377,7 @@ export class ActiveAnalysesDataService {
     /**
      * Get analysis by ID
      */
-    public getAnalysisById(id: string): any | null {
+    public getAnalysisById(id: string): UnifiedAnalysisSession | undefined | null {
         try {
             if (!this.sessionRegistry) {
                 logger.warn('Session registry not initialized');
@@ -439,7 +451,7 @@ export class ActiveAnalysesDataService {
     /**
      * Get subsection item for the tree (SIMPLIFIED integration)
      */
-    public getSubsectionItem(): any {
+    public getSubsectionItem(): CodeAnalysisTreeItem {
         try {
             const activeCount = this.getAllActiveAnalyses().length;
             return {

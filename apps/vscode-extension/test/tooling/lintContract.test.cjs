@@ -30,6 +30,10 @@ const WARN_BUDGET_RULES = [
 // Budget rules that reached zero and were promoted to errors (ROADMAP T59).
 const PROMOTED_RULES = ['@typescript-eslint/no-floating-promises'];
 
+// The flat-config block (by its name) where folders free of `any` make
+// no-explicit-any an error (story #56).
+const ANY_FREE_BLOCK = 'codexr/any-free-folders';
+
 async function loadEslintConfig() {
     const configUrl = pathToFileURL(path.join(projectRoot, 'eslint.config.mjs')).href;
     return (await import(configUrl)).default;
@@ -78,9 +82,13 @@ test('the warn-only budget rules are configured as warnings over src', async () 
     // The type-aware ones live in their own block (they need the TypeScript
     // program); the merge below follows flat-config order, last block wins.
     // A budget rule set to "off" would let its count drift while the
-    // --max-warnings ceiling still looks tight.
+    // --max-warnings ceiling still looks tight. The any-free folders block is
+    // the one deliberate exception: it makes no-explicit-any stricter (an
+    // error) for the folders listed there, never looser.
     const config = await loadEslintConfig();
-    const rules = Object.assign({}, ...config.filter((block) => block.rules).map((block) => block.rules));
+    const rules = Object.assign({}, ...config
+        .filter((block) => block.rules && block.name !== ANY_FREE_BLOCK)
+        .map((block) => block.rules));
 
     for (const rule of WARN_BUDGET_RULES) {
         const value = rules[rule];
@@ -242,5 +250,24 @@ test('only the three files with deliberate lazy require() may use it', async () 
     ]);
     for (const file of exemptions[0].files) {
         assert.ok(fs.existsSync(path.join(projectRoot, file)), `${file} exists`);
+    }
+});
+
+test('folders typed free of any keep no-explicit-any as an error', async () => {
+    // Story #56 types the `any`s folder by folder; a folder at zero is locked
+    // there. The block may only tighten the rule, and every folder it names
+    // must exist (a moved folder would otherwise drop out of the lock silently).
+    const config = await loadEslintConfig();
+    const blocks = config.filter((block) => block.name === ANY_FREE_BLOCK);
+
+    assert.equal(blocks.length, 1, 'one any-free folders block');
+    const [block] = blocks;
+    assert.deepEqual(Object.keys(block.rules), ['@typescript-eslint/no-explicit-any']);
+    assert.equal(block.rules['@typescript-eslint/no-explicit-any'], 'error');
+    assert.ok(block.files.length > 0);
+    for (const pattern of block.files) {
+        assert.match(pattern, /^src\/.+\/\*\*\/\*\.ts$/, `${pattern} is a src/ folder glob`);
+        const folder = pattern.replace(/\/\*\*\/\*\.ts$/, '');
+        assert.ok(fs.statSync(path.join(projectRoot, folder)).isDirectory(), `${folder} exists`);
     }
 });

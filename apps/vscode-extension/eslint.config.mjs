@@ -138,6 +138,17 @@ export default [{
         "@typescript-eslint/no-require-imports": "off",
     },
 }, {
+    // Folders whose `any`s were typed away (story #56, modernization.md §7):
+    // there no-explicit-any is an error, not a budget warning. A folder joins
+    // the list in the commit that brings it to zero.
+    name: "codexr/any-free-folders",
+    files: [
+        "src/code_analysis/views/subsections/active_analyses/**/*.ts",
+    ],
+    rules: {
+        "@typescript-eslint/no-explicit-any": "error",
+    },
+}, {
     files: NO_CONSOLE_FILES,
     ignores: CONSOLE_ALLOWLIST,
     rules: {

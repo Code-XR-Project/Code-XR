@@ -24,11 +24,11 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 130,
+    "any.total": 112,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
-      "code_analysis": 53,
+      "code_analysis": 35,
       "commands": 6,
       "platform": 7,
       "python_env": 5,
@@ -61,7 +61,7 @@
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 204,
+    "eslint.maxWarnings": 186,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -70,7 +70,7 @@
   },
   "informational": {
     "src.files": 337,
-    "src.lines": 49508,
+    "src.lines": 49535,
     "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -81,20 +81,12 @@
     ],
     "any.topFiles": [
       {
-        "file": "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts",
-        "count": 11
-      },
-      {
         "file": "src/code_analysis/engine/watchers/directoryReAnalyzer.ts",
         "count": 9
       },
       {
         "file": "src/code_analysis/services/serverWatcherIntegration.ts",
         "count": 8
-      },
-      {
-        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-        "count": 7
       },
       {
         "file": "src/commands/analysis/AnalysisCommands.ts",
@@ -139,6 +131,14 @@
       {
         "file": "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts",
         "count": 3
+      },
+      {
+        "file": "src/visualization_settings/storage/settingsStorage.ts",
+        "count": 3
+      },
+      {
+        "file": "src/active_servers/services/serverRegistrar.ts",
+        "count": 2
       }
     ],
     "complexity.worst10": [
@@ -206,11 +206,11 @@
     "size.largest10": [
       {
         "file": "src/python_env/runtime/venvManager.ts",
-        "lines": 852
+        "lines": 851
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-        "lines": 787
+        "lines": 803
       },
       {
         "file": "src/code_analysis/export/exportManifest.ts",
