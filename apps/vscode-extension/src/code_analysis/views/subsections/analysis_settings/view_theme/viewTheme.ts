@@ -70,7 +70,7 @@ export class ViewThemeSetting {
     async toggleTheme(): Promise<ViewTheme> {
         this.currentTheme = this.currentTheme === 'Dark' ? 'Light' : 'Dark';
         
-        console.log(`ANALYSIS: View theme switched to ${this.currentTheme}`);
+        logger.debug(() => `View theme switched to ${this.currentTheme}`);
         
         await this.saveThemeToSettings();
         
@@ -99,9 +99,9 @@ export class ViewThemeSetting {
         try {
             const savedTheme = await this.storage.getViewTheme();
             this.currentTheme = savedTheme;
-            console.log(`ANALYSIS: Loaded view theme from storage: ${this.currentTheme}`);
+            logger.debug(() => `Loaded view theme from storage: ${this.currentTheme}`);
         } catch (error) {
-            console.error('ANALYSIS: Error loading saved theme, using default:', error);
+            logger.error('Error loading saved theme, using default:', error);
             this.currentTheme = 'Dark'; // Fallback to default
         }
     }
@@ -112,7 +112,7 @@ export class ViewThemeSetting {
     private async saveThemeToSettings(): Promise<void> {
         try {
             await this.storage.setViewTheme(this.currentTheme);
-            console.log(`ANALYSIS: Saved view theme to storage: ${this.currentTheme}`);
+            logger.debug(() => `Saved view theme to storage: ${this.currentTheme}`);
         } catch (error) {
             logger.error('Error saving theme to storage:', error);
         }

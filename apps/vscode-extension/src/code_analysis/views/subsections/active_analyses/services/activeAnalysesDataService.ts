@@ -37,7 +37,7 @@ export class ActiveAnalysesDataService {
     private sessionRegistry: UnifiedSessionRegistry | null = null;
 
     private constructor() {
-        console.log('ACTIVE_ANALYSES_DATA_SERVICE: Initialized');
+        logger.debug('Initialized');
     }
 
     public static getInstance(): ActiveAnalysesDataService {
@@ -62,7 +62,7 @@ export class ActiveAnalysesDataService {
      * Refresh the tree view
      */
     public refresh(): void {
-        console.log('ACTIVE_ANALYSES_DATA_SERVICE: Refreshing tree view');
+        logger.debug('Refreshing tree view');
         this._onDidChangeTreeData.fire();
     }
 
@@ -85,7 +85,7 @@ export class ActiveAnalysesDataService {
     public getTreeItem(element: ActiveAnalysisItem): vscode.TreeItem {
         try {
             if (!element) {
-                console.error('ACTIVE_ANALYSES_DATA_SERVICE: getTreeItem called with null/undefined element');
+                logger.error('getTreeItem called with null/undefined element');
                 return new vscode.TreeItem('Error: Invalid item');
             }
 
@@ -98,7 +98,7 @@ export class ActiveAnalysesDataService {
                 try {
                     item.resourceUri = element.resourceUri;
                 } catch (uriError) {
-                    console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Error setting resourceUri:', uriError);
+                    logger.warn('Error setting resourceUri:', uriError);
                     item.resourceUri = undefined;
                 }
             }
@@ -115,7 +115,7 @@ export class ActiveAnalysesDataService {
             (item as any).serverUrl = element.serverUrl;
             (item as any).assignedPort = element.assignedPort;
             
-            console.log('ACTIVE_ANALYSES_DATA_SERVICE: Created TreeItem with session info:', {
+            logger.debug('Created TreeItem with session info:', {
                 sessionId: element.sessionId,
                 id: element.id,
                 label: element.label,
@@ -138,7 +138,7 @@ export class ActiveAnalysesDataService {
             
             return item;
         } catch (error) {
-            console.error('ACTIVE_ANALYSES_DATA_SERVICE: Error in getTreeItem:', error);
+            logger.error('Error in getTreeItem:', error);
             return new vscode.TreeItem('Error: Failed to create tree item');
         }
     }
@@ -151,7 +151,7 @@ export class ActiveAnalysesDataService {
 
         try {
             if (!this.sessionRegistry) {
-                console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Session registry not initialized');
+                logger.warn('Session registry not initialized');
                 return analyses;
             }
 
@@ -160,20 +160,20 @@ export class ActiveAnalysesDataService {
             try {
                 allSessions = this.sessionRegistry.getAllSessions();
             } catch (error) {
-                console.error('ACTIVE_ANALYSES_DATA_SERVICE: Error getting sessions from registry:', error);
+                logger.error('Error getting sessions from registry:', error);
                 return analyses;
             }
 
             if (!Array.isArray(allSessions)) {
-                console.warn('ACTIVE_ANALYSES_DATA_SERVICE: getAllSessions() returned non-array:', typeof allSessions);
+                logger.warn('getAllSessions() returned non-array:', typeof allSessions);
                 return analyses;
             }
 
-            console.log(`ACTIVE_ANALYSES_DATA_SERVICE: Found ${allSessions.length} sessions`);
+            logger.debug(() => `Found ${allSessions.length} sessions`);
             
             for (const session of allSessions) {
                 if (!session) {
-                    console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Found null/undefined session in registry');
+                    logger.warn('Found null/undefined session in registry');
                     continue;
                 }
                 
@@ -195,7 +195,7 @@ export class ActiveAnalysesDataService {
             logger.error('Error getting analyses:', error);
         }
 
-        console.log(`ACTIVE_ANALYSES_DATA_SERVICE: Returning ${analyses.length} active analyses`);
+        logger.debug(() => `Returning ${analyses.length} active analyses`);
         return analyses;
     }
 
@@ -205,12 +205,12 @@ export class ActiveAnalysesDataService {
     private createAnalysisItem(session: any, type: 'file' | 'directory'): ActiveAnalysisItem | null {
         try {
             if (!session) {
-                console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Cannot create analysis item - session is null/undefined');
+                logger.warn('Cannot create analysis item - session is null/undefined');
                 return null;
             }
 
             if (!session.id) {
-                console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Cannot create analysis item - session has no ID');
+                logger.warn('Cannot create analysis item - session has no ID');
                 return null;
             }
 
@@ -232,12 +232,12 @@ export class ActiveAnalysesDataService {
                     const normalizedPath = path.normalize(targetPath.trim());
                     resourceUri = vscode.Uri.file(normalizedPath);
                 } catch (uriError) {
-                    console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Invalid path for URI creation:', targetPath, uriError);
+                    logger.warn(`Invalid path for URI creation: ${targetPath}`, uriError);
                     resourceUri = undefined;
                 }
             }
             
-            console.log('ACTIVE_ANALYSES_DATA_SERVICE: Creating analysis item for session:', {
+            logger.debug('Creating analysis item for session:', {
                 sessionId: session.id,
                 targetName: targetName,
                 targetPath: targetPath
@@ -262,7 +262,7 @@ export class ActiveAnalysesDataService {
                 session: session
             };
         } catch (error) {
-            console.error('ACTIVE_ANALYSES_DATA_SERVICE: Error creating analysis item:', error);
+            logger.error('Error creating analysis item:', error);
             return null;
         }
     }
@@ -373,13 +373,13 @@ export class ActiveAnalysesDataService {
     public getAnalysisById(id: string): any | null {
         try {
             if (!this.sessionRegistry) {
-                console.warn('ACTIVE_ANALYSES_DATA_SERVICE: Session registry not initialized');
+                logger.warn('Session registry not initialized');
                 return null;
             }
 
             return this.sessionRegistry.getSession(id);
         } catch (error) {
-            console.error(`ACTIVE_ANALYSES_DATA_SERVICE: Error getting analysis ${id}:`, error);
+            logger.error(`Error getting analysis ${id}:`, error);
             return null;
         }
     }
@@ -460,7 +460,7 @@ export class ActiveAnalysesDataService {
                 description: activeCount > 0 ? `${activeCount} running` : 'No active sessions'
             };
         } catch (error) {
-            console.error('ACTIVE_ANALYSES_DATA_SERVICE: Error creating subsection item:', error);
+            logger.error('Error creating subsection item:', error);
             return {
                 label: 'Active Analyses (Error)',
                 collapsibleState: 1,

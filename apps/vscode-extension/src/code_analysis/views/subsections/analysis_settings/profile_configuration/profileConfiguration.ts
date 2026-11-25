@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('PROFILE_CONFIGURATION');
 
 export class ProfileConfigurationSetting {
 
@@ -13,14 +16,14 @@ export class ProfileConfigurationSetting {
         _context: vscode.ExtensionContext,
         private storage: AnalysisConfigurationStorage
     ) {
-        console.log('PROFILE_CONFIGURATION: Initializing Profile Configuration setting');
+        logger.debug('Initializing Profile Configuration setting');
     }
 
     /**
      * Get the setting item (collapsible)
      */
     async getSettingItem(): Promise<CodeAnalysisTreeItem> {
-        console.log('PROFILE_CONFIGURATION: Creating profile configuration setting item');
+        logger.debug('Creating profile configuration setting item');
         
         return new CodeAnalysisTreeItem(
             'Profile Configuration',
@@ -38,7 +41,7 @@ export class ProfileConfigurationSetting {
      * Get children items for Profile Configuration
      */
     async getChildren(): Promise<CodeAnalysisTreeItem[]> {
-        console.log('PROFILE_CONFIGURATION: Getting Profile Configuration children');
+        logger.debug('Getting Profile Configuration children');
         
         const children: CodeAnalysisTreeItem[] = [];
 
@@ -106,7 +109,7 @@ export class ProfileConfigurationSetting {
             'deleteProfile'
         ));
 
-        console.log(`PROFILE_CONFIGURATION: Created ${children.length} profile configuration items`);
+        logger.debug(() => `Created ${children.length} profile configuration items`);
         return children;
     }
 
@@ -151,7 +154,7 @@ export class ProfileConfigurationSetting {
      * Reset configuration to defaults
      */
     async resetToDefaults(): Promise<void> {
-        console.log('PROFILE_CONFIGURATION: Resetting to default values');
+        logger.debug('Resetting to default values');
         
         try {
             const defaults = this.getDefaultConfiguration();
@@ -172,11 +175,11 @@ export class ProfileConfigurationSetting {
             await this.storage.setFilesByLanguageSorting(defaults.filesByLanguageSorting);
             await this.storage.setXRBabiaUiConfig(defaults.xrBabiaUi);
             
-            console.log('PROFILE_CONFIGURATION: Successfully reset to defaults:', defaults);
+            logger.debug('Successfully reset to defaults:', defaults);
             vscode.window.showInformationMessage('Analysis settings reset to default values');
             
         } catch (error) {
-            console.error('PROFILE_CONFIGURATION: Error resetting to defaults:', error);
+            logger.error('Error resetting to defaults:', error);
             vscode.window.showErrorMessage(`Failed to reset to defaults: ${error}`);
             throw error;
         }

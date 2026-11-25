@@ -17,6 +17,9 @@ import { AutoAnalysisEnabledSetting } from './auto_analysis_enabled';
 import { FilesByLanguageSortingSetting } from './files_by_language_sorting';
 import { ProfileConfigurationSetting } from './profile_configuration';
 import { AnalysisConfigurationStorage } from '../../../configuration/analysisConfigurationStorage';
+import { getLogger } from '../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AnalysisSettingsSubsectionProvider {
     private analysisFileSetting: AnalysisFileSetting;
@@ -32,7 +35,7 @@ export class AnalysisSettingsSubsectionProvider {
     private profileConfigurationSetting: ProfileConfigurationSetting;
     
     constructor(context: vscode.ExtensionContext) {
-        console.log('ANALYSIS: Initializing Analysis Settings subsection provider');
+        logger.debug('Initializing Analysis Settings subsection provider');
         
         // Initialize setting components
         this.analysisFileSetting = new AnalysisFileSetting(context);
@@ -71,7 +74,7 @@ export class AnalysisSettingsSubsectionProvider {
      * Get children items for Analysis Settings
      */
     async getChildren(): Promise<CodeAnalysisTreeItem[]> {
-        console.log('ANALYSIS: Getting Analysis Settings children');
+        logger.debug('Getting Analysis Settings children');
         
         try {
             const children: CodeAnalysisTreeItem[] = [];
@@ -101,10 +104,10 @@ export class AnalysisSettingsSubsectionProvider {
             children.push(dimensionMappingFileItem);
 
             // Dimension Mapping (Directory) setting - NEW
-            console.log('ANALYSIS: Getting Dimension Mapping Directory setting item');
+            logger.debug('Getting Dimension Mapping Directory setting item');
             const dimensionMappingDirectoryItem = await this.dimensionMappingDirectorySetting.getSettingItem();
             children.push(dimensionMappingDirectoryItem);
-            console.log('ANALYSIS: Dimension Mapping Directory setting item added to children');
+            logger.debug('Dimension Mapping Directory setting item added to children');
             
             // Auto Analysis Delay setting
             const autoAnalysisDelayItem = await this.autoAnalysisDelaySetting.getSettingItem();
@@ -122,11 +125,11 @@ export class AnalysisSettingsSubsectionProvider {
             const profileConfigurationItem = await this.profileConfigurationSetting.getSettingItem();
             children.push(profileConfigurationItem);
             
-            console.log(`ANALYSIS: Analysis Settings children count: ${children.length}`);
+            logger.debug(() => `Analysis Settings children count: ${children.length}`);
             return children;
             
         } catch (error) {
-            console.error('ANALYSIS: Error getting Analysis Settings children:', error);
+            logger.error('Error getting Analysis Settings children:', error);
             
             // Return error item
             return [new CodeAnalysisTreeItem(
@@ -146,7 +149,7 @@ export class AnalysisSettingsSubsectionProvider {
      * Get specific children for a setting item (for nested items like Dimension Mapping)
      */
     async getSettingChildren(element: CodeAnalysisTreeItem): Promise<CodeAnalysisTreeItem[]> {
-        console.log(`ANALYSIS: Getting children for setting: ${element.contextValue}`);
+        logger.debug(() => `Getting children for setting: ${element.contextValue}`);
         
         try {
             switch (element.contextValue) {
@@ -167,11 +170,11 @@ export class AnalysisSettingsSubsectionProvider {
                     return await this.profileConfigurationSetting.getChildren();
                 
                 default:
-                    console.log(`ANALYSIS: No children available for setting: ${element.contextValue}`);
+                    logger.debug(() => `No children available for setting: ${element.contextValue}`);
                     return [];
             }
         } catch (error) {
-            console.error(`ANALYSIS: Error getting children for setting ${element.contextValue}:`, error);
+            logger.error(`Error getting children for setting ${element.contextValue}:`, error);
             return [];
         }
     }
@@ -180,7 +183,7 @@ export class AnalysisSettingsSubsectionProvider {
      * Refresh all settings (can be called when configuration changes)
      */
     async refresh(): Promise<void> {
-        console.log('ANALYSIS: Refreshing Analysis Settings subsection');
+        logger.debug('Refreshing Analysis Settings subsection');
         // Settings will be refreshed automatically when getChildren() is called
     }
 

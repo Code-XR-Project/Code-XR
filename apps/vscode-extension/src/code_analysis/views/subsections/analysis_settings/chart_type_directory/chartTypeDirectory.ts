@@ -7,6 +7,9 @@ import * as vscode from 'vscode';
 import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration';
 import { BabiaChartRegistry } from '../../../../../babia_templates/registry/chartRegistry';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('CHART_TYPE_DIRECTORY');
 
 export type AnalysisMode = 'XR' | 'XRDeep' | 'LivePanel' | 'LivePanelDeep';
 export type ChartType = 'bars' | 'barsmap' | 'cyls' | 'cylsmap' | 'donut' | 'pie' | 'bubbles' | 'boats';
@@ -74,11 +77,11 @@ export class ChartTypeDirectorySetting {
      */
     async setChartType(chartType: ChartType): Promise<void> {
         await this.storage.setDirectoryChartType(chartType);
-        console.log(`CHART_TYPE_DIRECTORY: Set chart type: ${chartType}`);
+        logger.debug(() => `Set chart type: ${chartType}`);
         
         // Clear all dimension mappings when chart type changes
         await this.storage.setDimensionMappingDirectory({});
-        console.log(`CHART_TYPE_DIRECTORY: Dimension mappings cleared for new chart type: ${chartType}`);
+        logger.debug(() => `Dimension mappings cleared for new chart type: ${chartType}`);
     }
 
     /**
@@ -107,14 +110,14 @@ export class ChartTypeDirectorySetting {
      * Show chart type selection dialog
      */
     async showChartTypeSelection(): Promise<void> {
-        console.log('CHART_TYPE_DIRECTORY: Opening chart type selection dialog');
+        logger.debug('Opening chart type selection dialog');
         
         try {
             const currentMode = await this.getCurrentAnalysisMode();
             const availableCharts = await this.getAvailableChartTypes(currentMode);
             
             if (availableCharts.length === 0) {
-                console.error('CHART_TYPE_DIRECTORY: No chart types found');
+                logger.error('No chart types found');
                 vscode.window.showErrorMessage('No chart templates available');
                 return;
             }
@@ -140,15 +143,15 @@ export class ChartTypeDirectorySetting {
                 // Set the selected chart type
                 await this.setChartType(selectedChart.id as ChartType);
                 
-                console.log(`CHART_TYPE_DIRECTORY: Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
+                logger.debug(() => `Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
                 vscode.window.showInformationMessage(
                     `Chart type set to: ${selectedChart.name} for ${currentMode} directory analysis`
                 );
             } else {
-                console.log('CHART_TYPE_DIRECTORY: Chart type selection cancelled');
+                logger.debug('Chart type selection cancelled');
             }
         } catch (error) {
-            console.error('CHART_TYPE_DIRECTORY: Error in chart type selection:', error);
+            logger.error('Error in chart type selection:', error);
             vscode.window.showErrorMessage(`Failed to select chart type: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

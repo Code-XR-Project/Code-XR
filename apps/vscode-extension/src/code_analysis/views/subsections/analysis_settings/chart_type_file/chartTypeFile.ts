@@ -8,6 +8,9 @@ import { CodeAnalysisTreeItem } from '../../../items/analysisItems';
 import { AnalysisConfigurationStorage } from '../../../../configuration';
 import { BabiaChartRegistry } from '../../../../../babia_templates/registry/chartRegistry';
 import { ChartMetadata } from '../../../../../babia_templates/models/chartModels';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('CHART_TYPE_FILE');
 
 export type AnalysisMode = 'XR' | 'LivePanel';
 export type ChartType = 'bars' | 'barsmap' | 'cyls' | 'cylsmap' | 'donut' | 'pie' | 'bubbles' | 'boats';
@@ -74,7 +77,7 @@ export class ChartTypeFileSetting {
      * Get available chart types based on analysis mode
      */
     async getAvailableChartTypes(mode: AnalysisMode): Promise<ChartTypeInfo[]> {
-        console.log(`CHART_TYPE_FILE: Getting available charts for mode: ${mode}`);
+        logger.debug(() => `Getting available charts for mode: ${mode}`);
         
         // Get all charts from registry
         const allCharts = this.chartRegistry.getAllCharts();
@@ -88,7 +91,7 @@ export class ChartTypeFileSetting {
             supportsMode: ['XR', 'LivePanel'] // All charts support both modes
         }));
 
-        console.log(`CHART_TYPE_FILE: Found ${chartTypeInfos.length} available charts`);
+        logger.debug(() => `Found ${chartTypeInfos.length} available charts`);
         return chartTypeInfos;
     }
 
@@ -96,14 +99,14 @@ export class ChartTypeFileSetting {
      * Show chart type selection dialog
      */
     async showChartTypeSelection(): Promise<void> {
-        console.log('CHART_TYPE_FILE: Opening chart type selection dialog');
+        logger.debug('Opening chart type selection dialog');
         
         try {
             const currentMode = await this.getCurrentAnalysisMode();
             const availableCharts = await this.getAvailableChartTypes(currentMode);
             
             if (availableCharts.length === 0) {
-                console.error('CHART_TYPE_FILE: No chart types found');
+                logger.error('No chart types found');
                 vscode.window.showErrorMessage('No chart templates available');
                 return;
             }
@@ -129,15 +132,15 @@ export class ChartTypeFileSetting {
                 // Set the selected chart type
                 await this.setChartType(selectedChart.id);
                 
-                console.log(`CHART_TYPE_FILE: Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
+                logger.debug(() => `Chart type selected: ${selectedChart.name} (${selectedChart.id})`);
                 vscode.window.showInformationMessage(
                     `Chart type set to: ${selectedChart.name} for ${currentMode} mode`
                 );
             } else {
-                console.log('CHART_TYPE_FILE: Chart type selection cancelled');
+                logger.debug('Chart type selection cancelled');
             }
         } catch (error) {
-            console.error('CHART_TYPE_FILE: Error in chart type selection:', error);
+            logger.error('Error in chart type selection:', error);
             vscode.window.showErrorMessage(`Failed to select chart type: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -146,7 +149,7 @@ export class ChartTypeFileSetting {
      * Set chart type and intelligently clean dimension mappings
      */
     async setChartType(chartType: string): Promise<void> {
-        console.log(`CHART_TYPE_FILE: Setting chart type to: ${chartType}`);
+        logger.debug(() => `Setting chart type to: ${chartType}`);
         
         // Validate chart type exists
         if (!this.chartRegistry.hasChart(chartType)) {
@@ -155,16 +158,16 @@ export class ChartTypeFileSetting {
         
         // Get current dimension mappings before changing chart type
         const currentMappings = await this.storage.getDimensionMappingFile();
-        console.log(`[DIMENSION_CLEANER] Current mappings before chart change:`, currentMappings);
+        logger.debug(`[DIMENSION_CLEANER] Current mappings before chart change:`, currentMappings);
         
         // Save the new chart type
         const validChartType = chartType as ChartType;
         await this.storage.setChartTypeFile(validChartType);
-        console.log(`CHART_TYPE_FILE: Chart type saved successfully: ${chartType}`);
+        logger.debug(() => `Chart type saved successfully: ${chartType}`);
         
         // Clear all dimension mappings when chart type changes
         await this.storage.setDimensionMappingFile({});
-        console.log(`CHART_TYPE_FILE: Dimension mappings cleared for new chart type: ${chartType}`);
+        logger.debug(() => `Dimension mappings cleared for new chart type: ${chartType}`);
     }
 
     /**

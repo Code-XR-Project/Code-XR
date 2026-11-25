@@ -9,6 +9,7 @@ import globals from "globals";
 const NO_CONSOLE_FILES = [
     "src/core/logging/**/*.ts",
     "src/code_analysis/engine/utils/**/*.ts",
+    "src/code_analysis/views/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

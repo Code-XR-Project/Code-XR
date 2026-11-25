@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1212,
+    "console.total": 1129,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
       "babia_templates": 68,
-      "code_analysis": 362,
+      "code_analysis": 279,
       "commands": 4,
       "core": 3,
       "python_env": 20,
@@ -82,8 +82,8 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48390,
-    "src.functions": 2716,
+    "src.lines": 48411,
+    "src.functions": 2746,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -286,7 +286,7 @@
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-        "lines": 784
+        "lines": 787
       },
       {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",

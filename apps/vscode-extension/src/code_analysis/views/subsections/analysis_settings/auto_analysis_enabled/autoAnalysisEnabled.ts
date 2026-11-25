@@ -15,7 +15,7 @@ export class AutoAnalysisEnabledSetting {
     private storage: AnalysisConfigurationStorage;
 
     constructor(context: vscode.ExtensionContext) {
-        console.log('ANALYSIS: Initializing Auto-Analysis Enabled setting');
+        logger.debug('Initializing Auto-Analysis Enabled setting');
         this.storage = AnalysisConfigurationStorage.getInstance(context);
         this.loadSavedState();
     }
@@ -102,9 +102,9 @@ export class AutoAnalysisEnabledSetting {
         try {
             const savedState = await this.storage.getAutoAnalysisEnabled();
             this.currentEnabled = savedState;
-            console.log(`ANALYSIS: Loaded auto-analysis enabled state from storage: ${this.currentEnabled}`);
+            logger.debug(() => `Loaded auto-analysis enabled state from storage: ${this.currentEnabled}`);
         } catch (error) {
-            console.error('ANALYSIS: Error loading saved state, using default:', error);
+            logger.error('Error loading saved state, using default:', error);
             this.currentEnabled = true; // Fallback to default (enabled)
         }
     }
@@ -115,7 +115,7 @@ export class AutoAnalysisEnabledSetting {
     private async saveStateToSettings(): Promise<void> {
         try {
             await this.storage.setAutoAnalysisEnabled(this.currentEnabled);
-            console.log(`ANALYSIS: Saved auto-analysis enabled state to storage: ${this.currentEnabled}`);
+            logger.debug(() => `Saved auto-analysis enabled state to storage: ${this.currentEnabled}`);
         } catch (error) {
             logger.error('Error saving state to storage:', error);
         }
