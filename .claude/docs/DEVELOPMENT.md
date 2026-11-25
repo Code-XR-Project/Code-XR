@@ -38,7 +38,7 @@
 | `npm run guardrails:measure` | `test/tooling/measureGuardrails.cjs` — prints the cleanup metrics from the TypeScript AST (~2 s): `console.*` per module, console-only catch blocks, `any`, suppressions, files over 500 lines, functions over 80 lines, CCN over 10/15/20/30, modules unreachable from `src/extension.ts`, `console.log` in `templates/`, the lint `--max-warnings` | Before and after any cleanup item |
 | `npm run guardrails:update` | Same script with `--write`: regenerates `test/tooling/guardrail-baseline.json` | In the **same commit** as a change that moves a metric — the baseline diff is that item's recorded before/after |
 
-**Test framework note**: unit tests are **`.test.cjs` files run by Node's native test runner** (`node --test`), *not* Mocha, despite `@types/mocha` being present (that belongs to the unpopulated integration layer). New unit tests go in `test/<area>/*.test.cjs`.
+**Test framework note**: unit tests are **`.test.cjs` files run by Node's native test runner** (`node --test`), *not* Mocha (there is no Mocha in the dependency tree). New unit tests go in `test/<area>/*.test.cjs`.
 
 ## Running the extension (F5)
 
