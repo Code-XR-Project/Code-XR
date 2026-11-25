@@ -11,6 +11,7 @@ import {
     createGitAnalysisExclusion,
     validateGitAnalysisPayload,
 } from '../historical/gitAnalysisEligibility';
+import { toPortableRelativePath } from '../historical/gitAnalysisShared';
 import { sampleTimeline } from '../historical/gitTimelineSampler';
 import {
     GitRevisionExportRequest,
@@ -105,27 +106,6 @@ export interface GitRevisionExportOptions {
     request?: GitRevisionExportRequest;
     token?: CancelSignal;
     progress?: ProgressSink;
-}
-
-/** Mirror of the services' private helper (kept local to stay vscode-free). */
-function toPortableRelativePath(root: string, candidate: string): string {
-    if (!candidate) {
-        return 'unknown';
-    }
-    if (!path.isAbsolute(candidate)) {
-        return candidate
-            .replace(/\\/g, '/')
-            .replace(/^\.\/+/, '')
-            .replace(/\/+/g, '/')
-            .replace(/^\/|\/$/g, '') || 'unknown';
-    }
-    const normalizedCandidate = path.resolve(candidate);
-    const normalizedRoot = path.resolve(root);
-    const relativePath = path.relative(normalizedRoot, normalizedCandidate);
-    if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
-        return relativePath.split(path.sep).join('/');
-    }
-    return path.basename(candidate);
 }
 
 /**

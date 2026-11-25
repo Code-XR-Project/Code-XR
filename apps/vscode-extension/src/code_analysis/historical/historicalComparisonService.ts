@@ -1,4 +1,3 @@
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -6,6 +5,7 @@ import { AnalysisConfigurationStorage } from '../configuration/analysisConfigura
 import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
 import { ExecutePython } from '../engine/utils/executePython';
+import { buildAnalyzerCacheKey, toPortableRelativePath } from './gitAnalysisShared';
 import { GitRepositoryService } from './gitRepositoryService';
 import {
     GitAnalysisSourceCatalog,
@@ -230,15 +230,7 @@ export class HistoricalComparisonService {
             };
         }
 
-        const cacheKey = crypto.createHash('sha256')
-            .update([
-                ANALYZER_CACHE_VERSION,
-                source.commitSha,
-                session.targetPath,
-                session.targetType,
-                session.isDeep ? 'deep' : 'shallow',
-            ].join('\0'))
-            .digest('hex');
+        const cacheKey = buildAnalyzerCacheKey(ANALYZER_CACHE_VERSION, source.commitSha, session);
         const cached = this.cache.get(cacheKey);
         if (cached) {
             return cached;
@@ -331,7 +323,7 @@ export class HistoricalComparisonService {
         if (session.targetType === 'directory') {
             return payload.map((entry) => {
                 const sourcePath = String(entry.filePath || entry.relativePath || entry.fileName || '');
-                const relativePath = this.toPortableRelativePath(analyzedTargetPath, sourcePath);
+                const relativePath = toPortableRelativePath(analyzedTargetPath, sourcePath);
                 return {
                     ...entry,
                     // Both comparison sides rebuild filePath against the
@@ -475,26 +467,6 @@ export class HistoricalComparisonService {
             missingTarget: payload.missingTarget,
             warnings: payload.warnings,
         };
-    }
-
-    private toPortableRelativePath(root: string, candidate: string): string {
-        if (!candidate) {
-            return 'unknown';
-        }
-        if (!path.isAbsolute(candidate)) {
-            return candidate
-                .replace(/\\/g, '/')
-                .replace(/^\.\/+/, '')
-                .replace(/\/+/g, '/')
-                .replace(/^\/|\/$/g, '') || 'unknown';
-        }
-        const normalizedCandidate = path.resolve(candidate);
-        const normalizedRoot = path.resolve(root);
-        const relativePath = path.relative(normalizedRoot, normalizedCandidate);
-        if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
-            return relativePath.split(path.sep).join('/');
-        }
-        return path.basename(candidate);
     }
 
     private getSession(): UnifiedAnalysisSession {

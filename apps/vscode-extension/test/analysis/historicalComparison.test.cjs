@@ -8,6 +8,7 @@ const ts = require('typescript');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { readAssembledRuntime } = require(path.join(projectRoot, 'test', 'helpers', 'runtimeAssembly.cjs'));
+const { readConcatenated } = require(path.join(projectRoot, 'test', 'helpers', 'sourceText.cjs'));
 
 function readProjectFile(...segments) {
     return fs.readFileSync(path.join(projectRoot, ...segments), 'utf8');
@@ -706,8 +707,16 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.doesNotMatch(runtime, /function scheduleFrameRenormalization\(\)/);
     assert.match(runtime, /function namespaceEvolutionTreeNodes/);
     assert.match(runtime, /copy\.uid = rawUid\.indexOf\(safeNamespace \+ ':'\)/);
-    assert.match(service, /if \(!path\.isAbsolute\(candidate\)\)/);
-    assert.ok(service.includes(".replace(/\\\\/g, '/')"));
+    // Evolution keys survive Windows separators: the portable-path helper the
+    // service shares with historical comparison and the export lives in
+    // gitAnalysisShared.ts since #38 (retargeted haystack, same assertions).
+    const portablePaths = readConcatenated([
+        'src/code_analysis/historical/projectEvolutionService.ts',
+        'src/code_analysis/historical/gitAnalysisShared.ts',
+    ]);
+    assert.match(portablePaths, /toPortableRelativePath\(analyzedTargetPath, sourcePath\)/, 'canary: the service still routes paths through the shared helper');
+    assert.match(portablePaths, /if \(!path\.isAbsolute\(candidate\)\)/);
+    assert.ok(portablePaths.includes(".replace(/\\\\/g, '/')"));
     assert.match(runtime, /play: play/);
     assert.match(runtime, /seek: seek/);
     assert.doesNotMatch(runtime, /data\.data = prepared\.payload/);

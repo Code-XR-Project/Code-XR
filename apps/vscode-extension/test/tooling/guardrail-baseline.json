@@ -55,7 +55,6 @@
       "src/code_analysis/engine/utils/executePython.ts",
       "src/code_analysis/export/exportManifest.ts",
       "src/code_analysis/historical/gitRepositoryService.ts",
-      "src/code_analysis/historical/historicalComparisonService.ts",
       "src/code_analysis/historical/projectEvolutionService.ts",
       "src/code_analysis/refresh/analysisRefreshCoordinator.ts",
       "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
@@ -70,7 +69,7 @@
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 57,
+    "functions.over80Lines": 55,
     "complexity.over10": 81,
     "complexity.over15": 31,
     "complexity.over20": 10,
@@ -141,9 +140,9 @@
     }
   },
   "informational": {
-    "src.files": 370,
-    "src.lines": 52577,
-    "src.functions": 2835,
+    "src.files": 371,
+    "src.lines": 52571,
+    "src.functions": 2834,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -358,7 +357,7 @@
       },
       {
         "file": "src/code_analysis/historical/projectEvolutionService.ts",
-        "lines": 669
+        "lines": 641
       },
       {
         "file": "src/views/ModularTreeDataProvider.ts",
