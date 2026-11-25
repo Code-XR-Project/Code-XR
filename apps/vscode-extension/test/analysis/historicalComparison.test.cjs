@@ -444,7 +444,6 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     // Every worker ends before the job does: no orphan after a cancel (S6).
     assert.match(service, /Promise\.allSettled\(workers\)/);
     assert.match(service, /Analyzing \$\{sources\.length\} project revisions with \$\{concurrency\} workers/);
-    assert.match(service, /references\.sources\.filter\(\(source\) => source\.kind === 'gitRef'\)/);
     assert.match(service, /'project-evolution'/);
     assert.match(service, /path\.resolve\(staticRoot, 'evolution'\)/);
     assert.match(service, /path\.join\(evolutionDirectory, `revision-\$\{revision\}`\)/);
@@ -464,20 +463,17 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(service, /fs\.promises\.rm\(this\.resolveEvolutionDirectory\(\), \{ recursive: true, force: true \}\)/);
     assert.match(service, /cancelAndWait/);
     // Frame selection is the shared sampler (even spacing in time, milestones
-    // preferred), and the movie always ends on the current state of the branch —
-    // the `--all` timeline's last entry can belong to another branch.
+    // preferred). The timeline is HEAD's first-parent history, ending on the
+    // working copy; a range is resolved by Git, and an endpoint that cannot be
+    // resolved throws instead of degrading to the automatic movie (S11).
     assert.match(service, /import \{ sampleTimeline \} from '\.\/gitTimelineSampler'/);
     assert.match(service, /return sampleTimeline\(sources, maxFrames/);
-    assert.match(service, /private resolveCurrentStateSource/);
-    assert.match(service, /source\.kind === 'workingCopy'\) \|\| null/);
-    // A picked range must be honoured or fail loudly: branch/tag/live endpoints
-    // are resolved by commit sha into the commit-only timeline, and an
-    // unresolvable endpoint throws instead of silently degrading to the full
-    // automatic movie (which is how "my range was not analyzed" presented).
-    assert.match(service, /private async resolveTimelineIndex/);
-    assert.match(service, /source\.commitSha === picked\.commitSha/);
-    assert.match(service, /sourceId === 'working-copy'[\s\S]{0,80}timeline\.length - 1/);
-    assert.match(service, /throw new Error\('project-evolution-range-not-found'\)/);
+    assert.match(service, /buildRangeTimeline\(this\.gitService, references, request\.startSourceId, request\.endSourceId\)/);
+    assert.doesNotMatch(service, /resolveTimelineIndex|TIMELINE_SCAN_LIMIT/);
+    const timeline = readProjectFile('src', 'core', 'history', 'projectEvolutionTimeline.ts');
+    assert.match(timeline, /await git\.listTimelineSources\(null\)/);
+    assert.match(timeline, /source\.kind === 'workingCopy'\) \?\? null/);
+    assert.match(timeline, /throw new Error\(RANGE_NOT_FOUND_MESSAGE\)/);
     const sampler = readProjectFile('src', 'core', 'history', 'gitTimelineSampler.ts');
     assert.match(sampler, /export function sampleTimeline/);
     assert.match(sampler, /function isMilestone/);

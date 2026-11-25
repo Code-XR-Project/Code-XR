@@ -326,9 +326,9 @@ test('export wizard: the steps run in a fixed order and Continue Export comes ri
     assert.deepEqual(modes.items.map((item) => item.modeId), ['normal', 'dependency-graph', 'historical', 'evolution']);
 
     assert.equal(scope.title, 'Export Git timeline: choose history range');
-    assert.equal(scope.placeHolder, `${(1234).toLocaleString()} commits are available`);
+    assert.equal(scope.placeHolder, `${(1234).toLocaleString()} commits on the checked-out branch. Other branches, stashes and notes are not exported.`);
     assert.deepEqual(scope.items.map((item) => item.label), [
-        `Entire Git history — ${(1234).toLocaleString()} commits`,
+        `Entire history of the checked-out branch — ${(1234).toLocaleString()} commits`,
         'Only the latest N commits…',
     ]);
     assert.deepEqual(scope.items.map((item) => item.scope), [{ kind: 'all' }, { kind: 'latest', count: 1 }]);
@@ -361,7 +361,7 @@ test('export wizard: the entire history skips the count box and confirms the who
         inspect: () => ({ commitCount: 3 }),
         answers: [
             (items) => items.filter((item) => item.modeId !== 'evolution'),
-            pick('Entire Git history'),
+            pick('Entire history of the checked-out branch'),
             pick('Balanced'),
             'Continue Export',
             undefined,

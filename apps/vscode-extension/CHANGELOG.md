@@ -103,6 +103,12 @@
   - **Play** on the last frame starts the movie over instead of stopping at once, and reconnecting to the room keeps the frame you were on instead of jumping back to frame 1.
   - Manual movies always play from oldest to newest, as exported movies already did, whatever order the commits were picked in. A 25th pick is refused with a message instead of being dropped without notice.
   - The commit picker no longer lists the remote's default-branch alias as a branch named "origin".
+- **Project evolution follows the history you have checked out.**
+  - The movie is now the history of the current branch from its first commit (first parent: a merge counts as one step). Before, it was every commit of every branch, so a `git stash` or a `git notes` entry could appear as a frame, and on an older checkout or a feature branch the movie played newer commits of other branches and then jumped back.
+  - Long histories start at the beginning. Before, only the newest 240 commits were considered, so a project with a long history never showed its first versions.
+  - A range now works with any branch, tag or commit the picker offers, in either order. Before, a tag older than the newest 240 commits failed with "project-evolution-range-not-found". Two ends on diverging branches start from their common ancestor.
+  - Tags that point at a file or a folder instead of a commit are no longer offered: they could not be used.
+  - Export: the Git timeline is the history of the checked-out branch, and the prompt says so. "Only the latest N commits" exports exactly N; before, N was silently cut to 1000, and a very large history could fail with "git timeline could not be listed".
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

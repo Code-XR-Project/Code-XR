@@ -161,7 +161,7 @@ test('the export modal decides what ships, before the destination is picked', ()
     assert.match(source, /if \(selection\.gitTimeline\)/);
     assert.match(source, /exportGitRevisionData\(/);
     assert.match(source, /cancellable: true/);
-    assert.match(source, /Entire Git history/);
+    assert.match(source, /Entire history of the checked-out branch/);
     assert.match(source, /Only the latest N commits/);
     assert.match(source, /Balanced — \$\{balancedPlan\.workerCount\} workers/);
     assert.match(source, /Maximum speed — \$\{maximumPlan\.workerCount\} workers/);

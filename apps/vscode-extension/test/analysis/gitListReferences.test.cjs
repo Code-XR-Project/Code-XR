@@ -46,8 +46,8 @@ test('the git commands listReferences runs, in order', async () => {
         ['/repo', 'status', '--porcelain', '--untracked-files=normal', '--', 'src'],
         ['/repo', 'symbolic-ref', '--quiet', '--short', 'HEAD'],
         ['/repo', 'for-each-ref', '--format=%(refname)%00%(objectname)%00%(refname:short)%00%(committerdate:short)%00%(committerdate:unix)', 'refs/heads', 'refs/remotes'],
-        ['/repo', 'for-each-ref', '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)', 'refs/tags'],
-        ['/repo', 'log', '--all', '--max-count=50', '--date=short', '--format=%H%x00%ad%x00%ct%x00%P%x00%s'],
+        ['/repo', 'for-each-ref', '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)%00%(*objecttype)%00%(objecttype)', 'refs/tags'],
+        ['/repo', 'log', '--branches', '--tags', '--remotes', '--max-count=50', '--date=short', '--format=%H%x00%ad%x00%ct%x00%P%x00%s'],
     ]);
 });
 
@@ -65,9 +65,12 @@ test('every format parsed: branches, tags and commits after the working copy', a
             '',
         ].join('\r\n'),
         tags: [
-            row('refs/tags/v2', sha('d'), sha('e'), 'v2', '2026-01-05', '2026-01-06', '1767600000', '1767700000'),
-            row('refs/tags/light', '', sha('a'), 'light', '', '2026-01-03', '', '1767400000'),
-            row('refs/tags/bad', '', 'zz', 'bad', '', '', '', ''),
+            row('refs/tags/v2', sha('d'), sha('e'), 'v2', '2026-01-05', '2026-01-06', '1767600000', '1767700000', 'commit', 'tag'),
+            row('refs/tags/light', '', sha('a'), 'light', '', '2026-01-03', '', '1767400000', '', 'commit'),
+            row('refs/tags/bad', '', 'zz', 'bad', '', '', '', '', '', 'commit'),
+            // S11 (EVO-7): tags on a tree or a blob cannot be resolved as a commit, so they are not offered.
+            row('refs/tags/tree-tag', '', sha('9'), 'tree-tag', '', '', '', '', '', 'tree'),
+            row('refs/tags/annotated-blob', sha('8'), sha('7'), 'annotated-blob', '', '', '', '', 'blob', 'tag'),
         ].join('\n'),
         commits: [
             row(sha('a'), '2026-01-03', '1767400000', `${sha('b')} ${sha('f')}`, 'Merge feature'),

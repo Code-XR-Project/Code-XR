@@ -14,11 +14,21 @@ versions.
 - If the analyzed target is not inside a local Git repository, the option is
   disabled and explains the reason on hover/raycaster focus.
 - By default, CodeXR builds an automatic timeline from older commits to newer
-  commits.
-- Large histories are sampled to a bounded number of frames so XR playback stays
-  usable.
-- If the working copy has uncommitted changes, it can be used as the final live
-  frame.
+  commits: the **first-parent history of the checked-out branch (HEAD)**, from
+  its very first commit. A merge is one step of the branch it landed on.
+  Stashes, notes, other branches and commits newer than the checkout are never
+  frames (until 1.2.1 the timeline was `git log --all`).
+- The whole history is listed and spread over at most 240 candidate revisions,
+  first and last included, then sampled to the movie's frames (24 by default),
+  so a long history always starts at its beginning. Until 1.2.1 only the newest
+  240 commits were considered.
+- A range movie is resolved by Git, not looked up in a window: any branch, tag
+  or commit the picker offers works as either end, in either order. Two ends on
+  diverging branches start from their merge base. The working copy as an end is
+  the last frame.
+- Tags that point at a tree or a blob are not offered: they have no history.
+- The movie always ends on the working copy, the branch as it stands now,
+  whether or not it has uncommitted changes.
 - The visualization uses a single chart occupying the normal analysis table,
   not the dual chart layout used by historical comparison.
 
@@ -110,12 +120,28 @@ entity:
 }
 ```
 
-The browser runtime, `projectEvolutionRuntime.js`, listens for the shared entity
-and keeps all connected clients on the same generated movie.
+Which revisions a movie can show is decided by `projectEvolutionTimeline.ts`
+(automatic and range timelines) over `GitRepositoryService.listTimelineSources`,
+which streams `git log --first-parent` line by line, so a very large history
+cannot overflow a buffer.
+
+The browser runtime, `projectEvolutionRuntime.js`, is assembled from the parts
+listed in `templates/components/codexr/project-evolution/projectEvolutionRuntime/manifest.json`.
+It listens for the shared entity and keeps all connected clients on the same
+generated movie.
+
+### Export
+
+The export's Git timeline is the same history: the first-parent history of
+HEAD. "Entire history" exports all of it, "Only the latest N commits" the
+newest N, with no hidden cap (until 1.2.1 N was silently clamped to 1000). The
+prompt says how many commits the checked-out branch has and that other
+branches, stashes and notes are not exported.
 
 ## Initial Limits
 
-- Version units are local Git commits.
+- Version units are local Git commits of the checked-out branch's first-parent
+  history.
 - "Pushes" are represented by commits already present in the local repository.
 - GitHub, GitLab or other hosting provider APIs are not queried in this version.
 - Frames are precalculated before playback to avoid analysis work during the
