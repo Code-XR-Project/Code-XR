@@ -432,24 +432,18 @@ export class AnalysisRefreshCoordinator {
     ): Promise<void> {
         const state = this.sessions.get(sessionId);
         const handler = state?.handlers[mode];
-        if (
-            !state
-            || !handler
-            || !state.refreshEnabled[mode]
-            || (!force && !allowInactive && state.activeMode !== mode)
-        ) {
+        if (!state || !handler || !this.canRun(state, mode, force, allowInactive)) {
             return;
         }
         if (state.running[mode]) {
             state.rerunRequested.add(mode);
             return;
         }
-
-        const pending = state.pending[mode];
-        const hasPendingChanges = pending.size > 0;
-        if (!force && !hasPendingChanges && state.appliedRevision[mode] >= state.sourceRevision) {
+        if (!force && !this.needsRefresh(state, mode)) {
             return;
         }
+
+        const pending = state.pending[mode];
 
         const consumed = new Map(pending);
         pending.clear();
@@ -474,10 +468,23 @@ export class AnalysisRefreshCoordinator {
             delete state.running[mode];
             this.emitState(sessionId, state);
             const rerun = state.rerunRequested.delete(mode);
-            if (succeeded && (rerun || pending.size > 0 || state.appliedRevision[mode] < state.sourceRevision)) {
+            if (succeeded && (rerun || this.needsRefresh(state, mode))) {
                 void this.runIfNeeded(sessionId, mode);
             }
         }
+    }
+
+    /**
+     * A registered mode runs when its refresh is enabled and it is the active
+     * mode, unless the caller forces it or allows a background (inactive) run.
+     */
+    private canRun(
+        state: SessionRefreshState,
+        mode: AnalysisRefreshMode,
+        force: boolean,
+        allowInactive: boolean,
+    ): boolean {
+        return !!state.refreshEnabled[mode] && (force || allowInactive || state.activeMode === mode);
     }
 
     private needsRefresh(state: SessionRefreshState, mode: AnalysisRefreshMode): boolean {

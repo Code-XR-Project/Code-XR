@@ -55,74 +55,30 @@ export class GitRepositoryService {
             ? null
             : (await this.runGit(repositoryRoot, ['rev-parse', '--short=8', 'HEAD'])).stdout.trim();
 
-        const sources: ComparisonSource[] = [{
-            id: 'working-copy',
-            kind: 'workingCopy',
-            label: headName
-                ? `${headName} (live)${workingTreeDirty ? ' (modified)' : ''}`
-                : `Detached HEAD ${detachedSha} (live)${workingTreeDirty ? ' (modified)' : ''}`,
-            activeBranch: headName,
-            dirty: workingTreeDirty,
-            live: true,
-            revisionType: 'working-copy',
-        }];
-
-        const branchLines = (await this.runGit(repositoryRoot, [
+        const branchOutput = (await this.runGit(repositoryRoot, [
             'for-each-ref',
             '--format=%(refname)%00%(objectname)%00%(refname:short)%00%(committerdate:short)%00%(committerdate:unix)',
             'refs/heads',
             'refs/remotes',
-        ])).stdout.split(/\r?\n/).filter(Boolean);
-        for (const line of branchLines) {
-            const [fullRef, commitSha, shortName, committerDate, committerUnix] = line.split('\0');
-            if (!fullRef || !this.isCommitSha(commitSha) || !shortName || shortName.endsWith('/HEAD')) {
-                continue;
-            }
-            if (headName && fullRef === `refs/heads/${headName}`) {
-                continue;
-            }
-            sources.push(this.createGitSource('branch', fullRef, shortName, commitSha, undefined, undefined, 0, committerDate, committerUnix));
-        }
-
-        const tagLines = (await this.runGit(repositoryRoot, [
+        ])).stdout;
+        const tagOutput = (await this.runGit(repositoryRoot, [
             'for-each-ref',
             '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)',
             'refs/tags',
-        ])).stdout.split(/\r?\n/).filter(Boolean);
-        for (const line of tagLines) {
-            const [fullRef, peeledSha, objectSha, shortName, peeledDate, tagDate, peeledUnix, tagUnix] = line.split('\0');
-            const commitSha = peeledSha || objectSha;
-            if (!fullRef || !this.isCommitSha(commitSha) || !shortName) {
-                continue;
-            }
-            sources.push(this.createGitSource('tag', fullRef, shortName, commitSha, undefined, undefined, 0, peeledDate || tagDate, peeledUnix || tagUnix));
-        }
-
-        const commitLines = (await this.runGit(repositoryRoot, [
+        ])).stdout;
+        const commitOutput = (await this.runGit(repositoryRoot, [
             'log',
             '--all',
             '--max-count=50',
             '--date=short',
             '--format=%H%x00%ad%x00%ct%x00%P%x00%s',
-        ])).stdout.split(/\r?\n/).filter(Boolean);
-        for (const line of commitLines) {
-            const [commitSha, date, committerUnix, parents, subject] = line.split('\0');
-            if (!this.isCommitSha(commitSha)) {
-                continue;
-            }
-            const parentCount = this.countParents(parents);
-            sources.push(this.createGitSource(
-                'commit',
-                commitSha,
-                commitSha.slice(0, 8),
-                commitSha,
-                `${date || ''} ${subject || ''}`.trim(),
-                parentCount > 1 ? 'merge' : 'commit',
-                parentCount,
-                date,
-                committerUnix,
-            ));
-        }
+        ])).stdout;
+        const sources: ComparisonSource[] = [
+            this.buildWorkingCopySource(headName, detachedSha, workingTreeDirty),
+            ...this.parseBranchRefs(branchOutput, headName),
+            ...this.parseTagRefs(tagOutput),
+            ...this.parseCommitLog(commitOutput),
+        ];
 
         this.sourceById.clear();
         for (const source of sources) {
@@ -340,12 +296,31 @@ export class GitRepositoryService {
         const rawTree = await this.runGitBuffer(repositoryRoot, [
             ...treeArguments,
         ]);
-        const entries = rawTree.toString('utf8').split('\0').filter(Boolean);
+        const { repositoryPaths, warnings } = this.planDirectorySnapshot(rawTree, targetRelativePath);
+        await this.copyPlannedFiles(repositoryRoot, commitSha, sourceDirectory, repositoryPaths);
 
+        return {
+            targetPath: isRepositoryRoot
+                ? sourceDirectory
+                : path.join(sourceDirectory, ...targetRelativePath.split('/')),
+            missingTarget: false,
+            warnings,
+        };
+    }
+
+    /**
+     * The blobs of an `ls-tree -r -z -l` listing to copy, with the warnings
+     * for the entries skipped. Throws when the snapshot would exceed the file
+     * or byte limit, before anything is written.
+     */
+    private planDirectorySnapshot(
+        rawTree: Buffer,
+        targetRelativePath: string,
+    ): { repositoryPaths: string[]; warnings: string[] } {
         let totalBytes = 0;
         const warnings: string[] = [];
-        const files: Array<{ repositoryPath: string; size: number }> = [];
-        for (const entry of entries) {
+        const repositoryPaths: string[] = [];
+        for (const entry of rawTree.toString('utf8').split('\0').filter(Boolean)) {
             const match = entry.match(/^(\d+)\s+(\w+)\s+([0-9a-f]{40})\s+(-|\d+)\t(.+)$/);
             if (!match) {
                 continue;
@@ -355,10 +330,7 @@ export class GitRepositoryService {
                 warnings.push(`Skipped unsupported Git entry: ${repositoryPath}`);
                 continue;
             }
-            const relativeFromTarget = isRepositoryRoot
-                ? repositoryPath
-                : path.posix.relative(targetRelativePath, repositoryPath);
-            if (!this.shouldMaterializeDirectoryFile(relativeFromTarget)) {
+            if (!this.shouldMaterializeDirectoryFile(relativeToTarget(targetRelativePath, repositoryPath))) {
                 continue;
             }
             const size = Number(rawSize);
@@ -366,40 +338,40 @@ export class GitRepositoryService {
                 warnings.push(`Skipped oversized file: ${repositoryPath}`);
                 continue;
             }
-            if (files.length >= MAX_SNAPSHOT_FILES) {
+            if (repositoryPaths.length >= MAX_SNAPSHOT_FILES) {
                 throw new Error('comparison-snapshot-file-limit');
             }
             totalBytes += size;
             if (totalBytes > MAX_SNAPSHOT_BYTES) {
                 throw new Error('comparison-snapshot-size-limit');
             }
-            files.push({ repositoryPath, size });
+            repositoryPaths.push(repositoryPath);
         }
+        return { repositoryPaths, warnings };
+    }
 
-        for (const file of files) {
-            const relativeFromTarget = isRepositoryRoot
-                ? file.repositoryPath
-                : path.posix.relative(targetRelativePath, file.repositoryPath);
-            if (!relativeFromTarget || relativeFromTarget.startsWith('../')) {
-                continue;
-            }
-            const destination = path.join(sourceDirectory, ...file.repositoryPath.split('/'));
+    /**
+     * Write each planned blob under `sourceDirectory` at its repository path.
+     * The plan only holds paths shouldMaterializeDirectoryFile accepted, so
+     * none is empty or escapes the target; assertInside still guards the
+     * destination.
+     */
+    private async copyPlannedFiles(
+        repositoryRoot: string,
+        commitSha: string,
+        sourceDirectory: string,
+        repositoryPaths: string[],
+    ): Promise<void> {
+        for (const repositoryPath of repositoryPaths) {
+            const destination = path.join(sourceDirectory, ...repositoryPath.split('/'));
             this.assertInside(sourceDirectory, destination);
             const content = await this.runGitBuffer(
                 repositoryRoot,
-                ['show', `${commitSha}:${file.repositoryPath}`],
+                ['show', `${commitSha}:${repositoryPath}`],
             );
             await fs.promises.mkdir(path.dirname(destination), { recursive: true });
             await fs.promises.writeFile(destination, content);
         }
-
-        return {
-            targetPath: isRepositoryRoot
-                ? sourceDirectory
-                : path.join(sourceDirectory, ...targetRelativePath.split('/')),
-            missingTarget: false,
-            warnings,
-        };
     }
 
     private shouldMaterializeDirectoryFile(relativePath: string): boolean {
@@ -416,6 +388,79 @@ export class GitRepositoryService {
             return false;
         }
         return isDirectoryAnalysisFile(relativePath);
+    }
+
+    private buildWorkingCopySource(
+        headName: string | null,
+        detachedSha: string | null,
+        dirty: boolean,
+    ): ComparisonSource {
+        const modified = dirty ? ' (modified)' : '';
+        return {
+            id: 'working-copy',
+            kind: 'workingCopy',
+            label: headName
+                ? `${headName} (live)${modified}`
+                : `Detached HEAD ${detachedSha} (live)${modified}`,
+            activeBranch: headName,
+            dirty,
+            live: true,
+            revisionType: 'working-copy',
+        };
+    }
+
+    /** Local and remote branches, minus remote HEAD aliases and the checked-out branch. */
+    private parseBranchRefs(stdout: string, headName: string | null): ComparisonSource[] {
+        const sources: ComparisonSource[] = [];
+        for (const line of splitGitLines(stdout)) {
+            const [fullRef, commitSha, shortName, committerDate, committerUnix] = line.split('\0');
+            if (!fullRef || !this.isCommitSha(commitSha) || !shortName || shortName.endsWith('/HEAD')) {
+                continue;
+            }
+            if (headName && fullRef === `refs/heads/${headName}`) {
+                continue;
+            }
+            sources.push(this.createGitSource('branch', fullRef, shortName, commitSha, undefined, undefined, 0, committerDate, committerUnix));
+        }
+        return sources;
+    }
+
+    /** Tags, annotated ones resolved to the peeled commit and its dates. */
+    private parseTagRefs(stdout: string): ComparisonSource[] {
+        const sources: ComparisonSource[] = [];
+        for (const line of splitGitLines(stdout)) {
+            const [fullRef, peeledSha, objectSha, shortName, peeledDate, tagDate, peeledUnix, tagUnix] = line.split('\0');
+            const commitSha = peeledSha || objectSha;
+            if (!fullRef || !this.isCommitSha(commitSha) || !shortName) {
+                continue;
+            }
+            sources.push(this.createGitSource('tag', fullRef, shortName, commitSha, undefined, undefined, 0, peeledDate || tagDate, peeledUnix || tagUnix));
+        }
+        return sources;
+    }
+
+    /** Recent commits from `git log`, merges typed as such. */
+    private parseCommitLog(stdout: string): ComparisonSource[] {
+        const sources: ComparisonSource[] = [];
+        for (const line of splitGitLines(stdout)) {
+            const [commitSha, date, committerUnix, parents, subject] = line.split('\0');
+            if (!this.isCommitSha(commitSha)) {
+                continue;
+            }
+            const parentCount = this.countParents(parents);
+            sources.push(this.createGitSource(
+                'commit',
+                commitSha,
+                commitSha.slice(0, 8),
+                commitSha,
+                `${date || ''} ${subject || ''}`.trim(),
+                parentCount > 1 ? 'merge' : 'commit',
+                parentCount,
+                date,
+                committerUnix,
+            ));
+        }
+        return sources;
     }
 
     private createGitSource(
@@ -544,6 +589,18 @@ export class GitRepositoryService {
         return /^[0-9a-f]{40}$/i.test(value || '');
     }
 
+}
+
+/** A repository path relative to the target folder (`.` is the repository root). */
+function relativeToTarget(targetRelativePath: string, repositoryPath: string): string {
+    return targetRelativePath === '.'
+        ? repositoryPath
+        : path.posix.relative(targetRelativePath, repositoryPath);
+}
+
+/** The non-empty lines of a git command's output, LF or CRLF. */
+function splitGitLines(stdout: string): string[] {
+    return stdout.split(/\r?\n/).filter(Boolean);
 }
 
 /**

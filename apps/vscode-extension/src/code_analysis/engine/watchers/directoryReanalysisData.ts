@@ -1,7 +1,53 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export function isXRDataFormat(data: unknown): data is any[] {
+/**
+ * One analyzed file as the Python backend writes it into data.json. Only the
+ * fields this module reads are named; the rest of the record passes through.
+ */
+export interface AnalysisFileEntry {
+    filePath?: string | null;
+    file_path?: string | null;
+    relativePath?: unknown;
+    fileName?: unknown;
+    status?: string;
+    language?: string;
+    totalLines?: number;
+    codeLines?: number;
+    commentLines?: number;
+    blankLines?: number;
+    functionCount?: number;
+    classCount?: number;
+    cyclomaticComplexityNumber?: number;
+    maxComplexity?: number;
+    [field: string]: unknown;
+}
+
+/** The XR data.json: a flat array of file entries. */
+export type XRAnalysisData = AnalysisFileEntry[];
+
+/** The LivePanel data.json: file entries plus a summary block. */
+export interface LivePanelAnalysisData {
+    files?: AnalysisFileEntry[];
+    summary?: Record<string, unknown>;
+    [field: string]: unknown;
+}
+
+interface LivePanelSummary {
+    totalFiles: number;
+    totalFilesAnalyzed: number;
+    totalFilesNotAnalyzed: number;
+    totalLines: number;
+    totalLinesOfCode: number;
+    totalComments: number;
+    totalBlankLines: number;
+    totalFunctions: number;
+    totalClasses: number;
+    averageComplexity: number;
+    languages: Record<string, number>;
+}
+
+export function isXRDataFormat(data: unknown): data is XRAnalysisData {
     return Array.isArray(data);
 }
 
@@ -22,7 +68,7 @@ export function normalizeAnalysisPath(pathValue: string | null | undefined): str
     return normalized;
 }
 
-export function getAnalysisEntryPathCandidates(entry: any): string[] {
+export function getAnalysisEntryPathCandidates(entry: AnalysisFileEntry | null | undefined): string[] {
     const candidates = new Set<string>();
     const filePath = normalizeAnalysisPath(entry?.filePath);
     const legacyPath = normalizeAnalysisPath(entry?.file_path);
@@ -37,7 +83,7 @@ export function getAnalysisEntryPathCandidates(entry: any): string[] {
     return Array.from(candidates);
 }
 
-export function matchesAnalysisEntryPath(entry: any, targetPath: string): boolean {
+export function matchesAnalysisEntryPath(entry: AnalysisFileEntry | null | undefined, targetPath: string): boolean {
     const normalizedTarget = normalizeAnalysisPath(targetPath);
     if (!normalizedTarget) {
         return false;
@@ -46,7 +92,7 @@ export function matchesAnalysisEntryPath(entry: any, targetPath: string): boolea
     return getAnalysisEntryPathCandidates(entry).includes(normalizedTarget);
 }
 
-function removeMatchingEntries(entries: any[], targetPath: string): number {
+function removeMatchingEntries(entries: AnalysisFileEntry[], targetPath: string): number {
     const indexesToRemove: number[] = [];
 
     entries.forEach((entry, index) => {
@@ -62,23 +108,23 @@ function removeMatchingEntries(entries: any[], targetPath: string): number {
     return indexesToRemove.length;
 }
 
-export function hasMatchingXRFile(data: any[], filePath: string): boolean {
+export function hasMatchingXRFile(data: XRAnalysisData, filePath: string): boolean {
     return data.some((entry) => matchesAnalysisEntryPath(entry, filePath));
 }
 
-export function hasMatchingLivePanelFile(data: any, filePath: string): boolean {
+export function hasMatchingLivePanelFile(data: LivePanelAnalysisData, filePath: string): boolean {
     if (!data.files || !Array.isArray(data.files)) {
         return false;
     }
 
-    return data.files.some((entry: any) => matchesAnalysisEntryPath(entry, filePath));
+    return data.files.some((entry) => matchesAnalysisEntryPath(entry, filePath));
 }
 
-export function removeDeletedFileFromXRFormat(data: any[], deletedPath: string): boolean {
+export function removeDeletedFileFromXRFormat(data: XRAnalysisData, deletedPath: string): boolean {
     return removeMatchingEntries(data, deletedPath) > 0;
 }
 
-export function removeDeletedFileFromLivePanelFormat(data: any, deletedPath: string): boolean {
+export function removeDeletedFileFromLivePanelFormat(data: LivePanelAnalysisData, deletedPath: string): boolean {
     if (!data.files || !Array.isArray(data.files)) {
         return false;
     }
@@ -86,7 +132,7 @@ export function removeDeletedFileFromLivePanelFormat(data: any, deletedPath: str
     return removeMatchingEntries(data.files, deletedPath) > 0;
 }
 
-export function upsertXRFiles(data: any[], entries: any[]): boolean {
+export function upsertXRFiles(data: XRAnalysisData, entries: AnalysisFileEntry[]): boolean {
     let changed = false;
 
     for (const entry of entries) {
@@ -102,7 +148,7 @@ export function upsertXRFiles(data: any[], entries: any[]): boolean {
     return changed;
 }
 
-export function upsertLivePanelFiles(data: any, entries: any[]): boolean {
+export function upsertLivePanelFiles(data: LivePanelAnalysisData, entries: AnalysisFileEntry[]): boolean {
     if (!data.files) {
         data.files = [];
     }
@@ -121,7 +167,7 @@ export function upsertLivePanelFiles(data: any, entries: any[]): boolean {
     return changed;
 }
 
-export function resolveTrackedSystemPath(rootPath: string, entry: any): string | null {
+export function resolveTrackedSystemPath(rootPath: string, entry: AnalysisFileEntry | null | undefined): string | null {
     const relativePath = typeof entry?.relativePath === 'string' ? entry.relativePath.trim() : '';
     if (relativePath) {
         const systemRelativePath = relativePath.split('/').join(path.sep).split('\\').join(path.sep);
@@ -146,12 +192,12 @@ export function resolveTrackedSystemPath(rootPath: string, entry: any): string |
     return null;
 }
 
-export function recalculateLivePanelSummary(data: any): void {
+export function recalculateLivePanelSummary(data: LivePanelAnalysisData): void {
     if (!data.files || !Array.isArray(data.files)) {
         return;
     }
 
-    const summary: Record<string, any> = {
+    const summary: LivePanelSummary = {
         totalFiles: data.files.length,
         totalFilesAnalyzed: 0,
         totalFilesNotAnalyzed: 0,
@@ -198,7 +244,7 @@ export function recalculateLivePanelSummary(data: any): void {
     data.summary = { ...data.summary, ...summary };
 }
 
-export function createEmptyFileEntry(filePath: string, rootPath?: string): any {
+export function createEmptyFileEntry(filePath: string, rootPath?: string): AnalysisFileEntry {
     const fileName = path.basename(filePath);
     const extension = path.extname(filePath).toLowerCase();
     const publicFilePath = normalizeAnalysisPath(filePath) ?? filePath;

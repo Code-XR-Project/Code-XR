@@ -29,6 +29,43 @@ export interface ActiveAnalysisItem {
     session: any;
 }
 
+/** Icon colour per analysis mode for file targets; legacy mode names included. */
+const FILE_ICON_COLORS: Readonly<Record<string, string>> = {
+    LivePanel: 'charts.green',
+    FileLivePanel: 'charts.green',
+    XR: 'charts.purple',
+    FileXRAnalysis: 'charts.purple',
+    VisualizeDOM: 'charts.orange',
+    FileVisualizeDOM: 'charts.orange',
+};
+
+/** Icon colour per analysis mode for directory targets; legacy mode names included. */
+const DIRECTORY_ICON_COLORS: Readonly<Record<string, string>> = {
+    LivePanel: 'charts.green',
+    DirectoryLivePanel: 'charts.green',
+    DeepDirectoryLivePanel: 'charts.green',
+    XR: 'charts.purple',
+    DirectoryXRAnalysis: 'charts.purple',
+    DeepDirectoryXRAnalysis: 'charts.purple',
+    VisualizeDOM: 'charts.orange',
+};
+
+/**
+ * The tree item's resourceUri: the trimmed, normalized target path, or
+ * undefined for a blank or non-string path, or one Uri.file rejects.
+ */
+function safeResourceUri(targetPath: unknown): vscode.Uri | undefined {
+    if (typeof targetPath !== 'string' || targetPath.trim().length === 0) {
+        return undefined;
+    }
+    try {
+        return vscode.Uri.file(path.normalize(targetPath.trim()));
+    } catch (uriError) {
+        logger.warn(`Invalid path for URI creation: ${targetPath}`, uriError);
+        return undefined;
+    }
+}
+
 export class ActiveAnalysesDataService {
     private static instance: ActiveAnalysesDataService;
     private _onDidChangeTreeData: vscode.EventEmitter<ActiveAnalysisItem | undefined | null | void> = new vscode.EventEmitter<ActiveAnalysisItem | undefined | null | void>();
@@ -224,18 +261,7 @@ export class ActiveAnalysesDataService {
             const analysisMode = session.analysisMode || 'unknown';
             const targetPath = session.targetPath;
             
-            // Create resourceUri safely with validation
-            let resourceUri: vscode.Uri | undefined = undefined;
-            if (targetPath && typeof targetPath === 'string' && targetPath.trim().length > 0) {
-                try {
-                    // Validate the path doesn't contain illegal URI characters
-                    const normalizedPath = path.normalize(targetPath.trim());
-                    resourceUri = vscode.Uri.file(normalizedPath);
-                } catch (uriError) {
-                    logger.warn(`Invalid path for URI creation: ${targetPath}`, uriError);
-                    resourceUri = undefined;
-                }
-            }
+            const resourceUri = safeResourceUri(targetPath);
             
             logger.debug('Creating analysis item for session:', {
                 sessionId: session.id,
@@ -268,45 +294,14 @@ export class ActiveAnalysesDataService {
     }
 
     /**
-     * Get analysis type icon based on analysis mode and target type
+     * Get analysis type icon based on analysis mode and target type: a file or
+     * folder icon, coloured by mode (green LivePanel, purple XR, orange DOM).
      */
     private getAnalysisTypeIcon(analysisMode: string, targetType: 'file' | 'directory'): vscode.ThemeIcon {
-        if (targetType === 'file') {
-            switch (analysisMode) {
-                case 'LivePanel':
-                case 'FileLivePanel':
-                    // Verde para LivePanel de archivos
-                    return new vscode.ThemeIcon('file', new vscode.ThemeColor('charts.green'));
-                case 'XR':
-                case 'FileXRAnalysis':
-                    // Morado para XR de archivos
-                    return new vscode.ThemeIcon('file', new vscode.ThemeColor('charts.purple'));
-                case 'VisualizeDOM':
-                case 'FileVisualizeDOM':
-                    // Naranja para VisualizeDOM de archivos
-                    return new vscode.ThemeIcon('file', new vscode.ThemeColor('charts.orange'));
-                default:
-                    return new vscode.ThemeIcon('file');
-            }
-        } else { // directory
-            switch (analysisMode) {
-                case 'LivePanel':
-                case 'DirectoryLivePanel':
-                case 'DeepDirectoryLivePanel':
-                    // Verde para LivePanel de directorios
-                    return new vscode.ThemeIcon('folder', new vscode.ThemeColor('charts.green'));
-                case 'XR':
-                case 'DirectoryXRAnalysis':
-                case 'DeepDirectoryXRAnalysis':
-                    // Morado para XR de directorios
-                    return new vscode.ThemeIcon('folder', new vscode.ThemeColor('charts.purple'));
-                case 'VisualizeDOM':
-                    // Naranja para VisualizeDOM de directorios (poco común pero por si acaso)
-                    return new vscode.ThemeIcon('folder', new vscode.ThemeColor('charts.orange'));
-                default:
-                    return new vscode.ThemeIcon('folder');
-            }
-        }
+        const iconId = targetType === 'file' ? 'file' : 'folder';
+        const colors = targetType === 'file' ? FILE_ICON_COLORS : DIRECTORY_ICON_COLORS;
+        const color = Object.prototype.hasOwnProperty.call(colors, analysisMode) ? colors[analysisMode] : undefined;
+        return color ? new vscode.ThemeIcon(iconId, new vscode.ThemeColor(color)) : new vscode.ThemeIcon(iconId);
     }
 
     /**

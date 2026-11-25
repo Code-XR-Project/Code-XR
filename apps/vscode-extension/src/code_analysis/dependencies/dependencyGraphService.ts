@@ -77,22 +77,7 @@ export class DependencyGraphService {
         relativePath?: string,
         onProgress?: (message: string) => void,
     ): Promise<DependencyGraphDataset> {
-        const session = this.getSession();
-        const analysisRoot = session.targetType === 'directory'
-            ? path.resolve(session.targetPath)
-            : path.dirname(path.resolve(session.targetPath));
-        const targetPath = session.targetType === 'file'
-            ? path.resolve(session.targetPath)
-            : path.resolve(analysisRoot, String(relativePath || ''));
-        const relative = path.relative(analysisRoot, targetPath);
-        if (
-            relative.startsWith('..')
-            || path.isAbsolute(relative)
-            || !fs.existsSync(targetPath)
-            || !fs.statSync(targetPath).isFile()
-        ) {
-            throw new Error('The requested dependency file is outside the active analysis.');
-        }
+        const { targetPath, relative } = this.resolveScopedFile(relativePath);
         const contentHash = crypto.createHash('sha256')
             .update(await fs.promises.readFile(targetPath))
             .digest('hex');
@@ -128,14 +113,44 @@ export class DependencyGraphService {
             targetRelativePath: relative.replace(/\\/g, '/'),
             generatedAt: new Date().toISOString(),
         };
+        this.evictFileScopeEntries(targetPath);
+        this.fileScopeCache.set(cacheKey, dataset);
+        await this.writeFileScopeDataset(dataset);
+        return dataset;
+    }
+
+    /**
+     * The file a file-scope request names: the session file for file sessions,
+     * otherwise `relativePath` under the analysed directory. Refuses anything
+     * outside the analysis root, missing, or not a regular file.
+     */
+    private resolveScopedFile(relativePath?: string): { targetPath: string; relative: string } {
+        const session = this.getSession();
+        const analysisRoot = session.targetType === 'directory'
+            ? path.resolve(session.targetPath)
+            : path.dirname(path.resolve(session.targetPath));
+        const targetPath = session.targetType === 'file'
+            ? path.resolve(session.targetPath)
+            : path.resolve(analysisRoot, String(relativePath || ''));
+        const relative = path.relative(analysisRoot, targetPath);
+        if (
+            relative.startsWith('..')
+            || path.isAbsolute(relative)
+            || !fs.existsSync(targetPath)
+            || !fs.statSync(targetPath).isFile()
+        ) {
+            throw new Error('The requested dependency file is outside the active analysis.');
+        }
+        return { targetPath, relative };
+    }
+
+    /** Drops every cached dataset of `targetPath`, whatever content hash it was keyed on. */
+    private evictFileScopeEntries(targetPath: string): void {
         for (const key of this.fileScopeCache.keys()) {
             if (key.startsWith(`${targetPath}\0`)) {
                 this.fileScopeCache.delete(key);
             }
         }
-        this.fileScopeCache.set(cacheKey, dataset);
-        await this.writeFileScopeDataset(dataset);
-        return dataset;
     }
 
     private async writeFileScopeDataset(dataset: DependencyGraphDataset): Promise<void> {

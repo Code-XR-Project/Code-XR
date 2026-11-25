@@ -29,7 +29,6 @@ interface ExportableSession {
 
 export interface GitExportPreflight {
     commitCount: number;
-    repositoryRoot: string;
 }
 
 /**
@@ -50,9 +49,9 @@ export async function inspectGitRevisionExport(
     );
     const gitService = new GitRepositoryService(session.targetPath, inspectionRoot);
     try {
-        const repositoryRoot = await gitService.resolveRepositoryRoot();
+        // countTimelineCommits resolves (and validates) the repository root itself.
         const commitCount = await gitService.countTimelineCommits();
-        return { commitCount, repositoryRoot };
+        return { commitCount };
     } finally {
         await gitService.dispose();
     }

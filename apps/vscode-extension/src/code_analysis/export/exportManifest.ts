@@ -169,61 +169,68 @@ export async function relativizeExportArtifacts(destinationPath: string): Promis
 
     const comparisonDir = path.join(destinationPath, 'comparison');
     for (const entry of listNumberedArtifacts(comparisonDir, /^revision-(\d+)\.json$/)) {
-        const filePath = path.join(comparisonDir, entry.fileName);
-        const result = await readJsonIfPresent(filePath);
-        if (!result) {
-            continue;
-        }
-        let changed = false;
-        for (const side of ['left', 'right'] as const) {
-            const dataset = result[side] as Record<string, unknown> | undefined;
-            if (dataset && typeof dataset === 'object') {
-                const relative = relativizeUrl(dataset.url);
-                if (relative !== dataset.url) {
-                    dataset.url = relative;
-                    changed = true;
+        const changed = await rewriteJsonUrls(path.join(comparisonDir, entry.fileName), (result) => {
+            let sideChanged = false;
+            for (const side of ['left', 'right'] as const) {
+                const dataset = result[side] as Record<string, unknown> | undefined;
+                if (dataset && typeof dataset === 'object') {
+                    sideChanged = relativizeField(dataset, 'url') || sideChanged;
                 }
             }
-        }
-        if (changed) {
-            await writeJson(filePath, result);
-            rewritten += 1;
-        }
+            return sideChanged;
+        });
+        rewritten += changed ? 1 : 0;
     }
 
     const evolutionDir = path.join(destinationPath, 'evolution');
-    if (fs.existsSync(evolutionDir)) {
-        const revisionDirs = fs.readdirSync(evolutionDir).filter((name) => /^revision-\d+$/.test(name));
-        for (const revisionDirName of revisionDirs) {
-            const manifestPath = path.join(evolutionDir, revisionDirName, 'manifest.json');
-            const result = await readJsonIfPresent(manifestPath);
-            if (!result) {
-                continue;
-            }
-            let changed = false;
+    const revisionDirs = fs.existsSync(evolutionDir)
+        ? fs.readdirSync(evolutionDir).filter((name) => /^revision-\d+$/.test(name))
+        : [];
+    for (const revisionDirName of revisionDirs) {
+        const changed = await rewriteJsonUrls(path.join(evolutionDir, revisionDirName, 'manifest.json'), (result) => {
+            let fieldChanged = false;
             for (const key of ['manifestUrl', 'bridgeUrl'] as const) {
-                const relative = relativizeUrl(result[key]);
-                if (relative !== result[key]) {
-                    result[key] = relative;
-                    changed = true;
-                }
+                fieldChanged = relativizeField(result, key) || fieldChanged;
             }
             const frames = Array.isArray(result.frames) ? result.frames : [];
             for (const frame of frames as Record<string, unknown>[]) {
-                const relative = relativizeUrl(frame?.url);
-                if (frame && relative !== frame.url) {
-                    frame.url = relative;
-                    changed = true;
+                if (frame) {
+                    fieldChanged = relativizeField(frame, 'url') || fieldChanged;
                 }
             }
-            if (changed) {
-                await writeJson(manifestPath, result);
-                rewritten += 1;
-            }
-        }
+            return fieldChanged;
+        });
+        rewritten += changed ? 1 : 0;
     }
 
     return rewritten;
+}
+
+/**
+ * Read a JSON artifact, let `mutate` rewrite it in place, and write it back
+ * only when `mutate` reports a change. An unreadable file is left alone.
+ * Returns whether the file was written.
+ */
+async function rewriteJsonUrls(
+    filePath: string,
+    mutate: (doc: Record<string, unknown>) => boolean,
+): Promise<boolean> {
+    const doc = await readJsonIfPresent(filePath);
+    if (!doc || !mutate(doc)) {
+        return false;
+    }
+    await writeJson(filePath, doc);
+    return true;
+}
+
+/** Relativize `record[key]` in place; true when it changed. */
+function relativizeField(record: Record<string, unknown>, key: string): boolean {
+    const relative = relativizeUrl(record[key]);
+    if (relative === record[key]) {
+        return false;
+    }
+    record[key] = relative;
+    return true;
 }
 
 /**
@@ -298,21 +305,91 @@ export async function buildExportManifest(
     destinationPath: string,
     options: ExportManifestOptions,
 ): Promise<ExportManifest> {
-    const entities: Record<string, unknown>[] = [];
-    const comparisons: ComparisonReplayEntry[] = [];
     const selectedModes = resolveSelectedModes(options);
+    const capabilities = options.serverCapabilities;
 
-    const dependencyDatasets = listNumberedArtifacts(
+    const dependency = await collectDependencyEntity(destinationPath, selectedModes, capabilities);
+    const historical = await collectHistoricalEntity(destinationPath, selectedModes, capabilities);
+    const evolution = collectEvolutionEntity(destinationPath, selectedModes, capabilities);
+
+    // Shared git payloads unlock the real offline flows: any pair compares,
+    // any movie generates. Without them the capabilities fall back to the
+    // artifact-based replay gating, exactly as before gitData existed.
+    const gitData = resolveExportGitData(selectedModes, options);
+    const historicalReady = isModeReady(
+        selectedModes.historicalComparison, capabilities.historicalComparison, gitData, historical.ready,
+    );
+    const evolutionReady = isModeReady(
+        selectedModes.projectEvolution, capabilities.projectEvolution, gitData, evolution.ready,
+    );
+    const viewEntity = buildAnalysisViewEntity(options.viewState, {
+        'dependency-graph': dependency.ready,
+        'historical-compare': historicalReady,
+        'project-evolution': evolutionReady,
+    });
+    const entities = [dependency.entity, historical.entity, evolution.entity, viewEntity]
+        .filter((entity): entity is Record<string, unknown> => entity !== undefined);
+
+    const gitSuffixes = gitReasonSuffixes(gitData, options);
+    const manifest: ExportManifest = {
+        schemaVersion: 3,
+        kind: 'codexr-export',
+        exportedAt: new Date().toISOString(),
+        target: options.target,
+        selectedModes,
+        capabilities: {
+            dependencyGraph: dependency.ready,
+            dependencyGraphReason: dependencyGraphReason(dependency.ready, selectedModes, options),
+            historicalComparison: historicalReady,
+            historicalComparisonReason: historicalComparisonReason(
+                selectedModes, gitData, historical.ready, gitSuffixes,
+            ),
+            projectEvolution: evolutionReady,
+            projectEvolutionReason: projectEvolutionReason(
+                selectedModes, gitData, evolution.ready, gitSuffixes,
+            ),
+        },
+        entities,
+        historicalComparison: { comparisons: historical.comparisons },
+        ...(gitData ? { gitData } : {}),
+    };
+
+    await writeJson(path.join(destinationPath, EXPORT_MANIFEST_FILE_NAME), manifest);
+    return manifest;
+}
+
+type SelectedModes = ExportManifest['selectedModes'];
+
+/** The reason suffixes the two git-backed modes share. */
+interface GitReasonSuffixes {
+    partial: string;
+    missing: string;
+}
+
+/**
+ * The dependency-graph entity of the newest exported dataset, when the mode
+ * is selected, the server offers it and a dataset exists.
+ */
+async function collectDependencyEntity(
+    destinationPath: string,
+    selectedModes: SelectedModes,
+    capabilities: ExportServerCapabilities,
+): Promise<{ entity?: Record<string, unknown>; ready: boolean }> {
+    const datasets = listNumberedArtifacts(
         path.join(destinationPath, 'dependencies'),
         /^dependency-graph-(\d+)\.json$/,
     );
-    const dependencyReady = selectedModes.dependencyGraph
-        && options.serverCapabilities.dependencyGraph
-        && dependencyDatasets.length > 0;
-    if (dependencyReady) {
-        const newest = dependencyDatasets[0];
-        const dataset = await readJsonIfPresent(path.join(destinationPath, 'dependencies', newest.fileName));
-        entities.push({
+    const ready = selectedModes.dependencyGraph
+        && capabilities.dependencyGraph
+        && datasets.length > 0;
+    if (!ready) {
+        return { ready };
+    }
+    const newest = datasets[0];
+    const dataset = await readJsonIfPresent(path.join(destinationPath, 'dependencies', newest.fileName));
+    return {
+        ready,
+        entity: {
             entityKind: 'dependency-graph',
             entityId: 'main',
             mode: 'dependency-graph',
@@ -323,14 +400,15 @@ export async function buildExportManifest(
             ...(dataset && dataset.sourceRevision !== undefined
                 ? { sourceRevision: dataset.sourceRevision }
                 : {}),
-        });
-    }
+        },
+    };
+}
 
+/** The readable comparison artifacts, newest first, as replay entries. */
+async function collectComparisonReplays(destinationPath: string): Promise<ComparisonReplayEntry[]> {
     const comparisonDir = path.join(destinationPath, 'comparison');
-    const comparisonArtifacts = selectedModes.historicalComparison
-        ? listNumberedArtifacts(comparisonDir, /^revision-(\d+)\.json$/)
-        : [];
-    for (const entry of comparisonArtifacts) {
+    const comparisons: ComparisonReplayEntry[] = [];
+    for (const entry of listNumberedArtifacts(comparisonDir, /^revision-(\d+)\.json$/)) {
         const result = await readJsonIfPresent(path.join(comparisonDir, entry.fileName));
         if (!result) {
             continue;
@@ -345,134 +423,206 @@ export async function buildExportManifest(
             generatedAt: String(result.generatedAt ?? ''),
         });
     }
-    const historicalArtifactReady = selectedModes.historicalComparison
-        && options.serverCapabilities.historicalComparison
+    return comparisons;
+}
+
+/**
+ * The comparison replay list (filled whenever the mode is selected) and the
+ * historical-comparison entity of the newest one, when the server offers the
+ * mode. `ready` is the artifact-based replay gating.
+ */
+async function collectHistoricalEntity(
+    destinationPath: string,
+    selectedModes: SelectedModes,
+    capabilities: ExportServerCapabilities,
+): Promise<{ comparisons: ComparisonReplayEntry[]; entity?: Record<string, unknown>; ready: boolean }> {
+    const comparisons = selectedModes.historicalComparison
+        ? await collectComparisonReplays(destinationPath)
+        : [];
+    const ready = selectedModes.historicalComparison
+        && capabilities.historicalComparison
         && comparisons.length > 0;
-    if (historicalArtifactReady) {
-        entities.push({
+    if (!ready) {
+        return { comparisons, ready };
+    }
+    return {
+        comparisons,
+        ready,
+        entity: {
             entityKind: 'historical-comparison',
             entityId: 'main',
             mode: 'historical-compare',
             resultUrl: comparisons[0].url,
-        });
-    }
+        },
+    };
+}
 
-    const evolutionRevisions = selectedModes.projectEvolution
-        && fs.existsSync(path.join(destinationPath, 'evolution'))
-        ? fs.readdirSync(path.join(destinationPath, 'evolution'))
-            .map((name) => /^revision-(\d+)$/.exec(name))
-            .filter((match): match is RegExpExecArray => match !== null)
-            .map((match) => Number(match[1]))
-            .sort((a, b) => b - a)
-        : [];
-    const evolutionArtifactReady = selectedModes.projectEvolution
-        && options.serverCapabilities.projectEvolution
-        && evolutionRevisions.length > 0
-        && fs.existsSync(path.join(destinationPath, 'evolution', `revision-${evolutionRevisions[0]}`, 'manifest.json'));
-    if (evolutionArtifactReady) {
-        entities.push({
+/**
+ * The project-evolution entity of the newest evolution revision, when the
+ * mode is selected, the server offers it and that revision has a manifest.
+ */
+function collectEvolutionEntity(
+    destinationPath: string,
+    selectedModes: SelectedModes,
+    capabilities: ExportServerCapabilities,
+): { entity?: Record<string, unknown>; ready: boolean } {
+    const revision = selectedModes.projectEvolution
+        ? findNewestEvolutionRevision(destinationPath)
+        : undefined;
+    const ready = selectedModes.projectEvolution
+        && capabilities.projectEvolution
+        && revision !== undefined
+        && fs.existsSync(path.join(destinationPath, 'evolution', `revision-${revision}`, 'manifest.json'));
+    if (!ready) {
+        return { ready };
+    }
+    return {
+        ready,
+        entity: {
             entityKind: 'project-evolution',
             entityId: 'main',
             mode: 'project-evolution',
-            resultUrl: `./evolution/revision-${evolutionRevisions[0]}/manifest.json`,
-        });
-    }
+            resultUrl: `./evolution/revision-${revision}/manifest.json`,
+        },
+    };
+}
 
-    // The active mode is itself a shared entity (`analysis-view`): the live
-    // server publishes it and the mode runtime obeys it. Exporting it is what
-    // makes the copy open in the mode the user was actually in — the mode-data
-    // entities above are passive by contract and never change the view.
-    // Shared git payloads unlock the real offline flows: any pair compares,
-    // any movie generates. Without them the capabilities fall back to the
-    // artifact-based replay gating, exactly as before gitData existed.
+/** The highest `evolution/revision-<n>` folder number, whether or not it holds a manifest. */
+function findNewestEvolutionRevision(destinationPath: string): number | undefined {
+    const evolutionDir = path.join(destinationPath, 'evolution');
+    if (!fs.existsSync(evolutionDir)) {
+        return undefined;
+    }
+    const revisions = fs.readdirSync(evolutionDir)
+        .map((name) => /^revision-(\d+)$/.exec(name))
+        .filter((match): match is RegExpExecArray => match !== null)
+        .map((match) => Number(match[1]))
+        .sort((a, b) => b - a);
+    return revisions[0];
+}
+
+/** The git payloads, when a git mode is selected and they span at least two sources. */
+function resolveExportGitData(
+    selectedModes: SelectedModes,
+    options: ExportManifestOptions,
+): ExportGitData | undefined {
     const gitTimelineSelected = selectedModes.historicalComparison || selectedModes.projectEvolution;
-    const gitData = gitTimelineSelected
+    return gitTimelineSelected
         && options.gitData
         && options.gitData.references.sources.length >= 2
         && options.gitData.timelineSourceIds.length >= 2
         ? options.gitData
         : undefined;
-    const partialSuffix = gitData?.partial
-        ? ` Partial export: ${gitData.skippedRevisions?.length || 0} revision source(s) could not be prepared.`
-        : '';
-    const gitMissingSuffix = options.gitDataSelected && !gitData
-        ? ` ${options.gitDataFailureReason || 'The git timeline analysis produced no usable data.'}`
-        : '';
-    const historicalReady = selectedModes.historicalComparison
-        && options.serverCapabilities.historicalComparison
-        && (!!gitData || historicalArtifactReady);
-    const evolutionReady = selectedModes.projectEvolution
-        && options.serverCapabilities.projectEvolution
-        && (!!gitData || evolutionArtifactReady);
+}
 
-    // If the captured active mode was excluded, or its data preparation
-    // failed, publish a valid Single owner rather than an impossible view.
-    if (options.viewState?.mode) {
-        const requestedMode = options.viewState.mode;
-        const requestedAvailable = requestedMode === 'single'
-            || requestedMode === 'selection'
-            || (requestedMode === 'dependency-graph' && dependencyReady)
-            || (requestedMode === 'historical-compare' && historicalReady)
-            || (requestedMode === 'project-evolution' && evolutionReady);
-        const mode = requestedAvailable ? requestedMode : 'single';
-        entities.push({
-            entityKind: 'analysis-view',
-            entityId: 'main',
-            mode,
-            controllerView: mode === requestedMode && options.viewState.controllerView
-                ? options.viewState.controllerView
-                : defaultControllerView(mode),
-            status: 'ready',
-            hasUsableSnapshot: true,
-        });
-    }
+/** A git-backed mode is ready with shared git payloads, or else with a replayable artifact. */
+function isModeReady(
+    selected: boolean,
+    offered: boolean,
+    gitData: ExportGitData | undefined,
+    artifactReady: boolean,
+): boolean {
+    return selected && offered && (!!gitData || artifactReady);
+}
 
-    const manifest: ExportManifest = {
-        schemaVersion: 3,
-        kind: 'codexr-export',
-        exportedAt: new Date().toISOString(),
-        target: options.target,
-        selectedModes,
-        capabilities: {
-            dependencyGraph: dependencyReady,
-            dependencyGraphReason: dependencyReady
-                ? ''
-                : !selectedModes.dependencyGraph
-                    ? 'Not selected for this export.'
-                    : options.dependencyGraphFailureReason
-                        || (options.serverCapabilities.dependencyGraph
-                            ? 'No dependency dataset was generated before export.'
-                            : 'This analysis mode has no dependency graph.'),
-            historicalComparison: historicalReady,
-            historicalComparisonReason: !selectedModes.historicalComparison
-                ? 'Not selected for this export.'
-                : gitData
-                    ? `Offline comparisons: pick any two of the ${
-                        gitData.timelineSelection?.exportedSourceCount
-                        || gitData.analyzedRevisionCount
-                    } exported sources.${partialSuffix}`
-                    : (historicalArtifactReady
-                        ? 'Replay only: new comparisons need the live CodeXR session.'
-                        : `No comparison was computed before export.${gitMissingSuffix}`),
-            projectEvolution: evolutionReady,
-            projectEvolutionReason: !selectedModes.projectEvolution
-                ? 'Not selected for this export.'
-                : gitData
-                    ? `Offline movies from the ${
-                        gitData.timelineSelection?.exportedSourceCount
-                        || gitData.analyzedRevisionCount
-                    } exported sources (Auto, Range or Manual).${partialSuffix}`
-                    : (evolutionArtifactReady
-                        ? 'Replay only: generating a new movie needs the live CodeXR session.'
-                        : `No evolution movie was generated before export.${gitMissingSuffix}`),
-        },
-        entities,
-        historicalComparison: { comparisons },
-        ...(gitData ? { gitData } : {}),
+function gitReasonSuffixes(gitData: ExportGitData | undefined, options: ExportManifestOptions): GitReasonSuffixes {
+    return {
+        partial: gitData?.partial
+            ? ` Partial export: ${gitData.skippedRevisions?.length || 0} revision source(s) could not be prepared.`
+            : '',
+        missing: options.gitDataSelected && !gitData
+            ? ` ${options.gitDataFailureReason || 'The git timeline analysis produced no usable data.'}`
+            : '',
     };
+}
 
-    await writeJson(path.join(destinationPath, EXPORT_MANIFEST_FILE_NAME), manifest);
-    return manifest;
+/**
+ * The active mode is itself a shared entity (`analysis-view`): the live
+ * server publishes it and the mode runtime obeys it. Exporting it is what
+ * makes the copy open in the mode the user was actually in — the mode-data
+ * entities are passive by contract and never change the view. If the
+ * captured mode was excluded, or its data preparation failed, a valid Single
+ * owner is published rather than an impossible view.
+ */
+function buildAnalysisViewEntity(
+    viewState: ExportManifestOptions['viewState'],
+    modeReady: Record<'dependency-graph' | 'historical-compare' | 'project-evolution', boolean>,
+): Record<string, unknown> | undefined {
+    if (!viewState?.mode) {
+        return undefined;
+    }
+    const requestedMode = viewState.mode;
+    const requestedAvailable = requestedMode === 'single'
+        || requestedMode === 'selection'
+        || (Object.prototype.hasOwnProperty.call(modeReady, requestedMode)
+            && modeReady[requestedMode as keyof typeof modeReady]);
+    const mode = requestedAvailable ? requestedMode : 'single';
+    return {
+        entityKind: 'analysis-view',
+        entityId: 'main',
+        mode,
+        controllerView: mode === requestedMode && viewState.controllerView
+            ? viewState.controllerView
+            : defaultControllerView(mode),
+        status: 'ready',
+        hasUsableSnapshot: true,
+    };
+}
+
+function dependencyGraphReason(
+    ready: boolean,
+    selectedModes: SelectedModes,
+    options: ExportManifestOptions,
+): string {
+    if (ready) {
+        return '';
+    }
+    if (!selectedModes.dependencyGraph) {
+        return 'Not selected for this export.';
+    }
+    return options.dependencyGraphFailureReason
+        || (options.serverCapabilities.dependencyGraph
+            ? 'No dependency dataset was generated before export.'
+            : 'This analysis mode has no dependency graph.');
+}
+
+/** How many sources the git payloads cover, as the reasons quote it. */
+function exportedSourceCount(gitData: ExportGitData): number {
+    return gitData.timelineSelection?.exportedSourceCount || gitData.analyzedRevisionCount;
+}
+
+function historicalComparisonReason(
+    selectedModes: SelectedModes,
+    gitData: ExportGitData | undefined,
+    artifactReady: boolean,
+    suffixes: GitReasonSuffixes,
+): string {
+    if (!selectedModes.historicalComparison) {
+        return 'Not selected for this export.';
+    }
+    if (gitData) {
+        return `Offline comparisons: pick any two of the ${exportedSourceCount(gitData)} exported sources.${suffixes.partial}`;
+    }
+    return artifactReady
+        ? 'Replay only: new comparisons need the live CodeXR session.'
+        : `No comparison was computed before export.${suffixes.missing}`;
+}
+
+function projectEvolutionReason(
+    selectedModes: SelectedModes,
+    gitData: ExportGitData | undefined,
+    artifactReady: boolean,
+    suffixes: GitReasonSuffixes,
+): string {
+    if (!selectedModes.projectEvolution) {
+        return 'Not selected for this export.';
+    }
+    if (gitData) {
+        return `Offline movies from the ${exportedSourceCount(gitData)} exported sources (Auto, Range or Manual).${suffixes.partial}`;
+    }
+    return artifactReady
+        ? 'Replay only: generating a new movie needs the live CodeXR session.'
+        : `No evolution movie was generated before export.${suffixes.missing}`;
 }
 
 /**

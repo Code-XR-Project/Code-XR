@@ -24,16 +24,16 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 165,
+    "any.total": 130,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
-      "code_analysis": 87,
+      "code_analysis": 53,
       "commands": 6,
       "platform": 7,
       "python_env": 5,
       "servers": 11,
-      "utils": 14,
+      "utils": 13,
       "views": 15,
       "visualization_settings": 5,
       "visualize_data": 2
@@ -54,14 +54,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 43,
-    "complexity.over10": 67,
-    "complexity.over15": 23,
-    "complexity.over20": 5,
-    "complexity.over30": 3,
+    "functions.over80Lines": 36,
+    "complexity.over10": 54,
+    "complexity.over15": 9,
+    "complexity.over20": 0,
+    "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 261,
+    "eslint.maxWarnings": 204,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -70,8 +70,8 @@
   },
   "informational": {
     "src.files": 337,
-    "src.lines": 49013,
-    "src.functions": 3287,
+    "src.lines": 49505,
+    "src.functions": 3338,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -80,14 +80,6 @@
       }
     ],
     "any.topFiles": [
-      {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 19
-      },
-      {
-        "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts",
-        "count": 17
-      },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts",
         "count": 11
@@ -139,45 +131,17 @@
       {
         "file": "src/servers/storage/serverSettingsManager.ts",
         "count": 4
+      },
+      {
+        "file": "src/code_analysis/engine/parsers/fileXRParser.ts",
+        "count": 3
+      },
+      {
+        "file": "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts",
+        "count": 3
       }
     ],
     "complexity.worst10": [
-      {
-        "ccn": 61,
-        "lines": 180,
-        "function": "buildExportManifest",
-        "file": "src/code_analysis/export/exportManifest.ts"
-      },
-      {
-        "ccn": 46,
-        "lines": 240,
-        "function": "runGitRevisionExport",
-        "file": "src/code_analysis/export/gitRevisionExportCore.ts"
-      },
-      {
-        "ccn": 34,
-        "lines": 139,
-        "function": "parseFileAnalysis",
-        "file": "src/code_analysis/engine/parsers/fileXRParser.ts"
-      },
-      {
-        "ccn": 26,
-        "lines": 100,
-        "function": "listReferences",
-        "file": "src/code_analysis/historical/gitRepositoryService.ts"
-      },
-      {
-        "ccn": 23,
-        "lines": 110,
-        "function": "executeXRAnalysis",
-        "file": "src/code_analysis/engine/utils/executePython.ts"
-      },
-      {
-        "ccn": 20,
-        "lines": 71,
-        "function": "applyIncrementalChanges",
-        "file": "src/code_analysis/engine/watchers/directoryReAnalyzer.ts"
-      },
       {
         "ccn": 20,
         "lines": 73,
@@ -186,21 +150,57 @@
       },
       {
         "ccn": 19,
-        "lines": 80,
-        "function": "validateMappings",
-        "file": "src/babia_templates/processing/dimensionValidator.ts"
-      },
-      {
-        "ccn": 19,
-        "lines": 87,
-        "function": "materializeDirectory",
-        "file": "src/code_analysis/historical/gitRepositoryService.ts"
-      },
-      {
-        "ccn": 19,
         "lines": 50,
         "function": "handleMessage",
         "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts"
+      },
+      {
+        "ccn": 18,
+        "lines": 47,
+        "function": "closeAnalysis",
+        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 51,
+        "function": "recalculateLivePanelSummary",
+        "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 44,
+        "function": "handleCollaborationMessage",
+        "file": "src/servers/runtime/analysis/analysisMessageRouter.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 98,
+        "function": "startBroadcast",
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 55,
+        "function": "updateFromLegacyConfig",
+        "file": "src/servers/storage/serverSettingsManager.ts"
+      },
+      {
+        "ccn": 16,
+        "lines": 81,
+        "function": "closeAssociatedAnalysisSession",
+        "file": "src/active_servers/runtime/serverControl.ts"
+      },
+      {
+        "ccn": 16,
+        "lines": 31,
+        "function": "validateConfig",
+        "file": "src/active_servers/services/serverRegistrar.ts"
+      },
+      {
+        "ccn": 15,
+        "lines": 88,
+        "function": "startLocalServer",
+        "file": "src/servers/commands/serverCommands.ts"
       }
     ],
     "size.largest10": [
@@ -213,6 +213,10 @@
         "lines": 787
       },
       {
+        "file": "src/code_analysis/export/exportManifest.ts",
+        "lines": 746
+      },
+      {
         "file": "src/remote_access/security/remoteSessionAuthority.ts",
         "lines": 632
       },
@@ -221,8 +225,8 @@
         "lines": 623
       },
       {
-        "file": "src/code_analysis/export/exportManifest.ts",
-        "lines": 596
+        "file": "src/code_analysis/historical/gitRepositoryService.ts",
+        "lines": 617
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
@@ -234,15 +238,11 @@
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 572
+        "lines": 567
       },
       {
         "file": "src/remote_access/services/remoteAccessManager.ts",
         "lines": 567
-      },
-      {
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 561
       }
     ]
   },

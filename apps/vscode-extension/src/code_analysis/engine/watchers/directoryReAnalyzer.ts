@@ -16,11 +16,13 @@ import {
     hasMatchingLivePanelFile,
     hasMatchingXRFile,
     isXRDataFormat,
+    LivePanelAnalysisData,
     recalculateLivePanelSummary,
     removeDeletedFileFromLivePanelFormat,
     removeDeletedFileFromXRFormat,
     upsertLivePanelFiles,
     upsertXRFiles,
+    XRAnalysisData,
 } from './directoryReanalysisData';
 import { analysisUpdateEvents } from '../../historical';
 import { getLogger } from '../../../core/logging/sink';
@@ -79,56 +81,73 @@ export class DirectoryReAnalyzer {
 
             const currentData = JSON.parse(await fs.promises.readFile(dataJsonPath, 'utf8'));
             const xrFormat = isXRDataFormat(currentData);
+            const removedFiles = changeSet.removedFiles ?? [];
+            const updatedResults = changeSet.updatedResults ?? [];
+            const addedFiles = changeSet.addedFiles ?? [];
+
+            // In this order; each non-empty step yields to the event loop after it runs.
+            const steps: ReadonlyArray<readonly [number, () => boolean | Promise<boolean>]> = [
+                [removedFiles.length, () => this.applyRemovedFiles(currentData, xrFormat, removedFiles, hashTracker)],
+                [updatedResults.length, () => this.applyUpdatedResults(currentData, xrFormat, updatedResults)],
+                [addedFiles.length, () => this.applyAddedFiles(currentData, xrFormat, session, addedFiles, hashTracker)],
+            ];
             let hasChanges = false;
-
-            if ((changeSet.removedFiles?.length || 0) > 0) {
-                hasChanges = this.applyRemovedFiles(currentData, xrFormat, changeSet.removedFiles!, hashTracker) || hasChanges;
-                await this.yieldToEventLoop();
-            }
-
-            if ((changeSet.updatedResults?.length || 0) > 0) {
-                hasChanges = this.applyUpdatedResults(currentData, xrFormat, changeSet.updatedResults!) || hasChanges;
-                await this.yieldToEventLoop();
-            }
-
-            if ((changeSet.addedFiles?.length || 0) > 0) {
-                hasChanges = await this.applyAddedFiles(currentData, xrFormat, session, changeSet.addedFiles!, hashTracker) || hasChanges;
-                await this.yieldToEventLoop();
+            for (const [count, applyStep] of steps) {
+                if (count > 0) {
+                    hasChanges = await applyStep() || hasChanges;
+                    await this.yieldToEventLoop();
+                }
             }
 
             if (!hasChanges) {
                 return false;
             }
 
-            if (!xrFormat) {
-                recalculateLivePanelSummary(currentData);
-                if (!currentData.summary) {
-                    currentData.summary = {};
-                }
-                currentData.summary.analyzedAt = new Date().toISOString();
-            }
-
-            await this.writeJsonAtomically(dataJsonPath, currentData);
-            analysisUpdateEvents.emit({
-                sessionId: session.id,
-                targetPath: session.targetPath,
-                updatedAt: new Date().toISOString(),
-            });
-            if (options.notifyClients !== false) {
-                await this.sendSSENotification(session);
-            }
-            const changedCount = (changeSet.removedFiles?.length || 0)
-                + (changeSet.updatedResults?.length || 0)
-                + (changeSet.addedFiles?.length || 0);
-            vscode.window.setStatusBarMessage(
-                `$(check) CodeXR re-analysis updated ${changedCount} file(s)`,
-                2000,
-            );
+            const changedCount = removedFiles.length + updatedResults.length + addedFiles.length;
+            await this.publishChanges(session, dataJsonPath, currentData, xrFormat, changedCount, options);
             return true;
         } catch (error) {
             logger.error('Error applying incremental changes:', error);
             return false;
         }
+    }
+
+    /**
+     * Persists a changed data.json and tells everyone: the LivePanel summary is
+     * recomputed and stamped, the file is replaced atomically, the update event
+     * fires, the clients are notified unless the caller opted out, and the
+     * status bar shows the size of the change set.
+     */
+    private async publishChanges(
+        session: UnifiedAnalysisSession,
+        dataJsonPath: string,
+        currentData: XRAnalysisData | LivePanelAnalysisData,
+        xrFormat: boolean,
+        changedCount: number,
+        options: { notifyClients?: boolean },
+    ): Promise<void> {
+        if (!xrFormat) {
+            const livePanelData = currentData as LivePanelAnalysisData;
+            recalculateLivePanelSummary(livePanelData);
+            if (!livePanelData.summary) {
+                livePanelData.summary = {};
+            }
+            livePanelData.summary.analyzedAt = new Date().toISOString();
+        }
+
+        await this.writeJsonAtomically(dataJsonPath, currentData);
+        analysisUpdateEvents.emit({
+            sessionId: session.id,
+            targetPath: session.targetPath,
+            updatedAt: new Date().toISOString(),
+        });
+        if (options.notifyClients !== false) {
+            await this.sendSSENotification(session);
+        }
+        vscode.window.setStatusBarMessage(
+            `$(check) CodeXR re-analysis updated ${changedCount} file(s)`,
+            2000,
+        );
     }
 
     private applyRemovedFiles(

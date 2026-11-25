@@ -8,11 +8,80 @@ import { getLogger } from '../core/logging/sink';
 
 const logger = getLogger('URI_PATH_CONVERTER');
 
+function isUriString(value: string): boolean {
+    return value.startsWith('file://') || value.startsWith('vscode-');
+}
+
+function isObjectInput(input: unknown): input is Record<string, unknown> {
+    return !!input && typeof input === 'object';
+}
+
+/**
+ * One way of reading a path out of a command argument: the path, or `null`
+ * when the input is not of that shape. An empty string is a result, not a miss.
+ */
+type UriResolver = (input: unknown) => string | null;
+
+/** A string: a URI string is parsed, anything else is already a path. */
+const fromStringInput: UriResolver = (input) => {
+    if (typeof input !== 'string') {
+        return null;
+    }
+    if (isUriString(input)) {
+        const uri = vscode.Uri.parse(input);
+        logger.debug('Converted URI string to path:', uri.fsPath);
+        return uri.fsPath;
+    }
+    logger.debug('Input is already a file system path:', input);
+    return input;
+};
+
+/** A VS Code Uri, or anything carrying a string fsPath. */
+const fromFsPathProperty: UriResolver = (input) => {
+    if (!isObjectInput(input) || !('fsPath' in input) || typeof input.fsPath !== 'string') {
+        return null;
+    }
+    logger.debug('Extracted fsPath from URI object:', input.fsPath);
+    return input.fsPath;
+};
+
+/** A URI-like object with scheme and path. */
+const fromSchemeAndPath: UriResolver = (input) => {
+    if (!isObjectInput(input) || !('scheme' in input) || !('path' in input)) {
+        return null;
+    }
+    const uri = vscode.Uri.from(input as unknown as { scheme: string; path: string });
+    logger.debug('Created URI from object and extracted path:', uri.fsPath);
+    return uri.fsPath;
+};
+
+/** Any other object whose string form is a URI string. */
+const fromStringifiedObject: UriResolver = (input) => {
+    if (!isObjectInput(input)) {
+        return null;
+    }
+    const stringified = String(input);
+    if (!isUriString(stringified)) {
+        return null;
+    }
+    const uri = vscode.Uri.parse(stringified);
+    logger.debug('Converted stringified object to path:', uri.fsPath);
+    return uri.fsPath;
+};
+
+/** Tried in this order; the first non-null result wins. */
+const URI_RESOLVERS: readonly UriResolver[] = [
+    fromStringInput,
+    fromFsPathProperty,
+    fromSchemeAndPath,
+    fromStringifiedObject,
+];
+
 /**
  * Convert VS Code URI or file path to a standard file system path
  * Handles various input types that VS Code commands can receive
  */
-export function convertToFileSystemPath(input: any): string | null {
+export function convertToFileSystemPath(input: unknown): string | null {
     try {
         // Handle null/undefined
         if (!input) {
@@ -21,40 +90,10 @@ export function convertToFileSystemPath(input: any): string | null {
 
         logger.debug(() => `Processing input (${typeof input})`, input);
 
-        // If it's already a string path
-        if (typeof input === 'string') {
-            // Check if it's a URI string
-            if (input.startsWith('file://') || input.startsWith('vscode-')) {
-                const uri = vscode.Uri.parse(input);
-                logger.debug('Converted URI string to path:', uri.fsPath);
-                return uri.fsPath;
-            }
-            // It's already a file system path
-            logger.debug('Input is already a file system path:', input);
-            return input;
-        }
-
-        // If it's a VS Code URI object
-        if (input && typeof input === 'object') {
-            // Check if it has fsPath property (VS Code URI)
-            if ('fsPath' in input && typeof input.fsPath === 'string') {
-                logger.debug('Extracted fsPath from URI object:', input.fsPath);
-                return input.fsPath;
-            }
-
-            // Check if it has scheme and path properties (URI-like object)
-            if ('scheme' in input && 'path' in input) {
-                const uri = vscode.Uri.from(input);
-                logger.debug('Created URI from object and extracted path:', uri.fsPath);
-                return uri.fsPath;
-            }
-
-            // Try to convert object to string and parse as URI
-            const stringified = String(input);
-            if (stringified.startsWith('file://') || stringified.startsWith('vscode-')) {
-                const uri = vscode.Uri.parse(stringified);
-                logger.debug('Converted stringified object to path:', uri.fsPath);
-                return uri.fsPath;
+        for (const resolve of URI_RESOLVERS) {
+            const resolved = resolve(input);
+            if (resolved !== null) {
+                return resolved;
             }
         }
 
