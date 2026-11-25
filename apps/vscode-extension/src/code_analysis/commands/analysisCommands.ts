@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import {
     AnalysisSettingsCommands,
-    ActiveAnalysesCommands,
+    ActiveAnalysesCommandRegistrations,
     ProjectByLanguageCommands,
     FilesByLanguageCommands,
 } from './subsections';
@@ -70,7 +70,7 @@ export class CodeAnalysisCommands {
             tempProfileConfigurationSetting,
             defaultRefreshCallback,
         ));
-        registrations.push(...ActiveAnalysesCommands.getCommandRegistrations(context, defaultRefreshCallback));
+        registrations.push(...ActiveAnalysesCommandRegistrations.getCommandRegistrations(context, defaultRefreshCallback));
         registrations.push(...ProjectByLanguageCommands.getCommandRegistrations(context, defaultRefreshCallback));
         registrations.push(...FilesByLanguageCommands.getCommandRegistrations(context));
         registrations.push(...FileAnalysisCommands.getCommandRegistrations(context));
