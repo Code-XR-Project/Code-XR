@@ -39,7 +39,9 @@ def build_file_metric_summary(file_analysis: Dict[str, Any], file_path: str, rel
         'maxFunctionLines': file_analysis.get('maxFunctionLines', 0),
         'averageFunctionNestingDepth': file_analysis.get('averageFunctionNestingDepth', 0.0),
         'maxFunctionNestingDepth': file_analysis.get('maxFunctionNestingDepth', 0),
-        'fileSizeBytes': file_analysis.get('fileSizeBytes', get_file_size(file_path)),
+        'fileSizeBytes': (
+            file_analysis['fileSizeBytes'] if 'fileSizeBytes' in file_analysis else get_file_size(file_path)
+        ),
     }
 
 
