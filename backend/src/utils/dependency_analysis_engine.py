@@ -168,6 +168,43 @@ def _symbol_type(raw_type: str) -> str:
     return "class"
 
 
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
+
+
+def _owner_by_qualified_name(class_ids: Dict[str, str], qualified_name: str) -> Optional[str]:
+    """First class (in ``class_ids`` order) whose lowercase name occurs in the qualified name."""
+    qualified_lower = qualified_name.lower()
+    return next((class_id for class_name, class_id in class_ids.items() if class_name in qualified_lower), None)
+
+
+def _indented_body_open(source_lines: List[str], class_line: int, line_start: int) -> bool:
+    """Python/GDScript: the function is indented past the class and no line between closes it.
+
+    Blank, comment and decorator lines never close a body.
+    """
+    class_indent = _indent(source_lines[class_line - 1])
+    function_line = source_lines[line_start - 1] if line_start <= len(source_lines) else ""
+    if _indent(function_line) <= class_indent:
+        return False
+    for line in source_lines[class_line:line_start - 1]:
+        stripped = line.strip()
+        if stripped and not stripped.startswith(("#", "@")) and _indent(line) <= class_indent:
+            return False
+    return True
+
+
+def _braced_body_open(source_lines: List[str], class_line: int, line_start: int) -> bool:
+    """Brace languages: more "{" than "}" from the class line THROUGH the function line.
+
+    Counting the function line itself makes a top-level function whose brace opens on
+    its declaration line a method of the class above it (known quirk, pinned by
+    test_class_owner_inference).
+    """
+    body = "\n".join(source_lines[class_line - 1:line_start])
+    return body.count("{") > body.count("}")
+
+
 def _infer_class_owner(
     classes: List[Dict[str, object]],
     class_ids: Dict[str, str],
@@ -176,41 +213,21 @@ def _infer_class_owner(
     qualified_name: str,
     language: str,
 ) -> Optional[str]:
-    qualified_lower = qualified_name.lower()
-    for class_name, class_id in class_ids.items():
-        if class_name in qualified_lower:
-            return class_id
+    owner = _owner_by_qualified_name(class_ids, qualified_name)
+    if owner is not None:
+        return owner
+    body_open = _indented_body_open if language in {"Python", "GDScript"} else _braced_body_open
     candidates = [
         item for item in classes
         if int(item.get("line", 0) or 0) < line_start
     ]
+    # The closest open class answers, even when its name is missing from class_ids.
     for class_info in reversed(candidates):
         class_line = int(class_info.get("line", 0) or 0)
         if class_line <= 0 or class_line > len(source_lines):
             continue
-        class_name = str(class_info.get("name") or "").lower()
-        if language in {"Python", "GDScript"}:
-            declaration = source_lines[class_line - 1]
-            class_indent = len(declaration) - len(declaration.lstrip())
-            function_line = source_lines[line_start - 1] if line_start <= len(source_lines) else ""
-            function_indent = len(function_line) - len(function_line.lstrip())
-            if function_indent <= class_indent:
-                continue
-            scope_open = True
-            for line in source_lines[class_line:line_start - 1]:
-                stripped = line.strip()
-                if not stripped or stripped.startswith(("#", "@")):
-                    continue
-                indent = len(line) - len(line.lstrip())
-                if indent <= class_indent:
-                    scope_open = False
-                    break
-            if scope_open:
-                return class_ids.get(class_name)
-        else:
-            body = "\n".join(source_lines[class_line - 1:line_start])
-            if body.count("{") > body.count("}"):
-                return class_ids.get(class_name)
+        if body_open(source_lines, class_line, line_start):
+            return class_ids.get(str(class_info.get("name") or "").lower())
     return None
 
 
