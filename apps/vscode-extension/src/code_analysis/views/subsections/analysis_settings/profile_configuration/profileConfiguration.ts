@@ -148,19 +148,6 @@ export class ProfileConfigurationSetting {
     }
 
     /**
-     * Detect user's VS Code theme
-     */
-    private detectVSCodeTheme(): 'light' | 'dark' | 'auto' {
-        const colorTheme = vscode.window.activeColorTheme;
-        if (colorTheme.kind === vscode.ColorThemeKind.Light) {
-            return 'light';
-        } else if (colorTheme.kind === vscode.ColorThemeKind.Dark || colorTheme.kind === vscode.ColorThemeKind.HighContrast) {
-            return 'dark';
-        }
-        return 'dark'; // Default fallback
-    }
-
-    /**
      * Reset configuration to defaults
      */
     async resetToDefaults(): Promise<void> {
