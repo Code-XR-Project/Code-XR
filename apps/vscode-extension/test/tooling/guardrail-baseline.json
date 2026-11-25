@@ -69,8 +69,8 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 53,
-    "complexity.over10": 79,
-    "complexity.over15": 31,
+    "complexity.over10": 78,
+    "complexity.over15": 30,
     "complexity.over20": 10,
     "complexity.over30": 6,
     "reachability.unreachable": [
@@ -140,8 +140,8 @@
   },
   "informational": {
     "src.files": 373,
-    "src.lines": 52604,
-    "src.functions": 2850,
+    "src.lines": 52597,
+    "src.functions": 2853,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
