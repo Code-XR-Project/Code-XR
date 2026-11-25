@@ -8,6 +8,9 @@ import * as path from 'path';
 import { getLanguageForFile } from '../../../utils/languageMetadata';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('FILE_ANALYSIS_XR_COMMANDS');
 
 export class FileAnalysisXRCommands {
     constructor(private context: vscode.ExtensionContext) {}
@@ -50,7 +53,7 @@ export class FileAnalysisXRCommands {
 
             await AnalysisOrchestrator.orchestrateAnalysis(filePath, 'XR', 'file', this.context, false);
         } catch (error) {
-            console.error('FILE_ANALYSIS_XR_COMMANDS: Error in XR file analysis:', error);
+            logger.error('Error in XR file analysis:', error);
             vscode.window.showErrorMessage(`CodeXR: XR analysis failed - ${error}`);
         }
     }

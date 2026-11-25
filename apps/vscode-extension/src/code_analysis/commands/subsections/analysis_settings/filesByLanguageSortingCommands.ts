@@ -13,6 +13,9 @@ import {
     FilesSortBy,
     FilesSortDirection
 } from '../../../configuration/models/analysisConfiguration';
+import { getLogger } from '../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class FilesByLanguageSortingCommands {
 
@@ -24,7 +27,7 @@ export class FilesByLanguageSortingCommands {
         filesByLanguageSortingSetting: FilesByLanguageSortingSetting,
         refreshCallback: () => void
     ): CommandRegistration[] {
-        console.log('ANALYSIS: Collecting Files by Language Sorting command registrations');
+        logger.debug('Collecting Files by Language Sorting command registrations');
 
         const commandRegistrations: CommandRegistration[] = [
             // Language Group Primary Sorting
@@ -55,7 +58,7 @@ export class FilesByLanguageSortingCommands {
             }
         ];
 
-        console.log(`ANALYSIS: Collected ${commandRegistrations.length} Files by Language Sorting command registrations`);
+        logger.debug(() => `Collected ${commandRegistrations.length} Files by Language Sorting command registrations`);
         return commandRegistrations;
     }
 
@@ -67,7 +70,7 @@ export class FilesByLanguageSortingCommands {
         setting: FilesByLanguageSortingSetting,
         refreshCallback: () => void
     ): Promise<void> {
-        console.log('ANALYSIS: Showing language group primary sorting picker');
+        logger.debug('Showing language group primary sorting picker');
 
         // Get current configuration to check for conflicts
         const storage = AnalysisConfigurationStorage.getInstance(context);
@@ -92,7 +95,7 @@ export class FilesByLanguageSortingCommands {
 
             // If secondary uses the same type as the new primary, reset secondary to None
             if (currentSecondarySortBy && currentSecondarySortBy === newPrimarySortBy) {
-                console.log('ANALYSIS: Primary conflicts with secondary, resetting secondary to None');
+                logger.debug('Primary conflicts with secondary, resetting secondary to None');
                 await setting.updateLanguageGroupSecondarySorting(undefined, undefined);
                 vscode.window.showInformationMessage(`Secondary sorting reset to None to avoid conflict with primary sorting`);
             }
@@ -111,7 +114,7 @@ export class FilesByLanguageSortingCommands {
         setting: FilesByLanguageSortingSetting,
         refreshCallback: () => void
     ): Promise<void> {
-        console.log('ANALYSIS: Showing language group secondary sorting picker');
+        logger.debug('Showing language group secondary sorting picker');
 
         // Get current configuration to determine what's available for secondary
         const storage = AnalysisConfigurationStorage.getInstance(context);
@@ -158,7 +161,7 @@ export class FilesByLanguageSortingCommands {
         setting: FilesByLanguageSortingSetting,
         refreshCallback: () => void
     ): Promise<void> {
-        console.log('ANALYSIS: Showing files sorting picker');
+        logger.debug('Showing files sorting picker');
 
         const options = [
             { label: 'Alphabetical Ascending', sortBy: 'alphabetical' as FilesSortBy, direction: 'ascending' as FilesSortDirection },

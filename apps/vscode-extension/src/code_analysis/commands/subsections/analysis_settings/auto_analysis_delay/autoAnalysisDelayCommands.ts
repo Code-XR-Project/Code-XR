@@ -7,6 +7,9 @@ import * as vscode from 'vscode';
 import { AutoAnalysisDelaySetting } from '../../../../views/subsections/analysis_settings/auto_analysis_delay';
 import { CommandRegistration } from '../analysis_file_mode';
 import { SessionWatcherManager } from '../../../../engine/watchers/sessionWatcherManager';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AutoAnalysisDelayCommands {
 
@@ -96,7 +99,7 @@ export class AutoAnalysisDelayCommands {
                 await this.setAutoAnalysisDelay(selectedItem.value, refreshCallback);
             }
         } catch (error) {
-            console.error('ANALYSIS: Error selecting auto-analysis delay:', error);
+            logger.error('Error selecting auto-analysis delay:', error);
             vscode.window.showErrorMessage(`Failed to select auto-analysis delay: ${error}`);
         }
     }
@@ -140,9 +143,9 @@ export class AutoAnalysisDelayCommands {
 
             refreshCallback();
 
-            console.log(`ANALYSIS: Command executed - Custom auto-analysis delay: ${customMs}ms`);
+            logger.debug(() => `Command executed - Custom auto-analysis delay: ${customMs}ms`);
         } catch (error) {
-            console.error('ANALYSIS: Error setting custom auto-analysis delay:', error);
+            logger.error('Error setting custom auto-analysis delay:', error);
             vscode.window.showErrorMessage(`Failed to set custom auto-analysis delay: ${error}`);
         }
     }
@@ -165,9 +168,9 @@ export class AutoAnalysisDelayCommands {
 
             refreshCallback();
 
-            console.log(`ANALYSIS: Command executed - Auto-analysis delay set to: ${delayType}`);
+            logger.debug(() => `Command executed - Auto-analysis delay set to: ${delayType}`);
         } catch (error) {
-            console.error(`ANALYSIS: Error setting auto-analysis delay to ${delayType}:`, error);
+            logger.error(`Error setting auto-analysis delay to ${delayType}:`, error);
             vscode.window.showErrorMessage(`Failed to set auto-analysis delay to ${delayType}: ${error}`);
         }
     }

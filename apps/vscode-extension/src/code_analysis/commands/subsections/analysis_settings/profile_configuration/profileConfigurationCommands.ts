@@ -9,6 +9,9 @@ import * as path from 'path';
 import { ProfileConfigurationSetting } from '../../../../views/subsections/analysis_settings/profile_configuration';
 import { CommandRegistration } from '../analysis_file_mode';
 import { AnalysisConfigurationStorage } from '../../../../configuration/analysisConfigurationStorage';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('PROFILE_CONFIGURATION_COMMANDS');
 
 export class ProfileConfigurationCommands {
 
@@ -26,14 +29,14 @@ export class ProfileConfigurationCommands {
         profileConfigurationSetting: ProfileConfigurationSetting,
         refreshCallback: () => void
     ): CommandRegistration[] {
-        console.log('PROFILE_CONFIGURATION_COMMANDS: Creating command registrations');
+        logger.debug('Creating command registrations');
         const commands = new ProfileConfigurationCommands(context, profileConfigurationSetting);
 
         const registrations = [
             {
                 commandId: 'codeXR.analysis.resetToDefaults',
                 callback: async () => {
-                    console.log(`PROFILE_CONFIGURATION_COMMANDS: Reset to defaults command TRIGGERED`);
+                    logger.debug(`Reset to defaults command TRIGGERED`);
                     await commands.resetToDefaults();
                     refreshCallback();
                 },
@@ -42,7 +45,7 @@ export class ProfileConfigurationCommands {
             {
                 commandId: 'codeXR.analysis.saveProfile',
                 callback: async () => {
-                    console.log(`PROFILE_CONFIGURATION_COMMANDS: Save profile command TRIGGERED`);
+                    logger.debug(`Save profile command TRIGGERED`);
                     await commands.saveProfile();
                     refreshCallback();
                 },
@@ -51,7 +54,7 @@ export class ProfileConfigurationCommands {
             {
                 commandId: 'codeXR.analysis.loadProfile',
                 callback: async () => {
-                    console.log(`PROFILE_CONFIGURATION_COMMANDS: Load profile command TRIGGERED`);
+                    logger.debug(`Load profile command TRIGGERED`);
                     await commands.loadProfile();
                     refreshCallback();
                 },
@@ -60,7 +63,7 @@ export class ProfileConfigurationCommands {
             {
                 commandId: 'codeXR.analysis.deleteProfile',
                 callback: async () => {
-                    console.log(`PROFILE_CONFIGURATION_COMMANDS: Delete profile command TRIGGERED`);
+                    logger.debug(`Delete profile command TRIGGERED`);
                     await commands.deleteProfile();
                     refreshCallback();
                 },
@@ -68,7 +71,7 @@ export class ProfileConfigurationCommands {
             }
         ];
 
-        console.log(`PROFILE_CONFIGURATION_COMMANDS: Created ${registrations.length} command registrations`);
+        logger.debug(() => `Created ${registrations.length} command registrations`);
         return registrations;
     }
 
@@ -76,7 +79,7 @@ export class ProfileConfigurationCommands {
      * Reset to default values
      */
     private async resetToDefaults(): Promise<void> {
-        console.log('PROFILE_CONFIGURATION_COMMANDS: Resetting to default values');
+        logger.debug('Resetting to default values');
         
         try {
             const shouldReset = await vscode.window.showWarningMessage(
@@ -85,17 +88,17 @@ export class ProfileConfigurationCommands {
             );
 
             if (shouldReset !== 'Reset to Defaults') {
-                console.log('PROFILE_CONFIGURATION_COMMANDS: Reset cancelled by user');
+                logger.debug('Reset cancelled by user');
                 return;
             }
 
             // Use the profile configuration setting to reset
             await this.profileConfigurationSetting.resetToDefaults();
             
-            console.log('PROFILE_CONFIGURATION_COMMANDS: Reset to defaults completed successfully');
+            logger.debug('Reset to defaults completed successfully');
             
         } catch (error) {
-            console.error('PROFILE_CONFIGURATION_COMMANDS: Error resetting to defaults:', error);
+            logger.error('Error resetting to defaults:', error);
             vscode.window.showErrorMessage(`Failed to reset to defaults: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -104,7 +107,7 @@ export class ProfileConfigurationCommands {
      * Save current configuration as a profile
      */
     private async saveProfile(): Promise<void> {
-        console.log('PROFILE_CONFIGURATION_COMMANDS: Saving profile');
+        logger.debug('Saving profile');
         
         try {
             // Ask user for profile name
@@ -123,7 +126,7 @@ export class ProfileConfigurationCommands {
             });
 
             if (!profileName) {
-                console.log('PROFILE_CONFIGURATION_COMMANDS: Save profile cancelled - no name provided');
+                logger.debug('Save profile cancelled - no name provided');
                 return;
             }
 
@@ -131,7 +134,7 @@ export class ProfileConfigurationCommands {
             const storage = AnalysisConfigurationStorage.getInstance(this.context);
             const currentConfig = await storage.loadConfiguration();
             
-            console.log('PROFILE_CONFIGURATION_COMMANDS: Current config to save:', JSON.stringify(currentConfig, null, 2));
+            logger.debug('Current config to save:', JSON.stringify(currentConfig, null, 2));
             
             // Save to globalStorage
             const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
@@ -151,7 +154,7 @@ export class ProfileConfigurationCommands {
                 );
 
                 if (shouldOverwrite !== 'Overwrite') {
-                    console.log('PROFILE_CONFIGURATION_COMMANDS: Save profile cancelled - user chose not to overwrite');
+                    logger.debug('Save profile cancelled - user chose not to overwrite');
                     return;
                 }
             }
@@ -167,11 +170,11 @@ export class ProfileConfigurationCommands {
             // Save the profile
             fs.writeFileSync(profilePath, JSON.stringify(profileData, null, 2));
             
-            console.log(`PROFILE_CONFIGURATION_COMMANDS: Profile "${profileName}" saved successfully`);
+            logger.debug(() => `Profile "${profileName}" saved successfully`);
             vscode.window.showInformationMessage(`Configuration profile "${profileName}" saved successfully`);
             
         } catch (error) {
-            console.error('PROFILE_CONFIGURATION_COMMANDS: Error saving profile:', error);
+            logger.error('Error saving profile:', error);
             vscode.window.showErrorMessage(`Failed to save profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -180,7 +183,7 @@ export class ProfileConfigurationCommands {
      * Load a previously saved profile
      */
     private async loadProfile(): Promise<void> {
-        console.log('PROFILE_CONFIGURATION_COMMANDS: Loading profile');
+        logger.debug('Loading profile');
         
         try {
             const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
@@ -228,7 +231,7 @@ export class ProfileConfigurationCommands {
             });
 
             if (!selectedProfile) {
-                console.log('PROFILE_CONFIGURATION_COMMANDS: Load profile cancelled');
+                logger.debug('Load profile cancelled');
                 return;
             }
 
@@ -239,24 +242,24 @@ export class ProfileConfigurationCommands {
             );
 
             if (shouldLoad !== 'Load Profile') {
-                console.log('PROFILE_CONFIGURATION_COMMANDS: Load profile cancelled by user');
+                logger.debug('Load profile cancelled by user');
                 return;
             }
 
             // Load the profile
             const profileData = JSON.parse(fs.readFileSync(selectedProfile.profilePath, 'utf8'));
             
-            console.log('PROFILE_CONFIGURATION_COMMANDS: Loaded profile data:', JSON.stringify(profileData.configuration, null, 2));
+            logger.debug('Loaded profile data:', JSON.stringify(profileData.configuration, null, 2));
             
             // Update configuration using AnalysisConfigurationStorage
             const storage = AnalysisConfigurationStorage.getInstance(this.context);
             await storage.updateConfiguration(profileData.configuration);
             
-            console.log(`PROFILE_CONFIGURATION_COMMANDS: Profile "${selectedProfile.label}" loaded successfully`);
+            logger.debug(() => `Profile "${selectedProfile.label}" loaded successfully`);
             vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" loaded successfully`);
             
         } catch (error) {
-            console.error('PROFILE_CONFIGURATION_COMMANDS: Error loading profile:', error);
+            logger.error('Error loading profile:', error);
             vscode.window.showErrorMessage(`Failed to load profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -265,7 +268,7 @@ export class ProfileConfigurationCommands {
      * Delete a saved profile
      */
     private async deleteProfile(): Promise<void> {
-        console.log('PROFILE_CONFIGURATION_COMMANDS: Deleting profile');
+        logger.debug('Deleting profile');
         
         try {
             const profilesDir = path.join(this.context.globalStorageUri.fsPath, 'analysis_settings');
@@ -313,7 +316,7 @@ export class ProfileConfigurationCommands {
             });
 
             if (!selectedProfile) {
-                console.log('PROFILE_CONFIGURATION_COMMANDS: Delete profile cancelled');
+                logger.debug('Delete profile cancelled');
                 return;
             }
 
@@ -324,18 +327,18 @@ export class ProfileConfigurationCommands {
             );
 
             if (shouldDelete !== 'Delete Profile') {
-                console.log('PROFILE_CONFIGURATION_COMMANDS: Delete profile cancelled by user');
+                logger.debug('Delete profile cancelled by user');
                 return;
             }
 
             // Delete the profile
             fs.unlinkSync(selectedProfile.profilePath);
             
-            console.log(`PROFILE_CONFIGURATION_COMMANDS: Profile "${selectedProfile.label}" deleted successfully`);
+            logger.debug(() => `Profile "${selectedProfile.label}" deleted successfully`);
             vscode.window.showInformationMessage(`Configuration profile "${selectedProfile.label}" deleted successfully`);
             
         } catch (error) {
-            console.error('PROFILE_CONFIGURATION_COMMANDS: Error deleting profile:', error);
+            logger.error('Error deleting profile:', error);
             vscode.window.showErrorMessage(`Failed to delete profile: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1129,
+    "console.total": 1032,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
       "babia_templates": 68,
-      "code_analysis": 279,
+      "code_analysis": 182,
       "commands": 4,
       "core": 3,
       "python_env": 20,
@@ -82,8 +82,8 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48411,
-    "src.functions": 2746,
+    "src.lines": 48468,
+    "src.functions": 2778,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -123,16 +123,8 @@
         "count": 29
       },
       {
-        "file": "src/code_analysis/commands/subsections/analysis_settings/profile_configuration/profileConfigurationCommands.ts",
-        "count": 27
-      },
-      {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
         "count": 26
-      },
-      {
-        "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
-        "count": 25
       },
       {
         "file": "src/servers/runtime/httpsCustomServer.ts",
@@ -145,6 +137,14 @@
       {
         "file": "src/servers/commands/serverCommands.ts",
         "count": 23
+      },
+      {
+        "file": "src/servers/utils/networkUtils.ts",
+        "count": 22
+      },
+      {
+        "file": "src/servers/runtime/httpServer.ts",
+        "count": 20
       }
     ],
     "any.topFiles": [

@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { ChartTypeDirectorySetting } from '../../../../views/subsections/analysis_settings/chart_type_directory';
 import { CommandRegistration } from '../analysis_file_mode';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('CHART_TYPE_DIRECTORY_COMMANDS');
 
 export class ChartTypeDirectoryCommands {
 
@@ -42,14 +45,14 @@ export class ChartTypeDirectoryCommands {
      * Shows different chart types available for XR and LivePanel modes
      */
     private async selectChartType(): Promise<void> {
-        console.log('CHART_TYPE_DIRECTORY_COMMANDS: Chart type selection command executed');
+        logger.debug('Chart type selection command executed');
         
         try {
             // Use the chart type setting's built-in selection dialog
             await this.chartTypeDirectorySetting.showChartTypeSelection();
             
         } catch (error) {
-            console.error('CHART_TYPE_DIRECTORY_COMMANDS: Error in chart type selection:', error);
+            logger.error('Error in chart type selection:', error);
             vscode.window.showErrorMessage(`Failed to select chart type: ${error instanceof Error ? error.message : String(error)}`);
         }
     }

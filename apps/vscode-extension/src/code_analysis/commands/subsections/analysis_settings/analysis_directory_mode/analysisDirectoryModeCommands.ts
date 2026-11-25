@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { AnalysisDirectorySetting } from '../../../../views/subsections/analysis_settings/analysis_directory_mode';
 import { CommandRegistration } from '../analysis_file_mode';
+import { getLogger } from '../../../../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class AnalysisDirectoryModeCommands {
 
@@ -17,14 +20,14 @@ export class AnalysisDirectoryModeCommands {
         analysisDirectorySetting: AnalysisDirectorySetting,
         refreshCallback: () => void
     ): CommandRegistration[] {
-        console.log('ANALYSIS: Collecting Analysis Directory Mode command registrations');
+        logger.debug('Collecting Analysis Directory Mode command registrations');
 
         const commandRegistrations: CommandRegistration[] = [
             {
                 commandId: 'codeXR.analysis.selectAnalysisDirectoryMode',
                 callback: async () => {
                     try {
-                        console.log('ANALYSIS: Select Analysis Directory Mode command executed');
+                        logger.debug('Select Analysis Directory Mode command executed');
                         
                         const selectedMode = await analysisDirectorySetting.selectMode();
                         
@@ -43,7 +46,7 @@ export class AnalysisDirectoryModeCommands {
                         }
                         
                     } catch (error) {
-                        console.error('ANALYSIS: Error selecting analysis directory mode:', error);
+                        logger.error('Error selecting analysis directory mode:', error);
                         vscode.window.showErrorMessage(
                             `Failed to select directory analysis mode: ${error instanceof Error ? error.message : String(error)}`
                         );
@@ -53,7 +56,7 @@ export class AnalysisDirectoryModeCommands {
             }
         ];
 
-        console.log(`ANALYSIS: Collected ${commandRegistrations.length} Analysis Directory Mode command registrations`);
+        logger.debug(() => `Collected ${commandRegistrations.length} Analysis Directory Mode command registrations`);
         return commandRegistrations;
     }
 }

@@ -26,16 +26,19 @@ import { DimensionMappingDirectorySetting } from '../views/subsections/analysis_
 import { FilesByLanguageSortingSetting } from '../views/subsections/analysis_settings/files_by_language_sorting';
 import { ProfileConfigurationSetting } from '../views/subsections/analysis_settings/profile_configuration';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS');
 
 export class CodeAnalysisCommands {
     static getCommandRegistrations(
         context: vscode.ExtensionContext,
         refreshCallback?: () => void,
     ): CommandRegistration[] {
-        console.log('ANALYSIS: Collecting all command registrations');
+        logger.debug('Collecting all command registrations');
 
         const defaultRefreshCallback = refreshCallback || (() => {
-            console.log('ANALYSIS: Default refresh callback executed');
+            logger.debug('Default refresh callback executed');
         });
 
         const tempAnalysisFileSetting = new AnalysisFileSetting(context);

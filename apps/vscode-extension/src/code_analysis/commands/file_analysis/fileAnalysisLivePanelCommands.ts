@@ -6,6 +6,9 @@
 import * as vscode from 'vscode';
 import { AnalysisOrchestrator } from '../../engine/analysisOrchestrator';
 import { CommandRegistration } from '../subsections/analysis_settings/analysis_file_mode';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('FILE_ANALYSIS_LIVEPANEL_COMMANDS');
 
 export class FileAnalysisLivePanelCommands {
     constructor(private context: vscode.ExtensionContext) {}
@@ -29,7 +32,7 @@ export class FileAnalysisLivePanelCommands {
 
             if (uri) {
                 filePath = uri.fsPath;
-                console.log(`FILE_ANALYSIS_LIVEPANEL_COMMANDS: LivePanel analysis requested from context menu for: ${filePath}`);
+                logger.debug(() => `LivePanel analysis requested from context menu for: ${filePath}`);
             } else {
                 const activeEditor = vscode.window.activeTextEditor;
                 if (!activeEditor) {
@@ -37,12 +40,12 @@ export class FileAnalysisLivePanelCommands {
                     return;
                 }
                 filePath = activeEditor.document.fileName;
-                console.log(`FILE_ANALYSIS_LIVEPANEL_COMMANDS: LivePanel analysis requested from command palette for: ${filePath}`);
+                logger.debug(() => `LivePanel analysis requested from command palette for: ${filePath}`);
             }
 
             await AnalysisOrchestrator.orchestrateAnalysis(filePath, 'LivePanel', 'file', this.context, false);
         } catch (error) {
-            console.error('FILE_ANALYSIS_LIVEPANEL_COMMANDS: Error in LivePanel analyze file command:', error);
+            logger.error('Error in LivePanel analyze file command:', error);
             vscode.window.showErrorMessage(`CodeXR: LivePanel analysis failed - ${error}`);
         }
     }
