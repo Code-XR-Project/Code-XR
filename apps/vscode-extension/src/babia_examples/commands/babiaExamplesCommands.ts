@@ -27,7 +27,7 @@ export class BabiaExamplesCommands {
                 module: 'EXAMPLES',
                 description: 'Launch Babia example',
                 handler: async (example: BabiaExample) => {
-                    console.log(`EXAMPLES: Launch command triggered for "${example.name}"`);
+                    logger.debug(() => `Launch command triggered for "${example.name}"`);
                     await clickHandler.handleExampleClick(example);
                 },
                 errorMessage: 'Failed to launch Babia example'
@@ -87,7 +87,7 @@ export class BabiaExamplesCommands {
                         return;
                     }
 
-                    console.log('EXAMPLES: Refresh command triggered');
+                    logger.debug('Refresh command triggered');
                     await treeDataProvider.rescan();
                     vscode.window.showInformationMessage('Babia examples refreshed');
                 },

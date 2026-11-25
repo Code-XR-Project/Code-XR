@@ -21,8 +21,7 @@ function withLogger(options, scenario) {
     const context = fakeExtensionContext({ extensionMode: options.extensionMode });
     try {
         withFakeVscode(fake, ({ requireOut }) => {
-            // The sink holds the state; load it fresh too, or a copy another
-            // suite cached outside the fake would carry its target over.
+            // The sink holds the logging state; the fake scope loads it fresh.
             const sink = requireOut('core/logging/sink.js');
             const { CodeXRLogger } = requireOut('core/logging/logger.js');
             scenario({ CodeXRLogger, fake, context, sink });

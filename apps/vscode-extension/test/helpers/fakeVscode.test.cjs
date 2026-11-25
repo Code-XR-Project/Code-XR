@@ -247,3 +247,23 @@ test('fakeExtensionContext gives real storage directories and isolated state', a
     }
     assert.equal(fs.existsSync(context.globalStorageUri.fsPath), false, 'cleanup removes the temp storage');
 });
+
+test('the log sink is the exception: every scope loads it fresh, so a channel never receives lines buffered outside', () => {
+    const sinkPath = path.join(projectRoot, 'out', 'core', 'logging', 'sink.js');
+    const fake = createFakeVscode();
+    const context = fakeExtensionContext({ extensionMode: ExtensionMode.Development });
+    const original = console.warn;
+    console.warn = () => {};
+    try {
+        require(sinkPath).getLogger('OUTSIDE').warn('buffered outside any scope');
+        withFakeVscode(fake, ({ requireOut }) => {
+            const { CodeXRLogger } = requireOut('core/logging/logger.js');
+            CodeXRLogger.initialize(context);
+        });
+    } finally {
+        console.warn = original;
+        context.cleanup();
+    }
+
+    assert.deepEqual(fake.channels.get('CodeXR').lines, []);
+});

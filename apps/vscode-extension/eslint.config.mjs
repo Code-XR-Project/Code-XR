@@ -22,6 +22,8 @@ const NO_CONSOLE_FILES = [
     "src/visualization_settings/**/*.ts",
     "src/babia_templates/**/*.ts",
     "src/views/**/*.ts",
+    "src/utils/**/*.ts",
+    "src/babia_examples/**/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

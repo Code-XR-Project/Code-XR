@@ -1,3 +1,7 @@
+import { getLogger } from '../core/logging/sink';
+
+const logger = getLogger('VISUALIZATION_CONFIG');
+
 /**
  * Visualization Configuration Utility
  * Common functions for retrieving visualization settings across templates
@@ -16,7 +20,7 @@ export interface VisualizationSettings {
  */
 export async function getVisualizationConfiguration(): Promise<VisualizationSettings> {
     try {
-        console.log('VISUALIZATION_CONFIG: Retrieving visualization settings...');
+        logger.debug('Retrieving visualization settings...');
         
         // Import visualization settings functions directly (no dynamic import needed)
         const { 
@@ -33,11 +37,11 @@ export async function getVisualizationConfiguration(): Promise<VisualizationSett
             groundColor: await getSelectedGroundColor()
         };
 
-        console.log('VISUALIZATION_CONFIG: Settings retrieved:', settings);
+        logger.debug('Settings retrieved:', settings);
         return settings;
 
     } catch (error) {
-        console.error('VISUALIZATION_CONFIG: Error retrieving settings:', error);
+        logger.error('Error retrieving settings:', error);
         
         // Return default settings if there's an error
         const defaultSettings = {
@@ -47,7 +51,7 @@ export async function getVisualizationConfiguration(): Promise<VisualizationSett
             groundColor: '#553311'
         };
         
-        console.log('VISUALIZATION_CONFIG: Using default settings:', defaultSettings);
+        logger.warn('Using default settings:', defaultSettings);
         return defaultSettings;
     }
 }

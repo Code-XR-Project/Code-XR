@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { BabiaExample } from '../../model/babiaExampleModel';
 import { ExampleLauncher } from '../../runtime/exampleLauncher';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('EXAMPLES');
 
 /**
  * Handle Example Clicks
@@ -11,7 +14,7 @@ export class ExampleClickHandler {
 
     constructor(context: vscode.ExtensionContext) {
         this.exampleLauncher = new ExampleLauncher(context);
-        console.log('EXAMPLES: Example click handler initialized');
+        logger.debug('Example click handler initialized');
     }
 
     /**
@@ -19,7 +22,7 @@ export class ExampleClickHandler {
      * @param example The example to launch
      */
     public async handleExampleClick(example: BabiaExample): Promise<void> {
-        console.log(`EXAMPLES: User clicked on example "${example.name}"`);
+        logger.debug(() => `User clicked on example "${example.name}"`);
 
         try {
             if (!example.isValid) {
@@ -36,9 +39,9 @@ export class ExampleClickHandler {
                 const result = await this.exampleLauncher.launchExample(example);
                 
                 if (result.success) {
-                    console.log(`EXAMPLES: Successfully launched "${example.name}" on port ${result.port}`);
+                    logger.debug(() => `Successfully launched "${example.name}" on port ${result.port}`);
                 } else {
-                    console.error(`EXAMPLES: Failed to launch "${example.name}":`, result.error);
+                    logger.error(`Failed to launch "${example.name}":`, result.error);
                 }
             } finally {
                 launchingMessage.dispose();
@@ -46,7 +49,7 @@ export class ExampleClickHandler {
 
         } catch (error) {
             const errorMsg = `Failed to handle example click: ${error instanceof Error ? error.message : String(error)}`;
-            console.error('EXAMPLES:', errorMsg);
+            logger.error(errorMsg);
             vscode.window.showErrorMessage(errorMsg);
         }
     }
@@ -56,7 +59,7 @@ export class ExampleClickHandler {
      * @private
      */
     private async handleInvalidExample(example: BabiaExample): Promise<void> {
-        console.log(`EXAMPLES: User clicked on invalid example "${example.name}"`);
+        logger.debug(() => `User clicked on invalid example "${example.name}"`);
 
         const action = await vscode.window.showWarningMessage(
             `Example "${example.name}" is not valid and cannot be launched.`,
@@ -113,14 +116,14 @@ export class ExampleClickHandler {
      * @private
      */
     private async rescanExamples(): Promise<void> {
-        console.log('EXAMPLES: User requested example rescan');
+        logger.debug('User requested example rescan');
         
         const scanning = vscode.window.setStatusBarMessage('$(loading~spin) Scanning Babia examples...');
         
         try {
             const result = await this.exampleLauncher.scanExamples();
             
-            console.log(`EXAMPLES: Rescan complete. Found ${result.validCount} valid, ${result.invalidCount} invalid examples`);
+            logger.debug(() => `Rescan complete. Found ${result.validCount} valid, ${result.invalidCount} invalid examples`);
             
             // Refresh the tree view
             vscode.commands.executeCommand('codeXR.babiaExamples.refresh');
@@ -137,7 +140,7 @@ export class ExampleClickHandler {
             }
             
         } catch (error) {
-            console.error('EXAMPLES: Error during rescan:', error);
+            logger.error('Error during rescan:', error);
             vscode.window.showErrorMessage(`Failed to rescan examples: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             scanning.dispose();
@@ -155,7 +158,7 @@ export class ExampleClickHandler {
      * Cleanup method
      */
     public async cleanup(): Promise<void> {
-        console.log('EXAMPLES: Cleaning up example click handler...');
+        logger.debug('Cleaning up example click handler...');
         await this.exampleLauncher.cleanup();
     }
 }

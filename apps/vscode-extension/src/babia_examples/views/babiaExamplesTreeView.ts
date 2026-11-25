@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { ExampleLauncher } from '../runtime/exampleLauncher';
 import { BabiaExampleTreeItem, ExampleItemFactory } from './items/exampleItems';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('EXAMPLES_UI');
 
 /**
  * Babia Examples Tree Data Provider
@@ -15,14 +18,14 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
 
     constructor(context: vscode.ExtensionContext) {
         this.exampleLauncher = new ExampleLauncher(context);
-        console.log('EXAMPLES_UI: Babia examples tree data provider initialized for direct example display');
+        logger.debug('Babia examples tree data provider initialized for direct example display');
     }
 
     /**
      * Refresh the tree view
      */
     public refresh(): void {
-        console.log('EXAMPLES_UI: Refreshing tree view');
+        logger.debug('Refreshing tree view');
         this._onDidChangeTreeData.fire();
     }
 
@@ -39,7 +42,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
     async getChildren(element?: BabiaExampleTreeItem): Promise<BabiaExampleTreeItem[]> {
         if (!element) {
             // Root level - return examples directly (no nested container)
-            console.log('EXAMPLES_UI: Loading examples directly at root level for clean UI');
+            logger.debug('Loading examples directly at root level for clean UI');
             return this.getExampleItems();
         }
 
@@ -52,7 +55,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
      * @private
      */
     private async getExampleItems(): Promise<BabiaExampleTreeItem[]> {
-        console.log('EXAMPLES_UI: Loading example items directly in tree view...');
+        logger.debug('Loading example items directly in tree view...');
 
         if (this.isLoading) {
             return [ExampleItemFactory.createLoadingItem()];
@@ -64,7 +67,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
             const examples = await this.exampleLauncher.getExamples();
             
             if (examples.length === 0) {
-                console.log('EXAMPLES_UI: No examples found for direct display');
+                logger.debug('No examples found for direct display');
                 return [ExampleItemFactory.createNoExamplesItem()];
             }
 
@@ -76,7 +79,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
                 return a.name.localeCompare(b.name);
             });
 
-            console.log(`EXAMPLES_UI: Creating tree items for ${sortedExamples.length} examples for direct display`);
+            logger.debug(() => `Creating tree items for ${sortedExamples.length} examples for direct display`);
 
             const items = sortedExamples.map(example => 
                 ExampleItemFactory.createExampleItem(example)
@@ -85,12 +88,12 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
             // Add valid count to console
             const validCount = examples.filter(ex => ex.isValid).length;
             const invalidCount = examples.length - validCount;
-            console.log(`EXAMPLES_UI: Loaded ${validCount} valid and ${invalidCount} invalid examples for direct display`);
+            logger.debug(() => `Loaded ${validCount} valid and ${invalidCount} invalid examples for direct display`);
 
             return items;
 
         } catch (error) {
-            console.error('EXAMPLES_UI: Error loading examples for direct display:', error);
+            logger.error('Error loading examples for direct display:', error);
             
             // Return error item
             return [
@@ -117,7 +120,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
      * Force rescan of examples
      */
     public async rescan(): Promise<void> {
-        console.log('EXAMPLES_UI: Force rescanning examples for direct display...');
+        logger.debug('Force rescanning examples for direct display...');
         this.isLoading = true;
         this.refresh(); // Show loading state
         
@@ -140,7 +143,7 @@ export class BabiaExamplesTreeDataProvider implements vscode.TreeDataProvider<Ba
      * Cleanup method
      */
     public async cleanup(): Promise<void> {
-        console.log('EXAMPLES_UI: Cleaning up tree data provider...');
+        logger.debug('Cleaning up tree data provider...');
         await this.exampleLauncher.cleanup();
     }
 }

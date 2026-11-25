@@ -10,6 +10,9 @@
 import * as vscode from 'vscode';
 import type { ExtensionCommandRegistration } from '../commands/shared';
 import { handleError, ErrorDomain, ErrorSeverity } from './errorHandler';
+import { getLogger } from '../core/logging/sink';
+
+const logger = getLogger('COMMAND_BUILDER');
 
 export type CommandConfig<TArgs extends any[] = any[]> = ExtensionCommandRegistration<TArgs>;
 
@@ -24,7 +27,7 @@ export class CommandBuilder {
         const disposable = vscode.commands.registerCommand(
             config.id,
             async (...args: any[]) => {
-                console.log(`${config.module}: ${config.description} command triggered`);
+                logger.debug(() => `${config.module}: ${config.description} command triggered`);
                 try {
                     await config.handler(...(args as unknown as TArgs));
                 } catch (error) {
@@ -46,7 +49,7 @@ export class CommandBuilder {
         configs: CommandConfig[],
     ): vscode.Disposable[] {
         const disposables = configs.map(config => this.register(context, config));
-        console.log(`COMMAND_BUILDER: Registered ${configs.length} commands`);
+        logger.debug(() => `Registered ${configs.length} commands`);
         return disposables;
     }
 }

@@ -3,6 +3,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { BabiaExample, ExampleScanResult } from '../model/babiaExampleModel';
 import { MultiServerLauncher, MultiServerLaunchResult } from '../../servers/runtime/multiServerLauncher';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('EXAMPLES');
 
 /**
  * Example Launcher
@@ -16,7 +19,7 @@ export class ExampleLauncher {
 
     constructor(private context: vscode.ExtensionContext) {
         this.multiServerLauncher = new MultiServerLauncher(context);
-        console.log('EXAMPLES: Example launcher initialized');
+        logger.debug('Example launcher initialized');
     }
 
     /**
@@ -24,7 +27,7 @@ export class ExampleLauncher {
      * @returns Promise<ExampleScanResult>
      */
     public async scanExamples(): Promise<ExampleScanResult> {
-        console.log('EXAMPLES: Scanning for Babia examples...');
+        logger.debug('Scanning for Babia examples...');
         
         const result: ExampleScanResult = {
             examples: [],
@@ -35,7 +38,7 @@ export class ExampleLauncher {
 
         try {            let workspaceRoot = this.context.extensionPath;
             let chartsPath = path.join(workspaceRoot, 'examples', 'charts');
-            console.log(`EXAMPLES: Resolved extension root: ${workspaceRoot}`);
+            logger.debug(() => `Resolved extension root: ${workspaceRoot}`);
             if (!fs.existsSync(chartsPath)) {
                 // Method 3: Try to find from VS Code workspace folders as fallback
                 const workspaceRoots = vscode.workspace.workspaceFolders;
@@ -49,7 +52,7 @@ export class ExampleLauncher {
                     if (potentialCodeXRRoot) {
                         workspaceRoot = potentialCodeXRRoot.uri.fsPath;
                         chartsPath = path.join(workspaceRoot, 'examples', 'charts');
-                        console.log(`EXAMPLES: Found CodeXR from workspace folders: ${workspaceRoot}`);
+                        logger.debug(() => `Found CodeXR from workspace folders: ${workspaceRoot}`);
                     } else {
                         result.errors.push('Could not find CodeXR directory with examples/charts');
                         return result;
@@ -60,9 +63,9 @@ export class ExampleLauncher {
                 }
             }
             
-            console.log(`EXAMPLES: Using workspace root: ${workspaceRoot}`);
+            logger.debug(() => `Using workspace root: ${workspaceRoot}`);
             
-            console.log(`EXAMPLES: Scanning charts directory: ${chartsPath}`);
+            logger.debug(() => `Scanning charts directory: ${chartsPath}`);
 
             if (!fs.existsSync(chartsPath)) {
                 result.errors.push(`Charts directory not found: ${chartsPath}`);
@@ -75,14 +78,14 @@ export class ExampleLauncher {
                     return fs.statSync(itemPath).isDirectory();
                 });
 
-            console.log(`EXAMPLES: Found ${chartDirectories.length} chart directories`);
+            logger.debug(() => `Found ${chartDirectories.length} chart directories`);
 
             for (const chartDir of chartDirectories) {
                 const chartPath = path.join(chartsPath, chartDir);
                 const example = await this.processExampleDirectory(chartPath, chartDir);
                 
                 if (example) {
-                    console.log(`EXAMPLES: FOUND chart ${chartDir} example`);
+                    logger.debug(() => `FOUND chart ${chartDir} example`);
                     result.examples.push(example);
                     if (example.isValid) {
                         result.validCount++;
@@ -96,12 +99,12 @@ export class ExampleLauncher {
             this.examplesCache = result.examples;
             this.lastScanTime = Date.now();
 
-            console.log(`EXAMPLES: total found ${result.examples.length}`);
-            console.log(`EXAMPLES: Scan complete. Found ${result.validCount} valid and ${result.invalidCount} invalid examples`);
+            logger.debug(() => `total found ${result.examples.length}`);
+            logger.debug(() => `Scan complete. Found ${result.validCount} valid and ${result.invalidCount} invalid examples`);
 
         } catch (error) {
             const errorMsg = `Failed to scan examples: ${error instanceof Error ? error.message : String(error)}`;
-            console.error('EXAMPLES:', errorMsg);
+            logger.error(errorMsg);
             result.errors.push(errorMsg);
         }
 
@@ -115,12 +118,12 @@ export class ExampleLauncher {
     public async getExamples(): Promise<BabiaExample[]> {
         const now = Date.now();
         if (this.examplesCache.length === 0 || (now - this.lastScanTime) > this.CACHE_DURATION) {
-            console.log('EXAMPLES: Cache is stale, rescanning...');
+            logger.debug('Cache is stale, rescanning...');
             const result = await this.scanExamples();
             return result.examples;
         }
         
-        console.log(`EXAMPLES: Using cached examples (${this.examplesCache.length} items)`);
+        logger.debug(() => `Using cached examples (${this.examplesCache.length} items)`);
         return this.examplesCache;
     }
 
@@ -130,7 +133,7 @@ export class ExampleLauncher {
      * @returns Promise<MultiServerLaunchResult>
      */
     public async launchExample(example: BabiaExample): Promise<MultiServerLaunchResult> {
-        console.log(`EXAMPLES: Launching example "${example.name}" from ${example.htmlFilePath}`);
+        logger.debug(() => `Launching example "${example.name}" from ${example.htmlFilePath}`);
 
         try {
             if (!example.isValid) {
@@ -141,11 +144,11 @@ export class ExampleLauncher {
                 throw new Error(`HTML file not found: ${example.htmlFilePath}`);
             }
 
-            console.log(`EXAMPLES: Delegating launch to multi-server launcher with user configuration`);
+            logger.debug(`Delegating launch to multi-server launcher with user configuration`);
             
             // Create custom name in format "ExampleName" (already ends with proper format from scanning)
             const customName = example.name; // e.g., "DonutExample", "BarsExample"
-            console.log(`SERVER: Using custom name '${customName}' for example server`);
+            logger.debug(() => `SERVER: Using custom name '${customName}' for example server`);
             
             // Delegate everything to the multi-server launcher
             // This will handle:
@@ -156,10 +159,10 @@ export class ExampleLauncher {
             const result = await this.multiServerLauncher.launchServer(example.htmlFilePath, customName);
 
             if (result.success) {
-                console.log(`EXAMPLES: Successfully launched example "${example.name}" on port ${result.port}`);
-                console.log(`EXAMPLES: Server configuration and auto-opening handled by shared infrastructure`);
+                logger.debug(() => `Successfully launched example "${example.name}" on port ${result.port}`);
+                logger.debug(`Server configuration and auto-opening handled by shared infrastructure`);
             } else {
-                console.error(`EXAMPLES: Failed to launch example "${example.name}":`, result.error);
+                logger.error(`Failed to launch example "${example.name}":`, result.error);
                 vscode.window.showErrorMessage(`Failed to launch example "${example.name}": ${result.error}`);
             }
 
@@ -167,7 +170,7 @@ export class ExampleLauncher {
 
         } catch (error) {
             const errorMsg = `Failed to launch example "${example.name}": ${error instanceof Error ? error.message : String(error)}`;
-            console.error('EXAMPLES:', errorMsg);
+            logger.error(errorMsg);
             
             vscode.window.showErrorMessage(errorMsg);
             
@@ -184,16 +187,16 @@ export class ExampleLauncher {
      */
     private async processExampleDirectory(directoryPath: string, categoryName: string): Promise<BabiaExample | null> {
         try {
-            console.log(`EXAMPLES: Processing directory: ${directoryPath}`);
+            logger.debug(() => `Processing directory: ${directoryPath}`);
 
             // Look for HTML files in the directory
             const files = fs.readdirSync(directoryPath);
             const htmlFiles = files.filter(file => file.toLowerCase().endsWith('.html'));
 
-            console.log(`EXAMPLES: Found ${htmlFiles.length} HTML files in ${categoryName}: ${htmlFiles.join(', ')}`);
+            logger.debug(() => `Found ${htmlFiles.length} HTML files in ${categoryName}: ${htmlFiles.join(', ')}`);
 
             if (htmlFiles.length === 0) {
-                console.log(`EXAMPLES: No HTML files found in ${categoryName}`);
+                logger.debug(() => `No HTML files found in ${categoryName}`);
                 return {
                     id: this.generateExampleId(categoryName, 'no-html'),
                     name: categoryName,
@@ -222,11 +225,11 @@ export class ExampleLauncher {
                 lastModified: stats.mtime.getTime()
             };
 
-            console.log(`EXAMPLES: Created example: ${example.name} (${example.id})`);
+            logger.debug(() => `Created example: ${example.name} (${example.id})`);
             return example;
 
         } catch (error) {
-            console.error(`EXAMPLES: Error processing directory ${directoryPath}:`, error);
+            logger.error(`Error processing directory ${directoryPath}:`, error);
             return null;
         }
     }
@@ -269,7 +272,7 @@ export class ExampleLauncher {
      * Cleanup method
      */
     public async cleanup(): Promise<void> {
-        console.log('EXAMPLES: Cleaning up example launcher...');
+        logger.debug('Cleaning up example launcher...');
         // The MultiServerLauncher will handle its own cleanup
         this.examplesCache = [];
         this.lastScanTime = 0;
