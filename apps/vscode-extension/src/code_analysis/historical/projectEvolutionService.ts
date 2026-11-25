@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
-import { toPortableRelativePath } from './gitAnalysisShared';
+import { decorateDirectoryEntries } from './gitAnalysisShared';
 import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';
 import {
@@ -20,7 +20,6 @@ import {
     ProjectEvolutionReferences,
     ProjectEvolutionRequest,
     ProjectEvolutionResult,
-    buildBabiaStyleFilePath,
 } from './historicalComparisonModels';
 
 const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
@@ -451,24 +450,9 @@ export class ProjectEvolutionService {
         analyzedTargetPath: string,
     ): Record<string, unknown>[] {
         if (session.targetType === 'directory') {
-            return payload.map((entry) => {
-                const sourcePath = String(entry.filePath || entry.relativePath || entry.fileName || '');
-                const relativePath = toPortableRelativePath(analyzedTargetPath, sourcePath);
-                return {
-                    ...entry,
-                    // The boats tree splits filePath — the same field, with
-                    // the same shape, the normal analysis publishes. Rebuild
-                    // it against the ORIGINAL target so the materialized
-                    // copy's temp location never shapes the quarters and the
-                    // movie's tree matches the normal analysis exactly.
-                    filePath: buildBabiaStyleFilePath(session.targetPath, relativePath),
-                    relativePath,
-                    // Cross-commit identity stays RELATIVE: it must match the
-                    // same file across frames regardless of where each
-                    // revision was materialized.
-                    evolutionKey: `file:${relativePath.toLocaleLowerCase()}`,
-                };
-            });
+            // Every frame rebuilds filePath against the ORIGINAL target, so the
+            // movie's tree matches the normal analysis exactly.
+            return decorateDirectoryEntries(payload, session.targetPath, analyzedTargetPath, ['evolutionKey']);
         }
         return payload.map((entry) => ({
             ...entry,

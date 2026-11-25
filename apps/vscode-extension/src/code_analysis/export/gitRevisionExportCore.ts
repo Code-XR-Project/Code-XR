@@ -5,13 +5,12 @@ import {
     ComparisonSource,
     GitAnalysisExclusion,
     HistoricalComparisonReferences,
-    buildBabiaStyleFilePath,
 } from '../historical/historicalComparisonModels';
 import {
     createGitAnalysisExclusion,
     validateGitAnalysisPayload,
 } from '../historical/gitAnalysisEligibility';
-import { toPortableRelativePath } from '../historical/gitAnalysisShared';
+import { decorateDirectoryEntries } from '../historical/gitAnalysisShared';
 import { sampleTimeline } from '../historical/gitTimelineSampler';
 import {
     GitRevisionExportRequest,
@@ -127,18 +126,7 @@ export function decorateRevisionPayload(
     analyzedTargetPath: string,
 ): Record<string, unknown>[] {
     if (targetType === 'directory') {
-        return entries.map((entry) => {
-            const sourcePath = String(entry.filePath || entry.relativePath || entry.fileName || '');
-            const relativePath = toPortableRelativePath(analyzedTargetPath, sourcePath);
-            const key = `file:${relativePath.toLocaleLowerCase()}`;
-            return {
-                ...entry,
-                filePath: buildBabiaStyleFilePath(originalTargetPath, relativePath),
-                relativePath,
-                comparisonKey: key,
-                evolutionKey: key,
-            };
-        });
+        return decorateDirectoryEntries(entries, originalTargetPath, analyzedTargetPath, ['comparisonKey', 'evolutionKey']);
     }
 
     const occurrences = new Map<string, number>();

@@ -10,7 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const { toPortableRelativePath, buildAnalyzerCacheKey } = require(path.join(projectRoot, 'out', 'code_analysis', 'historical', 'gitAnalysisShared.js'));
+const { toPortableRelativePath, buildAnalyzerCacheKey, decorateDirectoryEntries } = require(path.join(projectRoot, 'out', 'code_analysis', 'historical', 'gitAnalysisShared.js'));
 
 test('toPortableRelativePath: relative candidates are cleaned to POSIX, with an unknown fallback', () => {
     const root = path.join(os.tmpdir(), 'codexr-root');
@@ -53,4 +53,23 @@ test('buildAnalyzerCacheKey: sha256 over version, commit and the three session f
         buildAnalyzerCacheKey('v', 'c', { targetPath: 'p', targetType: 't', isDeep: false }),
         'a missing isDeep is shallow',
     );
+});
+
+test('decorateDirectoryEntries: filePath against the original target, relative keys, field order kept', () => {
+    const analyzed = path.join(os.tmpdir(), 'codexr-snapshot', 'app');
+    const rows = decorateDirectoryEntries([
+        { filePath: path.join(analyzed, 'Src', 'Main.js'), totalLines: 3 },
+        { comparisonKey: 'stale', relativePath: './lib//util.js' },
+        { fileName: 'only.js' },
+        {},
+    ], '/repo/app/', analyzed, ['comparisonKey', 'evolutionKey']);
+    assert.deepEqual(rows, [
+        { filePath: '/repo/app/Src/Main.js', totalLines: 3, relativePath: 'Src/Main.js', comparisonKey: 'file:src/main.js', evolutionKey: 'file:src/main.js' },
+        { comparisonKey: 'file:lib/util.js', relativePath: 'lib/util.js', filePath: '/repo/app/lib/util.js', evolutionKey: 'file:lib/util.js' },
+        { fileName: 'only.js', filePath: '/repo/app/only.js', relativePath: 'only.js', comparisonKey: 'file:only.js', evolutionKey: 'file:only.js' },
+        { filePath: '/repo/app/unknown', relativePath: 'unknown', comparisonKey: 'file:unknown', evolutionKey: 'file:unknown' },
+    ]);
+    // Key order is part of the JSON the modes write: an existing key keeps its slot.
+    assert.deepEqual(Object.keys(rows[1]), ['comparisonKey', 'relativePath', 'filePath', 'evolutionKey']);
+    assert.deepEqual(Object.keys(rows[0]), ['filePath', 'totalLines', 'relativePath', 'comparisonKey', 'evolutionKey']);
 });

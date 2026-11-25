@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
-import { toPortableRelativePath } from './gitAnalysisShared';
+import { decorateDirectoryEntries } from './gitAnalysisShared';
 import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';
 import { GitAnalysisSourceCatalog } from './gitAnalysisEligibility';
@@ -16,7 +16,6 @@ import {
     HistoricalComparisonReferences,
     HistoricalComparisonRequest,
     HistoricalComparisonResult,
-    buildBabiaStyleFilePath,
 } from './historicalComparisonModels';
 
 const ANALYZER_CACHE_VERSION = 'historical-v1';
@@ -191,22 +190,9 @@ export class HistoricalComparisonService {
         analyzedTargetPath: string,
     ): Record<string, unknown>[] {
         if (session.targetType === 'directory') {
-            return payload.map((entry) => {
-                const sourcePath = String(entry.filePath || entry.relativePath || entry.fileName || '');
-                const relativePath = toPortableRelativePath(analyzedTargetPath, sourcePath);
-                return {
-                    ...entry,
-                    // Both comparison sides rebuild filePath against the
-                    // ORIGINAL target (normal-analysis shape): the working
-                    // copy and the materialized commit then paint identical
-                    // quarters for the same file.
-                    filePath: buildBabiaStyleFilePath(session.targetPath, relativePath),
-                    relativePath,
-                    // Cross-side identity stays RELATIVE, independent of
-                    // where each side was analyzed.
-                    comparisonKey: `file:${relativePath.toLocaleLowerCase()}`,
-                };
-            });
+            // Both sides rebuild filePath against the ORIGINAL target, so the
+            // working copy and a materialized commit paint identical quarters.
+            return decorateDirectoryEntries(payload, session.targetPath, analyzedTargetPath, ['comparisonKey']);
         }
 
         const occurrences = new Map<string, number>();

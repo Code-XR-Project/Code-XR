@@ -340,7 +340,14 @@ test('historical snapshots use private extension storage and publish only immuta
     // Directory payloads rebuild filePath against the ORIGINAL target (the
     // normal-analysis shape the boats tree splits) while the comparison key
     // stays relative so both sides match the same file.
-    assert.match(source, /filePath: buildBabiaStyleFilePath\(session\.targetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}comparisonKey:/);
+    // Since #38 the directory branch is the shared decorateDirectoryEntries
+    // (gitAnalysisShared.ts); the service hands it the ORIGINAL target and
+    // its key name. Exact output: gitHistoryServices.test.cjs.
+    assert.match(source, /decorateDirectoryEntries\(payload, session\.targetPath, analyzedTargetPath, \['comparisonKey'\]\)/);
+    assert.match(
+        readConcatenated(['src/code_analysis/historical/gitAnalysisShared.ts']),
+        /filePath: buildBabiaStyleFilePath\(originalTargetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}decorated\[field\] = key/,
+    );
     assert.match(source, /let added = 0/);
     assert.match(source, /let removed = 0/);
     assert.match(source, /let modified = 0/);
@@ -421,7 +428,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     // Same boats tree contract as the normal analysis: directory frames
     // rebuild filePath against the ORIGINAL target while the evolution key
     // stays relative so the same file matches across commits.
-    assert.match(service, /filePath: buildBabiaStyleFilePath\(session\.targetPath, relativePath\),[\s\S]{0,500}relativePath,[\s\S]{0,500}evolutionKey:/);
+    assert.match(service, /decorateDirectoryEntries\(payload, session\.targetPath, analyzedTargetPath, \['evolutionKey'\]\)/);
     assert.match(gitService, /listTimelineSources/);
     assert.match(gitService, /'--reverse'/);
     // Precise committer time travels with every source: the short date is
