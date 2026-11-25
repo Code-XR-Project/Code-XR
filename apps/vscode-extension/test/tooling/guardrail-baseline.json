@@ -36,11 +36,11 @@
     },
     "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 205,
+    "any.total": 204,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 3,
-      "code_analysis": 90,
+      "code_analysis": 89,
       "commands": 8,
       "python_env": 5,
       "servers": 12,
@@ -87,8 +87,8 @@
   },
   "informational": {
     "src.files": 309,
-    "src.lines": 48099,
-    "src.functions": 2623,
+    "src.lines": 48069,
+    "src.functions": 2620,
     "src.unreachableLines": 39,
     "console.topFiles": [
       {

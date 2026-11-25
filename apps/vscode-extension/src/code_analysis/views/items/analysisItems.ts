@@ -36,33 +36,3 @@ export class CodeAnalysisTreeItem extends vscode.TreeItem {
     }
 }
 
-/**
- * TODO: Factory class for creating different types of analysis items
- */
-export class CodeAnalysisItemFactory {
-    
-    /**
-     * TODO: Create analysis result item
-     */
-    static createAnalysisResultItem(data: any): CodeAnalysisTreeItem {
-        // TODO: Implementation
-        return new CodeAnalysisTreeItem('TODO: Analysis Result', vscode.TreeItemCollapsibleState.Collapsed, 'analysis-result');
-    }
-
-    /**
-     * TODO: Create file analysis item
-     */
-    static createFileAnalysisItem(filePath: string): CodeAnalysisTreeItem {
-        // TODO: Implementation
-        return new CodeAnalysisTreeItem('TODO: File Analysis', vscode.TreeItemCollapsibleState.Collapsed, 'file-item');
-    }
-
-    /**
-     * TODO: Create method analysis item
-     */
-    static createMethodAnalysisItem(methodName: string): CodeAnalysisTreeItem {
-        // TODO: Implementation
-        return new CodeAnalysisTreeItem('TODO: Method Analysis', vscode.TreeItemCollapsibleState.None, 'method-item');
-    }
-}
-
