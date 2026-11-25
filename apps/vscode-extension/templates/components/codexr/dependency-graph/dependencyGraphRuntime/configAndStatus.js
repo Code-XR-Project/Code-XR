@@ -98,8 +98,13 @@
     Swift: '#f05138', Kotlin: '#7f52ff', external: '#94a3b8',
     directory: '#22d3ee', parent: '#f59e0b', symbol: '#a78bfa'
   };
+  // dependency-graph-start is retried every 500 ms while the socket is not
+  // open; 40 attempts match the 20 s transition-lock watchdog.
+  var START_SEND_MAX_ATTEMPTS = 40;
   var state = {
     initialized: false,
+    // The last dataset load failure, shown until a load succeeds.
+    loadError: null,
     availability: 'loading',
     unavailableReason: '',
     snapshot: null,

@@ -519,3 +519,94 @@ test('offline export: a session failure WITHOUT a manifest keeps the plain fallb
     // like a temporarily unreachable live server.
     assert.equal(sockets.length, 1);
 });
+
+// Epic #72 / S7 (LIFECYCLE-9, LIFECYCLE-11).
+function bootCollaborationClient() {
+    const sockets = [];
+    const timeouts = [];
+    const errors = [];
+    function createFakeElement(tag) {
+        return {
+            tagName: String(tag || '').toUpperCase(), id: '', style: {}, children: [], textContent: '',
+            appendChild(child) { this.children.push(child); return child; },
+            setAttribute() {},
+        };
+    }
+    function FakeWebSocket(url) {
+        this.url = url;
+        this.readyState = 0;
+        sockets.push(this);
+    }
+    FakeWebSocket.prototype.send = function () {};
+    FakeWebSocket.prototype.close = function () {};
+    FakeWebSocket.OPEN = 1;
+    FakeWebSocket.CONNECTING = 0;
+    const body = createFakeElement('body');
+    const fakeWindow = {
+        document: {
+            body, readyState: 'complete', createElement: createFakeElement,
+            getElementById() { return null; }, querySelector() { return null; },
+            addEventListener() {}, dispatchEvent() { return true; },
+        },
+        location: { protocol: 'http:', host: '127.0.0.1:7777' },
+        WebSocket: FakeWebSocket,
+        CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
+        addEventListener() {},
+        setTimeout(fn, ms) { timeouts.push({ fn, ms }); return timeouts.length; },
+        clearTimeout() {},
+        console: { log() {}, warn() {}, error(...args) { errors.push(args); } },
+    };
+    const client = collaborationRuntime.createClient(fakeWindow);
+    client.connect({ presenceEnabled: false, cursorPresenceEnabled: false });
+    return { client, sockets, timeouts, errors };
+}
+
+test('a runtime that throws on a room snapshot does not stop the analysis view from applying', async () => {
+    const { client, sockets, errors } = bootCollaborationClient();
+    await new Promise((resolve) => setImmediate(resolve));
+    const applied = [];
+    client.registerEntityRuntime({
+        entityKind: 'analysis-view', entityId: 'main',
+        applySharedState(entity) { applied.push(`analysis-view:${entity.mode}`); },
+    });
+    client.registerEntityRuntime({
+        entityKind: 'dependency-graph', entityId: 'main',
+        applySharedState() { applied.push('dependency-graph'); throw new Error('unexpected payload shape'); },
+    });
+    sockets[0].onmessage({ data: JSON.stringify({
+        type: 'room-snapshot',
+        payload: {
+            // The analysis view first on the wire: it is still applied last.
+            entities: [
+                { entityKind: 'analysis-view', entityId: 'main', mode: 'dependency-graph' },
+                { entityKind: 'dependency-graph', entityId: 'main', status: 'ready' },
+            ],
+            participants: [],
+        },
+    }) });
+    assert.deepEqual(applied, ['dependency-graph', 'analysis-view:dependency-graph']);
+    assert.ok(errors.some((args) => /dependency-graph:main/.test(String(args[0]))), 'the failure is logged');
+});
+
+test('a dropped room connection reconnects with a growing back-off, reset once it opens', async () => {
+    const { sockets, timeouts } = bootCollaborationClient();
+    await new Promise((resolve) => setImmediate(resolve));
+    const delays = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+        sockets.at(-1).onclose({ code: 1006 });
+        const scheduled = timeouts.at(-1);
+        delays.push(scheduled.ms);
+        scheduled.fn();
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+    // 0.9 s doubling (plus jitter of at most a quarter), capped at 15 s.
+    assert.ok(delays[0] >= 900 && delays[0] < 1200, `first delay ${delays[0]}`);
+    for (let index = 1; index < delays.length; index += 1) {
+        assert.ok(delays[index] >= Math.min(15000, 900 * 2 ** index), `delay ${index} = ${delays[index]}`);
+        assert.ok(delays[index] <= 15500, `delay ${index} = ${delays[index]} is capped`);
+    }
+    // A successful open resets the back-off.
+    sockets.at(-1).onopen();
+    sockets.at(-1).onclose({ code: 1006 });
+    assert.ok(timeouts.at(-1).ms < 1200);
+});

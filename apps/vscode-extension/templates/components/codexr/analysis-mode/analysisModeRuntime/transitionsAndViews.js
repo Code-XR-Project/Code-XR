@@ -43,6 +43,13 @@
       });
     }
     var generation = ++state.generation;
+    // Cancel, don't queue: the activation in flight belongs to an older
+    // intent. Before, this transition waited behind it with no limit, so one
+    // activate that never settled (a stalled dataset fetch) froze the switcher
+    // for the rest of the session (LIFECYCLE-1).
+    if (state.activation && state.activation.generation !== generation) {
+      state.activation.abort.abort(createModeError('aborted', 'Superseded by ' + mode + '.'));
+    }
     state.transitioning = true;
     // Target of the latest queued transition — lets the authoritative-echo
     // handler recognise a duplicate before it queues a second full cycle.
@@ -226,17 +233,22 @@
   }
 
   function createActivationToken(mode, generation) {
-    return {
+    var token = {
       mode: mode,
       generation: generation,
+      // Set by performTransition: aborted when a newer pick supersedes this
+      // activation or it times out. Lifecycles pass it to fetch().
+      signal: null,
       isCurrent: function () {
-        return generation === state.generation
+        return !token.signal?.aborted
+          && generation === state.generation
           && (
             state.pendingTransitionMode === mode
             || (!state.transitioning && state.mode === mode)
           );
       }
     };
+    return token;
   }
 
   function captureElementTransform(element) {

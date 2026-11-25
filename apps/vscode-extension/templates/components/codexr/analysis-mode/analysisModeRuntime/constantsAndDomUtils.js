@@ -62,8 +62,26 @@
     selectionPanelView: 'visualization-mode',
     controllerView: 'single.mapping',
     panelRoot: null,
-    openingSelectorFromPanel: false
+    openingSelectorFromPanel: false,
+    // The activation in flight ({ mode, generation, abort }): a newer intent
+    // aborts it instead of queueing behind it (LIFECYCLE-1).
+    activation: null,
+    // The last activation that failed ({ mode, message, at }), shown on the
+    // selector until the next successful one (LIFECYCLE-3).
+    lastError: null,
+    // The room's echo of a mode that just failed here is not re-run.
+    suppressEcho: null,
+    // A progress line a mode reports while it opens, shown on the selector.
+    selectorStatus: null
   };
+  // A mode's activate may take this long before it is treated as failed; a
+  // lifecycle can declare its own activateTimeoutMs (project evolution does).
+  var DEFAULT_ACTIVATE_TIMEOUT_MS = 45000;
+  // captureState/restoreState/deactivate are cleanup steps: one that hangs
+  // must not hold the switcher.
+  var LIFECYCLE_HOOK_TIMEOUT_MS = 8000;
+  // How long the room's echo of a mode that failed here is ignored.
+  var FAILED_MODE_ECHO_WINDOW_MS = 5000;
 
   function debugLog() {
     var args = Array.prototype.slice.call(arguments);

@@ -222,8 +222,15 @@
     if (state.collaborationRegistered) { return; }
     var client = root.CodeXRCollaborationRuntime?.getClient?.(root);
     if (!client?.registerEntityRuntime) {
-      if (attempt < 30) {
-        root.setTimeout?.(function () { registerCollaboration(attempt + 1); }, 100);
+      // Keep looking, slower after 3 s, instead of giving up: a page whose
+      // collaboration client loads late used to ignore every mode change of
+      // the room, silently (LIFECYCLE-11). No client after a minute means
+      // this page has no room (a standalone scene).
+      if (attempt === 30) {
+        root.console?.warn?.('[CodeXR][AnalysisMode] Collaboration client not ready after 3 s; still waiting for it.');
+      }
+      if (attempt < 90) {
+        root.setTimeout?.(function () { registerCollaboration(attempt + 1); }, attempt < 30 ? 100 : 1000)?.unref?.();
       }
       return;
     }
@@ -231,9 +238,15 @@
     client.registerEntityRuntime({
       entityKind: 'analysis-view',
       entityId: 'main',
-      applySharedState: function (snapshot) {
+      applySharedState: function (snapshot, meta) {
         if (VALID_MODES.has(snapshot?.mode)) {
           var viewRevision = Number(snapshot?.viewRevision || 0);
+          // A room snapshot (join or re-join) is the room's whole current
+          // state: it resets the revision floor, so a server whose session
+          // restarted at a lower revision is not ignored as "stale" forever.
+          if (meta?.source === 'snapshot') {
+            state.lastAuthoritativeViewRevision = 0;
+          }
           if (
             viewRevision > 0
             && viewRevision < state.lastAuthoritativeViewRevision
@@ -257,6 +270,17 @@
               sourceRevision: Number(snapshot.sourceRevision || 0)
             };
           }
+          // The echo of a pick that just failed on this page: re-running it
+          // would fail again (twice per click, before). The failure already
+          // told the room to go back to the selector.
+          if (
+            state.suppressEcho
+            && state.suppressEcho.mode === snapshot.mode
+            && Date.now() < state.suppressEcho.until
+          ) {
+            debugLog('Ignored the echo of an analysis that just failed here', { mode: snapshot.mode });
+            return;
+          }
           state.requestedMode = snapshot.mode === 'selection' ? state.requestedMode : snapshot.mode;
           var visibleMode = snapshot.mode;
           // Echo dedupe: a transition toward this exact mode is already in
@@ -267,6 +291,7 @@
           if (state.transitioning && state.pendingTransitionMode === visibleMode) {
             return;
           }
+
           // View routing: the mode's own lifecycle resolver wins over the
           // snapshot's controllerView. The server-side view can be stale (its
           // historical-comparison entity persists after the client clears the
@@ -309,12 +334,21 @@
         transitioning: state.transitioning,
         pendingTransitionMode: state.pendingTransitionMode,
         lastAuthoritativeViewRevision: state.lastAuthoritativeViewRevision,
-        generation: state.generation
+        generation: state.generation,
+        activation: state.activation
+          ? { mode: state.activation.mode, generation: state.activation.generation, runningMs: Date.now() - state.activation.startedAt }
+          : null,
+        lastError: state.lastError ? Object.assign({}, state.lastError) : null,
+        selectorStatus: state.selectorStatus ? Object.assign({}, state.selectorStatus) : null
       };
     },
+    setSelectorStatus: setSelectorStatus,
     __testing: {
       clearVisualizationsForSelection: clearVisualizationsForSelection,
       removeResidualVisualRoots: removeResidualVisualRoots,
+      setHookTimeoutMs: function (ms) {
+        LIFECYCLE_HOOK_TIMEOUT_MS = Number(ms) > 0 ? Number(ms) : LIFECYCLE_HOOK_TIMEOUT_MS;
+      },
       reset: function () {
         Object.keys(lifecycles).forEach(function (key) { delete lifecycles[key]; });
         state.mode = 'single';
@@ -332,6 +366,10 @@
         state.lastNormalModeRevision = 0;
         state.modeOptions = [];
         state.selectionPanelView = 'visualization-mode';
+        state.activation = null;
+        state.lastError = null;
+        state.suppressEcho = null;
+        state.selectorStatus = null;
       }
     }
   };

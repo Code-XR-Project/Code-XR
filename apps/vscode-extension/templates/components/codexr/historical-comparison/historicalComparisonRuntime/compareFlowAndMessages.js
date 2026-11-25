@@ -147,7 +147,9 @@
     setStatus(friendlyMessage, 'error');
   }
 
-  async function applySharedState(snapshot) {
+  async function applySharedState(snapshot, options) {
+    var signal = options?.signal || null;
+    var fetchOptions = signal ? { cache: 'no-store', signal: signal } : { cache: 'no-store' };
     if (!snapshot || !snapshot.result) {
       return;
     }
@@ -160,8 +162,8 @@
       setStatus('Loading comparison datasets...', 'info');
       var result = snapshot.result;
       var responses = await Promise.all([
-        fetch(result.left.url + '?revision=' + result.revision, { cache: 'no-store' }),
-        fetch(result.right.url + '?revision=' + result.revision, { cache: 'no-store' })
+        fetch(result.left.url + '?revision=' + result.revision, fetchOptions),
+        fetch(result.right.url + '?revision=' + result.revision, fetchOptions)
       ]);
       if (!responses[0].ok || !responses[1].ok) {
         throw new Error('Comparison datasets could not be loaded.');
@@ -182,6 +184,8 @@
       }
       closePanel();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), 'error');
+      if (signal?.aborted) { return; }
+      setStatus(error && typeof error.message === 'string' ? error.message : String(error), 'error');
+      if (options?.rethrow) { throw error; }
     }
   }

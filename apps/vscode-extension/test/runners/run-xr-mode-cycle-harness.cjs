@@ -1,11 +1,21 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
+const { startStaticServer } = require('../helpers/staticHttpServer.cjs');
 const { buildAssembledRuntimes } = require('../manual/buildAssembledRuntimes.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const harnessPath = path.join(projectRoot, 'test', 'manual', 'xr-mode-cycle-harness.html');
+// Served over HTTP (projectRoot at '/'): from file:// Chromium blocks fetch(),
+// so the modes' datasets never loaded and a load failure went unnoticed.
+let staticServer = null;
+async function harnessUrl() {
+  staticServer ||= await startStaticServer(projectRoot);
+  return staticServer.url(path.relative(projectRoot, harnessPath));
+}
+async function closeStaticServer() {
+  if (staticServer) { await staticServer.close(); staticServer = null; }
+}
 buildAssembledRuntimes();
 const html = fs.readFileSync(harnessPath, 'utf8');
 
@@ -32,6 +42,7 @@ async function runPlaywrightIfAvailable() {
     await runScenario(browser);
   } finally {
     await browser.close();
+    await closeStaticServer();
   }
   console.log('[xr-mode-harness] controller mode-cycle validation passed.');
 }
@@ -42,7 +53,7 @@ async function runPlaywrightIfAvailable() {
 // the controller view/mode state at every step.
 async function runScenario(browser) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.goto(pathToFileURL(harnessPath).toString(), { waitUntil: 'domcontentloaded' });
+  await page.goto(await harnessUrl(), { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#scene', { timeout: 10000 });
   await page.evaluate(() => new Promise((resolve) => {
     const scene = document.getElementById('scene');
