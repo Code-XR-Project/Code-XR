@@ -316,7 +316,9 @@ test('historical getReferences runs the Git listing through the catalogue and re
         const catalog = createCatalog();
         const service = new HistoricalComparisonService(context, session.id, session.staticRoot, catalog);
         const { references, bySha } = await sourcesBySha(service);
-        assert.equal(posix(references.repositoryRoot), posix(fs.realpathSync(fixture.repo)));
+        // realpathSync.native: on Windows os.tmpdir() can be an 8.3 short path
+        // (RUNNER~1) while Git reports the long one; only the native call expands it.
+        assert.equal(posix(fs.realpathSync.native(references.repositoryRoot)), posix(fs.realpathSync.native(fixture.repo)));
         assert.equal(references.targetRelativePath, 'app');
         assert.equal(references.activeRequest, null);
         assert.deepEqual(references.eligibility, { scannedSourceCount: references.sources.length, usableSourceCount: references.sources.length, excludedSources: [] });
