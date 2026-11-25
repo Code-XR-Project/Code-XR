@@ -664,7 +664,6 @@ def analyze_dependencies(
     nodes: List[Dict[str, object]] = []
     warnings: List[str] = []
     lookup: Dict[str, str] = {}
-    node_by_id: Dict[str, Dict[str, object]] = {}
     parsed: List[Tuple[str, str, str]] = []
     parser_availability: Dict[str, bool] = {}
     cache = _load_cache(cache_path)
@@ -747,7 +746,6 @@ def analyze_dependencies(
             "metrics": _empty_metrics(totalLines=total_lines),
         }
         nodes.append(node)
-        node_by_id[node_id] = node
         for key in _candidate_keys(relative):
             lookup.setdefault(key, node_id)
         parsed.append((node_id, language, ""))
@@ -773,12 +771,9 @@ def analyze_dependencies(
                         "metrics": _empty_metrics(),
                     }
                     nodes.append(external)
-                    node_by_id[target_id] = external
             edge_counts[(source_id, target_id, relation, confidence)] += 1
 
     edges = []
-    adjacency: Dict[str, Set[str]] = defaultdict(set)
-    reverse: Dict[str, Set[str]] = defaultdict(set)
     for (source, target, kind, confidence), occurrences in edge_counts.items():
         edge_id = _node_id("edge", f"{source}\0{target}\0{kind}")
         edges.append({
@@ -789,27 +784,7 @@ def analyze_dependencies(
             "confidence": confidence,
             "occurrences": occurrences,
         })
-        adjacency[source].add(target)
-        reverse[target].add(source)
-
-    internal_ids = [node["id"] for node in nodes if not node["external"]]
-    components = _tarjan(internal_ids, adjacency)
-    cycle_sizes = {
-        node_id: len(component)
-        for component in components if len(component) > 1
-        for node_id in component
-    }
-    for node_id, node in node_by_id.items():
-        outgoing = adjacency.get(node_id, set())
-        incoming = reverse.get(node_id, set())
-        node["metrics"].update({
-            "fanIn": len(incoming),
-            "fanOut": len(outgoing),
-            "degree": len(incoming | outgoing),
-            "dependentCount": len(incoming),
-            "cycleSize": cycle_sizes.get(node_id, 0),
-            "relationCount": sum(1 for edge in edges if edge["source"] == node_id or edge["target"] == node_id),
-        })
+    _add_graph_metrics(nodes, edges)
 
     for language, available in parser_availability.items():
         if not available:
