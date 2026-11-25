@@ -16,7 +16,7 @@ def read_text_lines(file_path: str) -> List[str]:
         return []
 
 
-def build_line_metrics(file_path: str, comment_lines: int = 0) -> Dict[str, int | float]:
+def build_line_metrics(file_path: str, comment_lines: int = 0) -> Dict[str, float]:
     lines = read_text_lines(file_path)
     total_lines = len(lines)
     blank_lines = sum(1 for line in lines if not line.strip())
