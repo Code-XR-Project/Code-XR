@@ -37,6 +37,14 @@ test('dependency runtime uses a worker and owns three layouts', () => {
   assert.match(runtime, /drawAxes/);
   // Legends are laid out in a non-overlapping grid above the graph.
   assert.match(runtime, /graphTopY \+ LEGEND_SLOT\.originYOffset/);
+  // PANELS-7: the stack is capped at two rows and every pinned card closes
+  // on its own; the card board is registered with the screens' placement.
+  assert.match(runtime, /perRow: 2, maxRows: 2,/);
+  assert.match(runtime, /maxRows: LEGEND_SLOT\.maxRows/);
+  assert.match(runtime, /'data-codexr-role', 'legend-close'/);
+  assert.match(runtime, /if \(self\.isPinned\(pinnedSelection\)\) \{ self\.togglePinnedSelection\(pinnedSelection\); \}/);
+  assert.match(runtime, /card\.closeButton\.parentNode\.removeChild\(card\.closeButton\)/);
+  assert.match(runtime, /'data-codexr-panel-obstacle': 'dependency-legend-board'/);
   assert.match(runtime, /CodeXRCommonRuntime\.legendSlotPosition/);
   assert.doesNotMatch(runtime, /tooltipCameraPosition/);
   assert.match(runtime, /transitionDuration.*600/);

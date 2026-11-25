@@ -87,6 +87,13 @@
   - A double click on Generate or Compare, or two participants starting at once, no longer shows an error to everyone while the first job runs: "already running" goes only to the person who asked. A participant who joins mid-job sees it running.
   - A cancelled analysis is no longer recorded as "this revision has no data", which hid that commit from both Git pickers until the session ended.
   - Git-history exports no longer wait forever on one file: a file analysis is stopped after 2 minutes and retried once, and a Python worker that is slow to start (antivirus on Windows) reduces the number of workers instead of failing the export.
+- **Panels in the XR room no longer land on top of each other or on the table.**
+  - Two screens added with **+ Add screen** used to appear in exactly the same spot, one hidden inside the other. An added or brought screen (**+ Add screen**, **Bring**) now goes to the nearest free spot beside the one in front of you: to the right, to the left, then above.
+  - Screens now keep clear of the analysis table and the space its charts stand in, the project evolution playback banner, and the dependency graph's card stack, as well as of walls and other screens.
+  - A screen set to **follow** you now stops at walls and other screens like a dragged one, instead of passing through them.
+  - Two screens turned toward you at an angle could still pass through each other while you dragged or followed them. The collision check now compares the whole panel, not a few points on it.
+  - Added screens now use the scene's screen settings (sizes, distance in front of you, collision) instead of built-in defaults, and their idle label shows the screen's name ("vscreen 2") instead of an internal id.
+  - Dependency graph cards now have a close button (**X**, at the top-right corner of a pinned card). The stack stays at most two rows high and grows sideways, so six pinned cards no longer climb through the ceiling.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

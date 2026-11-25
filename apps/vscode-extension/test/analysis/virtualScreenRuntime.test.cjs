@@ -427,7 +427,7 @@ test('collision bumpers stop look-at, drag, and resize at walls and screens', ()
     assert.match(runtimeSource, /refs\.config\.collisionBounds/);
     // Other screens are thin oriented-box obstacles.
     assert.match(runtimeSource, /function getScreenObstacles/);
-    assert.match(runtimeSource, /inverseMatrix/);
+    assert.match(runtimeSource, /function orientedBoxesOverlap/);
     // Rotation bumper: full look-at first, then shrinking slerp fractions,
     // else hold the pose (a stop, never a limit while clear of obstacles).
     assert.match(runtimeSource, /function constrainOrientation/);
@@ -446,6 +446,59 @@ test('collision bumpers stop look-at, drag, and resize at walls and screens', ()
     // Screens sit back on the wall; the bumper is what keeps them out of it.
     const xrTemplate = readProjectFile('templates', 'xr', 'file', 'xr-visualization.html');
     assert.match(xrTemplate, /"anchoredPosition":\{"x":0,"y":4\.2,"z":-22\}/);
+});
+
+test('one placement registry: added and brought screens land on a free spot (PANELS-3/5/9)', () => {
+    // Placement (add, Bring) searches beside its target instead of stacking.
+    assert.match(runtimeSource, /function findFreePlacement/);
+    assert.match(runtimeSource, /applyFollowTransform\(\{ resolveFreeSpot: true \}\)/);
+    assert.match(runtimeSource, /options\?\.resolveFreeSpot === true\s*\? findFreePlacement\(/);
+    // Following is a bumper too, no longer a pass-through.
+    assert.match(runtimeSource, /: constrainPosition\(desiredWorldPosition\)/);
+    // The registry: other screens, any shown panel tagged as an obstacle, and
+    // the table plus the volume its charts stand in.
+    assert.match(runtimeSource, /querySelectorAll\?\.\('\[data-codexr-panel-obstacle\]'\)/);
+    assert.match(runtimeSource, /'#codexr-analysis-table-geometry'/);
+    assert.match(runtimeSource, /DEFAULT_TABLE_CHART_HEADROOM = 2\.2/);
+    // A screen already inside an obstacle is never frozen by the bumpers.
+    assert.equal((runtimeSource.match(/if \(isCurrentPoseBlocked\(\)\) \{/g) || []).length, 2);
+    // Mode overlays register themselves while shown.
+    const overlay = readProjectFile('templates', 'components', 'codexr', 'project-evolution', 'projectEvolutionRuntime', 'overlayAndPanel.js');
+    assert.match(overlay, /'data-codexr-panel-obstacle': 'project-evolution-overlay'/);
+});
+
+test('added screens use the scene screen config and their display name (PANELS-8)', () => {
+    const source = readProjectFile('templates', 'components', 'codexr', 'virtual-screen', 'codexrMultiScreenManagerRuntime.js');
+    let definition = null;
+    const sceneConfig = {
+        anchoredPosition: { x: 0, y: 4.2, z: -22 },
+        followOffset: { x: 0, y: 0.8, z: -2.4 },
+        sizeSteps: [3.2, 4.8],
+        collisionBounds: { min: { x: -5, y: 0, z: -5 }, max: { x: 5, y: 5, z: 5 } },
+    };
+    const fakeRoot = {
+        AFRAME: { components: {}, registerComponent(name, def) { definition = def; } },
+        document: {
+            getElementById: (id) => (id === 'codexr-tooling-config-virtual-screen'
+                ? { textContent: JSON.stringify(sceneConfig) }
+                : null),
+            querySelector: () => null,
+        },
+        addEventListener() {},
+    };
+    new Function('globalThis', source)(fakeRoot);
+    assert.ok(definition, 'the manager registers its component');
+    const context = {
+        ...definition,
+        runtimeFactory: { readSceneConfig: runtimeModule.readSceneConfig },
+        collaborationClient: null,
+    };
+    const config = definition.buildRuntimeInitConfig.call(context, 'screen:peer:3', { displayName: 'vscreen 3' });
+    assert.deepEqual(config.followOffset, sceneConfig.followOffset);
+    assert.deepEqual(config.sizeSteps, sceneConfig.sizeSteps);
+    assert.deepEqual(config.collisionBounds, sceneConfig.collisionBounds);
+    assert.equal(config.labels.idle, 'vscreen 3: choose source independently.');
+    assert.equal(typeof runtimeModule.readSceneConfig, 'function');
 });
 
 test('AR frees the screens from the invisible room shell', () => {

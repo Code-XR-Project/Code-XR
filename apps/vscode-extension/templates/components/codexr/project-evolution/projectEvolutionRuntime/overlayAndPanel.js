@@ -7,7 +7,9 @@
       id: 'codexr-project-evolution-playback-overlay',
       position: '0 3.35 -18',
       visible: 'false',
-      'data-codexr-role': 'project-evolution playback-overlay'
+      'data-codexr-role': 'project-evolution playback-overlay',
+      // Registered with the screens' placement registry while shown (PANELS-9).
+      'data-codexr-panel-obstacle': 'project-evolution-overlay'
     });
     overlay.appendChild(entity('a-plane', {
       width: 6.2,

@@ -523,7 +523,12 @@
       },
 
       buildRuntimeInitConfig: function (instanceId, options) {
-        const sharedConfig = root.__CODEXR_VIRTUAL_SCREEN_CONFIG__ || {};
+        // Same source as the scene's own screens (the JSON config script):
+        // the global alone is unset in the XR templates, so added screens
+        // used to fall back to the runtime defaults (PANELS-8).
+        const sharedConfig = this.runtimeFactory?.readSceneConfig?.(root)
+          || root.__CODEXR_VIRTUAL_SCREEN_CONFIG__
+          || {};
         const collaborationConfig = root.__CODEXR_COLLABORATION_CONFIG__ || {};
         const transform = options?.transform || {};
         const position = transform.position || options?.anchoredPosition || sharedConfig.anchoredPosition || { x: 0, y: 8, z: 6 };
@@ -572,7 +577,7 @@
           },
           labels: {
             ...(sharedConfig.labels || {}),
-            idle: options?.idleLabel || `${instanceId}: choose source independently.`,
+            idle: options?.idleLabel || `${options?.displayName || instanceId}: choose source independently.`,
           },
         };
       },

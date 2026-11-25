@@ -473,6 +473,7 @@
     "components/codexr/virtual-screen/virtualScreenRuntime/followAndTransform.js",
     "components/codexr/virtual-screen/virtualScreenRuntime/manifest.json",
     "components/codexr/virtual-screen/virtualScreenRuntime/moduleAndConfig.js",
+    "components/codexr/virtual-screen/virtualScreenRuntime/placementRegistry.js",
     "components/codexr/virtual-screen/virtualScreenRuntime/pointerAndDrag.js",
     "components/codexr/virtual-screen/virtualScreenRuntime/relayTransport.js",
     "components/codexr/virtual-screen/virtualScreenRuntime/sharedState.js",

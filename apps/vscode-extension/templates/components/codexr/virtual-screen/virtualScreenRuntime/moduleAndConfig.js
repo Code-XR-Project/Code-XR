@@ -273,6 +273,13 @@
     }
   }
 
+  // The scene's own screen config: the JSON script the templates and the
+  // export write, then the legacy global. Screens added at runtime read it
+  // too, so they share the scene's sizes, offsets and collision (PANELS-8).
+  function readSceneConfig(win) {
+    return readConfigFromJsonScript(win) || win?.__CODEXR_VIRTUAL_SCREEN_CONFIG__ || null;
+  }
+
   function createRuntime(win) {
     const state = {
       initialized: false,
