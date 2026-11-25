@@ -12,6 +12,9 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 // Each flag lands with its fallout fixes in one commit (ROADMAP W3-03..05).
 const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch', 'noImplicitReturns', 'noUnusedParameters'];
 
+// What `npm run lint` covers (ROADMAP W3-11/12).
+const LINT_ROOTS = ['src', 'test', 'scripts', 'webpack.config.js', 'eslint.config.mjs'];
+
 // Rules that count toward the --max-warnings budget instead of failing outright
 // (ROADMAP W3-08..10). Each landed with the budget raised to its measured count.
 const WARN_BUDGET_RULES = [
@@ -80,6 +83,21 @@ test('the warn-only budget rules are configured as warnings over src', async () 
     for (const rule of WARN_BUDGET_RULES) {
         const value = rules[rule];
         assert.equal(Array.isArray(value) ? value[0] : value, 'warn', `${rule} is a warning`);
+    }
+});
+
+test('the lint script names its roots explicitly and every root exists', () => {
+    // Explicit roots, never `eslint .`: the scope is reviewable in the diff and
+    // a new directory (a fixture corpus, a generated folder) is not linted by
+    // accident.
+    const manifest = require(path.join(projectRoot, 'package.json'));
+    const args = manifest.scripts.lint.split(/\s+/);
+    const roots = args.slice(args.findIndex((arg) => arg.endsWith('eslint.js')) + 1)
+        .filter((arg, index, all) => !arg.startsWith('--') && !(all[index - 1] || '').startsWith('--'));
+
+    assert.deepEqual(roots, LINT_ROOTS);
+    for (const root of roots) {
+        assert.ok(fs.existsSync(path.join(projectRoot, root)), `${root} exists`);
     }
 });
 

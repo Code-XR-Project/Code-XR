@@ -953,6 +953,8 @@ test('bridges: references requests answer the requester, and a failure is a refe
         const failHost = createHost({
             historical: fakeService({ getReferences: failing }),
             evolution: fakeService({ getReferences: async () => {
+                // A non-Error rejection is the case under test.
+                // eslint-disable-next-line no-throw-literal
                 throw 'plain string';
             } }),
         });

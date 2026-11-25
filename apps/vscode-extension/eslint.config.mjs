@@ -1,5 +1,16 @@
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import globals from "globals";
+
+const NODE_JS_RULES = {
+    "no-undef": "error",
+    "no-unused-vars": ["error", { args: "none", caughtErrors: "none", varsIgnorePattern: "^_" }],
+    curly: "error",
+    eqeqeq: "error",
+    "no-throw-literal": "error",
+    "no-eval": "error",
+    semi: "error",
+};
 
 export default [{
     // Generated output, dependencies and shipped data are never linted. The
@@ -37,8 +48,9 @@ export default [{
         }],
 
         // Unused imports and locals are errors. Parameters and caught errors
-        // stay allowed (noUnusedParameters is a separate, later step); a
-        // leading underscore marks a deliberately unused binding.
+        // stay allowed here: unused parameters are typecheck's job
+        // (noUnusedParameters in tsconfig.check.json). A leading underscore
+        // marks a deliberately unused binding.
         "@typescript-eslint/no-unused-vars": ["error", {
             args: "none",
             caughtErrors: "none",
@@ -81,4 +93,30 @@ export default [{
         "@typescript-eslint/no-floating-promises": ["warn", { checkThenables: true }],
         "@typescript-eslint/no-misused-promises": "warn",
     },
+}, {
+    // Node-side JavaScript: the test suites, the build/packaging scripts and
+    // the two config files. Same style rules as src/, plus the scope checks a
+    // compiler would otherwise give TypeScript for free.
+    files: ["test/**/*.cjs", "webpack.config.js"],
+    languageOptions: {
+        ecmaVersion: 2024,
+        sourceType: "commonjs",
+        globals: { ...globals.node },
+    },
+    rules: NODE_JS_RULES,
+}, {
+    // The browser harnesses ship callbacks to Playwright's page.evaluate, which
+    // run in the page: there, and only there, window and document exist.
+    files: ["test/runners/run-*-harness.cjs"],
+    languageOptions: {
+        globals: { window: "readonly", document: "readonly" },
+    },
+}, {
+    files: ["scripts/**/*.mjs", "eslint.config.mjs"],
+    languageOptions: {
+        ecmaVersion: 2024,
+        sourceType: "module",
+        globals: { ...globals.node },
+    },
+    rules: NODE_JS_RULES,
 }];

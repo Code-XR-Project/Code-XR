@@ -42,7 +42,7 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 | Command | Purpose |
 |---|---|
 | `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies the Python backend; `templates/` and `examples/` ship from the package root, not from `dist/`) |
-| `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/` |
+| `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/`, `test/`, `scripts/` and the config files |
 | `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests |
 | `npm run test:unit` | Node native runner over `test/**/*.test.cjs` (not Mocha) |
 | `npm run test:python` (= `test:backend`) / `test:analysis` / `test:all` | Python suites in `backend/tests` / per-language end-to-end metrics / everything |

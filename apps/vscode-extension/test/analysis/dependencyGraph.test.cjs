@@ -466,7 +466,7 @@ test('normal analysis restores its cached chart immediately and refreshes its re
       return name === 'babia-queryjson' ? dataSource : null;
     },
     setAttribute(name, value) {
-      if (name === 'babia-queryjson') dataSource = value;
+      if (name === 'babia-queryjson') { dataSource = value; }
     },
   };
   const table = { setAttribute() {} };
@@ -485,10 +485,10 @@ test('normal analysis restores its cached chart immediately and refreshes its re
     console,
     document: {
       getElementById(id) {
-        if (id === 'codexr-tooling-config-xr-mapping-ui') return config;
-        if (id === 'normalChart') return chart;
-        if (id === 'data') return dataEntity;
-        if (id === 'codexrAnalysisTable') return table;
+        if (id === 'codexr-tooling-config-xr-mapping-ui') { return config; }
+        if (id === 'normalChart') { return chart; }
+        if (id === 'data') { return dataEntity; }
+        if (id === 'codexrAnalysisTable') { return table; }
         return null;
       },
       querySelectorAll(selector) {
