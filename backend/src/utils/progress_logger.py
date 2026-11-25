@@ -6,6 +6,7 @@ Utilidad para enviar mensajes de progreso desde scripts Python a executePython.t
 
 import sys
 import json
+import os
 
 class ProgressLogger:
     """
@@ -42,3 +43,10 @@ def log_error(message: str):
 def log_debug(message: str):
     """Función de conveniencia para logging de debug"""
     progress_logger.log_debug(message)
+
+
+def emit_directory_progress(current: int, total: int, file_path: str) -> None:
+    """One {"progress": ...} stderr line per analysed file (parsed by executePython.ts)."""
+    percentage = int((current / total) * 100) if total > 0 else 0
+    file_name = os.path.basename(file_path)
+    print(json.dumps({'progress': {'current': current, 'total': total, 'percentage': percentage, 'fileName': file_name, 'message': f'Analyzing {file_name}... ({current}/{total})'}}), file=sys.stderr)

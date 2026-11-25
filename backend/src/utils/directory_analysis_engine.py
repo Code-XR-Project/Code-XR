@@ -3,12 +3,16 @@
 Shared directory-analysis engine used by XR and LivePanel.
 """
 
+import json
 import os
+import sys
 from typing import Callable, Dict, Iterable, List, Optional
 
+from babia_path_utils import normalize_output_paths
 from directory_scan_utils import filter_explicit_files_for_analysis, scan_directory_files_for_analysis
 from file_analysis_engine import build_file_snapshot
 from file_metric_summary import build_file_metric_summary
+from progress_logger import emit_directory_progress
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -55,3 +59,22 @@ def analyze_directory_entries(
         entries.append(build_file_metric_summary(snapshot, file_path, relative_path))
 
     return entries
+
+
+def run_directory_analysis(
+    directory_path: str,
+    recursive: bool,
+    filtered_files: Optional[Iterable[str]],
+    log_label: str,
+    start_message: str,
+) -> List[Dict[str, object]]:
+    """The shared body of the three directory coordinators: log, analyse with progress, normalise."""
+    print(json.dumps({'debug': f'{log_label}: {start_message}'}), file=sys.stderr)
+    entries = analyze_directory_entries(
+        directory_path,
+        recursive=recursive,
+        filtered_files=filtered_files,
+        progress_callback=emit_directory_progress,
+    )
+    print(json.dumps({'debug': f'{log_label}: Generated {len(entries)} file records'}), file=sys.stderr)
+    return normalize_output_paths(entries)
