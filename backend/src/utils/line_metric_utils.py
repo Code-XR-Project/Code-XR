@@ -12,7 +12,7 @@ def read_text_lines(file_path: str) -> List[str]:
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
             return file.readlines()
-    except Exception:
+    except (OSError, ValueError):
         return []
 
 
