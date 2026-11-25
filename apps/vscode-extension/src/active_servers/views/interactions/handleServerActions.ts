@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { ActiveServer } from '../../model/activeServerModel';
 import { getActiveServerRegistry } from '../../registry/activeServerRegistry';
@@ -9,7 +8,13 @@ import { RemoteAccessManager } from '../../../remote_access';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
 import { COLLABORATION_AVATARS, ConnectedParticipantSummary } from '../../../collaboration';
 import type { PairingRequestSummary } from '../../../remote_access/security/remoteSessionAuthority';
-import { DetailRow, formatDetailSections, formatDuration } from '../../../utils/detailDialog';
+import { formatDetailSections, formatDuration } from '../../../utils/detailDialog';
+import {
+    formatPendingRequests,
+    formatRemoteStatus,
+    formatServerDetails,
+    getServerLabel,
+} from './serverDetailsFormat';
 
 /** Minimal shape needed to hand out pairing codes; kept structural so the
  *  handler does not depend on the concrete server runtime class. */
@@ -192,9 +197,9 @@ export class ServerActionHandlers {
         const connectedAt = new Date(participant.connectedAt);
         const connectedFor = Number.isNaN(connectedAt.getTime())
             ? participant.connectedAt
-            : `${connectedAt.toLocaleTimeString()} · ${this.formatDuration(Date.now() - connectedAt.getTime())} ago`;
+            : `${connectedAt.toLocaleTimeString()} · ${formatDuration(Date.now() - connectedAt.getTime())} ago`;
 
-        const detail = this.formatDetailSections([
+        const detail = formatDetailSections([
             [
                 ['Name', participant.displayName],
                 ['Role', participant.role === 'host' ? 'Host' : 'Guest'],
@@ -337,15 +342,15 @@ export class ServerActionHandlers {
         const server = getActiveServerRegistry().getServer(serverId);
         const state = server?.remoteAccess;
         const title = server
-            ? `Cross-network connection — ${this.getServerLabel(server)}`
+            ? `Cross-network connection — ${getServerLabel(server)}`
             : 'Cross-network connection';
 
         const detail = state
-            ? this.formatDetailSections([
+            ? formatDetailSections([
                 [
-                    ['Status', this.formatRemoteStatus(state, false)],
+                    ['Status', formatRemoteStatus(state, false)],
                     ['Pending', state.status === 'shared'
-                        ? this.formatPendingRequests(state.pendingRequests)
+                        ? formatPendingRequests(state.pendingRequests)
                         : undefined],
                 ],
                 [
@@ -356,7 +361,7 @@ export class ServerActionHandlers {
                     ['Error', state.error],
                 ],
             ])
-            : this.formatDetailSections([[['Status', 'Not shared']]]);
+            : formatDetailSections([[['Status', 'Not shared']]]);
 
         await vscode.window.showInformationMessage(title, { modal: true, detail });
     }
@@ -424,18 +429,13 @@ export class ServerActionHandlers {
             return;
         }
 
-        const details = this.formatServerDetails(server);
+        const details = formatServerDetails(server);
 
         console.log(`ACTIVE_SERVER: Displaying detailed information for server ${serverId}`);
         await vscode.window.showInformationMessage(
-            `Server Information — ${this.getServerLabel(server)}`,
+            `Server Information — ${getServerLabel(server)}`,
             { modal: true, detail: details }
         );
-    }
-
-    /** Friendly server name used as dialog titles. @private */
-    private static getServerLabel(server: ActiveServer): string {
-        return server.customName?.trim() || `localhost:${server.port}`;
     }
 
     /**
@@ -642,108 +642,5 @@ export class ServerActionHandlers {
                 console.error(`ACTIVE_SERVER: Unknown action: ${action}`);
                 vscode.window.showErrorMessage(`Unknown action: ${action}`);
         }
-    }
-
-    /**
-     * Format server details for display
-     * @private
-     */
-    private static formatServerDetails(server: ActiveServer): string {
-        const metadata = (server.metadata || {}) as Record<string, unknown>;
-        const remote = server.remoteAccess;
-        const protocol = server.certMode === 'http' ? 'http' : 'https';
-        const lanUrl = `${protocol}://${NetworkUtils.getLocalIPAddress()}:${server.port}`;
-
-        return this.formatDetailSections([
-            [
-                ['Status', `${this.formatServerStatus(server)} · up ${this.formatDuration(Date.now() - server.timestamp)}`],
-                ['Address', server.url],
-                ['Network', lanUrl],
-                ['Port', String(server.port)],
-                ['Security', this.formatCertMode(server.certMode)],
-                ['Mode', server.launchMode === 'browser' ? 'Browser' : 'Panel'],
-            ],
-            [
-                ['Serving', server.htmlFile ? path.basename(server.htmlFile) : undefined],
-                ['Folder', this.shortenPath(String(metadata.staticRoot || ''))],
-                ['Type', metadata.serverType ? String(metadata.serverType) : undefined],
-                ['Details', metadata.description ? String(metadata.description) : undefined],
-            ],
-            [
-                ['Cross-network', remote && remote.status !== 'stopped'
-                    ? this.formatRemoteStatus(remote)
-                    : undefined],
-                ['Invitation', remote?.invitationUrl],
-            ],
-        ]);
-    }
-
-    /** @private */
-    private static formatDetailSections(sections: DetailRow[][]): string {
-        return formatDetailSections(sections);
-    }
-
-    /** @private */
-    private static formatServerStatus(server: ActiveServer): string {
-        return server.status.charAt(0).toUpperCase() + server.status.slice(1);
-    }
-
-    /** @private */
-    private static formatCertMode(certMode: ActiveServer['certMode']): string {
-        switch (certMode) {
-            case 'https-default':
-                return 'HTTPS (self-signed)';
-            case 'https-custom':
-                return 'HTTPS (custom certificate)';
-            default:
-                return 'HTTP';
-        }
-    }
-
-    /** @private */
-    private static formatRemoteStatus(
-        state: NonNullable<ActiveServer['remoteAccess']>,
-        withPending = true,
-    ): string {
-        if (state.status === 'error') {
-            return `Error · ${state.error || 'tunnel failed'}`;
-        }
-        if (state.status === 'starting') {
-            return 'Starting...';
-        }
-        if (state.status === 'shared') {
-            return withPending && state.pendingRequests > 0
-                ? `Shared · ${this.formatPendingRequests(state.pendingRequests)}`
-                : 'Shared';
-        }
-        return 'Not shared';
-    }
-
-    /** @private */
-    private static formatPendingRequests(count: number): string {
-        if (count === 0) {
-            return 'None';
-        }
-        return count === 1 ? '1 request waiting' : `${count} requests waiting`;
-    }
-
-    /**
-     * Keep long paths readable: leading segments collapse into an ellipsis.
-     * @private
-     */
-    private static shortenPath(value: string, keepSegments = 2): string | undefined {
-        if (!value) {
-            return undefined;
-        }
-        const segments = value.split(/[\\/]/).filter(Boolean);
-        if (segments.length <= keepSegments) {
-            return value;
-        }
-        return `…${path.sep}${segments.slice(-keepSegments).join(path.sep)}`;
-    }
-
-    /** @private */
-    private static formatDuration(milliseconds: number): string {
-        return formatDuration(milliseconds);
     }
 }

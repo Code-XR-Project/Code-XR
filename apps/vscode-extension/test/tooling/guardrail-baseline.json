@@ -81,9 +81,9 @@
     }
   },
   "informational": {
-    "src.files": 326,
+    "src.files": 327,
     "src.lines": 48313,
-    "src.functions": 2653,
+    "src.functions": 2651,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -282,7 +282,7 @@
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",
-        "lines": 750
+        "lines": 647
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
