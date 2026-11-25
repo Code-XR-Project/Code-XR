@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cp from 'child_process';
+import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { VenvManager } from '../../../python_env/runtime/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
@@ -8,6 +9,11 @@ import { classifyStderrLine } from './pythonStderrStream';
 import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
+
+/** How a spawned backend process ended, before its output is interpreted. */
+type SpawnOutcome =
+    | { kind: 'spawn-error'; error: Error }
+    | { kind: 'closed'; code: number | null; stdout: string; stderr: string };
 
 /** The record executePythonScript resolves instead of throwing when a run fails. */
 interface PythonScriptFailure {
@@ -348,176 +354,184 @@ export class ExecutePython {
     ): Promise<any> {
         logger.debug(() => `Executing Python script: ${scriptName}`);
         logger.debug(() => `Script arguments: ${args.join(' ')}`);
-
-        logger.debug('STARTING ANALYSIS');
-        logger.debug(() => `Script: ${scriptName}`);
         logger.debug(() => `Target: ${args.includes('--target') ? args[args.indexOf('--target') + 1] : 'Multiple targets'}`);
         logger.debug(() => `Mode: ${args.includes('--mode') ? args[args.indexOf('--mode') + 1] : 'Unknown'}`);
         logger.debug(() => `Type: ${args.includes('--type') ? args[args.indexOf('--type') + 1] : 'Unknown'}`);
 
         try {
-            const pythonExecutable = this.venvManager.getPythonExecutablePath();
-            if (!pythonExecutable) {
-                throw new Error('Python executable not found in virtual environment');
-            }
-            logger.debug(() => `Using Python executable: ${pythonExecutable}`);
-
-            if (!require('fs').existsSync(pythonExecutable)) {
-                throw new Error(`Python executable does not exist: ${pythonExecutable}`);
-            }
-
-            logger.debug('Python executable verified to exist');
-
-            const extensionPath = this.context.extensionPath;
-            // The shipped dist copy, or in ExtensionMode.Development only the
-            // monorepo sources at <repo>/backend/src (see backendScriptPath.ts).
-            const { distPath, developmentPath } = getBackendScriptCandidates(this.context, scriptName);
-            const scriptPath = resolveBackendScriptPath(this.context, scriptName);
-
-            if (scriptPath !== distPath) {
-                logger.debug('Script not found in dist, trying src directory');
-            }
-
-            logger.debug(() => `Script path: ${scriptPath}`);
-
-            if (!require('fs').existsSync(scriptPath)) {
-                logger.error('Python script not found in either location:');
-                logger.error(`Dist path: ${distPath} (exists: ${require('fs').existsSync(distPath)})`);
-                if (developmentPath !== undefined) {
-                    logger.error(`Src path: ${developmentPath} (exists: ${require('fs').existsSync(developmentPath)})`);
-                }
-                logger.error(`Extension path: ${extensionPath}`);
-
-                try {
-                    const distCodeAnalysisPath = path.join(extensionPath, 'dist', 'code_analysis');
-                    if (require('fs').existsSync(distCodeAnalysisPath)) {
-                        const distContents = require('fs').readdirSync(distCodeAnalysisPath);
-                        logger.error(`dist/code_analysis contents: ${distContents.join(', ')}`);
-                    }
-
-                    const distPythonPath = path.join(extensionPath, 'dist', 'code_analysis', 'python');
-                    if (require('fs').existsSync(distPythonPath)) {
-                        const distPythonContents = require('fs').readdirSync(distPythonPath);
-                        logger.error(`dist/code_analysis/python contents: ${distPythonContents.join(', ')}`);
-                    }
-                } catch (listError) {
-                    logger.error('Failed to list directory contents:', listError);
-                }
-
-                throw new Error(`Python script does not exist: ${scriptPath}`);
-            }
-
-            logger.debug('Python script verified to exist');
-
-            const fullArgs = [scriptPath, ...args];
-            logger.debug(() => `Full command: ${pythonExecutable} ${fullArgs.join(' ')}`);
-            logger.debug('About to spawn Python process...');
-
-            return new Promise((resolve) => {
-                logger.debug('Creating child process with spawn...');
-                logger.debug(() => `Executable: "${pythonExecutable}"`);
-                logger.debug(() => `Arguments: [${fullArgs.map(arg => `"${arg}"`).join(', ')}]`);
-                logger.debug(() => `Working directory: ${path.dirname(scriptPath)}`);
-
-                const childProcess = cp.spawn(pythonExecutable, fullArgs, {
-                    cwd: path.dirname(scriptPath),
-                    env: process.env,
-                    stdio: ['pipe', 'pipe', 'pipe'],
-                });
-
-                logger.debug(() => `Process spawned with PID: ${childProcess.pid}`);
-
-                childProcess.on('error', (error) => {
-                    logger.error('Failed to start Python process:', error);
-                    logger.error('Error details:', {
-                        code: (error as any).code,
-                        errno: (error as any).errno,
-                        syscall: (error as any).syscall,
-                        path: (error as any).path,
-                    });
-                    resolve({
-                        success: false,
-                        error: `Failed to start Python process: ${error}`,
-                        rawOutput: '',
-                    });
-                });
-
-                let stdoutData = '';
-                let stderrData = '';
-
-                childProcess.stdout.on('data', (data) => {
-                    stdoutData += data.toString();
-                    logger.debug(() => `stdout chunk received (${data.toString().length} chars)`);
-                });
-
-                childProcess.stderr.on('data', (data) => {
-                    const stderrLine = data.toString();
-                    stderrData += stderrLine;
-
-                    for (const line of stderrLine.split('\n')) {
-                        const classified = classifyStderrLine(line);
-                        if (!classified) {
-                            continue;
-                        }
-                        for (const logLine of classified.logLines) {
-                            logger.debug(logLine);
-                        }
-                        if (classified.report && progress) {
-                            progress.report(classified.report);
-                        }
-                    }
-                });
-
-                childProcess.on('close', (code) => {
-                    logger.debug('ANALYSIS COMPLETED');
-                    logger.debug(() => `Script: ${scriptName}`);
-                    logger.debug(() => `Exit code: ${code}`);
-                    logger.debug(() => `Output size: ${stdoutData.length} chars`);
-                    logger.debug(() => `Error output size: ${stderrData.length} chars`);
-
-                    if (code === 0) {
-                        logger.debug('SUCCESS - Processing results...');
-
-                        try {
-                            const parsedResult = this.parsePythonOutput(stdoutData);
-                            logger.debug('Successfully parsed Python result');
-                            if (Array.isArray(parsedResult)) {
-                                logger.debug(() => `Result type: Array with ${parsedResult.length} items`);
-                            } else if (typeof parsedResult === 'object' && parsedResult !== null) {
-                                logger.debug('Result type: Object');
-                                if ((parsedResult as any).files && Array.isArray((parsedResult as any).files)) {
-                                    logger.debug(() => `Files analyzed: ${(parsedResult as any).files.length}`);
-                                }
-                                if ((parsedResult as any).summary) {
-                                    logger.debug('Summary available: Yes');
-                                }
-                            }
-                            resolve(parsedResult);
-                        } catch (parseError) {
-                            logger.warn('JSON markers not found or parse failed');
-                            resolve({
-                                success: false,
-                                error: parseError instanceof Error ? parseError.message : String(parseError),
-                                rawOutput: stdoutData,
-                            });
-                        }
-                    } else {
-                        logger.error(`FAILED - Python script failed with exit code ${code}`);
-                        if (stderrData.trim()) {
-                            logger.error(`Error output preview: ${stderrData.substring(0, 200)}${stderrData.length > 200 ? '...' : ''}`);
-                        }
-                        resolve({
-                            success: false,
-                            error: `Python script failed with exit code ${code}`,
-                            stderr: stderrData,
-                            stdout: stdoutData,
-                        });
-                    }
-                });
-            });
+            const pythonExecutable = this.resolvePythonExecutable();
+            const scriptPath = this.resolveScriptPath(scriptName);
+            const outcome = await this.spawnAndCollect(pythonExecutable, [scriptPath, ...args], path.dirname(scriptPath), progress);
+            return this.toScriptResult(outcome, scriptName);
         } catch (error) {
             logger.error('Error executing Python script:', error);
             throw error;
+        }
+    }
+
+    /** The venv interpreter; throws when it is not configured or not on disk. */
+    private resolvePythonExecutable(): string {
+        const pythonExecutable = this.venvManager.getPythonExecutablePath();
+        if (!pythonExecutable) {
+            throw new Error('Python executable not found in virtual environment');
+        }
+        logger.debug(() => `Using Python executable: ${pythonExecutable}`);
+
+        if (!fs.existsSync(pythonExecutable)) {
+            throw new Error(`Python executable does not exist: ${pythonExecutable}`);
+        }
+        return pythonExecutable;
+    }
+
+    /**
+     * The backend script to run: the shipped dist copy, or in
+     * ExtensionMode.Development only the monorepo sources at <repo>/backend/src
+     * (see backendScriptPath.ts). Throws, after logging what dist holds, when
+     * neither exists.
+     */
+    private resolveScriptPath(scriptName: string): string {
+        const extensionPath = this.context.extensionPath;
+        const { distPath, developmentPath } = getBackendScriptCandidates(this.context, scriptName);
+        const scriptPath = resolveBackendScriptPath(this.context, scriptName);
+
+        if (scriptPath !== distPath) {
+            logger.debug('Script not found in dist, trying src directory');
+        }
+        logger.debug(() => `Script path: ${scriptPath}`);
+
+        if (fs.existsSync(scriptPath)) {
+            return scriptPath;
+        }
+
+        logger.error('Python script not found in either location:');
+        logger.error(`Dist path: ${distPath} (exists: ${fs.existsSync(distPath)})`);
+        if (developmentPath !== undefined) {
+            logger.error(`Src path: ${developmentPath} (exists: ${fs.existsSync(developmentPath)})`);
+        }
+        logger.error(`Extension path: ${extensionPath}`);
+
+        try {
+            for (const segments of [['dist', 'code_analysis'], ['dist', 'code_analysis', 'python']]) {
+                const directory = path.join(extensionPath, ...segments);
+                if (fs.existsSync(directory)) {
+                    logger.error(`${segments.join('/')} contents: ${fs.readdirSync(directory).join(', ')}`);
+                }
+            }
+        } catch (listError) {
+            logger.error('Failed to list directory contents:', listError);
+        }
+
+        throw new Error(`Python script does not exist: ${scriptPath}`);
+    }
+
+    /**
+     * Spawns the interpreter and collects both streams. Each stderr line is
+     * classified as it arrives and may report progress. Resolves once, with
+     * whichever comes first: a spawn error or the process closing.
+     */
+    private spawnAndCollect(
+        executable: string,
+        fullArgs: string[],
+        cwd: string,
+        progress?: vscode.Progress<{message?: string; increment?: number}>,
+    ): Promise<SpawnOutcome> {
+        logger.debug(() => `Full command: ${executable} ${fullArgs.join(' ')}`);
+        logger.debug(() => `Working directory: ${cwd}`);
+
+        return new Promise((resolve) => {
+            const childProcess = cp.spawn(executable, fullArgs, {
+                cwd,
+                env: process.env,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+
+            logger.debug(() => `Process spawned with PID: ${childProcess.pid}`);
+
+            childProcess.on('error', (error: NodeJS.ErrnoException) => {
+                logger.error('Failed to start Python process:', error);
+                logger.error('Error details:', {
+                    code: error.code,
+                    errno: error.errno,
+                    syscall: error.syscall,
+                    path: error.path,
+                });
+                resolve({ kind: 'spawn-error', error });
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            childProcess.stdout.on('data', (data) => {
+                stdout += data.toString();
+                logger.debug(() => `stdout chunk received (${data.toString().length} chars)`);
+            });
+
+            childProcess.stderr.on('data', (data) => {
+                const stderrChunk = data.toString();
+                stderr += stderrChunk;
+
+                for (const line of stderrChunk.split('\n')) {
+                    const classified = classifyStderrLine(line);
+                    if (!classified) {
+                        continue;
+                    }
+                    for (const logLine of classified.logLines) {
+                        logger.debug(logLine);
+                    }
+                    if (classified.report && progress) {
+                        progress.report(classified.report);
+                    }
+                }
+            });
+
+            childProcess.on('close', (code) => {
+                resolve({ kind: 'closed', code, stdout, stderr });
+            });
+        });
+    }
+
+    /**
+     * Maps a spawn outcome to what executePythonScript resolves: the parsed
+     * payload, or a failure record (never a rejection).
+     */
+    private toScriptResult(outcome: SpawnOutcome, scriptName: string): any {
+        if (outcome.kind === 'spawn-error') {
+            return {
+                success: false,
+                error: `Failed to start Python process: ${outcome.error}`,
+                rawOutput: '',
+            };
+        }
+
+        const { code, stdout, stderr } = outcome;
+        logger.debug(() => `Script ${scriptName} completed with exit code ${code} (stdout ${stdout.length} chars, stderr ${stderr.length} chars)`);
+
+        if (code !== 0) {
+            logger.error(`FAILED - Python script failed with exit code ${code}`);
+            if (stderr.trim()) {
+                logger.error(`Error output preview: ${stderr.substring(0, 200)}${stderr.length > 200 ? '...' : ''}`);
+            }
+            return {
+                success: false,
+                error: `Python script failed with exit code ${code}`,
+                stderr,
+                stdout,
+            };
+        }
+
+        try {
+            const parsedResult = this.parsePythonOutput(stdout);
+            logger.debug(() => Array.isArray(parsedResult)
+                ? `Parsed Python result: array with ${parsedResult.length} items`
+                : `Parsed Python result: ${typeof parsedResult}`);
+            return parsedResult;
+        } catch (parseError) {
+            logger.warn('JSON markers not found or parse failed');
+            return {
+                success: false,
+                error: parseError instanceof Error ? parseError.message : String(parseError),
+                rawOutput: stdout,
+            };
         }
     }
 

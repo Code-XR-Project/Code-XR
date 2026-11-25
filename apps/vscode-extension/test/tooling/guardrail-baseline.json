@@ -24,11 +24,11 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 166,
+    "any.total": 159,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
-      "code_analysis": 87,
+      "code_analysis": 80,
       "commands": 8,
       "python_env": 5,
       "servers": 11,
@@ -53,14 +53,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 44,
-    "complexity.over10": 68,
+    "functions.over80Lines": 42,
+    "complexity.over10": 67,
     "complexity.over15": 24,
     "complexity.over20": 5,
     "complexity.over30": 3,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 550,
+    "eslint.maxWarnings": 541,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 48949,
-    "src.functions": 3276,
+    "src.lines": 48963,
+    "src.functions": 3272,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -80,12 +80,12 @@
     ],
     "any.topFiles": [
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "count": 19
-      },
-      {
         "file": "src/code_analysis/engine/watchers/directoryReanalysisData.ts",
         "count": 17
+      },
+      {
+        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "count": 12
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/services/activeAnalysesDataService.ts",
@@ -240,8 +240,8 @@
         "lines": 562
       },
       {
-        "file": "src/code_analysis/historical/gitRepositoryService.ts",
-        "lines": 560
+        "file": "src/code_analysis/engine/utils/executePython.ts",
+        "lines": 561
       }
     ]
   },
