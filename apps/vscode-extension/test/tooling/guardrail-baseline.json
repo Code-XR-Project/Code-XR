@@ -3,7 +3,7 @@
   "generatedBy": "node test/tooling/measureGuardrails.cjs --write",
   "definitions": {
     "console.total": "CallExpression nodes whose callee is console.<log|warn|error|debug|info|trace> in src/**/*.ts (console calls inside template strings are text, not nodes, and are not counted)",
-    "console.byModule": "console.total grouped by the first directory under src/ (files directly in src/ count as \"(root)\")",
+    "console.byModule": "console.total grouped by the first directory under src/, or the first two for src/core/ and src/features/ (files directly in src/ count as \"(root)\")",
     "catch.consoleOnly": "catch clauses with at least one statement where every statement is a console.* call",
     "catch.emptyNoComment": "catch clauses with an empty block that also carries no comment explaining the swallow",
     "any.total": "AnyKeyword type nodes in src/**/*.ts (\": any\", \"as any\", \"<any>\", \"any[]\", generic arguments)",
@@ -20,7 +20,7 @@
   "ratcheted": {
     "console.total": 2,
     "console.byModule": {
-      "core": 2
+      "core/logging": 2
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
@@ -72,12 +72,59 @@
     "src.lines": 49563,
     "src.functions": 3338,
     "src.unreachableLines": 0,
+    "console.byFile": {
+      "src/core/logging/sink.ts": 2
+    },
     "console.topFiles": [
       {
         "file": "src/core/logging/sink.ts",
         "count": 2
       }
     ],
+    "any.byFile": {
+      "src/babia_templates/processing/templateProcessor.ts": 2,
+      "src/code_analysis/commands/subsections/analysis_settings/analysis_file_mode/analysisFileModeCommands.ts": 1,
+      "src/code_analysis/engine/core/analysisSession.ts": 1,
+      "src/code_analysis/engine/parsers/directoryXRParser.ts": 2,
+      "src/code_analysis/engine/parsers/fileXRParser.ts": 3,
+      "src/code_analysis/engine/processors/analysisBootstrap.ts": 2,
+      "src/code_analysis/engine/servers/models/sessionServerModels.ts": 1,
+      "src/code_analysis/engine/servers/serverLaunchOrchestrator.ts": 2,
+      "src/code_analysis/engine/utils/executePython.ts": 2,
+      "src/code_analysis/engine/utils/themeUtils.ts": 1,
+      "src/code_analysis/utils/filesByLanguageSortingUtils.ts": 1,
+      "src/code_analysis/views/AnalysisSectionProvider.ts": 1,
+      "src/code_analysis/views/subsections/analysis_settings/profile_configuration/profileConfiguration.ts": 1,
+      "src/commands/analysis/AnalysisCommands.ts": 5,
+      "src/commands/index.ts": 1,
+      "src/platform/commands/commandRegistry.ts": 2,
+      "src/platform/tree/baseInterfaces.ts": 5,
+      "src/python_env/runtime/venvManager.ts": 5,
+      "src/servers/runtime/http/httpRespond.ts": 1,
+      "src/servers/runtime/httpsTlsOptions.ts": 1,
+      "src/servers/runtime/index.ts": 1,
+      "src/servers/runtime/multiServerLauncher.ts": 1,
+      "src/servers/runtime/serverFactory.ts": 1,
+      "src/servers/runtime/sse/SSEManager.ts": 1,
+      "src/servers/storage/serverSettingsManager.ts": 4,
+      "src/servers/views/items/configurationItems.ts": 1,
+      "src/utils/commandBuilder.ts": 5,
+      "src/utils/commonCommands.ts": 2,
+      "src/utils/jsonFieldAnalyzer.ts": 5,
+      "src/utils/uriPathConverter.ts": 1,
+      "src/views/ModularTreeDataProvider.ts": 5,
+      "src/views/active_servers/items/activeServerItems.ts": 1,
+      "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts": 3,
+      "src/views/learn_more/interactions/handleLearnMoreClicks.ts": 1,
+      "src/views/visualization_settings/VisualizationSettingsSectionProvider.ts": 2,
+      "src/views/visualize_data/VisualizeDataSectionProvider.ts": 1,
+      "src/views/visualize_data/items/visualizeDataItems.ts": 2,
+      "src/visualization_settings/storage/settingsStorage.ts": 3,
+      "src/visualization_settings/utils/settingsAccessors.ts": 1,
+      "src/visualization_settings/views/items/visualizationSettingsItems.ts": 1,
+      "src/visualize_data/runtime/visualizationRestorer.ts": 1,
+      "src/visualize_data/views/interactions/visualizationLauncher.ts": 1
+    },
     "any.topFiles": [
       {
         "file": "src/commands/analysis/AnalysisCommands.ts",

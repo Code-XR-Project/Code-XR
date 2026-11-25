@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { measure, readBaseline, compareRatcheted, describeChange } = require('./measureGuardrails.cjs');
+const { measure, readBaseline, compareRatcheted, rekeyBaseline, describeChange, moduleOf } = require('./measureGuardrails.cjs');
 
 const bulletList = (changes) => changes.map((change) => `  - ${describeChange(change)}`).join('\n');
 
@@ -85,4 +85,52 @@ test('the comparison tells a regression from an improvement', () => {
     // A lint ceiling may only come down once it exists, and may not disappear.
     assert.deepEqual(compareRatcheted({ 'eslint.maxWarnings': 130 }, { 'eslint.maxWarnings': 120 }).worse.length, 1);
     assert.deepEqual(compareRatcheted({ 'eslint.maxWarnings': null }, { 'eslint.maxWarnings': 120 }).worse.length, 1);
+});
+
+test('modules are the first folder under src/, or the first two under core/ and features/', () => {
+    assert.equal(moduleOf('src/extension.ts'), '(root)');
+    assert.equal(moduleOf('src/platform/logging/logger.ts'), 'platform');
+    assert.equal(moduleOf('src/core/server/http/httpRespond.ts'), 'core/server');
+    assert.equal(moduleOf('src/features/analysis/views/analysisItems.ts'), 'features/analysis');
+    assert.equal(moduleOf('src/core/extensionContext.ts'), 'core');
+});
+
+test('--renamed re-keys the baseline through a move map, so a pure move reports no change', () => {
+    const onDisk = new Set(['src/features/x/views/big.ts', 'src/core/server/a.ts', 'src/old/still.ts']);
+    const exists = (file) => onDisk.has(file);
+    const moves = {
+        'src/old/big.ts': 'src/features/x/views/big.ts',
+        'src/old/a.ts': 'src/core/server/a.ts',
+        'src/old/still.ts': 'src/core/server/still.ts', // later batch: not moved yet
+    };
+    const committed = {
+        ratcheted: {
+            'any.byModule': { old: 5 },
+            'console.byModule': { old: 1 },
+            'size.filesOver500': ['src/old/big.ts', 'src/old/still.ts'],
+            'reachability.unreachable': [],
+        },
+        informational: {
+            'any.byFile': { 'src/old/big.ts': 2, 'src/old/a.ts': 1, 'src/old/still.ts': 2 },
+            'console.byFile': { 'src/old/a.ts': 1 },
+        },
+        waivers: [],
+    };
+    const measured = {
+        'any.byModule': { 'core/server': 1, 'features/x': 2, old: 2 },
+        'console.byModule': { 'core/server': 1 },
+        'size.filesOver500': ['src/features/x/views/big.ts', 'src/old/still.ts'],
+        'reachability.unreachable': [],
+    };
+    const rekeyed = rekeyBaseline(committed, moves, measured, exists);
+    assert.deepEqual(compareRatcheted(measured, rekeyed.ratcheted), { worse: [], moved: [] });
+    // Without the map the same move looks like a regression.
+    assert.ok(compareRatcheted(measured, committed.ratcheted).worse.length > 0);
+    // A count that really changed is still caught after re-keying.
+    const worse = compareRatcheted({ ...measured, 'any.byModule': { 'core/server': 2, 'features/x': 2, old: 2 } }, rekeyed.ratcheted).worse;
+    assert.deepEqual(worse.map((change) => change.metric), ['any.byModule.core/server']);
+    // A baseline recorded before the per-file counts existed accepts a pure regrouping only.
+    const legacy = { ratcheted: { 'console.byModule': { core: 2 }, 'any.byModule': {} }, informational: {}, waivers: [] };
+    assert.deepEqual(rekeyBaseline(legacy, {}, { 'console.byModule': { 'core/logging': 2 }, 'any.byModule': {} }, exists).ratcheted['console.byModule'], { 'core/logging': 2 });
+    assert.deepEqual(rekeyBaseline(legacy, {}, { 'console.byModule': { 'core/logging': 3 }, 'any.byModule': {} }, exists).ratcheted['console.byModule'], { core: 2 });
 });

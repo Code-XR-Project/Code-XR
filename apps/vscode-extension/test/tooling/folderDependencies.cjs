@@ -4,7 +4,9 @@
  * The folder-level import graph of src/, for the dependency-direction test.
  *
  * A "folder" is the first directory under src/ (`src/extension.ts` is
- * "(root)"). Every relative import counts, including `import type`,
+ * "(root)"), or the first two under the areas listed in `twoLevelAreas` of
+ * folderDependencies.json (`core/server`, `features/analysis`): there each
+ * subsystem or feature is its own unit. Every relative import counts, including `import type`,
  * `export … from`, dynamic `import()`, `require()` and `import('…')` type
  * nodes: a type edge is still an edge a future package split has to honour.
  *
@@ -37,9 +39,18 @@ function toSrcRelative(file) {
     return path.relative(srcRoot, file).split(path.sep).join('/');
 }
 
+function readData() {
+    return JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+}
+
+const twoLevelAreas = new Set(readData().twoLevelAreas || []);
+
 function folderOf(file) {
     const segments = toSrcRelative(file).split('/');
-    return segments.length > 1 ? segments[0] : ROOT_FOLDER;
+    if (segments.length === 1) {
+        return ROOT_FOLDER;
+    }
+    return twoLevelAreas.has(segments[0]) && segments.length > 2 ? `${segments[0]}/${segments[1]}` : segments[0];
 }
 
 function resolveRelative(fromFile, specifier) {
@@ -142,19 +153,15 @@ function twoWayPairs(edges) {
     return pairs.sort();
 }
 
-function sourceFolders() {
-    return fs.readdirSync(srcRoot, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => entry.name)
-        .concat(ROOT_FOLDER)
-        .sort();
+function sourceFolders({ graph }) {
+    return [...new Set([...graph.keys()].map(folderOf))].sort();
 }
 
 function measure() {
     const fileGraph = buildFileGraph();
     const edges = folderEdges(fileGraph);
     return {
-        folders: sourceFolders(),
+        folders: sourceFolders(fileGraph),
         edges,
         twoWayPairs: twoWayPairs(edges),
         vscodeFree: vscodeFreeFiles(fileGraph),
@@ -162,11 +169,7 @@ function measure() {
     };
 }
 
-function readData() {
-    return JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-}
-
-module.exports = { measure, readData, dataPath, ROOT_FOLDER };
+module.exports = { measure, readData, folderOf, dataPath, ROOT_FOLDER };
 
 if (require.main === module) {
     const measured = measure();

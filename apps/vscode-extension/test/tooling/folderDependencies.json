@@ -1,23 +1,134 @@
 {
-  "description": "Allowed import directions between the top-level folders of src/ (story #42). Checked by test/tooling/dependencyDirection.test.cjs; `node test/tooling/folderDependencies.cjs` prints the measured matrix. When files move (story #55), rewrite this file, not the test.",
+  "description": "Allowed import directions between the folders of src/ (stories #42, #55). A folder is the first directory under src/, or the first two under the areas in `twoLevelAreas`. Checked by test/tooling/dependencyDirection.test.cjs; `node test/tooling/folderDependencies.cjs` prints the measured matrix. When files move, rewrite this file, not the test.",
+  "twoLevelAreas": [
+    "core",
+    "features"
+  ],
+  "layers": [
+    "app",
+    "features",
+    "core",
+    "platform",
+    "shared"
+  ],
+  "layersNote": "Top to bottom: a folder may import its own layer or a lower one, never a higher one, and a feature never imports another feature. Folders outside these areas (the pre-#55 tree, `(root)`) are not ranked. Each exception needs a reason.",
+  "layerExceptions": {},
   "mayImport": {
-    "(root)": ["active_servers", "code_analysis", "collaboration", "commands", "core", "remote_access", "servers", "utils", "views"],
-    "active_servers": ["code_analysis", "collaboration", "core", "platform", "remote_access", "servers", "utils"],
-    "babia_examples": ["core", "platform", "servers", "utils"],
-    "babia_templates": ["core", "platform", "utils"],
-    "code_analysis": ["active_servers", "babia_templates", "core", "platform", "python_env", "servers", "utils"],
+    "(root)": [
+      "active_servers",
+      "code_analysis",
+      "collaboration",
+      "commands",
+      "core",
+      "core/logging",
+      "core/startup",
+      "remote_access",
+      "servers",
+      "utils",
+      "views"
+    ],
+    "active_servers": [
+      "code_analysis",
+      "collaboration",
+      "core/logging",
+      "platform",
+      "remote_access",
+      "servers",
+      "utils"
+    ],
+    "babia_examples": [
+      "core/logging",
+      "platform",
+      "servers",
+      "utils"
+    ],
+    "babia_templates": [
+      "core/logging",
+      "platform",
+      "utils"
+    ],
+    "code_analysis": [
+      "active_servers",
+      "babia_templates",
+      "core/logging",
+      "platform",
+      "python_env",
+      "servers",
+      "utils"
+    ],
     "collaboration": [],
-    "commands": ["active_servers", "babia_examples", "code_analysis", "collaboration", "core", "learn_more", "platform", "python_env", "remote_access", "servers", "utils", "visualization_settings", "visualize_data"],
-    "core": [],
-    "learn_more": ["platform"],
+    "commands": [
+      "active_servers",
+      "babia_examples",
+      "code_analysis",
+      "collaboration",
+      "core/logging",
+      "learn_more",
+      "platform",
+      "python_env",
+      "remote_access",
+      "servers",
+      "utils",
+      "visualization_settings",
+      "visualize_data"
+    ],
+    "core": [
+      "core/logging"
+    ],
+    "core/logging": [],
+    "core/startup": [],
+    "learn_more": [
+      "platform"
+    ],
     "platform": [],
-    "python_env": ["core", "platform"],
-    "remote_access": ["active_servers", "collaboration", "core", "servers"],
-    "servers": ["active_servers", "code_analysis", "collaboration", "core", "platform", "remote_access", "utils"],
-    "utils": ["core", "platform", "visualization_settings"],
-    "views": ["active_servers", "babia_examples", "code_analysis", "collaboration", "core", "platform", "python_env", "servers", "visualization_settings", "visualize_data"],
-    "visualization_settings": ["core", "platform"],
-    "visualize_data": ["active_servers", "babia_templates", "core", "platform", "servers", "utils"]
+    "python_env": [
+      "core/logging",
+      "platform"
+    ],
+    "remote_access": [
+      "active_servers",
+      "collaboration",
+      "core/logging",
+      "servers"
+    ],
+    "servers": [
+      "active_servers",
+      "code_analysis",
+      "collaboration",
+      "core/logging",
+      "platform",
+      "remote_access",
+      "utils"
+    ],
+    "utils": [
+      "core/logging",
+      "platform",
+      "visualization_settings"
+    ],
+    "views": [
+      "active_servers",
+      "babia_examples",
+      "code_analysis",
+      "collaboration",
+      "core/logging",
+      "platform",
+      "python_env",
+      "servers",
+      "visualization_settings",
+      "visualize_data"
+    ],
+    "visualization_settings": [
+      "core/logging",
+      "platform"
+    ],
+    "visualize_data": [
+      "active_servers",
+      "babia_templates",
+      "core/logging",
+      "platform",
+      "servers",
+      "utils"
+    ]
   },
   "twoWayPairs": {
     "active_servers<->code_analysis": "Stopping a server closes its analysis session (active_servers/runtime/serverControl.ts -> code_analysis sessionRegistry), and the analysis watchers follow server removal (code_analysis/services/serverWatcherIntegration.ts -> the active-server registry and ServerControl). Both sides are the analysis<->server pair of docs/cleanup/src-layout.md §3.5; breaking it needs an event or callback seam, which is story #13 territory.",
