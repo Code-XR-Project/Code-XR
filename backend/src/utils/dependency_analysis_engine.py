@@ -744,15 +744,7 @@ def analyze_dependencies(
             "relativePath": relative,
             "language": language,
             "external": False,
-            "metrics": {
-                "totalLines": total_lines,
-                "fanIn": 0,
-                "fanOut": 0,
-                "degree": 0,
-                "dependentCount": 0,
-                "cycleSize": 0,
-                "relationCount": 0,
-            },
+            "metrics": _empty_metrics(totalLines=total_lines),
         }
         nodes.append(node)
         node_by_id[node_id] = node
@@ -778,10 +770,7 @@ def analyze_dependencies(
                         "kind": "external",
                         "label": external_key,
                         "external": True,
-                        "metrics": {
-                            "totalLines": 0, "fanIn": 0, "fanOut": 0, "degree": 0,
-                            "dependentCount": 0, "cycleSize": 0, "relationCount": 0,
-                        },
+                        "metrics": _empty_metrics(),
                     }
                     nodes.append(external)
                     node_by_id[target_id] = external
