@@ -69,6 +69,26 @@
     return Array.from(new Set(dataEntities));
   }
 
+  // Reads the url of a babia-queryjson value in either form: the parsed
+  // object, or the raw declaration string ("url: ./data.json; ...") that
+  // getAttribute returns before A-Frame initialised the component. Reading
+  // the raw string as the url produced "url: url: ./data.json?...", which no
+  // later refresh could repair; any leaked "url:" prefix is stripped here.
+  function readQueryJsonUrl(value) {
+    var raw = '';
+    if (typeof value === 'string') {
+      var match = /(?:^|;)\s*url\s*:\s*([^;]*)/.exec(value);
+      raw = match ? match[1] : '';
+    } else if (value && typeof value.url === 'string') {
+      raw = value.url;
+    }
+    raw = raw.trim();
+    while (/^url\s*:/i.test(raw)) {
+      raw = raw.replace(/^url\s*:\s*/i, '');
+    }
+    return raw.trim();
+  }
+
   async function refreshNormalDataSources(modeRevision) {
     var doc = root.document;
     if (!doc || modeRevision <= state.lastNormalModeRevision) {
@@ -83,7 +103,7 @@
       if (!current) {
         return;
       }
-      var currentUrl = typeof current === 'string' ? current : current.url || '';
+      var currentUrl = readQueryJsonUrl(current);
       if (!currentUrl) {
         return;
       }
