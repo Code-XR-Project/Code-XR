@@ -12,7 +12,10 @@ import { ServerWatcherIntegration } from '../../../../services/serverWatcherInte
 import { ActiveAnalysisItem, ActiveAnalysesDataService } from '../services/activeAnalysesDataService';
 import { CommandRegistration } from '../../../../commands/subsections/analysis_settings/analysis_file_mode';
 import { analysisRefreshCoordinator } from '../../../../refresh/analysisRefreshCoordinator';
-import { resolveAnalysisServerCapabilities } from '../../../../../servers/runtime/analysisServerCapabilities';
+import {
+    AnalysisServerCapabilities,
+    resolveAnalysisServerCapabilities,
+} from '../../../../../servers/runtime/analysisServerCapabilities';
 import {
     buildExportManifest,
     configureOfflineExportHtml,
@@ -21,7 +24,7 @@ import {
     relativizeExportArtifacts,
     writeExportReadme,
 } from '../../../../export/exportManifest';
-import { buildExportModeItems, interpretExportSelection } from '../../../../export/exportModeSelection';
+import { buildExportModeItems, ExportSelection, interpretExportSelection } from '../../../../export/exportModeSelection';
 import {
     exportGitRevisionData,
     inspectGitRevisionExport,
@@ -42,6 +45,20 @@ import {
     publishExportPackage,
     validateExportPackage,
 } from '../../../../export/exportPackageTransaction';
+
+/** The Git steps of the export wizard: a request to run, or the wizard stops. */
+type GitExportPrompt =
+    | { kind: 'cancelled' }
+    | { kind: 'request'; request: GitRevisionExportRequest };
+
+/** What the wizard decided; gitExportRequest is set exactly when selection.gitTimeline is. */
+interface ExportPlan {
+    sourcePath: string;
+    destinationPath: string;
+    selection: ExportSelection;
+    capabilities: AnalysisServerCapabilities;
+    gitExportRequest: GitRevisionExportRequest | undefined;
+}
 
 class ExportCancelledError extends Error {
     public constructor() {
@@ -308,110 +325,158 @@ export class ActiveAnalysesCommands {
 
         let gitExportRequest: GitRevisionExportRequest | undefined;
         if (selection.gitTimeline) {
-            try {
-                const preflight = await inspectGitRevisionExport(this.extensionContext, session);
-                if (preflight.commitCount < 1) {
-                    vscode.window.showErrorMessage(
-                        'Historical comparison and Project evolution need at least one Git commit to export.',
-                    );
-                    return;
-                }
-                const scopeItem = await vscode.window.showQuickPick([
-                    {
-                        label: `Entire Git history — ${preflight.commitCount.toLocaleString()} commits`,
-                        description: 'Every commit reachable from all branches and tags',
-                        scope: { kind: 'all' } as GitRevisionScope,
-                    },
-                    {
-                        label: 'Only the latest N commits…',
-                        description: 'Newest commits across all branches and tags; working copy is added separately',
-                        scope: { kind: 'latest', count: 1 } as GitRevisionScope,
-                    },
-                ], {
-                    title: 'Export Git timeline: choose history range',
-                    placeHolder: `${preflight.commitCount.toLocaleString()} commits are available`,
-                });
-                if (!scopeItem) {
-                    return;
-                }
-                let scope = scopeItem.scope;
-                if (scope.kind === 'latest') {
-                    const rawCount = await vscode.window.showInputBox({
-                        title: 'Export Git timeline: number of latest commits',
-                        prompt: `Enter a value from 1 to ${preflight.commitCount.toLocaleString()}.`
-                            + ' The working copy is included in addition to this number.',
-                        value: String(Math.min(100, preflight.commitCount)),
-                        validateInput: (value) => {
-                            const count = Number(value);
-                            return Number.isInteger(count)
-                                && count >= 1
-                                && count <= preflight.commitCount
-                                ? undefined
-                                : `Enter a whole number between 1 and ${preflight.commitCount}.`;
-                        },
-                    });
-                    if (rawCount === undefined) {
-                        return;
-                    }
-                    scope = validateGitRevisionScope(
-                        { kind: 'latest', count: Number(rawCount) },
-                        preflight.commitCount,
-                    );
-                }
-
-                const balancedPlan = calculateGitExportWorkerPlan('balanced');
-                const maximumPlan = calculateGitExportWorkerPlan('maximum');
-                const performanceItem = await vscode.window.showQuickPick([
-                    {
-                        label: `Balanced — ${balancedPlan.workerCount} workers`,
-                        description: 'Keeps CPU and memory available for VS Code',
-                        profile: 'balanced' as GitExportPerformanceProfile,
-                    },
-                    {
-                        label: `Maximum speed — ${maximumPlan.workerCount} workers`,
-                        description: 'Uses the highest safe local concurrency',
-                        profile: 'maximum' as GitExportPerformanceProfile,
-                    },
-                ], {
-                    title: 'Export Git timeline: choose performance',
-                    placeHolder: 'Workers are persistent and analyze distinct Git files in parallel',
-                });
-                if (!performanceItem) {
-                    return;
-                }
-                gitExportRequest = {
-                    scope,
-                    performanceProfile: performanceItem.profile,
-                };
-
-                const gitModeNames = [
-                    selection.historicalComparison ? 'Historical comparison' : '',
-                    selection.projectEvolution ? 'Project evolution' : '',
-                ].filter(Boolean).join(' and ');
-                const selectedCount = scope.kind === 'all'
-                    ? preflight.commitCount
-                    : scope.count;
-                const selectedPlan = performanceItem.profile === 'maximum'
-                    ? maximumPlan
-                    : balancedPlan;
-                const confirmation = await vscode.window.showWarningMessage(
-                    `${gitModeNames} will export ${selectedCount.toLocaleString()} Git commits`
-                    + ` plus the working copy using ${selectedPlan.workerCount} persistent workers. `
-                    + 'Unchanged Git files are analyzed once and shared across revisions.',
-                    { modal: true },
-                    'Continue Export',
-                );
-                if (confirmation !== 'Continue Export') {
-                    return;
-                }
-            } catch (error) {
-                vscode.window.showErrorMessage(
-                    `The Git timeline cannot be exported: ${error instanceof Error ? error.message : String(error)}`,
-                );
+            const gitPrompt = await this.promptGitExportRequest(session, selection);
+            if (gitPrompt.kind === 'cancelled') {
                 return;
             }
+            gitExportRequest = gitPrompt.request;
         }
 
+        const destinationPath = await this.chooseExportDestination(session, sourcePath);
+        if (!destinationPath) {
+            return;
+        }
+        await this.writeExportPackage(session, {
+            sourcePath,
+            destinationPath,
+            selection,
+            capabilities,
+            gitExportRequest,
+        });
+    }
+
+    /**
+     * The Git timeline steps of the export wizard: preflight, history range,
+     * N, performance and the modal 'Continue Export'. Every dismissal and
+     * every failure (already reported) is `cancelled`.
+     */
+    private async promptGitExportRequest(
+        session: UnifiedAnalysisSession,
+        selection: ExportSelection,
+    ): Promise<GitExportPrompt> {
+        try {
+            const preflight = await inspectGitRevisionExport(this.extensionContext, session);
+            if (preflight.commitCount < 1) {
+                vscode.window.showErrorMessage(
+                    'Historical comparison and Project evolution need at least one Git commit to export.',
+                );
+                return { kind: 'cancelled' };
+            }
+            const scope = await this.promptGitRevisionScope(preflight.commitCount);
+            if (!scope) {
+                return { kind: 'cancelled' };
+            }
+
+            const balancedPlan = calculateGitExportWorkerPlan('balanced');
+            const maximumPlan = calculateGitExportWorkerPlan('maximum');
+            const performanceItem = await vscode.window.showQuickPick([
+                {
+                    label: `Balanced — ${balancedPlan.workerCount} workers`,
+                    description: 'Keeps CPU and memory available for VS Code',
+                    profile: 'balanced' as GitExportPerformanceProfile,
+                },
+                {
+                    label: `Maximum speed — ${maximumPlan.workerCount} workers`,
+                    description: 'Uses the highest safe local concurrency',
+                    profile: 'maximum' as GitExportPerformanceProfile,
+                },
+            ], {
+                title: 'Export Git timeline: choose performance',
+                placeHolder: 'Workers are persistent and analyze distinct Git files in parallel',
+            });
+            if (!performanceItem) {
+                return { kind: 'cancelled' };
+            }
+
+            const selectedCount = scope.kind === 'all'
+                ? preflight.commitCount
+                : scope.count;
+            const selectedPlan = performanceItem.profile === 'maximum'
+                ? maximumPlan
+                : balancedPlan;
+            if (!(await this.confirmGitExport(selection, selectedCount, selectedPlan.workerCount))) {
+                return { kind: 'cancelled' };
+            }
+            return { kind: 'request', request: { scope, performanceProfile: performanceItem.profile } };
+        } catch (error) {
+            vscode.window.showErrorMessage(
+                `The Git timeline cannot be exported: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            return { kind: 'cancelled' };
+        }
+    }
+
+    /** The modal confirmation; true only on 'Continue Export'. */
+    private async confirmGitExport(
+        selection: ExportSelection,
+        selectedCount: number,
+        workerCount: number,
+    ): Promise<boolean> {
+        const gitModeNames = [
+            selection.historicalComparison ? 'Historical comparison' : '',
+            selection.projectEvolution ? 'Project evolution' : '',
+        ].filter(Boolean).join(' and ');
+        const confirmation = await vscode.window.showWarningMessage(
+            `${gitModeNames} will export ${selectedCount.toLocaleString()} Git commits`
+            + ` plus the working copy using ${workerCount} persistent workers. `
+            + 'Unchanged Git files are analyzed once and shared across revisions.',
+            { modal: true },
+            'Continue Export',
+        );
+        return confirmation === 'Continue Export';
+    }
+
+    /** History range, then N for "latest"; undefined when either is dismissed. */
+    private async promptGitRevisionScope(commitCount: number): Promise<GitRevisionScope | undefined> {
+        const scopeItem = await vscode.window.showQuickPick([
+            {
+                label: `Entire Git history — ${commitCount.toLocaleString()} commits`,
+                description: 'Every commit reachable from all branches and tags',
+                scope: { kind: 'all' } as GitRevisionScope,
+            },
+            {
+                label: 'Only the latest N commits…',
+                description: 'Newest commits across all branches and tags; working copy is added separately',
+                scope: { kind: 'latest', count: 1 } as GitRevisionScope,
+            },
+        ], {
+            title: 'Export Git timeline: choose history range',
+            placeHolder: `${commitCount.toLocaleString()} commits are available`,
+        });
+        if (!scopeItem) {
+            return undefined;
+        }
+        if (scopeItem.scope.kind !== 'latest') {
+            return scopeItem.scope;
+        }
+        const rawCount = await vscode.window.showInputBox({
+            title: 'Export Git timeline: number of latest commits',
+            prompt: `Enter a value from 1 to ${commitCount.toLocaleString()}.`
+                + ' The working copy is included in addition to this number.',
+            value: String(Math.min(100, commitCount)),
+            validateInput: (value) => {
+                const count = Number(value);
+                return Number.isInteger(count)
+                    && count >= 1
+                    && count <= commitCount
+                    ? undefined
+                    : `Enter a whole number between 1 and ${commitCount}.`;
+            },
+        });
+        if (rawCount === undefined) {
+            return undefined;
+        }
+        return validateGitRevisionScope(
+            { kind: 'latest', count: Number(rawCount) },
+            commitCount,
+        );
+    }
+
+    /** The destination picker; refuses (and reports) a folder that already exists. */
+    private async chooseExportDestination(
+        session: UnifiedAnalysisSession,
+        sourcePath: string,
+    ): Promise<string | undefined> {
         const selectedFolder = await vscode.window.showOpenDialog({
             canSelectFiles: false,
             canSelectFolders: true,
@@ -421,7 +486,7 @@ export class ActiveAnalysesCommands {
         });
 
         if (!selectedFolder || selectedFolder.length === 0) {
-            return;
+            return undefined;
         }
 
         const exportFolderName = session.outputDirectory || path.basename(sourcePath);
@@ -431,9 +496,18 @@ export class ActiveAnalysesCommands {
             vscode.window.showWarningMessage(
                 `The destination folder already exists: ${destinationPath}. Choose a different location or remove the existing folder first.`,
             );
-            return;
+            return undefined;
         }
+        return destinationPath;
+    }
 
+    /**
+     * Stage, post-process and atomically publish the copy, then report. Any
+     * failure or cancellation aborts the transaction, so nothing partial is
+     * ever published.
+     */
+    private async writeExportPackage(session: UnifiedAnalysisSession, plan: ExportPlan): Promise<void> {
+        const { sourcePath, destinationPath, selection, capabilities } = plan;
         const capturedViewState = analysisRefreshCoordinator.getViewState(session.id);
         let transaction: ExportPackageTransaction | undefined;
         try {
@@ -458,76 +532,13 @@ export class ActiveAnalysesCommands {
 
             // Everything below touches the DESTINATION copy only.
             await relativizeExportArtifacts(stagingPath);
-            let analyzedRevisions = 0;
-            let partialGitSources = 0;
+            let gitCounts = { analyzedRevisions: 0, partialGitSources: 0 };
             if (isXrSceneFolder(stagingPath)) {
-                await refreshRuntimeCopies(stagingPath, this.extensionContext.extensionPath);
-
-                // Git timeline pre-analysis: one shared pass serves both
-                // historical comparison and project evolution offline.
-                let gitOutcome: GitExportOutcome | undefined;
-                if (selection.gitTimeline) {
-                    gitOutcome = await vscode.window.withProgress(
-                        {
-                            location: vscode.ProgressLocation.Notification,
-                            title: 'CodeXR: analyzing the complete Git timeline for the export…',
-                            cancellable: true,
-                        },
-                        (progress, token) => exportGitRevisionData(
-                            this.extensionContext,
-                            session,
-                            stagingPath,
-                            gitExportRequest as GitRevisionExportRequest,
-                            { progress, token },
-                        ),
-                    );
-                    if (gitOutcome.cancelled) {
-                        throw new ExportCancelledError();
-                    }
-                    if (!gitOutcome.gitData) {
-                        throw new Error(
-                            gitOutcome.failureReason
-                            || 'The Git timeline did not produce enough usable revisions.',
-                        );
-                    }
-                    analyzedRevisions = gitOutcome.gitData.analyzedRevisionCount || 0;
-                    partialGitSources = gitOutcome.gitData.skippedRevisions?.length || 0;
-                }
-
-                const manifest = await buildExportManifest(stagingPath, {
-                    target: {
-                        name: session.targetName || path.basename(session.targetPath || '') || 'analysis',
-                        type: session.targetType || 'directory',
-                        analysisMode: session.analysisMode || 'XR',
-                    },
-                    serverCapabilities: capabilities,
-                    viewState: {
-                        mode: String(capturedViewState.mode || 'single'),
-                        controllerView: capturedViewState.controllerView,
-                    },
-                    gitData: gitOutcome?.gitData,
-                    gitDataFailureReason: gitOutcome?.failureReason,
-                    gitDataSelected: selection.gitTimeline,
-                    selectedModes: selection,
-                });
-                await writeExportReadme(stagingPath, manifest);
-                await validateExportPackage(stagingPath, manifest);
+                gitCounts = await this.completeXrExport(session, stagingPath, plan, capturedViewState);
             }
 
             await publishExportPackage(transaction);
-            const revisionsNote = analyzedRevisions
-                ? ` ${analyzedRevisions} git revisions travel with it.`
-                : '';
-            const partialNote = partialGitSources
-                ? ` ${partialGitSources} revision source(s) were discarded because they had no usable data; details are listed in the manifest.`
-                : '';
-            const completionMessage = `Analysis folder exported to ${destinationPath}.${revisionsNote}${partialNote} `
-                + 'Serve it with any static HTTP server (e.g. "npx serve") to open it outside VS Code.';
-            if (partialGitSources) {
-                vscode.window.showWarningMessage(completionMessage);
-            } else {
-                vscode.window.showInformationMessage(completionMessage);
-            }
+            this.reportExportPublished(destinationPath, gitCounts.analyzedRevisions, gitCounts.partialGitSources);
         } catch (error) {
             await abortExportPackage(transaction);
             if (error instanceof ExportCancelledError) {
@@ -539,6 +550,101 @@ export class ActiveAnalysesCommands {
                     `Failed to export analysis folder: ${error instanceof Error ? error.message : String(error)}`,
                 );
             }
+        }
+    }
+
+    /**
+     * XR scene staging: fresh runtimes, the shared Git timeline pass (one pass
+     * serves both historical comparison and project evolution offline), then
+     * the manifest, README and package validation.
+     */
+    private async completeXrExport(
+        session: UnifiedAnalysisSession,
+        stagingPath: string,
+        plan: ExportPlan,
+        capturedViewState: ReturnType<typeof analysisRefreshCoordinator.getViewState>,
+    ): Promise<{ analyzedRevisions: number; partialGitSources: number }> {
+        const { selection, capabilities, gitExportRequest } = plan;
+        await refreshRuntimeCopies(stagingPath, this.extensionContext.extensionPath);
+
+        // gitExportRequest is set exactly when selection.gitTimeline is (exportFolder).
+        const gitOutcome = gitExportRequest
+            ? await this.exportGitTimeline(session, stagingPath, gitExportRequest)
+            : undefined;
+
+        const manifest = await buildExportManifest(stagingPath, {
+            target: {
+                name: session.targetName || path.basename(session.targetPath || '') || 'analysis',
+                type: session.targetType || 'directory',
+                analysisMode: session.analysisMode || 'XR',
+            },
+            serverCapabilities: capabilities,
+            viewState: {
+                mode: String(capturedViewState.mode || 'single'),
+                controllerView: capturedViewState.controllerView,
+            },
+            gitData: gitOutcome?.gitData,
+            gitDataFailureReason: gitOutcome?.failureReason,
+            gitDataSelected: selection.gitTimeline,
+            selectedModes: selection,
+        });
+        await writeExportReadme(stagingPath, manifest);
+        await validateExportPackage(stagingPath, manifest);
+        return {
+            analyzedRevisions: gitOutcome?.gitData?.analyzedRevisionCount || 0,
+            partialGitSources: gitOutcome?.gitData?.skippedRevisions?.length || 0,
+        };
+    }
+
+    /**
+     * Git timeline pre-analysis: one shared pass serves both historical
+     * comparison and project evolution offline. A cancelled pass, or one
+     * without usable revisions, aborts the whole export.
+     */
+    private async exportGitTimeline(
+        session: UnifiedAnalysisSession,
+        stagingPath: string,
+        gitExportRequest: GitRevisionExportRequest,
+    ): Promise<GitExportOutcome> {
+        const gitOutcome = await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'CodeXR: analyzing the complete Git timeline for the export…',
+                cancellable: true,
+            },
+            (progress, token) => exportGitRevisionData(
+                this.extensionContext,
+                session,
+                stagingPath,
+                gitExportRequest,
+                { progress, token },
+            ),
+        );
+        if (gitOutcome.cancelled) {
+            throw new ExportCancelledError();
+        }
+        if (!gitOutcome.gitData) {
+            throw new Error(
+                gitOutcome.failureReason
+                || 'The Git timeline did not produce enough usable revisions.',
+            );
+        }
+        return gitOutcome;
+    }
+
+    private reportExportPublished(destinationPath: string, analyzedRevisions: number, partialGitSources: number): void {
+        const revisionsNote = analyzedRevisions
+            ? ` ${analyzedRevisions} git revisions travel with it.`
+            : '';
+        const partialNote = partialGitSources
+            ? ` ${partialGitSources} revision source(s) were discarded because they had no usable data; details are listed in the manifest.`
+            : '';
+        const completionMessage = `Analysis folder exported to ${destinationPath}.${revisionsNote}${partialNote} `
+            + 'Serve it with any static HTTP server (e.g. "npx serve") to open it outside VS Code.';
+        if (partialGitSources) {
+            vscode.window.showWarningMessage(completionMessage);
+        } else {
+            vscode.window.showInformationMessage(completionMessage);
         }
     }
 

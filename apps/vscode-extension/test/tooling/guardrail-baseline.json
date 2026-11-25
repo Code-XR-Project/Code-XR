@@ -68,11 +68,11 @@
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 53,
-    "complexity.over10": 78,
-    "complexity.over15": 30,
-    "complexity.over20": 10,
-    "complexity.over30": 6,
+    "functions.over80Lines": 52,
+    "complexity.over10": 77,
+    "complexity.over15": 29,
+    "complexity.over20": 9,
+    "complexity.over30": 5,
     "reachability.unreachable": [
       "src/active_servers/views/index.ts",
       "src/active_servers/views/items/serverItems.ts",
@@ -140,8 +140,8 @@
   },
   "informational": {
     "src.files": 373,
-    "src.lines": 52597,
-    "src.functions": 2853,
+    "src.lines": 52703,
+    "src.functions": 2861,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -281,12 +281,6 @@
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
       {
-        "ccn": 44,
-        "lines": 263,
-        "function": "exportFolder",
-        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts"
-      },
-      {
         "ccn": 42,
         "lines": 117,
         "function": "convertToSectionItem",
@@ -327,6 +321,12 @@
         "lines": 58,
         "function": "createModularChild",
         "file": "src/views/ModularTreeDataProvider.ts"
+      },
+      {
+        "ccn": 20,
+        "lines": 71,
+        "function": "applyIncrementalChanges",
+        "file": "src/code_analysis/engine/watchers/directoryReAnalyzer.ts"
       }
     ],
     "size.largest10": [
@@ -343,12 +343,12 @@
         "lines": 816
       },
       {
-        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 782
+        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
+        "lines": 784
       },
       {
-        "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-        "lines": 678
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 782
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
