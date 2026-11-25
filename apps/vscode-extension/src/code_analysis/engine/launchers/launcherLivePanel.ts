@@ -9,7 +9,7 @@
 import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { UnifiedSessionRegistry } from '../core/sessionRegistry';
-import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
+import { FileRequirementProcessor, ProcessedRequirements } from '../processors/FileRequirementProcessor';
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { AnalysisConfigurationStorage } from '../../configuration/analysisConfigurationStorage';
 import { executeLaunchPipeline } from './launchPipeline';
@@ -18,6 +18,27 @@ import { getLogger } from '../../../core/logging/sink';
 const logger = getLogger('LAUNCHER_LIVE_PANEL');
 
 const LOG_PREFIX = 'NEW_LAUNCHER_LIVEPANEL_ANALYSIS';
+
+/** Step 1 of both LivePanel launches: process the requirements with the configured view theme. */
+async function processThemedRequirements(
+    session: UnifiedAnalysisSession,
+    context: vscode.ExtensionContext,
+    configStorage: AnalysisConfigurationStorage,
+): Promise<ProcessedRequirements> {
+    const currentTheme = await configStorage.getViewTheme();
+    logger.debug(() => `${LOG_PREFIX}: Using theme: ${currentTheme}`);
+    const processor = new FileRequirementProcessor(context);
+    return processor.processRequirements(session, currentTheme);
+}
+
+/** The watcher step of both LivePanel launches; a failure rejects (the pipeline reports it). */
+async function startSessionWatcher(
+    session: UnifiedAnalysisSession,
+    context: vscode.ExtensionContext,
+): Promise<string | undefined | null> {
+    const watcher = new SessionWatcherManager(context);
+    return watcher.startWatchingSession(session);
+}
 
 export class LauncherLivePanel {
 
@@ -45,17 +66,8 @@ export class LauncherLivePanel {
                 logger.debug(() => `${LOG_PREFIX}: File hash from session: ${session.hash256.substring(0, 12)}...`);
             },
 
-            processRequirements: async () => {
-                const currentTheme = await configStorage.getViewTheme();
-                logger.debug(() => `${LOG_PREFIX}: Using theme: ${currentTheme}`);
-                const processor = new FileRequirementProcessor(context);
-                return processor.processRequirements(session, currentTheme);
-            },
-
-            startWatcher: async () => {
-                const watcher = new SessionWatcherManager(context);
-                return watcher.startWatchingSession(session);
-            },
+            processRequirements: () => processThemedRequirements(session, context, configStorage),
+            startWatcher: () => startSessionWatcher(session, context),
         });
     }
 
@@ -85,17 +97,8 @@ export class LauncherLivePanel {
                 }
             },
 
-            processRequirements: async () => {
-                const currentTheme = await configStorage.getViewTheme();
-                logger.debug(() => `${LOG_PREFIX}: Using theme: ${currentTheme}`);
-                const processor = new FileRequirementProcessor(context);
-                return processor.processRequirements(session, currentTheme);
-            },
-
-            startWatcher: async () => {
-                const watcher = new SessionWatcherManager(context);
-                return watcher.startWatchingSession(session);
-            },
+            processRequirements: () => processThemedRequirements(session, context, configStorage),
+            startWatcher: () => startSessionWatcher(session, context),
         });
     }
 }
