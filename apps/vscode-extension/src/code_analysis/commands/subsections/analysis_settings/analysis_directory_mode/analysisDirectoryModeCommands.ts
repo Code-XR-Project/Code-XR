@@ -13,7 +13,7 @@ export class AnalysisDirectoryModeCommands {
      * Get command registrations for analysis directory mode (nested dolls pattern)
      */
     static getCommandRegistrations(
-        context: vscode.ExtensionContext,
+        _context: vscode.ExtensionContext,
         analysisDirectorySetting: AnalysisDirectorySetting,
         refreshCallback: () => void
     ): CommandRegistration[] {

@@ -36,7 +36,7 @@ export class LearnMoreModularItemFactory {
     /**
      * Create learn more section items
      */
-    static createLearnMoreItems(context: vscode.ExtensionContext): LearnMoreModularTreeItem[] {
+    static createLearnMoreItems(_context: vscode.ExtensionContext): LearnMoreModularTreeItem[] {
         console.log('LEARN_MORE: Creating learn more items');
         
         const items: LearnMoreModularTreeItem[] = [];

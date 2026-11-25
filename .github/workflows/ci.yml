@@ -42,10 +42,10 @@ jobs:
     name: npm test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     # The repo is developed on Windows with a CRLF working tree; ubuntu and
-    # macOS are its LF/POSIX runs. They report without blocking until their
-    # fallout is fixed, then this line goes and the jobs become required. All
-    # three are targets: the extension and the future IDE must work on each.
-    continue-on-error: ${{ matrix.os != 'windows-latest' }}
+    # macOS are its LF/POSIX runs. All three block: the extension and the
+    # future IDE must work on each. (Making the checks *required* for merging
+    # is a branch-protection setting on GitHub, which only the maintainer can
+    # change.)
     strategy:
       fail-fast: false
       matrix:
@@ -70,7 +70,6 @@ jobs:
   python:
     name: python suites (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os != 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -90,15 +89,27 @@ jobs:
         with:
           python-version: '3.12'
 
-      # The first two runners only use Node builtins, so they need no npm ci. With CI set, a
+      # Development tools only (ruff), pinned in backend/requirements-dev.txt.
+      # setup-python puts its interpreter first on PATH on every runner OS.
+      - name: Install backend dev tools
+        run: python -m pip install -r backend/requirements-dev.txt
+
+      # `npm run lint:python`: ruff check with backend/ruff.toml. A missing ruff
+      # is a failure, never a skip.
+      - name: Lint Python
+        run: node backend/scripts/run-ruff.cjs
+        env:
+          CODEXR_PYTHON: ${{ steps.python.outputs.python-path }}
+
+      # The next runners only use Node builtins, so they need no npm ci. With CI set, a
       # runner that finds no interpreter fails instead of skipping.
       - name: Backend unit suites
         run: node backend/scripts/run-python-tests.cjs
         env:
           CODEXR_PYTHON: ${{ steps.python.outputs.python-path }}
 
-      # Builds a venv with the lizard version the extension pins for users and
-      # measures the per-language fixtures with it.
+      # `npm run test:analysis`: builds a venv with the lizard version the
+      # extension pins for users and measures the per-language fixtures with it.
       - name: Per-language analysis fixtures
         run: node backend/scripts/run-analysis-tests.cjs
 
@@ -133,16 +144,23 @@ jobs:
       - name: Package
         run: npm run package:vsix
 
+      # The built package against what must and must not ship (the files
+      # allowlist is the only control; there is no .vscodeignore). The listing
+      # is uploaded so a reviewer can diff two runs.
+      - name: Check the VSIX listing
+        run: node apps/vscode-extension/scripts/vsix-listing.mjs --out vsix-listing.txt
+
       # What ships, hashed: reviewers can compare two runs of a cleanup branch.
       - name: Fingerprint dist
         run: node apps/vscode-extension/scripts/dist-fingerprint.mjs --out dist-fingerprint.json
 
-      - name: Upload the VSIX and its fingerprint
+      - name: Upload the VSIX, its fingerprint and its listing
         uses: actions/upload-artifact@v4
         with:
           name: code-xr-vsix
           path: |
             apps/vscode-extension/artifacts/*.vsix
             dist-fingerprint.json
+            vsix-listing.txt
           retention-days: 14
           if-no-files-found: error

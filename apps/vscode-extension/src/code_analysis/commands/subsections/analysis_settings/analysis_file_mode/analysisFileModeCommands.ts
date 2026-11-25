@@ -17,7 +17,7 @@ export interface CommandRegistration {
 
 export class AnalysisFileModeCommands {
     constructor(
-        context: vscode.ExtensionContext,
+        _context: vscode.ExtensionContext,
         private analysisFileSetting: AnalysisFileSetting,
     ) {}
 

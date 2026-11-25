@@ -5,6 +5,7 @@ output/
 .codex/
 .codexr/
 **/__pycache__/
+.ruff_cache/
 **/*.pyc
 **/*.pyo
 **/*.pyd

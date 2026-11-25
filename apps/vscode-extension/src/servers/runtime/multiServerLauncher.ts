@@ -481,7 +481,7 @@ export class MultiServerLauncher {
     private async handleAutoOpening(
         settings: ServerSettings, 
         serverUrl: string, 
-        htmlFile: string | undefined, 
+        _htmlFile: string | undefined, 
         launchMode: LaunchMode, 
         activeServerId: string
     ): Promise<void> {

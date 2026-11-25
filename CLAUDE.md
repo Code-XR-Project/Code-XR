@@ -14,7 +14,7 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 |---|---|
 | `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (not shipped since 1.2.1), `package.json`, README/CHANGELOG |
 | `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`), with their fixtures (`backend/tests/fixtures/`) |
-| `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (the `test:python` / `test:analysis` runners, `report-manual-metrics.py`) |
+| `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (the `test:python` / `test:analysis` / `lint:python` runners, `report-manual-metrics.py`) |
 | `apps/ide/` | Code-XR IDE (Electron + Monaco) — placeholder only, epic #11 |
 | `packages/` | Planned shared workspaces (`core`, `xr-scenes`) — empty, see `packages/README.md` |
 | root | `package.json` (workspaces + mirrored scripts), the only `package-lock.json`, `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `docs/` |
@@ -42,10 +42,11 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 | Command | Purpose |
 |---|---|
 | `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies the Python backend; `templates/` and `examples/` ship from the package root, not from `dist/`) |
-| `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/` |
+| `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/`, `test/`, `scripts/`, the standalone `templates/` runtimes and the config files |
 | `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests |
 | `npm run test:unit` | Node native runner over `test/**/*.test.cjs` (not Mocha) |
 | `npm run test:python` (= `test:backend`) / `test:analysis` / `test:all` | Python suites in `backend/tests` / per-language end-to-end metrics / everything |
+| `npm run lint:python` | `ruff check` over `backend/` (config `backend/ruff.toml`, ruff pinned in `backend/requirements-dev.txt`); lint only, never a formatter |
 | `npm run package:vsix` | Build the installable `.vsix` |
 | F5 "Run CodeXR Extension" | Isolated Extension Development Host (staged under `.vscode-test/dev-extension`) |
 
@@ -65,7 +66,7 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 ## AI workflow rules
 
 1. **One feature, bug, or refactor per session.** Finish and validate before starting the next. In the v1.2.1 cleanup programme the unit is the **commit**: one roadmap item = one bisectable commit, several per session in roadmap order, gate after each.
-2. Run `npm test` (plus the narrowest specialized script for the touched area) before declaring anything done. Never claim behavior works without a test run or the F5 flow. Note that `lint` inside that gate is currently weak — see `V1.2.1_STATUS.md` backlog item 1.
+2. Run `npm test` (plus the narrowest specialized script for the touched area) before declaring anything done. Never claim behavior works without a test run or the F5 flow. `lint` inside that gate fails on any error and on warnings over the recorded `--max-warnings` budget.
 3. Work on `v1.2.1` or a `feature/*` branch off it; never commit directly to `master`.
 4. Label claims: confirmed / self-assessed (docs claim it) / inferred / open question. Docs' status labels ("Implementado") are self-assessments, not verified facts.
 5. When you change the version state (cleanup lands, verification resolved), **update `.claude/docs/V1.2.1_STATUS.md` and the CHANGELOG `[1.2.1]` section in the same session** (it carries a provisional date, moved forward when the release is cut). Architecture changed → `ARCHITECTURE.md`; tooling changed → `DEVELOPMENT.md`; doc added → `INDEX.md`.

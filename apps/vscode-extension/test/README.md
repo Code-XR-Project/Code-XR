@@ -4,17 +4,32 @@ This folder contains the local validation suite for CodeXR.
 
 ## Structure
 
+Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except under `test/runners/`, which the collector skips on purpose.
+
+- `test/analysis`: the largest group: browser runtimes (tables, charts, mapping UI, modes, dependency graph, historical comparison, project evolution, collaboration), parsers, export, Git services, watchers.
 - `test/baseline`: the feature baseline of the cleanup epic (#26): a snapshot of everything a user can see, invoke or rely on, and the register of the only removals the maintainer authorized. `node test/baseline/featureSurface.cjs --write` regenerates it and refuses to drop an unauthorized entry.
-- `test/commands`: command registration contract tests.
+- `test/collaboration`: collaborative XR sessions.
+- `test/commands`: command registration contract tests (the real `registerAllCommands` under the fake vscode, tied to package.json).
 - `test/directory_analysis`: directory watcher and reanalysis data tests.
+- `test/helpers`: shared helpers (`sourceText.cjs`, `fakeVscode.cjs`, `runtimeAssembly.cjs`) and their own tests.
+- `test/logging`, `test/python_env`, `test/servers`, `test/startup`, `test/utils`, `test/visualization_settings`, `test/visualize_data`: focused suites per subsystem.
+- `test/manual`: the HTML pages the browser harnesses load, their data, and `buildAssembledRuntimes.cjs`.
+- `test/packaging`: what ships (VSIX layout, dist characterization, Marketplace listing, the menu surface).
+- `test/runners`: the runner scripts npm scripts point to (the unit runner, the HTML-analysis runner, the four browser harnesses).
+- `test/tooling`: the guardrail ratchet (`measureGuardrails.cjs`, `guardrail-baseline.json`), the lint/typecheck contract, the npm-script checks.
 - `../../backend/tests` (outside this package): backend Python tests grouped by capability; `../../backend/scripts/run-python-tests.cjs` runs them (`npm run test:python`).
-- `test/runners`: small runners that make the suite work consistently on Windows.
 
 ## Commands
 
-- `npm run test`: typecheck, lint, compile the TypeScript sources, and run Node-based unit tests.
-- `npm run test:python`: run Python backend tests if a Python interpreter is available.
+- `npm run test` (= `test:basic`): typecheck, lint, compile the TypeScript sources, and run Node-based unit tests.
+- `npm run test:unit`: the unit suites only, against the existing `out/` (it refuses a stale one).
+- `npm run test:python`: run Python backend tests if a Python interpreter is available (under `CI`, a missing interpreter fails).
 - `npm run test:all`: run both the Node and Python suites.
+- `npm run test:analysis`: per-language end-to-end metrics over `backend/manual_test/` with the pinned lizard.
+- `npm run test:htmlanalysis`: the HTML/DOM analysis suite.
+- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`: browser harnesses (Playwright's Chromium and live CDNs; local only).
+
+The full table, with when to run each, is in `.claude/docs/DEVELOPMENT.md`.
 
 ## How the suites load code
 

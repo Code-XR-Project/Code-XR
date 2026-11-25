@@ -5,7 +5,7 @@ import { VisualizationSettingsModularTreeItem } from '../items/visualizationSett
  * Handler for Visualization Settings section interactions
  */
 export class VisualizationSettingsClickHandler {
-    constructor(context: vscode.ExtensionContext) {}
+    constructor(_context: vscode.ExtensionContext) {}
 
     /**
      * Handle clicks on visualization settings items
