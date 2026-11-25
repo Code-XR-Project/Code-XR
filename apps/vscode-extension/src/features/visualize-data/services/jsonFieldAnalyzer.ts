@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { getLogger } from '../platform/logging/sink';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('JSON_FIELD_ANALYZER');
 

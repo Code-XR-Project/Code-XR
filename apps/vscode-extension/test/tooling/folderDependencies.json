@@ -62,11 +62,11 @@
       "features/learn-more",
       "features/python-env",
       "features/visualization-settings",
+      "features/visualize-data",
       "platform",
       "remote_access",
       "servers",
-      "utils",
-      "visualize_data"
+      "utils"
     ],
     "core/charts": [
       "platform"
@@ -85,6 +85,13 @@
     "features/visualization-settings": [
       "core/charts",
       "platform"
+    ],
+    "features/visualize-data": [
+      "active_servers",
+      "babia_templates",
+      "platform",
+      "servers",
+      "shared"
     ],
     "platform": [],
     "remote_access": [
@@ -116,17 +123,9 @@
       "features/learn-more",
       "features/python-env",
       "features/visualization-settings",
+      "features/visualize-data",
       "platform",
-      "servers",
-      "visualize_data"
-    ],
-    "visualize_data": [
-      "active_servers",
-      "babia_templates",
-      "platform",
-      "servers",
-      "shared",
-      "utils"
+      "servers"
     ]
   },
   "twoWayPairs": {

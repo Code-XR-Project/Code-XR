@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { SectionProvider } from '../../platform/tree/baseInterfaces';
-import { VisualizeDataModularTreeItem, VisualizeDataModularItemFactory } from './items/visualizeDataItems';
-import { VisualizeDataClickHandler } from './interactions/handleVisualizeDataClicks';
-import { VisualizeDataStateManager } from '../../visualize_data/state/visualizeDataState';
-import { VisualizeDataModel } from '../../visualize_data/model/visualizeDataModel';
+import { SectionProvider } from '../../../platform/tree/baseInterfaces';
+import { VisualizeDataModularTreeItem, VisualizeDataModularItemFactory } from './visualizeDataSectionItems';
+import { VisualizeDataClickHandler } from './handleVisualizeDataClicks';
+import { VisualizeDataStateManager } from '../model/visualizeDataState';
+import { VisualizeDataModel } from '../model/visualizeDataModel';
 
 /**
  * Visualize Data section provider - manages data visualization configuration and launch

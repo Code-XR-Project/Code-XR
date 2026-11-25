@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { VisualizeDataTreeItem, VisualizeDataItemFactory } from '../../../visualize_data/views/items/visualizeDataItems';
-import { VisualizeDataState } from '../../../visualize_data/state/visualizeDataState';
-import { VisualizationRestorer } from '../../../visualize_data/runtime/visualizationRestorer';
-import { BrowseVisualizationItemFactory } from '../../../visualize_data/views/items/visualizationItem';
+import { VisualizeDataTreeItem, VisualizeDataItemFactory } from './visualizeDataItems';
+import { VisualizeDataState } from '../model/visualizeDataState';
+import { VisualizationRestorer } from '../services/visualizationRestorer';
+import { BrowseVisualizationItemFactory } from './visualizationItem';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZE_DATA_MODULAR');

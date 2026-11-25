@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { VisualizeDataStateManager, VisualizeDataState } from '../../state/visualizeDataState';
+import { VisualizeDataStateManager, VisualizeDataState } from '../model/visualizeDataState';
 import { ChartDimension } from '../../../babia_templates/models/chartModels';
 import { getLogger } from '../../../platform/logging/sink';
 

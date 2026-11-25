@@ -146,7 +146,7 @@ export default [{
         "src/servers/runtime/collaboration/collaborationRoomServer.ts",
         "src/servers/runtime/collaboration/roomSharedState.ts",
         "src/servers/storage/serverSettingsManager.ts",
-        "src/visualize_data/state/visualizeDataState.ts",
+        "src/features/visualize-data/model/visualizeDataState.ts",
         "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts",
     ],
     rules: {

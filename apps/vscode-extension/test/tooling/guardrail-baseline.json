@@ -33,11 +33,11 @@
       "core/python-env": 5,
       "features/learn-more": 1,
       "features/visualization-settings": 3,
+      "features/visualize-data": 10,
       "platform": 12,
       "servers": 11,
-      "utils": 8,
-      "views": 12,
-      "visualize_data": 2
+      "utils": 3,
+      "views": 9
     },
     "suppressions.total": 0,
     "size.filesOver500": [
@@ -105,6 +105,11 @@
       "src/features/learn-more/views/handleLearnMoreClicks.ts": 1,
       "src/features/visualization-settings/views/VisualizationSettingsSectionProvider.ts": 2,
       "src/features/visualization-settings/views/visualizationSettingsItems.ts": 1,
+      "src/features/visualize-data/services/jsonFieldAnalyzer.ts": 5,
+      "src/features/visualize-data/services/visualizationLauncher.ts": 1,
+      "src/features/visualize-data/services/visualizationRestorer.ts": 1,
+      "src/features/visualize-data/views/VisualizeDataSectionProvider.ts": 1,
+      "src/features/visualize-data/views/visualizeDataSectionItems.ts": 2,
       "src/platform/commands/commandBuilder.ts": 5,
       "src/platform/commands/commandRegistry.ts": 2,
       "src/platform/tree/baseInterfaces.ts": 5,
@@ -117,15 +122,10 @@
       "src/servers/storage/serverSettingsManager.ts": 4,
       "src/servers/views/items/configurationItems.ts": 1,
       "src/utils/commonCommands.ts": 2,
-      "src/utils/jsonFieldAnalyzer.ts": 5,
       "src/utils/uriPathConverter.ts": 1,
       "src/views/ModularTreeDataProvider.ts": 5,
       "src/views/active_servers/items/activeServerItems.ts": 1,
-      "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts": 3,
-      "src/views/visualize_data/VisualizeDataSectionProvider.ts": 1,
-      "src/views/visualize_data/items/visualizeDataItems.ts": 2,
-      "src/visualize_data/runtime/visualizationRestorer.ts": 1,
-      "src/visualize_data/views/interactions/visualizationLauncher.ts": 1
+      "src/views/babia_examples/interactions/handleBabiaExampleClicks.ts": 3
     },
     "any.topFiles": [
       {
@@ -137,15 +137,15 @@
         "count": 5
       },
       {
+        "file": "src/features/visualize-data/services/jsonFieldAnalyzer.ts",
+        "count": 5
+      },
+      {
         "file": "src/platform/commands/commandBuilder.ts",
         "count": 5
       },
       {
         "file": "src/platform/tree/baseInterfaces.ts",
-        "count": 5
-      },
-      {
-        "file": "src/utils/jsonFieldAnalyzer.ts",
         "count": 5
       },
       {

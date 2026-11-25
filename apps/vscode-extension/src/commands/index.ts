@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getServerCommandRegistrations } from './servers/serverCommands';
 import { getActiveServersCommandRegistrations } from './active_servers/activeServersCommands';
 import { getBabiaExamplesCommandRegistrations } from './babia_examples/babiaExamplesCommands';
-import { getVisualizeDataCommandRegistrations } from './visualize_data/visualizeDataCommands';
+import { getVisualizeDataCommandRegistrations } from '../features/visualize-data/commands/visualizeDataCommandRegistrations';
 import { getAnalysisCommandRegistrations } from './analysis/AnalysisCommands';
 import { getPythonEnvCommandRegistrations } from '../features/python-env/commands/pythonEnvCommandRegistrations';
 import { getVisualizationSettingsCommandRegistrations } from '../features/visualization-settings/commands/visualizationSettingsCommandRegistrations';

@@ -65,7 +65,7 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: ['babiaExample'],
     }],
     ['visualizeData', {
-        load: () => require('./visualize_data/items/visualizeDataItems').VisualizeDataModularTreeItem,
+        load: () => require('../features/visualize-data/views/visualizeDataSectionItems').VisualizeDataModularTreeItem,
         itemTypeKeys: ['visualizeDataItemType'],
         defaultItemType: 'error',
         constructorExtras: ['visualizeDataItem'],

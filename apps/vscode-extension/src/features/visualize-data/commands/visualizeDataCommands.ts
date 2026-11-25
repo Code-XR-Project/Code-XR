@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { VisualizationLauncher } from '../views/interactions/visualizationLauncher';
+import { VisualizationLauncher } from '../services/visualizationLauncher';
 import { VisualizeDataModel } from '../model/visualizeDataModel';
-import { VisualizationRestorer, StoredVisualization } from '../runtime/visualizationRestorer';
-import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
-import { getLogger } from '../../platform/logging/sink';
+import { VisualizationRestorer, StoredVisualization } from '../services/visualizationRestorer';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
+import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZE_DATA_COMMANDS');
 

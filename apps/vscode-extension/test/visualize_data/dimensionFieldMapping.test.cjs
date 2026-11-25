@@ -49,7 +49,7 @@ async function map(dimensionName, { state, pick, confirm }) {
     const context = fakeExtensionContext();
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            const { VisualizationLauncher } = requireOut('visualize_data/views/interactions/visualizationLauncher.js');
+            const { VisualizationLauncher } = requireOut('features/visualize-data/services/visualizationLauncher.js');
             const launcher = Object.create(VisualizationLauncher.prototype);
             launcher.context = context;
             launcher.stateManager = {

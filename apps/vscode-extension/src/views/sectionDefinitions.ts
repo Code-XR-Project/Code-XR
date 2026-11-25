@@ -3,7 +3,7 @@ import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterface
 import { ServersSectionProvider } from './servers/ServersSectionProvider';
 import { ActiveServersSectionProvider } from './active_servers/ActiveServersSectionProvider';
 import { BabiaExamplesSectionProvider } from './babia_examples/BabiaExamplesSectionProvider';
-import { VisualizeDataSectionProvider } from './visualize_data/VisualizeDataSectionProvider';
+import { VisualizeDataSectionProvider } from '../features/visualize-data/views/VisualizeDataSectionProvider';
 import { PythonEnvSectionProvider } from '../features/python-env/views/PythonEnvSectionProvider';
 import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
 import { VisualizationSettingsSectionProvider } from '../features/visualization-settings/views/VisualizationSettingsSectionProvider';

@@ -6,7 +6,7 @@ The target is two packages that both apps (the VS Code extension and the future 
 
 | Package | Will contain | Lives today in |
 |---|---|---|
-| `packages/core` | Editor-agnostic analysis and metrics logic: field schema, chart models, analysis results, dependency/evolution data shaping. | `apps/vscode-extension/src/` (`code_analysis/`, `babia_templates/`, parts of `visualize_data/`) |
+| `packages/core` | Editor-agnostic analysis and metrics logic: field schema, chart models, analysis results, dependency/evolution data shaping. | `apps/vscode-extension/src/` (`code_analysis/`, `babia_templates/`, parts of `features/visualize-data/`) |
 | `packages/xr-scenes` | A-Frame / BabiaXR scene templates, the browser runtimes under `templates/components/`, LivePanel and guide pages. | `apps/vscode-extension/templates/` |
 
 ## Why they were not extracted in the monorepo move

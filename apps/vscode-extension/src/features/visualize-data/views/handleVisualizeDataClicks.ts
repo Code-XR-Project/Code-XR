@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { VisualizeDataModularTreeItem } from '../items/visualizeDataItems';
+import { VisualizeDataModularTreeItem } from './visualizeDataSectionItems';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('VISUALIZE_DATA_MODULAR');

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { StoredVisualization } from '../../runtime/visualizationRestorer';
+import { StoredVisualization } from '../services/visualizationRestorer';
 
 /**
  * Tree item types for browse visualizations
