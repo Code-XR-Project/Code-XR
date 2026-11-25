@@ -10,7 +10,7 @@
 // The production build is deterministic (two builds of the same tree give the
 // same sha256), which is what makes this a proof rather than a smoke test.
 // Compare fingerprints taken on the SAME machine: the working tree is CRLF on
-// Windows and LF elsewhere, and the copied templates differ accordingly.
+// Windows and LF elsewhere, and the copied Python backend differs accordingly.
 // It only reads and hashes; it never builds anything.
 
 import { createHash } from 'node:crypto';

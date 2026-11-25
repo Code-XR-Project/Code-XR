@@ -16,7 +16,7 @@
 
 | Script | What it does | When to use |
 |---|---|---|
-| `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python`, `templates/`, `examples/` into `dist/`) | Before F5 "workspace direct"; quick build check |
+| `npm run compile` | webpack build → `dist/extension.js` (+ CopyPlugin copies `src/code_analysis/python` into `dist/code_analysis/python`; `templates/` and `examples/` ship as they are, not copied, since 1.2.1) | Before F5 "workspace direct"; quick build check |
 | `npm run compile:dev-host` | `compile` + `scripts/prepare-dev-extension.mjs` → stages an isolated dev copy under `.vscode-test/dev-extension` | Used automatically by the primary F5 launch config |
 | `npm run watch` | webpack watch mode | Iterating on TS changes |
 | `npm run typecheck` | `tsc --noEmit` (non-incremental) over the whole project | Fast correctness gate; part of `test:basic` |
