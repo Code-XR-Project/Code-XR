@@ -137,7 +137,7 @@ export class ServerActionHandlers {
             return;
         }
         const protocol = server.url.startsWith('https') ? 'https' : 'http';
-        const lanUrl = `${protocol}://${NetworkUtils.getLocalIPAddress()}:${server.port}`;
+        const lanUrl = NetworkUtils.getPrimaryExternalUrl(server.port, protocol);
         await vscode.env.clipboard.writeText(lanUrl);
         vscode.window.showInformationMessage(`Network address copied: ${lanUrl}`);
     }
