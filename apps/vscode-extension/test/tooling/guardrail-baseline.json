@@ -82,10 +82,6 @@
       "src/code_analysis/configuration/configurationManagerExample.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
       "src/code_analysis/engine/processors/requirementRules/LivePanelDirectoryRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/LivePanelFileRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/VisualizeDOMRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/XRDirectoryRequirements.ts",
-      "src/code_analysis/engine/processors/requirementRules/XRFileRequirements.ts",
       "src/code_analysis/engine/utils/directoryFilter.ts",
       "src/code_analysis/views/subsections/active_analyses/activeAnalysesSubsectionProvider.ts",
       "src/code_analysis/views/subsections/active_analyses/items/activeAnalysisItems.ts",
@@ -106,10 +102,10 @@
     }
   },
   "informational": {
-    "src.files": 333,
-    "src.lines": 52587,
-    "src.functions": 2865,
-    "src.unreachableLines": 1916,
+    "src.files": 329,
+    "src.lines": 52492,
+    "src.functions": 2855,
+    "src.unreachableLines": 1821,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
