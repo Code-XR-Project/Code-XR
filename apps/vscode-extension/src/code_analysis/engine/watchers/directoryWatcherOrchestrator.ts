@@ -22,6 +22,9 @@ import {
     AnalysisSourceChangeBatch,
     analysisRefreshCoordinator,
 } from '../../refresh';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('DIRECTORY_WATCHER_ORCHESTRATOR');
 
 export class DirectoryWatcherOrchestrator {
     private watchers: Map<string, fs.FSWatcher> = new Map();
@@ -70,7 +73,7 @@ export class DirectoryWatcherOrchestrator {
             await this.syncDirectoryWatchers(snapshot.watchedDirectories);
 
             this.isWatching = this.watchers.size > 0;
-            console.log(`DIRECTORY_WATCHER_ORCHESTRATOR: Started with ${this.watchers.size} watched directories`);
+            logger.debug(() => `Started with ${this.watchers.size} watched directories`);
             return this.isWatching ? this.watcherId : null;
         } catch (error) {
             handleError(ErrorDomain.Watcher, 'Error starting watcher', error, ErrorSeverity.Log);
@@ -160,7 +163,7 @@ export class DirectoryWatcherOrchestrator {
             return;
         }
 
-        console.log(`DIRECTORY_WATCHER_ORCHESTRATOR: Debounce restarted (${reason}) for ${this.session.targetPath}`);
+        logger.debug(() => `Debounce restarted (${reason}) for ${this.session.targetPath}`);
         this.debounceManager.start();
     }
 
@@ -215,7 +218,7 @@ export class DirectoryWatcherOrchestrator {
             this.session.filesToHash = this.sourceHashTracker.getTrackedFiles();
 
             if (actuallyChanged.length === 0 && diff.added.length === 0 && diff.removed.length === 0) {
-                console.log(`DIRECTORY_WATCHER_ORCHESTRATOR: No actual changes detected for ${this.session.targetPath}`);
+                logger.debug(() => `No actual changes detected for ${this.session.targetPath}`);
                 return false;
             }
 
@@ -224,10 +227,8 @@ export class DirectoryWatcherOrchestrator {
                 addedFiles: diff.added,
                 removedFiles: diff.removed,
             });
-            console.log(
-                `DIRECTORY_WATCHER_ORCHESTRATOR: Source revision ${sourceRevision} queued `
-                + `(${actuallyChanged.length} changed, ${diff.added.length} added, ${diff.removed.length} removed)`,
-            );
+            logger.debug(() => `Source revision ${sourceRevision} queued `
+                + `(${actuallyChanged.length} changed, ${diff.added.length} added, ${diff.removed.length} removed)`);
             return true;
         } catch (error) {
             handleError(ErrorDomain.Watcher, 'Error reconciling directory source', error, ErrorSeverity.Log);

@@ -9,6 +9,9 @@ import { LauncherXRAnalysis } from './launchers/launcherXRAnalysis';
 import { LauncherVisualizeDOM } from './launchers/launcherVisualizeDOM';
 import { UnifiedSessionRegistry } from './core/sessionRegistry';
 import { UnifiedAnalysisSession } from './core/analysisSession';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('ANALYSIS_ORCHESTRATOR');
 
 export type AnalysisMode = 'LivePanel' | 'XR' | 'VisualizeDOM';
 export type TargetType = 'file' | 'directory';
@@ -25,7 +28,7 @@ export class AnalysisOrchestrator {
         context: vscode.ExtensionContext,
         isDeep: boolean = false
     ): Promise<void> {
-        console.log(`ANALYSIS_ORCHESTRATOR: Orchestrating ${analysisMode} analysis for ${targetType}: ${targetPath} (deep: ${isDeep})`);
+        logger.debug(() => `Orchestrating ${analysisMode} analysis for ${targetType}: ${targetPath} (deep: ${isDeep})`);
         
         try {
             // Create unified session first - CENTRALIZED SESSION CREATION
@@ -33,7 +36,7 @@ export class AnalysisOrchestrator {
             let session: UnifiedAnalysisSession | null;
             
             try {
-                console.log(`ANALYSIS_ORCHESTRATOR:  DEBUG - Creating session with parameters:`, {
+                logger.debug(`DEBUG - Creating session with parameters:`, {
                     targetPath,
                     targetType,
                     analysisMode,
@@ -50,20 +53,20 @@ export class AnalysisOrchestrator {
                 
                 // Check if session creation was skipped due to duplicate
                 if (!session) {
-                    console.log(`ANALYSIS_ORCHESTRATOR: Session creation skipped (duplicate detected) - stopping orchestration`);
+                    logger.debug(`Session creation skipped (duplicate detected) - stopping orchestration`);
                     return; // Stop here if duplicate was detected
                 }
                 
             } catch (sessionError) {
                 // Handle session creation errors (e.g., unsupported file types)
-                console.error(`ANALYSIS_ORCHESTRATOR: Session creation failed:`, sessionError);
+                logger.error(`Session creation failed:`, sessionError);
                 const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
                 vscode.window.showErrorMessage(`CodeXR Analysis Error: ${errorMessage}`);
                 throw sessionError;
             }
             
-            console.log(`ANALYSIS_ORCHESTRATOR: Created session ${session.id} for ${analysisMode} analysis`);
-            console.log(`ANALYSIS_ORCHESTRATOR: Session details:`, {
+            logger.debug(() => `Created session ${session.id} for ${analysisMode} analysis`);
+            logger.debug(`Session details:`, {
                 id: session.id,
                 targetName: session.targetName,
                 targetPath: session.targetPath,
@@ -92,7 +95,7 @@ export class AnalysisOrchestrator {
             }
             
         } catch (error) {
-            console.error('ANALYSIS_ORCHESTRATOR: Error orchestrating analysis:', error);
+            logger.error('Error orchestrating analysis:', error);
             throw error;
         }
     }
@@ -103,12 +106,12 @@ export class AnalysisOrchestrator {
     private static async orchestrateLivePanelAnalysis(session: UnifiedAnalysisSession, context: vscode.ExtensionContext): Promise<void> {
         switch (session.targetType) {
             case 'file':
-                console.log('ANALYSIS_ORCHESTRATOR: Launching Live Panel analysis for file:', session.targetPath);
+                logger.debug('Launching Live Panel analysis for file:', session.targetPath);
                 await LauncherLivePanel.launchFileLivePanelAnalysis(session, context);
                 break;
                 
             case 'directory':
-                console.log('ANALYSIS_ORCHESTRATOR: Launching Live Panel analysis for directory:', session.targetPath);
+                logger.debug('Launching Live Panel analysis for directory:', session.targetPath);
                 await LauncherLivePanel.launchDirectoryLivePanelAnalysis(session, context);
                 break;
                 
@@ -144,7 +147,7 @@ export class AnalysisOrchestrator {
             throw new Error(`VisualizeDOM analysis only supports files, not ${session.targetType}`);
         }
         
-        console.log('ANALYSIS_ORCHESTRATOR: Launching VisualizeDOM analysis for file:', session.targetPath);
+        logger.debug('Launching VisualizeDOM analysis for file:', session.targetPath);
         await LauncherVisualizeDOM.launchVisualizeDOMAnalysis(session, context);
     }
     

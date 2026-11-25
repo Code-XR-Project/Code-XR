@@ -64,7 +64,7 @@ export class DebounceManager {
             const config = await storage.loadConfiguration();
             return ConfigurationConverter.convertToMilliseconds(config.autoAnalysisDelay);
         } catch (error) {
-            console.error('DEBOUNCE_MANAGER: Error reading debounce delay, falling back to 3 000 ms:', error);
+            logger.error('Error reading debounce delay, falling back to 3 000 ms:', error);
             return 3000;
         }
     }
@@ -95,7 +95,7 @@ export class DebounceManager {
         } else {
             // Real-time: fire immediately
             Promise.resolve(this.callback()).catch(err =>
-                console.error('DEBOUNCE_MANAGER: Immediate callback error:', err),
+                logger.error('Immediate callback error:', err),
             );
         }
     }

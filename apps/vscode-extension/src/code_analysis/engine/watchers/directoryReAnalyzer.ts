@@ -44,17 +44,17 @@ export class DirectoryReAnalyzer {
 
     async reAnalyzeFiles(changedFiles: string[]): Promise<any[] | null> {
         try {
-            console.log(`DIRECTORY_REANALYZER: Re-analyzing ${changedFiles.length} changed files`);
+            logger.debug(() => `Re-analyzing ${changedFiles.length} changed files`);
             const result = await this.executePython.executeFileReanalysis(changedFiles);
 
             if (!result || !Array.isArray(result)) {
-                console.error('DIRECTORY_REANALYZER: Invalid re-analysis result');
+                logger.error('Invalid re-analysis result');
                 return null;
             }
 
             return result;
         } catch (error) {
-            console.error('DIRECTORY_REANALYZER: Error during re-analysis:', error);
+            logger.error('Error during re-analysis:', error);
             return null;
         }
     }
@@ -67,13 +67,13 @@ export class DirectoryReAnalyzer {
     ): Promise<boolean> {
         try {
             if (!session.savedFilesPath) {
-                console.error('DIRECTORY_REANALYZER: No saved files path in session');
+                logger.error('No saved files path in session');
                 return false;
             }
 
             const dataJsonPath = path.join(session.savedFilesPath, 'data.json');
             if (!(await this.fileExists(dataJsonPath))) {
-                console.error(`DIRECTORY_REANALYZER: data.json not found at ${dataJsonPath}`);
+                logger.error(`data.json not found at ${dataJsonPath}`);
                 return false;
             }
 
@@ -126,7 +126,7 @@ export class DirectoryReAnalyzer {
             );
             return true;
         } catch (error) {
-            console.error('DIRECTORY_REANALYZER: Error applying incremental changes:', error);
+            logger.error('Error applying incremental changes:', error);
             return false;
         }
     }
@@ -206,7 +206,7 @@ export class DirectoryReAnalyzer {
                 const hash = await SHA256Generator.generateFileHash(filePath);
                 await hashTracker.trackNewFile(filePath, hash);
             } catch (hashError) {
-                console.error(`DIRECTORY_REANALYZER: Error hashing added file ${filePath}:`, hashError);
+                logger.error(`Error hashing added file ${filePath}:`, hashError);
                 await hashTracker.trackNewFile(filePath, '');
             }
         }
@@ -250,7 +250,7 @@ export class DirectoryReAnalyzer {
                 sseManager.sendUpdate(session.targetPath);
             }
         } catch (sseError) {
-            console.error('DIRECTORY_REANALYZER: SSE direct failed, trying fallback...');
+            logger.error('SSE direct failed, trying fallback...');
             try {
                 await this.sessionServerManager.notifyAnalysisUpdated(session.id);
             } catch (fallbackError) {

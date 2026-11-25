@@ -18,6 +18,9 @@ import {
     AnalysisSourceChangeBatch,
     analysisRefreshCoordinator,
 } from '../../refresh';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('FILE_WATCHER_ORCHESTRATOR');
 
 export class FileWatcherOrchestrator {
     private watcher: fs.FSWatcher | null = null;
@@ -66,7 +69,7 @@ export class FileWatcherOrchestrator {
 
         const targetPath = this.session.targetPath;
         if (!fs.existsSync(targetPath)) {
-            console.error(`FILE_WATCHER_ORCHESTRATOR: Target file does not exist: ${targetPath}`);
+            logger.error(`Target file does not exist: ${targetPath}`);
             return null;
         }
 
@@ -90,7 +93,7 @@ export class FileWatcherOrchestrator {
             this.watcherId = `watcher_${this.session.id}_${Date.now()}`;
             return this.watcherId;
         } catch (error) {
-            console.error('FILE_WATCHER_ORCHESTRATOR: Error starting file watcher:', error);
+            logger.error('Error starting file watcher:', error);
             this.isWatching = false;
             return null;
         }
@@ -132,7 +135,7 @@ export class FileWatcherOrchestrator {
             path.basename(this.session.targetPath),
         );
         this.debounceManager.start();
-        console.log(`FILE_WATCHER_ORCHESTRATOR: Debounce restarted after ${eventType} for ${this.session.targetPath}`);
+        logger.debug(() => `Debounce restarted after ${eventType} for ${this.session.targetPath}`);
     }
 
     public async reconcileNow(): Promise<boolean> {
@@ -149,12 +152,12 @@ export class FileWatcherOrchestrator {
 
         const statSnapshot = await getFileStatSnapshot(this.session.targetPath);
         if (!statSnapshot) {
-            console.warn(`FILE_WATCHER_ORCHESTRATOR: Target file is not accessible yet: ${this.session.targetPath}`);
+            logger.warn(`Target file is not accessible yet: ${this.session.targetPath}`);
             return false;
         }
 
         if (this.lastKnownMtimeMs === statSnapshot.mtimeMs && this.lastKnownSize === statSnapshot.size) {
-            console.log(`FILE_WATCHER_ORCHESTRATOR: Ignoring duplicate event for ${this.session.targetPath}`);
+            logger.debug(() => `Ignoring duplicate event for ${this.session.targetPath}`);
             return false;
         }
 
@@ -162,7 +165,7 @@ export class FileWatcherOrchestrator {
         try {
             currentHash = await SHA256Generator.generateFileHash(this.session.targetPath);
         } catch (error) {
-            console.error('FILE_WATCHER_ORCHESTRATOR: Failed to calculate file hash:', error);
+            logger.error('Failed to calculate file hash:', error);
             return false;
         }
 
@@ -171,7 +174,7 @@ export class FileWatcherOrchestrator {
             this.lastKnownSize = statSnapshot.size;
             this.session.metadata.lastModified = new Date(statSnapshot.mtimeMs);
             this.session.metadata.targetSize = statSnapshot.size;
-            console.log(`FILE_WATCHER_ORCHESTRATOR: Skipping re-analysis because hash did not change for ${this.session.targetPath}`);
+            logger.debug(() => `Skipping re-analysis because hash did not change for ${this.session.targetPath}`);
             return false;
         }
 
@@ -208,7 +211,7 @@ export class FileWatcherOrchestrator {
         const targetName = path.basename(this.session.targetPath);
         const noun = this.session.analysisMode === 'VisualizeDOM' ? 'HTML visualization' : 'analysis';
         vscode.window.setStatusBarMessage(`$(check) CodeXR re-analysis updated ${noun} for ${targetName}`, 2000);
-        console.log(`FILE_WATCHER_ORCHESTRATOR: Re-analysis completed for ${targetName}`);
+        logger.debug(() => `Re-analysis completed for ${targetName}`);
     }
 
     stopWatching(): void {
