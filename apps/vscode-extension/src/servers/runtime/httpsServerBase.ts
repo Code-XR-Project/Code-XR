@@ -69,6 +69,44 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
 
     public abstract getConfig(): TConfig;
 
+    public async stop(): Promise<void> {
+        if (!this.server || !this.isRunning) {
+            console.log('SERVER: HTTPS server is not running');
+            return;
+        }
+
+        // Dispose BEFORE close, exactly as HttpServer.stop() does: close()
+        // waits for every socket to drain, and the sockets that never drain
+        // on their own are the ones the runtime features own (collaboration
+        // and broadcast WebSockets, open SSE responses). Disposing inside the
+        // close callback deadlocks the shutdown (a shipped 1.2.0 fix).
+        this.httpHandler.disposeRuntimeFeatures();
+        this.server.closeAllConnections();
+
+        return new Promise((resolve, reject) => {
+            this.server!.close((error) => {
+                if (error) {
+                    console.error('SERVER: Error stopping HTTPS server:', error);
+                    reject(error);
+                } else {
+                    console.log('SERVER: HTTPS server stopped successfully');
+                    this.isRunning = false;
+                    this.server = null;
+                    resolve();
+                }
+            });
+        });
+    }
+
+    /**
+     * Drop every open socket without waiting for a graceful close.
+     */
+    public forceStop(): void {
+        this.httpHandler.disposeRuntimeFeatures();
+        this.server?.closeAllConnections();
+        this.isRunning = false;
+    }
+
     public getIsRunning(): boolean {
         return this.isRunning;
     }

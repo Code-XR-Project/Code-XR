@@ -82,41 +82,6 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
         });
     }
 
-    public async stop(): Promise<void> {
-        if (!this.server || !this.isRunning) {
-            console.log('SERVER: HTTPS server is not running');
-            return;
-        }
-
-        // See HTTPServer.stop(): the runtime features own the sockets that
-        // would otherwise keep close() pending forever.
-        this.httpHandler.disposeRuntimeFeatures();
-        this.server.closeAllConnections();
-
-        return new Promise((resolve, reject) => {
-            this.server!.close((error) => {
-                if (error) {
-                    console.error('SERVER: Error stopping HTTPS server:', error);
-                    reject(error);
-                } else {
-                    console.log('SERVER: HTTPS server stopped successfully');
-                    this.isRunning = false;
-                    this.server = null;
-                    resolve();
-                }
-            });
-        });
-    }
-
-    /**
-     * Drop every open socket without waiting for a graceful close.
-     */
-    public forceStop(): void {
-        this.httpHandler.disposeRuntimeFeatures();
-        this.server?.closeAllConnections();
-        this.isRunning = false;
-    }
-
     public getConfig(): HttpsCustomServerConfig {
         return {
             ...this.config,
