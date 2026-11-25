@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1636,
+    "console.total": 1591,
     "console.byModule": {
       "active_servers": 127,
       "babia_examples": 49,
       "babia_templates": 72,
-      "code_analysis": 676,
+      "code_analysis": 631,
       "commands": 4,
       "core": 1,
       "python_env": 26,
@@ -36,11 +36,11 @@
     },
     "catch.consoleOnly": 65,
     "catch.emptyNoComment": 0,
-    "any.total": 219,
+    "any.total": 218,
     "any.byModule": {
       "active_servers": 12,
       "babia_templates": 3,
-      "code_analysis": 96,
+      "code_analysis": 95,
       "commands": 8,
       "python_env": 6,
       "servers": 13,
@@ -71,15 +71,13 @@
       "src/views/active_servers/items/activeServerItems.ts",
       "src/visualize_data/views/interactions/visualizationLauncher.ts"
     ],
-    "functions.over80Lines": 57,
+    "functions.over80Lines": 56,
     "complexity.over10": 81,
     "complexity.over15": 31,
     "complexity.over20": 10,
     "complexity.over30": 6,
     "reachability.unreachable": [
       "src/active_servers/views/items/serverItems.ts",
-      "src/code_analysis/configuration/configurationManager.ts",
-      "src/code_analysis/configuration/configurationManagerExample.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
       "src/code_analysis/views/subsections/active_analyses/activeAnalysesSubsectionProvider.ts",
       "src/code_analysis/views/subsections/active_analyses/items/activeAnalysisItems.ts",
@@ -99,10 +97,10 @@
     }
   },
   "informational": {
-    "src.files": 326,
-    "src.lines": 52119,
-    "src.functions": 2841,
-    "src.unreachableLines": 1448,
+    "src.files": 324,
+    "src.lines": 51761,
+    "src.functions": 2819,
+    "src.unreachableLines": 1090,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -119,10 +117,6 @@
       {
         "file": "src/code_analysis/configuration/debugThemeProblem.ts",
         "count": 46
-      },
-      {
-        "file": "src/code_analysis/configuration/configurationManagerExample.ts",
-        "count": 44
       },
       {
         "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
@@ -163,6 +157,10 @@
       {
         "file": "src/babia_examples/runtime/exampleLauncher.ts",
         "count": 26
+      },
+      {
+        "file": "src/code_analysis/commands/subsections/project_by_language/projectByLanguageCommands.ts",
+        "count": 25
       }
     ],
     "any.topFiles": [
