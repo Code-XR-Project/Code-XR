@@ -156,6 +156,25 @@ Landed on `claude/project-thread-n2s3q6-modernize-py-js` (session log `.claude/d
 
 Row 2 leaves exactly three places on `typing` generics: `TargetTuple` (a runtime alias, see §3), `utils/xr_field_schema.py` (contract, 9) and `html/html_dom_parser.py` (2), whose `def emit_json_result(result: Dict[str, Any]) -> None:` line `livePanelDomIntegration.test.cjs` pins verbatim (an S pin: relaxing it needs its own characterization commit first, so the file was left whole rather than half-converted).
 
+## 7. Progress (TypeScript)
+
+Landed on `claude/project-thread-n2s3q6-modernize-ts` (session log `.claude/docs/v1.2.1/sessions/56b-modernize-ts.md`), after #35 merged, so `executePython.ts` and the export files were in scope (the "left to #35" notes in §1, §4 and §5 no longer apply). Counts are from the A.1 script and the typed ESLint rules, on `src/`. Every lock-in lives in one `src/**/*.ts` block of `apps/vscode-extension/eslint.config.mjs`, asserted by `test/tooling/lintContract.test.cjs`; exceptions are per-file overrides there, never `eslint-disable` (suppressions stay 0).
+
+| Plan row | Idiom × area | Before | After | Lock-in |
+|---|---|---:|---:|---|
+| 1 (TS part) | `var`, `arguments`, `namespace`, `Function` type | 0 | 0 | `no-var`, `prefer-rest-params`, `@typescript-eslint/no-namespace`, `@typescript-eslint/no-unsafe-function-type` |
+| 4 | inline `require()` of Node built-ins | 7 in 3 files (`executePython.ts` had none left after #35) | 0 | `@typescript-eslint/no-require-imports`; off for `ModularTreeDataProvider.ts` (8 lazy, load-bearing) and the two cycle breakers |
+| 5 | `substr()` / `indexOf` presence compares | 1 / 0 (the script's 5 "compares" all use the index: `args[indexOf(x) + 1]`, `newline = buf.indexOf('\n')`) | 0 / 0 | `no-restricted-properties` on `substr`, `@typescript-eslint/prefer-includes` |
+| 6 | `a && a.b` (typed `prefer-optional-chain`) | 10 in 7 files | 0 | `@typescript-eslint/prefer-optional-chain` |
+| 7 | concatenation `prefer-template` reports | 8 in 6 files (script row: 23) | 0 (script row: 18, all literal + literal line wraps) | `prefer-template`. `createStructure.ts`'s SSE script builder checked byte-identical (sha256 of its output for xr/dom/none) |
+| 8 | `any` (guardrail `any.total`) | 130 | 84 | `no-explicit-any: error` for the folders at zero (named block `codexr/any-free-folders`): `active_servers`, `code_analysis/engine/watchers`, `code_analysis/services`, `code_analysis/views/subsections/active_analyses` |
+| 9 | `x \|\| d` with an object-typed `x` (`prefer-nullish-coalescing`, `ignorePrimitives` all) | 76 reported: 60 `\|\|`, 15 `if (!x) x = …`, 1 ternary | 12 `\|\|` kept on purpose | the rule with `ignorePrimitives` (all), `ignoreTernaryTests`, `ignoreIfStatements`; off for 8 files: parsed WebSocket/bridge JSON (`dependencyGraphBridge`, `projectEvolutionBridge`, `collaborationRoomServer`, `roomSharedState`), storage and settings (`visualizeDataState`, `sharedDimensionMappingSettingCore`, `serverSettingsManager`) and one S pin (`projectEvolutionService.ts:421`, matched by `historicalComparison.test.cjs:467`) |
+| 10 | `.then()` where the promise is already returned or awaited | 0 of 24 | 0 | none (no rule without a new plugin). All 24 are fire-and-forget prompts (`void showXMessage(…).then(choice => …)`), the HTTP request handler's `.then().catch()`, promise caches/queues (`gitTimelineBlobIndex`, `gitTimelineBlobAnalyzer`, `gitAnalysisEligibility`), or a resolver inside `new Promise` |
+
+ESLint warning budget (`eslint.maxWarnings`): 204 → 158, all from `no-explicit-any` warnings that disappeared. `complexity.over10` 54 → 53, `complexity.over15` 9 → 8.
+
+Row 8 status, for the next pass (re-measure with `npm run guardrails:measure`): the biggest remaining files are `utils/jsonFieldAnalyzer.ts` and `utils/commandBuilder.ts` (5 each; the latter's `TArgs extends any[]` generics need a variance decision, not a rename), `platform/tree/baseInterfaces.ts` 5, `python_env/runtime/venvManager.ts` 5, `views/ModularTreeDataProvider.ts` 5, `commands/analysis/AnalysisCommands.ts` 5, `servers/storage/serverSettingsManager.ts` 4. `executePython.ts` keeps `type PythonPayload = any` and the `parsePythonOutput(…): any` signature that `livePanelDomIntegration.test.cjs` pins verbatim (S pin).
+
 ## Appendix: how to re-run the numbers
 
 From the repository root, after `npm ci` (the scripts resolve `typescript` and `acorn` from the workspace). Copy each script to a scratch folder first: they are kept here, not in `scripts/`, because only #56 needs them.
