@@ -286,6 +286,7 @@
 
     api.DEFAULT_CONFIG = DEFAULT_CONFIG;
     api.mergeConfig = mergeConfig;
+    api.readSceneConfig = readSceneConfig;
     api.createRuntime = createRuntime;
     api.registerContentProvider = registerContentProvider;
     api.getContentProvider = getContentProvider;
@@ -300,6 +301,7 @@
   const runtime = createRuntime(global);
   runtime.DEFAULT_CONFIG = DEFAULT_CONFIG;
   runtime.mergeConfig = mergeConfig;
+  runtime.readSceneConfig = readSceneConfig;
   runtime.createRuntime = createRuntime;
   runtime.registerContentProvider = registerContentProvider;
   runtime.getContentProvider = getContentProvider;

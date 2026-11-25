@@ -82,11 +82,13 @@
           return;
         }
         el.object3D.updateMatrixWorld(true);
-        obstacles.push({
-          inverseMatrix: el.object3D.matrixWorld.clone().invert(),
-          halfExtents: { x: width / 2, y: height / 2, z: 0.15 },
-        });
+        const center = new global.THREE.Vector3();
+        const orientation = new global.THREE.Quaternion();
+        el.object3D.getWorldPosition(center);
+        el.object3D.getWorldQuaternion(orientation);
+        obstacles.push(orientedBox(center, orientation, width / 2, height / 2, 0.15));
       });
+      collectPanelObstacles(obstacles);
       refs.obstacleCache = obstacles;
       refs.obstacleCacheTime = now;
       return obstacles;
@@ -98,12 +100,16 @@
       const effectiveWidth = Number(width) > 0 ? Number(width) : state.screenWidth;
       const w = effectiveWidth / 2;
       const h = (effectiveWidth / refs.config.aspectRatio) / 2;
-      return [
+      const points = [
         [-w, -h], [w, -h], [-w, h], [w, h],
         [0, -h], [0, h], [-w, 0], [w, 0], [0, 0],
       ].map(([x, y]) => new global.THREE.Vector3(x, y, 0)
         .applyQuaternion(worldQuaternion)
         .add(worldPosition));
+      // The points test the room shell (a box contains the panel when it
+      // contains its corners); the box tests the obstacles.
+      points.box = orientedBox(worldPosition.clone(), worldQuaternion, w, h, 0.02);
+      return points;
     }
 
     function violatesCollision(samplePoints) {
@@ -117,15 +123,12 @@
           }
         }
       }
-      const local = new global.THREE.Vector3();
+      if (!samplePoints.box) {
+        return false;
+      }
       for (const obstacle of getScreenObstacles()) {
-        for (const point of samplePoints) {
-          local.copy(point).applyMatrix4(obstacle.inverseMatrix);
-          if (Math.abs(local.x) < obstacle.halfExtents.x
-            && Math.abs(local.y) < obstacle.halfExtents.y
-            && Math.abs(local.z) < obstacle.halfExtents.z) {
-            return true;
-          }
+        if (orientedBoxesOverlap(samplePoints.box, obstacle)) {
+          return true;
         }
       }
       return false;
@@ -139,6 +142,9 @@
         return targetQuaternion;
       }
       if (!violatesCollision(collectScreenSamplePoints(worldPosition, targetQuaternion))) {
+        return targetQuaternion;
+      }
+      if (isCurrentPoseBlocked()) {
         return targetQuaternion;
       }
       const currentQuaternion = getWorldQuaternion(refs.root);
@@ -165,6 +171,9 @@
         return targetWorldPosition;
       }
       if (!violatesCollision(collectScreenSamplePoints(targetWorldPosition, orientation))) {
+        return targetWorldPosition;
+      }
+      if (isCurrentPoseBlocked()) {
         return targetWorldPosition;
       }
       const current = getWorldPosition(refs.root);
@@ -301,7 +310,7 @@
       }
       state.follow = false;
       state.followTransform = followTransform;
-      if (!applyFollowTransform()) {
+      if (!applyFollowTransform({ resolveFreeSpot: true })) {
         console.log('[CodeXR][VirtualScreen] placeInFrontOfUser failed: applyFollowTransform returned false', {
           screenId: getScreenId(),
           followTransform: {
@@ -560,7 +569,7 @@
       };
     }
 
-    function applyFollowTransform() {
+    function applyFollowTransform(options) {
       if (!state.followTransform?.position?.clone) {
         console.log('[CodeXR][VirtualScreen] applyFollowTransform failed: missing followTransform position', {
           screenId: getScreenId(),
@@ -581,9 +590,18 @@
         return false;
       }
 
-      const targetWorldPosition = state.followTransform.position.clone()
+      const desiredWorldPosition = state.followTransform.position.clone()
         .applyQuaternion(cameraWorldQuaternion.clone())
         .add(cameraWorldPosition.clone());
+      // A placement looks for a free spot; following is a bumper like
+      // dragging, so a followed screen no longer passes through walls,
+      // screens, panels or the table (PANELS-3).
+      const targetWorldPosition = options?.resolveFreeSpot === true
+        ? findFreePlacement(
+          desiredWorldPosition,
+          computeFaceUserQuaternion(desiredWorldPosition, cameraWorldPosition),
+        )
+        : constrainPosition(desiredWorldPosition);
       const targetWorldQuaternion = computeFaceUserQuaternion(targetWorldPosition, cameraWorldPosition);
       const applied = applyWorldTransform(refs.root, targetWorldPosition, targetWorldQuaternion);
       if (applied && updateLegendSide()) {

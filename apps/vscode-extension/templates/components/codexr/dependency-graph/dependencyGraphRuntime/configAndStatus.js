@@ -25,8 +25,10 @@
   var MAX_PINNED_LEGENDS = 6;
   // cardHeight must cover the tallest rendered card (a navigable node card with
   // 7 metrics + an action button is ~1.72) so grid rows never overlap.
+  // maxRows caps the stack at two rows: six pins grow sideways (3 per row)
+  // instead of climbing a third row through the ceiling (PANELS-7).
   var LEGEND_SLOT = {
-    perRow: 2, cardWidth: 2.5, cardHeight: 1.85, gapX: 0.34, gapY: 0.3, originYOffset: 1.05, z: 0.18
+    perRow: 2, maxRows: 2, cardWidth: 2.5, cardHeight: 1.85, gapX: 0.34, gapY: 0.3, originYOffset: 1.05, z: 0.18
   };
   // Flow-particle catalogues — part of the SHARED room contract: the ids travel
   // in the dependency-graph entity as `flowSize` / `flowSpeed` (validated by the
