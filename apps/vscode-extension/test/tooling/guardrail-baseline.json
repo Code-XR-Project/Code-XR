@@ -76,7 +76,6 @@
     "complexity.over20": 10,
     "complexity.over30": 6,
     "reachability.unreachable": [
-      "src/code_analysis/commands/clean_analysis/index.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts"
     ],
     "templates.consoleLog": 117,
@@ -88,10 +87,10 @@
     }
   },
   "informational": {
-    "src.files": 314,
-    "src.lines": 50037,
+    "src.files": 313,
+    "src.lines": 50030,
     "src.functions": 2742,
-    "src.unreachableLines": 46,
+    "src.unreachableLines": 39,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -321,13 +320,5 @@
       }
     ]
   },
-  "waivers": [
-    {
-      "metric": "reachability.unreachable",
-      "from": 54,
-      "to": 55,
-      "reason": "W2-47 leaves clean_analysis/index.ts unreachable until W2-05 (#29) deletes it",
-      "date": "2026-11-25"
-    }
-  ]
+  "waivers": []
 }
