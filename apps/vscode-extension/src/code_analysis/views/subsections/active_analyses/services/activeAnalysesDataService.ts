@@ -265,29 +265,6 @@ export class ActiveAnalysesDataService {
     }
 
     /**
-     * Get status icon
-     */
-    private getStatusIcon(status: string): vscode.ThemeIcon {
-        switch (status) {
-            case 'creating':
-                return new vscode.ThemeIcon('sync~spin');
-            case 'analyzing':
-                return new vscode.ThemeIcon('loading~spin');
-            case 'monitoring':
-            case 'completed':
-                return new vscode.ThemeIcon('check');
-            case 'error':
-            case 'failed':
-                return new vscode.ThemeIcon('error');
-            case 'closed':
-            case 'closing':
-                return new vscode.ThemeIcon('close');
-            default:
-                return new vscode.ThemeIcon('file');
-        }
-    }
-
-    /**
      * Get analysis type icon based on analysis mode and target type
      */
     private getAnalysisTypeIcon(analysisMode: string, targetType: 'file' | 'directory'): vscode.ThemeIcon {
