@@ -18,12 +18,12 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1032,
+    "console.total": 1026,
     "console.byModule": {
       "active_servers": 112,
       "babia_examples": 48,
       "babia_templates": 68,
-      "code_analysis": 182,
+      "code_analysis": 176,
       "commands": 4,
       "core": 3,
       "python_env": 20,
@@ -67,7 +67,7 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 50,
-    "complexity.over10": 73,
+    "complexity.over10": 72,
     "complexity.over15": 28,
     "complexity.over20": 8,
     "complexity.over30": 4,
@@ -82,17 +82,13 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48468,
+    "src.lines": 48454,
     "src.functions": 2778,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
         "count": 44
-      },
-      {
-        "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
-        "count": 39
       },
       {
         "file": "src/active_servers/runtime/serverControl.ts",
@@ -109,6 +105,10 @@
       {
         "file": "src/servers/runtime/httpsDefaultServer.ts",
         "count": 34
+      },
+      {
+        "file": "src/code_analysis/engine/parsers/visualizeDOMParser.ts",
+        "count": 33
       },
       {
         "file": "src/babia_templates/processing/templateHTMLProcessor.ts",

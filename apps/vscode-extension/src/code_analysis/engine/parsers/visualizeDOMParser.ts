@@ -137,20 +137,6 @@ export class VisualizeDOMParser {
             resultFiles.set(IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME, immersiveRigRuntime);
             console.log(`VISUALIZE_DOM_PARSER:  Added ${IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME} (${immersiveRigRuntime.length} chars)`);
 
-            // FINAL DEBUG: Verify the result Map
-            console.log(`VISUALIZE_DOM_PARSER:  FINAL DEBUG - Result Map verification:`);
-            console.log(`VISUALIZE_DOM_PARSER:  Map size: ${resultFiles.size}`);
-            console.log(`VISUALIZE_DOM_PARSER:  Map keys: [${Array.from(resultFiles.keys()).join(', ')}]`);
-            console.log(`VISUALIZE_DOM_PARSER:  Map instanceof Map: ${resultFiles instanceof Map}`);
-
-            // Test iteration
-            console.log(`VISUALIZE_DOM_PARSER:  Testing iteration:`);
-            let count = 0;
-            for (const [fileName, content] of resultFiles) {
-                count++;
-                console.log(`VISUALIZE_DOM_PARSER:  File ${count}: ${fileName} (${content.length} chars)`);
-            }
-
             console.log(`VISUALIZE_DOM_PARSER:  Successfully created Map with ${resultFiles.size} files`);
             return resultFiles;
 
