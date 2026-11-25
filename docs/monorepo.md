@@ -35,6 +35,8 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 | `package-lock.json` | stays at the root (workspace lockfile) |
 | `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `.nvmrc`, `.mcp.json`, `CLAUDE.md` | unchanged, at the root |
 
+`esbuild.config.mjs` was deleted afterwards in 1.2.1 (an orphan config: no script ran it and `esbuild` was never a dependency; webpack is the only bundler).
+
 Inside `apps/vscode-extension/` every relative path is the same as it was at the old repository root. Documents and skills written before the move that say `src/...`, `test/...` or `templates/...` mean `apps/vscode-extension/src/...` and so on; `src/code_analysis/python/` means `backend/src/` and `test/python/` means `backend/tests/`.
 
 ## What had to change for the move

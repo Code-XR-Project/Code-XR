@@ -86,7 +86,7 @@ Also `manual_test/` (repo root): per-language fixtures consumed by `npm run test
 ## Known tooling quirks (do not "fix" casually)
 
 - **CI** (`.github/workflows/ci.yml`, since 1.2.1) runs on pull requests to `master`: `npm test` and the Python suites on `windows-latest` and `ubuntu-latest`, plus a job that packages the VSIX and uploads it with its dist fingerprint. It runs exactly the local gates — nothing is CI-only. `ubuntu-latest` reports without blocking until its first LF/POSIX fallout is fixed. The browser harnesses stay local (they need Playwright's Chromium and live CDNs). The other workflow, `deploy-pages-redirect.yml`, only publishes the GitHub Pages redirect.
-- **`esbuild.config.mjs` is unreferenced** by any npm script — webpack is the active bundler. Likely legacy from the 0.0.8-era ESBuild migration. *Needs verification before removal.*
+- **webpack is the only bundler.** The orphan `esbuild.config.mjs` (no script ran it, `esbuild` was never a dependency) was deleted in 1.2.1.
 - **`.vscode-test.mjs` / `test:integration` mismatch**: points to `out/test/**/*.test.js`, but no such tests exist.
 - `tsconfig.json` `outDir` is `out/` (used for `compile-tests`/typecheck output); the shipped bundle goes to `dist/` via webpack. Don't confuse the two.
 - `tsconfig.tsbuildinfo` at root is a build cache — never edit or commit-review it.
