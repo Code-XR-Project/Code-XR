@@ -2,7 +2,6 @@ import {
     CollaborationApplicationMessageContext,
     CollaborationMessage,
     CollaborationRoomServer,
-    SharedEntityState,
 } from '../collaboration/collaborationRoomServer';
 import { AnalysisViewMode, analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { defaultControllerView } from '../../analysis/refresh/analysisViewModes';
@@ -10,6 +9,7 @@ import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { DependencyGraphBridge } from './dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './projectEvolutionBridge';
+import { ANALYSIS_TYPES, AnalysisSnapshotProbe } from '../../analysis/launch/analysisTypes';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_MESSAGE_ROUTER');
@@ -24,19 +24,14 @@ type SnapshotMode = Exclude<AnalysisViewMode, 'selection' | 'single'>;
 
 /**
  * The cached room entity each snapshot-backed mode probes on activation, and
- * what makes it usable: a git result, or the dependency dataset URL.
+ * what makes it usable: a git result, or the dependency dataset URL. Read
+ * from the analysis-type descriptors (`snapshotProbe`).
  */
-const SNAPSHOT_PROBE_BY_MODE: Readonly<Record<SnapshotMode, {
-    entityKind: string;
-    isAvailable(snapshot: SharedEntityState | null | undefined): boolean;
-}>> = {
-    'historical-compare': { entityKind: 'historical-comparison', isAvailable: (snapshot) => !!snapshot?.result },
-    'project-evolution': { entityKind: 'project-evolution', isAvailable: (snapshot) => !!snapshot?.result },
-    'dependency-graph': {
-        entityKind: 'dependency-graph',
-        isAvailable: (snapshot) => typeof snapshot?.datasetUrl === 'string',
-    },
-};
+const SNAPSHOT_PROBE_BY_MODE: Readonly<Record<string, AnalysisSnapshotProbe>> = Object.freeze(
+    Object.fromEntries(ANALYSIS_TYPES
+        .filter((type) => !!type.snapshotProbe)
+        .map((type) => [type.id, type.snapshotProbe!])),
+);
 
 /**
  * Dispatches collaboration room application messages to their feature

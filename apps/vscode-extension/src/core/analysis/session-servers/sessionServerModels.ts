@@ -1,6 +1,6 @@
 /**
  * Session Server Models
- * Interfaces para la gestión de servidores por sesión
+ * Types of the server a launch starts for its session
  */
 
 export interface SessionServerInfo {
@@ -28,20 +28,4 @@ export interface ServerLaunchResult {
     error?: string;
     portChanged?: boolean;
     originalPort?: number;
-}
-
-export interface SSENotification {
-    type: 'file-changed' | 'analysis-updated' | 'server-started' | 'server-stopped';
-    sessionId: string;
-    timestamp: Date;
-    data?: any;
-}
-
-export interface SessionServerStatus {
-    sessionId: string;
-    isServerActive: boolean;
-    isWatcherActive: boolean;
-    port?: number;
-    serverUrl?: string;
-    lastUpdate?: Date;
 }

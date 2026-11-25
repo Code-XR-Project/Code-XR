@@ -24,10 +24,10 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 84,
+    "any.total": 83,
     "any.byModule": {
       "app": 8,
-      "core/analysis": 14,
+      "core/analysis": 13,
       "core/charts": 6,
       "core/python-env": 5,
       "core/server": 10,
@@ -56,14 +56,14 @@
       "src/features/active-servers/views/handleServerActions.ts",
       "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
     ],
-    "functions.over80Lines": 36,
-    "complexity.over10": 53,
+    "functions.over80Lines": 35,
+    "complexity.over10": 51,
     "complexity.over15": 8,
     "complexity.over20": 0,
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 158,
+    "eslint.maxWarnings": 155,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -71,9 +71,9 @@
     }
   },
   "informational": {
-    "src.files": 291,
-    "src.lines": 49064,
-    "src.functions": 3338,
+    "src.files": 294,
+    "src.lines": 49299,
+    "src.functions": 3360,
     "src.unreachableLines": 0,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
@@ -93,7 +93,6 @@
       "src/core/analysis/processors/analysisBootstrap.ts": 2,
       "src/core/analysis/python/executePython.ts": 2,
       "src/core/analysis/session-servers/serverLaunchOrchestrator.ts": 2,
-      "src/core/analysis/session-servers/sessionServerModels.ts": 1,
       "src/core/analysis/session/analysisSession.ts": 1,
       "src/core/analysis/utils/themeUtils.ts": 1,
       "src/core/charts/processing/templateProcessor.ts": 2,
@@ -241,15 +240,15 @@
       },
       {
         "ccn": 15,
-        "lines": 81,
-        "function": "closeAssociatedAnalysisSession",
-        "file": "src/core/server/serverControl.ts"
+        "lines": 157,
+        "function": "launchServer",
+        "file": "src/core/server/multiServerLauncher.ts"
       },
       {
         "ccn": 15,
-        "lines": 88,
-        "function": "startLocalServer",
-        "file": "src/features/servers/commands/serverCommands.ts"
+        "lines": 113,
+        "function": "launchServerByType",
+        "file": "src/core/server/serverFactory.ts"
       }
     ],
     "size.largest10": [
@@ -271,7 +270,7 @@
       },
       {
         "file": "src/features/active-servers/views/handleServerActions.ts",
-        "lines": 624
+        "lines": 628
       },
       {
         "file": "src/core/history/gitRepositoryService.ts",
@@ -279,15 +278,15 @@
       },
       {
         "file": "src/core/server/httpServer.ts",
-        "lines": 582
+        "lines": 596
+      },
+      {
+        "file": "src/core/analysis/python/executePython.ts",
+        "lines": 589
       },
       {
         "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
         "lines": 581
-      },
-      {
-        "file": "src/core/analysis/python/executePython.ts",
-        "lines": 567
       },
       {
         "file": "src/core/remote-access/remoteAccessManager.ts",

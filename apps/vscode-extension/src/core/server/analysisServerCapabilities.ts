@@ -16,10 +16,13 @@
  * construction through this table is what lets the shared launch path succeed for
  * every mode.
  *
- * To add a new analysis mode, add one entry to `CAPABILITIES_BY_MODE` declaring
- * exactly which features its server exposes — the shared launch path then works
- * for it automatically, with no changes to the launcher or the server core.
+ * The table is DERIVED from the analysis-type descriptors
+ * (`core/analysis/launch/analysisTypes.ts`): a surface attaches the feature of
+ * every analysis type it serves. To add an analysis type, add its descriptor
+ * there; to serve an existing one on another surface, list the surface in it.
  */
+import { getServerFeaturesForSurface } from '../analysis/launch/analysisTypes';
+
 export interface AnalysisServerCapabilities {
     /** Dependency-graph summary/refresh endpoints (XR + LivePanel). */
     dependencyGraph: boolean;
@@ -29,41 +32,22 @@ export interface AnalysisServerCapabilities {
     projectEvolution: boolean;
 }
 
-const NO_CAPABILITIES: AnalysisServerCapabilities = {
-    dependencyGraph: false,
-    historicalComparison: false,
-    projectEvolution: false,
-};
-
-const CAPABILITIES_BY_MODE: Readonly<Record<string, AnalysisServerCapabilities>> = {
-    XR: {
-        dependencyGraph: true,
-        historicalComparison: true,
-        projectEvolution: true,
-    },
-    LivePanel: {
-        dependencyGraph: true,
-        historicalComparison: true,
-        projectEvolution: false,
-    },
-    VisualizeDOM: {
-        dependencyGraph: false,
-        historicalComparison: false,
-        projectEvolution: false,
-    },
-};
-
 /**
  * Resolve the feature services the shared server should attach for a mode.
  *
  * Unknown or undefined modes get no optional services: the server still launches
  * (static files + SSE + collaboration) but exposes no analysis feature endpoints,
  * which is the safe default for a brand-new mode until its capabilities are
- * declared above.
+ * declared in the analysis-type descriptors.
  */
 export function resolveAnalysisServerCapabilities(
     analysisMode: string | undefined,
 ): AnalysisServerCapabilities {
-    // Return a fresh copy so a caller can never mutate the shared table entries.
-    return { ...(CAPABILITIES_BY_MODE[analysisMode ?? ''] ?? NO_CAPABILITIES) };
+    // A fresh object per call, so a caller can never mutate shared state.
+    const features = getServerFeaturesForSurface(analysisMode);
+    return {
+        dependencyGraph: features.has('dependencyGraph'),
+        historicalComparison: features.has('historicalComparison'),
+        projectEvolution: features.has('projectEvolution'),
+    };
 }

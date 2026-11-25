@@ -6,6 +6,7 @@ import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { VenvManager } from '../../python-env/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
 import { classifyStderrLine } from './pythonStderrStream';
+import { currentLaunchSignal } from '../launch/launchControl';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
@@ -447,11 +448,32 @@ export class ExecutePython {
         return new Promise((resolve) => {
             const childProcess = cp.spawn(executable, fullArgs, {
                 cwd,
-                env: process.env,
+                // UTF-8 on every platform: a piped stdout on Windows otherwise
+                // uses the ANSI code page, and the DOM backend crashed writing
+                // `→` or any non-Latin text (LAUNCHER-15).
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
                 stdio: ['pipe', 'pipe', 'pipe'],
             });
 
             logger.debug(() => `Process spawned with PID: ${childProcess.pid}`);
+
+            // A launch that is closed or times out kills its analysis instead
+            // of leaving Python running for a page nobody will open (LAUNCHER-10).
+            const launchSignal = currentLaunchSignal();
+            const killOnAbort = () => {
+                logger.debug(() => `Launch aborted: killing Python process ${childProcess.pid}`);
+                childProcess.kill();
+            };
+            if (launchSignal?.aborted) {
+                killOnAbort();
+            } else {
+                launchSignal?.addEventListener('abort', killOnAbort, { once: true });
+                childProcess.on('close', () => launchSignal?.removeEventListener('abort', killOnAbort));
+            }
+            // Decode as a stream, so a multi-byte character split across two
+            // chunks is not turned into U+FFFD.
+            childProcess.stdout.setEncoding('utf8');
+            childProcess.stderr.setEncoding('utf8');
 
             childProcess.on('error', (error: NodeJS.ErrnoException) => {
                 logger.error('Failed to start Python process:', error);
@@ -468,12 +490,12 @@ export class ExecutePython {
             let stderr = '';
 
             childProcess.stdout.on('data', (data) => {
-                stdout += data.toString();
-                logger.debug(() => `stdout chunk received (${data.toString().length} chars)`);
+                stdout += String(data);
+                logger.debug(() => `stdout chunk received (${String(data).length} chars)`);
             });
 
             childProcess.stderr.on('data', (data) => {
-                const stderrChunk = data.toString();
+                const stderrChunk = String(data);
                 stderr += stderrChunk;
 
                 for (const line of stderrChunk.split('\n')) {

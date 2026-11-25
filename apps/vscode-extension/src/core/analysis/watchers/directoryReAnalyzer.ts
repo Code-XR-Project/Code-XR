@@ -8,7 +8,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { ExecutePython } from '../python/executePython';
-import { SessionServerManager } from '../session-servers/sessionServerManager';
 import { SHA256Generator } from '../utils/sha256Generator';
 import { FileHashTracker } from './fileHashTracker';
 import {
@@ -41,11 +40,9 @@ interface IncrementalChangeSet {
 
 export class DirectoryReAnalyzer {
     private executePython: ExecutePython;
-    private sessionServerManager: SessionServerManager;
 
     constructor(context: vscode.ExtensionContext) {
         this.executePython = new ExecutePython(context);
-        this.sessionServerManager = new SessionServerManager(context);
     }
 
     async reAnalyzeFiles(changedFiles: string[]): Promise<AnalysisFileEntry[] | null> {
@@ -263,22 +260,20 @@ export class DirectoryReAnalyzer {
     }
 
     async sendSSENotification(session: UnifiedAnalysisSession): Promise<void> {
+        // SSE channels are keyed by session id, so two sessions on one target
+        // (two modes, or XR and XR-deep) each refresh only their own page
+        // (LAUNCHER-3).
         try {
             const { SSEManager } = require('../../server/sse/SSEManager');
             const sseManager = SSEManager.getInstance();
 
             if (session.analysisMode === 'XR') {
-                sseManager.sendDataRefresh(session.targetPath);
+                sseManager.sendDataRefresh(session.id);
             } else {
-                sseManager.sendUpdate(session.targetPath);
+                sseManager.sendUpdate(session.id);
             }
         } catch (sseError) {
-            logger.error('SSE direct failed, trying fallback...');
-            try {
-                await this.sessionServerManager.notifyAnalysisUpdated(session.id);
-            } catch (fallbackError) {
-                logger.error('SSE fallback also failed:', fallbackError);
-            }
+            logger.error('SSE notification failed:', sseError);
         }
     }
 }

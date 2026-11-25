@@ -13,19 +13,24 @@ CodeXR is a VS Code extension (291 TS files under `src/`, in five layers since #
 ```
 User command (context menu / tree / palette)
   └─> src/features/analysis/commands/...        (per-mode command handlers)
-      └─> src/core/analysis/launchers/launcherXRAnalysis.ts | launcherLivePanel.ts | launcherVisualizeDOM.ts
-          └─> launchers/launchPipeline.ts  → creates a UnifiedAnalysisSession
+      └─> src/core/analysis/analysisOrchestrator.ts → session/sessionRegistry.ts (one session per targetKey)
+          └─> launch/launchKinds.ts resolveLauncher(kind, targetType)
+              └─> launchers/launcherXRAnalysis.ts | launcherLivePanel.ts | launcherVisualizeDOM.ts
+          └─> launchers/launchPipeline.ts  → one transaction under launch/launchControl.ts
+                (abort signal + 10 min deadline + teardown stack; process → save → server → watcher)
               ├─> python/executePython.ts   → spawns managed venv, runs python/main.py → JSON metrics
               ├─> src/core/charts/                → validates dimension mapping, fills HTML template
               │     (chart registry + placeholder processing over templates/xr/...)
               ├─> scene-assets/*ComponentAsset.ts
               │     → inlines browser runtimes from templates/components/**/*.js into the HTML
-              └─> session-servers/serverLaunchOrchestrator.ts (+ sessionServerManager)
+              └─> session-servers/serverLaunchOrchestrator.ts (SSE + file map keyed by session id)
                     └─> src/core/server (HTTP/HTTPS) serves the scene
                         └─> registered in src/core/server/registry → shown in sidebar tree (src/features/active-servers)
 Live updates: core/analysis/watchers/* detect file changes → re-run Python →
-  core/analysis/session-servers/sseNotificationManager.ts → src/core/server/sse/SSEManager.ts → browser reloads data
+  src/core/server/sse/SSEManager.ts (by session id) → browser reloads data
 ```
+
+Analysis types (what the table shows) and launch kinds (how a page is served) are descriptors in `core/analysis/launch/` (`analysisTypes.ts`, `launchKinds.ts`, `storageFolders.ts`); the server-capability, controller-view and snapshot-probe tables are derived from them. Checklist: `apps/vscode-extension/docs/adding-an-analysis-type.md`.
 
 Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/headset), **LivePanel** (2D webview panel), **DOM visualization** (HTML DOM structure in XR). Each mode has its own launcher and parser (`core/analysis/parsers/`); one shared requirement processor (`core/analysis/processors/FileRequirementProcessor.ts` → `analysisBootstrap.ts`) loads the templates the mode needs.
 
@@ -46,7 +51,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | Module | Responsibility | Key files |
 |---|---|---|
 | `features/analysis/` | The ANALYSES section: the per-mode analysis commands (file, directory, DOM, clean), the tree and its subsections (active analyses, files/project by language, analysis settings), the workspace scan and the server watcher integration | `commands/analysisCommandRegistrations.ts`, `commands/analysisCommands.ts`, `commands/{file,directory,dom}/`, `views/AnalysisSectionProvider.ts`, `sections/active-analyses/activeAnalysesCommands.ts` (Active Analyses actions and export), `sections/settings/` (one folder per setting; `chartTypeCommandFactory.ts` and the two `shared*SettingCore.ts` at its root), `workspace/workspaceSnapshotService.ts`, `workspace/workspaceFileScanner.ts`, `services/serverWatcherIntegration.ts` |
-| `core/analysis/` | **The analysis engine.** Pipeline: launchers, parsers, the requirement processor, sessions, session servers, watchers, refresh, the Python bridge, the scene-asset injection, the language tables | `analysisOrchestrator.ts`, `launchers/launchPipeline.ts`, `launchers/launcherXRAnalysis.ts`, `session/analysisSession.ts`, `session/sessionRegistry.ts`, `session-servers/sessionServerManager.ts`, `watchers/sessionWatcherManager.ts`, `python/executePython.ts`, `python/xrFieldSchemaService.ts`, `configuration/analysisConfigurationStorage.ts`, `languages/languageMetadata.ts`, `languages/supportedLanguages.ts` |
+| `core/analysis/` | **The analysis engine.** Pipeline: launchers, parsers, the requirement processor, sessions, session servers, watchers, refresh, the Python bridge, the scene-asset injection, the language tables | `analysisOrchestrator.ts`, `launchers/launchPipeline.ts`, `launchers/launcherXRAnalysis.ts`, `session/analysisSession.ts`, `session/sessionRegistry.ts`, `launch/launchControl.ts`, `launch/analysisTypes.ts`, `launch/launchKinds.ts`, `session-servers/serverLaunchOrchestrator.ts`, `watchers/sessionWatcherManager.ts`, `python/executePython.ts`, `python/xrFieldSchemaService.ts`, `configuration/analysisConfigurationStorage.ts`, `languages/languageMetadata.ts`, `languages/supportedLanguages.ts` |
 | `backend/src/` (repository root, outside `src/`) | Python analysis backend (see `PYTHON_ANALYSIS.md`); copied into `dist/code_analysis/python` by webpack | `main.py`, `tools/lizard_analyzer.py`, `utils/xr_field_schema.py` |
 | `core/dependencies/` | Dependency-graph analysis service (see `docs/features/DEPENDENCY_GRAPH_XR.md`) | `dependencyGraphService.ts`, `dependencyGraphModels.ts` |
 | `core/export/` | Analysis export: the manifest, the package transaction and the Git-revision exporter with its Python worker pool | `exportManifest.ts`, `exportPackageTransaction.ts`, `gitRevisionExporter.ts`, `gitRevisionExportCore.ts`, `gitTimelineBlobAnalyzer.ts` |

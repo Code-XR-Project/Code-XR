@@ -22,11 +22,14 @@ function readProjectFile(...segments) {
 }
 
 test('the capability table grants LivePanel historical comparison while project evolution stays XR-only', () => {
-    const capabilities = readProjectFile('src', 'core', 'server', 'analysisServerCapabilities.ts');
-    const livePanelEntry = capabilities.match(/LivePanel: \{[\s\S]*?\},/)?.[0] || '';
-    assert.match(livePanelEntry, /dependencyGraph: true/);
-    assert.match(livePanelEntry, /historicalComparison: true/);
-    assert.match(livePanelEntry, /projectEvolution: false/);
+    // Derived from the analysis-type descriptors (S5); asserted on the
+    // compiled resolver rather than on the source text.
+    const { resolveAnalysisServerCapabilities } = require(path.join(projectRoot, 'out', 'core', 'server', 'analysisServerCapabilities.js'));
+    assert.deepEqual(resolveAnalysisServerCapabilities('LivePanel'), {
+        dependencyGraph: true,
+        historicalComparison: true,
+        projectEvolution: false,
+    });
 });
 
 test('the historical comparison service admits LivePanel sessions and still throws for anything else', () => {

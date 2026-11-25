@@ -16,6 +16,7 @@ import {
 } from './analysisSession';
 import { SHA256Generator } from '../utils/sha256Generator';
 import { getLogger } from '../../../platform/logging/sink';
+import { targetKey } from '../launch/targetKey';
 
 const logger = getLogger('UNIFIED_REGISTRY');
 
@@ -57,9 +58,12 @@ export class UnifiedSessionRegistry {
     private hasDuplicateSession(params: SessionCreationParams): UnifiedAnalysisSession | null {
         const existingSessions = this.getAllSessions();
 
+        // Compared by normalised key, not raw string: `C:\p\a.ts` and
+        // `c:\p\a.ts` are one target (LAUNCHER-17).
+        const wantedKey = targetKey(params.targetPath);
         for (const session of existingSessions) {
             const isDuplicate =
-                session.targetPath === params.targetPath &&
+                targetKey(session.targetPath) === wantedKey &&
                 session.analysisMode === params.analysisMode &&
                 session.targetType === params.targetType &&
                 session.isDeep === (params.isDeep || false) &&
@@ -96,8 +100,12 @@ export class UnifiedSessionRegistry {
             const id = generateNonce();
             const targetName = path.basename(params.targetPath);
             const { outputDirectory, outputPath } = this.buildSessionPaths(params, id, targetName);
-            const calculatedHash = params.targetType === 'file' ? await this.hashTargetFile(params.targetPath) : '';
 
+            // Reserve BEFORE the first await (LAUNCHER-4): the duplicate check
+            // above and this insertion run in the same tick, so a double click
+            // finds the first session already registered as `creating`. The
+            // hash and the directory check below used to run in between, which
+            // let two launches of one target through.
             const session: UnifiedAnalysisSession = {
                 id,
                 targetPath: params.targetPath,
@@ -107,7 +115,7 @@ export class UnifiedSessionRegistry {
                 isDeep: params.isDeep || false,
                 status: 'creating',
                 startTime: new Date(),
-                hash256: calculatedHash,
+                hash256: '',
                 outputDirectory,
                 outputPath,
                 requiredFiles: new Map<string, string>(),
@@ -115,17 +123,27 @@ export class UnifiedSessionRegistry {
                 metadata: {}
             };
 
-            if (params.targetType === 'directory') {
-                await this.assertDirectoryTarget(params.targetPath);
+            this.sessions.set(id, session);
 
-                // Directory scanning and initial hashes are populated after Python
-                // completes the first analysis, keeping the startup path lightweight.
-                session.directoriesToAnalyze = [];
-                session.filesToHash = [];
-                logger.debug('Directory session will populate tracked files after initial analysis');
+            try {
+                if (params.targetType === 'file') {
+                    session.hash256 = await this.hashTargetFile(params.targetPath);
+                } else {
+                    await this.assertDirectoryTarget(params.targetPath);
+
+                    // Directory scanning and initial hashes are populated after Python
+                    // completes the first analysis, keeping the startup path lightweight.
+                    session.directoriesToAnalyze = [];
+                    session.filesToHash = [];
+                    logger.debug('Directory session will populate tracked files after initial analysis');
+                }
+            } catch (validationError) {
+                // Release the reservation: a target that cannot be read must
+                // not block the next attempt as "already in progress".
+                this.sessions.delete(id);
+                throw validationError;
             }
 
-            this.sessions.set(id, session);
             this._onSessionChanged.fire(session);
 
             logger.debug(() => `Created session ${id} for ${targetName}`);
@@ -305,7 +323,8 @@ export class UnifiedSessionRegistry {
      * Get sessions by target path - SIMPLE
      */
     getSessionsByTargetPath(targetPath: string): UnifiedAnalysisSession[] {
-        return this.getAllSessions().filter(s => s.targetPath === targetPath);
+        const wantedKey = targetKey(targetPath);
+        return this.getAllSessions().filter(s => targetKey(s.targetPath) === wantedKey);
     }
 
     /**
