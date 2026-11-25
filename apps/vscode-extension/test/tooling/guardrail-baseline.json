@@ -18,11 +18,11 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1484,
+    "console.total": 1480,
     "console.byModule": {
       "active_servers": 120,
       "babia_examples": 49,
-      "babia_templates": 72,
+      "babia_templates": 68,
       "code_analysis": 571,
       "commands": 4,
       "core": 1,
@@ -89,8 +89,8 @@
   },
   "informational": {
     "src.files": 310,
-    "src.lines": 49548,
-    "src.functions": 2721,
+    "src.lines": 49505,
+    "src.functions": 2720,
     "src.unreachableLines": 122,
     "console.topFiles": [
       {

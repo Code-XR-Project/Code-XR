@@ -161,49 +161,6 @@ export class CreateStructure {
     }
 
     /**
-     * Get appropriate SSE script based on analysis type (legacy method)
-     */
-    private static getSSEScript(analysisType: 'xr' | 'dom' | 'none', context: vscode.ExtensionContext): string {
-        console.log(`CREATE_STRUCTURE: Selecting SSE script for analysis type: ${analysisType}`);
-
-        try {
-            let scriptFileName: string;
-
-            switch (analysisType) {
-                case 'xr':
-                    scriptFileName = 'live_sse_fileXR.js';
-                    break;
-                case 'dom':
-                    scriptFileName = 'live_sse_fileDOM.js';
-                    break;
-                case 'none':
-                default:
-                    // No SSE script needed
-                    return '';
-            }
-
-            const scriptPath = path.join(context.extensionPath, 'templates', 'xr', 'sse', scriptFileName);
-
-            if (!fs.existsSync(scriptPath)) {
-                console.warn(`CREATE_STRUCTURE: SSE script not found at: ${scriptPath}`);
-                return '';
-            }
-
-            const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            console.log(`CREATE_STRUCTURE: Loaded SSE script: ${scriptFileName}`);
-            
-            // Return script wrapped in script tags for injection
-            return `<script type="text/javascript">
-${scriptContent}
-</script>`;
-
-        } catch (error) {
-            console.error(`CREATE_STRUCTURE: Error loading SSE script:`, error);
-            return '';
-        }
-    }
-
-    /**
      * Replace all structural placeholders in template
      */
     public static replaceStructuralPlaceholders(
