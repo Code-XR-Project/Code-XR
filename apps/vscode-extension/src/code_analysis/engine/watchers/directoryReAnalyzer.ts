@@ -12,6 +12,7 @@ import { SessionServerManager } from '../servers/sessionServerManager';
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { FileHashTracker } from './fileHashTracker';
 import {
+    AnalysisFileEntry,
     createEmptyFileEntry,
     hasMatchingLivePanelFile,
     hasMatchingXRFile,
@@ -29,9 +30,12 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('DIRECTORY_REANALYZER');
 
+/** A parsed data.json, in either layout; `xrFormat` says which one. */
+type AnalysisData = XRAnalysisData | LivePanelAnalysisData;
+
 interface IncrementalChangeSet {
     removedFiles?: string[];
-    updatedResults?: any[];
+    updatedResults?: AnalysisFileEntry[];
     addedFiles?: string[];
 }
 
@@ -44,7 +48,7 @@ export class DirectoryReAnalyzer {
         this.sessionServerManager = new SessionServerManager(context);
     }
 
-    async reAnalyzeFiles(changedFiles: string[]): Promise<any[] | null> {
+    async reAnalyzeFiles(changedFiles: string[]): Promise<AnalysisFileEntry[] | null> {
         try {
             logger.debug(() => `Re-analyzing ${changedFiles.length} changed files`);
             const result = await this.executePython.executeFileReanalysis(changedFiles);
@@ -151,7 +155,7 @@ export class DirectoryReAnalyzer {
     }
 
     private applyRemovedFiles(
-        currentData: any,
+        currentData: AnalysisData,
         xrFormat: boolean,
         removedFiles: string[],
         hashTracker: FileHashTracker,
@@ -160,8 +164,8 @@ export class DirectoryReAnalyzer {
 
         for (const removedPath of removedFiles) {
             const removed = xrFormat
-                ? removeDeletedFileFromXRFormat(currentData, removedPath)
-                : removeDeletedFileFromLivePanelFormat(currentData, removedPath);
+                ? removeDeletedFileFromXRFormat(currentData as XRAnalysisData, removedPath)
+                : removeDeletedFileFromLivePanelFormat(currentData as LivePanelAnalysisData, removedPath);
 
             if (removed) {
                 hasChanges = true;
@@ -173,18 +177,18 @@ export class DirectoryReAnalyzer {
         return hasChanges;
     }
 
-    private applyUpdatedResults(currentData: any, xrFormat: boolean, updatedResults: any[]): boolean {
+    private applyUpdatedResults(currentData: AnalysisData, xrFormat: boolean, updatedResults: AnalysisFileEntry[]): boolean {
         if (updatedResults.length === 0) {
             return false;
         }
 
         return xrFormat
-            ? upsertXRFiles(currentData, updatedResults)
-            : upsertLivePanelFiles(currentData, updatedResults);
+            ? upsertXRFiles(currentData as XRAnalysisData, updatedResults)
+            : upsertLivePanelFiles(currentData as LivePanelAnalysisData, updatedResults);
     }
 
     private async applyAddedFiles(
-        currentData: any,
+        currentData: AnalysisData,
         xrFormat: boolean,
         session: UnifiedAnalysisSession,
         addedFiles: string[],
@@ -194,8 +198,8 @@ export class DirectoryReAnalyzer {
 
         for (const filePath of addedFiles) {
             const alreadyExists = xrFormat
-                ? hasMatchingXRFile(currentData, filePath)
-                : hasMatchingLivePanelFile(currentData, filePath);
+                ? hasMatchingXRFile(currentData as XRAnalysisData, filePath)
+                : hasMatchingLivePanelFile(currentData as LivePanelAnalysisData, filePath);
 
             if (!alreadyExists) {
                 filesToAnalyze.push(filePath);
@@ -206,7 +210,7 @@ export class DirectoryReAnalyzer {
             return false;
         }
 
-        let reanalysisResults: any[] = [];
+        let reanalysisResults: AnalysisFileEntry[] = [];
         try {
             const results = await this.executePython.executeFileReanalysis(filesToAnalyze);
             reanalysisResults = Array.isArray(results) ? results : [results];
@@ -214,7 +218,7 @@ export class DirectoryReAnalyzer {
             logger.error('Error analyzing new files:', error);
         }
 
-        const resultsToUpsert: any[] = [];
+        const resultsToUpsert: AnalysisFileEntry[] = [];
         for (const [index, filePath] of filesToAnalyze.entries()) {
             const result = reanalysisResults[index] && reanalysisResults[index].success !== false
                 ? reanalysisResults[index]
@@ -231,9 +235,9 @@ export class DirectoryReAnalyzer {
         }
 
         if (xrFormat) {
-            upsertXRFiles(currentData, resultsToUpsert);
+            upsertXRFiles(currentData as XRAnalysisData, resultsToUpsert);
         } else {
-            upsertLivePanelFiles(currentData, resultsToUpsert);
+            upsertLivePanelFiles(currentData as LivePanelAnalysisData, resultsToUpsert);
         }
 
         return true;
@@ -248,7 +252,7 @@ export class DirectoryReAnalyzer {
         }
     }
 
-    private async writeJsonAtomically(filePath: string, data: any): Promise<void> {
+    private async writeJsonAtomically(filePath: string, data: unknown): Promise<void> {
         const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
         await fs.promises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
         await fs.promises.rename(tempPath, filePath);

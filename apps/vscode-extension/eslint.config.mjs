@@ -143,6 +143,7 @@ export default [{
     // the list in the commit that brings it to zero.
     name: "codexr/any-free-folders",
     files: [
+        "src/code_analysis/engine/watchers/**/*.ts",
         "src/code_analysis/services/**/*.ts",
         "src/code_analysis/views/subsections/active_analyses/**/*.ts",
     ],
