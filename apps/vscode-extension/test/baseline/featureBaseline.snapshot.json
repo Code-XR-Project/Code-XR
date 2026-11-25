@@ -142,7 +142,6 @@
     "README.md",
     "THIRD_PARTY_NOTICES.md",
     "dist/**/*",
-    "docs/**/*",
     "examples/**/*",
     "resources/avatars/**/*",
     "resources/icon.png",

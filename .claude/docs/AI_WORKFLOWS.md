@@ -58,8 +58,8 @@ Full procedure lives in the **`cleanup` skill** — invoke it. Summary:
 ## Playbook: documentation update
 
 1. Read `INDEX.md` + the target doc. Check `V1.2.1_STATUS.md` → "Carried-over debt from 1.2.0" and the historical `V1.2.0_STATUS.md` → "Documentation debt" — your task may already be catalogued there.
-2. Rules: never delete existing docs; record inconsistencies instead of silently rewriting history; keep `docs/*` (user-shipped, mixed ES/EN) separate in tone from `.claude/docs/*` (internal, English).
-3. Remember `docs/**` ships in the VSIX; `.claude/**` does not.
+2. Rules: never delete existing docs; record inconsistencies instead of silently rewriting history; keep `docs/*` (user-facing, mixed ES/EN) separate in tone from `.claude/docs/*` (internal, English).
+3. Neither `docs/**` (since 1.2.1; the README links it on GitHub) nor `.claude/**` ships in the VSIX.
 4. If you fix a catalogued inconsistency, record the fix in `V1.2.1_STATUS.md` in the same session (`V1.2.0_STATUS.md` is a closed historical record).
 
 ## Playbook: release preparation

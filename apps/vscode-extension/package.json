@@ -56,7 +56,6 @@
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "CHANGELOG.md",
-    "docs/**/*",
     "templates/**/*",
     "examples/**/*"
   ],

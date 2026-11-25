@@ -81,7 +81,7 @@ Also `backend/manual_test/`: per-language fixtures consumed by `npm run test:ana
 ## Packaging
 
 - Bundler: **webpack** (`webpack.config.js`), target node, entry `src/extension.ts` → `dist/extension.js` (commonjs2, `clean: true`), `vscode` external.
-- **No `.vscodeignore`** — VSIX contents are controlled by the `files` allowlist in package.json: `dist/**`, selected `resources/`, README/LICENSE/notices/CHANGELOG, **`docs/**`** (yes, docs ship to users), `templates/**`, `examples/**`. `.claude/` is **not** in the list and never ships.
+- **No `.vscodeignore`** — VSIX contents are controlled by the `files` allowlist in package.json: `dist/**`, selected `resources/`, README/LICENSE/notices/CHANGELOG, `templates/**`, `examples/**`. `.claude/` is **not** in the list and never ships; neither does `docs/` since 1.2.1 (nothing reads it at runtime, and vsce rewrites the README links into it to GitHub URLs via `--baseContentUrl`).
 - `npm run package:vsix` produces the installable `.vsix`. During release prep, inspect the VSIX contents against the allowlist (see `AI_WORKFLOWS.md`).
 
 ## Known tooling quirks (do not "fix" casually)
