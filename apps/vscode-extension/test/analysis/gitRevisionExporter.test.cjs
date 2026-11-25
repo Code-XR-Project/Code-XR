@@ -577,11 +577,14 @@ test('a folder that is not a git repository fails softly with a reason', async (
 });
 
 test('the unified decorator serves both modes: shared key for directories, both keys for files', () => {
+    // Absolute paths in the host's own form: a drive letter is only absolute on
+    // Windows, so on POSIX the same fixture would be read as a relative path.
+    const root = process.platform === 'win32' ? 'C:' : '';
     const directory = decorateRevisionPayload(
-        [{ fileName: 'a.py', filePath: 'C:/snap/core/a.py' }],
+        [{ fileName: 'a.py', filePath: `${root}/snap/core/a.py` }],
         'directory',
-        'C:/projects/demo',
-        'C:/snap',
+        `${root}/projects/demo`,
+        `${root}/snap`,
     );
     assert.equal(directory[0].comparisonKey, 'file:core/a.py');
     assert.equal(directory[0].evolutionKey, 'file:core/a.py');
@@ -595,8 +598,8 @@ test('the unified decorator serves both modes: shared key for directories, both 
             { functionName: 'Bar', parameters: 0 },
         ],
         'file',
-        'C:/projects/demo/Module.PY',
-        'C:/snap/Module.PY',
+        `${root}/projects/demo/Module.PY`,
+        `${root}/snap/Module.PY`,
     );
     assert.equal(file[0].comparisonKey, 'function:module.py:foo#2:1');
     assert.equal(file[1].comparisonKey, 'function:module.py:foo#2:2');

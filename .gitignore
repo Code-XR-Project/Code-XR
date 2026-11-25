@@ -33,3 +33,6 @@ apps/vscode-extension/test/manual/assembled/
 media/**/*.mp4
 # Local PNG master of the user-taken AR shot; the tracked JPEG is the deliverable.
 media/v1.2.0/xr_experiences/ar-development.png
+
+# Git worktrees created by Claude Code agent sessions
+.claude/worktrees/
