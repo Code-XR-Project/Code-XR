@@ -6,7 +6,7 @@
 import { FileHash } from '../utils/fileHashCalculator';
 import { SHA256Generator } from '../../../utils/sha256Generator';
 import { buildTrackedFileSnapshot, FileStatSnapshot } from './directorySnapshot';
-import { isDirectoryAnalysisFile, shouldIgnoreFileName } from './analysisFilePolicy';
+import { shouldIgnoreFileName } from './analysisFilePolicy';
 
 export interface SnapshotDiff {
     added: string[];
@@ -37,10 +37,6 @@ export class FileHashTracker {
 
     hasTrackedFile(filePath: string): boolean {
         return this.trackedFiles.has(filePath);
-    }
-
-    isAnalyzableExtension(filePath: string): boolean {
-        return isDirectoryAnalysisFile(filePath);
     }
 
     shouldSkipEvent(filename: string): boolean {
