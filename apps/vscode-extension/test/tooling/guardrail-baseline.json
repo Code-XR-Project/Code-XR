@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 318,
-    "src.lines": 48105,
-    "src.functions": 2641,
+    "src.files": 319,
+    "src.lines": 48131,
+    "src.functions": 2642,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -274,12 +274,12 @@
     ],
     "size.largest10": [
       {
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 894
-      },
-      {
         "file": "src/python_env/runtime/venvManager.ts",
         "lines": 852
+      },
+      {
+        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
+        "lines": 838
       },
       {
         "file": "src/active_servers/views/interactions/handleServerActions.ts",

@@ -14,6 +14,7 @@ const ROOM_SERVER_FILES = [
     'src/servers/runtime/collaboration/roomTypes.ts',
     'src/servers/runtime/collaboration/roomMessageCodec.ts',
     'src/servers/runtime/collaboration/participantIdentity.ts',
+    'src/servers/runtime/collaboration/roomRegistry.ts',
 ];
 const runtimeSource = readAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
 const runtimeModule = requireAssembledRuntime('virtual-screen', 'virtualScreenRuntime.js');
