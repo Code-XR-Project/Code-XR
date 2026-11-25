@@ -5,6 +5,9 @@ import { HttpsDefaultServer } from './httpsDefaultServer';
 import { HttpsCustomServer } from './httpsCustomServer';
 import type { ServerSettings } from '../storage/serverSettingsManager';
 import type { LaunchMode, CertMode } from '../../active_servers/model/activeServerModel';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 /*
  * The server factory behind MultiServerLauncher: which server class a set of
@@ -63,9 +66,9 @@ export function resolveServerTypeForOpenMode(settings: ServerSettings): {
     const isHttps = originalServerType === 'https-default' || originalServerType === 'https-custom';
     
     if (isLateralPanel && isHttps) {
-        console.log('SERVER: HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility');
-        console.log(`SERVER: Original server type would have been: ${originalServerType}`);
-        console.log('SERVER: VS Code webview panels do not support HTTPS content, using HTTP fallback');
+        logger.debug('HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility');
+        logger.debug(() => `Original server type would have been: ${originalServerType}`);
+        logger.debug('VS Code webview panels do not support HTTPS content, using HTTP fallback');
         
         return {
             serverType: 'http',
@@ -128,14 +131,14 @@ export async function launchServerByType(
         const enableCors = true;
         const allowedOrigins = ['*'];
 
-        console.log(`SERVER: Using static root: ${staticRoot}`);
+        logger.debug(() => `Using static root: ${staticRoot}`);
         if (mainFile) {
-            console.log(`SERVER: Main file configured: ${mainFile}`);
+            logger.debug(() => `Main file configured: ${mainFile}`);
         }
 
         switch (serverType) {
             case 'http':
-                console.log('SERVER: Creating HTTP server...');
+                logger.debug('Creating HTTP server...');
                 server = new HttpServer({
                     port,
                     host,
@@ -151,7 +154,7 @@ export async function launchServerByType(
                 break;
 
             case 'https-default':
-                console.log('SERVER: Creating HTTPS server with generated local certificates...');
+                logger.debug('Creating HTTPS server with generated local certificates...');
                 server = new HttpsDefaultServer({
                     port,
                     host,
@@ -167,7 +170,7 @@ export async function launchServerByType(
                 break;
 
             case 'https-custom':
-                console.log('SERVER: Creating HTTPS server with custom certificates...');
+                logger.debug('Creating HTTPS server with custom certificates...');
                 if (!settings.https?.certPath || !settings.https.keyPath) {
                     throw new Error('Custom certificate paths are required for custom HTTPS server');
                 }
@@ -192,7 +195,7 @@ export async function launchServerByType(
         }
 
         // Start the server
-        console.log(`SERVER: Starting ${serverType} server...`);
+        logger.debug(() => `Starting ${serverType} server...`);
         serverUrl = await server.start();
 
         return {
@@ -204,7 +207,7 @@ export async function launchServerByType(
         };
 
     } catch (error) {
-        console.error(`SERVER: Error launching ${serverType} server:`, error);
+        logger.error(`Error launching ${serverType} server:`, error);
         return {
             success: false,
             error: error instanceof Error ? error.message : String(error),

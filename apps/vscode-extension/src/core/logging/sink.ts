@@ -16,11 +16,18 @@ import { CodeXRLogLevel, shouldEmitLog } from './logPolicy';
 
 export type MessageFactory = string | (() => string);
 
+/**
+ * Zero or one metadata value. A rest tuple rather than an optional
+ * parameter, so an explicitly passed `undefined` is still logged
+ * (console.log('id:', undefined) printed it too).
+ */
+export type LogMetadata = [] | [unknown];
+
 export interface ScopedLogger {
-    debug(message: MessageFactory, metadata?: unknown): void;
-    info(message: MessageFactory, metadata?: unknown): void;
-    warn(message: MessageFactory, metadata?: unknown): void;
-    error(message: MessageFactory, metadata?: unknown): void;
+    debug(message: MessageFactory, ...metadata: LogMetadata): void;
+    info(message: MessageFactory, ...metadata: LogMetadata): void;
+    warn(message: MessageFactory, ...metadata: LogMetadata): void;
+    error(message: MessageFactory, ...metadata: LogMetadata): void;
 }
 
 /** Anything that accepts whole lines: the output channel, in practice. */
@@ -33,7 +40,8 @@ export interface LogEntry {
     readonly level: CodeXRLogLevel;
     readonly scope: string;
     readonly message: string;
-    readonly metadata: unknown;
+    /** Empty when the call passed no metadata. */
+    readonly metadata: LogMetadata;
 }
 
 export type LogObserver = (entry: LogEntry) => void;
@@ -42,7 +50,7 @@ interface PendingEntry {
     readonly level: CodeXRLogLevel;
     readonly scope: string;
     readonly message: MessageFactory;
-    readonly metadata: unknown;
+    readonly metadata: LogMetadata;
     readonly timestamp: string;
 }
 
@@ -58,20 +66,20 @@ const observers = new Set<LogObserver>();
 class ScopedLoggerImpl implements ScopedLogger {
     constructor(private readonly scope: string) {}
 
-    debug(message: MessageFactory, metadata?: unknown): void {
-        writeLog('debug', this.scope, message, metadata);
+    debug(message: MessageFactory, ...metadata: LogMetadata): void {
+        writeLog('debug', this.scope, message, ...metadata);
     }
 
-    info(message: MessageFactory, metadata?: unknown): void {
-        writeLog('info', this.scope, message, metadata);
+    info(message: MessageFactory, ...metadata: LogMetadata): void {
+        writeLog('info', this.scope, message, ...metadata);
     }
 
-    warn(message: MessageFactory, metadata?: unknown): void {
-        writeLog('warn', this.scope, message, metadata);
+    warn(message: MessageFactory, ...metadata: LogMetadata): void {
+        writeLog('warn', this.scope, message, ...metadata);
     }
 
-    error(message: MessageFactory, metadata?: unknown): void {
-        writeLog('error', this.scope, message, metadata);
+    error(message: MessageFactory, ...metadata: LogMetadata): void {
+        writeLog('error', this.scope, message, ...metadata);
     }
 }
 
@@ -84,7 +92,7 @@ export function writeLog(
     level: CodeXRLogLevel,
     scope: string,
     message: MessageFactory,
-    metadata?: unknown,
+    ...metadata: LogMetadata
 ): void {
     const timestamp = new Date().toISOString();
 
@@ -122,7 +130,7 @@ export function attachLogTarget(newTarget: LogTarget): void {
             level: 'warn',
             scope: 'LOGGER',
             message: `${dropped} earlier log line(s) were dropped before the output channel was ready.`,
-            metadata: undefined,
+            metadata: [],
             timestamp: new Date().toISOString(),
         });
     }
@@ -178,18 +186,18 @@ function appendEntry(destination: LogTarget, entry: PendingEntry): void {
         `[${entry.timestamp}] [${entry.level.toUpperCase()}] [${entry.scope}] ${renderMessage(entry.message)}`,
     );
 
-    if (entry.metadata !== undefined) {
-        destination.appendLine(formatMetadata(entry.metadata));
+    if (entry.metadata.length > 0) {
+        destination.appendLine(formatMetadata(entry.metadata[0]));
     }
 }
 
-function echoToConsole(level: CodeXRLogLevel, scope: string, message: MessageFactory, metadata: unknown): void {
+function echoToConsole(level: CodeXRLogLevel, scope: string, message: MessageFactory, metadata: LogMetadata): void {
     if (level !== 'warn' && level !== 'error') {
         return;
     }
 
     const line = `[CodeXR] [${scope}] ${renderMessage(message)}`;
-    const args = metadata === undefined ? [line] : [line, metadata];
+    const args = [line, ...metadata];
     if (level === 'warn') {
         console.warn(...args);
     } else {

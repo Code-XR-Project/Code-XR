@@ -18,13 +18,13 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 384,
+    "console.total": 260,
     "console.byModule": {
       "active_servers": 107,
       "core": 2,
-      "servers": 275
+      "servers": 151
     },
-    "catch.consoleOnly": 1,
+    "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
     "any.total": 200,
     "any.byModule": {
@@ -72,8 +72,8 @@
   },
   "informational": {
     "src.files": 330,
-    "src.lines": 48855,
-    "src.functions": 3035,
+    "src.lines": 48888,
+    "src.functions": 3084,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -83,14 +83,6 @@
       {
         "file": "src/servers/runtime/sse/sseClientRegistry.ts",
         "count": 29
-      },
-      {
-        "file": "src/servers/runtime/multiServerLauncher.ts",
-        "count": 26
-      },
-      {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
-        "count": 24
       },
       {
         "file": "src/servers/runtime/sse/SSEManager.ts",
@@ -109,20 +101,12 @@
         "count": 22
       },
       {
-        "file": "src/servers/runtime/httpServer.ts",
-        "count": 20
-      },
-      {
         "file": "src/servers/runtime/http/staticAssets.ts",
         "count": 18
       },
       {
         "file": "src/servers/views/interactions/handleConfigurationClicks.ts",
         "count": 17
-      },
-      {
-        "file": "src/servers/runtime/httpsCustomServer.ts",
-        "count": 14
       },
       {
         "file": "src/active_servers/registry/activeServerRegistry.ts",
@@ -133,8 +117,24 @@
         "count": 13
       },
       {
-        "file": "src/servers/runtime/portManager.ts",
-        "count": 11
+        "file": "src/active_servers/services/serverOpenActions.ts",
+        "count": 10
+      },
+      {
+        "file": "src/servers/views/interactions/launchNotifications.ts",
+        "count": 9
+      },
+      {
+        "file": "src/active_servers/commands/activeServersCommands.ts",
+        "count": 6
+      },
+      {
+        "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts",
+        "count": 5
+      },
+      {
+        "file": "src/active_servers/services/serverRegistrar.ts",
+        "count": 4
       }
     ],
     "any.topFiles": [
@@ -292,7 +292,7 @@
       },
       {
         "file": "src/servers/runtime/httpServer.ts",
-        "lines": 573
+        "lines": 576
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",

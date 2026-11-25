@@ -31,6 +31,7 @@ const NO_CONSOLE_FILES = [
     "src/code_analysis/utils/**/*.ts",
     "src/core/extensionContext.ts",
     "src/commands/**/*.ts",
+    "src/servers/runtime/*.ts",
 ];
 const CONSOLE_ALLOWLIST = ["src/core/logging/sink.ts"];
 

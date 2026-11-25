@@ -11,15 +11,19 @@
  * - level: debug and info become `log` (what console.log was mapped to);
  *   warn and error stay;
  * - first: `SCOPE: message`, the hand-written prefix the logger's [SCOPE] tag
- *   replaced, unless the message still carries a prefix of its own;
+ *   replaced, unless the message still carries a module tag of its own (a
+ *   compound one such as REQUEST_UPDATE: or SERVER_DEBUG:, which the
+ *   migration left in place; a plain word such as NOTE: is message text);
  * - rest: the metadata as the one extra console argument, or nothing.
  * Returns the unsubscribe function.
  */
+const OWN_TAG = /^\[?[A-Z][A-Z0-9]*[_-][A-Z0-9_-]*\]?:/;
+
 function observeLogsAsConsole(sink, record) {
     return sink.observeLogEntries((entry) => {
         const level = entry.level === 'debug' || entry.level === 'info' ? 'log' : entry.level;
-        const first = /^\[?[A-Z][A-Z0-9_-]*\]?:/.test(entry.message) ? entry.message : `${entry.scope}: ${entry.message}`;
-        record(level, first, entry.metadata === undefined ? [] : [entry.metadata]);
+        const first = OWN_TAG.test(entry.message) ? entry.message : `${entry.scope}: ${entry.message}`;
+        record(level, first, [...entry.metadata]);
     });
 }
 

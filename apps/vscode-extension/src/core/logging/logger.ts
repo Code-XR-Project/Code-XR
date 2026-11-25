@@ -5,13 +5,14 @@ import {
     detachLogTarget,
     getLogger,
     isVerboseLogging,
+    LogMetadata,
     MessageFactory,
     ScopedLogger,
     setVerboseLogging,
     writeLog,
 } from './sink';
 
-export type { MessageFactory, ScopedLogger } from './sink';
+export type { LogMetadata, MessageFactory, ScopedLogger } from './sink';
 
 /**
  * The VS Code side of CodeXR logging: it attaches the "CodeXR" output channel
@@ -73,9 +74,9 @@ export class CodeXRLogger {
         level: CodeXRLogLevel,
         scope: string,
         message: MessageFactory,
-        metadata?: unknown,
+        ...metadata: LogMetadata
     ): void {
-        writeLog(level, scope, message, metadata);
+        writeLog(level, scope, message, ...metadata);
     }
 
     private static updateLoggingMode(context: vscode.ExtensionContext): void {

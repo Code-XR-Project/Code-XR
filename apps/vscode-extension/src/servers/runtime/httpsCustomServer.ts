@@ -4,6 +4,9 @@ import { NetworkUtils } from '../utils/networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
 import { isCertificateRejectedByClient } from './httpsTlsOptions';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVER');
 
 export interface HttpsCustomServerConfig extends HttpsServerBaseConfig {
     certPath: string;
@@ -24,7 +27,7 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
 
         super(config, (httpConfig) => new HttpServer(httpConfig));
 
-        console.log('SERVER: HTTPS server (custom certificates) initialized with config:', {
+        logger.debug('HTTPS server (custom certificates) initialized with config:', {
             ...this.config,
             certPath: '***REDACTED***',
             keyPath: '***REDACTED***',
@@ -39,7 +42,7 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
         await this.resolveListeningPort();
 
         const loadSslOptions = () => this.loadSslOptions(
-            'SERVER: Custom SSL certificates loaded successfully',
+            'Custom SSL certificates loaded successfully',
             'SERVER: Failed to load custom SSL certificates',
         );
         return this.listenWithTls(loadSslOptions, (server, resolve) => {
@@ -47,9 +50,9 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
                 const port = this.config.port;
                 const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
 
-                console.log(`SERVER: HTTPS server listening on port ${port}`);
+                logger.debug(() => `HTTPS server listening on port ${port}`);
                 if (this.usingFallbackCerts) {
-                    console.warn('SERVER: Using generated local certificates instead of custom certificates');
+                    logger.warn('Using generated local certificates instead of custom certificates');
                     void vscode.window.showWarningMessage(
                         'HTTPS server started with generated local certificates because the custom certificate pair was missing or invalid.',
                         'Configure Certificates',
@@ -59,11 +62,11 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
                         }
                     });
                 } else {
-                    console.log('SERVER: Using custom certificates');
+                    logger.debug('Using custom certificates');
                 }
 
                 NetworkUtils.displayNetworkInfo(port, 'https');
-                console.log(`SERVER: Primary external URL: ${primaryExternalUrl}`);
+                logger.debug(() => `Primary external URL: ${primaryExternalUrl}`);
 
                 this.isRunning = true;
                 resolve(NetworkUtils.getLocalhostUrl(port, 'https'));
@@ -71,13 +74,13 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
 
             server.on('tlsClientError', (err) => {
                 if (isCertificateRejectedByClient(err)) {
-                    console.warn('SERVER: Client rejected the certificate - this may be expected');
-                    console.warn('SERVER: Open the server URL in a browser first and accept the certificate');
-                    console.warn(`SERVER: Navigate to https://${this.config.host}:${this.config.port} and proceed manually`);
+                    logger.warn('Client rejected the certificate - this may be expected');
+                    logger.warn('Open the server URL in a browser first and accept the certificate');
+                    logger.warn(`Navigate to https://${this.config.host}:${this.config.port} and proceed manually`);
                 } else if (err.message.includes('certificate')) {
-                    console.warn('SERVER: Certificate-related TLS error:', err.message);
+                    logger.warn('Certificate-related TLS error:', err.message);
                 } else {
-                    console.warn('SERVER: TLS client error (non-critical):', err.message);
+                    logger.warn('TLS client error (non-critical):', err.message);
                 }
             });
 
@@ -100,7 +103,7 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
             return;
         }
 
-        console.warn('SERVER: Falling back to generated local certificates because the custom pair is missing or invalid');
+        logger.warn('Falling back to generated local certificates because the custom pair is missing or invalid');
         const generatedPaths = await this.certificateManager.ensureDefaultCertificatePair();
         this.config.certPath = generatedPaths.certPath;
         this.config.keyPath = generatedPaths.keyPath;
@@ -113,10 +116,10 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
 
         if (!certExists || !keyExists) {
             if (!certExists) {
-                console.warn(`SERVER: Custom certificate file not found: ${this.config.certPath}`);
+                logger.warn(`Custom certificate file not found: ${this.config.certPath}`);
             }
             if (!keyExists) {
-                console.warn(`SERVER: Custom key file not found: ${this.config.keyPath}`);
+                logger.warn(`Custom key file not found: ${this.config.keyPath}`);
             }
             return false;
         }
@@ -125,7 +128,7 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
             await this.validateCertificatePair(this.config.certPath, this.config.keyPath);
             return true;
         } catch (error) {
-            console.warn('SERVER: Custom certificate pair failed validation and will use generated fallback:', error);
+            logger.warn('Custom certificate pair failed validation and will use generated fallback:', error);
             return false;
         }
     }
