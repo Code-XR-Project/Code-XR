@@ -30,11 +30,11 @@
       "babia_templates": 2,
       "code_analysis": 87,
       "commands": 6,
-      "platform": 2,
+      "platform": 7,
       "python_env": 5,
       "servers": 11,
       "utils": 14,
-      "views": 20,
+      "views": 15,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -70,7 +70,7 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49035,
+    "src.lines": 49038,
     "src.functions": 3283,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -109,6 +109,10 @@
         "count": 5
       },
       {
+        "file": "src/platform/tree/baseInterfaces.ts",
+        "count": 5
+      },
+      {
         "file": "src/python_env/runtime/venvManager.ts",
         "count": 5
       },
@@ -118,10 +122,6 @@
       },
       {
         "file": "src/utils/jsonFieldAnalyzer.ts",
-        "count": 5
-      },
-      {
-        "file": "src/views/common/baseInterfaces.ts",
         "count": 5
       },
       {
@@ -280,6 +280,13 @@
       "from": 0,
       "to": 2,
       "reason": "#42: commandRegistry.ts moved from commands/shared/ to platform/commands/; its two any move with it (commands 8 -> 6, total unchanged)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 2,
+      "to": 7,
+      "reason": "#42: views/common/baseInterfaces.ts moved to platform/tree/ (its src-layout.md destination); its any moves with it (views and platform shift by the same count, total unchanged)",
       "date": "2026-11-25"
     }
   ]

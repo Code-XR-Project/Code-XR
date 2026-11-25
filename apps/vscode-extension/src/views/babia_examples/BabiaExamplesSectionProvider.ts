@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../common/baseInterfaces';
+import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
 import { BabiaExampleTreeItem, BabiaExampleItemFactory } from './items/babiaExampleItems';
 import { BabiaExampleClickHandler } from './interactions/handleBabiaExampleClicks';
 import { ExampleLauncher } from '../../babia_examples/runtime/exampleLauncher';

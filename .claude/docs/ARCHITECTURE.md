@@ -69,7 +69,7 @@ Three analysis modes share this pipeline: **XR** (A-Frame scene in browser/heads
 | `visualize_data/` | User-driven "visualize your own JSON" flow | commands + launcher |
 | `visualization_settings/` | Visualization settings (colors, chart config) + color picker | storage + model |
 | `core/` | Extension context, logging, startup coordination | `extensionContext.ts`, `logging/sink.ts` (vscode-free: `getLogger(scope)`, pre-activation buffer, console fallback), `logging/logger.ts` (attaches the output channel, tracks `codeXR.debug.verboseLogs`), `logging/logPolicy.ts`, `startup/startupCoordinator.ts` |
-| `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports) |
+| `platform/` | Extension-host plumbing with no feature knowledge (the layer `docs/cleanup/src-layout.md` proposes; filled as files move) | `templatePaths.ts` (`resolveTemplatePath`), `commands/commandRegistry.ts` (`ExtensionCommandRegistration`, `assertUniqueCommandIds`: the pure command model every feature imports), `tree/baseInterfaces.ts` (the section-provider contract every sidebar section implements) |
 | `learn_more/` | "Learn more" help section in the tree | commands + views |
 | `utils/` | Shared helpers | `languageMetadata.ts`, `fileToServerMap.ts`, `commandBuilder.ts`, `errorHandler.ts`, `nonceGenerator.ts` |
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { BaseSectionProvider } from '../common/baseInterfaces';
+import { BaseSectionProvider } from '../../platform/tree/baseInterfaces';
 import { CollaborationProfileManager } from '../../collaboration';
 import { CollaborationItemFactory, CollaborationTreeItem } from './items/collaborationItems';
 

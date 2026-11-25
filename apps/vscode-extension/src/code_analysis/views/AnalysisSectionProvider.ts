@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { SectionProvider } from '../../views/common/baseInterfaces';
+import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { CodeAnalysisTreeItem } from './items/analysisItems';
 import { CodeAnalysisInteractionHandler } from './interactions/handleAnalysisClicks';
 import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';

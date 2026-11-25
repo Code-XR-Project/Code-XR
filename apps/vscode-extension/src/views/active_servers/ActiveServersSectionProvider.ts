@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SectionProvider } from '../common/baseInterfaces';
+import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { ActiveServerTreeItem, ActiveServerItemFactory } from './items/activeServerItems';
 import { CollaborationSectionProvider } from '../collaboration';
 import { getActiveServerRegistry } from '../../active_servers/registry/activeServerRegistry';

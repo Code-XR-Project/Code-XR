@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SectionProvider } from '../common/baseInterfaces';
+import { SectionProvider } from '../../platform/tree/baseInterfaces';
 import { VisualizeDataModularTreeItem, VisualizeDataModularItemFactory } from './items/visualizeDataItems';
 import { VisualizeDataClickHandler } from './interactions/handleVisualizeDataClicks';
 import { VisualizeDataStateManager } from '../../visualize_data/state/visualizeDataState';
