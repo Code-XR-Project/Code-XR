@@ -6,7 +6,7 @@ import { promisify } from 'util';
 import {
     isDirectoryAnalysisFile,
     shouldIgnoreDirectoryName,
-} from '../engine/watchers/analysisFilePolicy';
+} from '../../code_analysis/engine/watchers/analysisFilePolicy';
 import type {
     ComparisonSource,
     GitReferenceType,

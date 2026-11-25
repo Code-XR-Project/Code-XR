@@ -44,10 +44,10 @@
     "suppressions.total": 0,
     "size.filesOver500": [
       "src/code_analysis/engine/utils/executePython.ts",
-      "src/code_analysis/export/exportManifest.ts",
-      "src/code_analysis/historical/gitRepositoryService.ts",
       "src/code_analysis/refresh/analysisRefreshCoordinator.ts",
       "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
+      "src/core/export/exportManifest.ts",
+      "src/core/history/gitRepositoryService.ts",
       "src/core/python-env/venvManager.ts",
       "src/core/remote-access/remoteAccessManager.ts",
       "src/core/remote-access/remoteSessionAuthority.ts",
@@ -196,7 +196,7 @@
         "ccn": 20,
         "lines": 73,
         "function": "sampleTimeline",
-        "file": "src/code_analysis/historical/gitTimelineSampler.ts"
+        "file": "src/core/history/gitTimelineSampler.ts"
       },
       {
         "ccn": 19,
@@ -263,7 +263,7 @@
         "lines": 803
       },
       {
-        "file": "src/code_analysis/export/exportManifest.ts",
+        "file": "src/core/export/exportManifest.ts",
         "lines": 746
       },
       {
@@ -275,7 +275,7 @@
         "lines": 624
       },
       {
-        "file": "src/code_analysis/historical/gitRepositoryService.ts",
+        "file": "src/core/history/gitRepositoryService.ts",
         "lines": 617
       },
       {

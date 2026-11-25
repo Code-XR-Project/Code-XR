@@ -6,13 +6,13 @@ import {
     GitAnalysisExclusion,
     GitAnalysisExclusionCode,
     HistoricalComparisonReferences,
-} from '../historical/historicalComparisonModels';
+} from '../history/historicalComparisonModels';
 import {
     createGitAnalysisExclusion,
     validateGitAnalysisPayload,
-} from '../historical/gitAnalysisEligibility';
-import { decorateDirectoryEntries } from '../historical/gitAnalysisShared';
-import { sampleTimeline } from '../historical/gitTimelineSampler';
+} from '../history/gitAnalysisEligibility';
+import { decorateDirectoryEntries } from '../history/gitAnalysisShared';
+import { sampleTimeline } from '../history/gitTimelineSampler';
 import {
     GitRevisionExportRequest,
     revisionLimitForScope,

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { validateExportPackage } = require('../../out/code_analysis/export/exportPackageTransaction.js');
+const { validateExportPackage } = require('../../out/core/export/exportPackageTransaction.js');
 
 // Characterization of validateExportPackage (ROADMAP W4-T28, CX-07) beside
 // the happy path in exportPackageTransaction.test.cjs: every required root

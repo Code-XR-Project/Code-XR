@@ -172,7 +172,7 @@ test('the export modal decides what ships, before the destination is picked', ()
     assert.match(source, /Maximum speed — \$\{maximumPlan\.workerCount\} workers/);
 
     // Selection semantics live in the vscode-free helper.
-    const selection = require('../../out/code_analysis/export/exportModeSelection.js');
+    const selection = require('../../out/core/export/exportModeSelection.js');
     const allCapabilities = { dependencyGraph: true, historicalComparison: true, projectEvolution: true };
     const items = selection.buildExportModeItems(allCapabilities);
     assert.deepEqual(items.map((item) => item.modeId), ['normal', 'dependency-graph', 'historical', 'evolution']);

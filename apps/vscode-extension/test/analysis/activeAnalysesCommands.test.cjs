@@ -239,8 +239,8 @@ test('closeOutcome: declining the confirmation closes nothing', async () => {
 // performance, the modal 'Continue Export' confirmation and only then the
 // destination picker. Each step's dismissal ends the wizard right there.
 
-const GIT_EXPORTER_MODULE = 'code_analysis/export/gitRevisionExporter.js';
-const GIT_OPTIONS_MODULE = 'code_analysis/export/gitExportOptions.js';
+const GIT_EXPORTER_MODULE = 'core/export/gitRevisionExporter.js';
+const GIT_OPTIONS_MODULE = 'core/export/gitExportOptions.js';
 
 /**
  * Answers are consumed FIFO by every dialog and message; a function answer

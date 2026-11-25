@@ -8,7 +8,7 @@ const {
     EXPORT_MANIFEST_FILE_NAME,
     buildExportManifest,
     relativizeExportArtifacts,
-} = require('../../out/code_analysis/export/exportManifest.js');
+} = require('../../out/core/export/exportManifest.js');
 
 // Characterization of buildExportManifest (ROADMAP W4-T19, CX-01): one
 // whole-manifest snapshot per scenario, compared as serialized JSON so the

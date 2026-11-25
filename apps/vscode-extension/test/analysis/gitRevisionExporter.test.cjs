@@ -8,25 +8,25 @@ const path = require('node:path');
 const {
     decorateRevisionPayload,
     runGitRevisionExport,
-} = require('../../out/code_analysis/export/gitRevisionExportCore.js');
+} = require('../../out/core/export/gitRevisionExportCore.js');
 const {
     calculateGitExportWorkerPlan,
     validateGitRevisionScope,
-} = require('../../out/code_analysis/export/gitExportOptions.js');
+} = require('../../out/core/export/gitExportOptions.js');
 const {
     GitTimelineBlobAnalyzer,
-} = require('../../out/code_analysis/export/gitTimelineBlobAnalyzer.js');
+} = require('../../out/core/export/gitTimelineBlobAnalyzer.js');
 const {
     GitExportPythonWorkerPool,
-} = require('../../out/code_analysis/export/gitExportPythonWorkerPool.js');
+} = require('../../out/core/export/gitExportPythonWorkerPool.js');
 const {
     GitAnalysisSourceCatalog,
     validateGitAnalysisPayload,
-} = require('../../out/code_analysis/historical/gitAnalysisEligibility.js');
-const { sampleTimeline } = require('../../out/code_analysis/historical/gitTimelineSampler.js');
+} = require('../../out/core/history/gitAnalysisEligibility.js');
+const { sampleTimeline } = require('../../out/core/history/gitTimelineSampler.js');
 
 function loadGitRepositoryService() {
-    return require('../../out/code_analysis/historical/gitRepositoryService.js').GitRepositoryService;
+    return require('../../out/core/history/gitRepositoryService.js').GitRepositoryService;
 }
 
 function runGit(repositoryPath, args) {

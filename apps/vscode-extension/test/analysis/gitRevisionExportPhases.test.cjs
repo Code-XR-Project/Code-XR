@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { runGitRevisionExport } = require('../../out/code_analysis/export/gitRevisionExportCore.js');
+const { runGitRevisionExport } = require('../../out/core/export/gitRevisionExportCore.js');
 
 // Characterization of runGitRevisionExport (ROADMAP W4-T22/T23, CX-02) with a
 // fake Git service instead of a fixture repository, so each scenario chooses

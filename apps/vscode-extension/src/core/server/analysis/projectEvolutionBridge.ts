@@ -2,8 +2,8 @@ import {
     CollaborationApplicationMessageContext,
     CollaborationMessage,
 } from '../collaboration/collaborationRoomServer';
-import { GitAnalysisSourceError } from '../../../code_analysis/historical/gitAnalysisEligibility';
-import { ProjectEvolutionRequest } from '../../../code_analysis/historical/historicalComparisonModels';
+import { GitAnalysisSourceError } from '../../history/gitAnalysisEligibility';
+import { ProjectEvolutionRequest } from '../../history/historicalComparisonModels';
 import { analysisRefreshCoordinator } from '../../../code_analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../../code_analysis/engine/watchers/sessionWatcherManager';
 import { AnalysisFeatureHost } from './analysisFeatureHost';

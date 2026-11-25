@@ -23,20 +23,20 @@ import {
     refreshRuntimeCopies,
     relativizeExportArtifacts,
     writeExportReadme,
-} from '../../../../export/exportManifest';
-import { buildExportModeItems, ExportSelection, interpretExportSelection } from '../../../../export/exportModeSelection';
+} from '../../../../../core/export/exportManifest';
+import { buildExportModeItems, ExportSelection, interpretExportSelection } from '../../../../../core/export/exportModeSelection';
 import {
     exportGitRevisionData,
     inspectGitRevisionExport,
-} from '../../../../export/gitRevisionExporter';
-import { GitExportOutcome } from '../../../../export/gitRevisionExportCore';
+} from '../../../../../core/export/gitRevisionExporter';
+import { GitExportOutcome } from '../../../../../core/export/gitRevisionExportCore';
 import {
     calculateGitExportWorkerPlan,
     GitExportPerformanceProfile,
     GitRevisionExportRequest,
     GitRevisionScope,
     validateGitRevisionScope,
-} from '../../../../export/gitExportOptions';
+} from '../../../../../core/export/gitExportOptions';
 import {
     abortExportPackage,
     beginExportPackageTransaction,
@@ -44,7 +44,7 @@ import {
     pruneExportPackage,
     publishExportPackage,
     validateExportPackage,
-} from '../../../../export/exportPackageTransaction';
+} from '../../../../../core/export/exportPackageTransaction';
 import { getLogger } from '../../../../../platform/logging/sink';
 
 const logger = getLogger('ACTIVE_ANALYSES_COMMANDS');

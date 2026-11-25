@@ -149,7 +149,7 @@ function collectSourceContracts() {
 function collectPythonEntryPoints() {
     const sources = [
         path.join(projectRoot, 'src', 'code_analysis', 'engine', 'utils', 'executePython.ts'),
-        path.join(projectRoot, 'src', 'code_analysis', 'export', 'gitRevisionExporter.ts'),
+        path.join(projectRoot, 'src', 'core', 'export', 'gitRevisionExporter.ts'),
     ].map(readText).join('\n');
     const scripts = [...sources.matchAll(/['"]([A-Za-z_/]+\.py)['"]/g)].map((m) => m[1]);
     // Also path.join('dir', 'script.py') spellings.

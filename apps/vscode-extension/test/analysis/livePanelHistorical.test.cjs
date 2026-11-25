@@ -30,7 +30,7 @@ test('the capability table grants LivePanel historical comparison while project 
 });
 
 test('the historical comparison service admits LivePanel sessions and still throws for anything else', () => {
-    const service = readProjectFile('src', 'code_analysis', 'historical', 'historicalComparisonService.ts');
+    const service = readProjectFile('src', 'core', 'history', 'historicalComparisonService.ts');
     assert.match(service, /session\.analysisMode !== 'XR' && session\.analysisMode !== 'LivePanel'/);
     assert.match(service, /historical-comparison-session-unavailable/);
 });
@@ -71,9 +71,9 @@ test('a live comparison refreshes after every incremental re-analysis and republ
 });
 
 test('file comparisons only offer versions that actually contain the analyzed file', () => {
-    const service = readProjectFile('src', 'code_analysis', 'historical', 'historicalComparisonService.ts');
-    const catalog = readProjectFile('src', 'code_analysis', 'historical', 'gitAnalysisEligibility.ts');
-    const index = readProjectFile('src', 'code_analysis', 'historical', 'gitTimelineBlobIndex.ts');
+    const service = readProjectFile('src', 'core', 'history', 'historicalComparisonService.ts');
+    const catalog = readProjectFile('src', 'core', 'history', 'gitAnalysisEligibility.ts');
+    const index = readProjectFile('src', 'core', 'history', 'gitTimelineBlobIndex.ts');
     // The shared read-only Git catalogue filters target absence before either
     // Historical or Evolution publishes its reference list.
     assert.match(service, /this\.sourceCatalog\.filterSources\([\s\S]*sources: references\.sources/);
@@ -86,8 +86,8 @@ test('file comparisons only offer versions that actually contain the analyzed fi
     // the revision analysis is shared with project evolution and lives in
     // gitAnalysisSessionContext.ts; the service selects the 'throw' policy.
     const analysis = readConcatenated([
-        'src/code_analysis/historical/historicalComparisonService.ts',
-        'src/code_analysis/historical/gitAnalysisSessionContext.ts',
+        'src/core/history/historicalComparisonService.ts',
+        'src/core/history/gitAnalysisSessionContext.ts',
     ]);
     assert.match(analysis, /missingTarget: 'throw'/, 'canary: historical comparison refuses a revision without the target');
     assert.match(analysis, /if \(!materialized\.targetPath\)[\s\S]*this\.excludeSource\([\s\S]*'target-missing'/);
@@ -95,8 +95,8 @@ test('file comparisons only offer versions that actually contain the analyzed fi
 });
 
 test('file comparisons analyze only the analyzed file itself, at function scope', () => {
-    const gitService = readProjectFile('src', 'code_analysis', 'historical', 'gitRepositoryService.ts');
-    const service = readProjectFile('src', 'code_analysis', 'historical', 'historicalComparisonService.ts');
+    const gitService = readProjectFile('src', 'core', 'history', 'gitRepositoryService.ts');
+    const service = readProjectFile('src', 'core', 'history', 'historicalComparisonService.ts');
     const panel = readProjectFile('templates', 'components', 'livepanel', 'historicalPanel.js');
     // Only the analyzed file is materialized from the Git reference — never the
     // surrounding directory.
@@ -105,8 +105,8 @@ test('file comparisons analyze only the analyzed file itself, at function scope'
     // The historical session analyzes that single materialized file (the
     // per-revision session is built by the shared gitAnalysisSessionContext)...
     const analysis = readConcatenated([
-        'src/code_analysis/historical/historicalComparisonService.ts',
-        'src/code_analysis/historical/gitAnalysisSessionContext.ts',
+        'src/core/history/historicalComparisonService.ts',
+        'src/core/history/gitAnalysisSessionContext.ts',
     ]);
     assert.match(analysis, /new GitAnalysisSessionContext\(/, 'canary: the service delegates revision analysis to the shared context');
     assert.match(analysis, /targetPath: materialized\.targetPath/);

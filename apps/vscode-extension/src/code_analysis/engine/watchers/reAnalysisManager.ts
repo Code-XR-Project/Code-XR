@@ -11,7 +11,7 @@ import { ExecutePython } from '../utils/executePython';
 import { SSEManager } from '../../../core/server/sse/SSEManager';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
-import { analysisUpdateEvents } from '../../historical/analysisUpdateEvents';
+import { analysisUpdateEvents } from '../../../core/history/analysisUpdateEvents';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('RE_ANALYSIS_MANAGER');

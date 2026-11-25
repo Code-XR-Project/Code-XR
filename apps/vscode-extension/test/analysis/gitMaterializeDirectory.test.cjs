@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { GitRepositoryService } = require('../../out/code_analysis/historical/gitRepositoryService.js');
+const { GitRepositoryService } = require('../../out/core/history/gitRepositoryService.js');
 
 // Characterization of GitRepositoryService.materializeDirectory (ROADMAP
 // W4-T26, CX-11) with `git ls-tree` and `git show` stubbed: which tree it

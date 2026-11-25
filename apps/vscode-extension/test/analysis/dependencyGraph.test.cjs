@@ -10,7 +10,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
 test('dependency graph is a first-class analysis table mode', () => {
   const table = readAssembledRuntime('analysis-table', 'analysisTableRuntime.js');
-  const models = read('src/code_analysis/historical/historicalComparisonModels.ts');
+  const models = read('src/core/history/historicalComparisonModels.ts');
   assert.match(table, /dependency-graph/);
   assert.match(models, /'dependency-graph'/);
   assert.match(table, /#7c3aed/);
@@ -568,8 +568,8 @@ test('dependency server preserves cached datasets and no longer accepts granular
     + read('src/core/server/analysis/dependencyGraphBridge.ts')
     + read('src/core/server/analysis/analysisFeatureHost.ts')
     + read('src/core/server/httpServer.ts');
-  const service = read('src/code_analysis/dependencies/dependencyGraphService.ts');
-  const models = read('src/code_analysis/dependencies/dependencyGraphModels.ts');
+  const service = read('src/core/dependencies/dependencyGraphService.ts');
+  const models = read('src/core/dependencies/dependencyGraphModels.ts');
   assert.match(server, /hasCachedDataset/);
   assert.match(server, /Restoring dependency graph/);
   assert.match(server, /existingDependencyState\?\.layout/);
@@ -593,7 +593,7 @@ test('python dependency packages are pinned centrally', () => {
 });
 
 test('dependency graph availability gate allows LivePanel directory/project analyses', () => {
-  const service = read('src/code_analysis/dependencies/dependencyGraphService.ts');
+  const service = read('src/core/dependencies/dependencyGraphService.ts');
   assert.match(service, /session\.analysisMode !== 'XR' && session\.analysisMode !== 'LivePanel'/);
 });
 
@@ -634,7 +634,7 @@ test('the refresh coordinator exposes background modes that publishChanges runs 
 });
 
 test('the dependency service consumes an incremental change batch (changed files only, extraction cache)', () => {
-  const service = read('src/code_analysis/dependencies/dependencyGraphService.ts');
+  const service = read('src/core/dependencies/dependencyGraphService.ts');
   // The incremental request feeds the Python analyzer the change batch + a cache.
   assert.match(service, /const requestPath = path\.join\(requestDirectory, 'refresh-request\.json'\)/);
   assert.match(service, /this\.extractionCachePath/);

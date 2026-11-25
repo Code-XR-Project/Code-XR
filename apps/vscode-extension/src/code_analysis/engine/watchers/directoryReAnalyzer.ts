@@ -25,7 +25,7 @@ import {
     upsertXRFiles,
     XRAnalysisData,
 } from './directoryReanalysisData';
-import { analysisUpdateEvents } from '../../historical/analysisUpdateEvents';
+import { analysisUpdateEvents } from '../../../core/history/analysisUpdateEvents';
 import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('DIRECTORY_REANALYZER');

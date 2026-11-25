@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
-import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
-import { UnifiedSessionRegistry } from '../engine/core/sessionRegistry';
+import { AnalysisConfigurationStorage } from '../../code_analysis/configuration/analysisConfigurationStorage';
+import { UnifiedAnalysisSession } from '../../code_analysis/engine/core/analysisSession';
+import { UnifiedSessionRegistry } from '../../code_analysis/engine/core/sessionRegistry';
 import { decorateDirectoryEntries } from './gitAnalysisShared';
 import { CachedPayload, GitAnalysisSessionContext, SingleJobGate } from './gitAnalysisSessionContext';
 import { GitRepositoryService } from './gitRepositoryService';

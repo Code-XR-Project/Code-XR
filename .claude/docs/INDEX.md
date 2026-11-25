@@ -64,8 +64,8 @@
 | **Refactor** | `ARCHITECTURE.md` (contracts!) → `AI_WORKFLOWS.md` §refactor | crossing modules |
 | **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/core/charts/`, `engine/components/` |
 | **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `src/code_analysis/python/`, `engine/`, `src/utils/languageMetadata.ts` |
-| **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `code_analysis/dependencies/`, graph runtime |
-| **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `code_analysis/historical/` |
+| **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `core/dependencies/`, graph runtime |
+| **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `core/history/`, `core/export/` |
 | **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/core/server/`, `src/features/servers/`, `src/features/active-servers/`, `core/collaboration/`, `features/collaboration/`, `core/remote-access/` |
 | **Build / test / tooling** | `DEVELOPMENT.md` | `scripts/`, configs |
 | **Docs update** | `AI_WORKFLOWS.md` §docs → `V1.2.1_STATUS.md` §carried-over debt → `V1.2.0_STATUS.md` §documentation debt | `docs/`, `.claude/docs/` |

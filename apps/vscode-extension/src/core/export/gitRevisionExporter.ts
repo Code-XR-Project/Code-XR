@@ -2,15 +2,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
-import { GitRepositoryService } from '../historical/gitRepositoryService';
+import { GitRepositoryService } from '../history/gitRepositoryService';
 import { GitExportOutcome, runGitRevisionExport } from './gitRevisionExportCore';
 import {
     calculateGitExportWorkerPlan,
     GitRevisionExportRequest,
 } from './gitExportOptions';
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
-import { VenvManager } from '../../core/python-env/venvManager';
-import { resolveBackendScriptPath } from '../engine/utils/backendScriptPath';
+import { VenvManager } from '../python-env/venvManager';
+import { resolveBackendScriptPath } from '../../code_analysis/engine/utils/backendScriptPath';
 
 /**
  * VS Code-side wrapper for the export-time Git analysis. It resolves the

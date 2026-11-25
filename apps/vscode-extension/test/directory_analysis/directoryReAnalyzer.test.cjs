@@ -33,7 +33,7 @@ async function apply({ data, changeSet, options, reanalysis = (files) => files.m
         return await withFakeVscode(fake, async ({ requireOut }) => {
             const { DirectoryReAnalyzer } = requireOut(MODULE);
             // The instance the analyzer already loaded (requireOut would load a fresh copy).
-            const { analysisUpdateEvents } = require(path.join(projectRoot, 'out', 'code_analysis', 'historical', 'analysisUpdateEvents.js'));
+            const { analysisUpdateEvents } = require(path.join(projectRoot, 'out', 'core', 'history', 'analysisUpdateEvents.js'));
             const events = [];
             const off = analysisUpdateEvents.on((event) => events.push({ sessionId: event.sessionId, targetPath: event.targetPath }));
             const analyzer = Object.create(DirectoryReAnalyzer.prototype);

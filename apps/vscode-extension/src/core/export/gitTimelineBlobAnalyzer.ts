@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ComparisonSource } from '../historical/historicalComparisonModels';
+import { ComparisonSource } from '../history/historicalComparisonModels';
 import {
     GitExportAnalysisJob,
     GitExportPythonWorkerPool,
@@ -11,7 +11,7 @@ import {
     GitTimelineBlobIndex,
     IndexedGitFile,
     IndexedGitRevision,
-} from '../historical/gitTimelineBlobIndex';
+} from '../history/gitTimelineBlobIndex';
 
 export interface GitBlobAnalysisProgressSink {
     report(value: { message?: string; increment?: number }): void;

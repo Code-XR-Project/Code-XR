@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { UnifiedAnalysisSession } from '../engine/core/analysisSession';
-import { ExecutePython } from '../engine/utils/executePython';
+import { UnifiedAnalysisSession } from '../../code_analysis/engine/core/analysisSession';
+import { ExecutePython } from '../../code_analysis/engine/utils/executePython';
 import {
     GitAnalysisSourceCatalog,
     GitAnalysisSourceError,

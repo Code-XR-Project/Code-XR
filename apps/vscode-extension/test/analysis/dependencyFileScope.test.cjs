@@ -27,7 +27,7 @@ async function withService(sessionOf, callback) {
     const pythonCalls = [];
     try {
         return await withFakeVscode(fake, async ({ requireOut }) => {
-            const { DependencyGraphService } = requireOut('code_analysis/dependencies/dependencyGraphService.js');
+            const { DependencyGraphService } = requireOut('core/dependencies/dependencyGraphService.js');
             // The ExecutePython class the service already loaded.
             const { ExecutePython } = require(path.join(projectRoot, 'out', 'code_analysis', 'engine', 'utils', 'executePython.js'));
             let respond = (target) => ({ nodes: [{ id: path.basename(target) }], edges: [], extra: 'kept' });

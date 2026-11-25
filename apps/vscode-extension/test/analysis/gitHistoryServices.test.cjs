@@ -2,8 +2,8 @@
  * Behavioural characterization of the two Git-history services and their
  * collaboration bridges (W5-01, hist TEST-01').
  *
- *   src/code_analysis/historical/historicalComparisonService.ts
- *   src/code_analysis/historical/projectEvolutionService.ts
+ *   src/core/history/historicalComparisonService.ts
+ *   src/core/history/projectEvolutionService.ts
  *   src/core/server/analysis/historicalComparisonBridge.ts
  *   src/core/server/analysis/projectEvolutionBridge.ts
  *
@@ -33,8 +33,8 @@ const childProcess = require('node:child_process');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const { createFakeVscode, withFakeVscode, fakeExtensionContext } = require(path.join(projectRoot, 'test', 'helpers', 'fakeVscode.cjs'));
 
-const HISTORICAL_MODULE = 'code_analysis/historical/historicalComparisonService.js';
-const EVOLUTION_MODULE = 'code_analysis/historical/projectEvolutionService.js';
+const HISTORICAL_MODULE = 'core/history/historicalComparisonService.js';
+const EVOLUTION_MODULE = 'core/history/projectEvolutionService.js';
 const HISTORICAL_BRIDGE_MODULE = 'core/server/analysis/historicalComparisonBridge.js';
 const EVOLUTION_BRIDGE_MODULE = 'core/server/analysis/projectEvolutionBridge.js';
 
@@ -207,14 +207,14 @@ async function withServices(options, body) {
                 getDimensionMappingFile: async () => ({ height: 'ccn', area: '', color: 7 }),
                 getDimensionMappingDirectory: async () => ({ height: 'totalLines', width: 'totalLines', color: '' }),
             });
-            const { GitRepositoryService } = requireOut('code_analysis/historical/gitRepositoryService.js');
+            const { GitRepositoryService } = requireOut('core/history/gitRepositoryService.js');
             const materialized = [];
             const originalMaterialize = GitRepositoryService.prototype.materialize;
             GitRepositoryService.prototype.materialize = function countedMaterialize(source) {
                 materialized.push(source.kind === 'gitRef' ? source.commitSha : source.id);
                 return originalMaterialize.call(this, source);
             };
-            const eligibility = requireOut('code_analysis/historical/gitAnalysisEligibility.js');
+            const eligibility = requireOut('core/history/gitAnalysisEligibility.js');
             const { HistoricalComparisonService } = requireOut(HISTORICAL_MODULE);
             const { ProjectEvolutionService } = requireOut(EVOLUTION_MODULE);
             await body({
@@ -921,7 +921,7 @@ async function withBridges(body) {
         coordinator.refreshMode = async (...args) => {
             coordinatorCalls.push(['refreshMode', ...args]);
         };
-        const { GitAnalysisSourceError } = requireOut('code_analysis/historical/gitAnalysisEligibility.js');
+        const { GitAnalysisSourceError } = requireOut('core/history/gitAnalysisEligibility.js');
         const { HistoricalComparisonBridge } = requireOut(HISTORICAL_BRIDGE_MODULE);
         const { ProjectEvolutionBridge } = requireOut(EVOLUTION_BRIDGE_MODULE);
         await body({ HistoricalComparisonBridge, ProjectEvolutionBridge, GitAnalysisSourceError, coordinatorCalls });

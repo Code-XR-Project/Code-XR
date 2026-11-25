@@ -3,7 +3,7 @@ import {
     isDirectoryAnalysisFile,
     isMetricAnalysisFile,
     shouldIgnoreDirectoryName,
-} from '../engine/watchers/analysisFilePolicy';
+} from '../../code_analysis/engine/watchers/analysisFilePolicy';
 import { ComparisonSource } from './historicalComparisonModels';
 import {
     GitBatchObject,

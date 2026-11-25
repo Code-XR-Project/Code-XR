@@ -277,9 +277,9 @@ test('registerGitGatedMode enables or disables the mode option with a shared rea
 
 test('both Git services delegate availability to GitRepositoryService', () => {
     const read = (relative) => fs.readFileSync(path.join(projectRoot, relative), 'utf8');
-    const gitService = read('src/code_analysis/historical/gitRepositoryService.ts');
-    const historical = read('src/code_analysis/historical/historicalComparisonService.ts');
-    const evolution = read('src/code_analysis/historical/projectEvolutionService.ts');
+    const gitService = read('src/core/history/gitRepositoryService.ts');
+    const historical = read('src/core/history/historicalComparisonService.ts');
+    const evolution = read('src/core/history/projectEvolutionService.ts');
 
     assert.match(gitService, /public async getAvailability\(/);
     assert.match(historical, /return this\.gitService\.getAvailability\(/);
@@ -294,7 +294,7 @@ test('the browser sampler is a faithful port of the extension sampler', () => {
         projectRoot, 'templates', 'components', 'common', 'codexrGitRefPickerRuntime.js',
     )).sampleTimeline;
     const extensionSampler = require(path.join(
-        projectRoot, 'out', 'code_analysis', 'historical', 'gitTimelineSampler.js',
+        projectRoot, 'out', 'core', 'history', 'gitTimelineSampler.js',
     )).sampleTimeline;
 
     const day = 24 * 60 * 60;

@@ -140,7 +140,7 @@ export default [{
     // must still fall back to the default (modernization.md §7, row 9).
     files: [
         // historicalComparison.test.cjs pins `source.kind === 'workingCopy') || null` here (S pin).
-        "src/code_analysis/historical/projectEvolutionService.ts",
+        "src/core/history/projectEvolutionService.ts",
         "src/core/server/analysis/dependencyGraphBridge.ts",
         "src/core/server/analysis/projectEvolutionBridge.ts",
         "src/core/server/collaboration/collaborationRoomServer.ts",
