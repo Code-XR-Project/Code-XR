@@ -1,27 +1,118 @@
 import * as vscode from 'vscode';
 import { SectionProvider, ModularTreeItem } from './common/baseInterfaces';
-import { ServersSectionProvider } from './servers';
-import { ActiveServersSectionProvider } from './active_servers';
-import { BabiaExamplesSectionProvider } from './babia_examples';
-import { VisualizeDataSectionProvider } from './visualize_data';
-import { PythonEnvSectionProvider } from './python_env';
-import { AnalysisSectionProvider } from '../code_analysis/views/AnalysisSectionProvider';
-import { VisualizationSettingsSectionProvider } from './visualization_settings';
-import { LearnMoreSectionProvider } from './learn_more';
+import { createSectionDefinitions, LazySectionDefinition } from './sectionDefinitions';
+import type { SectionChild } from './common/sectionChild';
 import { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
 import { VenvManager } from '../python_env/runtime/venvManager';
-import { PythonEnvItems } from '../python_env/views/items/pythonEnvItems';
-import { getActiveServerRegistry } from '../active_servers/registry/activeServerRegistry';
 import { CodeXRLogger } from '../core/logging/logger';
 
-interface LazySectionDefinition {
-    sectionName: string;
-    createHeader: () => ModularTreeItem;
-    createProvider: () => SectionProvider<any>;
-    interactiveWhenRestricted?: boolean;
+const logger = CodeXRLogger.getLogger('MODULAR_TREE');
+
+type SectionItemConstructor = new (...args: any[]) => SectionChild;
+
+/** Bridge properties are read and written by name, so items are viewed as plain records. */
+type BridgeView = Record<string, unknown>;
+
+/**
+ * How one section's items cross the bridge between the generic ModularTreeItem
+ * the view renders and the section's own item class its provider understands.
+ */
+interface SectionItemAdapter {
+    /**
+     * Loads the section's item class. These `require()` calls are deliberately
+     * lazy and must stay so: the provider is built once at activation, and a
+     * static import would load every section's item module (and what each one
+     * pulls in) before any section is expanded.
+     */
+    load: () => SectionItemConstructor;
+    /**
+     * Bridge properties read for the item type, in order; the first truthy one
+     * wins. The first key is the section's own discriminator.
+     */
+    itemTypeKeys: readonly string[];
+    /** Item type used when none of `itemTypeKeys` holds a value. */
+    defaultItemType: string;
+    /** Bridge properties passed to the item constructor after `contextValue`, in order. */
+    constructorExtras: readonly string[];
+    /** Properties copied from a section child onto its ModularTreeItem, after the discriminator. */
+    payloadKeys: readonly string[];
 }
 
-const logger = CodeXRLogger.getLogger('MODULAR_TREE');
+/** One row per section, in sidebar order. */
+const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<string, SectionItemAdapter>([
+    ['SERVERS', {
+        load: () => require('./servers/items/serverItems').ServerTreeItem,
+        itemTypeKeys: ['serverItemType'],
+        defaultItemType: 'config-option',
+        constructorExtras: [],
+        payloadKeys: [],
+    }],
+    ['activeServers', {
+        load: () => require('./active_servers/items/activeServerItems').ActiveServerTreeItem,
+        itemTypeKeys: ['activeServerItemType'],
+        defaultItemType: 'server-item',
+        // Participant rows carry their peer, which context-menu commands
+        // receive instead of explicit arguments: it must survive both
+        // conversions or the context menu has no target at all.
+        constructorExtras: ['activeServer', 'participant'],
+        payloadKeys: ['activeServer', 'participant'],
+    }],
+    ['babiaExamples', {
+        load: () => require('./babia_examples/items/babiaExampleItems').BabiaExampleTreeItem,
+        itemTypeKeys: ['babiaItemType'],
+        defaultItemType: 'example-item',
+        constructorExtras: ['babiaExample'],
+        payloadKeys: ['babiaExample'],
+    }],
+    ['visualizeData', {
+        load: () => require('./visualize_data/items/visualizeDataItems').VisualizeDataModularTreeItem,
+        itemTypeKeys: ['visualizeDataItemType'],
+        defaultItemType: 'error',
+        constructorExtras: ['visualizeDataItem'],
+        payloadKeys: ['visualizeDataItem'],
+    }],
+    ['analysis', {
+        load: () => require('../code_analysis/views/items/analysisItems').CodeAnalysisTreeItem,
+        itemTypeKeys: ['analysisItemType', 'type'],
+        defaultItemType: 'item',
+        constructorExtras: [],
+        payloadKeys: ['originalAnalysisItem'],
+    }],
+    ['pythonEnv', {
+        load: () => require('../python_env/views/items/pythonEnvItems').PythonEnvModularTreeItem,
+        itemTypeKeys: ['pythonEnvItemType'],
+        defaultItemType: 'info',
+        constructorExtras: [],
+        payloadKeys: [],
+    }],
+    ['visualizationSettings', {
+        load: () => require('./visualization_settings/items/visualizationSettingsItems').VisualizationSettingsModularTreeItem,
+        itemTypeKeys: ['visualizationSettingsItemType'],
+        defaultItemType: 'error',
+        constructorExtras: ['originalSettingsItem'],
+        payloadKeys: ['originalSettingsItem'],
+    }],
+    ['learnMore', {
+        load: () => require('./learn_more/items/learnMoreItems').LearnMoreModularTreeItem,
+        itemTypeKeys: ['learnMoreItemType'],
+        defaultItemType: 'action',
+        constructorExtras: [],
+        payloadKeys: ['originalLearnMoreItem'],
+    }],
+]);
+
+/**
+ * The item-type chain of a section child: every section's discriminator in
+ * sidebar order, then a generic `type`. The first truthy one wins.
+ */
+const CHILD_ITEM_TYPE_KEYS: readonly string[] = [
+    ...Array.from(SECTION_ITEM_ADAPTERS.values(), (adapter) => adapter.itemTypeKeys[0]),
+    'type',
+];
+
+function labelText(label: string | vscode.TreeItemLabel | undefined): string {
+    return typeof label === 'string' ? label : label?.label || 'Unknown';
+}
 
 /**
  * Main modular tree data provider that orchestrates all section providers.
@@ -35,159 +126,25 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
 
     private readonly sectionDefinitions = new Map<string, LazySectionDefinition>();
     private readonly sectionOrder: string[] = [];
-    private readonly sectionProviders = new Map<string, SectionProvider<any>>();
+    private readonly sectionProviders = new Map<string, SectionProvider<SectionChild>>();
     private readonly sectionSubscriptions = new Map<string, vscode.Disposable>();
     private readonly sectionHeaders = new Map<string, ModularTreeItem>();
     private readonly pythonEnvUiState = PythonEnvUiStateService.getInstance();
     private readonly pythonEnvUiStateSubscription: vscode.Disposable;
-    private readonly pythonEnvManager: VenvManager;
     private refreshTimer: NodeJS.Timeout | undefined;
     private refreshAllRequested = false;
     private readonly pendingSectionRefreshes = new Set<string>();
 
-    constructor(private context: vscode.ExtensionContext) {
-        this.pythonEnvManager = new VenvManager(context);
-        this.initializeSectionDefinitions();
+    constructor(context: vscode.ExtensionContext) {
+        const sectionDefinitions = createSectionDefinitions(context, {
+            pythonEnvManager: new VenvManager(context),
+            pythonEnvUiState: this.pythonEnvUiState,
+        });
+        for (const definition of sectionDefinitions) {
+            this.registerSection(definition);
+        }
         this.pythonEnvUiStateSubscription = this.pythonEnvUiState.onDidChangeState(() => {
             this.refreshSection('pythonEnv');
-        });
-    }
-
-    private initializeSectionDefinitions(): void {
-        this.registerSection({
-            sectionName: 'SERVERS',
-            createHeader: () => this.createStaticSectionHeader(
-                'SERVERS',
-                'SERVERS',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('server-environment'),
-                'Server configuration and launch options',
-            ),
-            createProvider: () => new ServersSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'activeServers',
-            createHeader: () => {
-                const activeServers = getActiveServerRegistry().getAllServers();
-                const runningCount = activeServers.filter((server) => server.status === 'running').length;
-                const title = runningCount > 0
-                    ? `ACTIVE SERVERS (${runningCount} running)`
-                    : 'ACTIVE SERVERS';
-
-                return this.createStaticSectionHeader(
-                    title,
-                    'activeServers',
-                    vscode.TreeItemCollapsibleState.Expanded,
-                    'section',
-                    new vscode.ThemeIcon('server-process'),
-                    'Running servers and collaboration profile',
-                    undefined,
-                    'activeServersSection',
-                );
-            },
-            createProvider: () => new ActiveServersSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'babiaExamples',
-            createHeader: () => this.createStaticSectionHeader(
-                'BABIA EXAMPLES',
-                'babiaExamples',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('library'),
-                'Interactive visualization examples',
-                undefined,
-                'babiaExamplesSection',
-            ),
-            createProvider: () => new BabiaExamplesSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'visualizeData',
-            createHeader: () => this.createStaticSectionHeader(
-                'VISUALIZE DATA',
-                'visualizeData',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('open-preview', new vscode.ThemeColor('charts.foreground')),
-                'Data visualization configuration and launch',
-                undefined,
-                'visualizeDataSection',
-            ),
-            createProvider: () => new VisualizeDataSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'analysis',
-            createHeader: () => this.createStaticSectionHeader(
-                'ANALYSIS',
-                'analysis',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('beaker'),
-                'Analysis tools and settings',
-                undefined,
-                'codeXR.analysis.section.main',
-            ),
-            createProvider: () => new AnalysisSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'pythonEnv',
-            createHeader: () => {
-                const sectionItem = PythonEnvItems.createSectionItem(
-                    this.pythonEnvManager.getEnvironmentStatus(),
-                    this.pythonEnvUiState.getState(),
-                );
-
-                return new ModularTreeItem(
-                    sectionItem.label,
-                    sectionItem.collapsibleState,
-                    'pythonEnv',
-                    'section',
-                    sectionItem.command,
-                    sectionItem.iconPath,
-                    sectionItem.tooltip,
-                    sectionItem.description,
-                    sectionItem.contextValue,
-                );
-            },
-            createProvider: () => new PythonEnvSectionProvider(this.context),
-            interactiveWhenRestricted: true,
-        });
-
-        this.registerSection({
-            sectionName: 'visualizationSettings',
-            createHeader: () => this.createStaticSectionHeader(
-                'VISUALIZATION SETTINGS',
-                'visualizationSettings',
-                vscode.TreeItemCollapsibleState.Collapsed,
-                'section',
-                new vscode.ThemeIcon('settings-gear'),
-                'Configure visualization rendering preferences',
-                undefined,
-                'visualizationSettingsSection',
-            ),
-            createProvider: () => new VisualizationSettingsSectionProvider(this.context),
-        });
-
-        this.registerSection({
-            sectionName: 'learnMore',
-            createHeader: () => this.createStaticSectionHeader(
-                'LEARN MORE & SUPPORT',
-                'learnMore',
-                vscode.TreeItemCollapsibleState.Expanded,
-                'section',
-                new vscode.ThemeIcon('book', new vscode.ThemeColor('charts.foreground')),
-                'Access CodeXR documentation, tutorials, examples, and support options',
-                'Docs, tutorials & support',
-                'learnMoreSection',
-            ),
-            createProvider: () => new LearnMoreSectionProvider(this.context),
-            interactiveWhenRestricted: true,
         });
     }
 
@@ -211,7 +168,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         this.scheduleRefresh(sectionName);
     }
 
-    public getSectionProvider(sectionName: string): SectionProvider<any> | undefined {
+    public getSectionProvider(sectionName: string): SectionProvider<SectionChild> | undefined {
         return this.ensureSectionProvider(sectionName);
     }
 
@@ -291,13 +248,15 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         }
 
         try {
-            let sectionElement: any = undefined;
+            let sectionElement: SectionChild | undefined = undefined;
             if (element.itemType !== 'section') {
-                sectionElement = this.convertToSectionItem(element);
+                // Only a section with an adapter has a provider (checked above), so
+                // the conversion never hands back the ModularTreeItem itself here.
+                sectionElement = this.convertToSectionItem(element) as SectionChild;
             }
 
             const sectionChildren = await provider.getChildren(sectionElement);
-            return sectionChildren.map((child: any) => this.createModularChild(sectionName, child));
+            return sectionChildren.map((child) => this.createModularChild(sectionName, child));
         } catch (error) {
             logger.error(() => `Error getting children for section ${sectionName}.`, error);
             return [new ModularTreeItem(
@@ -312,7 +271,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         }
     }
 
-    private ensureSectionProvider(sectionName: string): SectionProvider<any> | undefined {
+    private ensureSectionProvider(sectionName: string): SectionProvider<SectionChild> | undefined {
         const existingProvider = this.sectionProviders.get(sectionName);
         if (existingProvider) {
             return existingProvider;
@@ -337,29 +296,6 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         return provider;
     }
 
-    private createStaticSectionHeader(
-        label: string,
-        sectionType: string,
-        collapsibleState: vscode.TreeItemCollapsibleState,
-        itemType: string,
-        iconPath?: vscode.ThemeIcon | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri },
-        tooltip?: string,
-        description?: string,
-        contextValue?: string,
-    ): ModularTreeItem {
-        return new ModularTreeItem(
-            label,
-            collapsibleState,
-            sectionType,
-            itemType,
-            undefined,
-            iconPath,
-            tooltip,
-            description,
-            contextValue,
-        );
-    }
-
     private cacheSectionHeader(sectionName: string, nextItem: ModularTreeItem): ModularTreeItem {
         const cachedItem = this.sectionHeaders.get(sectionName);
         if (!cachedItem) {
@@ -377,21 +313,12 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         return cachedItem;
     }
 
-    private createModularChild(sectionName: string, child: any): ModularTreeItem {
+    private createModularChild(sectionName: string, child: SectionChild): ModularTreeItem {
         const modularItem = new ModularTreeItem(
-            typeof child.label === 'string' ? child.label : child.label?.label || 'Unknown',
+            labelText(child.label),
             child.collapsibleState || vscode.TreeItemCollapsibleState.None,
             sectionName,
-            child.serverItemType ||
-            child.activeServerItemType ||
-            child.babiaItemType ||
-            child.visualizeDataItemType ||
-            child.analysisItemType ||
-            child.pythonEnvItemType ||
-            child.visualizationSettingsItemType ||
-            child.learnMoreItemType ||
-            child.type ||
-            'item',
+            (CHILD_ITEM_TYPE_KEYS.map((key) => (child as unknown as BridgeView)[key]).find(Boolean) as string | undefined) || 'item',
             child.command,
             child.iconPath,
             child.tooltip,
@@ -399,159 +326,43 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
             child.contextValue,
         );
 
-        if (child.serverItemType) {
-            modularItem.serverItemType = child.serverItemType;
-        }
-        if (child.activeServerItemType) {
-            (modularItem as any).activeServerItemType = child.activeServerItemType;
-            (modularItem as any).activeServer = child.activeServer;
-            // Participant rows carry their peer, which context-menu commands
-            // receive instead of explicit arguments.
-            (modularItem as any).participant = child.participant;
-        }
-        if (child.babiaItemType) {
-            (modularItem as any).babiaItemType = child.babiaItemType;
-            (modularItem as any).babiaExample = child.babiaExample;
-        }
-        if (child.visualizeDataItemType) {
-            (modularItem as any).visualizeDataItemType = child.visualizeDataItemType;
-            (modularItem as any).visualizeDataItem = child.visualizeDataItem;
-        }
-        if (child.analysisItemType) {
-            (modularItem as any).analysisItemType = child.analysisItemType;
-            (modularItem as any).originalAnalysisItem = child.originalAnalysisItem;
-        }
-        if (child.pythonEnvItemType) {
-            (modularItem as any).pythonEnvItemType = child.pythonEnvItemType;
-        }
-        if (child.visualizationSettingsItemType) {
-            (modularItem as any).visualizationSettingsItemType = child.visualizationSettingsItemType;
-            (modularItem as any).originalSettingsItem = child.originalSettingsItem;
-        }
-        if (child.learnMoreItemType) {
-            (modularItem as any).learnMoreItemType = child.learnMoreItemType;
-            (modularItem as any).originalLearnMoreItem = child.originalLearnMoreItem;
+        // Every discriminator the child carries is copied with its payload, so
+        // the item can be rebuilt by convertToSectionItem when it is expanded
+        // or handed to a context-menu command.
+        const bridge = modularItem as unknown as BridgeView;
+        for (const adapter of SECTION_ITEM_ADAPTERS.values()) {
+            const discriminator = adapter.itemTypeKeys[0];
+            if ((child as unknown as BridgeView)[discriminator]) {
+                bridge[discriminator] = (child as unknown as BridgeView)[discriminator];
+                for (const key of adapter.payloadKeys) {
+                    bridge[key] = (child as unknown as BridgeView)[key];
+                }
+            }
         }
 
         return modularItem;
     }
 
-    private convertToSectionItem(element: ModularTreeItem): any {
-        const sectionName = element.sectionType;
-
-        switch (sectionName) {
-            case 'SERVERS': {
-                const { ServerTreeItem } = require('./servers/items/serverItems');
-                return new ServerTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    element.serverItemType || 'config-option',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                );
-            }
-            case 'activeServers': {
-                const { ActiveServerTreeItem } = require('./active_servers/items/activeServerItems');
-                return new ActiveServerTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).activeServerItemType || 'server-item',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                    (element as any).activeServer,
-                    (element as any).participant,
-                );
-            }
-            case 'babiaExamples': {
-                const { BabiaExampleTreeItem } = require('./babia_examples/items/babiaExampleItems');
-                return new BabiaExampleTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).babiaItemType || 'example-item',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                    (element as any).babiaExample,
-                );
-            }
-            case 'visualizeData': {
-                const { VisualizeDataModularTreeItem } = require('./visualize_data/items/visualizeDataItems');
-                return new VisualizeDataModularTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).visualizeDataItemType || 'error',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                    (element as any).visualizeDataItem,
-                );
-            }
-            case 'analysis': {
-                const { CodeAnalysisTreeItem } = require('../code_analysis/views/items/analysisItems');
-                return new CodeAnalysisTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).analysisItemType || (element as any).type || 'item',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                );
-            }
-            case 'pythonEnv': {
-                const { PythonEnvModularTreeItem } = require('../python_env/views/items/pythonEnvItems');
-                return new PythonEnvModularTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).pythonEnvItemType || 'info',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                );
-            }
-            case 'visualizationSettings': {
-                const { VisualizationSettingsModularTreeItem } = require('./visualization_settings/items/visualizationSettingsItems');
-                return new VisualizationSettingsModularTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).visualizationSettingsItemType || 'error',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                    (element as any).originalSettingsItem,
-                );
-            }
-            case 'learnMore': {
-                const { LearnMoreModularTreeItem } = require('./learn_more/items/learnMoreItems');
-                return new LearnMoreModularTreeItem(
-                    typeof element.label === 'string' ? element.label : element.label?.label || 'Unknown',
-                    element.collapsibleState || vscode.TreeItemCollapsibleState.None,
-                    (element as any).learnMoreItemType || 'action',
-                    element.command,
-                    element.iconPath,
-                    element.tooltip,
-                    element.description,
-                    element.contextValue,
-                );
-            }
-            default:
-                return element;
+    private convertToSectionItem(element: ModularTreeItem): SectionChild | ModularTreeItem {
+        const adapter = SECTION_ITEM_ADAPTERS.get(element.sectionType);
+        if (!adapter) {
+            return element;
         }
+
+        const bridge = element as unknown as BridgeView;
+        const itemType = adapter.itemTypeKeys.map((key) => bridge[key]).find(Boolean) || adapter.defaultItemType;
+        const SectionItem = adapter.load();
+        return new SectionItem(
+            labelText(element.label),
+            element.collapsibleState || vscode.TreeItemCollapsibleState.None,
+            itemType,
+            element.command,
+            element.iconPath,
+            element.tooltip,
+            element.description,
+            element.contextValue,
+            ...adapter.constructorExtras.map((key) => bridge[key]),
+        );
     }
 
     private scheduleRefresh(sectionName?: string): void {
@@ -610,6 +421,4 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
         );
     }
 }
-
-
 

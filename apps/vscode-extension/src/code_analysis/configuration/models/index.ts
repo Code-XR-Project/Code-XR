@@ -6,6 +6,7 @@
 export {
     AnalysisFileMode,
     AnalysisDirectoryMode,
+    ChartType,
     ViewTheme,
     AutoAnalysisDelay,
     AutoAnalysisDelayConfig,
