@@ -10,7 +10,7 @@ from xr_field_schema import safe_ratio
 
 def read_text_lines(file_path: str) -> list[str]:
     try:
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+        with open(file_path, encoding='utf-8', errors='ignore') as file:
             return file.readlines()
     except (OSError, ValueError):
         return []

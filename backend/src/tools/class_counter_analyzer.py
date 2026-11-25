@@ -338,10 +338,10 @@ def _vue_classes(content: str) -> list[dict[str, Any]]:
 def analyze_classes(file_path):
     """Analyze a file to count class declarations."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, encoding='utf-8') as file:
             content = file.read()
     except Exception as e:
-        return {"error": f"Error reading file: {str(e)}"}
+        return {"error": f"Error reading file: {e!s}"}
 
     _, ext = os.path.splitext(file_path.lower())
 

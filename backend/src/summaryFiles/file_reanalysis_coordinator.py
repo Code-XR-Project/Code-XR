@@ -75,7 +75,7 @@ def main():
         print(json.dumps(result, indent=2))
         print('=== JSON_END ===')
     except Exception as error:
-        print(json.dumps({'error': f'File re-analysis failed: {str(error)}'}), file=sys.stderr)
+        print(json.dumps({'error': f'File re-analysis failed: {error!s}'}), file=sys.stderr)
         sys.exit(1)
 
 

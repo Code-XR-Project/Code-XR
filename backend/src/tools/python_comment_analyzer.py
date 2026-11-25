@@ -16,10 +16,10 @@ from io import BytesIO
 
 def analyze_comments(file_path):
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, encoding='utf-8') as file:
             content = file.read()
     except Exception as e:
-        print(json.dumps({"debug": f"Error reading file: {str(e)}"}), file=sys.stderr)
+        print(json.dumps({"debug": f"Error reading file: {e!s}"}), file=sys.stderr)
         return {
             "file": file_path,
             "commentLines": 0,

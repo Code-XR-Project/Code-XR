@@ -74,7 +74,7 @@ def _portable_relative(root: str, file_path: str) -> str:
 
 
 def _node_id(kind: str, value: str) -> str:
-    digest = hashlib.sha256(f"{kind}\0{value}".encode("utf-8")).hexdigest()[:16]
+    digest = hashlib.sha256(f"{kind}\0{value}".encode()).hexdigest()[:16]
     return f"{kind}:{digest}"
 
 
