@@ -54,13 +54,13 @@
       "src/views/active_servers/items/activeServerItems.ts"
     ],
     "functions.over80Lines": 42,
-    "complexity.over10": 65,
-    "complexity.over15": 21,
+    "complexity.over10": 64,
+    "complexity.over15": 20,
     "complexity.over20": 4,
     "complexity.over30": 2,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 510,
+    "eslint.maxWarnings": 509,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49049,
-    "src.functions": 3281,
+    "src.lines": 49078,
+    "src.functions": 3282,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {

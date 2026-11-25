@@ -33,6 +33,30 @@ export interface VisualizeDataState {
     isReadyToLaunch: boolean;
 }
 
+/** The fields that only mean something while the selected JSON file exists. */
+type JsonSelectionFields = Pick<
+    VisualizeDataState,
+    'selectedJsonPath' | 'selectedJsonName' | 'jsonAnalysis' | 'dimensionMappings' | 'isDimensionMappingConfigured'
+>;
+
+/**
+ * The JSON-derived fields to keep when the file exists, or the five resets
+ * (no path, no name, no analysis, no mappings, not configured) when it does not.
+ * Loading a saved state and selecting a path apply the same rule.
+ */
+function jsonSelectionFields(fileExists: boolean, kept: JsonSelectionFields): JsonSelectionFields {
+    if (fileExists) {
+        return kept;
+    }
+    return {
+        selectedJsonPath: undefined,
+        selectedJsonName: undefined,
+        jsonAnalysis: undefined,
+        dimensionMappings: [],
+        isDimensionMappingConfigured: false,
+    };
+}
+
 /**
  * Visualize Data State Manager
  * Manages state persistence and updates for visualization configuration
@@ -137,14 +161,17 @@ export class VisualizeDataStateManager {
             previousFile: this.state.selectedJsonName || 'none'
         });
         
+        const selection = jsonSelectionFields(!!isValidPath, {
+            selectedJsonPath: filePath,
+            selectedJsonName: fileName,
+            jsonAnalysis: this.state.jsonAnalysis,
+            dimensionMappings: this.state.dimensionMappings,
+            isDimensionMappingConfigured: this.state.isDimensionMappingConfigured,
+        });
         this.state = {
             ...this.state,
-            selectedJsonPath: isValidPath ? filePath : undefined,
-            selectedJsonName: isValidPath ? fileName : undefined,
-            jsonAnalysis: isValidPath ? this.state.jsonAnalysis : undefined,
-            dimensionMappings: isValidPath ? this.state.dimensionMappings : [], // Clear mappings if invalid file
-            isDimensionMappingConfigured: isValidPath ? this.state.isDimensionMappingConfigured : false,
-            isReadyToLaunch: this.calculateReadyToLaunch(this.state.selectedChart, isValidPath ? filePath : undefined, isValidPath ? this.state.isDimensionMappingConfigured : false)
+            ...selection,
+            isReadyToLaunch: this.calculateReadyToLaunch(this.state.selectedChart, selection.selectedJsonPath, selection.isDimensionMappingConfigured)
         };
         
         this.saveState();
@@ -382,11 +409,13 @@ export class VisualizeDataStateManager {
                     ...this.getInitialState(),
                     ...savedState,
                     // Reset file-related state if path is invalid
-                    selectedJsonPath: isValidJsonPath ? savedState.selectedJsonPath : undefined,
-                    selectedJsonName: isValidJsonPath ? savedState.selectedJsonName : undefined,
-                    jsonAnalysis: isValidJsonPath ? savedState.jsonAnalysis : undefined,
-                    dimensionMappings: isValidJsonPath ? (savedState.dimensionMappings || []) : [],
-                    isDimensionMappingConfigured: isValidJsonPath ? (savedState.isDimensionMappingConfigured || false) : false
+                    ...jsonSelectionFields(!!isValidJsonPath, {
+                        selectedJsonPath: savedState.selectedJsonPath,
+                        selectedJsonName: savedState.selectedJsonName,
+                        jsonAnalysis: savedState.jsonAnalysis,
+                        dimensionMappings: savedState.dimensionMappings || [],
+                        isDimensionMappingConfigured: savedState.isDimensionMappingConfigured || false,
+                    }),
                 };
                 
                 // Recalculate ready state based on validated data
