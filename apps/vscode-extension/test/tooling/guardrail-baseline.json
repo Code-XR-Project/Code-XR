@@ -94,7 +94,6 @@
       "src/code_analysis/config/analysisConfigurationManager.ts",
       "src/code_analysis/configuration/configurationManager.ts",
       "src/code_analysis/configuration/configurationManagerExample.ts",
-      "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
       "src/code_analysis/engine/components/index.ts",
       "src/code_analysis/engine/core/index.ts",
       "src/code_analysis/engine/index.ts",
@@ -142,10 +141,10 @@
     }
   },
   "informational": {
-    "src.files": 369,
-    "src.lines": 52974,
-    "src.functions": 2864,
-    "src.unreachableLines": 2317,
+    "src.files": 368,
+    "src.lines": 52949,
+    "src.functions": 2861,
+    "src.unreachableLines": 2278,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -366,12 +365,12 @@
         "lines": 634
       },
       {
-        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "file": "src/code_analysis/engine/utils/executePython.ts",
         "lines": 632
       },
       {
-        "file": "src/code_analysis/engine/utils/executePython.ts",
-        "lines": 630
+        "file": "src/remote_access/security/remoteSessionAuthority.ts",
+        "lines": 632
       }
     ]
   },
