@@ -60,15 +60,6 @@ export class ProjectEvolutionService {
         });
     }
 
-    private get sourceCatalog(): GitAnalysisSourceCatalog {
-        return this.analysis.sourceCatalog;
-    }
-
-    /** The request of the last successful movie (what the room shows). */
-    private get activeRequest(): ProjectEvolutionRequest | null {
-        return this.jobs.lastRequest;
-    }
-
     public getAvailability(): Promise<{ enabled: boolean; reason: string | null }> {
         return this.gitService.getAvailability(
             'Project evolution requires a local Git repository.',
@@ -79,7 +70,7 @@ export class ProjectEvolutionService {
         const references = await this.gitService.listReferences();
         const timeline = await this.buildAutomaticTimeline(references);
         const mergedSources = this.mergeSources(references.sources, timeline);
-        const filtered = await this.sourceCatalog.filterSources({
+        const filtered = await this.analysis.sourceCatalog.filterSources({
             repositoryRoot: references.repositoryRoot,
             targetRelativePath: references.targetRelativePath,
             sources: mergedSources,
@@ -92,7 +83,7 @@ export class ProjectEvolutionService {
             ...references,
             sources: filtered.sources,
             eligibility: filtered.eligibility,
-            activeRequest: this.activeRequest ? { ...this.activeRequest } : null,
+            activeRequest: this.jobs.lastRequest ? { ...this.jobs.lastRequest } : null,
             suggestedSourceIds: suggested,
             maxFrames: DEFAULT_MAX_FRAMES,
         };
@@ -169,6 +160,42 @@ export class ProjectEvolutionService {
             );
         }
 
+        const { analyzed, exclusionsByIndex } = await this.analyzeSources(sources, cancellationToken, onProgress);
+        const valid = analyzed
+            .map((payload, index) => payload ? { payload, source: sources[index] } : undefined)
+            .filter((entry): entry is { payload: CachedPayload; source: ComparisonSource } => !!entry);
+        const excludedSources = [
+            ...resolved.exclusions,
+            ...exclusionsByIndex.filter(
+                (entry): entry is GitAnalysisExclusion => !!entry,
+            ),
+        ];
+        if (valid.length < 2) {
+            throw new GitAnalysisSourceError(
+                'project-evolution-insufficient-data',
+                `Project evolution needs at least two revisions with data; ${valid.length} remain after analysis.`,
+                excludedSources,
+            );
+        }
+
+        const result = await this.writeEvolutionArtifacts(valid, excludedSources);
+        onProgress?.({
+            state: 'ready',
+            message: excludedSources.length
+                ? `Project evolution ready. ${excludedSources.length} revision(s) were discarded because they had no usable data.`
+                : 'Project evolution ready.',
+            revision: result.revision,
+            frameCount: result.frames.length,
+        });
+        return result;
+    }
+
+    /** Phase 2: a worker pool analyzes every source; a failure becomes that frame's exclusion. */
+    private async analyzeSources(
+        sources: ComparisonSource[],
+        cancellationToken: number,
+        onProgress: (progress: ProjectEvolutionProgress) => void,
+    ): Promise<{ analyzed: (CachedPayload | undefined)[]; exclusionsByIndex: (GitAnalysisExclusion | undefined)[] }> {
         const analyzed = new Array<CachedPayload | undefined>(sources.length);
         const exclusionsByIndex = new Array<GitAnalysisExclusion | undefined>(sources.length);
         const concurrency = Math.min(DEFAULT_ANALYSIS_CONCURRENCY, sources.length);
@@ -196,14 +223,13 @@ export class ProjectEvolutionService {
                 try {
                     const payload = await this.analysis.analyzeSource(source, this.getSession());
                     if (payload.missingTarget) {
-                        exclusionsByIndex[index] = this.sourceCatalog.recordDeterministicExclusion(
+                        exclusionsByIndex[index] = this.analysis.sourceCatalog.recordDeterministicExclusion(
                             source,
                             'target-missing',
                             'The analyzed target does not exist in this revision.',
                         );
                     } else {
-                        // Already validated: analyzeSource returns either a
-                        // missing target or requireUsablePayload's records.
+                        // Already validated by analyzeSource (requireUsablePayload).
                         analyzed[index] = payload;
                     }
                 } catch (error) {
@@ -236,24 +262,14 @@ export class ProjectEvolutionService {
         if (cancellationToken !== this.cancellationRevision) {
             throw new Error('project-evolution-cleared');
         }
+        return { analyzed, exclusionsByIndex };
+    }
 
-        const valid = analyzed
-            .map((payload, index) => payload ? { payload, source: sources[index] } : undefined)
-            .filter((entry): entry is { payload: CachedPayload; source: ComparisonSource } => !!entry);
-        const excludedSources = [
-            ...resolved.exclusions,
-            ...exclusionsByIndex.filter(
-                (entry): entry is GitAnalysisExclusion => !!entry,
-            ),
-        ];
-        if (valid.length < 2) {
-            throw new GitAnalysisSourceError(
-                'project-evolution-insufficient-data',
-                `Project evolution needs at least two revisions with data; ${valid.length} remain after analysis.`,
-                excludedSources,
-            );
-        }
-
+    /** Phase 4: a new revision folder with dataN.json per frame, the data.json bridge and the manifest. */
+    private async writeEvolutionArtifacts(
+        valid: Array<{ payload: CachedPayload; source: ComparisonSource }>,
+        excludedSources: GitAnalysisExclusion[],
+    ): Promise<ProjectEvolutionResult> {
         const revision = ++this.revision;
         const evolutionDirectory = path.join(this.staticRoot, 'evolution');
         const revisionDirectory = path.join(evolutionDirectory, `revision-${revision}`);
@@ -298,14 +314,6 @@ export class ProjectEvolutionService {
             JSON.stringify(result, null, 2),
             'utf8',
         );
-        onProgress?.({
-            state: 'ready',
-            message: excludedSources.length
-                ? `Project evolution ready. ${excludedSources.length} revision(s) were discarded because they had no usable data.`
-                : 'Project evolution ready.',
-            revision,
-            frameCount: frames.length,
-        });
         return result;
     }
 
@@ -321,7 +329,7 @@ export class ProjectEvolutionService {
             candidates = await this.resolveAutomaticOrRangeSources(request);
         }
         const repository = await this.gitService.getRepositoryContext();
-        const filtered = await this.sourceCatalog.filterSources({
+        const filtered = await this.analysis.sourceCatalog.filterSources({
             ...repository,
             sources: candidates,
         });
