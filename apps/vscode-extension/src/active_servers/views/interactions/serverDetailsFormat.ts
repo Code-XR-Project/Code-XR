@@ -18,7 +18,7 @@ export function getServerLabel(server: ActiveServer): string {
  * Format server details for display
  */
 export function formatServerDetails(server: ActiveServer): string {
-    const metadata = (server.metadata || {}) as Record<string, unknown>;
+    const metadata = (server.metadata ?? {}) as Record<string, unknown>;
     const remote = server.remoteAccess;
     const protocol = server.certMode === 'http' ? 'http' : 'https';
     const lanUrl = NetworkUtils.getPrimaryExternalUrl(server.port, protocol);

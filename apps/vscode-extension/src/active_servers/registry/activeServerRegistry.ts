@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { ActiveServer, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from '../model/activeServerModel';
+import { ActiveServer, ActiveServerMetadata, ActiveServerRuntime, RegistryEvent, RegistryEventType, LaunchMode, CertMode } from '../model/activeServerModel';
 import { RemoteAccessState } from '../../remote_access/model/remoteAccessModel';
 import { getLogger } from '../../core/logging/sink';
 
@@ -81,8 +81,8 @@ export class ActiveServerRegistry {
         timestamp: number;
         htmlFile?: string;
         customName?: string;
-        serverInstance?: any;
-        metadata?: any;
+        serverInstance?: ActiveServerRuntime;
+        metadata?: ActiveServerMetadata;
     }): ActiveServer {
         logger.debug('SERVER: registerServer called with config:', {
             port: config.port,
@@ -343,8 +343,8 @@ export function registerActiveServer(config: {
     timestamp: number;
     htmlFile?: string;
     customName?: string;
-    serverInstance?: any;
-    metadata?: any;
+    serverInstance?: ActiveServerRuntime;
+    metadata?: ActiveServerMetadata;
 }): ActiveServer {
     return getActiveServerRegistry().registerServer(config);
 }

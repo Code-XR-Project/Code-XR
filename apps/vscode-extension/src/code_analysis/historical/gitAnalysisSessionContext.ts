@@ -72,7 +72,7 @@ export class GitAnalysisSessionContext {
         private readonly policy: GitRevisionAnalysisPolicy,
     ) {
         this.ownsSourceCatalog = !sourceCatalog;
-        this.sourceCatalog = sourceCatalog || new GitAnalysisSourceCatalog(
+        this.sourceCatalog = sourceCatalog ?? new GitAnalysisSourceCatalog(
             session.targetType,
             session.isDeep === true,
             path.join(session.savedFilesPath || staticRoot, 'data.json'),

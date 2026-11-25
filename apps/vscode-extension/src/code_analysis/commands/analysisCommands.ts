@@ -37,7 +37,7 @@ export class CodeAnalysisCommands {
     ): CommandRegistration[] {
         logger.debug('Collecting all command registrations');
 
-        const defaultRefreshCallback = refreshCallback || (() => {
+        const defaultRefreshCallback = refreshCallback ?? (() => {
             logger.debug('Default refresh callback executed');
         });
 

@@ -186,7 +186,7 @@ export async function runGitRevisionExport(
     options: GitRevisionExportOptions,
 ): Promise<GitExportOutcome> {
     const { gitService } = deps;
-    const request: GitRevisionExportRequest = options.request || {
+    const request: GitRevisionExportRequest = options.request ?? {
         scope: { kind: 'all' },
         performanceProfile: 'balanced',
     };
@@ -279,7 +279,7 @@ function groupSourcesByCommit(
         if (source.kind !== 'gitRef' || !source.commitSha) {
             return;
         }
-        const group = bySha.get(source.commitSha) || [];
+        const group = bySha.get(source.commitSha) ?? [];
         if (!group.some((existing) => existing.id === source.id)) {
             group.push(source);
         }
@@ -327,7 +327,7 @@ async function prepareStoreOrCancel(
     bySha: Map<string, ComparisonSource[]>,
 ): Promise<{ store: PreparedGitRevisionStore } | { outcome: GitExportOutcome }> {
     try {
-        const primarySources = Array.from(bySha.keys()).map((sha) => (bySha.get(sha) || [])[0]);
+        const primarySources = Array.from(bySha.keys()).map((sha) => (bySha.get(sha) ?? [])[0]);
         return { store: await deps.prepareRevisionStore(primarySources) };
     } catch (error) {
         if (run.options.token?.isCancellationRequested || String(error).includes('git-export-cancelled')) {

@@ -192,7 +192,7 @@ export class CollaborationRoomServer {
         const peer: CollaborationPeer = {
             id: peerId,
             socket,
-            session: this.options.resolveSession?.(request) || null,
+            session: this.options.resolveSession?.(request) ?? null,
             joinedRoom: false,
             roomId: null,
             anonymousDisplayName: '',
@@ -329,7 +329,7 @@ export class CollaborationRoomServer {
         }
 
         const role: CollaborationRole = room.participants.size === 0 ? 'host' : 'guest';
-        const participant = existingParticipant || {
+        const participant = existingParticipant ?? {
             peerId: peer.id,
             displayName: peer.anonymousDisplayName,
             identityMode: 'anonymous' as IdentityMode,
@@ -344,7 +344,7 @@ export class CollaborationRoomServer {
             room,
             peer,
             participant,
-            peer.session?.profile || {
+            peer.session?.profile ?? {
                 identityMode: 'anonymous',
                 customName: '',
                 // A peer with no session (local browser) never chose a colour.

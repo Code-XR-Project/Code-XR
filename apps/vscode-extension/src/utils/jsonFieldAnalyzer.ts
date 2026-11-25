@@ -221,7 +221,7 @@ export class JsonFieldAnalyzer {
         return {
             label: field.name,
             description: typeInfo,
-            detail: `${field.valueCount} values${sampleText ? ' • ' + sampleText : ''}`
+            detail: `${field.valueCount} values${sampleText ? ` • ${sampleText}` : ''}`
         };
     }
 }

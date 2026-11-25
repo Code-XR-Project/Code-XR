@@ -395,7 +395,7 @@ export class ProjectEvolutionService {
     }
 
     private async buildAutomaticTimeline(existingReferences?: { sources: ComparisonSource[]; workingTreeDirty: boolean }): Promise<ComparisonSource[]> {
-        const references = existingReferences || await this.gitService.listReferences();
+        const references = existingReferences ?? await this.gitService.listReferences();
         const timeline = await this.gitService.listTimelineSources(TIMELINE_SCAN_LIMIT);
         const gitTimeline = timeline.length
             ? timeline

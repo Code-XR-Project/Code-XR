@@ -268,7 +268,7 @@ export class MultiServerLauncher {
      */
     private generateServerId(): string {
         const timestamp = Date.now();
-        const random = Math.random().toString(36).substr(2, 5);
+        const random = Math.random().toString(36).slice(2, 7);
         return `server_${timestamp}_${random}`;
     }
 }

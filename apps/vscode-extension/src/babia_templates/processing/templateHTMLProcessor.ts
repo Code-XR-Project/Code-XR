@@ -101,8 +101,8 @@ export class TemplateHTMLProcessor {
                 jsContentType: typeof returnResult.jsContent
             });
 
-            logger.debug('DEBUG - indexHtml preview:', returnResult.indexHtml?.substring(0, 100) + '...');
-            logger.debug('DEBUG - jsContent preview:', returnResult.jsContent?.substring(0, 100) + '...');
+            logger.debug('DEBUG - indexHtml preview:', `${returnResult.indexHtml?.substring(0, 100)}...`);
+            logger.debug('DEBUG - jsContent preview:', `${returnResult.jsContent?.substring(0, 100)}...`);
 
             return returnResult;
 

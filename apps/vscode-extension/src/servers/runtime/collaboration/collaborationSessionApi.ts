@@ -85,9 +85,9 @@ export class CollaborationSessionApi {
         const mapping = fileUri ? fileToServerMap.getServerInfo(fileUri) : null;
         const activeServerId = mapping?.activeServerId || `port-${this.deps.port}`;
         const collaborationConfiguration = CollaborationProfileManager.getInstance()?.getConfiguration()
-            || this.getDefaultCollaborationConfiguration();
+            ?? this.getDefaultCollaborationConfiguration();
         const session = this.deps.authority.resolveCookie(req.headers.cookie);
-        const profile = session?.profile || DEFAULT_COLLABORATION_PROFILE;
+        const profile = session?.profile ?? DEFAULT_COLLABORATION_PROFILE;
         const { historicalComparison, projectEvolution, dependencyGraph } =
             await this.deps.getAnalysisAvailability();
 

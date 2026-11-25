@@ -29,7 +29,7 @@ export class CreateChart {
             // Every chart — boats included — comes from the single canonical
             // template list; a duplicated boats fallback used to live here and
             // drifted from the real one.
-            const chart = chartTemplates.find((candidate) => candidate.id === chartId) || null;
+            const chart = chartTemplates.find((candidate) => candidate.id === chartId) ?? null;
             if (!chart) {
                 return { 
                     success: false, 
@@ -216,7 +216,7 @@ export class CreateChart {
      * Get chart metadata by ID
      */
     public static getChartMetadata(chartId: string): ChartMetadata | null {
-        return chartTemplates.find(c => c.id === chartId) || null;
+        return chartTemplates.find(c => c.id === chartId) ?? null;
     }
 
     /**

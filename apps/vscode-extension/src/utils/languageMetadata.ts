@@ -59,7 +59,7 @@ SupportedLanguages.forEach(lang => {
  */
 export function getLanguageForFile(filePath: string): LanguageInfo | null {
     const extension = getFileExtension(filePath);
-    return ExtensionToLanguageMap.get(extension) || null;
+    return ExtensionToLanguageMap.get(extension) ?? null;
 }
 
 /**

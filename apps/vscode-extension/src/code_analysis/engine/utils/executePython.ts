@@ -75,7 +75,7 @@ export class ExecutePython {
     }
 
     public async executeXRFieldSchema(targetType: 'file' | 'directory'): Promise<PythonPayload> {
-        logger.debug(() => 'Loading XR field schema for ' + targetType);
+        logger.debug(() => `Loading XR field schema for ${targetType}`);
         return await this.executePythonScript('main.py', [
             '--mode', 'schema',
             '--type', targetType,

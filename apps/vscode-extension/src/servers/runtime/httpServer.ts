@@ -265,7 +265,7 @@ export class HttpServer {
     }
 
     public getConnectedParticipants(): ConnectedParticipantSummary[] {
-        return this.collaborationRoomServer?.getConnectedParticipants(this.sessionApi.getCollaborationRoomId()) || [];
+        return this.collaborationRoomServer?.getConnectedParticipants(this.sessionApi.getCollaborationRoomId()) ?? [];
     }
 
     /**
@@ -567,7 +567,7 @@ export class HttpServer {
             for (const session of sessions) {
                 this.collaborationRoomServer?.updateSessionProfile(session.sessionId, session.profile);
             }
-        }) || null;
+        }) ?? null;
         this.broadcastSignalingServer = new ScreenBroadcastSignalingServer(
             server,
             '/codexr-broadcast',

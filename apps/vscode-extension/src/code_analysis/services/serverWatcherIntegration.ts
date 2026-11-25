@@ -10,6 +10,8 @@ import { getActiveServerRegistry } from '../../active_servers/registry/activeSer
 import { ServerControl } from '../../active_servers/runtime/serverControl';
 import * as fs from 'fs';
 import { getLogger } from '../../core/logging/sink';
+import type { ActiveServer, RegistryEvent } from '../../active_servers/model/activeServerModel';
+import type { UnifiedAnalysisSession } from '../engine/core/analysisSession';
 
 const logger = getLogger('SERVER_WATCHER_INTEGRATION');
 
@@ -38,7 +40,7 @@ export class ServerWatcherIntegration {
     private setupServerEventListeners(): void {
         try {
             const serverRegistry = getActiveServerRegistry();
-            serverRegistry.onRegistryChange((event: any) => {
+            serverRegistry.onRegistryChange((event: RegistryEvent) => {
                 if (event.type === 'serverRemoved') {
                     void this.handleServerRemoved(event.serverId!, event.server!);
                 }
@@ -48,10 +50,10 @@ export class ServerWatcherIntegration {
         }
     }
 
-    private async handleServerRemoved(serverId: string, server: any): Promise<void> {
+    private async handleServerRemoved(serverId: string, server: ActiveServer): Promise<void> {
         try {
             const sessionRegistry = UnifiedSessionRegistry.getInstance(this.context);
-            const affectedSessions = sessionRegistry.getAllSessions().filter((session: any) => session.port === server.port);
+            const affectedSessions = sessionRegistry.getAllSessions().filter((session: UnifiedAnalysisSession) => session.port === server.port);
 
             logger.debug(() => `Found ${affectedSessions.length} affected sessions for server ${serverId}`);
             for (const session of affectedSessions) {
@@ -134,7 +136,7 @@ export class ServerWatcherIntegration {
     private async stopServerByPort(port: number): Promise<void> {
         try {
             const serverRegistry = getActiveServerRegistry();
-            const serverToStop = serverRegistry.getAllServers().find((server: any) => server.port === port);
+            const serverToStop = serverRegistry.getAllServers().find((server: ActiveServer) => server.port === port);
             if (serverToStop) {
                 await ServerControl.stopServer(serverToStop.id);
             }
@@ -143,19 +145,19 @@ export class ServerWatcherIntegration {
         }
     }
 
-    private async findAndStopServerForSession(sessionId: string, session: any): Promise<void> {
+    private async findAndStopServerForSession(sessionId: string, session: UnifiedAnalysisSession): Promise<void> {
         try {
             const serverRegistry = getActiveServerRegistry();
             const servers = serverRegistry.getAllServers();
 
-            let matchingServer = servers.find((server: any) => server.metadata && server.metadata.sessionId === sessionId);
+            let matchingServer = servers.find((server: ActiveServer) => server.metadata && server.metadata.sessionId === sessionId);
 
             if (!matchingServer && session.outputPath) {
-                matchingServer = servers.find((server: any) => server.htmlFile && server.htmlFile.includes(session.outputPath));
+                matchingServer = servers.find((server: ActiveServer) => server.htmlFile?.includes(session.outputPath));
             }
 
             if (!matchingServer) {
-                matchingServer = servers.find((server: any) => server.customName && server.customName.includes('Analysis'));
+                matchingServer = servers.find((server: ActiveServer) => server.customName?.includes('Analysis'));
             }
 
             if (matchingServer) {

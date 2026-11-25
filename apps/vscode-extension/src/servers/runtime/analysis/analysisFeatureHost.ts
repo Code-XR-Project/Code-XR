@@ -122,7 +122,7 @@ export class AnalysisFeatureHost {
                     this.config.extensionContext,
                     this.config.analysisSessionId,
                     this.config.staticRoot,
-                    this.gitAnalysisSourceCatalog || undefined,
+                    this.gitAnalysisSourceCatalog ?? undefined,
                 );
                 this.analysisUpdateSubscription = analysisUpdateEvents.on((event) => {
                     if (event.sessionId !== this.config.analysisSessionId) {
@@ -147,7 +147,7 @@ export class AnalysisFeatureHost {
                     this.config.extensionContext,
                     this.config.analysisSessionId,
                     this.config.staticRoot,
-                    this.gitAnalysisSourceCatalog || undefined,
+                    this.gitAnalysisSourceCatalog ?? undefined,
                 );
             }
 
@@ -197,7 +197,7 @@ export class AnalysisFeatureHost {
                     enabled: false,
                     reason: 'Project evolution is not available for this server.',
                 },
-            dependencyGraph: this.dependencyGraphService?.getAvailability() || {
+            dependencyGraph: this.dependencyGraphService?.getAvailability() ?? {
                 enabled: false,
                 reason: 'Dependency analysis is not available for this server.',
             },

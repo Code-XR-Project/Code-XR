@@ -9,7 +9,7 @@ import * as path from 'path';
 import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
 import { ServerWatcherIntegration } from '../../../../services/serverWatcherIntegration';
-import { ActiveAnalysisItem, ActiveAnalysesDataService } from '../services/activeAnalysesDataService';
+import { ActiveAnalysesDataService } from '../services/activeAnalysesDataService';
 import { CommandRegistration } from '../../../../commands/subsections/analysis_settings/analysis_file_mode';
 import { analysisRefreshCoordinator } from '../../../../refresh/analysisRefreshCoordinator';
 import {
@@ -48,6 +48,22 @@ import {
 import { getLogger } from '../../../../../core/logging/sink';
 
 const logger = getLogger('ACTIVE_ANALYSES_COMMANDS');
+
+/** The id-bearing fields extractSessionId looks for on a command argument. */
+interface SessionIdCarrier {
+    session?: { id?: string };
+    sessionId?: string;
+    id?: string;
+}
+
+/**
+ * What an Active Analyses command receives: a session id, the data item
+ * (an ActiveAnalysisItem fits SessionIdCarrier), the TreeItem tagged with the
+ * session fields, or a wrapper holding the data item as originalAnalysisItem.
+ */
+type ActiveAnalysisCommandArg =
+    | string
+    | (SessionIdCarrier & { originalAnalysisItem?: SessionIdCarrier });
 
 /** The Git steps of the export wizard: a request to run, or the wizard stops. */
 type GitExportPrompt =
@@ -146,7 +162,7 @@ export class ActiveAnalysesCommands {
         return [...this.commands];
     }
 
-    private async showActions(arg?: ActiveAnalysisItem | string | any): Promise<void> {
+    private async showActions(arg?: ActiveAnalysisCommandArg): Promise<void> {
         const selected = this.resolveSelectedSession(arg);
         if (!selected) {
             return;
@@ -214,7 +230,7 @@ export class ActiveAnalysesCommands {
         }
     }
 
-    private async showDetails(arg?: ActiveAnalysisItem | string | any): Promise<void> {
+    private async showDetails(arg?: ActiveAnalysisCommandArg): Promise<void> {
         const selected = this.resolveSelectedSession(arg);
         if (!selected) {
             return;
@@ -229,7 +245,7 @@ export class ActiveAnalysesCommands {
         await vscode.window.showTextDocument(doc);
     }
 
-    private async closeAnalysis(arg?: ActiveAnalysisItem | string | any): Promise<void> {
+    private async closeAnalysis(arg?: ActiveAnalysisCommandArg): Promise<void> {
         const selected = this.resolveSelectedSession(arg);
         if (!selected) {
             return;
@@ -277,7 +293,7 @@ export class ActiveAnalysesCommands {
         void vscode.window.showErrorMessage('Failed to close the analysis session cleanly');
     }
 
-    private async viewInBrowser(arg?: ActiveAnalysisItem | string | any): Promise<void> {
+    private async viewInBrowser(arg?: ActiveAnalysisCommandArg): Promise<void> {
         const selected = this.resolveSelectedSession(arg);
         if (!selected) {
             return;
@@ -298,7 +314,7 @@ export class ActiveAnalysesCommands {
         await vscode.env.openExternal(vscode.Uri.parse(url));
     }
 
-    private async exportFolder(arg?: ActiveAnalysisItem | string | any): Promise<void> {
+    private async exportFolder(arg?: ActiveAnalysisCommandArg): Promise<void> {
         const selected = this.resolveSelectedSession(arg);
         if (!selected) {
             return;
@@ -701,7 +717,7 @@ export class ActiveAnalysesCommands {
      * id, then to a live session, reporting the first step that fails.
      */
     private resolveSelectedSession(
-        arg: unknown,
+        arg: ActiveAnalysisCommandArg | undefined,
     ): { sessionId: string; session: UnifiedAnalysisSession } | undefined {
         const sessionId = this.extractSessionId(arg);
         if (!sessionId) {
@@ -717,7 +733,7 @@ export class ActiveAnalysesCommands {
         return { sessionId, session };
     }
 
-    private extractSessionId(arg?: ActiveAnalysisItem | string | any): string | undefined {
+    private extractSessionId(arg?: ActiveAnalysisCommandArg): string | undefined {
         if (typeof arg === 'string') {
             return arg;
         }
@@ -757,7 +773,7 @@ export class ActiveAnalysesCommands {
         return undefined;
     }
 
-    private generateDetailsContent(session: any): string {
+    private generateDetailsContent(session: UnifiedAnalysisSession): string {
         return `# Analysis Details
 
 ## Session Information

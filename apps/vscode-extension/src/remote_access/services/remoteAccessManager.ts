@@ -88,7 +88,7 @@ export class RemoteAccessManager implements vscode.Disposable {
             throw new Error('The active server no longer exists.');
         }
         if (this.shares.has(serverId)) {
-            return server.remoteAccess || { ...DEFAULT_REMOTE_ACCESS_STATE };
+            return server.remoteAccess ?? { ...DEFAULT_REMOTE_ACCESS_STATE };
         }
         const remoteServer = this.asRemoteCapableServer(server);
         const binaryPath = await this.binaryManager.resolveBinary(true);

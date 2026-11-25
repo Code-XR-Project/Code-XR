@@ -230,7 +230,7 @@ export class AnalysisBootstrap {
     ): void {
         const missingFiles = requiredFiles.filter((fileName) => {
             const content = loadedFiles.get(fileName);
-            return !content || !content.trim();
+            return !content?.trim();
         });
 
         if (missingFiles.length > 0) {

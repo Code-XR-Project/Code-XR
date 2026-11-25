@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { ActiveServer } from '../../../active_servers/model/activeServerModel';
 import { COLLABORATION_AVATARS, ConnectedParticipantSummary } from '../../../collaboration';
@@ -513,7 +514,7 @@ Mode: ${mode}
 Port: ${server.port}`;
 
         if (server.htmlFile) {
-            const fileName = require('path').basename(server.htmlFile);
+            const fileName = path.basename(server.htmlFile);
             tooltip += `\nFile: ${fileName}`;
         }
 

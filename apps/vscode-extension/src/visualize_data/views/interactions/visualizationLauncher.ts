@@ -93,7 +93,7 @@ export class VisualizationLauncher {
 
             const fileUri = await vscode.window.showOpenDialog(options);
             
-            if (fileUri && fileUri[0]) {
+            if (fileUri?.[0]) {
                 const filePath = fileUri[0].fsPath;
                 const fileName = path.basename(filePath);
                 

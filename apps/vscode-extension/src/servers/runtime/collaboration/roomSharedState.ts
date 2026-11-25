@@ -32,7 +32,7 @@ export function upsertAuthoritativeEntity(
     }
     const key = getEntityKey(normalized.entityKind, normalized.entityId);
     const nextEntity = {
-        ...(room.entities.get(key) || {}),
+        ...(room.entities.get(key) ?? {}),
         ...normalized,
         updatedAt: new Date().toISOString(),
     };
@@ -88,9 +88,9 @@ export function upsertEntity(
     }
 
     const key = getEntityKey(entity.entityKind, entity.entityId);
-    const previous = room.entities.get(key) || null;
+    const previous = room.entities.get(key) ?? null;
     const nextEntity: SharedEntityState = {
-        ...(previous || {}),
+        ...(previous ?? {}),
         ...entity,
         entityKind: entity.entityKind,
         entityId: entity.entityId,
@@ -214,9 +214,9 @@ export function updatePresence(context: RoomContext, peer: CollaborationPeer, pa
         return;
     }
 
-    const previous = room.presence.get(peer.id) || null;
+    const previous = room.presence.get(peer.id) ?? null;
     const nextPresence: SharedPresenceState = {
-        ...(previous || {}),
+        ...(previous ?? {}),
         ...payload,
         ...getParticipantPresence(participant),
         peerId: peer.id,

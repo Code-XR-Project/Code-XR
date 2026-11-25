@@ -61,7 +61,7 @@ export class AutoAnalysisDelaySetting {
      * Get display text for current delay
      */
     private getDelayDisplayText(delayConfig?: AutoAnalysisDelayConfig): string {
-        const configToUse = delayConfig || this.currentDelayConfig;
+        const configToUse = delayConfig ?? this.currentDelayConfig;
         if (configToUse.type === 'Custom') {
             const ms = configToUse.customMs || 0;
             return `Custom: ${ms}ms`;
@@ -73,7 +73,7 @@ export class AutoAnalysisDelaySetting {
      * Get appropriate icon for current delay
      */
     private getDelayIcon(delayConfig?: AutoAnalysisDelayConfig): vscode.ThemeIcon {
-        const configToUse = delayConfig || this.currentDelayConfig;
+        const configToUse = delayConfig ?? this.currentDelayConfig;
         if (configToUse.type === 'RealTime') {
             return new vscode.ThemeIcon('zap', new vscode.ThemeColor('charts.green'));
         } else if (configToUse.type === 'Custom') {

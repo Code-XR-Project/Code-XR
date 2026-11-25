@@ -648,8 +648,7 @@ export class VenvManager {
             if (!pipStillAvailable) {
                 throw new Error(
                     'CodeXR could not upgrade pip and the virtual environment pip is no longer usable. ' +
-                    'The global Python installation was not modified.\n\n' +
-                    this.getErrorDetails(error),
+                    `The global Python installation was not modified.\n\n${this.getErrorDetails(error)}`,
                 );
             }
 

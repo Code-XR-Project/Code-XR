@@ -173,7 +173,7 @@ export class ActiveServersSectionProvider implements SectionProvider<ActiveServe
 
     private getParticipants(server: ActiveServer): ConnectedParticipantSummary[] {
         const runtime = this.asParticipantAwareServer(server);
-        return runtime?.getConnectedParticipants() || [];
+        return runtime?.getConnectedParticipants() ?? [];
     }
 
     private reconcileParticipantSubscriptions(): void {

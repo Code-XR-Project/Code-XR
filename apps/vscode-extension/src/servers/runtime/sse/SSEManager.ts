@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as http from 'http';
 import { SSEClientRegistry } from './sseClientRegistry';
 import { fileToServerMap } from '../../../utils/fileToServerMap';
@@ -89,8 +91,7 @@ export class SSEManager {
             logger.debug(() => `REQUEST_UPDATE: Found mapping - Port: ${mapping.port}, TempDir: ${mapping.tempDir}`);
             
             // Verify data.json exists in the temp directory
-            const dataJsonPath = require('path').join(mapping.tempDir, 'data.json');
-            const fs = require('fs');
+            const dataJsonPath = path.join(mapping.tempDir, 'data.json');
             try {
                 const exists = fs.existsSync(dataJsonPath);
                 logger.debug(() => `REQUEST_UPDATE: data.json exists at ${dataJsonPath}: ${exists}`);

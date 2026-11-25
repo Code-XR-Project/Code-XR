@@ -106,6 +106,79 @@ export default [{
         "@typescript-eslint/no-misused-promises": "warn",
     },
 }, {
+    // Modernized idioms (story #56, docs/cleanup/modernization.md §1 and §7).
+    // Each rule landed in the commit that brought its idiom to zero in src/, so
+    // the count can only stay there. Exceptions are per-file overrides below,
+    // never eslint-disable comments (the suppressions guardrail is at 0).
+    files: ["src/**/*.ts"],
+    rules: {
+        "no-var": "error",
+        "prefer-rest-params": "error",
+        "@typescript-eslint/no-namespace": "error",
+        "@typescript-eslint/no-unsafe-function-type": "error",
+        "@typescript-eslint/no-require-imports": "error",
+        "@typescript-eslint/prefer-includes": "error",
+        "@typescript-eslint/prefer-optional-chain": "error",
+        "prefer-template": "error",
+        "no-restricted-properties": ["error", {
+            property: "substr",
+            message: "Use slice() (substr is Annex B legacy; slice(start, start + length) for non-negative arguments).",
+        }],
+        // `??` only where the left operand is object-typed: '' || d and '' ?? d
+        // differ, and settings or user JSON carry real '', 0 and false values,
+        // so primitive operands, ternaries and if-assignments are not reported.
+        "@typescript-eslint/prefer-nullish-coalescing": ["error", {
+            ignorePrimitives: { string: true, number: true, boolean: true, bigint: true },
+            ignoreTernaryTests: true,
+            ignoreIfStatements: true,
+        }],
+    },
+}, {
+    // Files that keep an object-typed `x || {}` on purpose: the operand is
+    // parsed JSON from a WebSocket client, the bridge protocol, workspace
+    // storage or a settings update, where a malformed `0`, `''` or `false`
+    // must still fall back to the default (modernization.md §7, row 9).
+    files: [
+        // historicalComparison.test.cjs pins `source.kind === 'workingCopy') || null` here (S pin).
+        "src/code_analysis/historical/projectEvolutionService.ts",
+        "src/servers/runtime/analysis/dependencyGraphBridge.ts",
+        "src/servers/runtime/analysis/projectEvolutionBridge.ts",
+        "src/servers/runtime/collaboration/collaborationRoomServer.ts",
+        "src/servers/runtime/collaboration/roomSharedState.ts",
+        "src/servers/storage/serverSettingsManager.ts",
+        "src/visualize_data/state/visualizeDataState.ts",
+        "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts",
+    ],
+    rules: {
+        "@typescript-eslint/prefer-nullish-coalescing": "off",
+    },
+}, {
+    // The lazy require() calls that stay (modernization.md §4): the eight in
+    // the tree provider are load-bearing (cleanup skill §4), and the other two
+    // defer a relative import to break a load-time module cycle.
+    files: [
+        "src/views/ModularTreeDataProvider.ts",
+        "src/code_analysis/engine/watchers/directoryReAnalyzer.ts",
+        "src/utils/getVisualizationConfiguration.ts",
+    ],
+    rules: {
+        "@typescript-eslint/no-require-imports": "off",
+    },
+}, {
+    // Folders whose `any`s were typed away (story #56, modernization.md §7):
+    // there no-explicit-any is an error, not a budget warning. A folder joins
+    // the list in the commit that brings it to zero.
+    name: "codexr/any-free-folders",
+    files: [
+        "src/active_servers/**/*.ts",
+        "src/code_analysis/engine/watchers/**/*.ts",
+        "src/code_analysis/services/**/*.ts",
+        "src/code_analysis/views/subsections/active_analyses/**/*.ts",
+    ],
+    rules: {
+        "@typescript-eslint/no-explicit-any": "error",
+    },
+}, {
     files: NO_CONSOLE_FILES,
     ignores: CONSOLE_ALLOWLIST,
     rules: {

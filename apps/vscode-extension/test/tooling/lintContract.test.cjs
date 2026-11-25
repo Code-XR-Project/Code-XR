@@ -30,6 +30,10 @@ const WARN_BUDGET_RULES = [
 // Budget rules that reached zero and were promoted to errors (ROADMAP T59).
 const PROMOTED_RULES = ['@typescript-eslint/no-floating-promises'];
 
+// The flat-config block (by its name) where folders free of `any` make
+// no-explicit-any an error (story #56).
+const ANY_FREE_BLOCK = 'codexr/any-free-folders';
+
 async function loadEslintConfig() {
     const configUrl = pathToFileURL(path.join(projectRoot, 'eslint.config.mjs')).href;
     return (await import(configUrl)).default;
@@ -78,9 +82,13 @@ test('the warn-only budget rules are configured as warnings over src', async () 
     // The type-aware ones live in their own block (they need the TypeScript
     // program); the merge below follows flat-config order, last block wins.
     // A budget rule set to "off" would let its count drift while the
-    // --max-warnings ceiling still looks tight.
+    // --max-warnings ceiling still looks tight. The any-free folders block is
+    // the one deliberate exception: it makes no-explicit-any stricter (an
+    // error) for the folders listed there, never looser.
     const config = await loadEslintConfig();
-    const rules = Object.assign({}, ...config.filter((block) => block.rules).map((block) => block.rules));
+    const rules = Object.assign({}, ...config
+        .filter((block) => block.rules && block.name !== ANY_FREE_BLOCK)
+        .map((block) => block.rules));
 
     for (const rule of WARN_BUDGET_RULES) {
         const value = rules[rule];
@@ -196,4 +204,71 @@ test('no-console is an error over all of src/, and the log sink is the only exce
     assert.deepEqual(block.files, ['src/**/*.ts']);
     assert.deepEqual(block.ignores, ['src/core/logging/sink.ts']);
     assert.ok(fs.existsSync(path.join(projectRoot, 'src', 'core', 'logging', 'sink.ts')), 'the allowlisted sink exists');
+});
+
+// Idioms story #56 brought to zero in src/ (docs/cleanup/modernization.md §7).
+// Each lock-in landed with the commit that reached zero; one switched off or
+// downgraded would let the idiom come back unnoticed.
+const MODERNIZED_IDIOM_RULES = [
+    'no-var',
+    'prefer-rest-params',
+    '@typescript-eslint/no-namespace',
+    '@typescript-eslint/no-unsafe-function-type',
+    '@typescript-eslint/no-require-imports',
+    '@typescript-eslint/prefer-includes',
+    '@typescript-eslint/prefer-optional-chain',
+    'prefer-template',
+    '@typescript-eslint/prefer-nullish-coalescing',
+    'no-restricted-properties',
+];
+
+test('the modernized idioms stay locked over src/', async () => {
+    const config = await loadEslintConfig();
+    const block = config.find((candidate) => candidate.rules
+        && candidate.rules['no-var'] !== undefined
+        && Array.isArray(candidate.files) && candidate.files.includes('src/**/*.ts'));
+
+    assert.ok(block, 'one block locks the idioms over src/**/*.ts');
+    for (const rule of MODERNIZED_IDIOM_RULES) {
+        const value = block.rules[rule];
+        assert.equal(Array.isArray(value) ? value[0] : value, 'error', `${rule} is an error over src/`);
+    }
+});
+
+test('only the three files with deliberate lazy require() may use it', async () => {
+    // modernization.md §4: the tree provider's eight lazy requires are
+    // load-bearing, the other two break load-time cycles. Any other file
+    // imports statically.
+    const config = await loadEslintConfig();
+    const exemptions = config.filter((block) => block.rules
+        && block.rules['@typescript-eslint/no-require-imports'] === 'off');
+
+    assert.equal(exemptions.length, 1, 'one exemption block');
+    assert.deepEqual([...exemptions[0].files].sort(), [
+        'src/code_analysis/engine/watchers/directoryReAnalyzer.ts',
+        'src/utils/getVisualizationConfiguration.ts',
+        'src/views/ModularTreeDataProvider.ts',
+    ]);
+    for (const file of exemptions[0].files) {
+        assert.ok(fs.existsSync(path.join(projectRoot, file)), `${file} exists`);
+    }
+});
+
+test('folders typed free of any keep no-explicit-any as an error', async () => {
+    // Story #56 types the `any`s folder by folder; a folder at zero is locked
+    // there. The block may only tighten the rule, and every folder it names
+    // must exist (a moved folder would otherwise drop out of the lock silently).
+    const config = await loadEslintConfig();
+    const blocks = config.filter((block) => block.name === ANY_FREE_BLOCK);
+
+    assert.equal(blocks.length, 1, 'one any-free folders block');
+    const [block] = blocks;
+    assert.deepEqual(Object.keys(block.rules), ['@typescript-eslint/no-explicit-any']);
+    assert.equal(block.rules['@typescript-eslint/no-explicit-any'], 'error');
+    assert.ok(block.files.length > 0);
+    for (const pattern of block.files) {
+        assert.match(pattern, /^src\/.+\/\*\*\/\*\.ts$/, `${pattern} is a src/ folder glob`);
+        const folder = pattern.replace(/\/\*\*\/\*\.ts$/, '');
+        assert.ok(fs.statSync(path.join(projectRoot, folder)).isDirectory(), `${folder} exists`);
+    }
 });

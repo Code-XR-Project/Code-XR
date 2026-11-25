@@ -85,7 +85,7 @@ export class SSEClientRegistry {
      * @returns Array of response objects
      */
     getClients(fileUri: string): http.ServerResponse[] {
-        return this.clients.get(fileUri) || [];
+        return this.clients.get(fileUri) ?? [];
     }
 
     /**

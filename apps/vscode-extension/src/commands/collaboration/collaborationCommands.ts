@@ -29,7 +29,7 @@ export function getCollaborationCommandRegistrations(
             description: 'Join a remote CodeXR session',
             handler: async () => {
                 const remoteAccess = RemoteAccessManager.getInstance()
-                    || RemoteAccessManager.initialize(context);
+                    ?? RemoteAccessManager.initialize(context);
                 await remoteAccess.joinInvitation();
             },
         },

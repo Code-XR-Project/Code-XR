@@ -86,7 +86,7 @@ export class LauncherLivePanel {
             progress: { process: 20, save: 40, watcherOrServer: 60, serverOrWatcher: 80, done: 100 },
 
             preValidation: async () => {
-                const files = session.filesToHash || [];
+                const files = session.filesToHash ?? [];
                 logger.debug(() => `${LOG_PREFIX}: Directory session target path: ${session.targetPath}`);
                 logger.debug(() => `${LOG_PREFIX}: Directory session deep mode: ${session.isDeep ? 'enabled' : 'disabled'}`);
                 logger.debug(() => `${LOG_PREFIX}: Session currently tracks ${files.length} hashed files`);

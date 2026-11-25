@@ -141,7 +141,7 @@ export class VisualizeDataClickHandler {
             case 'dimension-item':
                 // Execute the dimension item's command if available
                 if (item.command) {
-                    await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments || []));
+                    await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments ?? []));
                 }
                 break;
                 
@@ -158,7 +158,7 @@ export class VisualizeDataClickHandler {
         
         if (item.visualizeDataItemType === 'stored-visualization' && item.command) {
             // Launch stored visualization
-            await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments || []));
+            await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments ?? []));
         } else {
             // Launch current visualization configuration
             await vscode.commands.executeCommand('codeXR.visualizeData.launchVisualization');

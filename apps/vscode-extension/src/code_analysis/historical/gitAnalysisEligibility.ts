@@ -153,7 +153,7 @@ export class GitAnalysisSourceCatalog {
             if (source.kind !== 'gitRef') {
                 continue;
             }
-            const group = gitSourcesBySha.get(source.commitSha) || [];
+            const group = gitSourcesBySha.get(source.commitSha) ?? [];
             group.push(source);
             gitSourcesBySha.set(source.commitSha, group);
         }
@@ -178,7 +178,7 @@ export class GitAnalysisSourceCatalog {
             const cached = source.kind === 'workingCopy'
                 ? workingCopyEligibility
                 : this.deterministicExclusions.get(source.commitSha)
-                    || this.commitEligibility.get(source.commitSha);
+                    ?? this.commitEligibility.get(source.commitSha);
             if (!cached || cached.usable) {
                 usable.push(source);
                 continue;
