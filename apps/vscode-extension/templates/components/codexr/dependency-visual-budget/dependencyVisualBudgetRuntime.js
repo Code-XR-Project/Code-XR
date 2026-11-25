@@ -3,30 +3,30 @@
 
   if (root.CodeXRDependencyVisualBudgetRuntime) { return; }
 
-  var PROFILES = ['sparse', 'balanced', 'dense'];
-  var WIDTH_RANGES = {
+  const PROFILES = ['sparse', 'balanced', 'dense'];
+  const WIDTH_RANGES = {
     sparse: [.006, .024],
     balanced: [.004, .018],
     dense: [.0025, .010]
   };
-  var OPACITY_MULTIPLIERS = {
+  const OPACITY_MULTIPLIERS = {
     sparse: 1,
     balanced: .32,
     dense: .08
   };
-  var CONFIDENCE_OPACITY = {
+  const CONFIDENCE_OPACITY = {
     exact: .76,
     probable: .5,
     ambiguous: .26
   };
-  var FLOW_LIMITS = {
+  const FLOW_LIMITS = {
     sparse: 300,
     balanced: 80,
     dense: 40
   };
-  var subscribers = new Set();
-  var override = 'auto';
-  var snapshot = createSnapshot({}, 'full', override);
+  const subscribers = new Set();
+  let override = 'auto';
+  let snapshot = createSnapshot({}, 'full', override);
 
   function clamp(value, minimum, maximum) {
     return Math.max(minimum, Math.min(maximum, Number(value) || 0));
@@ -41,17 +41,17 @@
   }
 
   function calculateDensity(stats) {
-    var nodes = Math.max(0, Number(stats?.nodeCount || 0));
-    var edges = Math.max(0, Number(stats?.edgeCount || 0));
-    var ratio = nodes > 0 ? edges / nodes : edges;
-    var maxDegree = Math.max(0, Number(stats?.maxDegree || 0));
-    var pressure = Math.max(
+    const nodes = Math.max(0, Number(stats?.nodeCount || 0));
+    const edges = Math.max(0, Number(stats?.edgeCount || 0));
+    const ratio = nodes > 0 ? edges / nodes : edges;
+    const maxDegree = Math.max(0, Number(stats?.maxDegree || 0));
+    const pressure = Math.max(
       edges / 800,
       ratio / 5,
       maxDegree / 100,
       nodes / 600
     );
-    var profile = edges <= 150 && ratio <= 2 && maxDegree <= 20 && nodes <= 120
+    const profile = edges <= 150 && ratio <= 2 && maxDegree <= 20 && nodes <= 120
       ? 'sparse'
       : pressure >= 1
         ? 'dense'
@@ -67,9 +67,9 @@
   }
 
   function effectiveProfile(densityProfile, renderQuality, detailOverride) {
-    var densityRank = profileRank(densityProfile);
-    var performanceRank = renderQuality === 'static' ? 2 : renderQuality === 'interactive' ? 1 : 0;
-    var requestedRank = detailOverride === 'focus'
+    const densityRank = profileRank(densityProfile);
+    const performanceRank = renderQuality === 'static' ? 2 : renderQuality === 'interactive' ? 1 : 0;
+    const requestedRank = detailOverride === 'focus'
       ? 2
       : detailOverride === 'full'
         ? Math.max(0, densityRank - 1)
@@ -78,8 +78,8 @@
   }
 
   function widthsForProfile(profile) {
-    var range = WIDTH_RANGES[profile] || WIDTH_RANGES.balanced;
-    var factors = [0, .22, .46, .7, 1];
+    const range = WIDTH_RANGES[profile] || WIDTH_RANGES.balanced;
+    const factors = [0, .22, .46, .7, 1];
     return factors.map(function (factor) {
       return range[0] + ((range[1] - range[0]) * factor);
     });
@@ -87,13 +87,13 @@
 
   function opacityFor(profile, confidence, focused) {
     if (focused) { return confidence === 'ambiguous' ? .72 : .96; }
-    var base = CONFIDENCE_OPACITY[confidence] || CONFIDENCE_OPACITY.probable;
+    const base = CONFIDENCE_OPACITY[confidence] || CONFIDENCE_OPACITY.probable;
     return Math.max(.015, base * (OPACITY_MULTIPLIERS[profile] || OPACITY_MULTIPLIERS.balanced));
   }
 
   function createSnapshot(stats, renderQuality, detailOverride) {
-    var density = calculateDensity(stats);
-    var effective = effectiveProfile(density.profile, renderQuality, detailOverride);
+    const density = calculateDensity(stats);
+    const effective = effectiveProfile(density.profile, renderQuality, detailOverride);
     return Object.assign({}, density, {
       override: detailOverride,
       renderQuality: renderQuality,

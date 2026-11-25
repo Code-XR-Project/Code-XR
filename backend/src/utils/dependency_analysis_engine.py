@@ -7,13 +7,15 @@ capabilities and warnings instead of failing silently when a grammar cannot be
 loaded on a particular platform.
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
+from typing import Iterable, Iterator, Tuple
 
 from directory_scan_utils import is_analyzable_file_path, scan_directory_files_for_analysis
 from metric_language_contract import get_metric_language, get_metric_language_names
@@ -72,11 +74,11 @@ def _portable_relative(root: str, file_path: str) -> str:
 
 
 def _node_id(kind: str, value: str) -> str:
-    digest = hashlib.sha256(f"{kind}\0{value}".encode("utf-8")).hexdigest()[:16]
+    digest = hashlib.sha256(f"{kind}\0{value}".encode()).hexdigest()[:16]
     return f"{kind}:{digest}"
 
 
-def _read_text(file_path: str) -> Tuple[str, Optional[str]]:
+def _read_text(file_path: str) -> tuple[str, str | None]:
     try:
         return Path(file_path).read_text(encoding="utf-8"), None
     except UnicodeDecodeError:
@@ -88,7 +90,7 @@ def _read_text(file_path: str) -> Tuple[str, Optional[str]]:
         return "", str(error)
 
 
-def _extract_structured_targets(language: str, text: str) -> Tuple[bool, List[Tuple[str, str, str]]]:
+def _extract_structured_targets(language: str, text: str) -> tuple[bool, list[tuple[str, str, str]]]:
     aliases = {
         "C++": "cpp", "C#": "csharp", "Objective-C": "objc",
         "JavaScript": "javascript", "TypeScript": "typescript",
@@ -110,7 +112,7 @@ def _extract_structured_targets(language: str, text: str) -> Tuple[bool, List[Tu
                 diagnostics=False,
             ),
         )
-        structured: List[Tuple[str, str, str]] = []
+        structured: list[tuple[str, str, str]] = []
         for import_info in result.imports or []:
             source = str(getattr(import_info, "source", "") or "")
             structured.extend(
@@ -123,7 +125,7 @@ def _extract_structured_targets(language: str, text: str) -> Tuple[bool, List[Tu
         return False, []
 
 
-def _iter_raw_targets(text: str) -> Iterator[Tuple[str, str, str, int]]:
+def _iter_raw_targets(text: str) -> Iterator[tuple[str, str, str, int]]:
     """Yield (kind, value, confidence, match offset) in source-pattern order."""
     for kind, pattern in IMPORT_PATTERNS + INHERITANCE_PATTERNS:
         for match in pattern.finditer(text):
@@ -140,19 +142,19 @@ def _iter_raw_targets(text: str) -> Iterator[Tuple[str, str, str, int]]:
             yield "call", value, "ambiguous", match.start()
 
 
-def _extract_targets(text: str) -> List[Tuple[str, str, str]]:
+def _extract_targets(text: str) -> list[tuple[str, str, str]]:
     return [(kind, value, confidence) for kind, value, confidence, _offset in _iter_raw_targets(text)]
 
 
-def _extract_targets_with_lines(text: str) -> List[Tuple[str, str, str, int]]:
+def _extract_targets_with_lines(text: str) -> list[tuple[str, str, str, int]]:
     return [
         (kind, value, confidence, text.count("\n", 0, offset) + 1)
         for kind, value, confidence, offset in _iter_raw_targets(text)
     ]
 
 
-def _empty_metrics(**values: object) -> Dict[str, object]:
-    metrics: Dict[str, object] = {
+def _empty_metrics(**values: object) -> dict[str, object]:
+    metrics: dict[str, object] = {
         "totalLines": 0, "fanIn": 0, "fanOut": 0, "degree": 0,
         "dependentCount": 0, "cycleSize": 0, "relationCount": 0,
     }
@@ -172,13 +174,13 @@ def _indent(line: str) -> int:
     return len(line) - len(line.lstrip())
 
 
-def _owner_by_qualified_name(class_ids: Dict[str, str], qualified_name: str) -> Optional[str]:
+def _owner_by_qualified_name(class_ids: dict[str, str], qualified_name: str) -> str | None:
     """First class (in ``class_ids`` order) whose lowercase name occurs in the qualified name."""
     qualified_lower = qualified_name.lower()
     return next((class_id for class_name, class_id in class_ids.items() if class_name in qualified_lower), None)
 
 
-def _indented_body_open(source_lines: List[str], class_line: int, line_start: int) -> bool:
+def _indented_body_open(source_lines: list[str], class_line: int, line_start: int) -> bool:
     """Python/GDScript: the function is indented past the class and no line between closes it.
 
     Blank, comment and decorator lines never close a body.
@@ -194,7 +196,7 @@ def _indented_body_open(source_lines: List[str], class_line: int, line_start: in
     return True
 
 
-def _braced_body_open(source_lines: List[str], class_line: int, line_start: int) -> bool:
+def _braced_body_open(source_lines: list[str], class_line: int, line_start: int) -> bool:
     """Brace languages: more "{" than "}" from the class line THROUGH the function line.
 
     Counting the function line itself makes a top-level function whose brace opens on
@@ -206,13 +208,13 @@ def _braced_body_open(source_lines: List[str], class_line: int, line_start: int)
 
 
 def _infer_class_owner(
-    classes: List[Dict[str, object]],
-    class_ids: Dict[str, str],
-    source_lines: List[str],
+    classes: list[dict[str, object]],
+    class_ids: dict[str, str],
+    source_lines: list[str],
     line_start: int,
     qualified_name: str,
     language: str,
-) -> Optional[str]:
+) -> str | None:
     owner = _owner_by_qualified_name(class_ids, qualified_name)
     if owner is not None:
         return owner
@@ -231,7 +233,7 @@ def _infer_class_owner(
     return None
 
 
-def _resolve_project_root(file_path: str, project_root: Optional[str]) -> str:
+def _resolve_project_root(file_path: str, project_root: str | None) -> str:
     target = os.path.realpath(file_path)
     if project_root:
         candidate = os.path.realpath(project_root)
@@ -250,7 +252,7 @@ def _resolve_project_root(file_path: str, project_root: Optional[str]) -> str:
         current = parent
 
 
-def _find_block_end(source_lines: List[str], line_number: int, line: str, language: str) -> int:
+def _find_block_end(source_lines: list[str], line_number: int, line: str, language: str) -> int:
     """Last line of an indentation-delimited body (Python, GDScript); else the start line."""
     line_end = line_number
     if language in {"Python", "GDScript"}:
@@ -267,7 +269,7 @@ def _find_block_end(source_lines: List[str], line_number: int, line: str, langua
     return line_end
 
 
-def _lexical_function_entry(name: str, line_start: int, line_end: int) -> Dict[str, object]:
+def _lexical_function_entry(name: str, line_start: int, line_end: int) -> dict[str, object]:
     return {
         "functionName": name,
         "qualifiedName": name,
@@ -280,7 +282,7 @@ def _lexical_function_entry(name: str, line_start: int, line_end: int) -> Dict[s
     }
 
 
-def _build_file_dependency_snapshot(file_path: str, text: str) -> Tuple[Dict[str, object], Optional[str]]:
+def _build_file_dependency_snapshot(file_path: str, text: str) -> tuple[dict[str, object], str | None]:
     try:
         from file_analysis_engine import build_file_snapshot
         snapshot = build_file_snapshot(file_path)
@@ -338,11 +340,11 @@ def _build_file_dependency_snapshot(file_path: str, text: str) -> Tuple[Dict[str
         }, f"Lizard unavailable ({error}); lexical symbol fallback used"
 
 
-def _add_graph_metrics(nodes: List[Dict[str, object]], edges: List[Dict[str, object]]) -> None:
+def _add_graph_metrics(nodes: list[dict[str, object]], edges: list[dict[str, object]]) -> None:
     node_by_id = {str(node["id"]): node for node in nodes}
-    adjacency: Dict[str, Set[str]] = defaultdict(set)
-    reverse: Dict[str, Set[str]] = defaultdict(set)
-    relation_counts: Dict[object, int] = defaultdict(int)
+    adjacency: dict[str, set[str]] = defaultdict(set)
+    reverse: dict[str, set[str]] = defaultdict(set)
+    relation_counts: dict[object, int] = defaultdict(int)
     for edge in edges:
         source = str(edge["source"])
         target = str(edge["target"])
@@ -373,15 +375,15 @@ def _add_graph_metrics(nodes: List[Dict[str, object]], edges: List[Dict[str, obj
         })
 
 
-def _first_match(reference: str, lookup: Dict[str, str]) -> Optional[str]:
+def _first_match(reference: str, lookup: dict[str, str]) -> str | None:
     """Node id of the first candidate key of ``reference`` found in ``lookup``."""
     return next((lookup[key] for key in _normalize_reference(reference) if key in lookup), None)
 
 
 def _ensure_external_node(
     reference: str,
-    external_nodes: Dict[str, str],
-    nodes: List[Dict[str, object]],
+    external_nodes: dict[str, str],
+    nodes: list[dict[str, object]],
 ) -> str:
     """Id of the external node named by ``reference``'s first segment.
 
@@ -399,7 +401,7 @@ def _ensure_external_node(
     return target_id
 
 
-def _contains_edge(owner_id: str, symbol_id: str) -> Dict[str, object]:
+def _contains_edge(owner_id: str, symbol_id: str) -> dict[str, object]:
     return {
         "id": _node_id("edge", f"{owner_id}\0{symbol_id}\0contains"),
         "source": owner_id, "target": symbol_id, "kind": "contains",
@@ -408,16 +410,16 @@ def _contains_edge(owner_id: str, symbol_id: str) -> Dict[str, object]:
 
 
 def _add_class_symbols(
-    classes: List[Dict[str, object]],
+    classes: list[dict[str, object]],
     relative: str,
     language: str,
     module_id: str,
-    nodes: List[Dict[str, object]],
-    edges: List[Dict[str, object]],
-    symbol_lookup: Dict[str, str],
-) -> Dict[str, str]:
+    nodes: list[dict[str, object]],
+    edges: list[dict[str, object]],
+    symbol_lookup: dict[str, str],
+) -> dict[str, str]:
     """One symbol node and one module->class contains edge per class; returns name -> id."""
-    class_ids: Dict[str, str] = {}
+    class_ids: dict[str, str] = {}
     for class_info in classes:
         name = str(class_info.get("name") or "anonymous")
         line = int(class_info.get("line", 0) or 0)
@@ -436,19 +438,19 @@ def _add_class_symbols(
 
 
 def _add_function_symbols(
-    functions: List[Dict[str, object]],
-    classes: List[Dict[str, object]],
-    class_ids: Dict[str, str],
-    source_lines: List[str],
+    functions: list[dict[str, object]],
+    classes: list[dict[str, object]],
+    class_ids: dict[str, str],
+    source_lines: list[str],
     relative: str,
     language: str,
     module_id: str,
-    nodes: List[Dict[str, object]],
-    edges: List[Dict[str, object]],
-    symbol_lookup: Dict[str, str],
-) -> List[Tuple[int, int, str]]:
+    nodes: list[dict[str, object]],
+    edges: list[dict[str, object]],
+    symbol_lookup: dict[str, str],
+) -> list[tuple[int, int, str]]:
     """One function/method node and its contains edge per function; returns the line ranges."""
-    function_ranges: List[Tuple[int, int, str]] = []
+    function_ranges: list[tuple[int, int, str]] = []
     for ordinal, function in enumerate(functions):
         name = str(function.get("functionName") or "unknown")
         qualified = str(function.get("qualifiedName") or name)
@@ -481,10 +483,10 @@ def _add_function_symbols(
     return function_ranges
 
 
-def _project_file_lookup(root: str, target: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+def _project_file_lookup(root: str, target: str) -> tuple[dict[str, str], dict[str, str]]:
     """(candidate key -> file node id, file node id -> relative path) for the project's other files."""
-    local_lookup: Dict[str, str] = {}
-    local_paths: Dict[str, str] = {}
+    local_lookup: dict[str, str] = {}
+    local_paths: dict[str, str] = {}
     try:
         project_files = scan_directory_files_for_analysis(
             root, recursive=True, max_entries_per_directory=1000, max_total_files=5000,
@@ -505,21 +507,21 @@ def _project_file_lookup(root: str, target: str) -> Tuple[Dict[str, str], Dict[s
 def _resolve_file_edge_counts(
     text: str,
     module_id: str,
-    function_ranges: List[Tuple[int, int, str]],
-    symbol_lookup: Dict[str, str],
-    local_lookup: Dict[str, str],
-    local_paths: Dict[str, str],
-    nodes: List[Dict[str, object]],
-) -> Tuple[Dict[Tuple[str, str, str, str], int], Dict[str, Dict[str, object]]]:
+    function_ranges: list[tuple[int, int, str]],
+    symbol_lookup: dict[str, str],
+    local_lookup: dict[str, str],
+    local_paths: dict[str, str],
+    nodes: list[dict[str, object]],
+) -> tuple[dict[tuple[str, str, str, str], int], dict[str, dict[str, object]]]:
     """Edge counts for one file, plus the project files it reaches.
 
     A call goes from its enclosing function (else the module) to a known symbol and is
     dropped when none matches. Any other relation goes from the module to a project file
     or, failing that, to an external node (appended to ``nodes``). Self-references are dropped.
     """
-    external_nodes: Dict[str, str] = {}
-    local_nodes: Dict[str, Dict[str, object]] = {}
-    edge_counts: Dict[Tuple[str, str, str, str], int] = defaultdict(int)
+    external_nodes: dict[str, str] = {}
+    local_nodes: dict[str, dict[str, object]] = {}
+    edge_counts: dict[tuple[str, str, str, str], int] = defaultdict(int)
     for relation, reference, confidence, line in _extract_targets_with_lines(text):
         if relation == "call":
             source_id = next((
@@ -549,9 +551,9 @@ def _resolve_file_edge_counts(
 
 def analyze_file_dependencies(
     file_path: str,
-    project_root: Optional[str] = None,
-    cache_path: Optional[str] = None,
-) -> Dict[str, object]:
+    project_root: str | None = None,
+    cache_path: str | None = None,
+) -> dict[str, object]:
     target = os.path.realpath(file_path)
     if not os.path.isfile(target) or not is_analyzable_file_path(target):
         raise ValueError(f"Dependency target is not an analyzable file: {file_path}")
@@ -567,7 +569,7 @@ def analyze_file_dependencies(
     language = str(snapshot.get("language") or get_metric_language(target))
     source_lines = text.splitlines()
     module_id = _node_id("symbol", f"{relative.lower()}\0module")
-    nodes: List[Dict[str, object]] = [{
+    nodes: list[dict[str, object]] = [{
         "id": module_id,
         "kind": "symbol",
         "symbolKind": "module",
@@ -579,8 +581,8 @@ def analyze_file_dependencies(
         "lineEnd": max(1, len(source_lines)),
         "metrics": _empty_metrics(totalLines=max(1, len(source_lines))),
     }]
-    edges: List[Dict[str, object]] = []
-    symbol_lookup: Dict[str, str] = {}
+    edges: list[dict[str, object]] = []
+    symbol_lookup: dict[str, str] = {}
 
     classes = sorted(snapshot.get("classes", []), key=lambda item: int(item.get("line", 0) or 0))
     class_ids = _add_class_symbols(classes, relative, language, module_id, nodes, edges, symbol_lookup)
@@ -608,7 +610,7 @@ def analyze_file_dependencies(
     }
 
 
-def _candidate_keys(relative_path: str) -> Set[str]:
+def _candidate_keys(relative_path: str) -> set[str]:
     portable = relative_path.replace("\\", "/")
     without_suffix = portable.rsplit(".", 1)[0]
     name = Path(portable).stem
@@ -620,7 +622,7 @@ def _candidate_keys(relative_path: str) -> Set[str]:
     }
 
 
-def _normalize_reference(reference: str) -> List[str]:
+def _normalize_reference(reference: str) -> list[str]:
     value = reference.strip().replace("\\", "/")
     value = re.sub(r"^(?:crate|self|super|root)::", "", value)
     value = value.replace("::", "/")
@@ -634,13 +636,13 @@ def _normalize_reference(reference: str) -> List[str]:
     })
 
 
-def _tarjan(nodes: Iterable[str], adjacency: Dict[str, Set[str]]) -> List[List[str]]:
+def _tarjan(nodes: Iterable[str], adjacency: dict[str, set[str]]) -> list[list[str]]:
     index = 0
-    stack: List[str] = []
-    indices: Dict[str, int] = {}
-    lowlink: Dict[str, int] = {}
-    on_stack: Set[str] = set()
-    components: List[List[str]] = []
+    stack: list[str] = []
+    indices: dict[str, int] = {}
+    lowlink: dict[str, int] = {}
+    on_stack: set[str] = set()
+    components: list[list[str]] = []
 
     def visit(node: str) -> None:
         nonlocal index
@@ -671,7 +673,7 @@ def _tarjan(nodes: Iterable[str], adjacency: Dict[str, Set[str]]) -> List[List[s
     return components
 
 
-def _load_cache(cache_path: Optional[str]) -> Dict[str, object]:
+def _load_cache(cache_path: str | None) -> dict[str, object]:
     if not cache_path:
         return {"version": CACHE_VERSION, "files": {}}
     try:
@@ -683,7 +685,7 @@ def _load_cache(cache_path: Optional[str]) -> Dict[str, object]:
     return {"version": CACHE_VERSION, "files": {}}
 
 
-def _write_cache(cache_path: Optional[str], cache: Dict[str, object]) -> None:
+def _write_cache(cache_path: str | None, cache: dict[str, object]) -> None:
     if not cache_path:
         return
     target = Path(cache_path)
@@ -693,7 +695,7 @@ def _write_cache(cache_path: Optional[str], cache: Dict[str, object]) -> None:
     temporary.replace(target)
 
 
-def _load_refresh_request(root: str, request_path: Optional[str]) -> Optional[Dict[str, object]]:
+def _load_refresh_request(root: str, request_path: str | None) -> dict[str, object] | None:
     if not request_path:
         return None
     try:
@@ -701,12 +703,12 @@ def _load_refresh_request(root: str, request_path: Optional[str]) -> Optional[Di
     except (OSError, ValueError, TypeError) as error:
         raise ValueError(f"Invalid dependency refresh request: {error}") from error
 
-    normalized: Dict[str, object] = {
+    normalized: dict[str, object] = {
         "sourceRevision": int(payload.get("sourceRevision", 0)),
         "forceFullScan": bool(payload.get("forceFullScan", False)),
     }
     for key in ("changedFiles", "addedFiles", "removedFiles"):
-        paths: List[str] = []
+        paths: list[str] = []
         for candidate in payload.get(key, []):
             resolved = os.path.realpath(str(candidate))
             if os.path.commonpath([root, resolved]) != root:
@@ -722,16 +724,16 @@ TargetTuple = Tuple[str, str, str]
 def _resolve_scan_set(
     root: str,
     recursive: bool,
-    refresh: Optional[Dict[str, object]],
-    cached_files: Dict[str, object],
-) -> Tuple[Dict[str, str], Set[str]]:
+    refresh: dict[str, object] | None,
+    cached_files: dict[str, object],
+) -> tuple[dict[str, str], set[str]]:
     """Files to put in the graph (relative -> absolute) and the ones that must be re-read.
 
     A full scan re-reads everything; an incremental refresh starts from the cached
     files still on disk, drops the removed ones and re-reads the changed and added ones.
     """
-    files_by_relative: Dict[str, str] = {}
-    refresh_relative: Set[str] = set()
+    files_by_relative: dict[str, str] = {}
+    refresh_relative: set[str] = set()
     full_scan = refresh is None or bool(refresh.get("forceFullScan")) or not cached_files
 
     if full_scan:
@@ -762,7 +764,7 @@ def _resolve_scan_set(
     return files_by_relative, refresh_relative
 
 
-def _cached_targets(cached_entry: object, language: str) -> Optional[Tuple[List[TargetTuple], bool, str, int]]:
+def _cached_targets(cached_entry: object, language: str) -> tuple[list[TargetTuple], bool, str, int] | None:
     """(targets, parserAvailable, hash, totalLines) from a usable cache entry, else None."""
     usable = (
         isinstance(cached_entry, dict)
@@ -783,8 +785,8 @@ def _extract_file_targets(
     relative: str,
     file_path: str,
     language: str,
-    warnings: List[str],
-) -> Tuple[List[TargetTuple], bool, str, int]:
+    warnings: list[str],
+) -> tuple[list[TargetTuple], bool, str, int]:
     """Read one file and extract its (sorted, de-duplicated) dependency targets."""
     text, warning = _read_text(file_path)
     if warning:
@@ -799,7 +801,7 @@ def _extract_file_targets(
     return targets, parser_available, content_hash, total_lines
 
 
-def _file_node(node_id: str, relative: str, language: str, total_lines: int) -> Dict[str, object]:
+def _file_node(node_id: str, relative: str, language: str, total_lines: int) -> dict[str, object]:
     return {
         "id": node_id,
         "kind": "file",
@@ -812,17 +814,17 @@ def _file_node(node_id: str, relative: str, language: str, total_lines: int) -> 
 
 
 def _resolve_edge_counts(
-    parsed: List[str],
-    extracted_by_node: Dict[str, List[TargetTuple]],
-    lookup: Dict[str, str],
-    nodes: List[Dict[str, object]],
-) -> Dict[Tuple[str, str, str, str], int]:
+    parsed: list[str],
+    extracted_by_node: dict[str, list[TargetTuple]],
+    lookup: dict[str, str],
+    nodes: list[dict[str, object]],
+) -> dict[tuple[str, str, str, str], int]:
     """Resolve every target to a file node or an external node (appended to ``nodes``).
 
     Self-references are dropped; the first candidate key that resolves wins.
     """
-    edge_counts: Dict[Tuple[str, str, str, str], int] = defaultdict(int)
-    external_nodes: Dict[str, str] = {}
+    edge_counts: dict[tuple[str, str, str, str], int] = defaultdict(int)
+    external_nodes: dict[str, str] = {}
     for source_id in parsed:
         for relation, reference, confidence in extracted_by_node[source_id]:
             target_id = _first_match(reference, lookup)
@@ -834,7 +836,7 @@ def _resolve_edge_counts(
     return edge_counts
 
 
-def _build_edges(edge_counts: Dict[Tuple[str, str, str, str], int]) -> List[Dict[str, object]]:
+def _build_edges(edge_counts: dict[tuple[str, str, str, str], int]) -> list[dict[str, object]]:
     edges = []
     for (source, target, kind, confidence), occurrences in edge_counts.items():
         edge_id = _node_id("edge", f"{source}\0{target}\0{kind}")
@@ -852,20 +854,20 @@ def _build_edges(edge_counts: Dict[Tuple[str, str, str, str], int]) -> List[Dict
 def analyze_dependencies(
     directory_path: str,
     recursive: bool = False,
-    cache_path: Optional[str] = None,
-    refresh_request_path: Optional[str] = None,
-) -> Dict[str, object]:
+    cache_path: str | None = None,
+    refresh_request_path: str | None = None,
+) -> dict[str, object]:
     root = os.path.realpath(directory_path)
     refresh = _load_refresh_request(root, refresh_request_path)
-    nodes: List[Dict[str, object]] = []
-    warnings: List[str] = []
-    lookup: Dict[str, str] = {}
-    parsed: List[str] = []
-    parser_availability: Dict[str, bool] = {}
+    nodes: list[dict[str, object]] = []
+    warnings: list[str] = []
+    lookup: dict[str, str] = {}
+    parsed: list[str] = []
+    parser_availability: dict[str, bool] = {}
     cache = _load_cache(cache_path)
     cached_files = cache["files"] if cache.get("root") == root else {}
-    next_cached_files: Dict[str, object] = {}
-    extracted_by_node: Dict[str, List[TargetTuple]] = {}
+    next_cached_files: dict[str, object] = {}
+    extracted_by_node: dict[str, list[TargetTuple]] = {}
     files_by_relative, refresh_relative = _resolve_scan_set(root, recursive, refresh, cached_files)
 
     for relative, file_path in sorted(files_by_relative.items()):

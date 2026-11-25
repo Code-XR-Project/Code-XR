@@ -51,7 +51,7 @@ def main():
         log_info('Analysis completed successfully')
         _emit(result)
     except Exception as error:
-        log_error(f'Error during analysis: {str(error)}')
+        log_error(f'Error during analysis: {error!s}')
         _emit({
             'error': True,
             'message': str(error),

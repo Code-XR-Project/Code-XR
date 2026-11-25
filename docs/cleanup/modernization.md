@@ -143,6 +143,19 @@ One idiom × one area per commit, in this order (value ÷ risk). Each commit lis
 
 Deferred to 1.3.0 (record in the session log, do not open in 1.2.1): `var` in the 9 multi-part runtimes (2,014), string concatenation in templates (611), `fs.promises` for the 109 sync calls (only with a measured hot path).
 
+## 6. Progress (Python and browser runtimes)
+
+Landed on `claude/project-thread-n2s3q6-modernize-py-js` (session log `.claude/docs/v1.2.1/sessions/56a-modernize-py-js.md`). The TypeScript rows of §5 are not part of it. Counts are measured with ruff 0.17.6 (`backend/`) and the A.2 script (`apps/vscode-extension/`).
+
+| Plan row | Idiom × area | Before | After | Lock-in |
+|---|---|---:|---:|---|
+| 1 (Python part) | bare `except:`, `class X(object)`, `super(X, self)`, `%` and `.format()` in `backend/` | 0 | 0 | ruff `E722`, `UP004`, `UP008`, `UP031`, `UP032` in `backend/ruff.toml` |
+| 2 | `typing.List/Dict/Tuple/Set/Optional` in `backend/src` (A.3 grep; ruff `FA100`) | 310 (FA100 309) in 13 files | 12 (FA100 11) in 3 files | ruff `FA100`, `UP006`, `UP007`, `UP037`, `UP045`; `FA100` ignored per file for the two exceptions |
+| 3 | `RUF010` `str()` in f-strings, `UP015` `open(…, 'r')`, `UP012` `.encode('utf-8')` in `backend/src` | 6 + 5 + 1 = 12 | 0 | ruff `RUF010`, `UP015`, `UP012` |
+| 11 | `var` in the 5 standalone runtimes (A.2 script) | 289 (2,303 in all 14 units) | **0** (2,014, all in the 9 multi-part runtimes): `dependencyVisualBudgetRuntime.js` 22, `renderBudgetRuntime.js` 26, `codexrDebugRuntime.js` 37, `codexrCommonRuntime.js` 84, `codexrGitRefPickerRuntime.js` 120 → 0 | ESLint `prefer-const` per converted file, and `no-var` for every linted template script (`apps/vscode-extension/eslint.config.mjs`; all 0) |
+
+Row 2 leaves exactly three places on `typing` generics: `TargetTuple` (a runtime alias, see §3), `utils/xr_field_schema.py` (contract, 9) and `html/html_dom_parser.py` (2), whose `def emit_json_result(result: Dict[str, Any]) -> None:` line `livePanelDomIntegration.test.cjs` pins verbatim (an S pin: relaxing it needs its own characterization commit first, so the file was left whole rather than half-converted).
+
 ## Appendix: how to re-run the numbers
 
 From the repository root, after `npm ci` (the scripts resolve `typescript` and `acorn` from the workspace). Copy each script to a scratch folder first: they are kept here, not in `scripts/`, because only #56 needs them.

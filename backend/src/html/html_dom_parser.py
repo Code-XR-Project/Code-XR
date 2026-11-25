@@ -37,19 +37,19 @@ def extract_html_content(file_path: str) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        return {"error": f"Error processing HTML file: {str(e)}"}
+        return {"error": f"Error processing HTML file: {e!s}"}
 
 
 def read_html_file(file_path: str) -> str:
     """Read an HTML file with a robust UTF-8-first strategy."""
     for encoding in ('utf-8', 'utf-8-sig', 'latin-1'):
         try:
-            with open(file_path, 'r', encoding=encoding, errors='strict') as file:
+            with open(file_path, encoding=encoding, errors='strict') as file:
                 return file.read()
         except UnicodeDecodeError:
             continue
 
-    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+    with open(file_path, encoding='utf-8', errors='ignore') as file:
         return file.read()
 
 

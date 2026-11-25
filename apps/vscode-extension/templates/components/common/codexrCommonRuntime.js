@@ -6,11 +6,11 @@
   }
 
   function createEntity(tag, attributes) {
-    var document = doc();
+    const document = doc();
     if (!document || !document.createElement) {
       return null;
     }
-    var el = document.createElement(tag);
+    const el = document.createElement(tag);
     Object.keys(attributes || {}).forEach(function (key) {
       el.setAttribute(key, attributes[key]);
     });
@@ -18,13 +18,13 @@
   }
 
   function truncateText(value, maxLength) {
-    var text = String(value == null ? '' : value);
-    var limit = Math.max(1, Number(maxLength) || 80);
+    const text = String(value == null ? '' : value);
+    const limit = Math.max(1, Number(maxLength) || 80);
     return text.length > limit ? text.slice(0, Math.max(0, limit - 3)) + '...' : text;
   }
 
   function tooltipText(value, position, width, color, align) {
-    var el = createEntity('a-text', {
+    const el = createEntity('a-text', {
       value: value || '',
       position: position || '0 0 0.02',
       width: width || 3,
@@ -69,8 +69,8 @@
     while (tooltip.rows.length < count) {
       // A metric cell = a muted mini-label + a bright value, laid out in a
       // compact grid by updateTooltip (positions/widths set there).
-      var label = tooltipText('', '0 0 .019', .7, '#7c8aa5', 'left');
-      var value = tooltipText('', '0 0 .019', .7, '#f1f5f9', 'left');
+      const label = tooltipText('', '0 0 .019', .7, '#7c8aa5', 'left');
+      const value = tooltipText('', '0 0 .019', .7, '#f1f5f9', 'left');
       label.setAttribute('wrap-count', 16);
       value.setAttribute('wrap-count', 14);
       tooltip.root.appendChild(label);
@@ -85,45 +85,45 @@
   }
 
   function createTooltip(options) {
-    var opts = options || {};
-    var rootEl = createEntity('a-entity', { visible: false });
+    const opts = options || {};
+    const rootEl = createEntity('a-entity', { visible: false });
     if (!rootEl) {
       return null;
     }
-    var width = Number(opts.width) || 2.8;
-    var height = Number(opts.height) || .9;
-    var accentColor = opts.accentColor || '#38bdf8';
+    const width = Number(opts.width) || 2.8;
+    const height = Number(opts.height) || .9;
+    const accentColor = opts.accentColor || '#38bdf8';
     // Accent-tinted frame just behind the panel for a crisp, non-bland edge.
-    var border = createEntity('a-plane', {
+    const border = createEntity('a-plane', {
       position: '0 0 -0.012',
       width: width + .06,
       height: height + .06,
       material: 'color: ' + accentColor + '; opacity: .5; shader: flat; side: double; transparent: true; depthTest: false'
     });
-    var background = createEntity('a-plane', {
+    const background = createEntity('a-plane', {
       width: width,
       height: height,
       material: 'color: #0e1626; opacity: .97; shader: flat; side: double; transparent: true; depthTest: false'
     });
     // Left vertical accent bar carries the selected element's type colour.
-    var accent = createEntity('a-plane', {
+    const accent = createEntity('a-plane', {
       position: (-(width / 2) + .035) + ' 0 .008',
       width: .07,
       height: height,
       material: 'color: ' + accentColor + '; shader: flat; depthTest: false'
     });
     // Thin accent divider under the header.
-    var divider = createEntity('a-plane', {
+    const divider = createEntity('a-plane', {
       position: '0 0 .01',
       width: width - .3,
       height: .006,
       material: 'color: ' + accentColor + '; opacity: .4; shader: flat; depthTest: false'
     });
-    var textX = -(width / 2) + .2;
-    var title = tooltipText('', (textX + .02) + ' .26 .018', width - .4, '#f8fafc', 'left');
-    var subtitle = tooltipText('', textX + ' .06 .018', width - .4, '#93a7c4', 'left');
-    var primary = tooltipText('', textX + ' -.14 .018', width - .4, '#e2e8f0', 'left');
-    var secondary = tooltipText('', textX + ' -.33 .018', width - .4, '#93a7c4', 'left');
+    const textX = -(width / 2) + .2;
+    const title = tooltipText('', (textX + .02) + ' .26 .018', width - .4, '#f8fafc', 'left');
+    const subtitle = tooltipText('', textX + ' .06 .018', width - .4, '#93a7c4', 'left');
+    const primary = tooltipText('', textX + ' -.14 .018', width - .4, '#e2e8f0', 'left');
+    const secondary = tooltipText('', textX + ' -.33 .018', width - .4, '#93a7c4', 'left');
     title.setAttribute('wrap-count', 26);
     subtitle.setAttribute('wrap-count', 40);
     primary.setAttribute('wrap-count', 40);
@@ -161,7 +161,7 @@
     if (tooltip.connectorRoot && tooltip.connectorRoot.parentNode === tooltip.root.parentNode) {
       return tooltip.connectorRoot;
     }
-    var connectorRoot = tooltip.connectorRoot || createEntity('a-entity', {
+    const connectorRoot = tooltip.connectorRoot || createEntity('a-entity', {
       visible: false,
       class: 'codexr-tooltip-connector codexr-tooltip-auxiliary',
       'data-codexr-role': 'tooltip connector'
@@ -199,22 +199,22 @@
       }
       return false;
     }
-    var connectorRoot = ensureTooltipConnector(tooltip);
+    const connectorRoot = ensureTooltipConnector(tooltip);
     if (!connectorRoot) {
       return false;
     }
-    var opts = options || {};
-    var position = tooltipPosition && Number.isFinite(tooltipPosition.x)
+    const opts = options || {};
+    const position = tooltipPosition && Number.isFinite(tooltipPosition.x)
       ? tooltipPosition
       : { x: 0, y: 0, z: 0 };
-    var height = Number(tooltip.height) || .92;
-    var color = opts.connectorColor || opts.color || '#f59e0b';
-    var start = opts.connectorStart || {
+    const height = Number(tooltip.height) || .92;
+    const color = opts.connectorColor || opts.color || '#f59e0b';
+    const start = opts.connectorStart || {
       x: position.x,
       y: position.y - (height * .5),
       z: position.z
     };
-    var end = {
+    const end = {
       x: targetPosition.x,
       y: targetPosition.y + (Number(opts.targetLift) || .045),
       z: targetPosition.z
@@ -235,29 +235,29 @@
     if (!tooltip || !tooltip.root) {
       return false;
     }
-    var opts = options || {};
-    var model = detail || {};
-    var rows = normalizeTooltipRows(model);
+    const opts = options || {};
+    const model = detail || {};
+    const rows = normalizeTooltipRows(model);
     // A structured metric grid (model.rows) is the compact/rich path; otherwise
     // fall back to the legacy stacked primary/secondary lines.
-    var useGrid = Array.isArray(model.rows) && model.rows.length > 0;
-    var columns = Math.max(1, Math.round(Number(opts.columns) || 2));
-    var width = Number(opts.width) || tooltip.width || 2.8;
-    var accentColor = model.accentColor || opts.accentColor || tooltip.accentColor || '#38bdf8';
-    var hasSubtitle = !!model.subtitle;
-    var headerH = hasSubtitle ? .5 : .34;
-    var rowStep = Number(opts.rowStep) || .19;
-    var footerReserve = Math.max(0, Number(opts.footerReserve) || 0);
-    var gridRows = useGrid ? Math.ceil(rows.length / columns) : 0;
-    var height = useGrid
+    const useGrid = Array.isArray(model.rows) && model.rows.length > 0;
+    const columns = Math.max(1, Math.round(Number(opts.columns) || 2));
+    const width = Number(opts.width) || tooltip.width || 2.8;
+    const accentColor = model.accentColor || opts.accentColor || tooltip.accentColor || '#38bdf8';
+    const hasSubtitle = !!model.subtitle;
+    const headerH = hasSubtitle ? .5 : .34;
+    const rowStep = Number(opts.rowStep) || .19;
+    const footerReserve = Math.max(0, Number(opts.footerReserve) || 0);
+    const gridRows = useGrid ? Math.ceil(rows.length / columns) : 0;
+    const height = useGrid
       ? Math.max(Number(opts.minHeight) || .68, headerH + gridRows * rowStep + .16 + footerReserve)
       : (Number(opts.height) || tooltip.height || .9);
-    var half = height / 2;
-    var textX = -(width / 2) + .2;
-    var textWidth = Math.max(.9, width - .4);
-    var contentW = Math.max(.9, width - .42);
+    const half = height / 2;
+    const textX = -(width / 2) + .2;
+    const textWidth = Math.max(.9, width - .4);
+    const contentW = Math.max(.9, width - .42);
 
-    var resolvedPosition = null;
+    let resolvedPosition = null;
     if (position && Number.isFinite(position.x) && Number.isFinite(position.y) && Number.isFinite(position.z)) {
       tooltip.root.setAttribute('position', position.x + ' ' + position.y + ' ' + position.z);
       resolvedPosition = position;
@@ -299,14 +299,14 @@
     if (useGrid) {
       setVisible(tooltip.primary, false);
       setVisible(tooltip.secondary, false);
-      var gridTop = half - headerH - .02;
-      var cellW = contentW / columns;
+      const gridTop = half - headerH - .02;
+      const cellW = contentW / columns;
       ensureTooltipRows(tooltip, rows.length).forEach(function (row, index) {
-        var rowModel = rows[index] || {};
-        var r = Math.floor(index / columns);
-        var c = index % columns;
-        var cellX = textX + c * cellW;
-        var cellY = gridTop - r * rowStep;
+        const rowModel = rows[index] || {};
+        const r = Math.floor(index / columns);
+        const c = index % columns;
+        const cellX = textX + c * cellW;
+        const cellY = gridTop - r * rowStep;
         row.label.setAttribute('position', cellX + ' ' + cellY + ' .019');
         row.value.setAttribute('position', (cellX + cellW * .52) + ' ' + cellY + ' .019');
         row.label.setAttribute('width', cellW * .66);
@@ -316,8 +316,8 @@
       });
     } else {
       ensureTooltipRows(tooltip, 0);
-      var secondaryY = -half + .18 + footerReserve;
-      var primaryY = footerReserve > 0 ? secondaryY + .21 : -0.04;
+      const secondaryY = -half + .18 + footerReserve;
+      const primaryY = footerReserve > 0 ? secondaryY + .21 : -0.04;
       tooltip.primary.setAttribute('position', textX + ' ' + primaryY + ' .018');
       tooltip.secondary.setAttribute('position', textX + ' ' + secondaryY + ' .018');
       tooltip.primary.setAttribute('width', textWidth);
@@ -354,20 +354,20 @@
   // primitive so any Code-XR legend surface can lay multiple cards out without
   // them overlapping (centered rows, wrapping upward into a grid).
   function legendSlotPosition(index, count, options) {
-    var opts = options || {};
-    var perRow = Math.max(1, Math.round(Number(opts.perRow) || 3));
-    var cardWidth = Number(opts.cardWidth) || 2.8;
-    var cardHeight = Number(opts.cardHeight) || 1.1;
-    var gapX = opts.gapX != null ? Number(opts.gapX) : .3;
-    var gapY = opts.gapY != null ? Number(opts.gapY) : .3;
-    var originX = Number(opts.originX) || 0;
-    var originY = Number(opts.originY) || 0;
-    var z = opts.z != null ? Number(opts.z) : 0;
-    var total = Math.max(1, Number(count) || 1);
-    var i = Math.max(0, Number(index) || 0);
-    var row = Math.floor(i / perRow);
-    var col = i % perRow;
-    var itemsInRow = Math.min(perRow, total - row * perRow);
+    const opts = options || {};
+    const perRow = Math.max(1, Math.round(Number(opts.perRow) || 3));
+    const cardWidth = Number(opts.cardWidth) || 2.8;
+    const cardHeight = Number(opts.cardHeight) || 1.1;
+    const gapX = opts.gapX != null ? Number(opts.gapX) : .3;
+    const gapY = opts.gapY != null ? Number(opts.gapY) : .3;
+    const originX = Number(opts.originX) || 0;
+    const originY = Number(opts.originY) || 0;
+    const z = opts.z != null ? Number(opts.z) : 0;
+    const total = Math.max(1, Number(count) || 1);
+    const i = Math.max(0, Number(index) || 0);
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    const itemsInRow = Math.min(perRow, total - row * perRow);
     return {
       x: originX + (col - (itemsInRow - 1) / 2) * (cardWidth + gapX),
       y: originY + row * (cardHeight + gapY),
@@ -379,11 +379,11 @@
     if (!entity || !entity.object3D || !root.THREE) {
       return false;
     }
-    var camera = scene?.camera || entity.sceneEl?.camera;
+    const camera = scene?.camera || entity.sceneEl?.camera;
     if (!camera || !camera.getWorldPosition) {
       return false;
     }
-    var cameraPosition = new root.THREE.Vector3();
+    const cameraPosition = new root.THREE.Vector3();
     camera.getWorldPosition(cameraPosition);
     entity.object3D.lookAt(cameraPosition);
     return true;
@@ -397,19 +397,19 @@
     if (!entity || !entity.object3D || !root.THREE) {
       return false;
     }
-    var camera = scene?.camera || entity.sceneEl?.camera;
+    const camera = scene?.camera || entity.sceneEl?.camera;
     if (!camera || !camera.getWorldPosition) {
       return false;
     }
-    var cameraPosition = new root.THREE.Vector3();
+    const cameraPosition = new root.THREE.Vector3();
     camera.getWorldPosition(cameraPosition);
-    var parent = entity.object3D.parent;
+    const parent = entity.object3D.parent;
     if (parent) {
       parent.updateWorldMatrix(true, false);
       parent.worldToLocal(cameraPosition);
     }
-    var dx = cameraPosition.x - entity.object3D.position.x;
-    var dz = cameraPosition.z - entity.object3D.position.z;
+    const dx = cameraPosition.x - entity.object3D.position.x;
+    const dz = cameraPosition.z - entity.object3D.position.z;
     entity.object3D.rotation.set(0, Math.atan2(dx, dz), 0);
     return true;
   }
@@ -418,20 +418,20 @@
     if (!entity || !root.THREE || typeof entity.setObject3D !== 'function') {
       return null;
     }
-    var opts = options || {};
-    var radius = Math.max(.001, Number(opts.radius) || .12);
-    var height = Math.max(.001, Number(opts.height) || radius * 2);
-    var geometry = opts.shape === 'box'
+    const opts = options || {};
+    const radius = Math.max(.001, Number(opts.radius) || .12);
+    const height = Math.max(.001, Number(opts.height) || radius * 2);
+    const geometry = opts.shape === 'box'
       ? new root.THREE.BoxGeometry(radius * 2, height, radius * 2)
       : new root.THREE.SphereGeometry(radius, 10, 8);
-    var material = new root.THREE.MeshBasicMaterial({
+    const material = new root.THREE.MeshBasicMaterial({
       transparent: true,
       opacity: 0,
       depthWrite: false,
       colorWrite: false,
       visible: false
     });
-    var mesh = new root.THREE.Mesh(geometry, material);
+    const mesh = new root.THREE.Mesh(geometry, material);
     if (opts.position && mesh.position) {
       mesh.position.set(Number(opts.position.x) || 0, Number(opts.position.y) || 0, Number(opts.position.z) || 0);
     }
@@ -443,7 +443,7 @@
     return mesh;
   }
 
-  var api = {
+  const api = {
     createTooltip: createTooltip,
     updateTooltip: updateTooltip,
     updateTooltipConnector: updateTooltipConnector,

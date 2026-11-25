@@ -37,7 +37,7 @@ def main():
         xr_data = analyze_file_for_xr(file_path)
         print(json.dumps(xr_data, indent=2))
     except Exception as error:
-        print(json.dumps({'error': f'XR analysis failed: {str(error)}'}), file=sys.stderr)
+        print(json.dumps({'error': f'XR analysis failed: {error!s}'}), file=sys.stderr)
         sys.exit(1)
 
 

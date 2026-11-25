@@ -3,20 +3,20 @@
 
   if (root.CodeXRRenderBudgetRuntime) { return; }
 
-  var QUALITY = ['static', 'interactive', 'full'];
-  var SAMPLE_WINDOW = 180;
-  var WARMUP_FRAMES = 90;
-  var DOWNGRADE_WINDOWS = 2;
-  var UPGRADE_WINDOWS = 5;
-  var subscribers = new Set();
-  var samples = [];
-  var frameHandle = null;
-  var lastFrameAt = null;
-  var badWindows = 0;
-  var goodWindows = 0;
-  var framesSinceEvaluation = 0;
-  var reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
-  var snapshot = {
+  const QUALITY = ['static', 'interactive', 'full'];
+  const SAMPLE_WINDOW = 180;
+  const WARMUP_FRAMES = 90;
+  const DOWNGRADE_WINDOWS = 2;
+  const UPGRADE_WINDOWS = 5;
+  const subscribers = new Set();
+  let samples = [];
+  let frameHandle = null;
+  let lastFrameAt = null;
+  let badWindows = 0;
+  let goodWindows = 0;
+  let framesSinceEvaluation = 0;
+  const reducedMotion = root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+  let snapshot = {
     quality: reducedMotion ? 'static' : 'full',
     averageFps: 60,
     frameTimeP95: 16.7,
@@ -26,7 +26,7 @@
 
   function percentile(values, ratio) {
     if (!values.length) { return 0; }
-    var sorted = values.slice().sort(function (a, b) { return a - b; });
+    const sorted = values.slice().sort(function (a, b) { return a - b; });
     return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * ratio))];
   }
 
@@ -39,12 +39,12 @@
   }
 
   function targetFps(session) {
-    var rate = Number(session?.frameRate || 0);
+    const rate = Number(session?.frameRate || 0);
     return rate > 0 ? rate : 60;
   }
 
   function publish(next) {
-    var changed = next.quality !== snapshot.quality
+    const changed = next.quality !== snapshot.quality
       || next.xrSession !== snapshot.xrSession
       || Math.abs(next.averageFps - snapshot.averageFps) >= 1
       || Math.abs(next.frameTimeP95 - snapshot.frameTimeP95) >= 1;
@@ -57,14 +57,14 @@
 
   function evaluate() {
     if (samples.length < WARMUP_FRAMES) { return; }
-    var averageFrame = samples.reduce(function (sum, value) { return sum + value; }, 0) / samples.length;
-    var averageFps = averageFrame > 0 ? 1000 / averageFrame : 60;
-    var p95 = percentile(samples, .95);
-    var session = getXrSession();
-    var target = targetFps(session);
-    var quality = snapshot.quality;
-    var healthy = averageFps >= target * .82 && p95 <= (1000 / target) * 1.65;
-    var stressed = averageFps < target * .68 || p95 > (1000 / target) * 2.2;
+    const averageFrame = samples.reduce(function (sum, value) { return sum + value; }, 0) / samples.length;
+    const averageFps = averageFrame > 0 ? 1000 / averageFrame : 60;
+    const p95 = percentile(samples, .95);
+    const session = getXrSession();
+    const target = targetFps(session);
+    let quality = snapshot.quality;
+    const healthy = averageFps >= target * .82 && p95 <= (1000 / target) * 1.65;
+    const stressed = averageFps < target * .68 || p95 > (1000 / target) * 2.2;
 
     if (reducedMotion) {
       quality = 'static';
@@ -104,7 +104,7 @@
       return;
     }
     if (lastFrameAt !== null) {
-      var elapsed = Math.max(1, Math.min(250, time - lastFrameAt));
+      const elapsed = Math.max(1, Math.min(250, time - lastFrameAt));
       samples.push(elapsed);
       if (samples.length > SAMPLE_WINDOW) { samples.shift(); }
       framesSinceEvaluation += 1;
