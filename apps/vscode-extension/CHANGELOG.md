@@ -26,6 +26,7 @@
 
 #### Changed
 
+- **Smaller package.** The extension download shrinks from 6.44 MB to 4.21 MB (352 to 203 files): the scene templates and chart examples are no longer packaged twice, the `docs/` guides are no longer packaged (the README links them online, as before), a duplicate copy of the icon is gone, and the three largest icons were losslessly recompressed (pixel-identical). Every saved analysis folder also carries a 150 KB lighter page icon. Nothing you see or use changes.
 - **"CodeXR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
 
 #### Fixed
