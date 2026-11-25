@@ -74,7 +74,7 @@
     "complexity.over30": 5,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 0,
+    "eslint.maxWarnings": 201,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -315,5 +315,13 @@
       }
     ]
   },
-  "waivers": []
+  "waivers": [
+    {
+      "metric": "eslint.maxWarnings",
+      "from": 0,
+      "to": 201,
+      "reason": "W3-08: no-explicit-any lands as warn; the lint budget starts at its measured count (201 = any.total)",
+      "date": "2026-11-25"
+    }
+  ]
 }

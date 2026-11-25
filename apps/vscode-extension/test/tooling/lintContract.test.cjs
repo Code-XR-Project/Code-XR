@@ -12,6 +12,12 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 // Each flag lands with its fallout fixes in one commit (ROADMAP W3-03..05).
 const STRICT_TYPECHECK_FLAGS = ['noUnusedLocals', 'noFallthroughCasesInSwitch', 'noImplicitReturns', 'noUnusedParameters'];
 
+// Rules that count toward the --max-warnings budget instead of failing outright
+// (ROADMAP W3-08..10). Each landed with the budget raised to its measured count.
+const WARN_BUDGET_RULES = [
+    '@typescript-eslint/no-explicit-any',
+];
+
 async function loadEslintConfig() {
     const configUrl = pathToFileURL(path.join(projectRoot, 'eslint.config.mjs')).href;
     return (await import(configUrl)).default;
@@ -54,6 +60,18 @@ test('the pre-existing style rules are errors and the lint script has a warning 
 
     const manifest = require(path.join(projectRoot, 'package.json'));
     assert.match(manifest.scripts.lint, /--max-warnings \d+/, 'the lint script carries --max-warnings');
+});
+
+test('the warn-only budget rules are configured as warnings over src', async () => {
+    // A budget rule set to "off" would let its count drift while the
+    // --max-warnings ceiling still looks tight.
+    const config = await loadEslintConfig();
+    const tsBlock = config.find((block) => Array.isArray(block.files) && block.files.includes('**/*.ts'));
+
+    for (const rule of WARN_BUDGET_RULES) {
+        const value = tsBlock.rules[rule];
+        assert.equal(Array.isArray(value) ? value[0] : value, 'warn', `${rule} is a warning`);
+    }
 });
 
 function readTsconfig(fileName) {

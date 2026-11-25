@@ -45,6 +45,11 @@ export default [{
             varsIgnorePattern: "^_",
         }],
 
+        // Warn-only budget rules: each counts toward the lint script's
+        // --max-warnings, which was raised to the measured count when the rule
+        // landed and may only come down (guardrail baseline, eslint.maxWarnings).
+        "@typescript-eslint/no-explicit-any": "warn",
+
         curly: "error",
         eqeqeq: "error",
         "no-throw-literal": "error",
