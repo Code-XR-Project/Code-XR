@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { UnifiedAnalysisSession } from '../../../../engine/core/analysisSession';
 import { UnifiedSessionRegistry } from '../../../../engine/core/sessionRegistry';
 import { ServerWatcherIntegration } from '../../../../services/serverWatcherIntegration';
 import { ActiveAnalysisItem, ActiveAnalysesDataService } from '../services/activeAnalysesDataService';
@@ -126,17 +127,11 @@ export class ActiveAnalysesCommands {
     }
 
     private async showActions(arg?: ActiveAnalysisItem | string | any): Promise<void> {
-        const sessionId = this.extractSessionId(arg);
-        if (!sessionId) {
-            vscode.window.showErrorMessage('No analysis selected');
+        const selected = this.resolveSelectedSession(arg);
+        if (!selected) {
             return;
         }
-
-        const session = this.sessionRegistry.getSession(sessionId);
-        if (!session) {
-            vscode.window.showErrorMessage('Analysis session not found');
-            return;
-        }
+        const { sessionId, session } = selected;
 
         const exportSourcePath = this.resolveExportSourcePath(session);
         const quickPickItems: Array<vscode.QuickPickItem & {
@@ -200,17 +195,11 @@ export class ActiveAnalysesCommands {
     }
 
     private async showDetails(arg?: ActiveAnalysisItem | string | any): Promise<void> {
-        const sessionId = this.extractSessionId(arg);
-        if (!sessionId) {
-            vscode.window.showErrorMessage('No analysis selected');
+        const selected = this.resolveSelectedSession(arg);
+        if (!selected) {
             return;
         }
-
-        const session = this.sessionRegistry.getSession(sessionId);
-        if (!session) {
-            vscode.window.showErrorMessage('Analysis session not found');
-            return;
-        }
+        const { session } = selected;
 
         const detailsContent = this.generateDetailsContent(session);
         const doc = await vscode.workspace.openTextDocument({
@@ -221,17 +210,11 @@ export class ActiveAnalysesCommands {
     }
 
     private async closeAnalysis(arg?: ActiveAnalysisItem | string | any): Promise<void> {
-        const sessionId = this.extractSessionId(arg);
-        if (!sessionId) {
-            vscode.window.showErrorMessage('No analysis selected');
+        const selected = this.resolveSelectedSession(arg);
+        if (!selected) {
             return;
         }
-
-        const session = this.sessionRegistry.getSession(sessionId);
-        if (!session) {
-            vscode.window.showErrorMessage('Analysis session not found');
-            return;
-        }
+        const { sessionId, session } = selected;
 
         const targetLabel = path.basename(session.targetPath || session.targetName || 'Unknown');
         const choice = await vscode.window.showWarningMessage(
@@ -275,17 +258,11 @@ export class ActiveAnalysesCommands {
     }
 
     private async viewInBrowser(arg?: ActiveAnalysisItem | string | any): Promise<void> {
-        const sessionId = this.extractSessionId(arg);
-        if (!sessionId) {
-            vscode.window.showErrorMessage('No analysis selected');
+        const selected = this.resolveSelectedSession(arg);
+        if (!selected) {
             return;
         }
-
-        const session = this.sessionRegistry.getSession(sessionId);
-        if (!session) {
-            vscode.window.showErrorMessage('Analysis session not found');
-            return;
-        }
+        const { session } = selected;
 
         if (!session.serverUrl && !session.assignedPort) {
             vscode.window.showErrorMessage('No server URL available for this analysis');
@@ -302,17 +279,11 @@ export class ActiveAnalysesCommands {
     }
 
     private async exportFolder(arg?: ActiveAnalysisItem | string | any): Promise<void> {
-        const sessionId = this.extractSessionId(arg);
-        if (!sessionId) {
-            vscode.window.showErrorMessage('No analysis selected');
+        const selected = this.resolveSelectedSession(arg);
+        if (!selected) {
             return;
         }
-
-        const session = this.sessionRegistry.getSession(sessionId);
-        if (!session) {
-            vscode.window.showErrorMessage('Analysis session not found');
-            return;
-        }
+        const { session } = selected;
 
         const sourcePath = this.resolveExportSourcePath(session);
         if (!sourcePath) {
@@ -614,6 +585,27 @@ export class ActiveAnalysesCommands {
     private async refreshAnalyses(): Promise<void> {
         ActiveAnalysesDataService.getInstance().refresh();
         console.log('ACTIVE_ANALYSES_COMMANDS: Refresh triggered via data service');
+    }
+
+    /**
+     * The prelude every handler opens with: resolve the argument to a session
+     * id, then to a live session, reporting the first step that fails.
+     */
+    private resolveSelectedSession(
+        arg: unknown,
+    ): { sessionId: string; session: UnifiedAnalysisSession } | undefined {
+        const sessionId = this.extractSessionId(arg);
+        if (!sessionId) {
+            vscode.window.showErrorMessage('No analysis selected');
+            return undefined;
+        }
+
+        const session = this.sessionRegistry.getSession(sessionId);
+        if (!session) {
+            vscode.window.showErrorMessage('Analysis session not found');
+            return undefined;
+        }
+        return { sessionId, session };
     }
 
     private extractSessionId(arg?: ActiveAnalysisItem | string | any): string | undefined {

@@ -142,8 +142,8 @@
   },
   "informational": {
     "src.files": 370,
-    "src.lines": 52585,
-    "src.functions": 2834,
+    "src.lines": 52577,
+    "src.functions": 2835,
     "src.unreachableLines": 2324,
     "console.topFiles": [
       {
@@ -283,8 +283,8 @@
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
       {
-        "ccn": 45,
-        "lines": 269,
+        "ccn": 44,
+        "lines": 263,
         "function": "exportFolder",
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts"
       },
@@ -350,7 +350,7 @@
       },
       {
         "file": "src/code_analysis/views/subsections/active_analyses/commands/activeAnalysesCommands.ts",
-        "lines": 686
+        "lines": 678
       },
       {
         "file": "src/servers/runtime/multiServerLauncher.ts",
