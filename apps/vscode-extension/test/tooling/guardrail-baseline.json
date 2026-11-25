@@ -69,7 +69,7 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49015,
+    "src.lines": 49026,
     "src.functions": 3274,
     "src.unreachableLines": 0,
     "console.topFiles": [
@@ -154,8 +154,8 @@
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
       {
-        "ccn": 34,
-        "lines": 139,
+        "ccn": 35,
+        "lines": 120,
         "function": "parseFileAnalysis",
         "file": "src/code_analysis/engine/parsers/fileXRParser.ts"
       },

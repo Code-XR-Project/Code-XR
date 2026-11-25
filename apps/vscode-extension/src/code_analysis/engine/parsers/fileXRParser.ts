@@ -58,6 +58,36 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('FILE_XR_PARSER');
 
+/**
+ * The runtime assets a file XR scene loads, copied in this order. The
+ * required-files guard below checks a strict subset of them on purpose
+ * (test/analysis/xrRuntimeManifestAsymmetry.test.cjs).
+ */
+const FILE_XR_COPY_STEPS: ReadonlyArray<(extensionPath: string, outputDirectory: string) => Promise<unknown>> = [
+    copyVirtualScreenRuntimeToOutput,
+    copyVirtualScreenManagerRuntimeToOutput,
+    copyCodeXrCommonRuntimeToOutput,
+    copyCodeXrGitRefPickerToOutput,
+    copyCodeXrAvatarRuntimeToOutput,
+    copyCodeXrCollaborationRuntimeToOutput,
+    copyCodeXrRoomAssetsToOutput,
+    copyPointerPolicyRuntimeToOutput,
+    copyImmersiveRigRuntimeToOutput,
+    copyXrChartMappingUiRuntimeToOutput,
+    copyXrChartDebugRuntimeToOutput,
+    copyRenderBudgetRuntimeToOutput,
+    copyDependencyVisualBudgetRuntimeToOutput,
+    copyDependencyGraphRuntimeToOutput,
+    copyCodeXrDebugRuntimeToOutput,
+    copyAnalysisTableRuntimeToOutput,
+    copyAnalysisModeRuntimeToOutput,
+    copyHistoricalComparisonRuntimeToOutput,
+    copyProjectEvolutionRuntimeToOutput,
+    copyGuideScreenRuntimeToOutput,
+    copyGuidePageToOutput,
+    copyLogoRuntimeToOutput,
+];
+
 interface FileXRSharedBootstrap {
     payload: any[];
 }
@@ -127,28 +157,9 @@ export class FileXRParser {
                 await fs.promises.copyFile(liveSSEPath, mainJSPath);
             }
 
-            await copyVirtualScreenRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyVirtualScreenManagerRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyCodeXrCommonRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyCodeXrGitRefPickerToOutput(this.context.extensionPath, session.outputPath);
-            await copyCodeXrAvatarRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyCodeXrCollaborationRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyCodeXrRoomAssetsToOutput(this.context.extensionPath, session.outputPath);
-            await copyPointerPolicyRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyImmersiveRigRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyXrChartMappingUiRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyXrChartDebugRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyRenderBudgetRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyDependencyVisualBudgetRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyDependencyGraphRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyCodeXrDebugRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyAnalysisTableRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyAnalysisModeRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyHistoricalComparisonRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyProjectEvolutionRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyGuideScreenRuntimeToOutput(this.context.extensionPath, session.outputPath);
-            await copyGuidePageToOutput(this.context.extensionPath, session.outputPath);
-            await copyLogoRuntimeToOutput(this.context.extensionPath, session.outputPath);
+            for (const copyToOutput of FILE_XR_COPY_STEPS) {
+                await copyToOutput(this.context.extensionPath, session.outputPath);
+            }
 
             const title = `XR Analysis: ${session.targetName || 'analysis'}`;
             const outputPath = path.join(session.outputPath, 'index.html');
