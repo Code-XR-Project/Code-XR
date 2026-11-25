@@ -117,7 +117,7 @@ export class PythonEnvCommands {
             const status = this.venvManager.getEnvironmentStatus();
 
             if (!status.exists) {
-                vscode.window.showInformationMessage('No Python virtual environment exists to delete.');
+                void vscode.window.showInformationMessage('No Python virtual environment exists to delete.');
                 return;
             }
 
@@ -199,7 +199,7 @@ export class PythonEnvCommands {
             }
 
             await this.venvManager.initializeEnvironment();
-            vscode.window.showInformationMessage('Python environment reinitialized successfully!');
+            void vscode.window.showInformationMessage('Python environment reinitialized successfully!');
         } catch (error) {
             logger.error('Reinitialize command failed.', error);
             await this.showEnvironmentFailure('Failed to reinitialize environment', error, true);
@@ -211,7 +211,7 @@ export class PythonEnvCommands {
 
         try {
             const verification = await this.venvManager.verifyEnvironmentInstallation();
-            vscode.window.showInformationMessage(
+            void vscode.window.showInformationMessage(
                 `CodeXR verified the Python environment successfully. ${verification.packageCount} package(s) recorded.`,
                 { modal: false },
             );
