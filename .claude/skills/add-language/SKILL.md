@@ -17,7 +17,7 @@ Language support spans two worlds that must change together. The **source of tru
 3. **TS metadata**: mirror the language in `src/utils/languageMetadata.ts` (extensions, display name, capabilities).
 4. **Fixtures**:
    - `manual_test/<language>/` — per-language fixture consumed by `npm run test:analysis` (see `manual_test/README.md`).
-   - `test/fixtures/dependency-languages/` — sample source for dependency-graph tests.
+   - `backend/tests/fixtures/dependency-languages/` — sample source for dependency-graph tests.
 5. **Venv dependencies**: if a new Python package is needed, it goes through the managed venv manifest in `src/python_env/` (`venvManager.ts`) — never assume system Python, never add an implicit download (no downloads without explicit user consent).
 
 ## Validation

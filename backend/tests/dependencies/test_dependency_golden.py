@@ -93,7 +93,7 @@ keeps them, and a fix shows up as a reviewed diff.
 
 Corpus
 ------
-* ``test/fixtures/dependency-languages`` (one tiny file per language) for the
+* ``backend/tests/fixtures/dependency-languages`` (one tiny file per language) for the
   per-language extraction and resolution.
 * A small project written to a temp dir (``PROJECT_FILES``). The fixture files
   are one to four lines long and contain no function, method, cycle or nested
@@ -124,10 +124,9 @@ from pathlib import Path
 from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-EXTENSION_ROOT = PROJECT_ROOT / 'apps' / 'vscode-extension'
 PYTHON_ROOT = PROJECT_ROOT / 'backend' / 'src'
 UTILS_ROOT = PYTHON_ROOT / 'utils'
-CORPUS = EXTENSION_ROOT / 'test' / 'fixtures' / 'dependency-languages'
+CORPUS = PROJECT_ROOT / 'backend' / 'tests' / 'fixtures' / 'dependency-languages'
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden'
 REGENERATE_SCRIPT = Path(__file__).resolve().with_name('regenerate_golden.py')
 REGENERATE_COMMAND = 'python backend/tests/dependencies/regenerate_golden.py'

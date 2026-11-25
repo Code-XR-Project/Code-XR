@@ -70,10 +70,11 @@ test/
 ├── tooling/             measureGuardrails.cjs + guardrail-baseline.json + the ratchet test
 ├── python/              unittest suites (dependencies + goldens, analyzers, scanning, html_dom,
 │                        xr schema…); backend_sandbox.py scopes a fake lizard to one module
-├── fixtures/dependency-languages/   sample sources in ~25 languages
 ├── manual/              browser-run HTML harnesses (xr-containment, project-evolution-playback…)
 └── runners/             the .cjs runner scripts npm scripts point to
 ```
+
+The dependency-graph sample sources (~25 languages) live with the backend that reads them: `backend/tests/fixtures/dependency-languages/`.
 
 Also `manual_test/` (repo root): per-language fixtures consumed by `npm run test:analysis` (see `manual_test/README.md`).
 

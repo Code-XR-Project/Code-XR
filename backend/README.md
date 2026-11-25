@@ -5,7 +5,7 @@ The Python service that produces every analysis Code-XR shows: Lizard-based code
 | Path | Content |
 |---|---|
 | `src/` | The backend. Entry point `src/main.py`; modules grouped by capability (`utils/`, `XR/`, `livePanels/`, `html/`, `export/`, `tools/`, ...). |
-| `tests/` | `unittest` suites grouped by capability, plus golden snapshots of the dependency engine. Some suites read fixtures from `apps/vscode-extension/` (`test/fixtures/`, `manual_test/`, the DOM template). |
+| `tests/` | `unittest` suites grouped by capability, plus golden snapshots of the dependency engine and the sample sources they are built from (`tests/fixtures/dependency-languages/`). Some suites read fixtures from `apps/vscode-extension/` (`manual_test/`, the DOM template). |
 
 ## How the apps use it
 
