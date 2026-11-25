@@ -124,10 +124,6 @@ export class HistoricalComparisonService {
         return this.compare({ ...this.activeRequest }, onProgress);
     }
 
-    public clearActiveComparison(): void {
-        this.activeRequest = null;
-    }
-
     public async dispose(): Promise<void> {
         await this.gitService.dispose();
         if (this.ownsSourceCatalog) {
