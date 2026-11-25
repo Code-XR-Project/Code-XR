@@ -53,14 +53,14 @@
       "src/servers/runtime/httpServer.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 40,
-    "complexity.over10": 60,
-    "complexity.over15": 15,
-    "complexity.over20": 2,
+    "functions.over80Lines": 39,
+    "complexity.over10": 59,
+    "complexity.over15": 14,
+    "complexity.over20": 1,
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 502,
+    "eslint.maxWarnings": 500,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49393,
-    "src.functions": 3316,
+    "src.lines": 49427,
+    "src.functions": 3321,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -142,12 +142,6 @@
     ],
     "complexity.worst10": [
       {
-        "ccn": 26,
-        "lines": 100,
-        "function": "listReferences",
-        "file": "src/code_analysis/historical/gitRepositoryService.ts"
-      },
-      {
         "ccn": 22,
         "lines": 61,
         "function": "handleDependencyGraphSettingsMessage",
@@ -200,6 +194,12 @@
         "lines": 44,
         "function": "handleCollaborationMessage",
         "file": "src/servers/runtime/analysis/analysisMessageRouter.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 98,
+        "function": "startBroadcast",
+        "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts"
       }
     ],
     "size.largest10": [
@@ -224,6 +224,10 @@
         "lines": 623
       },
       {
+        "file": "src/code_analysis/historical/gitRepositoryService.ts",
+        "lines": 594
+      },
+      {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
         "lines": 581
       },
@@ -238,10 +242,6 @@
       {
         "file": "src/remote_access/services/remoteAccessManager.ts",
         "lines": 567
-      },
-      {
-        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 562
       }
     ]
   },
