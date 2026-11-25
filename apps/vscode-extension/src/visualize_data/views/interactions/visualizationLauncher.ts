@@ -185,6 +185,13 @@ export class VisualizationLauncher {
             .map(([field, _]) => field);
     }
 
+    /** The first mapping that feeds `fieldName` to a dimension other than `exceptDimension`. */
+    private mappingUsing(state: VisualizeDataState, fieldName: string, exceptDimension: string): DimensionMapping | undefined {
+        return state.dimensionMappings.find(mapping =>
+            mapping.dataField === fieldName && mapping.dimension !== exceptDimension
+        );
+    }
+
     /**
      * Handle dimension field mapping for a specific dimension
      */
@@ -218,10 +225,8 @@ export class VisualizationLauncher {
             // Create QuickPick items with duplicate field indicators
             const quickPickItems = availableFields.map(field => {
                 const displayInfo = JsonFieldAnalyzer.formatFieldForDisplay(field);
-                const isAlreadyUsed = state.dimensionMappings.some(mapping => 
-                    mapping.dataField === field.name && mapping.dimension !== dimensionName
-                );
-                
+                const isAlreadyUsed = !!this.mappingUsing(state, field.name, dimensionName);
+
                 let label = displayInfo.label;
                 let description = displayInfo.description;
                 
@@ -248,19 +253,13 @@ export class VisualizationLauncher {
             
             if (selectedItem) {
                 // Check if field is already used and warn user
-                const isAlreadyUsed = state.dimensionMappings.some(mapping => 
-                    mapping.dataField === selectedItem.field.name && mapping.dimension !== dimensionName
-                );
-                
-                if (isAlreadyUsed) {
-                    const existingMapping = state.dimensionMappings.find(mapping => 
-                        mapping.dataField === selectedItem.field.name && mapping.dimension !== dimensionName
-                    );
-                    
-                    logger.debug(() => `DIMENSION-MAPPING: Warning - Field '${selectedItem.field.name}' is already mapped to dimension '${existingMapping?.dimension}'`);
-                    
+                const existingMapping = this.mappingUsing(state, selectedItem.field.name, dimensionName);
+
+                if (existingMapping) {
+                    logger.debug(() => `DIMENSION-MAPPING: Warning - Field '${selectedItem.field.name}' is already mapped to dimension '${existingMapping.dimension}'`);
+
                     const proceed = await vscode.window.showWarningMessage(
-                        `Field '${selectedItem.field.name}' is already used for dimension '${existingMapping?.dimension}'. Continue?`,
+                        `Field '${selectedItem.field.name}' is already used for dimension '${existingMapping.dimension}'. Continue?`,
                         'Yes, Continue',
                         'Cancel'
                     );
