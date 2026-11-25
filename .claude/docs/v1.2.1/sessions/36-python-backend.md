@@ -1,6 +1,6 @@
 # Session: #36 Simplify and de-duplicate the Python analysis backend (W4-P P01..P20, W5-44..W5-49)
 
-Date: 2026-11-25. Branch `claude/project-thread-n2s3q6-python` (same branch as the #31 Python rows, see `31-python-dead-code.md`), with `origin/v1.2.1` merged in at the end (`9c52ca85`). Story: Code-XR-Project/Code-XR#36. Every row of the story landed; none was skipped.
+Date: 2026-11-25. Branch `claude/project-thread-n2s3q6-python` (same branch as the #31 Python rows, see `31-python-dead-code.md`), with `origin/v1.2.1` merged in at the end (`9c52ca85`, then `6f128eb0`). Story: Code-XR-Project/Code-XR#36. Every row of the story landed; none was skipped.
 
 ## Commits
 
@@ -64,7 +64,7 @@ Per-row deltas are in each commit body (for example P15 `_count_top_level_argume
 - **`main.py` CLI characterization** (15 argument sets, `PYTHONHASHSEED=0`): sha256 `603ce18c87db4497`, unchanged by P13/P18.
 - Differential old-vs-new harnesses where a golden alone was not enough: P11 (3,000 random graphs), P15 (200,000 inputs), P16, P17 (9,000 calls), W5-45 (tables equal the old `if/elif` chain for every extension, patterns, order and flags), W5-47 (8 directory runs incl. incremental refresh and corrupt cache, results and cache files), W5-48 (420 file-mode results, lizard and lexical fallback), W5-49 (60,000 random calls).
 - Goldens: W1-18 dependency goldens (lizard and no-lizard paths) and the W5-44 `analyze_classes` golden, identical throughout.
-- Every commit: `npm run test:python` (73 tests at the end; W5-44 and W5-49 added 20) and `npm run test:analysis`. `npm test` on every commit touching TS or tests: 715/715, then 720/720 after the final merge.
+- Every commit: `npm run test:python` (73 tests at the end; W5-44 and W5-49 added 20) and `npm run test:analysis`. `npm test` on every commit touching TS or tests: 715/715, then 720/720 after merging `origin/v1.2.1` at `9c52ca85`, and 724/724 after merging it again at `6f128eb0` (PR #48) before the push.
 - P20: `npm run package:vsix` lists `summaryFiles/`, 358 entries; feature baseline regenerated with `--allow "rename sumaryFiles -> summaryFiles"`.
 
 ## Deliberately not done, and why

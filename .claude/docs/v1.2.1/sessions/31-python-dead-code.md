@@ -1,6 +1,6 @@
 # Session: #31 Python part (dead Python deletions, W2-58..W2-66)
 
-Date: 2026-11-25. Branch `claude/project-thread-n2s3q6-python`, cut from `origin/v1.2.1` at `cd05e03e`, rebased once onto the merge of PR #44 (feature baseline) before anything was pushed, and with `origin/v1.2.1` merged in at the end (`9c52ca85`). Story: Code-XR-Project/Code-XR#31. The template, asset and tooling rows of the same story belong to other branches. The #36 rows of the same branch are logged in `36-python-backend.md`.
+Date: 2026-11-25. Branch `claude/project-thread-n2s3q6-python`, cut from `origin/v1.2.1` at `cd05e03e`, rebased once onto the merge of PR #44 (feature baseline) before anything was pushed, and with `origin/v1.2.1` merged in at the end (`9c52ca85`, then `6f128eb0`). Story: Code-XR-Project/Code-XR#31. The template, asset and tooling rows of the same story belong to other branches. The #36 rows of the same branch are logged in `36-python-backend.md`.
 
 ## Commits
 
