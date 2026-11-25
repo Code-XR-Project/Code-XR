@@ -479,6 +479,39 @@ test('historical missing-target policy: a revision without the target throws, is
     });
 });
 
+test('precondition: historical analyzeSource never yields missingTarget, on either side, so the comparison needs no guard of its own', async () => {
+    // Dataflow (W5-04): analyzeSource returns from three places only - the
+    // working copy, a cache hit and a fresh analysis - and all three carry
+    // missingTarget: false; the one missing-target path throws. A
+    // missingTarget check after both sides were analyzed can never fire.
+    const session = makeSession({ id: 'sess-file', targetType: 'file', targetPath: fixture.feature, targetName: 'feature.js' });
+    writeWorkingCopy(session, [{ functionName: 'live', parameters: 0 }]);
+    await withServices({ sessions: [session] }, async ({ HistoricalComparisonService, GitAnalysisSourceError, context, analyzer }) => {
+        const service = new HistoricalComparisonService(context, session.id, session.staticRoot, createCatalog());
+        const { bySha } = await sourcesBySha(service);
+        const missing = bySha[fixture.shas.c1].id;
+        for (const request of [
+            { leftSourceId: bySha[fixture.shas.c2].id, rightSourceId: missing },
+            { leftSourceId: 'working-copy', rightSourceId: missing },
+        ]) {
+            await assert.rejects(service.compare(request), (error) => {
+                assert.ok(error instanceof GitAnalysisSourceError);
+                assert.equal(error.code, 'comparison-source-no-data');
+                assert.deepEqual(error.exclusions.map((entry) => entry.code), ['target-missing']);
+                return true;
+            });
+        }
+        // Fresh, cached and working-copy sides all report missingTarget: false.
+        for (let run = 0; run < 2; run += 1) {
+            const result = await service.compare({ leftSourceId: bySha[fixture.shas.c2].id, rightSourceId: 'working-copy' });
+            assert.equal(result.left.missingTarget, false);
+            assert.equal(result.right.missingTarget, false);
+        }
+        assert.equal(analyzer.calls.length, 1, 'C2 analyzed once, by the rejected first request, then served from the cache');
+        await service.dispose();
+    });
+});
+
 test('historical unusable payloads: each failure becomes the same exclusion error, other analyzer errors pass through', async () => {
     const session = makeSession();
     await withServices({ sessions: [session] }, async ({ HistoricalComparisonService, GitAnalysisSourceError, context, analyzer }) => {

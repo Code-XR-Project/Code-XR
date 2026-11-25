@@ -139,13 +139,10 @@ export class HistoricalComparisonService {
         onProgress?.({ state: 'analyzing', message: `Analyzing ${rightSource.label}...` });
         const rightPayload = await this.analyzeSource(rightSource);
 
+        // A side whose revision lacks the target never gets here: the request
+        // API accepts raw source ids, so analyzeSource refuses that revision
+        // itself (a target-missing exclusion) before any comparison is built.
         const session = this.getSession();
-        // Filtered references make this unreachable through the UI, but the
-        // request API accepts raw source ids: a single-file comparison against
-        // a version that lacks the file is meaningless, so refuse it.
-        if (session.targetType === 'file' && (leftPayload.missingTarget || rightPayload.missingTarget)) {
-            throw new Error('comparison-target-missing-in-version');
-        }
         const mappings = await this.getSelectedMetricFields(session);
         const delta = this.buildDelta(
             leftPayload.payload,
