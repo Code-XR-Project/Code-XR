@@ -120,7 +120,7 @@ async function getSupportedFilesFromDirectory(dirPath: string): Promise<string[]
 
 /**
  * Calculate hashes for all files in the given directories
- * @param directories List of filtered directory paths (should already be filtered by directoryFilter)
+ * @param directories List of directory paths, already filtered by the caller
  * @returns Promise resolving to array of FileHash tuples
  */
 export async function calculateFilesHashes(directories: string[]): Promise<FileHash[]> {

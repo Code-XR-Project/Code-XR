@@ -81,7 +81,6 @@
       "src/code_analysis/configuration/configurationManager.ts",
       "src/code_analysis/configuration/configurationManagerExample.ts",
       "src/code_analysis/engine/components/customComponents/visualStyleComponentAsset.ts",
-      "src/code_analysis/engine/utils/directoryFilter.ts",
       "src/code_analysis/views/subsections/active_analyses/activeAnalysesSubsectionProvider.ts",
       "src/code_analysis/views/subsections/active_analyses/items/activeAnalysisItems.ts",
       "src/code_analysis/views/subsections/active_analyses/model/activeAnalysisModel.ts",
@@ -101,10 +100,10 @@
     }
   },
   "informational": {
-    "src.files": 328,
-    "src.lines": 52475,
-    "src.functions": 2853,
-    "src.unreachableLines": 1804,
+    "src.files": 327,
+    "src.lines": 52397,
+    "src.functions": 2849,
+    "src.unreachableLines": 1726,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
