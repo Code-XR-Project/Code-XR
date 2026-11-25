@@ -82,6 +82,7 @@
       "src/babia_examples/views/index.ts",
       "src/babia_templates/index.ts",
       "src/babia_templates/processing/placeholders/index.ts",
+      "src/code_analysis/commands/clean_analysis/index.ts",
       "src/code_analysis/commands/index.ts",
       "src/code_analysis/commands/subsections/active_analyses/index.ts",
       "src/code_analysis/commands/subsections/analysis_settings/chart_type_directory/index.ts",
@@ -136,16 +137,16 @@
     "eslint.maxWarnings": null,
     "commands.internalByKind": {
       "legacy-alias": 2,
-      "pending-removal": 4,
+      "pending-removal": 3,
       "programmatic": 2,
       "tree-item": 32
     }
   },
   "informational": {
     "src.files": 369,
-    "src.lines": 52850,
-    "src.functions": 2849,
-    "src.unreachableLines": 2317,
+    "src.lines": 52773,
+    "src.functions": 2845,
+    "src.unreachableLines": 2324,
     "console.topFiles": [
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -375,5 +376,13 @@
       }
     ]
   },
-  "waivers": []
+  "waivers": [
+    {
+      "metric": "reachability.unreachable",
+      "from": 54,
+      "to": 55,
+      "reason": "W2-47: the cleanAnalysis registration was the last user of the clean_analysis/ barrel (extension.ts imports cleanAnalysisCommands.ts directly); the barrel is only re-exported by the unreachable code_analysis/commands/index.ts, which W2-05 deletes",
+      "date": "2026-11-25"
+    }
+  ]
 }

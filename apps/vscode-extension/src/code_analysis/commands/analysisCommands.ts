@@ -12,7 +12,6 @@ import {
 } from './subsections';
 import { FileAnalysisCommands } from './file_analysis';
 import { DirectoryAnalysisCommands, ProjectAnalysisCommands } from './directory_analysis';
-import { CleanAnalysisCommands } from './clean_analysis';
 import { DOMVisualizationCommands } from './dom_visualization';
 import { CommandRegistration } from './subsections/analysis_settings/analysis_file_mode';
 import { AnalysisFileSetting } from '../views/subsections/analysis_settings/analysis_file_mode/analysisFileMode';
@@ -74,7 +73,6 @@ export class CodeAnalysisCommands {
         registrations.push(...FileAnalysisCommands.getCommandRegistrations(context));
         registrations.push(...DirectoryAnalysisCommands.getCommandRegistrations(context));
         registrations.push(...ProjectAnalysisCommands.getCommandRegistrations(context));
-        registrations.push(...CleanAnalysisCommands.getCommandRegistrations(context, defaultRefreshCallback));
         registrations.push(...DOMVisualizationCommands.getCommandRegistrations(context, defaultRefreshCallback));
         registrations.push(...CodeAnalysisCommands.getMainCommandRegistrations(context, defaultRefreshCallback));
 
