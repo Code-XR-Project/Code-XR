@@ -266,9 +266,22 @@
 
     return {
       deltaX: deltaX,
-      deltaY: tableTopY - measurements.primary.bounds.min.y,
+      deltaY: tableTopY - resolveAnchorMinY(measurements),
       deltaZ: deltaZ
     };
+  }
+
+  // The lowest point that must rest on the tabletop. Usually the primary
+  // bounds (bars, sectors), but a scatter chart's axes start below its lowest
+  // bubble: anchoring on the bubbles alone sank the axes into the table
+  // (CHARTS-14). Taking the lower of the two keeps both on or above it.
+  function resolveAnchorMinY(measurements) {
+    var primaryMinY = measurements.primary.bounds.min.y;
+    if (!isFiniteBoundsInfo(measurements.containment)) {
+      return primaryMinY;
+    }
+    var containmentMinY = measurements.containment.bounds.min.y;
+    return Number.isFinite(containmentMinY) ? Math.min(primaryMinY, containmentMinY) : primaryMinY;
   }
 
   // Adjusts a planar shift so that [min, max] + delta lies inside
@@ -319,7 +332,7 @@
     // Report against the chart's OWN anchor target: a chart that declares a
     // surface lift is correctly placed above the plane, not misaligned.
     var tableTopY = getTableTopY(data) + lift;
-    var primaryMinY = measurements.primary.bounds.min.y;
+    var primaryMinY = resolveAnchorMinY(measurements);
     return {
       tableTopY: toFixedNumber(tableTopY),
       surfaceLift: toFixedNumber(lift),

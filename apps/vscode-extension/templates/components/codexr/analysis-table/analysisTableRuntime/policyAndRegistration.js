@@ -397,6 +397,8 @@
     return root[RUNTIME_GLOBAL_NAME].showTabletopAnchorPlane(false);
   };
   root[RUNTIME_GLOBAL_NAME].__testing = {
+    resolveChartSourceRowCount: resolveChartSourceRowCount,
+    resolveChartFitData: resolveChartFitData,
     PID_PROFILE: PID_PROFILE,
     matchesIgnoredBoundsMeta: matchesIgnoredBoundsMeta,
     matchesIgnoredContainmentBoundsMeta: matchesIgnoredContainmentBoundsMeta,

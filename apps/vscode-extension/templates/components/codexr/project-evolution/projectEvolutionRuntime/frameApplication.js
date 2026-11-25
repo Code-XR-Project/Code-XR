@@ -226,8 +226,13 @@
       return;
     }
     if (state.applyingMapping) {
+      // A second change made while the first applies is queued, not dropped
+      // (CHARTS-17): it runs once the current one settles, reading whatever
+      // the mapping is by then, so the latest request wins.
+      state.mappingChangeQueued = true;
       return;
     }
+    state.mappingChangeQueued = false;
     stop();
     setMappingApplying(true);
     var chartChanged = syncActiveChartFromMapping();
@@ -238,6 +243,10 @@
           state.playbackMappingSnapshot = root.CodeXRMappingUiRuntime?.getState?.() || null;
         }
         setMappingApplying(false);
+        if (state.mappingChangeQueued) {
+          state.mappingChangeQueued = false;
+          onMappingConfirmed();
+        }
       });
   }
 

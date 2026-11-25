@@ -275,6 +275,27 @@
     });
   }
 
+  // A-Frame lists a component on the entity before its init() runs, so
+  // "the component exists" is not "its NotiBuffer exists"; a chart built in
+  // that window reads the raw source instead of the slice.
+  function waitForQueryProducer(element, timeoutMs) {
+    var startedAt = Date.now();
+    return new Promise(function (resolve) {
+      function inspect() {
+        if (element?.components?.['babia-queryjson']?.notiBuffer) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() - startedAt >= (timeoutMs || 1200)) {
+          resolve(false);
+          return;
+        }
+        root.setTimeout(inspect, 30);
+      }
+      inspect();
+    });
+  }
+
   function nextRenderFrame() {
     return new Promise(function (resolve) {
       (root.requestAnimationFrame || function (callback) {
@@ -310,6 +331,20 @@
     scopeEvolutionTreeOutput(treeBuilder);
     if (!isEvolutionViewCurrent(viewGeneration)) {
       return null;
+    }
+    // Budgeted charts read the row-budgeted slice of the frame, like the
+    // classic analysis (CHARTS-8). Its producer must be live before the chart
+    // is built on it, or the first build falls back to every raw row.
+    var sliceEl = root.CodeXRMappingUiRuntime?.prepareChartDataSlice?.(
+      EVOLUTION_DATA_ID,
+      chartId,
+      getActiveMappingForChart(chartId)
+    ) || null;
+    if (sliceEl) {
+      await waitForQueryProducer(sliceEl, 1200);
+      if (!isEvolutionViewCurrent(viewGeneration)) {
+        return null;
+      }
     }
     var chart = ensureEvolutionChart(chartId, rootEl);
     if (!chart || !await waitForComponent(chart, componentName, 1200)) {

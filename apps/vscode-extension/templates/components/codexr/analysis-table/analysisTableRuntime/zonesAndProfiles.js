@@ -93,6 +93,10 @@
     firstSeenAt: 0
   };
   var TABLE_WARNING_PERSISTENCE_MS = 2600;
+  // A chart being (re)built is hidden until its first fit, so the build at
+  // Babia's raw scale is never drawn (a switch flashed 38-75 m wide charts
+  // around the user). If no fit comes within this window, it is shown anyway.
+  var CHART_REVEAL_SAFETY_MS = 6000;
   // Coalesced refresh of the table warning surface. Containment components
   // request a refresh on every lifecycle transition; one shared timer samples
   // the diagnostics so the displayed warning always converges to the current

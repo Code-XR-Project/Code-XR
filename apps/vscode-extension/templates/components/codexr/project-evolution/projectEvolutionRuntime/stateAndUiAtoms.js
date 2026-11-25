@@ -44,6 +44,7 @@
     // True while a confirmed chart/axis change is being applied to the current
     // frame: playback and seeking stay locked until it settles.
     applyingMapping: false,
+    mappingChangeQueued: false,
     // Whether the movie was playing when the user left the mode, so re-entry
     // resumes playback and not just the frame position.
     resumePlayback: false,

@@ -82,6 +82,114 @@
       this.settled = false;
       this.settledReference = null;
       this.settledDriftStreak = 0;
+      // Hidden until the first fit after a (re)build (see beginRebuild).
+      this.revealPending = false;
+      this.revealSafetyTimer = null;
+      // The data source is empty: nothing to fit, and that is not an error.
+      this.emptyState = false;
+      // requestRenormalize is throttled; the last request in a burst always
+      // runs once the window closes (it used to be dropped).
+      this.trailingRenormalizeTimer = null;
+      this.trailingRenormalizeReason = null;
+    },
+
+    /**
+     * A new chart is about to be built on this entity (first build, chart
+     * switch, re-keyed remap). Babia draws it at its raw scale first; keep it
+     * hidden until containment has fitted it, then show it in place (no
+     * animation from a transform that was never fitted).
+     */
+    beginRebuild: function (reason) {
+      this.ensureRuntimeState();
+      this.cancelContainmentTransition();
+      this.emptyState = false;
+      this.normalized = false;
+      this.normalizedSignature = null;
+      this.revealPending = true;
+      if (this.el && this.el.object3D) {
+        this.el.object3D.visible = false;
+      }
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+      }
+      var self = this;
+      this.revealSafetyTimer = setTimeout(function () {
+        self.revealSafetyTimer = null;
+        if (self.revealPending) {
+          resizeTrace('reveal-safety-timeout', { reason: reason || 'rebuild' });
+          self.finishReveal();
+        }
+      }, CHART_REVEAL_SAFETY_MS);
+      resizeTrace('rebuild-begin', { reason: reason || 'rebuild' });
+      return true;
+    },
+
+    // A data transition (an evolution frame, a live re-analysis) keeps the
+    // previous fitted transform while the new rows are built, so a frame with
+    // more rows briefly draws past the table at the old scale (CHARTS-8).
+    // Only while a transition is open, and only when it actually overflows,
+    // hide the chart until the next fit reveals it: a frame that still fits
+    // stays on screen, so the movie does not blink.
+    guardDataTransitionOverflow: function () {
+      var object3D = this.el && this.el.object3D;
+      if (!object3D || object3D.visible === false) {
+        return false;
+      }
+      var measurements = this.measureBounds();
+      if (!measurements || !isFiniteBoundsInfo(measurements.containment)) {
+        return false;
+      }
+      var limits = computeContainmentLimits(this.data);
+      var size = measurements.containment.size;
+      var overflowTolerance = 1.05;
+      if (
+        size.x <= limits.topWidth * overflowTolerance
+        && size.z <= limits.topDepth * overflowTolerance
+      ) {
+        return false;
+      }
+      this.beginRebuild('data-transition-overflow');
+      return true;
+    },
+
+    finishReveal: function () {
+      this.revealPending = false;
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+        this.revealSafetyTimer = null;
+      }
+      if (this.el && this.el.object3D && !this.emptyState) {
+        this.el.object3D.visible = true;
+      }
+    },
+
+    /**
+     * The chart's source holds no rows: there is nothing to fit. Hide the
+     * chart (its stale axes included) and report it as an empty, valid state
+     * instead of "invalid axis values" or "still rebuilding" forever.
+     */
+    enterEmptyState: function (reason, generation) {
+      this.emptyState = true;
+      this.revealPending = false;
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+        this.revealSafetyTimer = null;
+      }
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      }
+      this.normalized = false;
+      this.normalizedSignature = null;
+      this.renderPhase = 'empty';
+      this.lastNormalizationIssue = null;
+      this.deactivateSteadyController();
+      this.stopStabilizationLoop();
+      if (this.el && this.el.object3D) {
+        this.el.object3D.visible = false;
+      }
+      resizeTrace('empty-data', { reason: reason || 'normalize', generation: generation });
+      scheduleTableDiagnosticsRefresh('chart-empty');
     },
 
     init: function () {
@@ -97,6 +205,9 @@
       this.el.addEventListener('componentchanged', this.onComponentChangedBound);
       this.el.addEventListener('child-attached', this.onGeometryReadyBound);
       this.el.addEventListener('object3dset', this.onGeometryReadyBound);
+      // The first build is drawn at Babia's raw scale (a 40-row bar chart is
+      // ~38 m wide) until the first fit: hide it until then.
+      this.beginRebuild('init');
 
       this.tryNormalize('init', this.bumpNormalizationGeneration());
     },
@@ -120,7 +231,9 @@
         if (this.lastStableTransform) {
           restoreTransform(this.el.object3D, this.lastStableTransform);
         }
-        this.el.object3D.visible = true;
+        if (!this.revealPending) {
+          this.el.object3D.visible = true;
+        }
       }
       scheduleTableDiagnosticsRefresh(reason || 'waiting-geometry');
     },
@@ -223,7 +336,22 @@
       }
       var now = Date.now();
       var debounceMs = Math.max(80, this.data.renormalizeDebounceMs || DEFAULTS.renormalizeDebounceMs);
-      if ((now - this.lastRenormalizeRequestAt) < debounceMs) {
+      var elapsed = now - this.lastRenormalizeRequestAt;
+      if (elapsed < debounceMs) {
+        // Trailing edge: the last request of a burst (the one that sees the
+        // finished geometry) runs when the window closes.
+        this.trailingRenormalizeReason = reason || 'componentchanged';
+        if (!this.trailingRenormalizeTimer) {
+          var self = this;
+          this.trailingRenormalizeTimer = setTimeout(function () {
+            self.trailingRenormalizeTimer = null;
+            var trailingReason = self.trailingRenormalizeReason;
+            self.trailingRenormalizeReason = null;
+            if (trailingReason && self.el && self.data && self.data.enabled) {
+              self.requestRenormalize(trailingReason);
+            }
+          }, Math.max(0, debounceMs - elapsed) + 1);
+        }
         return;
       }
       this.lastRenormalizeRequestAt = now;
@@ -236,6 +364,18 @@
 
     getChartStatus: function () {
       this.ensureRuntimeState();
+      if (this.emptyState || (!this.dataTransitionActive && resolveChartSourceRowCount(this.el) === 0)) {
+        return {
+          ready: true,
+          valid: true,
+          stabilized: true,
+          empty: true,
+          geometryState: 'empty',
+          reason: 'no-data',
+          message: 'No files to show for this mapping.',
+          details: { phase: this.renderPhase }
+        };
+      }
       if (this.dataTransitionActive) {
         return {
           ready: false,
@@ -280,7 +420,7 @@
 
       var chartFitMode = resolveChartFitMode(this.el);
       var correctionState = chartFitMode === 'uniform'
-        ? buildUniformCorrectionState(measurements, this.el && this.el.object3D, this.data)
+        ? buildUniformCorrectionState(measurements, this.el && this.el.object3D, resolveChartFitData(this.el, this.data))
         : buildContainmentCorrectionState(measurements, this.el && this.el.object3D, this.data, chartFitMode);
       var needsCorrection = !!(correctionState && correctionState.needsCorrection);
       var transitionActive = !!(this.containmentTransition && this.containmentTransition.active);
@@ -412,6 +552,10 @@
     },
 
     tick: function (time, timeDelta) {
+      if (this.data.enabled && this.dataTransitionActive && !this.revealPending) {
+        this.guardDataTransitionOverflow();
+        return;
+      }
       if (
         !this.data.enabled
         || this.dataTransitionActive
@@ -491,6 +635,14 @@
         clearTimeout(this.retryTimer);
         this.retryTimer = null;
       }
+      if (this.trailingRenormalizeTimer) {
+        clearTimeout(this.trailingRenormalizeTimer);
+        this.trailingRenormalizeTimer = null;
+      }
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+        this.revealSafetyTimer = null;
+      }
 
       this.deactivateSteadyController();
       this.stopStabilizationLoop();
@@ -543,6 +695,11 @@
         this.syncTransformAttributes();
       }
       this.renderPhase = this.normalized ? 'steady-fit' : 'waiting-geometry';
+      if (this.revealPending) {
+        // Hidden by the overflow guard: re-fit what is on screen now rather
+        // than wait out the reveal safety timer.
+        this.renormalize(reason || 'chart-data-transition-cancelled');
+      }
       scheduleTableDiagnosticsRefresh(reason || 'chart-data-transition-cancelled');
       return true;
     },

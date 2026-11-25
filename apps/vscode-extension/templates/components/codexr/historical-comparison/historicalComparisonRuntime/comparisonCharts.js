@@ -128,6 +128,26 @@
     return profile;
   }
 
+  // Returns the slice entity id behind `sourceId` once its producer is live,
+  // or `sourceId` itself when the chart has no row budget or the slice could
+  // not start in time (the raw source still renders, just unbudgeted).
+  async function resolveComparisonSliceSource(sourceId, componentName, original) {
+    var chartId = CHART_ID_BY_COMPONENT[componentName] || '';
+    var mapping = Object.assign({}, original?.getAttribute?.(componentName) || {});
+    var sliceEl = root.CodeXRMappingUiRuntime?.prepareChartDataSlice?.(sourceId, chartId, mapping) || null;
+    if (!sliceEl) {
+      return sourceId;
+    }
+    var startedAt = Date.now();
+    while (!sliceEl.components?.['babia-queryjson']?.notiBuffer) {
+      if (Date.now() - startedAt > 1200) {
+        return sourceId;
+      }
+      await new Promise(function (resolve) { root.setTimeout(resolve, 30); });
+    }
+    return sliceEl.id || sourceId;
+  }
+
   function createChartFromTemplate(original, id, sourceId, zone, targetType, options) {
     var clone = createEntity('a-entity');
     var componentName = getChartComponentName(original);
@@ -167,7 +187,13 @@
       setDeclarativeBabiaComponent(clone, componentName, chartData);
     }
     var containmentProfile = getHistoricalContainmentProfile(zone);
-    clone.setAttribute('scale', '0.01 0.05 0.01');
+    // The chart's own presentation scale, like every other build path: the
+    // fixed '0.01 0.05 0.01' squashed round charts and ignored the profile
+    // (CHARTS-9). Containment keeps the clone hidden until its first fit.
+    var presentation = root.CodeXRMappingUiRuntime?.getChartPresentation?.(
+      CHART_ID_BY_COMPONENT[componentName] || ''
+    );
+    clone.setAttribute('scale', presentation?.initialScale || '1.5 1.5 1.5');
     if (root.CodeXRAnalysisTableRuntime.applyContainmentProfile) {
       root.CodeXRAnalysisTableRuntime.applyContainmentProfile(clone, containmentProfile);
     } else {
@@ -289,6 +315,12 @@
     }
 
     await nextFrame();
+    if (!isHierarchicalBoatsComponent(chartComponent)) {
+      // Each side reads the row-budgeted slice of its own revision, like the
+      // classic chart, instead of every raw row (CHARTS-9).
+      leftFrom = await resolveComparisonSliceSource(leftFrom, chartComponent, original);
+      rightFrom = await resolveComparisonSliceSource(rightFrom, chartComponent, original);
+    }
     var zones = root.CodeXRAnalysisTableRuntime?.getAnalysisTableZones?.('historical-compare') || [
       { id: 'left', anchorX: -1.45, anchorZ: -18, width: 2.7, depth: 3.218 },
       { id: 'right', anchorX: 1.45, anchorZ: -18, width: 2.7, depth: 3.218 }

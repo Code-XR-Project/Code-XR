@@ -51,6 +51,16 @@
   - The table fit checked the chart's size but not its position: centring the bars could push the axis off one side. The axes are now kept on the table, and a chart that still sticks out is no longer reported as fitted.
   - The fit could measure a cached, outdated size of a line that had just changed. Sizes are now re-read when the geometry changes.
   - Generated scenes first built every chart over all files and only then switched to the top 20/30 shown. They now build once, from the files that are shown.
+- **Charts no longer flash oversized, grow into towers or leave the table while they are rebuilt.** Every way a chart is (re)built now follows the same rules: it reads the row-limited data, stays hidden until it has been fitted to the table, and only then appears.
+  - Switching chart type drew the new chart at the previous chart's scale for a moment, up to 75 m wide. It is now hidden until fitted.
+  - Bar and cylinder charts grew up from the floor on their first build, reaching 26-32 m before the fit caught up. BabiaXR's grow animation is now off for them.
+  - The project evolution movie built every frame from all of its files (a 160-file frame gave a wall of 138 bars that sat oversized for almost 4 s). Frames now use the same top 20/30 as the classic analysis, a frame that would overflow is hidden until it is fitted, and frames no longer wait for an animation that never ran.
+  - Each side of a historical comparison now shows the top files of its own revision instead of all of them, and starts from the chart's own scale instead of a fixed one that squashed pie, donut and bubble charts.
+  - Changing which field labels the bars no longer leaves "ghost" bars from the previous mapping behind.
+  - A mapping with no files to show says "No files to show for this mapping." instead of blaming the mapping or showing "still rebuilding" forever.
+  - Bubble charts rested their smallest bubble on the table and sank their axes up to 0.6 m into it. The lowest of the bubbles and the axes now rests on the table.
+  - Pie and donut charts stand up to 2 m tall (they were about 1.3 m), so their sectors and labels are readable from the controller position.
+  - A live re-analysis no longer undoes a remap you made while the charts were refreshing, and a second chart change made in project evolution while the first is applied is no longer ignored.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

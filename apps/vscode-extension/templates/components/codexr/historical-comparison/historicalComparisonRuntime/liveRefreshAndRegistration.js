@@ -293,6 +293,8 @@
       // they must NOT borrow (orientation, a foreign chart component) is
       // asserted by running the builder.
       createChartFromTemplate: createChartFromTemplate,
+      // Each side reads its own row-budgeted slice (CHARTS-9).
+      resolveComparisonSliceSource: resolveComparisonSliceSource,
       // The offline delta port is asserted by CALLING it over payload pairs,
       // not by reading its source.
       buildOfflineDelta: buildOfflineDelta,
