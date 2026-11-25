@@ -168,7 +168,7 @@ export class DependencyGraphService {
         onProgress?: (message: string) => void,
     ): Promise<DependencyGraphDataset> {
         const session = this.getSession();
-        const refreshRequest: DependencyRefreshRequest = request || {
+        const refreshRequest: DependencyRefreshRequest = request ?? {
             sourceRevision: 0,
             changedFiles: [],
             addedFiles: [],

@@ -43,7 +43,7 @@ export class CollaborationRoomRegistry {
         if (!peer.joinedRoom || !peer.roomId) {
             return null;
         }
-        return this.rooms.get(peer.roomId) || null;
+        return this.rooms.get(peer.roomId) ?? null;
     }
 
     public broadcast(room: CollaborationRoomState, payload: Record<string, unknown>, excludedPeerId?: string): void {

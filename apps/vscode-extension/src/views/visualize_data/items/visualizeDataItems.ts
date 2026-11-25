@@ -101,7 +101,7 @@ export class VisualizeDataModularItemFactory {
         
         try {
             // Provide a default state if none provided
-            const stateToUse: VisualizeDataState = state || {
+            const stateToUse: VisualizeDataState = state ?? {
                 selectedChart: undefined,
                 selectedJsonPath: undefined,
                 selectedJsonName: undefined,

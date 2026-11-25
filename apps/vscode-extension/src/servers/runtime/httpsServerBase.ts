@@ -214,7 +214,7 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
         } else if (error.code === 'EACCES') {
             reject(new Error(`SERVER: Permission denied. May need to run as administrator for port ${this.config.port}`));
         } else {
-            reject(this.describeStartError(error) || new Error(`SERVER: Failed to start HTTPS server: ${error.message}`));
+            reject(this.describeStartError(error) ?? new Error(`SERVER: Failed to start HTTPS server: ${error.message}`));
         }
     }
 

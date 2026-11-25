@@ -359,19 +359,19 @@ export class RemoteSessionAuthority {
             return null;
         }
         this.browserTokens.delete(tokenHash);
-        return this.sessions.get(record.sessionId) || null;
+        return this.sessions.get(record.sessionId) ?? null;
     }
 
     public resolveCookie(cookieHeader: string | undefined): AuthenticatedCollaborationSession | null {
         this.cleanup();
         const sessionId = this.readCookie(cookieHeader, 'codexr_session');
-        return sessionId ? this.sessions.get(sessionId) || null : null;
+        return sessionId ? this.sessions.get(sessionId) ?? null : null;
     }
 
     public resolveExtensionToken(token: string): AuthenticatedCollaborationSession | null {
         this.cleanup();
         const sessionId = this.extensionTokens.get(this.hash(token));
-        return sessionId ? this.sessions.get(sessionId) || null : null;
+        return sessionId ? this.sessions.get(sessionId) ?? null : null;
     }
 
     public updateExtensionProfile(

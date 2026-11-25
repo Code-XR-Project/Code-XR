@@ -79,7 +79,7 @@ export class VisualizationSettingsClickHandler {
         
         if (item.command) {
             // Execute the item's command (usually opens color picker)
-            await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments || []));
+            await vscode.commands.executeCommand(item.command.command, ...(item.command.arguments ?? []));
         } else {
             // Fallback - try to extract setting field and use generic command
             if (item.originalSettingsItem?.settingField) {

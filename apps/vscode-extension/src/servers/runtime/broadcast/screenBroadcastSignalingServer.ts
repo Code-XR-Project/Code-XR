@@ -563,7 +563,7 @@ export class ScreenBroadcastSignalingServer {
         if (!roomId || !screenId) {
             return null;
         }
-        return this.screens.get(this.getScreenKey(roomId, screenId)) || null;
+        return this.screens.get(this.getScreenKey(roomId, screenId)) ?? null;
     }
 
     private pruneScreen(roomId: string, screenId: string): void {

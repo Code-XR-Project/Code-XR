@@ -238,7 +238,7 @@ export class FileWatcherOrchestrator {
             watcherId: this.watcherId,
             targetPath: this.session.targetPath,
             sessionId: this.session.id,
-            debounceStatus: this.debounceManager?.getStatus() || null,
+            debounceStatus: this.debounceManager?.getStatus() ?? null,
         };
     }
 

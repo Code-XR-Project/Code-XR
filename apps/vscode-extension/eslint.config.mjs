@@ -124,6 +124,33 @@ export default [{
             property: "substr",
             message: "Use slice() (substr is Annex B legacy; slice(start, start + length) for non-negative arguments).",
         }],
+        // `??` only where the left operand is object-typed: '' || d and '' ?? d
+        // differ, and settings or user JSON carry real '', 0 and false values,
+        // so primitive operands, ternaries and if-assignments are not reported.
+        "@typescript-eslint/prefer-nullish-coalescing": ["error", {
+            ignorePrimitives: { string: true, number: true, boolean: true, bigint: true },
+            ignoreTernaryTests: true,
+            ignoreIfStatements: true,
+        }],
+    },
+}, {
+    // Files that keep an object-typed `x || {}` on purpose: the operand is
+    // parsed JSON from a WebSocket client, the bridge protocol, workspace
+    // storage or a settings update, where a malformed `0`, `''` or `false`
+    // must still fall back to the default (modernization.md §7, row 9).
+    files: [
+        // historicalComparison.test.cjs pins `source.kind === 'workingCopy') || null` here (S pin).
+        "src/code_analysis/historical/projectEvolutionService.ts",
+        "src/servers/runtime/analysis/dependencyGraphBridge.ts",
+        "src/servers/runtime/analysis/projectEvolutionBridge.ts",
+        "src/servers/runtime/collaboration/collaborationRoomServer.ts",
+        "src/servers/runtime/collaboration/roomSharedState.ts",
+        "src/servers/storage/serverSettingsManager.ts",
+        "src/visualize_data/state/visualizeDataState.ts",
+        "src/code_analysis/views/subsections/analysis_settings/dimension_mapping_shared/sharedDimensionMappingSettingCore.ts",
+    ],
+    rules: {
+        "@typescript-eslint/prefer-nullish-coalescing": "off",
     },
 }, {
     // The lazy require() calls that stay (modernization.md §4): the eight in

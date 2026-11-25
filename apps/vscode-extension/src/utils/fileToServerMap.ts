@@ -66,7 +66,7 @@ class FileToServerMapping {
      * @returns ServerInfo or null if not found
      */
     getServerInfo(fileUri: string): ServerInfo | null {
-        return this.fileToServer.get(fileUri) || null;
+        return this.fileToServer.get(fileUri) ?? null;
     }
 
     /**

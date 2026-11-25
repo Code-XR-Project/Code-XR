@@ -132,7 +132,7 @@ function collectManifestPayloadUrls(manifest: ExportManifest): Set<string> {
             }
         }
     }
-    for (const source of manifest.gitData?.references.sources || []) {
+    for (const source of manifest.gitData?.references.sources ?? []) {
         urls.add(source.payloadUrl);
     }
     if (
