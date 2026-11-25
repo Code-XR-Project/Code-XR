@@ -1,7 +1,6 @@
 import * as path from 'path';
 import {
     getAllSupportedExtensions,
-    isSupportedExtension,
 } from '../../../utils/supportedLanguages';
 
 const DIRECTORY_IGNORES = new Set([
@@ -87,10 +86,6 @@ export function shouldIgnoreFileName(name: string): boolean {
     return FILE_SKIP_PATTERNS.some((pattern) => pattern.test(name));
 }
 
-export function isHtmlLikeFile(filePath: string): boolean {
-    return HTML_EXTENSIONS.has(path.extname(filePath).toLowerCase());
-}
-
 export function isDirectoryAnalysisFile(filePath: string): boolean {
     if (shouldIgnoreFileName(path.basename(filePath))) {
         return false;
@@ -111,14 +106,6 @@ export function isMetricAnalysisFile(filePath: string): boolean {
         return false;
     }
     return METRIC_ANALYSIS_EXTENSIONS.has(path.extname(filePath).toLowerCase());
-}
-
-export function isCodeAnalysisFile(filePath: string): boolean {
-    if (shouldIgnoreFileName(path.basename(filePath))) {
-        return false;
-    }
-
-    return isSupportedExtension(path.extname(filePath).toLowerCase());
 }
 
 export function isRelevantDirectoryEvent(fullPath: string, trackedPaths: Set<string>): boolean {
