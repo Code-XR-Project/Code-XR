@@ -1,6 +1,6 @@
 import * as http from 'http';
-import * as net from 'net';
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+import { WebSocket, RawData } from 'ws';
+import { attachWebSocketEndpoint, DEFAULT_ROOM_ID, WebSocketEndpoint } from '../ws/webSocketEndpoint';
 
 type BroadcastRole = 'none' | 'sender' | 'viewer';
 
@@ -47,8 +47,6 @@ interface BroadcastMessage {
     candidate?: unknown;
 }
 
-const DEFAULT_ROOM_ID = 'codexr-session:default';
-
 /**
  * Media frame wire format, mirrored by the runtime relay transport. The kind
  * byte packs both values: low nibble the frame kind, high nibble the temporal
@@ -75,26 +73,20 @@ const RELAY_THIN_TOP_LAYER_BYTES = 512 * 1024;
 const RELAY_THIN_ALL_DELTAS_BYTES = 2 * 1024 * 1024;
 
 export class ScreenBroadcastSignalingServer {
-    private readonly path: string;
-    private readonly socketServer: WebSocketServer;
+    private readonly endpoint: WebSocketEndpoint;
     private readonly clients = new Map<string, BroadcastClient>();
     private readonly screens = new Map<string, BroadcastScreenState>();
-    private readonly upgradeHandler: (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => void;
     private disposed = false;
 
     constructor(
-        private readonly server: http.Server,
+        server: http.Server,
         path = '/codexr-broadcast',
         private readonly authorizeUpgrade: (request: http.IncomingMessage) => boolean = () => true,
         private readonly resolveScope: (request: http.IncomingMessage) => BroadcastClientScope = () => 'local',
     ) {
-        this.path = path.startsWith('/') ? path : `/${path}`;
-        this.socketServer = new WebSocketServer({ noServer: true });
-        this.upgradeHandler = this.handleUpgrade.bind(this);
-
-        this.server.on('upgrade', this.upgradeHandler);
-        this.socketServer.on('connection', (socket: WebSocket, request: http.IncomingMessage) => {
-            this.handleConnection(socket, this.resolveScope(request));
+        this.endpoint = attachWebSocketEndpoint(server, path, {
+            authorize: (req) => this.authorizeUpgrade(req),
+            onConnection: (socket, request) => this.handleConnection(socket, this.resolveScope(request)),
         });
     }
 
@@ -104,7 +96,7 @@ export class ScreenBroadcastSignalingServer {
         }
         this.disposed = true;
 
-        this.server.off('upgrade', this.upgradeHandler);
+        this.endpoint.detach();
 
         for (const client of this.clients.values()) {
             try {
@@ -115,22 +107,7 @@ export class ScreenBroadcastSignalingServer {
         }
         this.clients.clear();
         this.screens.clear();
-        this.socketServer.close();
-    }
-
-    private handleUpgrade(req: http.IncomingMessage, socket: net.Socket, head: Buffer): void {
-        const pathname = new URL(req.url || '/', 'http://codexr.local').pathname;
-        if (pathname !== this.path) {
-            return;
-        }
-        if (!this.authorizeUpgrade(req)) {
-            socket.destroy();
-            return;
-        }
-
-        this.socketServer.handleUpgrade(req, socket, head, (ws: WebSocket) => {
-            this.socketServer.emit('connection', ws, req);
-        });
+        this.endpoint.socketServer.close();
     }
 
     private handleConnection(socket: WebSocket, scope: BroadcastClientScope): void {

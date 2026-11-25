@@ -82,9 +82,9 @@
     }
   },
   "informational": {
-    "src.files": 314,
-    "src.lines": 48006,
-    "src.functions": 2638,
+    "src.files": 315,
+    "src.lines": 48023,
+    "src.functions": 2641,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -275,7 +275,7 @@
     "size.largest10": [
       {
         "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts",
-        "lines": 1175
+        "lines": 1153
       },
       {
         "file": "src/python_env/runtime/venvManager.ts",
@@ -291,7 +291,7 @@
       },
       {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 782
+        "lines": 759
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",

@@ -1,13 +1,13 @@
 import * as http from 'http';
-import * as net from 'net';
 import { EventEmitter } from 'events';
-import { RawData, WebSocket, WebSocketServer } from 'ws';
+import { RawData, WebSocket } from 'ws';
 import { buildStarWarsDisplayName } from '../../../collaboration/model/anonymousName';
 import { CollaborationProfile } from '../../../collaboration/model/collaborationProfile';
 import { ConnectedParticipantSummary } from '../../../collaboration/model/connectedParticipant';
 import {
     AuthenticatedCollaborationSession,
 } from '../../../remote_access';
+import { attachWebSocketEndpoint, DEFAULT_ROOM_ID, WebSocketEndpoint } from '../ws/webSocketEndpoint';
 
 interface Vector3Like {
     x: number;
@@ -113,7 +113,6 @@ export interface CollaborationApplicationMessageContext {
     removeSharedEntity: (entityKind: string, entityId: string) => void;
 }
 
-const DEFAULT_ROOM_ID = 'codexr-session:default';
 /** Sentinel meaning "this room picks a free colour for me". */
 const AUTO_AVATAR_ID = 'auto';
 export const CODEXR_AVATAR_IDS = [
@@ -126,26 +125,20 @@ export const CODEXR_AVATAR_IDS = [
 ] as const;
 const VALID_AVATAR_IDS = new Set<string>(CODEXR_AVATAR_IDS);
 export class CollaborationRoomServer {
-    private readonly path: string;
-    private readonly socketServer: WebSocketServer;
+    private readonly endpoint: WebSocketEndpoint;
     private readonly peers = new Map<string, CollaborationPeer>();
     private readonly rooms = new Map<string, CollaborationRoomState>();
     private readonly events = new EventEmitter();
-    private readonly upgradeHandler: (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => void;
     private disposed = false;
 
     constructor(
-        private readonly server: http.Server,
+        server: http.Server,
         path = '/codexr-room',
         private readonly options: CollaborationRoomServerOptions = {},
     ) {
-        this.path = path.startsWith('/') ? path : `/${path}`;
-        this.socketServer = new WebSocketServer({ noServer: true });
-        this.upgradeHandler = this.handleUpgrade.bind(this);
-
-        this.server.on('upgrade', this.upgradeHandler);
-        this.socketServer.on('connection', (socket: WebSocket, request: http.IncomingMessage) => {
-            this.handleConnection(socket, request);
+        this.endpoint = attachWebSocketEndpoint(server, path, {
+            authorize: (req) => !this.options.authorizeUpgrade || this.options.authorizeUpgrade(req),
+            onConnection: (socket, request) => this.handleConnection(socket, request),
         });
     }
 
@@ -154,7 +147,7 @@ export class CollaborationRoomServer {
             return;
         }
         this.disposed = true;
-        this.server.off('upgrade', this.upgradeHandler);
+        this.endpoint.detach();
 
         for (const peer of this.peers.values()) {
             try {
@@ -174,7 +167,7 @@ export class CollaborationRoomServer {
 
         this.peers.clear();
         this.rooms.clear();
-        this.socketServer.close();
+        this.endpoint.socketServer.close();
         this.events.removeAllListeners();
     }
 
@@ -256,21 +249,6 @@ export class CollaborationRoomServer {
             this.broadcastParticipantUpdate(room, participant);
             this.emitParticipantsChanged(room);
         }
-    }
-
-    private handleUpgrade(req: http.IncomingMessage, socket: net.Socket, head: Buffer): void {
-        const pathname = new URL(req.url || '/', 'http://codexr.local').pathname;
-        if (pathname !== this.path) {
-            return;
-        }
-        if (this.options.authorizeUpgrade && !this.options.authorizeUpgrade(req)) {
-            socket.destroy();
-            return;
-        }
-
-        this.socketServer.handleUpgrade(req, socket, head, (ws: WebSocket) => {
-            this.socketServer.emit('connection', ws, req);
-        });
     }
 
     private handleConnection(socket: WebSocket, request: http.IncomingMessage): void {
