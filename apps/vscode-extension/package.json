@@ -771,7 +771,8 @@
     "test:project-evolution-harness": "node test/runners/run-project-evolution-harness.cjs",
     "report:manual-metrics": "node test/runners/run-analysis-tests.cjs --report-only",
     "guardrails:measure": "node test/tooling/measureGuardrails.cjs",
-    "guardrails:update": "node test/tooling/measureGuardrails.cjs --write"
+    "guardrails:update": "node test/tooling/measureGuardrails.cjs --write",
+    "python:requirements": "npm run compile-tests && node test/tooling/pythonRequirements.cjs --write"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

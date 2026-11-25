@@ -75,15 +75,17 @@ function ensureVenv(systemPython) {
 /**
  * The extension installs an exact lizard version into the user's managed venv
  * (src/python_env/runtime/pythonPackageManifest.ts). The fixtures must be
- * measured with that same version, so the requirement is read from the
- * manifest instead of being repeated here.
+ * measured with that same version, so the requirement is read from
+ * backend/requirements.txt, the generated mirror of that manifest
+ * (test/python_env/pythonRequirements.test.cjs keeps the two equal), instead
+ * of being repeated here. Only lizard is installed, as before.
  */
 function readPinnedLizardRequirement() {
-    const manifestPath = path.join(projectRoot, 'src', 'python_env', 'runtime', 'pythonPackageManifest.ts');
-    const manifest = fs.readFileSync(manifestPath, 'utf8');
-    const match = /distribution:\s*'lizard',[\s\S]*?version:\s*'([0-9][0-9A-Za-z.+-]*)'/.exec(manifest);
+    const requirementsPath = path.join(backendRoot, 'requirements.txt');
+    const requirements = fs.readFileSync(requirementsPath, 'utf8');
+    const match = /^lizard==([0-9][0-9A-Za-z.+-]*)\s*(?:#.*)?$/m.exec(requirements);
     if (!match) {
-        throw new Error(`ANALYSIS_TEST_RUNNER: could not read the pinned lizard version from ${manifestPath}`);
+        throw new Error(`ANALYSIS_TEST_RUNNER: could not read the pinned lizard version from ${requirementsPath}`);
     }
     return `lizard==${match[1]}`;
 }

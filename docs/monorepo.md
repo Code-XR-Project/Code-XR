@@ -11,6 +11,7 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 │   └── ide/                the Code-XR IDE, placeholder only
 ├── backend/
 │   ├── src/                Python analysis backend
+│   ├── requirements.txt    its exact Python pins, generated from the extension's manifest
 │   ├── tests/              its unittest suites, goldens and fixtures
 │   ├── manual_test/        per-language analysis corpus (npm run test:analysis)
 │   └── scripts/            backend tools (manual-metrics report)

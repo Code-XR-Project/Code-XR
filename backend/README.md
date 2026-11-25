@@ -5,6 +5,7 @@ The Python service that produces every analysis Code-XR shows: Lizard-based code
 | Path | Content |
 |---|---|
 | `src/` | The backend. Entry point `src/main.py`; modules grouped by capability (`utils/`, `XR/`, `livePanels/`, `html/`, `export/`, `tools/`, ...). |
+| `requirements.txt` | The exact Python packages (lizard, tree-sitter-language-pack) the extension installs into its managed venv. **Generated** from `apps/vscode-extension/src/python_env/runtime/pythonPackageManifest.ts` by `npm run python:requirements`; a unit test fails while they disagree. |
 | `tests/` | `unittest` suites grouped by capability, plus golden snapshots of the dependency engine and the sample sources they are built from (`tests/fixtures/dependency-languages/`). `tests/manual_metrics_suite.py` is not a discovered `test_*.py` suite: `npm run test:analysis` runs it, with the pinned lizard, over `manual_test/`. |
 | `manual_test/` | Per-language fixtures (one or more per supported language, plus `deep/`) for the end-to-end analysis checks and for manual validation in the extension. |
 | `scripts/` | `report-manual-metrics.py`: writes per-fixture XR / LivePanel reports to `artifacts/manual_test_reports/`. |
