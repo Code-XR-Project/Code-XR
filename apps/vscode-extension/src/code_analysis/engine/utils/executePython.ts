@@ -10,6 +10,14 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('EXECUTE_PYTHON');
 
+/** The HTML DOM parser fails a run with a truthy `error` field (or no outcome at all). */
+function domFailureOf(result: unknown): { error?: string } | undefined {
+    if (!result) {
+        return {};
+    }
+    return (result as { error?: string }).error ? result as { error?: string } : undefined;
+}
+
 /** How a spawned backend process ended, before its output is interpreted. */
 type SpawnOutcome =
     | { kind: 'spawn-error'; error: Error }
@@ -164,15 +172,7 @@ export class ExecutePython {
 
             logger.debug(() => `Executing file analysis with args: ${args.join(' ')}`);
             const result = await this.executePythonScript('main.py', args, progress);
-
-            if (result && result?.success !== false) {
-                logger.debug('File analysis completed successfully');
-                progress?.report({ message: 'File analysis completed!' });
-                return result;
-            }
-
-            logger.error('File analysis failed:', result);
-            throw new Error(`File analysis failed: ${result?.error || 'Unknown error'}`);
+            return this.finishAnalysis(result, 'File analysis', progress);
         } catch (error) {
             logger.error('Error during file analysis:', error);
             throw error;
@@ -206,15 +206,7 @@ export class ExecutePython {
             logger.debug(() => `Executing with args: ${args.join(' ')}`);
 
             const result = await this.executePythonScript('main.py', args, progress);
-
-            if (result && result.success !== false) {
-                logger.debug('Directory analysis completed successfully');
-                progress?.report({ message: 'Directory analysis completed!' });
-                return result;
-            }
-
-            logger.error('Directory analysis failed:', result);
-            throw new Error(`Directory analysis failed: ${result?.error || 'Unknown error'}`);
+            return this.finishAnalysis(result, 'Directory analysis', progress);
         } catch (error) {
             logger.error('Error during directory analysis:', error);
             throw error;
@@ -274,16 +266,10 @@ export class ExecutePython {
             throw new Error(`XR analysis failed: Unable to parse result - ${failure.error}`);
         }
 
-        if (!failure) {
-            logger.debug(() => Array.isArray(result)
-                ? `XR_ANALYSIS: Generated ${result.length} XR function records for ${session.targetPath}`
-                : `XR_ANALYSIS: Result is not an array, type: ${typeof result}`);
-            progress?.report({ message: 'XR analysis completed!' });
-            return result;
-        }
-
-        logger.error('XR_ANALYSIS: XR analysis failed with error:', result);
-        throw new Error(`XR analysis failed: ${failure.error || 'Unknown error'}`);
+        logger.debug(() => Array.isArray(result)
+            ? `XR_ANALYSIS: ${result.length} XR function records for ${session.targetPath}`
+            : `XR_ANALYSIS: Result is not an array, type: ${typeof result}`);
+        return this.finishAnalysis(result, 'XR analysis', progress);
     }
 
     private async executeHTMLDOMAnalysis(
@@ -299,25 +285,34 @@ export class ExecutePython {
             progress?.report({ message: 'Parsing HTML DOM...' });
 
             const result = await this.executePythonScript('html/html_dom_parser.py', args, progress);
-
-            if (result && !result.error) {
-                logger.debug('HTML DOM analysis completed successfully');
-                logger.debug(() => `Processed HTML content length: ${result.htmlContent?.length || 0} chars`);
-                logger.debug('Analysis result:', {
-                    originalFile: result.originalFile,
-                    preparedForVisualization: result.preparedForVisualization,
-                    htmlContentLength: result.htmlContent?.length || 0,
-                });
-                progress?.report({ message: 'HTML DOM analysis completed!' });
-                return result;
-            }
-
-            logger.error('HTML DOM analysis failed:', result);
-            throw new Error(`HTML DOM analysis failed: ${result?.error || 'Unknown error'}`);
+            // The DOM parser signals failure with an `error` field alone.
+            return this.finishAnalysis(result, 'HTML DOM analysis', progress, domFailureOf);
         } catch (error) {
             logger.error('Error during HTML DOM analysis:', error);
             throw error;
         }
+    }
+
+    /**
+     * The common tail of every progress-reporting analysis: a payload reports
+     * "<label> completed!" and is returned; anything else throws
+     * "<label> failed: <error>", or "Unknown error" when the outcome has none.
+     */
+    private finishAnalysis(
+        result: unknown,
+        label: string,
+        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        failureOf: (result: unknown) => { error?: string } | undefined = scriptFailureOf,
+    ): unknown {
+        const failure = failureOf(result);
+        if (!failure) {
+            logger.debug(() => `${label} completed successfully`);
+            progress?.report({ message: `${label} completed!` });
+            return result;
+        }
+
+        logger.error(`${label} failed:`, result);
+        throw new Error(`${label} failed: ${failure.error || 'Unknown error'}`);
     }
 
     public async executeFileReanalysis(filePaths: string[]): Promise<any> {
