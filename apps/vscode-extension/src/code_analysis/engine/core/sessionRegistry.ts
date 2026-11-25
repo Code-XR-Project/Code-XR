@@ -77,49 +77,15 @@ export class UnifiedSessionRegistry {
 
             const duplicateSession = this.hasDuplicateSession(params);
             if (duplicateSession) {
-                if (duplicateSession.status === 'monitoring') {
-                    vscode.window.showWarningMessage(
-                        `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
-                        'Open Active Analyses'
-                    ).then(choice => {
-                        if (choice === 'Open Active Analyses') {
-                            vscode.commands.executeCommand('workbench.view.extension.codeXRView');
-                        }
-                    });
-                } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
-                    vscode.window.showWarningMessage(
-                        `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
-                    );
-                } else {
-                    vscode.window.showWarningMessage(
-                        `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
-                    );
-                }
-
+                this.warnAboutDuplicate(duplicateSession);
                 this._onSessionChanged.fire(duplicateSession);
                 return null;
             }
 
             const id = generateNonce();
             const targetName = path.basename(params.targetPath);
-            const storageUri = params.context.storageUri;
-            if (!storageUri) {
-                throw new Error('Workspace storage URI is not available');
-            }
-
-            const outputDirectory = `${path.parse(targetName).name}_${params.analysisMode}_${params.targetType}_${id}`;
-            const baseDirectory = params.targetType === 'file' ? 'fileAnalysis' : 'directoryAnalysis';
-            const outputPath = path.join(storageUri.fsPath, baseDirectory, outputDirectory);
-
-            let calculatedHash = '';
-            if (params.targetType === 'file') {
-                try {
-                    calculatedHash = await SHA256Generator.generateFileHash(params.targetPath);
-                } catch (hashError) {
-                    console.error(`UNIFIED_REGISTRY: Error calculating file hash:`, hashError);
-                    throw new Error(`Failed to calculate file hash: ${hashError instanceof Error ? hashError.message : String(hashError)}`);
-                }
-            }
+            const { outputDirectory, outputPath } = this.buildSessionPaths(params, id, targetName);
+            const calculatedHash = params.targetType === 'file' ? await this.hashTargetFile(params.targetPath) : '';
 
             const session: UnifiedAnalysisSession = {
                 id,
@@ -139,15 +105,7 @@ export class UnifiedSessionRegistry {
             };
 
             if (params.targetType === 'directory') {
-                try {
-                    const stats = await fs.stat(params.targetPath);
-                    if (!stats.isDirectory()) {
-                        throw new Error(`Target path is not a directory: ${params.targetPath}`);
-                    }
-                } catch (statError) {
-                    console.error(`UNIFIED_REGISTRY: Error accessing target path ${params.targetPath}:`, statError);
-                    throw statError;
-                }
+                await this.assertDirectoryTarget(params.targetPath);
 
                 // Directory scanning and initial hashes are populated after Python
                 // completes the first analysis, keeping the startup path lightweight.
@@ -165,6 +123,72 @@ export class UnifiedSessionRegistry {
         } catch (error) {
             console.error('UNIFIED_REGISTRY: Error creating session:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Tells the user why a duplicate request was refused. A finished analysis
+     * offers to open the Active Analyses view.
+     */
+    private warnAboutDuplicate(duplicateSession: UnifiedAnalysisSession): void {
+        if (duplicateSession.status === 'monitoring') {
+            vscode.window.showWarningMessage(
+                `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
+                'Open Active Analyses'
+            ).then(choice => {
+                if (choice === 'Open Active Analyses') {
+                    vscode.commands.executeCommand('workbench.view.extension.codeXRView');
+                }
+            });
+        } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
+            vscode.window.showWarningMessage(
+                `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
+            );
+        } else {
+            vscode.window.showWarningMessage(
+                `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
+            );
+        }
+    }
+
+    /**
+     * `<target name without extension>_<mode>_<type>_<id>`, under
+     * `fileAnalysis/` or `directoryAnalysis/` in the workspace storage.
+     */
+    private buildSessionPaths(
+        params: SessionCreationParams,
+        id: string,
+        targetName: string,
+    ): { outputDirectory: string; outputPath: string } {
+        const storageUri = params.context.storageUri;
+        if (!storageUri) {
+            throw new Error('Workspace storage URI is not available');
+        }
+
+        const outputDirectory = `${path.parse(targetName).name}_${params.analysisMode}_${params.targetType}_${id}`;
+        const baseDirectory = params.targetType === 'file' ? 'fileAnalysis' : 'directoryAnalysis';
+        const outputPath = path.join(storageUri.fsPath, baseDirectory, outputDirectory);
+        return { outputDirectory, outputPath };
+    }
+
+    private async hashTargetFile(targetPath: string): Promise<string> {
+        try {
+            return await SHA256Generator.generateFileHash(targetPath);
+        } catch (hashError) {
+            console.error(`UNIFIED_REGISTRY: Error calculating file hash:`, hashError);
+            throw new Error(`Failed to calculate file hash: ${hashError instanceof Error ? hashError.message : String(hashError)}`);
+        }
+    }
+
+    private async assertDirectoryTarget(targetPath: string): Promise<void> {
+        try {
+            const stats = await fs.stat(targetPath);
+            if (!stats.isDirectory()) {
+                throw new Error(`Target path is not a directory: ${targetPath}`);
+            }
+        } catch (statError) {
+            console.error(`UNIFIED_REGISTRY: Error accessing target path ${targetPath}:`, statError);
+            throw statError;
         }
     }
 
