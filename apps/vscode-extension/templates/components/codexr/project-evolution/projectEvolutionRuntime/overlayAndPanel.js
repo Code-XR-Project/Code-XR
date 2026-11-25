@@ -12,7 +12,7 @@
     overlay.appendChild(entity('a-plane', {
       width: 6.2,
       height: 0.72,
-      material: 'color: #111827; opacity: 0.78; transparent: true; shader: flat'
+      material: 'color: #111827; shader: flat'
     }));
     refs.overlayTitle = text('', '0 0.17 0.02', 5.8, '#fde68a');
     refs.overlayDetail = smallText('', '-2.7 -0.15 0.02', 5.4, '#e0f2fe', 'left', 52);

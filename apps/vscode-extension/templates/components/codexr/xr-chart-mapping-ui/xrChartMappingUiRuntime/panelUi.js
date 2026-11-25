@@ -400,7 +400,6 @@
 
     refs.panelBackground = createEntity('a-plane', {
       color: '#0A1628',
-      opacity: 0.94,
       width: 6.2,
       height: 2.2,
       position: '0 0 0'
