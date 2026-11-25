@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { BaseSectionProvider } from '../common/baseInterfaces';
 import { ServerTreeItem, ServerItemFactory } from './items/serverItems';
 import { ServerSettingsManager } from '../../servers/storage/serverSettingsManager';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('SERVERS');
 
 /**
  * Servers section provider for the modular tree view architecture
@@ -9,7 +12,7 @@ import { ServerSettingsManager } from '../../servers/storage/serverSettingsManag
 export class ServersSectionProvider extends BaseSectionProvider<ServerTreeItem> {
     constructor(context: vscode.ExtensionContext) {
         super(context);
-        console.log('SERVERS: Servers section provider initialized');
+        logger.debug('Servers section provider initialized');
     }
 
     getSectionName(): string {
@@ -17,7 +20,7 @@ export class ServersSectionProvider extends BaseSectionProvider<ServerTreeItem> 
     }
 
     getSectionItem(): ServerTreeItem {
-        console.log('SERVERS: Creating main SERVERS section item');
+        logger.debug('Creating main SERVERS section item');
         
         return new ServerTreeItem(
             'SERVERS',
@@ -35,7 +38,7 @@ export class ServersSectionProvider extends BaseSectionProvider<ServerTreeItem> 
     async getChildren(element?: ServerTreeItem): Promise<ServerTreeItem[]> {
         if (!element) {
             // Return main section children
-            console.log('SERVERS: Loading main servers section children');
+            logger.debug('Loading main servers section children');
             return this.getMainSectionChildren();
         }
 
@@ -57,7 +60,7 @@ export class ServersSectionProvider extends BaseSectionProvider<ServerTreeItem> 
      * Get main section children
      */
     private getMainSectionChildren(): ServerTreeItem[] {
-        console.log('SERVERS: Creating main section children');
+        logger.debug('Creating main section children');
         
         // Get current server configuration for the start server option
         const port = this.getServerPort();
@@ -73,7 +76,7 @@ export class ServersSectionProvider extends BaseSectionProvider<ServerTreeItem> 
      * Get configuration children
      */
     private getConfigurationChildren(): ServerTreeItem[] {
-        console.log('SERVERS: Creating configuration children');
+        logger.debug('Creating configuration children');
         return ServerItemFactory.createConfigurationOptions();
     }
 

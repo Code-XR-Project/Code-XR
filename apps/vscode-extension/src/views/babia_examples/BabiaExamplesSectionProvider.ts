@@ -3,6 +3,9 @@ import { BaseSectionProvider } from '../common/baseInterfaces';
 import { BabiaExampleTreeItem, BabiaExampleItemFactory } from './items/babiaExampleItems';
 import { BabiaExampleClickHandler } from './interactions/handleBabiaExampleClicks';
 import { ExampleLauncher } from '../../babia_examples/runtime/exampleLauncher';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('BABIA_EXAMPLES_MODULAR');
 
 /**
  * Babia Examples section provider - manages example loading and launching
@@ -13,7 +16,7 @@ export class BabiaExamplesSectionProvider extends BaseSectionProvider<BabiaExamp
 
     constructor(context: vscode.ExtensionContext) {
         super(context);
-        console.log('BABIA_EXAMPLES_MODULAR: Initializing Babia Examples section provider');
+        logger.debug('Initializing Babia Examples section provider');
         this.clickHandler = new BabiaExampleClickHandler(context);
         this.exampleLauncher = new ExampleLauncher(context);
     }
@@ -40,7 +43,7 @@ export class BabiaExamplesSectionProvider extends BaseSectionProvider<BabiaExamp
             return [];
         }
 
-        console.log('BABIA_EXAMPLES_MODULAR: Loading Babia examples section children');
+        logger.debug('Loading Babia examples section children');
 
         try {
             const examples = await this.exampleLauncher.getExamples();
@@ -50,18 +53,18 @@ export class BabiaExamplesSectionProvider extends BaseSectionProvider<BabiaExamp
             const libraryInfo = BabiaExampleItemFactory.createLibraryInfoItem();
 
             if (examples.length === 0) {
-                console.log('BABIA_EXAMPLES_MODULAR: No examples found');
+                logger.debug('No examples found');
                 return [BabiaExampleItemFactory.createNoExamplesItem(), libraryInfo];
             }
 
-            console.log(`BABIA_EXAMPLES_MODULAR: Found ${examples.length} examples`);
+            logger.debug(() => `Found ${examples.length} examples`);
             const children = BabiaExampleItemFactory.createSortedExampleItems(examples);
             children.push(libraryInfo);
-            console.log(`BABIA_EXAMPLES_MODULAR: Returning ${children.length} children for Babia Examples section`);
+            logger.debug(() => `Returning ${children.length} children for Babia Examples section`);
             return children;
 
         } catch (error) {
-            console.error('BABIA_EXAMPLES_MODULAR: Error loading Babia examples:', error);
+            logger.error('Error loading Babia examples:', error);
             return [
                 BabiaExampleItemFactory.createErrorItem(),
                 BabiaExampleItemFactory.createLibraryInfoItem(),

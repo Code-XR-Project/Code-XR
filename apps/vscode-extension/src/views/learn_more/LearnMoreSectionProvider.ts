@@ -7,6 +7,9 @@ import * as vscode from 'vscode';
 import { BaseSectionProvider } from '../common/baseInterfaces';
 import { LearnMoreModularTreeItem, LearnMoreModularItemFactory } from './items/learnMoreItems';
 import { LearnMoreClickHandler } from './interactions/handleLearnMoreClicks';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('LEARN_MORE');
 
 /**
  * Learn More section provider - provides access to CodeXR learning resources
@@ -16,7 +19,7 @@ export class LearnMoreSectionProvider extends BaseSectionProvider<LearnMoreModul
 
     constructor(context: vscode.ExtensionContext) {
         super(context);
-        console.log('LEARN_MORE: Initializing Learn More section provider');
+        logger.debug('Initializing Learn More section provider');
         this.clickHandler = new LearnMoreClickHandler(context);
     }
 
@@ -39,14 +42,14 @@ export class LearnMoreSectionProvider extends BaseSectionProvider<LearnMoreModul
 
     async getChildren(element?: LearnMoreModularTreeItem): Promise<LearnMoreModularTreeItem[]> {
         if (!element) {
-            console.log('LEARN_MORE: Loading learn more section children');
+            logger.debug('Loading learn more section children');
             return LearnMoreModularItemFactory.createLearnMoreItems(this.context);
         }
         return [];
     }
 
     handleItemClick(item: LearnMoreModularTreeItem): void {
-        console.log('LEARN_MORE: Item clicked:', item.label);
+        logger.debug('Item clicked:', item.label);
         this.clickHandler.handleClick(item);
     }
 }

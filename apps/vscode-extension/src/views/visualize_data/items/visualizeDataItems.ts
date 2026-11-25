@@ -3,6 +3,9 @@ import { VisualizeDataTreeItem, VisualizeDataItemFactory } from '../../../visual
 import { VisualizeDataState } from '../../../visualize_data/state/visualizeDataState';
 import { VisualizationRestorer } from '../../../visualize_data/runtime/visualizationRestorer';
 import { BrowseVisualizationItemFactory } from '../../../visualize_data/views/items/visualizationItem';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('VISUALIZE_DATA_MODULAR');
 
 /**
  * Visualize Data tree items for the Visualize Data section
@@ -36,7 +39,7 @@ export class VisualizeDataModularItemFactory {
      * Create "Error loading visualize data" message item
      */
     static createErrorItem(): VisualizeDataModularTreeItem {
-        console.log('VISUALIZE_DATA_MODULAR: Creating error loading visualize data item');
+        logger.debug('Creating error loading visualize data item');
         
         return new VisualizeDataModularTreeItem(
             'Error loading visualize data',
@@ -52,7 +55,7 @@ export class VisualizeDataModularItemFactory {
      * Create main visualize data items
      */
     static createVisualizeDataItems(context: vscode.ExtensionContext): VisualizeDataModularTreeItem[] {
-        console.log('VISUALIZE_DATA_MODULAR: Creating visualize data items');
+        logger.debug('Creating visualize data items');
         
         try {
             const visualizeDataItems = VisualizeDataItemFactory.createVisualizeDataItems(context);
@@ -81,11 +84,11 @@ export class VisualizeDataModularItemFactory {
                 );
             });
 
-            console.log(`VISUALIZE_DATA_MODULAR: Created ${children.length} visualize data items`);
+            logger.debug(() => `Created ${children.length} visualize data items`);
             return children;
 
         } catch (error) {
-            console.error('VISUALIZE_DATA_MODULAR: Error creating visualize data items:', error);
+            logger.error('Error creating visualize data items:', error);
             return [VisualizeDataModularItemFactory.createErrorItem()];
         }
     }
@@ -94,7 +97,7 @@ export class VisualizeDataModularItemFactory {
      * Create dimension mapping sub-items
      */
     static createDimensionMappingItems(_context: vscode.ExtensionContext, state?: VisualizeDataState): VisualizeDataModularTreeItem[] {
-        console.log('VISUALIZE_DATA_MODULAR: Creating dimension mapping items');
+        logger.debug('Creating dimension mapping items');
         
         try {
             // Provide a default state if none provided
@@ -124,11 +127,11 @@ export class VisualizeDataModularItemFactory {
                 );
             });
 
-            console.log(`VISUALIZE_DATA_MODULAR: Created ${children.length} dimension mapping items`);
+            logger.debug(() => `Created ${children.length} dimension mapping items`);
             return children;
 
         } catch (error) {
-            console.error('VISUALIZE_DATA_MODULAR: Error creating dimension mapping items:', error);
+            logger.error('Error creating dimension mapping items:', error);
             return [new VisualizeDataModularTreeItem(
                 'Error loading dimensions',
                 vscode.TreeItemCollapsibleState.None,
@@ -144,7 +147,7 @@ export class VisualizeDataModularItemFactory {
      * Create browse visualizations sub-items
      */
     static async createBrowseVisualizationItems(context: vscode.ExtensionContext): Promise<VisualizeDataModularTreeItem[]> {
-        console.log('VISUALIZE_DATA_MODULAR: Creating browse visualization items');
+        logger.debug('Creating browse visualization items');
         
         try {
             const visualizationRestorer = new VisualizationRestorer(context);
@@ -174,11 +177,11 @@ export class VisualizeDataModularItemFactory {
                 );
             });
 
-            console.log(`VISUALIZE_DATA_MODULAR: Created ${children.length} browse visualization items`);
+            logger.debug(() => `Created ${children.length} browse visualization items`);
             return children;
 
         } catch (error) {
-            console.error('VISUALIZE_DATA_MODULAR: Error loading browse visualizations:', error);
+            logger.error('Error loading browse visualizations:', error);
             return [new VisualizeDataModularTreeItem(
                 'Error loading visualizations',
                 vscode.TreeItemCollapsibleState.None,

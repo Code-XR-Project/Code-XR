@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { BabiaExample } from '../../../babia_examples/model/babiaExampleModel';
 import { ExampleIcons } from '../../../babia_examples/views/items/exampleItems';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('BABIA_EXAMPLES');
 
 /**
  * Babia Example tree items for the Babia Examples section
@@ -34,7 +37,7 @@ export class BabiaExampleItemFactory {
      * Create "No examples found" message item
      */
     static createNoExamplesItem(): BabiaExampleTreeItem {
-        console.log('BABIA_EXAMPLES: Creating "No examples found" message item');
+        logger.debug('Creating "No examples found" message item');
         
         return new BabiaExampleTreeItem(
             'No examples found',
@@ -69,7 +72,7 @@ export class BabiaExampleItemFactory {
     }
 
     static createErrorItem(): BabiaExampleTreeItem {
-        console.log('BABIA_EXAMPLES: Creating error loading examples item');
+        logger.debug('Creating error loading examples item');
         
         return new BabiaExampleTreeItem(
             'Error loading examples',
@@ -85,7 +88,7 @@ export class BabiaExampleItemFactory {
      * Create individual Babia example item
      */
     static createExampleItem(example: BabiaExample): BabiaExampleTreeItem {
-        console.log(`BABIA_EXAMPLES: Creating example item: ${example.name} (${example.category})`);
+        logger.debug(() => `Creating example item: ${example.name} (${example.category})`);
         
         const icon = BabiaExampleItemFactory.getExampleIcon(example);
         const statusSuffix = example.isValid ? '' : ' (Invalid)';
@@ -127,7 +130,7 @@ export class BabiaExampleItemFactory {
      * Create sorted example items from a list of examples
      */
     static createSortedExampleItems(examples: BabiaExample[]): BabiaExampleTreeItem[] {
-        console.log(`BABIA_EXAMPLES: Creating sorted tree items for ${examples.length} examples`);
+        logger.debug(() => `Creating sorted tree items for ${examples.length} examples`);
         
         // Sort examples by category and name
         const sortedExamples = examples.sort((a, b) => {

@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import { ServerSettingsManager } from '../../../servers/storage/serverSettingsManager';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('SERVERS');
 
 /**
  * Get current server configuration for dynamic item creation
@@ -39,7 +42,7 @@ export class ServerItemFactory {
      * Create server configuration group item
      */
     static createConfigurationGroup(): ServerTreeItem {
-        console.log('SERVERS: Creating Server Configuration group item');
+        logger.debug('Creating Server Configuration group item');
         
         return new ServerTreeItem(
             'Server Configuration',
@@ -55,7 +58,7 @@ export class ServerItemFactory {
      * Create start server option item
      */
     static createStartServerOption(port: number, httpMode: string): ServerTreeItem {
-        console.log(`SERVERS: Creating Start Local Server option for port ${port} (${httpMode})`);
+        logger.debug(() => `Creating Start Local Server option for port ${port} (${httpMode})`);
         
         return new ServerTreeItem(
             'Start Local Server',
@@ -74,7 +77,7 @@ export class ServerItemFactory {
      * Create configuration option items
      */
     static createConfigurationOptions(): ServerTreeItem[] {
-        console.log('SERVERS: Creating server configuration option items');
+        logger.debug('Creating server configuration option items');
         
         const config = getServerConfig();
         

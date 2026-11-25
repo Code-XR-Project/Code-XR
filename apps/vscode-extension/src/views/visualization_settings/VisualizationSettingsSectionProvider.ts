@@ -3,6 +3,9 @@ import { SectionProvider } from '../common/baseInterfaces';
 import { VisualizationSettingsModularTreeItem, VisualizationSettingsModularItemFactory } from './items/visualizationSettingsItems';
 import { VisualizationSettingsClickHandler } from './interactions/handleVisualizationSettingsClicks';
 import { VisualizationSettingsStorage } from '../../visualization_settings/storage/settingsStorage';
+import { getLogger } from '../../core/logging/sink';
+
+const logger = getLogger('VISUALIZATION_SETTINGS_MODULAR');
 
 /**
  * Visualization Settings section provider - manages visualization rendering preferences
@@ -18,7 +21,7 @@ export class VisualizationSettingsSectionProvider implements SectionProvider<Vis
     private visualizationSettingsStorage: VisualizationSettingsStorage;
 
     constructor(private context: vscode.ExtensionContext) {
-        console.log('VISUALIZATION_SETTINGS_MODULAR: Initializing Visualization Settings section provider');
+        logger.debug('Initializing Visualization Settings section provider');
         this.clickHandler = new VisualizationSettingsClickHandler(context);
         this.visualizationSettingsStorage = new VisualizationSettingsStorage(context);
     }
@@ -56,22 +59,22 @@ export class VisualizationSettingsSectionProvider implements SectionProvider<Vis
             return [];
         }
 
-        console.log('VISUALIZATION_SETTINGS_MODULAR: Loading visualization settings section children with dynamic color icons');
+        logger.debug('Loading visualization settings section children with dynamic color icons');
 
         try {
             const currentSettings = this.visualizationSettingsStorage.getSettings();
-            console.log(`VISUALIZATION_SETTINGS_MODULAR: Loading settings for dynamic icons: ${JSON.stringify(currentSettings)}`);
+            logger.debug(() => `Loading settings for dynamic icons: ${JSON.stringify(currentSettings)}`);
             
             const children = await VisualizationSettingsModularItemFactory.createVisualizationSettingsItems(
                 currentSettings, 
                 this.context
             );
             
-            console.log(`VISUALIZATION_SETTINGS_MODULAR: Created ${children.length} visualization settings items with dynamic icons`);
+            logger.debug(() => `Created ${children.length} visualization settings items with dynamic icons`);
             return children;
 
         } catch (error) {
-            console.error('VISUALIZATION_SETTINGS_MODULAR: Error loading visualization settings items:', error);
+            logger.error('Error loading visualization settings items:', error);
             return [VisualizationSettingsModularItemFactory.createErrorItem()];
         }
     }
@@ -80,7 +83,7 @@ export class VisualizationSettingsSectionProvider implements SectionProvider<Vis
      * Refresh the section
      */
     refresh(): void {
-        console.log('VISUALIZATION_SETTINGS_MODULAR: Refreshing Visualization Settings section');
+        logger.debug('Refreshing Visualization Settings section');
         this._onDidChangeTreeData.fire();
     }
 

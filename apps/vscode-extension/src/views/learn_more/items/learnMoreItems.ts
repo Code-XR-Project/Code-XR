@@ -4,6 +4,9 @@
  */
 
 import * as vscode from 'vscode';
+import { getLogger } from '../../../core/logging/sink';
+
+const logger = getLogger('LEARN_MORE');
 
 /**
  * Base class for Learn More modular tree items
@@ -37,7 +40,7 @@ export class LearnMoreModularItemFactory {
      * Create learn more section items
      */
     static createLearnMoreItems(_context: vscode.ExtensionContext): LearnMoreModularTreeItem[] {
-        console.log('LEARN_MORE: Creating learn more items');
+        logger.debug('Creating learn more items');
         
         const items: LearnMoreModularTreeItem[] = [];
         
