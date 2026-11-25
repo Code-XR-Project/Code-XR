@@ -199,6 +199,10 @@
     state.initialized = true;
     state.unregisterLifecycle = root.CodeXRAnalysisModeRuntime?.register?.(MODE, {
       mappingContextId: MODE,
+      // A frame can legitimately take a while (component waits, the frame
+      // apply and the containment settle are each bounded); past this the
+      // switcher reports the mode as failed instead of waiting forever.
+      activateTimeoutMs: 90000,
       captureState: captureEvolutionState,
       restoreState: function (activation) {
         if (activation?.token?.isCurrent && !activation.token.isCurrent()) {
@@ -243,7 +247,11 @@
         // may take several seconds, but the already-rendered frame is valid
         // saved state and must be visible as soon as the mode owns the table.
         var currentFrame = state.result.frames?.[state.frameIndex];
-        if (currentFrame && refs.evolutionRoot) {
+        // A pipeline that failed half-way leaves the root without a chart;
+        // that is no preserved frame, and seek() below rebuilds it. Before,
+        // this threw and every later entry bounced to the selector
+        // (LIFECYCLE-4).
+        if (currentFrame && refs.evolutionRoot && refs.evolutionChart) {
           ensureEvolutionRoot(currentFrame);
           refs.evolutionChart.setAttribute?.('visible', true);
           root.CodeXRMappingUiRuntime?.setChartEntityIds?.(

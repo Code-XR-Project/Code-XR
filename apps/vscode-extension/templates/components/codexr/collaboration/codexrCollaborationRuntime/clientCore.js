@@ -238,10 +238,18 @@
       ) {
         return;
       }
+      // Exponential back-off with jitter (0.9 s doubling up to 15 s): a server
+      // that is down is no longer hammered every 900 ms, with a console
+      // warning each time, for the rest of the session (LIFECYCLE-11).
+      const baseDelay = shared.config.reconnectDelayMs || DEFAULT_CONFIG.reconnectDelayMs;
+      const attempt = shared.reconnectAttempts || 0;
+      shared.reconnectAttempts = attempt + 1;
+      const delay = Math.min(RECONNECT_MAX_DELAY_MS, baseDelay * Math.pow(2, attempt));
+      const jitter = Math.floor(Math.random() * Math.min(500, delay / 4));
       shared.reconnectTimer = win.setTimeout(function () {
         shared.reconnectTimer = null;
         void ensureSocket();
-      }, shared.config.reconnectDelayMs || DEFAULT_CONFIG.reconnectDelayMs);
+      }, delay + jitter);
     }
 
     async function ensureSocket() {
@@ -276,6 +284,7 @@
       const socket = new win.WebSocket(url);
       shared.socket = socket;
       socket.onopen = function () {
+        shared.reconnectAttempts = 0;
         shared.joinedRoom = false;
         shared.snapshotReady = false;
         setError(null);
@@ -285,10 +294,20 @@
         });
       };
       socket.onmessage = function (event) {
+        let message;
         try {
-          handleServerMessage(JSON.parse(event.data));
+          message = JSON.parse(event.data);
         } catch (_error) {
           // Ignore malformed collaboration payloads.
+          return;
+        }
+        // Parsing and dispatch are separate: an exception thrown by a runtime
+        // while it applies a message used to be swallowed here as if the
+        // payload were malformed, with nothing in the console (LIFECYCLE-9).
+        try {
+          handleServerMessage(message);
+        } catch (error) {
+          win.console?.error?.('[CodeXR][Collab] Handling a "' + (message?.type || 'unknown') + '" message failed:', error);
         }
       };
       socket.onclose = function (event) {

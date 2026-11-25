@@ -105,6 +105,9 @@
         if (state.transitionLocked) {
           state.transitionLocked = false;
           setStatus('The dependency analysis did not respond. Try again.', true);
+          if (root.CodeXRAnalysisModeRuntime?.getState?.()?.mode === 'selection') {
+            root.CodeXRAnalysisModeRuntime.setSelectorStatus?.('The dependency analysis did not respond. Try again.', 'error');
+          }
           root.console?.warn?.('[CodeXR][DependencyGraph] dependency-graph-start received no response within 20s.');
         }
       }, 20000);

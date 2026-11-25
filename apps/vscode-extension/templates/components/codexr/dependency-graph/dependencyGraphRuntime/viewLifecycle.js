@@ -74,10 +74,10 @@
   // A file-scoped snapshot also points at the project-wide dataset; keep it
   // when it is still wanted. (Unlike the dataset fetch this does not re-check
   // snapshot identity - pinned as-is by dependencyGraph.test.cjs.)
-  async function loadProjectDataset(snapshot, loadGeneration, viewGeneration) {
+  async function loadProjectDataset(snapshot, loadGeneration, viewGeneration, signal) {
     var projectResponse = await fetch(
       snapshot.projectDatasetUrl + '?sourceRevision=' + Number(snapshot.sourceRevision || 0),
-      { cache: 'no-store' }
+      signal ? { cache: 'no-store', signal: signal } : { cache: 'no-store' }
     );
     if (projectResponse.ok && isLoadCurrent(loadGeneration, viewGeneration)) {
       var projectDataset = await projectResponse.json();
@@ -87,9 +87,20 @@
     }
   }
 
-  async function applySharedState(snapshot) {
+  /**
+   * options.signal aborts the dataset fetch (the mode switcher cancels an
+   * activation the user moved away from); options.rethrow makes a load
+   * failure reject, so the activation fails visibly on the selector instead
+   * of leaving an empty table that says "ready" (LIFECYCLE-5).
+   */
+  async function applySharedState(snapshot, options) {
+    var signal = options?.signal || null;
     snapshot = withSnapshotDefaults(snapshot);
     state.snapshot = snapshot;
+    if (snapshot && snapshot.status !== 'ready') {
+      // A new analysis is under way: the old load error no longer applies.
+      state.loadError = null;
+    }
     if (!snapshot) {
       renderControls();
       return;
@@ -109,21 +120,36 @@
     try {
       var loadGeneration = ++state.datasetLoadGeneration;
       var viewGeneration = state.viewGeneration;
-      var response = await fetch(snapshot.datasetUrl + '?revision=' + snapshot.revision, { cache: 'no-store' });
-      if (!response.ok) { throw new Error('Dependency dataset could not be loaded.'); }
+      var response = await fetch(
+        snapshot.datasetUrl + '?revision=' + snapshot.revision,
+        signal ? { cache: 'no-store', signal: signal } : { cache: 'no-store' }
+      );
+      if (!response.ok) {
+        throw new Error('The dependency data could not be loaded (HTTP ' + response.status + ').');
+      }
       var dataset = await response.json();
       if (!isLoadCurrent(loadGeneration, viewGeneration) || state.snapshot !== snapshot) {
         return;
       }
       storeDataset(snapshot, dataset);
       if (snapshot.projectDatasetUrl) {
-        await loadProjectDataset(snapshot, loadGeneration, viewGeneration);
+        await loadProjectDataset(snapshot, loadGeneration, viewGeneration, signal);
       }
+      state.loadError = null;
       renderGraph();
       setTransitionLocked(false);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), true);
       setTransitionLocked(false);
+      if (signal?.aborted) {
+        // Cancelled by the switcher: not an error the user should read.
+        return;
+      }
+      var message = error && typeof error.message === 'string' ? error.message : String(error);
+      // Sticky: renderControls re-runs on every panel route and would
+      // otherwise overwrite it with the snapshot's "ready".
+      state.loadError = message;
+      setStatus(message, true);
+      if (options?.rethrow) { throw error; }
     }
   }
 
@@ -131,8 +157,7 @@
     return state.snapshot?.status === 'ready' && !!state.snapshot?.datasetUrl;
   }
 
-  function activateReadySnapshot(reason) {
-    if (!hasReadySnapshot()) { return false; }
+  function enterDependencyMode(reason) {
     var offline = client()?.isOfflineExport?.() === true;
     root.console?.log?.('[CodeXR.Debug]: Activating existing dependency graph snapshot', {
       offline: offline,
@@ -151,12 +176,29 @@
     return true;
   }
 
+  function activateReadySnapshot(reason) {
+    if (!hasReadySnapshot()) { return false; }
+    return enterDependencyMode(reason);
+  }
+
+  /** Mirrors the opening progress on the selector, which is what is visible. */
+  function reportOnSelector(message, isError) {
+    var modeRuntime = root.CodeXRAnalysisModeRuntime;
+    if (modeRuntime?.getState?.()?.mode !== 'selection') { return; }
+    modeRuntime.setSelectorStatus?.(message, isError ? 'error' : 'info');
+  }
+
   async function start() {
     if (state.availability !== 'enabled') {
       setStatus(state.unavailableReason, true);
       return;
     }
-    if (state.transitionLocked) { return; }
+    if (state.transitionLocked) {
+      // A second click while the first is still opening: say so instead of
+      // swallowing it (LIFECYCLE-6).
+      reportOnSelector('Still opening the dependency graph...', false);
+      return;
+    }
     if (hasReadySnapshot() && client()?.isOfflineExport?.()) {
       activateReadySnapshot('offline-dependency-snapshot');
       return;
@@ -173,6 +215,7 @@
       return;
     }
     setTransitionLocked(true, 'Opening dependencies...');
+    reportOnSelector('Opening dependencies...', false);
     // The hop to selection is cosmetic; the server's authoritative
     // analysis-view broadcast is what really drives the scene into
     // dependency mode. A failed local transition must never swallow the
@@ -189,11 +232,22 @@
     // until it goes through. Gated on a send generation of its own (the
     // transition lock legitimately clears during the hop to selection).
     var sendGeneration = state.startSendGeneration = (state.startSendGeneration || 0) + 1;
+    var attempts = 0;
     var attemptSend = function () {
       if (sendGeneration !== state.startSendGeneration) { return; }
       // Only an explicit `false` means "socket not ready, dropped" — clients
       // whose sendMessage returns nothing are treated as delivered.
       if (client()?.sendMessage?.('dependency-graph-start', {}) !== false) { return; }
+      attempts += 1;
+      // Bounded like the lock watchdog: a socket that stays down for 20 s
+      // gets a visible answer, not a retry loop for the rest of the session.
+      if (attempts >= START_SEND_MAX_ATTEMPTS) {
+        root.console?.warn?.('[CodeXR][DependencyGraph] collaboration socket stayed down; giving up on dependency-graph-start.');
+        setTransitionLocked(false);
+        setStatus('CodeXR is not connected to VS Code. Try again once it reconnects.', true);
+        reportOnSelector('CodeXR is not connected to VS Code. Try again once it reconnects.', true);
+        return;
+      }
       root.console?.warn?.('[CodeXR][DependencyGraph] collaboration socket not ready; retrying dependency-graph-start...');
       setTimeout(attemptSend, 500);
     };
@@ -210,6 +264,15 @@
   }
   function selectDependencyMode() {
     if (activateReadySnapshot('local-dependency-mode-option')) {
+      return;
+    }
+    // A refresh is already running (a file was saved, or another participant
+    // started one): attach to it. The mode opens with its progress and
+    // renders when the ready snapshot lands. Starting again was refused by
+    // the server and stranded the user on the selector (DEPGRAPH-7).
+    if (state.snapshot?.status === 'analyzing' && !client()?.isOfflineExport?.()) {
+      root.console?.log?.('[CodeXR.Debug]: Dependency analysis already running; attaching to it');
+      enterDependencyMode('attach-running-dependency-analysis');
       return;
     }
     root.console?.log?.('[CodeXR.Debug]: Dependency graph mode selected; starting dependency analysis', {
@@ -248,11 +311,20 @@
   function registerCollaboration() {
     var connection = client();
     state.disposables.push(connection?.onMessage?.('dependency-graph-progress', function (message) {
-      setStatus(message?.payload?.message || 'Analyzing dependencies...', false);
+      var progress = message?.payload?.message || 'Analyzing dependencies...';
+      setStatus(progress, false);
+      // Progress is an answer: re-arm the 20 s watchdog so a long first
+      // analysis is not reported as "did not respond" while it works.
+      if (state.transitionLocked) {
+        setTransitionLocked(true);
+        reportOnSelector(progress, false);
+      }
     }));
     state.disposables.push(connection?.onMessage?.('dependency-graph-error', function (message) {
-      root.console?.warn?.('[CodeXR][DependencyGraph] Server reported:', message?.payload?.message || 'Dependency analysis failed.');
-      setStatus(message?.payload?.message || 'Dependency analysis failed.', true);
+      var failure = message?.payload?.message || 'Dependency analysis failed.';
+      root.console?.warn?.('[CodeXR][DependencyGraph] Server reported:', failure);
+      setStatus(failure, true);
+      reportOnSelector(failure, true);
       setTransitionLocked(false);
     }));
     connection?.registerEntityRuntime?.({
@@ -267,7 +339,11 @@
     if (!state.unregisterLifecycle && root.CodeXRAnalysisModeRuntime?.register) {
       state.unregisterLifecycle = root.CodeXRAnalysisModeRuntime.register('dependency-graph', {
         mappingContextId: null,
-        activate: function () {
+        activate: function (activation) {
+          // Abandoned by the switcher before it started: leave the table alone.
+          if (activation?.token?.isCurrent && !activation.token.isCurrent()) {
+            return false;
+          }
           state.active = true;
           state.viewGeneration += 1;
           parkOriginal();
@@ -279,7 +355,7 @@
             return;
           }
           if (state.snapshot) {
-            return applySharedState(state.snapshot);
+            return applySharedState(state.snapshot, { signal: activation?.signal, rethrow: true });
           }
         },
         deactivate: function () {

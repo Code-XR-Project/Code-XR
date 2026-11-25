@@ -1392,3 +1392,56 @@ test('dependency applySharedState: every branch behaves as before (characterizat
   }
   assert.deepEqual(results, DEPENDENCY_SHARED_STATE_CHARACTERIZATION);
 });
+
+// Epic #72 / S7: a dataset that cannot be loaded on entry fails the
+// activation (it lands on the selector with its reason) and stays visible on
+// the panel instead of being overwritten with "ready" (LIFECYCLE-5).
+test('a dataset load failure during activation rejects and stays as a sticky panel error', async () => {
+  const source = readAssembledRuntime('dependency-graph', 'dependencyGraphRuntime.js');
+  const context = { setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {}, info() {}, debug() {} } };
+  context.CodeXRAnalysisModeRuntime = { getState: () => ({ mode: 'dependency-graph' }) };
+  vm.runInNewContext(source, context);
+  const runtime = context.CodeXRDependencyGraphRuntime;
+  const state = runtime.getState();
+  state.active = true;
+  let seenSignal = null;
+  context.fetch = async (_url, init) => { seenSignal = init?.signal || null; return { ok: false, status: 500 }; };
+  const signal = { aborted: false, addEventListener() {}, removeEventListener() {} };
+
+  await assert.rejects(
+    runtime.applySharedState(readyDirectory, { signal, rethrow: true }),
+    /could not be loaded \(HTTP 500\)/
+  );
+  assert.equal(seenSignal, signal, 'the switcher signal reaches fetch');
+  assert.match(state.loadError, /HTTP 500/);
+
+  // A passive entity update keeps reporting it without throwing.
+  await runtime.applySharedState(readyDirectory);
+  assert.match(state.loadError, /HTTP 500/);
+
+  // A new analysis clears it, and a successful load leaves no error behind.
+  await runtime.applySharedState({ status: 'analyzing', message: 'Analyzing dependencies...' });
+  assert.equal(state.loadError, null);
+});
+
+test('a load cancelled by the switcher is not reported as an error', async () => {
+  const source = readAssembledRuntime('dependency-graph', 'dependencyGraphRuntime.js');
+  const context = { setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {}, info() {}, debug() {} } };
+  context.CodeXRAnalysisModeRuntime = { getState: () => ({ mode: 'dependency-graph' }) };
+  vm.runInNewContext(source, context);
+  const runtime = context.CodeXRDependencyGraphRuntime;
+  runtime.getState().active = true;
+  const signal = { aborted: true, addEventListener() {}, removeEventListener() {} };
+  context.fetch = async () => { throw Object.assign(new Error('aborted'), { name: 'AbortError' }); };
+  await runtime.applySharedState(readyDirectory, { signal, rethrow: true });
+  assert.equal(runtime.getState().loadError, null);
+});
+
+test('picking the dependency graph while an analysis runs attaches to it instead of restarting (DEPGRAPH-7)', () => {
+  const source = readAssembledRuntime('dependency-graph', 'dependencyGraphRuntime.js');
+  // selectDependencyMode attaches on an "analyzing" snapshot and only starts
+  // a new analysis when there is none; progress re-arms the 20 s watchdog.
+  assert.match(source, /state\.snapshot\?\.status === 'analyzing'[\s\S]{0,200}enterDependencyMode\('attach-running-dependency-analysis'\)/);
+  assert.match(source, /dependency-graph-progress[\s\S]{0,400}if \(state\.transitionLocked\) \{\s*setTransitionLocked\(true\);/);
+  assert.match(source, /attempts >= START_SEND_MAX_ATTEMPTS/);
+});

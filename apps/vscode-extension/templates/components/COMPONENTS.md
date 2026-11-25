@@ -51,6 +51,23 @@ its parts directory. Manual harnesses load assembled copies from
   - Feeds row-budgeted charts (everything except boats) from a top-N sliced `babia-queryjson` datasource (`chartDataSlice.js` part): ranked by the mapped magnitude, rows violating `numeric-positive` value rules filtered out, one row per Babia element key. Chart construction (rotation, base attributes, budgets) follows the generator-injected presentation profile (`#codexr-chart-base-config`), with a fallback mirror in `mappingProfiles.js`.
 - `codexr/analysis-mode/analysisModeRuntime.js`
   - Owns mode switching between normal analysis, historical comparison and dependency graph.
+  - **Mode lifecycle contract** (epic #72, S7). `changeAnalysis` cancels instead of queueing:
+    a newer pick aborts the activation in flight (`activation.signal`, also on
+    `activation.token.signal`; `token.isCurrent()` turns false) and starts at once. A lifecycle
+    passes that signal to every `fetch` and returns early from `activate` when the token is no
+    longer current. `activate` has a timeout (`activateTimeoutMs` on the lifecycle, default 45 s;
+    project evolution declares 90 s); `captureState`/`restoreState`/`deactivate` are abandoned
+    after 8 s. An abandoned activate that settles later is deactivated once more. A failure (throw,
+    rejection or timeout) lands on the selector with the reason on its own status line and the
+    failed option relabelled "Retry: …", does not become `requestedMode`, and sends
+    `analysis-mode-selection` when the pick was local (not for a failure caused by the room's
+    echo); the echo of the failed pick is ignored for 5 s. `openSelector` announces the selection
+    only if no newer pick happened meanwhile. A mode reports opening progress with
+    `setSelectorStatus(message, tone)`. `getState()` exposes `activation`, `lastError` and
+    `selectorStatus`. A lifecycle whose data cannot load must reject (dependency graph and
+    historical comparison do, through `applySharedState(snapshot, { signal, rethrow: true })`),
+    never sit on an empty table that says "ready". Pinned by
+    `test/analysis/analysisModeLifecycleContract.test.cjs`.
 - `codexr/dependency-graph/dependencyGraphRuntime.js`
   - Owns the dependency graph visualization, layouts, filters, navigation and dependency-specific interaction.
   - Uses `CodeXRCommonRuntime` for tooltip presentation and billboard behavior.
@@ -89,6 +106,9 @@ its parts directory. Manual harnesses load assembled copies from
   - Owns shared presence, identity, avatars, pointers and collaboration entities.
   - Terminal disconnects show a full-page screen (`disconnectScreen.js` part) and stop
     the reconnect loop: `session-ended` (host stopped the server) and `participant-kick`.
+  - Reconnects back off exponentially (0.9 s doubling, 15 s cap, jitter), reset on open. A
+    runtime that throws while applying a message or a snapshot entity is logged and isolated, so
+    the rest of the snapshot still applies; the `analysis-view` entity is applied last.
   - **Passive mode-entity contract** (applies to EVERY analysis-mode runtime, present and future):
     a mode's shared entity (`dependency-graph`, `historical-comparison`, `project-evolution`, …)
     carries DATA, never intent. `applySharedState` stores the payload and renders only if its own

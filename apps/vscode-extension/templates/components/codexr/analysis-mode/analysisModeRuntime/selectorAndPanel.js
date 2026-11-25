@@ -7,7 +7,88 @@
   }
 
   /**
-   * Like invoke(), but failures are logged and swallowed (sync throws too).
+   * An abort handle with the AbortSignal shape. The real AbortController is
+   * used when the page has one, so a lifecycle can hand the signal straight to
+   * fetch(); the fallback keeps the runtime working in a bare vm context.
+   */
+  function createAbortHandle() {
+    if (typeof root.AbortController === 'function') {
+      return new root.AbortController();
+    }
+    var listeners = [];
+    var signal = {
+      aborted: false,
+      reason: undefined,
+      addEventListener: function (type, listener) {
+        if (type === 'abort' && typeof listener === 'function') { listeners.push(listener); }
+      },
+      removeEventListener: function (type, listener) {
+        listeners = listeners.filter(function (candidate) { return candidate !== listener; });
+      }
+    };
+    return {
+      signal: signal,
+      abort: function (reason) {
+        if (signal.aborted) { return; }
+        signal.aborted = true;
+        signal.reason = reason;
+        listeners.splice(0).forEach(function (listener) {
+          try { listener({ type: 'abort' }); } catch (_error) { /* a listener cannot stop the abort */ }
+        });
+      }
+    };
+  }
+
+  function createModeError(code, message) {
+    var error = new Error(message);
+    error.name = code === 'aborted' ? 'AbortError' : 'CodeXRModeError';
+    error.code = code;
+    return error;
+  }
+
+  /**
+   * Settles with `promise`, or rejects once `timeoutMs` passes or `signal`
+   * aborts, whichever comes first. The lifecycle's own promise keeps running;
+   * this only stops the switcher from waiting on it.
+   */
+  function settleWithin(promise, timeoutMs, signal, label) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var timer = null;
+      var onAbort = null;
+      function finish(callback, value) {
+        if (done) { return; }
+        done = true;
+        if (timer !== null) { root.clearTimeout?.(timer); }
+        if (onAbort) { signal?.removeEventListener?.('abort', onAbort); }
+        callback(value);
+      }
+      if (signal?.aborted) {
+        finish(reject, createModeError('aborted', label + ' was cancelled by a newer request.'));
+        return;
+      }
+      if (timeoutMs > 0 && typeof root.setTimeout === 'function') {
+        timer = root.setTimeout(function () {
+          finish(reject, createModeError('timeout', label + ' did not finish within ' + Math.round(timeoutMs / 1000) + ' s.'));
+        }, timeoutMs);
+      }
+      if (signal?.addEventListener) {
+        onAbort = function () {
+          finish(reject, createModeError('aborted', label + ' was cancelled by a newer request.'));
+        };
+        signal.addEventListener('abort', onAbort);
+      }
+      Promise.resolve(promise).then(function (value) {
+        finish(resolve, value);
+      }, function (error) {
+        finish(reject, error);
+      });
+    });
+  }
+
+  /**
+   * Like invoke(), but failures are logged and swallowed (sync throws too),
+   * and a hook that never settles is abandoned after LIFECYCLE_HOOK_TIMEOUT_MS.
    * Lifecycle hooks run through this: a mode that
    * fails to clean up may degrade itself, but it must never abort the
    * transition — otherwise the table keeps the old mode's theme and the
@@ -15,13 +96,28 @@
    */
   function invokeSafely(lifecycle, method, context) {
     try {
-      return invoke(lifecycle, method, context).catch(function (error) {
+      return settleWithin(
+        invoke(lifecycle, method, context),
+        LIFECYCLE_HOOK_TIMEOUT_MS,
+        null,
+        'Lifecycle ' + method
+      ).catch(function (error) {
         root.console?.error?.('[CodeXR][AnalysisMode] Lifecycle ' + method + ' failed:', error);
       });
     } catch (error) {
       root.console?.error?.('[CodeXR][AnalysisMode] Lifecycle ' + method + ' failed:', error);
       return Promise.resolve();
     }
+  }
+
+  function getModeLabel(mode) {
+    if (mode === 'single') { return 'Normal analysis'; }
+    var option = state.modeOptions.find(function (candidate) { return candidate.id === mode; });
+    return option?.label || String(mode || 'this analysis');
+  }
+
+  function describeError(error) {
+    return error && typeof error.message === 'string' ? error.message : String(error);
   }
 
   function register(mode, lifecycle) {
@@ -39,6 +135,8 @@
         if (!state.transitioning && state.mode === mode) {
           state.activeLifecycleMode = mode;
         }
+      }).catch(function (error) {
+        root.console?.error?.('[CodeXR][AnalysisMode] Could not activate late-registered mode:', mode, error);
       });
     }
     return function () {
@@ -136,18 +234,47 @@
     });
   }
 
+  /**
+   * The line above the options. It is the selector's own status line: an
+   * analysis that failed to open says so here (with its option relabelled
+   * "Retry"), and a mode that is still opening reports its progress here.
+   * Before, both went to the mapping view's status line, which is hidden
+   * while the selector is up, so a failure read as "nothing happened".
+   */
+  function getSelectorHeadline() {
+    if (state.lastError) {
+      return {
+        value: 'Could not open ' + getModeLabel(state.lastError.mode) + ': ' + state.lastError.message
+          + '\nPick it again to retry, or choose another analysis.',
+        color: '#fecaca',
+        tone: 'error'
+      };
+    }
+    if (state.selectorStatus?.message) {
+      return {
+        value: state.selectorStatus.message,
+        color: state.selectorStatus.tone === 'error' ? '#fecaca' : '#fde68a',
+        tone: state.selectorStatus.tone || 'info'
+      };
+    }
+    return { value: 'Choose how the analysis table represents the data.', color: '#cde7ff', tone: 'info' };
+  }
+
   function renderModeOptions() {
     if (!state.panelRoot) { return; }
     while (state.panelRoot.firstChild) {
       state.panelRoot.removeChild(state.panelRoot.firstChild);
     }
+    var headline = getSelectorHeadline();
     state.panelRoot.appendChild(createEntity('a-text', {
-      value: 'Choose how the analysis table represents the data.',
+      value: headline.value,
       position: '0 1.18 0.02',
       width: 5.5,
-      color: '#cde7ff',
+      color: headline.color,
       align: 'center',
-      baseline: 'center'
+      baseline: 'center',
+      'wrap-count': 52,
+      'data-codexr-mode-selector-status': headline.tone
     }));
     var options = [{
       id: 'single',
@@ -158,8 +285,23 @@
       }
     }].concat(state.modeOptions);
     options.forEach(function (option, index) {
-      state.panelRoot.appendChild(createModeButton(option, 0.55 - (index * 0.62)));
+      var shown = option;
+      if (state.lastError?.mode === option.id && option.disabled !== true) {
+        shown = Object.assign({}, option, { label: 'Retry: ' + option.label });
+      }
+      state.panelRoot.appendChild(createModeButton(shown, 0.55 - (index * 0.62)));
     });
+  }
+
+  /**
+   * Lets a mode report progress on the selector while it opens (the
+   * dependency graph's "Opening dependencies…", for one). Pass an empty
+   * message to clear it.
+   */
+  function setSelectorStatus(message, tone) {
+    var text = String(message || '').trim();
+    state.selectorStatus = text ? { message: text, tone: tone === 'error' ? 'error' : 'info', at: Date.now() } : null;
+    renderModeOptions();
   }
 
   function registerModeOption(option) {
@@ -196,11 +338,24 @@
       transitioning: state.transitioning
     });
     state.selectionPanelView = 'visualization-mode';
-    return changeAnalysis('selection', {
+    var transition = changeAnalysis('selection', {
       reason: 'local-mode-selection',
       controllerView: 'visualization-menu',
       panelViewId: 'visualization-mode'
-    }).then(function () {
+    });
+    // The generation this intent owns. If the user picks an analysis before
+    // the selection transition lands, that pick is newer: announcing the
+    // selection afterwards would make the room (and this page, through the
+    // echo) snap back to the empty selector (LIFECYCLE-2).
+    var selectionGeneration = state.generation;
+    return transition.then(function () {
+      if (state.generation !== selectionGeneration) {
+        debugLog('Selection announcement skipped: a newer analysis was picked', {
+          selectionGeneration: selectionGeneration,
+          generation: state.generation
+        });
+        return false;
+      }
       root.CodeXRCollaborationRuntime?.getClient?.(root)
         ?.sendMessage?.('analysis-mode-selection', {});
       return true;
@@ -275,6 +430,45 @@
     renderModeOptions();
   }
 
+  /**
+   * An activation the switcher stopped waiting for (a newer pick, or its
+   * timeout) keeps running in the lifecycle. When it does settle, and its
+   * mode is no longer the one on the table, it is deactivated once more so
+   * whatever it mounted late is removed.
+   */
+  function watchAbandonedActivation(mode, lifecycle, rawActivation, token) {
+    Promise.resolve(rawActivation).catch(function () {}).then(function () {
+      if (state.activeLifecycleMode === mode || state.pendingTransitionMode === mode) {
+        return;
+      }
+      debugLog('Abandoned activation settled; cleaning up', { mode: mode });
+      return invokeSafely(lifecycle, 'deactivate', {
+        from: mode,
+        to: state.mode,
+        generation: token?.generation,
+        context: { reason: 'abandoned-activation-settled' },
+        token: token
+      });
+    });
+  }
+
+  /**
+   * A failed activation lands on the selector with the reason shown there,
+   * and the room is told, so the server and every guest leave the failed
+   * mode too. The room's echo of the failed pick (already in flight) is not
+   * re-run here.
+   */
+  function recordActivationFailure(mode, error, context) {
+    state.lastError = { mode: mode, message: describeError(error), code: error?.code || 'error', at: Date.now() };
+    state.suppressEcho = { mode: mode, until: Date.now() + FAILED_MODE_ECHO_WINDOW_MS };
+    state.selectorStatus = null;
+    renderModeOptions();
+    if (context?.reason !== 'authoritative-analysis-view') {
+      root.CodeXRCollaborationRuntime?.getClient?.(root)
+        ?.sendMessage?.('analysis-mode-selection', {});
+    }
+  }
+
   async function performTransition(mode, context, generation) {
     var previousMode = state.activeLifecycleMode;
     var activationToken = createActivationToken(mode, generation);
@@ -314,51 +508,88 @@
       token: activationToken
     });
     if (generation !== state.generation) { return false; }
+    // requestedMode is what "Analyses" resumes; a mode that fails to open
+    // must not become it (pressing the header would retry the failure).
+    var requestedBefore = state.requestedMode;
     applyAnalysisMode(mode, context || null);
+    var lifecycle = lifecycles[mode];
+    var abortHandle = createAbortHandle();
+    var activation = { mode: mode, generation: generation, abort: abortHandle, startedAt: Date.now() };
+    state.activation = activation;
+    activationToken.signal = abortHandle.signal;
+    var timeoutMs = Number(lifecycle?.activateTimeoutMs) > 0
+      ? Number(lifecycle.activateTimeoutMs)
+      : DEFAULT_ACTIVATE_TIMEOUT_MS;
+    var rawActivation;
     try {
-      await invoke(lifecycles[mode], 'activate', {
+      rawActivation = invoke(lifecycle, 'activate', {
         from: previousMode,
         to: mode,
         generation: generation,
         context: context || null,
         savedState: state.modeSnapshots[mode],
-        token: activationToken
+        token: activationToken,
+        signal: abortHandle.signal
       });
     } catch (error) {
-      if (generation === state.generation) {
-        await invokeSafely(lifecycles[mode], 'deactivate', {
-          from: mode,
-          to: 'selection',
-          generation: generation,
-          context: { reason: 'activation-error', error: error },
-          token: activationToken
-        });
-        applyAnalysisMode('selection', { panelViewId: state.selectionPanelView });
-        await clearVisualizationsForSelection({ generation: generation });
+      rawActivation = Promise.reject(error);
+    }
+    try {
+      await settleWithin(rawActivation, timeoutMs, abortHandle.signal, 'Opening ' + getModeLabel(mode));
+    } catch (error) {
+      if (state.activation === activation) { state.activation = null; }
+      if (error?.code === 'aborted' || generation !== state.generation) {
+        // Superseded: the newer transition deactivates this mode as its
+        // previous one. If the abandoned activate settles later, it is
+        // cleaned up then (it may have mounted something after that).
+        watchAbandonedActivation(mode, lifecycle, rawActivation, activationToken);
+        debugLog('Analysis mode activation abandoned for a newer request', { mode: mode, generation: generation });
+        return false;
       }
-      // Say it on the controller too: a failed activation silently bounces the
-      // user back to the analysis selector, which reads as "this analysis just
-      // won't open" with no clue why.
-      root.CodeXRMappingUiRuntime?.setStatusMessage?.(
-        'CodeXR could not open this analysis. ' + (error instanceof Error ? error.message : String(error)),
-        'error',
-        6000
-      );
+      // Stop the lifecycle's own work (fetches honour the signal), then clean up.
+      abortHandle.abort(error);
+      if (error?.code === 'timeout') {
+        watchAbandonedActivation(mode, lifecycle, rawActivation, activationToken);
+      }
+      await invokeSafely(lifecycle, 'deactivate', {
+        from: mode,
+        to: 'selection',
+        generation: generation,
+        context: { reason: 'activation-error', error: error },
+        token: activationToken
+      });
+      if (generation !== state.generation) { return false; }
+      // The room's echo of this pick may already have set it (it can land
+      // before the transition starts); either way it must not be the failed
+      // mode.
+      state.requestedMode = requestedBefore !== mode ? requestedBefore : 'single';
+      recordActivationFailure(mode, error, context);
+      applyAnalysisMode('selection', { panelViewId: 'visualization-mode', controllerView: 'visualization-menu' });
+      await clearVisualizationsForSelection({ generation: generation });
       console.error('[CodeXR][AnalysisMode] Could not activate mode:', mode, error);
       return false;
     }
+    if (state.activation === activation) { state.activation = null; }
     if (generation !== state.generation) {
-      await invokeSafely(lifecycles[mode], 'deactivate', {
+      await invokeSafely(lifecycle, 'deactivate', {
         from: mode,
         to: null,
         generation: generation,
         context: { reason: 'superseded-activation' },
         token: activationToken
       });
-      if (state.activeLifecycleMode === mode) {
+      if (state.activeLifecycleMode === mode && state.pendingTransitionMode !== mode) {
         state.activeLifecycleMode = null;
       }
       return false;
+    }
+    if (mode !== 'selection') {
+      state.lastError = null;
+      state.suppressEcho = null;
+    }
+    if (state.selectorStatus || mode !== 'selection') {
+      state.selectorStatus = null;
+      renderModeOptions();
     }
     // The mode was applied once before activate (the lifecycle needs it in
     // place while it mounts). Re-applying it here would redo the table geometry
