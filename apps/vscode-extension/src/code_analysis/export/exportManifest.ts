@@ -168,61 +168,68 @@ export async function relativizeExportArtifacts(destinationPath: string): Promis
 
     const comparisonDir = path.join(destinationPath, 'comparison');
     for (const entry of listNumberedArtifacts(comparisonDir, /^revision-(\d+)\.json$/)) {
-        const filePath = path.join(comparisonDir, entry.fileName);
-        const result = await readJsonIfPresent(filePath);
-        if (!result) {
-            continue;
-        }
-        let changed = false;
-        for (const side of ['left', 'right'] as const) {
-            const dataset = result[side] as Record<string, unknown> | undefined;
-            if (dataset && typeof dataset === 'object') {
-                const relative = relativizeUrl(dataset.url);
-                if (relative !== dataset.url) {
-                    dataset.url = relative;
-                    changed = true;
+        const changed = await rewriteJsonUrls(path.join(comparisonDir, entry.fileName), (result) => {
+            let sideChanged = false;
+            for (const side of ['left', 'right'] as const) {
+                const dataset = result[side] as Record<string, unknown> | undefined;
+                if (dataset && typeof dataset === 'object') {
+                    sideChanged = relativizeField(dataset, 'url') || sideChanged;
                 }
             }
-        }
-        if (changed) {
-            await writeJson(filePath, result);
-            rewritten += 1;
-        }
+            return sideChanged;
+        });
+        rewritten += changed ? 1 : 0;
     }
 
     const evolutionDir = path.join(destinationPath, 'evolution');
-    if (fs.existsSync(evolutionDir)) {
-        const revisionDirs = fs.readdirSync(evolutionDir).filter((name) => /^revision-\d+$/.test(name));
-        for (const revisionDirName of revisionDirs) {
-            const manifestPath = path.join(evolutionDir, revisionDirName, 'manifest.json');
-            const result = await readJsonIfPresent(manifestPath);
-            if (!result) {
-                continue;
-            }
-            let changed = false;
+    const revisionDirs = fs.existsSync(evolutionDir)
+        ? fs.readdirSync(evolutionDir).filter((name) => /^revision-\d+$/.test(name))
+        : [];
+    for (const revisionDirName of revisionDirs) {
+        const changed = await rewriteJsonUrls(path.join(evolutionDir, revisionDirName, 'manifest.json'), (result) => {
+            let fieldChanged = false;
             for (const key of ['manifestUrl', 'bridgeUrl'] as const) {
-                const relative = relativizeUrl(result[key]);
-                if (relative !== result[key]) {
-                    result[key] = relative;
-                    changed = true;
-                }
+                fieldChanged = relativizeField(result, key) || fieldChanged;
             }
             const frames = Array.isArray(result.frames) ? result.frames : [];
             for (const frame of frames as Record<string, unknown>[]) {
-                const relative = relativizeUrl(frame?.url);
-                if (frame && relative !== frame.url) {
-                    frame.url = relative;
-                    changed = true;
+                if (frame) {
+                    fieldChanged = relativizeField(frame, 'url') || fieldChanged;
                 }
             }
-            if (changed) {
-                await writeJson(manifestPath, result);
-                rewritten += 1;
-            }
-        }
+            return fieldChanged;
+        });
+        rewritten += changed ? 1 : 0;
     }
 
     return rewritten;
+}
+
+/**
+ * Read a JSON artifact, let `mutate` rewrite it in place, and write it back
+ * only when `mutate` reports a change. An unreadable file is left alone.
+ * Returns whether the file was written.
+ */
+async function rewriteJsonUrls(
+    filePath: string,
+    mutate: (doc: Record<string, unknown>) => boolean,
+): Promise<boolean> {
+    const doc = await readJsonIfPresent(filePath);
+    if (!doc || !mutate(doc)) {
+        return false;
+    }
+    await writeJson(filePath, doc);
+    return true;
+}
+
+/** Relativize `record[key]` in place; true when it changed. */
+function relativizeField(record: Record<string, unknown>, key: string): boolean {
+    const relative = relativizeUrl(record[key]);
+    if (relative === record[key]) {
+        return false;
+    }
+    record[key] = relative;
+    return true;
 }
 
 /**
