@@ -1,9 +1,8 @@
-import * as https from 'https';
 import * as vscode from 'vscode';
 import { NetworkUtils } from '../utils/networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
-import { buildTlsServerOptions, isCertificateRejectedByClient } from './httpsTlsOptions';
+import { isCertificateRejectedByClient } from './httpsTlsOptions';
 
 export type HttpsDefaultServerConfig = HttpsServerBaseConfig;
 
@@ -29,7 +28,11 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
         await this.validateCertificates();
         await this.resolveListeningPort();
 
-        return this.listenWithTls(() => this.loadSslOptions(), (server, resolve) => {
+        const loadSslOptions = () => this.loadSslOptions(
+            'SERVER: SSL certificates loaded successfully',
+            'SERVER: Failed to load SSL certificates',
+        );
+        return this.listenWithTls(loadSslOptions, (server, resolve) => {
             server.on('listening', () => {
                 const address = this.server?.address();
                 const port = this.config.port;
@@ -92,17 +95,6 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
         await this.assertCertificatePairReadable(certPath, keyPath);
     }
 
-    private loadSslOptions(): https.ServerOptions {
-        try {
-            const { cert, key } = this.readCertificatePair();
-
-            console.log('SERVER: SSL certificates loaded successfully');
-
-            return buildTlsServerOptions(cert, key);
-        } catch (error) {
-            throw new Error(`SERVER: Failed to load SSL certificates: ${error}`);
-        }
-    }
 
     private showVRCertificateInstructions(externalUrl: string, localhostUrl?: string): void {
         const primaryUrl = externalUrl;

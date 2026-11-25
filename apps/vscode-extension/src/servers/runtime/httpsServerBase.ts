@@ -6,6 +6,7 @@ import type { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './
 import type { ConnectedParticipantSummary } from '../../collaboration';
 import { PortManager } from './portManager';
 import { GeneratedHttpsCertificateManager } from './generatedHttpsCertificateManager';
+import { buildTlsServerOptions } from './httpsTlsOptions';
 import type { RemoteSessionAuthority } from '../../remote_access';
 
 /** The config shape both HTTPS servers share; each narrows it in its own interface. */
@@ -233,10 +234,20 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
         await fs.promises.access(keyPath, fs.constants.R_OK);
     }
 
-    protected readCertificatePair(): { cert: string; key: string } {
-        return {
-            cert: fs.readFileSync(this.config.certPath!, 'utf8'),
-            key: fs.readFileSync(this.config.keyPath!, 'utf8'),
-        };
+    /**
+     * Reads the configured pair into the TLS options. Each subclass passes its
+     * own success log and failure prefix, so both strings stay per class.
+     */
+    protected loadSslOptions(loadedMessage: string, failurePrefix: string): https.ServerOptions {
+        try {
+            const cert = fs.readFileSync(this.config.certPath!, 'utf8');
+            const key = fs.readFileSync(this.config.keyPath!, 'utf8');
+
+            console.log(loadedMessage);
+
+            return buildTlsServerOptions(cert, key);
+        } catch (error) {
+            throw new Error(`${failurePrefix}: ${error}`);
+        }
     }
 }

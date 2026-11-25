@@ -18,7 +18,7 @@
     "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
   },
   "ratcheted": {
-    "console.total": 1407,
+    "console.total": 1406,
     "console.byModule": {
       "active_servers": 113,
       "babia_examples": 49,
@@ -28,7 +28,7 @@
       "core": 1,
       "python_env": 24,
       "remote_access": 1,
-      "servers": 283,
+      "servers": 282,
       "utils": 38,
       "views": 107,
       "visualization_settings": 83,
@@ -83,8 +83,8 @@
   },
   "informational": {
     "src.files": 314,
-    "src.lines": 48012,
-    "src.functions": 2640,
+    "src.lines": 48006,
+    "src.functions": 2638,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -140,12 +140,12 @@
         "count": 25
       },
       {
-        "file": "src/servers/runtime/httpsDefaultServer.ts",
+        "file": "src/servers/runtime/sse/SSEManager.ts",
         "count": 25
       },
       {
-        "file": "src/servers/runtime/sse/SSEManager.ts",
-        "count": 25
+        "file": "src/servers/runtime/httpsDefaultServer.ts",
+        "count": 24
       }
     ],
     "any.topFiles": [

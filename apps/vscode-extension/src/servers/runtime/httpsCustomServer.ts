@@ -1,10 +1,9 @@
 import * as fs from 'fs';
-import * as https from 'https';
 import * as vscode from 'vscode';
 import { NetworkUtils } from '../utils/networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
-import { buildTlsServerOptions, isCertificateRejectedByClient } from './httpsTlsOptions';
+import { isCertificateRejectedByClient } from './httpsTlsOptions';
 
 export interface HttpsCustomServerConfig extends HttpsServerBaseConfig {
     certPath: string;
@@ -39,7 +38,11 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
         await this.validateCertificates();
         await this.resolveListeningPort();
 
-        return this.listenWithTls(() => this.loadSslOptions(), (server, resolve) => {
+        const loadSslOptions = () => this.loadSslOptions(
+            'SERVER: Custom SSL certificates loaded successfully',
+            'SERVER: Failed to load custom SSL certificates',
+        );
+        return this.listenWithTls(loadSslOptions, (server, resolve) => {
             server.on('listening', () => {
                 const port = this.config.port;
                 const primaryExternalUrl = NetworkUtils.getPrimaryExternalUrl(port, 'https');
@@ -154,17 +157,5 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
         return error.code === 'ENOENT'
             ? new Error('SERVER: Certificate file not found. Please check your certificate paths.')
             : undefined;
-    }
-
-    private loadSslOptions(): https.ServerOptions {
-        try {
-            const { cert, key } = this.readCertificatePair();
-
-            console.log('SERVER: Custom SSL certificates loaded successfully');
-
-            return buildTlsServerOptions(cert, key);
-        } catch (error) {
-            throw new Error(`SERVER: Failed to load custom SSL certificates: ${error}`);
-        }
     }
 }
