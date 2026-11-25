@@ -18,18 +18,19 @@ from dependency_analysis_engine import analyze_dependencies, analyze_file_depend
 
 LIVEPANELS_DIR = Path(__file__).resolve().parent / 'livePanels'
 XR_DIR = Path(__file__).resolve().parent / 'XR'
-HTML_DIR = Path(__file__).resolve().parent / 'html'
 
-for module_dir in (LIVEPANELS_DIR, XR_DIR, HTML_DIR):
+for module_dir in (LIVEPANELS_DIR, XR_DIR):
     if str(module_dir) not in sys.path:
         sys.path.insert(0, str(module_dir))
 
 def main():
     parser = argparse.ArgumentParser(description='Python Analysis Entry Point')
     parser.add_argument('--mode', required=True, choices=['livePanel', 'xr', 'schema', 'dependencies'], help='Analysis mode')
-    parser.add_argument('--type', required=True, choices=['file', 'directory', 'project'], help='Analysis type')
+    parser.add_argument('--type', required=True, choices=['file', 'directory'], help='Analysis type')
     parser.add_argument('--target', help='Target path to analyze')
-    parser.add_argument('--output', help='Output file path (optional)')
+    # --files is deliberately unused by the extension: executePython.ts never passes it, so
+    # args.files is always None and directory modes scan the whole target. It is kept as a
+    # documented hand-run entry (and is part of the pinned CLI surface, test/baseline).
     parser.add_argument('--files', nargs='*', help='Specific files to analyze (directory mode only)')
     parser.add_argument('--deep', action='store_true', help='Enable deep recursive analysis for directories')
     parser.add_argument('--cache', help='Private dependency extraction cache path')
@@ -41,61 +42,64 @@ def main():
     if args.mode != 'schema' and not args.target:
         parser.error('--target is required unless --mode schema is used')
 
-    normalized_type = 'directory' if args.type == 'project' else args.type
-
-    log_info(f'Starting analysis - Mode: {args.mode}, Type: {normalized_type}')
+    log_info(f'Starting analysis - Mode: {args.mode}, Type: {args.type}')
     if args.target:
         log_info(f'Target: {args.target}')
 
     try:
-        if args.mode == 'schema':
-            result = execute_schema_request(normalized_type)
-        elif args.mode == 'dependencies':
-            if normalized_type == 'directory':
-                result = analyze_dependencies(
-                    args.target,
-                    recursive=args.deep,
-                    cache_path=args.cache,
-                    refresh_request_path=args.dependency_refresh,
-                )
-            else:
-                result = analyze_file_dependencies(
-                    args.target,
-                    project_root=args.project_root,
-                    cache_path=args.cache,
-                )
-        elif args.mode == 'livePanel' and normalized_type == 'file':
-            from livePanel_file_analysis_coordinator import analyze_file_comprehensive
-            result = analyze_file_comprehensive(args.target)
-        elif args.mode == 'livePanel' and normalized_type == 'directory':
-            from livePanel_directory_analysis_coordinator import analyze_directory_comprehensive
-            from livePanel_directory_deep_analysis_coordinator import analyze_directory_deep_comprehensive
-            result = analyze_directory_deep_comprehensive(args.target, args.files) if args.deep else analyze_directory_comprehensive(args.target, args.files)
-        elif args.mode == 'xr' and normalized_type == 'file':
-            from xr_file_analysis_coordinator import analyze_file_for_xr
-            result = analyze_file_for_xr(args.target)
-        elif args.mode == 'xr' and normalized_type == 'directory':
-            from xr_directory_analysis_coordinator import analyze_directory_xr
-            result = analyze_directory_xr(args.target, is_deep=args.deep, filtered_files=args.files)
-        else:
-            raise ValueError(f'Unsupported combination: {args.mode} + {normalized_type}')
-
+        result = _dispatch(args)
         log_info('Analysis completed successfully')
-        print('=== JSON_START ===')
-        print(json.dumps(result, indent=2))
-        print('=== JSON_END ===')
+        _emit(result)
     except Exception as error:
         log_error(f'Error during analysis: {str(error)}')
-        print('=== JSON_START ===')
-        print(json.dumps({
+        _emit({
             'error': True,
             'message': str(error),
             'mode': args.mode,
-            'type': normalized_type,
+            'type': args.type,
             'target': args.target,
-        }, indent=2))
-        print('=== JSON_END ===')
+        })
         sys.exit(1)
+
+
+def _dispatch(args):
+    """Run the analysis the parsed arguments name. Coordinators are imported lazily."""
+    if args.mode == 'schema':
+        return execute_schema_request(args.type)
+    if args.mode == 'dependencies':
+        if args.type == 'directory':
+            return analyze_dependencies(
+                args.target,
+                recursive=args.deep,
+                cache_path=args.cache,
+                refresh_request_path=args.dependency_refresh,
+            )
+        return analyze_file_dependencies(
+            args.target,
+            project_root=args.project_root,
+            cache_path=args.cache,
+        )
+    if args.mode == 'livePanel' and args.type == 'file':
+        from livePanel_file_analysis_coordinator import analyze_file_comprehensive
+        return analyze_file_comprehensive(args.target)
+    if args.mode == 'livePanel' and args.type == 'directory':
+        from livePanel_directory_analysis_coordinator import analyze_directory_comprehensive
+        from livePanel_directory_deep_analysis_coordinator import analyze_directory_deep_comprehensive
+        return analyze_directory_deep_comprehensive(args.target, args.files) if args.deep else analyze_directory_comprehensive(args.target, args.files)
+    if args.mode == 'xr' and args.type == 'file':
+        from xr_file_analysis_coordinator import analyze_file_for_xr
+        return analyze_file_for_xr(args.target)
+    if args.mode == 'xr' and args.type == 'directory':
+        from xr_directory_analysis_coordinator import analyze_directory_xr
+        return analyze_directory_xr(args.target, is_deep=args.deep, filtered_files=args.files)
+    raise ValueError(f'Unsupported combination: {args.mode} + {args.type}')
+
+
+def _emit(payload):
+    """Print one result between the markers executePython.ts parses."""
+    print('=== JSON_START ===')
+    print(json.dumps(payload, indent=2))
+    print('=== JSON_END ===')
 
 
 def execute_schema_request(target_type):

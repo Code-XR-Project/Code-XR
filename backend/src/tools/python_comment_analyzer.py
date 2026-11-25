@@ -15,12 +15,9 @@ from io import BytesIO
 
 
 def analyze_comments(file_path):
-    print(json.dumps({"debug": f"Analyzing file: {file_path}"}), file=sys.stderr)
-
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
-            print(json.dumps({"debug": f"File loaded, size: {len(content)} bytes"}), file=sys.stderr)
     except Exception as e:
         print(json.dumps({"debug": f"Error reading file: {str(e)}"}), file=sys.stderr)
         return {
@@ -30,14 +27,13 @@ def analyze_comments(file_path):
         }
 
     _, ext = os.path.splitext(file_path.lower())
-    print(json.dumps({"debug": f"File extension: {ext}"}), file=sys.stderr)
     comment_lines = set()
 
     if ext == '.py':
         comment_lines = analyze_python_comments(file_path, content)
     elif ext in ['.rb', '.rbw']:
         comment_lines = analyze_ruby_comments(content)
-    elif ext in ['.r', '.gd', '.pl', '.pm', '.pod', '.t']:
+    elif ext in ['.r', '.gd', '.pl', '.pm']:
         comment_lines = analyze_hash_comments(content)
     elif ext in ['.js', '.mjs', '.cjs', '.ts', '.jsx', '.tsx', '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hh', '.hxx', '.cs', '.java', '.sol', '.m', '.mm', '.zig', '.ttcn', '.ttcn3', '.go', '.kt', '.kts', '.php', '.scala', '.sc', '.swift']:
         comment_lines = analyze_c_style_comments(content)
@@ -49,12 +45,8 @@ def analyze_comments(file_path):
         comment_lines = analyze_lua_comments(content)
     elif ext in ['.erl', '.hrl']:
         comment_lines = analyze_erlang_comments(content)
-    elif ext == '.st':
-        comment_lines = analyze_structured_text_comments(content)
     else:
         print(json.dumps({"debug": f"Extension '{ext}' not supported"}), file=sys.stderr)
-
-    print(json.dumps({"debug": f"Found {len(comment_lines)} comment lines"}), file=sys.stderr)
 
     return {
         "file": file_path,
@@ -233,29 +225,6 @@ def analyze_erlang_comments(content):
             elif char == '%' and not in_string:
                 comment_lines.add(line_num)
                 break
-
-    return comment_lines
-
-
-def analyze_structured_text_comments(content):
-    comment_lines = set()
-    block_patterns = [
-        re.compile(r'\(\*.*?\*\)', re.DOTALL),
-        re.compile(r'\{.*?\}', re.DOTALL),
-    ]
-
-    content_without_blocks = content
-    for block_pattern in block_patterns:
-        for match in block_pattern.finditer(content_without_blocks):
-            start = content_without_blocks[:match.start()].count('\n') + 1
-            lines = match.group(0).split('\n')
-            for offset in range(len(lines)):
-                comment_lines.add(start + offset)
-        content_without_blocks = block_pattern.sub(lambda m: '\n' * m.group(0).count('\n'), content_without_blocks)
-
-    for line_num, line in enumerate(content_without_blocks.split('\n'), 1):
-        if '//' in line:
-            comment_lines.add(line_num)
 
     return comment_lines
 
