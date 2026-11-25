@@ -200,7 +200,7 @@ test('the host can remove a guest from the participant modal and the tree contex
     // The rendered item is rebuilt twice by the modular tree; the participant
     // must survive both conversions or the context menu has no target at all
     // (this is exactly what broke the right-click path once).
-    const modularTree = readProjectFile('src', 'views', 'ModularTreeDataProvider.ts');
+    const modularTree = readProjectFile('src', 'app', 'sidebar', 'ModularTreeDataProvider.ts');
     // Both conversions are characterized behaviourally by
     // test/views/modularTreeSnapshot.test.cjs; these keep the intent readable.
     assert.match(modularTree, /payloadKeys: \['activeServer', 'participant'\]/);

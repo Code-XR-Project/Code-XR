@@ -25,7 +25,7 @@ test('readSource names the fix when a pinned file is gone', () => {
 });
 
 test('readConcatenated follows code across several files', () => {
-    const haystack = readConcatenated(['src/extension.ts', 'src/commands/index.ts']);
+    const haystack = readConcatenated(['src/extension.ts', 'src/app/commands/registerAllCommands.ts']);
 
     assert.match(haystack, /export (async )?function activate/);
     assert.match(haystack, /assertUniqueCommandIds/);

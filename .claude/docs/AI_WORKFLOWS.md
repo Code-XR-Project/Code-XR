@@ -21,7 +21,7 @@
 
 1. Read: `ARCHITECTURE.md`, `V1.2.1_STATUS.md` (the active status doc), plus the area doc (`XR_COMPONENTS.md` and/or `PYTHON_ANALYSIS.md`) and any relevant `docs/*.md` feature doc.
 2. Check the scope of the active version — 1.2.1 is maintenance only (`V1.2.1_STATUS.md`, `v1.2.1/ROADMAP.md`), so a feature belongs in 1.3.0; `docs/project/ROADMAP_V1.2.0.md` is the historical 1.2.0 plan. Respect scope decisions (e.g., boats/Code City is paused).
-3. Follow the per-feature module convention (`commands/` + `model/` + `runtime|services/` + `views/{items,interactions}`); register commands through the module's registration array consumed by `src/commands/index.ts` (IDs must be unique — `assertUniqueCommandIds` enforces this).
+3. Follow the per-feature module convention (`commands/` + `model/` + `runtime|services/` + `views/{items,interactions}`); register commands through the module's registration array consumed by `src/app/commands/registerAllCommands.ts` (IDs must be unique — `assertUniqueCommandIds` enforces this).
 4. If the feature adds metrics or chart dimensions, plan the Python schema ↔ TS validator sync first (`PYTHON_ANALYSIS.md` → field-schema contract).
 5. Add tests: unit `.test.cjs` in `test/<area>/`; runtime changes under `templates/components/` get a runtime test; consider a manual harness for visual behavior.
 6. Validate: narrow test script → `npm run test:basic` → F5 manual flow (`DEVELOPMENT.md`).

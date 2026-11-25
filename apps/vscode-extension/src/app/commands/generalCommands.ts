@@ -1,4 +1,4 @@
-import { CommonCommands } from '../../utils/commonCommands';
+import { CommonCommands } from '../sidebar/commonCommands';
 import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { getLogger } from '../../platform/logging/sink';
 

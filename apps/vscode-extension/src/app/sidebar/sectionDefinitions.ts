@@ -1,18 +1,18 @@
 import * as vscode from 'vscode';
-import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterfaces';
-import { ServersSectionProvider } from '../features/servers/views/ServersSectionProvider';
-import { ActiveServersSectionProvider } from '../features/active-servers/views/ActiveServersSectionProvider';
-import { BabiaExamplesSectionProvider } from '../features/examples/views/BabiaExamplesSectionProvider';
-import { VisualizeDataSectionProvider } from '../features/visualize-data/views/VisualizeDataSectionProvider';
-import { PythonEnvSectionProvider } from '../features/python-env/views/PythonEnvSectionProvider';
-import { AnalysisSectionProvider } from '../features/analysis/views/AnalysisSectionProvider';
-import { VisualizationSettingsSectionProvider } from '../features/visualization-settings/views/VisualizationSettingsSectionProvider';
-import { LearnMoreSectionProvider } from '../features/learn-more/views/LearnMoreSectionProvider';
-import type { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiState';
-import type { VenvManager } from '../core/python-env/venvManager';
-import { PythonEnvItems } from '../features/python-env/views/pythonEnvItems';
-import type { SectionChild } from './common/sectionChild';
-import { getActiveServerRegistry } from '../core/server/registry/activeServerRegistry';
+import { SectionProvider, ModularTreeItem } from '../../platform/tree/baseInterfaces';
+import { ServersSectionProvider } from '../../features/servers/views/ServersSectionProvider';
+import { ActiveServersSectionProvider } from '../../features/active-servers/views/ActiveServersSectionProvider';
+import { BabiaExamplesSectionProvider } from '../../features/examples/views/BabiaExamplesSectionProvider';
+import { VisualizeDataSectionProvider } from '../../features/visualize-data/views/VisualizeDataSectionProvider';
+import { PythonEnvSectionProvider } from '../../features/python-env/views/PythonEnvSectionProvider';
+import { AnalysisSectionProvider } from '../../features/analysis/views/AnalysisSectionProvider';
+import { VisualizationSettingsSectionProvider } from '../../features/visualization-settings/views/VisualizationSettingsSectionProvider';
+import { LearnMoreSectionProvider } from '../../features/learn-more/views/LearnMoreSectionProvider';
+import type { PythonEnvUiStateService } from '../../core/python-env/pythonEnvUiState';
+import type { VenvManager } from '../../core/python-env/venvManager';
+import { PythonEnvItems } from '../../features/python-env/views/pythonEnvItems';
+import type { SectionChild } from './sectionChild';
+import { getActiveServerRegistry } from '../../core/server/registry/activeServerRegistry';
 
 /**
  * One root section of the sidebar tree. The header is rebuilt on every

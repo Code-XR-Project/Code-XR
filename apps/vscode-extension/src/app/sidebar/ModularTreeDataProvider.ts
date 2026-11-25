@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterfaces';
+import { SectionProvider, ModularTreeItem } from '../../platform/tree/baseInterfaces';
 import { createSectionDefinitions, LazySectionDefinition } from './sectionDefinitions';
-import type { SectionChild } from './common/sectionChild';
-import { PythonEnvUiStateService } from '../core/python-env/pythonEnvUiState';
-import { VenvManager } from '../core/python-env/venvManager';
-import { CodeXRLogger } from '../platform/logging/logger';
+import type { SectionChild } from './sectionChild';
+import { PythonEnvUiStateService } from '../../core/python-env/pythonEnvUiState';
+import { VenvManager } from '../../core/python-env/venvManager';
+import { CodeXRLogger } from '../../platform/logging/logger';
 
 const logger = CodeXRLogger.getLogger('MODULAR_TREE');
 
@@ -41,14 +41,14 @@ interface SectionItemAdapter {
 /** One row per section, in sidebar order. */
 const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<string, SectionItemAdapter>([
     ['SERVERS', {
-        load: () => require('../features/servers/views/serverItems').ServerTreeItem,
+        load: () => require('../../features/servers/views/serverItems').ServerTreeItem,
         itemTypeKeys: ['serverItemType'],
         defaultItemType: 'config-option',
         constructorExtras: [],
         payloadKeys: [],
     }],
     ['activeServers', {
-        load: () => require('../features/active-servers/views/activeServerItems').ActiveServerTreeItem,
+        load: () => require('../../features/active-servers/views/activeServerItems').ActiveServerTreeItem,
         itemTypeKeys: ['activeServerItemType'],
         defaultItemType: 'server-item',
         // Participant rows carry their peer, which context-menu commands
@@ -58,42 +58,42 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         payloadKeys: ['activeServer', 'participant'],
     }],
     ['babiaExamples', {
-        load: () => require('../features/examples/views/babiaExampleItems').BabiaExampleTreeItem,
+        load: () => require('../../features/examples/views/babiaExampleItems').BabiaExampleTreeItem,
         itemTypeKeys: ['babiaItemType'],
         defaultItemType: 'example-item',
         constructorExtras: ['babiaExample'],
         payloadKeys: ['babiaExample'],
     }],
     ['visualizeData', {
-        load: () => require('../features/visualize-data/views/visualizeDataSectionItems').VisualizeDataModularTreeItem,
+        load: () => require('../../features/visualize-data/views/visualizeDataSectionItems').VisualizeDataModularTreeItem,
         itemTypeKeys: ['visualizeDataItemType'],
         defaultItemType: 'error',
         constructorExtras: ['visualizeDataItem'],
         payloadKeys: ['visualizeDataItem'],
     }],
     ['analysis', {
-        load: () => require('../features/analysis/views/analysisItems').CodeAnalysisTreeItem,
+        load: () => require('../../features/analysis/views/analysisItems').CodeAnalysisTreeItem,
         itemTypeKeys: ['analysisItemType', 'type'],
         defaultItemType: 'item',
         constructorExtras: [],
         payloadKeys: ['originalAnalysisItem'],
     }],
     ['pythonEnv', {
-        load: () => require('../features/python-env/views/pythonEnvItems').PythonEnvModularTreeItem,
+        load: () => require('../../features/python-env/views/pythonEnvItems').PythonEnvModularTreeItem,
         itemTypeKeys: ['pythonEnvItemType'],
         defaultItemType: 'info',
         constructorExtras: [],
         payloadKeys: [],
     }],
     ['visualizationSettings', {
-        load: () => require('../features/visualization-settings/views/visualizationSettingsSectionItems').VisualizationSettingsModularTreeItem,
+        load: () => require('../../features/visualization-settings/views/visualizationSettingsSectionItems').VisualizationSettingsModularTreeItem,
         itemTypeKeys: ['visualizationSettingsItemType'],
         defaultItemType: 'error',
         constructorExtras: ['originalSettingsItem'],
         payloadKeys: ['originalSettingsItem'],
     }],
     ['learnMore', {
-        load: () => require('../features/learn-more/views/learnMoreItems').LearnMoreModularTreeItem,
+        load: () => require('../../features/learn-more/views/learnMoreItems').LearnMoreModularTreeItem,
         itemTypeKeys: ['learnMoreItemType'],
         defaultItemType: 'action',
         constructorExtras: [],

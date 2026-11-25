@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { registerAllCommands } from './commands/index';
+import { registerAllCommands } from './app/commands/registerAllCommands';
 import { initializePythonEnvOnStartup } from './features/python-env/commands/pythonEnvCommandRegistrations';
 import { XRFieldSchemaService } from './core/analysis/python/xrFieldSchemaService';
-import { ModularTreeDataProvider } from './views/ModularTreeDataProvider';
-import { CommonCommands } from './utils/commonCommands';
+import { ModularTreeDataProvider } from './app/sidebar/ModularTreeDataProvider';
+import { CommonCommands } from './app/sidebar/commonCommands';
 import { ServerSettingsManager } from './core/server/serverSettingsManager';
 import { GeneratedHttpsCertificateManager } from './core/server/generatedHttpsCertificateManager';
 import { getActiveServerRegistry } from './core/server/registry/activeServerRegistry';
@@ -16,7 +16,7 @@ import { AnalysisConfigurationStorage } from './core/analysis/configuration/anal
 import { handleError, ErrorDomain, ErrorSeverity } from './platform/ui/errorHandler';
 import { initializeExtensionContext } from './platform/extensionContext';
 import { CodeXRLogger } from './platform/logging/logger';
-import { StartupCoordinator } from './core/startup/startupCoordinator';
+import { StartupCoordinator } from './app/startup/startupCoordinator';
 import { CollaborationProfileManager } from './core/collaboration/collaborationProfileManager';
 import { RemoteAccessManager } from './core/remote-access/remoteAccessManager';
 

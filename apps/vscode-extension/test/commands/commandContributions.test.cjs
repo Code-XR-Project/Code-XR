@@ -29,7 +29,7 @@ function loadCommandSurface() {
             console.log = () => {};
             try {
                 await withFakeVscode(fake, async ({ requireOut }) => {
-                    requireOut('commands/index.js').registerAllCommands(context);
+                    requireOut('app/commands/registerAllCommands.js').registerAllCommands(context);
                     // Let the storage loads that registration kicks off settle inside the scope.
                     await new Promise((resolve) => setImmediate(resolve));
                     await new Promise((resolve) => setImmediate(resolve));

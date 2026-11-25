@@ -27,7 +27,7 @@ Never delete on the strength of a name, a comment, or a doc's claim. Deadness is
 |---|---|---|
 | 1 | Zero importers | static `import`, `export … from`, dynamic `import()`, `require()` — `npm run guardrails:measure` lists the modules unreachable from `src/extension.ts` |
 | 2 | No reference by name or path string | `grep -rn "<basename>" src templates test scripts webpack.config.js package.json` — browser runtimes and Python scripts are loaded by path strings, which an import graph cannot see |
-| 3 | Registers no command | `src/commands/index.ts` and the module's own `commands/` folder |
+| 3 | Registers no command | `src/app/commands/registerAllCommands.ts` and the module's own `commands/` folder |
 | 4 | **No test reads it as text** | about half the unit tests `readFileSync` a `src/` or `templates/` file and regex it; such a file is pinned even with zero importers |
 
 | Other claims | Proof required |

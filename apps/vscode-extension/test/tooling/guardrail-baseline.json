@@ -26,7 +26,7 @@
     "catch.emptyNoComment": 0,
     "any.total": 84,
     "any.byModule": {
-      "commands": 1,
+      "app": 8,
       "core/analysis": 14,
       "core/charts": 6,
       "core/python-env": 5,
@@ -38,9 +38,7 @@
       "features/servers": 1,
       "features/visualization-settings": 3,
       "features/visualize-data": 10,
-      "platform": 12,
-      "utils": 2,
-      "views": 5
+      "platform": 12
     },
     "suppressions.total": 0,
     "size.filesOver500": [
@@ -87,7 +85,9 @@
       }
     ],
     "any.byFile": {
-      "src/commands/index.ts": 1,
+      "src/app/commands/registerAllCommands.ts": 1,
+      "src/app/sidebar/ModularTreeDataProvider.ts": 5,
+      "src/app/sidebar/commonCommands.ts": 2,
       "src/core/analysis/parsers/directoryXRParser.ts": 2,
       "src/core/analysis/parsers/fileXRParser.ts": 3,
       "src/core/analysis/processors/analysisBootstrap.ts": 2,
@@ -126,11 +126,13 @@
       "src/features/visualize-data/views/visualizeDataSectionItems.ts": 2,
       "src/platform/commands/commandBuilder.ts": 5,
       "src/platform/commands/commandRegistry.ts": 2,
-      "src/platform/tree/baseInterfaces.ts": 5,
-      "src/utils/commonCommands.ts": 2,
-      "src/views/ModularTreeDataProvider.ts": 5
+      "src/platform/tree/baseInterfaces.ts": 5
     },
     "any.topFiles": [
+      {
+        "file": "src/app/sidebar/ModularTreeDataProvider.ts",
+        "count": 5
+      },
       {
         "file": "src/core/python-env/venvManager.ts",
         "count": 5
@@ -152,10 +154,6 @@
         "count": 5
       },
       {
-        "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 5
-      },
-      {
         "file": "src/core/server/serverSettingsManager.ts",
         "count": 4
       },
@@ -172,6 +170,10 @@
         "count": 3
       },
       {
+        "file": "src/app/sidebar/commonCommands.ts",
+        "count": 2
+      },
+      {
         "file": "src/core/analysis/parsers/directoryXRParser.ts",
         "count": 2
       },
@@ -185,10 +187,6 @@
       },
       {
         "file": "src/core/analysis/session-servers/serverLaunchOrchestrator.ts",
-        "count": 2
-      },
-      {
-        "file": "src/core/charts/processing/templateProcessor.ts",
         "count": 2
       }
     ],

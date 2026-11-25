@@ -209,7 +209,7 @@ async function captureSnapshot() {
         await withFakeVscode(fake, async ({ requireOut }) => {
             // extension.ts initializes the server settings singleton before the tree.
             requireOut('core/server/serverSettingsManager.js').ServerSettingsManager.getInstance(context);
-            const { ModularTreeDataProvider } = requireOut('views/ModularTreeDataProvider.js');
+            const { ModularTreeDataProvider } = requireOut('app/sidebar/ModularTreeDataProvider.js');
             const provider = new ModularTreeDataProvider(context);
 
             try {

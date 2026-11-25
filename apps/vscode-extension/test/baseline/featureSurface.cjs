@@ -92,7 +92,7 @@ async function collectRuntime() {
     let chartTypes = [];
     try {
         await withFakeVscode(fake, async ({ requireOut }) => {
-            requireOut('commands/index.js').registerAllCommands(context);
+            requireOut('app/commands/registerAllCommands.js').registerAllCommands(context);
             await new Promise((resolve) => setImmediate(resolve));
             await new Promise((resolve) => setImmediate(resolve));
             chartTypes = requireOut('core/charts/templateCharts.js').chartTemplates

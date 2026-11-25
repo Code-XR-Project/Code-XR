@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { StartupCoordinator } = require('../../out/core/startup/startupCoordinator.js');
+const { StartupCoordinator } = require('../../out/app/startup/startupCoordinator.js');
 
 function wait(ms = 5) {
     return new Promise((resolve) => setTimeout(resolve, ms));

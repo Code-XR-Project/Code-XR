@@ -2,7 +2,7 @@
  * Shared command registration model used across the entire extension.
  *
  * Commands are declared as metadata and registered centrally from
- * `src/commands/index.ts` through CommandBuilder.
+ * `src/app/commands/registerAllCommands.ts` through CommandBuilder.
  */
 
 export interface ExtensionCommandRegistration<TArgs extends any[] = any[]> {

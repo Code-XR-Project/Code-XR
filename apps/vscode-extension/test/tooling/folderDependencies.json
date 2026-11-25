@@ -18,19 +18,18 @@
   },
   "mayImport": {
     "(root)": [
-      "commands",
+      "app",
       "core/analysis",
       "core/collaboration",
       "core/remote-access",
       "core/server",
-      "core/startup",
       "features/analysis",
       "features/python-env",
-      "platform",
-      "utils",
-      "views"
+      "platform"
     ],
-    "commands": [
+    "app": [
+      "core/python-env",
+      "core/server",
       "features/active-servers",
       "features/analysis",
       "features/collaboration",
@@ -40,8 +39,7 @@
       "features/servers",
       "features/visualization-settings",
       "features/visualize-data",
-      "platform",
-      "utils"
+      "platform"
     ],
     "core/analysis": [
       "core/charts",
@@ -86,7 +84,6 @@
       "platform",
       "shared"
     ],
-    "core/startup": [],
     "features/active-servers": [
       "core/collaboration",
       "core/remote-access",
@@ -133,23 +130,7 @@
       "shared"
     ],
     "platform": [],
-    "shared": [],
-    "utils": [
-      "platform"
-    ],
-    "views": [
-      "core/python-env",
-      "core/server",
-      "features/active-servers",
-      "features/analysis",
-      "features/examples",
-      "features/learn-more",
-      "features/python-env",
-      "features/servers",
-      "features/visualization-settings",
-      "features/visualize-data",
-      "platform"
-    ]
+    "shared": []
   },
   "twoWayPairs": {
     "core/analysis<->core/history": "Was inside code_analysis before #55. The Git history services compose the analysis session, the session registry, ExecutePython, the configuration storage and the analysis file policy (core/history -> core/analysis), while the re-analysis watchers publish on analysisUpdateEvents (core/analysis/watchers -> core/history/analysisUpdateEvents.ts). Moving that event bus next to the watchers would remove the pair.",

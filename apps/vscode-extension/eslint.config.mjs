@@ -157,7 +157,7 @@ export default [{
     // the tree provider are load-bearing (cleanup skill §4), and the other two
     // defer a relative import to break a load-time module cycle.
     files: [
-        "src/views/ModularTreeDataProvider.ts",
+        "src/app/sidebar/ModularTreeDataProvider.ts",
         "src/core/analysis/watchers/directoryReAnalyzer.ts",
         "src/core/charts/getVisualizationConfiguration.ts",
     ],
