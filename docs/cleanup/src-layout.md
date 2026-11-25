@@ -1,6 +1,7 @@
 # `src/` layout: analysis and move plan (story #55)
 
 > **Status:** analysis only, 2026-11-25, measured on `v1.2.1` at `e16b95e8` (after PRs #44–#57, #40 included). No source file is changed by this document. **Story:** [#55](https://github.com/Code-XR-Project/Code-XR/issues/55), epic [#26](https://github.com/Code-XR-Project/Code-XR/issues/26).
+> **Update from #42 (layering):** three rows of the move map are already done at their destination here: `commands/shared/commandRegistry.ts` → `platform/commands/commandRegistry.ts` (the `commands/shared` barrel is deleted), `views/common/baseInterfaces.ts` → `platform/tree/baseInterfaces.ts`, and the new `platform/templatePaths.ts` (`resolveTemplatePath`; the `__dirname`-depth constraint in §3.4 is gone). Two of the five `core/` pairs of §3.5 are broken: `analysis↔charts` (the XR field types moved to `babia_templates/models/xrFieldModels.ts`) and `collaboration↔remote-access` (`CollaborationClientKind` declared in `collaboration/model/connectedParticipant.ts`). The folder matrix is data in `test/tooling/folderDependencies.json` (#42's direction test): rewrite it with each batch.
 > Paths are relative to `apps/vscode-extension/` (so `src/…` is the extension source) unless stated otherwise. Every number below comes from the scripts in the [appendix](#appendix-scripts) and can be re-run.
 
 ## 0. Summary
