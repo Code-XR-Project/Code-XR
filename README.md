@@ -28,6 +28,7 @@ Requirements: Node.js (version in [`.nvmrc`](.nvmrc)), npm, Git, and Python 3 fo
 npm ci              # installs every workspace from the repository root
 npm test            # typecheck + lint + compile-tests + unit tests of the extension
 npm run test:backend   # Python backend unit tests
+npm run lint:python    # ruff over backend/ (pip install -r backend/requirements-dev.txt first)
 npm run package:vsix   # builds apps/vscode-extension/artifacts/code-xr-<version>.vsix
 ```
 

@@ -1,0 +1,51 @@
+# Ruff configuration for the Python backend: `npm run lint:python` from the
+# repository root (backend/scripts/run-ruff.cjs). The version is pinned in
+# backend/requirements-dev.txt.
+#
+# Lint only. No formatter and no import sorting, on purpose: tests pin import
+# lines, quote styles and statement order in src/main.py and elsewhere
+# (cleanup skill, section 4), so a reformat would break them for no gain.
+
+# The oldest Python the extension accepts ("Please install Python 3.7+",
+# venvManager.ts): syntax newer than this is a lint error, because it would be
+# a SyntaxError on a user's machine.
+target-version = "py37"
+
+# Fixture corpora are data, not code under maintenance: the metric fixtures
+# (manual_test/) are deliberately bad code that test:analysis measures exactly
+# as it is, and the dependency fixtures exist to be parsed (an "unused" import
+# there is the point). Neither is ever linted, nor "fixed".
+extend-exclude = ["manual_test", "tests/fixtures"]
+
+[lint]
+# Pyflakes (F: unused imports and variables, undefined names, ...) plus the
+# pycodestyle error classes that are bugs rather than style (E4 imports,
+# E7 statements, E9 syntax/IO). No style rules: see the header.
+select = ["E4", "E7", "E9", "F"]
+
+[lint.per-file-ignores]
+# E402 (import not at top of file): these modules put their own directory, or
+# the backend root, on sys.path before importing their siblings. That bootstrap
+# is how the backend runs as loose scripts spawned by the extension, and tests
+# pin the import lines and their order (main.py especially), so the imports
+# stay where they are.
+"scripts/report-manual-metrics.py" = ["E402"]
+"src/main.py" = ["E402"]
+"src/XR/xr_directory_analysis_coordinator.py" = ["E402"]
+"src/XR/xr_file_analysis_coordinator.py" = ["E402"]
+"src/export/git_export_analysis_worker.py" = ["E402"]
+"src/html/html_dom_parser.py" = ["E402"]
+"src/livePanels/livePanel_directory_analysis_coordinator.py" = ["E402"]
+"src/livePanels/livePanel_directory_deep_analysis_coordinator.py" = ["E402"]
+"src/livePanels/livePanel_file_analysis_coordinator.py" = ["E402"]
+"src/summaryFiles/file_reanalysis_coordinator.py" = ["E402"]
+"src/tools/lizard_analyzer.py" = ["E402"]
+"src/utils/file_analysis_engine.py" = ["E402"]
+# The suites import the code under test (and their sandbox helper) after the
+# same sys.path bootstrap.
+"tests/manual_metrics_suite.py" = ["E402"]
+"tests/dependencies/test_class_owner_inference.py" = ["E402"]
+"tests/dependencies/test_dependency_analysis.py" = ["E402"]
+"tests/html_dom/test_html_dom_protocol.py" = ["E402"]
+"tests/xr_file_analysis/test_empty_file_handling.py" = ["E402"]
+"tests/xr_schema/test_xr_schema.py" = ["E402"]
