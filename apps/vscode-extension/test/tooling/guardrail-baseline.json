@@ -36,7 +36,7 @@
     },
     "catch.consoleOnly": 56,
     "catch.emptyNoComment": 0,
-    "any.total": 201,
+    "any.total": 189,
     "any.byModule": {
       "active_servers": 11,
       "babia_templates": 2,
@@ -45,7 +45,7 @@
       "python_env": 5,
       "servers": 12,
       "utils": 14,
-      "views": 54,
+      "views": 42,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -67,14 +67,14 @@
       "src/views/ModularTreeDataProvider.ts",
       "src/views/active_servers/items/activeServerItems.ts"
     ],
-    "functions.over80Lines": 50,
-    "complexity.over10": 74,
-    "complexity.over15": 29,
-    "complexity.over20": 9,
-    "complexity.over30": 5,
+    "functions.over80Lines": 49,
+    "complexity.over10": 73,
+    "complexity.over15": 28,
+    "complexity.over20": 8,
+    "complexity.over30": 4,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 608,
+    "eslint.maxWarnings": 594,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -83,8 +83,8 @@
   },
   "informational": {
     "src.files": 312,
-    "src.lines": 48089,
-    "src.functions": 2641,
+    "src.lines": 48073,
+    "src.functions": 2652,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -151,7 +151,7 @@
     "any.topFiles": [
       {
         "file": "src/views/ModularTreeDataProvider.ts",
-        "count": 39
+        "count": 27
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -224,12 +224,6 @@
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
       {
-        "ccn": 42,
-        "lines": 117,
-        "function": "convertToSectionItem",
-        "file": "src/views/ModularTreeDataProvider.ts"
-      },
-      {
         "ccn": 34,
         "lines": 139,
         "function": "parseFileAnalysis",
@@ -270,6 +264,12 @@
         "lines": 71,
         "function": "applyIncrementalChanges",
         "file": "src/code_analysis/engine/watchers/directoryReAnalyzer.ts"
+      },
+      {
+        "ccn": 20,
+        "lines": 73,
+        "function": "sampleTimeline",
+        "file": "src/code_analysis/historical/gitTimelineSampler.ts"
       }
     ],
     "size.largest10": [
@@ -303,7 +303,7 @@
       },
       {
         "file": "src/views/ModularTreeDataProvider.ts",
-        "lines": 616
+        "lines": 600
       },
       {
         "file": "src/code_analysis/export/exportManifest.ts",
