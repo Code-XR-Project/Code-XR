@@ -112,6 +112,9 @@ function installNetworkStubs(requireOut, freePort) {
     NetworkUtils.displayNetworkInfo = (port, protocol) => {
         calls.push(['displayNetworkInfo', port === freePort ? '<port>' : port, protocol]);
     };
+    // The requested port (4000) always reads as busy, so the servers take the
+    // search path below whether or not 4000 happens to be free on this machine.
+    PortManager.isPortAvailable = async (port) => port === freePort;
     PortManager.findAvailablePort = async (start, end, host) => {
         calls.push(['findAvailablePort', start, end - start, host]);
         return freePort;
@@ -375,7 +378,6 @@ test('HttpsDefaultServer: generated pair, TLS surface, VR toast and dispose-befo
         'log: SERVER: Validating generated local certificates...',
         'log: SERVER: Certificate path:',
         'log: SERVER: Key path:',
-        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: SSL certificates loaded successfully',
@@ -486,7 +488,6 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
     assert.deepEqual(consoleCapture.lines, [
         'log: SERVER: HTTP server initialized with config:',
         'log: SERVER: HTTPS server (custom certificates) initialized with config:',
-        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: Custom SSL certificates loaded successfully',
@@ -507,7 +508,6 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
         'log: SERVER: HTTPS server (custom certificates) initialized with config:',
         'warn: SERVER: Custom certificate pair failed validation and will use generated fallback:',
         'warn: SERVER: Falling back to generated local certificates because the custom pair is missing or invalid',
-        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: Custom SSL certificates loaded successfully',
@@ -523,7 +523,6 @@ test('HttpsCustomServer: valid pair, redacted config, no toast; invalid pair fal
         `warn: SERVER: Custom certificate file not found: <custom>${sep}absent-cert.pem`,
         `warn: SERVER: Custom key file not found: <custom>${sep}absent-key.pem`,
         'warn: SERVER: Falling back to generated local certificates because the custom pair is missing or invalid',
-        'log: SERVER: Port 4000 is already in use on 127.0.0.1',
         'log: SERVER: Looking for available port starting from 4000 on host 127.0.0.1...',
         'log: SERVER: Port 4000 was busy, using <port> instead on host 127.0.0.1',
         'log: SERVER: Custom SSL certificates loaded successfully',
