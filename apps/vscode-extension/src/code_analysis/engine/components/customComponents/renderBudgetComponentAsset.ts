@@ -1,37 +1,22 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import {
+    SINGLE_FILE_RUNTIME_ASSETS,
+    resolveRuntimeAssetSourcePath,
+    copyRuntimeAssetToOutput,
+    readRuntimeAssetContent,
+} from './singleFileRuntimeAssets';
 
-export const RENDER_BUDGET_RUNTIME_OUTPUT_NAME = 'renderBudgetRuntime.js';
+const ASSET = SINGLE_FILE_RUNTIME_ASSETS.renderBudget;
 
-const SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'codexr',
-    'render-budget',
-    RENDER_BUDGET_RUNTIME_OUTPUT_NAME,
-] as const;
+export const RENDER_BUDGET_RUNTIME_OUTPUT_NAME = ASSET.outputName;
 
 export function resolveRenderBudgetRuntimeSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...SOURCE_SEGMENTS);
+    return resolveRuntimeAssetSourcePath(ASSET, extensionPath);
+}
+
+export async function copyRenderBudgetRuntimeToOutput(extensionPath: string, outputDirectory: string): Promise<string> {
+    return copyRuntimeAssetToOutput(ASSET, extensionPath, outputDirectory);
 }
 
 export async function readRenderBudgetRuntimeContent(extensionPath: string): Promise<string> {
-    const sourcePath = resolveRenderBudgetRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(sourcePath)) {
-        throw new Error(`Render budget runtime not found at ${sourcePath}`);
-    }
-    return fs.promises.readFile(sourcePath, 'utf8');
-}
-
-export async function copyRenderBudgetRuntimeToOutput(
-    extensionPath: string,
-    outputDirectory: string,
-): Promise<string> {
-    const sourcePath = resolveRenderBudgetRuntimeSourcePath(extensionPath);
-    if (!fs.existsSync(sourcePath)) {
-        throw new Error(`Render budget runtime not found at ${sourcePath}`);
-    }
-    const outputPath = path.join(outputDirectory, RENDER_BUDGET_RUNTIME_OUTPUT_NAME);
-    await fs.promises.copyFile(sourcePath, outputPath);
-    return outputPath;
+    return readRuntimeAssetContent(ASSET, extensionPath);
 }

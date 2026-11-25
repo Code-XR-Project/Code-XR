@@ -1,38 +1,27 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import {
+    SINGLE_FILE_RUNTIME_ASSETS,
+    resolveRuntimeAssetSourcePath,
+    assertRuntimeAssetSourceExists,
+    copyRuntimeAssetToOutput,
+    readRuntimeAssetContent,
+} from './singleFileRuntimeAssets';
 
-export const CODEXR_GIT_REF_PICKER_OUTPUT_NAME = 'codexrGitRefPickerRuntime.js';
+const ASSET = SINGLE_FILE_RUNTIME_ASSETS.gitRefPicker;
 
-const CODEXR_GIT_REF_PICKER_SOURCE_SEGMENTS = [
-    'templates',
-    'components',
-    'common',
-    CODEXR_GIT_REF_PICKER_OUTPUT_NAME,
-] as const;
+export const CODEXR_GIT_REF_PICKER_OUTPUT_NAME = ASSET.outputName;
 
 export function resolveCodeXrGitRefPickerSourcePath(extensionPath: string): string {
-    return path.join(extensionPath, ...CODEXR_GIT_REF_PICKER_SOURCE_SEGMENTS);
+    return resolveRuntimeAssetSourcePath(ASSET, extensionPath);
 }
 
 export function assertCodeXrGitRefPickerSourceExists(extensionPath: string): string {
-    const runtimePath = resolveCodeXrGitRefPickerSourcePath(extensionPath);
-    if (!fs.existsSync(runtimePath)) {
-        throw new Error(`CodeXR Git ref picker runtime not found at ${runtimePath}`);
-    }
-    return runtimePath;
+    return assertRuntimeAssetSourceExists(ASSET, extensionPath);
 }
 
-export async function copyCodeXrGitRefPickerToOutput(
-    extensionPath: string,
-    outputDirectory: string,
-): Promise<string> {
-    const runtimePath = assertCodeXrGitRefPickerSourceExists(extensionPath);
-    const outputPath = path.join(outputDirectory, CODEXR_GIT_REF_PICKER_OUTPUT_NAME);
-    await fs.promises.copyFile(runtimePath, outputPath);
-    return outputPath;
+export async function copyCodeXrGitRefPickerToOutput(extensionPath: string, outputDirectory: string): Promise<string> {
+    return copyRuntimeAssetToOutput(ASSET, extensionPath, outputDirectory);
 }
 
 export async function readCodeXrGitRefPickerContent(extensionPath: string): Promise<string> {
-    const runtimePath = assertCodeXrGitRefPickerSourceExists(extensionPath);
-    return fs.promises.readFile(runtimePath, 'utf8');
+    return readRuntimeAssetContent(ASSET, extensionPath);
 }
