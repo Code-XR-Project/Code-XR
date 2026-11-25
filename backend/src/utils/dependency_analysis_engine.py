@@ -13,7 +13,7 @@ import os
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 from directory_scan_utils import is_analyzable_file_path, scan_directory_files_for_analysis
 from metric_language_contract import get_metric_language
@@ -128,40 +128,32 @@ def _extract_structured_targets(language: str, text: str) -> Tuple[bool, List[Tu
         return False, []
 
 
-def _extract_targets(text: str) -> List[Tuple[str, str, str]]:
-    targets: List[Tuple[str, str, str]] = []
+def _iter_raw_targets(text: str) -> Iterator[Tuple[str, str, str, int]]:
+    """Yield (kind, value, confidence, match offset) in source-pattern order."""
     for kind, pattern in IMPORT_PATTERNS + INHERITANCE_PATTERNS:
         for match in pattern.finditer(text):
             value = next((group for group in match.groups() if group), "")
-            for part in re.split(r"\s*,\s*", value):
-                normalized = part.strip().strip("\"'").split("<", 1)[0]
-                if normalized:
-                    targets.append((kind, normalized, "exact" if kind in {"import", "include", "require"} else "probable"))
-    for match in CALL_PATTERN.finditer(text):
-        value = match.group(1)
-        leaf = value.rsplit(".", 1)[-1]
-        if leaf.lower() not in CALL_KEYWORDS:
-            targets.append(("call", value, "ambiguous"))
-    return targets
-
-
-def _extract_targets_with_lines(text: str) -> List[Tuple[str, str, str, int]]:
-    targets: List[Tuple[str, str, str, int]] = []
-    for kind, pattern in IMPORT_PATTERNS + INHERITANCE_PATTERNS:
-        for match in pattern.finditer(text):
-            value = next((group for group in match.groups() if group), "")
-            line = text.count("\n", 0, match.start()) + 1
             for part in re.split(r"\s*,\s*", value):
                 normalized = part.strip().strip("\"'").split("<", 1)[0]
                 if normalized:
                     confidence = "exact" if kind in {"import", "include", "require"} else "probable"
-                    targets.append((kind, normalized, confidence, line))
+                    yield kind, normalized, confidence, match.start()
     for match in CALL_PATTERN.finditer(text):
         value = match.group(1)
         leaf = value.rsplit(".", 1)[-1]
         if leaf.lower() not in CALL_KEYWORDS:
-            targets.append(("call", value, "ambiguous", text.count("\n", 0, match.start()) + 1))
-    return targets
+            yield "call", value, "ambiguous", match.start()
+
+
+def _extract_targets(text: str) -> List[Tuple[str, str, str]]:
+    return [(kind, value, confidence) for kind, value, confidence, _offset in _iter_raw_targets(text)]
+
+
+def _extract_targets_with_lines(text: str) -> List[Tuple[str, str, str, int]]:
+    return [
+        (kind, value, confidence, text.count("\n", 0, offset) + 1)
+        for kind, value, confidence, offset in _iter_raw_targets(text)
+    ]
 
 
 def _empty_metrics(**values: object) -> Dict[str, object]:
