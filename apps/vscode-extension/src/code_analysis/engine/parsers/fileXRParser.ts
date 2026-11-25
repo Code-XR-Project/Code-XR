@@ -88,6 +88,38 @@ const FILE_XR_COPY_STEPS: ReadonlyArray<(extensionPath: string, outputDirectory:
     copyLogoRuntimeToOutput,
 ];
 
+/**
+ * The files a file XR scene must have before it is served. Deliberately a
+ * strict subset of what is written: the git ref picker is copied but never
+ * verified, so a scene without it still opens (pinned by
+ * test/analysis/xrRuntimeManifestAsymmetry.test.cjs).
+ */
+const FILE_XR_REQUIRED_OUTPUTS: readonly string[] = [
+    'index.html',
+    'data.json',
+    CODEXR_COMMON_RUNTIME_OUTPUT_NAME,
+    CODEXR_AVATAR_RUNTIME_OUTPUT_NAME,
+    CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME,
+    VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME,
+    VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME,
+    CODEXR_ROOM_RUNTIME_OUTPUT_NAME,
+    POINTER_POLICY_RUNTIME_OUTPUT_NAME,
+    IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME,
+    XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME,
+    XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME,
+    CODEXR_DEBUG_RUNTIME_OUTPUT_NAME,
+    RENDER_BUDGET_RUNTIME_OUTPUT_NAME,
+    DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME,
+    DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME,
+    ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME,
+    ANALYSIS_MODE_RUNTIME_OUTPUT_NAME,
+    HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME,
+    PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME,
+    GUIDE_SCREEN_RUNTIME_OUTPUT_NAME,
+    GUIDE_PAGE_OUTPUT_NAME,
+    LOGO_RUNTIME_OUTPUT_NAME,
+];
+
 interface FileXRSharedBootstrap {
     payload: any[];
 }
@@ -185,31 +217,7 @@ export class FileXRParser {
             }
 
             const loadedFiles = await this.loadGeneratedFiles(session.outputPath);
-            if (
-                !loadedFiles.has('index.html')
-                || !loadedFiles.has('data.json')
-                || !loadedFiles.has(CODEXR_COMMON_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(CODEXR_AVATAR_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(CODEXR_COLLABORATION_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(VIRTUAL_SCREEN_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(VIRTUAL_SCREEN_MANAGER_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(CODEXR_ROOM_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(POINTER_POLICY_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(CODEXR_DEBUG_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(RENDER_BUDGET_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(ANALYSIS_MODE_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(GUIDE_SCREEN_RUNTIME_OUTPUT_NAME)
-                || !loadedFiles.has(GUIDE_PAGE_OUTPUT_NAME)
-                || !loadedFiles.has(LOGO_RUNTIME_OUTPUT_NAME)
-            ) {
+            if (FILE_XR_REQUIRED_OUTPUTS.some((name) => !loadedFiles.has(name))) {
                 throw new Error('XR file bootstrap did not generate the required files.');
             }
 

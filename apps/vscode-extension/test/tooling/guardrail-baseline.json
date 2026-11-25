@@ -55,12 +55,12 @@
     ],
     "functions.over80Lines": 42,
     "complexity.over10": 67,
-    "complexity.over15": 24,
-    "complexity.over20": 5,
-    "complexity.over30": 3,
+    "complexity.over15": 23,
+    "complexity.over20": 4,
+    "complexity.over30": 2,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 514,
+    "eslint.maxWarnings": 512,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -69,8 +69,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 49014,
-    "src.functions": 3274,
+    "src.lines": 49022,
+    "src.functions": 3275,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -154,12 +154,6 @@
         "file": "src/code_analysis/export/gitRevisionExportCore.ts"
       },
       {
-        "ccn": 35,
-        "lines": 120,
-        "function": "parseFileAnalysis",
-        "file": "src/code_analysis/engine/parsers/fileXRParser.ts"
-      },
-      {
         "ccn": 26,
         "lines": 100,
         "function": "listReferences",
@@ -200,6 +194,12 @@
         "lines": 88,
         "function": "handleDependencyGraphStartMessage",
         "file": "src/servers/runtime/analysis/dependencyGraphBridge.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 50,
+        "function": "handleMessage",
+        "file": "src/servers/runtime/collaboration/collaborationRoomServer.ts"
       }
     ],
     "size.largest10": [
