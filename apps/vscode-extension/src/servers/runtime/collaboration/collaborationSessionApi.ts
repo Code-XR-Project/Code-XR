@@ -1,12 +1,12 @@
 import * as http from 'http';
 import * as fs from 'fs';
 import { fileToServerMap } from '../../../utils/fileToServerMap';
+import { DEFAULT_COLLABORATION_PROFILE } from '../../../collaboration/model/collaborationProfile';
 import {
     CollaborationConfiguration,
     CollaborationProfileManager,
-    DEFAULT_COLLABORATION_PROFILE,
-} from '../../../collaboration';
-import { RemoteSessionAuthority } from '../../../remote_access';
+} from '../../../collaboration/services/collaborationProfileManager';
+import { RemoteSessionAuthority } from '../../../remote_access/security/remoteSessionAuthority';
 import { sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
 
 /** Availability of one optional analysis feature, as reported to browsers. */

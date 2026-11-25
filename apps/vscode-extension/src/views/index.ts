@@ -7,7 +7,7 @@
 export { ModularTreeDataProvider } from './ModularTreeDataProvider';
 
 // Common interfaces and utilities
-export * from './common/baseInterfaces';
+export * from '../platform/tree/baseInterfaces';
 
 // Section providers
 export * from './servers';

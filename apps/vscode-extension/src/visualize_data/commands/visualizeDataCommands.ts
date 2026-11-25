@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { VisualizationLauncher } from '../views/interactions/visualizationLauncher';
 import { VisualizeDataModel } from '../model/visualizeDataModel';
 import { VisualizationRestorer, StoredVisualization } from '../runtime/visualizationRestorer';
-import { ExtensionCommandRegistration } from '../../commands/shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { getLogger } from '../../core/logging/sink';
 
 const logger = getLogger('VISUALIZE_DATA_COMMANDS');

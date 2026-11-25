@@ -24,6 +24,7 @@
 
 - **22 files build template paths by hand**, almost always `path.join(context.extensionPath, 'templates', …)`; 39 files touch `extensionPath`/`extensionUri` (236 hits). There is no central resolver.
 - **Fallback that could break:** `servers/runtime/{httpServer,httpsDefaultServer,httpsCustomServer,multiServerLauncher}.ts` default `staticRoot` to `path.join(__dirname, '../../../templates')`, which is only right in the unbundled layout. Callers appear to always pass `staticRoot` (to confirm with a test).
+  - **Done in #42:** all of them, plus the 17 `extensionPath` call sites, go through `resolveTemplatePath()` (`src/platform/templatePaths.ts`). `test/platform/templatePaths.test.cjs` evaluates `httpServer.js` with the bundle's `__dirname` (`<extension>/dist`) and asserts the default static root is `<extension>/templates`; it also fails on any new `__dirname`-relative template path in `src/`.
 - **Templates ship once (since story #41):** the `files` allowlist ships `templates/**`; webpack no longer copies it into `dist/templates`.
 - **Moving templates to `packages/xr-scenes`** would need: the copy source changed, a decision on the `files` entry, `scripts/prepare-dev-extension.mjs` and `scripts/dist-fingerprint.mjs` updated, and 38 test files retargeted (11 build `projectRoot/templates` directly; `test/helpers/runtimeAssembly.cjs` and `sourceText.cjs` hardcode it).
 
@@ -46,7 +47,7 @@ Two-way cycles between top-level folders (A→B / B→A import edges):
 `commands` is also in cycles with `utils`, `python_env`, `learn_more`, `visualization_settings`, `visualize_data`, `babia_examples` and `active_servers`, because they import `commands/shared`.
 
 Layering violations:
-- `code_analysis/engine/core/sessionRegistry.ts` (core session state) shows warnings, runs `workbench.view…` commands and uses `vscode.EventEmitter`.
+- `code_analysis/engine/core/sessionRegistry.ts` (core session state) shows warnings, runs `workbench.view…` commands and uses `vscode.EventEmitter`. **#42:** `createSession` now returns `{ kind: 'created' | 'duplicate' }` and `AnalysisOrchestrator` shows the warnings (texts unchanged, pinned by `analysisOrchestratorDuplicate.test.cjs`); the `vscode.EventEmitter` and the `ExtensionContext` type remain.
 - `servers/runtime/multiServerLauncher.ts` imports the UI module `active_servers/views/interactions/handleServerActions.ts`; `previewRenderer.ts` imports the webview `panelManager`.
 - `code_analysis/services/serverWatcherIntegration.ts` imports `active_servers/registry` and `serverControl`.
 - `executePython.ts` and `gitRevisionExporter.ts` import `python_env/runtime/venvManager.ts` (vscode-bound).
@@ -55,12 +56,32 @@ Layering violations:
 ## 5. What this epic does, and what it leaves to story #13
 
 **Plain cleanup, in epic #26 (story #42 unless noted):**
-1. Direct model/security imports instead of barrels in the four `servers/runtime/*` files (about 6 files become vscode-free).
-2. A Node emitter instead of `vscode.EventEmitter` in `activeServerRegistry.ts`.
+1. Direct model/security imports instead of barrels in the four `servers/runtime/*` files (about 6 files become vscode-free). **Done in #42** (eight files, +8 vscode-free).
+2. A Node emitter instead of `vscode.EventEmitter` in `activeServerRegistry.ts`. **Done in #42.**
 3. Delete the zero-byte modules and the configuration example (story #29).
-4. One `resolveTemplatePath()` for the 22 call sites; fix or remove the `__dirname` fallback; a `templatesRoot()` test helper.
-5. UI side effects out of `sessionRegistry.ts` and the `handleServerActions` import out of `multiServerLauncher.ts` (with story #39).
-6. Move the pure `commandRegistry` to `core/`, so feature folders stop importing `commands/shared`.
-7. A dependency-direction test that pins the allowed folder edges and fails on a new cycle.
+4. One `resolveTemplatePath()` for the 22 call sites; fix or remove the `__dirname` fallback; a `templatesRoot()` test helper. **Done in #42** (`platform/templatePaths.ts`).
+5. UI side effects out of `sessionRegistry.ts` and the `handleServerActions` import out of `multiServerLauncher.ts` (with story #39). **Done** (#39 removed that import; #42 the registry's UI).
+6. Move the pure `commandRegistry` to `core/`, so feature folders stop importing `commands/shared`. **Done in #42 as `platform/commands/commandRegistry.ts`** (the place `src-layout.md` maps it, where `core/` means domain logic); the `commands/shared` barrel is gone.
+7. A dependency-direction test that pins the allowed folder edges and fails on a new cycle. **Done in #42:** `test/tooling/dependencyDirection.test.cjs` (see §6).
 
 **Belongs to [#13](https://github.com/Code-XR-Project/Code-XR/issues/13) (epic #11) — deliberately not started:** a `HostServices` / ports interface (notifier, configuration, key-value store, asset locator, progress) with a VS Code adapter; injecting `logger.ts` behind a sink port; replacing `ExtensionContext` with narrow parameters in the 37 pass-through files; moving `xrFieldSchemaService` storage behind a port; creating `packages/core` / `packages/xr-scenes` or moving files into them.
+
+## 6. Result of story #42 (2026-11-25)
+
+Measured with `test/tooling/folderDependencies.cjs` (TypeScript AST; type imports, `export … from`, `import()` and `require()` count; barrels are followed as files, not resolved to the declaring file). Session log: `.claude/docs/v1.2.1/sessions/42-layering.md`.
+
+| Metric | Before #42 (`ca3eb871`) | After #42 |
+|---|---|---|
+| src `.ts` files | 334 | 335 |
+| Files that import `vscode` directly | 171 | 170 |
+| **Files with no import path to `vscode`** | **97** | **109** (+12; floor pinned in `folderDependencies.json`) |
+| Two-way folder pairs, all counted | 15 | **5** |
+| Same, counted as in §4 (without the seven `commands/shared` back-edge pairs) | 8 (9 when §4 was written) | 5 |
+
+The 97 differs from §1's 101 because the count here includes type-only imports and follows barrels as files.
+
+What moved the numbers: direct model/security imports in eight server files (+8 vscode-free), the Node emitter in the active-server registry (+2), `resolveTemplatePath()` (+1), the XR field types beside the chart models (+2, and `babia_templates↔code_analysis` gone), `CollaborationClientKind` declared in `collaboration/` (`collaboration↔remote_access` gone), the command model in `platform/commands/` (seven `commands↔<feature>` pairs and `commands↔utils` gone), the section-provider contract in `platform/tree/` (`code_analysis↔views` gone).
+
+**The five remaining pairs** (each with its reason in `test/tooling/folderDependencies.json`) are all inside the server/analysis subsystems, and none can be broken by moving a type: `active_servers↔servers` (one subsystem in two folders; #55 merges the registry, registrar and `ServerControl` into `core/server`), `active_servers↔remote_access` and `remote_access↔servers` (the remote-access setting and registry watch; need an injected accessor), `active_servers↔code_analysis` and `code_analysis↔servers` (servers host the analysis bridges, analysis launches servers; need the bridges registered from the analysis side). The last three need the event/callback seams of #13. The acceptance target "≤ 2" is therefore **not met** by plain cleanup; 5 is where import-only changes stop.
+
+Not done here: the `launchNotifications` import in `multiServerLauncher.ts` (it is inside `servers/` today, so not a folder edge; passing the notifier in touches the launcher's four constructors and is left for #55, where it becomes the one upward edge); `sessionRegistry.ts` keeps `vscode.EventEmitter` and the `ExtensionContext` type.

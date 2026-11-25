@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { BABIA_EXAMPLE_LIBRARIES, BabiaExample } from '../model/babiaExampleModel';
 import { ExampleClickHandler } from '../views/interactions/handleExampleClicks';
 import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
-import { ExtensionCommandRegistration } from '../../commands/shared';
+import { ExtensionCommandRegistration } from '../../platform/commands/commandRegistry';
 import { DetailRow, formatDetailSections } from '../../utils/detailDialog';
 import { getLogger } from '../../core/logging/sink';
 

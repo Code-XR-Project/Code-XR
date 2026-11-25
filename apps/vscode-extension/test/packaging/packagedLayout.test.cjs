@@ -134,11 +134,14 @@ const PACKAGED_ROOTS = ['templates', 'examples', 'resources', 'dist'];
  * Extension-relative paths as the code spells them: a chain of quoted
  * segments handed to path.join / Uri.joinPath or kept in a SEGMENTS array
  * (`'templates', 'xr', 'sse', 'live_sse_fileXR.js'`), or one quoted literal
- * (`'templates/utils/color-picker.html'`). A chain that ends in an expression
+ * (`'templates/utils/color-picker.html'`). `resolveTemplatePath(root, …)`
+ * (src/platform/templatePaths.ts) reads as a chain that starts with 'templates'.
+ * A chain that ends in an expression
  * names its directory. A chain whose first segment follows another quoted
  * string is a list of names (`'node_modules', 'dist', 'build'`), not a path.
  */
-function extractPackagedReferences(text) {
+function extractPackagedReferences(source) {
+    const text = source.replace(/\bresolveTemplatePath\(([^,()]+),/g, "resolveTemplatePath($1, 'templates',");
     const references = [];
     const roots = PACKAGED_ROOTS.join('|');
     const chainStart = new RegExp(String.raw`(['"])(${roots})\1`, 'g');
@@ -281,8 +284,16 @@ test('the reference extractor reads path chains and skips lists of names', () =>
             "const TEMPLATE_PATH = 'templates/utils/color-picker.html';",
             "const EXCLUDED = [\n    'node_modules',\n    'dist',\n    'build',\n];",
             "if (name === 'examples') {}",
+            "resolveTemplatePath(context.extensionPath, 'xr', 'file', 'xr-visualization.html');",
+            "resolveTemplatePath(\n    extensionPath,\n    'components',\n    asset.folder,\n);",
         ].join('\n')),
-        ['templates/xr/sse/live_sse_fileXR.js', 'templates/components', 'templates/utils/color-picker.html'],
+        [
+            'templates/xr/sse/live_sse_fileXR.js',
+            'templates/components',
+            'templates/xr/file/xr-visualization.html',
+            'templates/components',
+            'templates/utils/color-picker.html',
+        ],
     );
     assert.throws(() => compileIgnore(['**/*.{ts,js}']), /does not evaluate/);
     assert.equal(compileIgnore(['**/__pycache__/**'])('pkg/__pycache__/a.pyc'), true);

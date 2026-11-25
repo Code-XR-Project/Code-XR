@@ -1,5 +1,5 @@
 import { ChartMetadata, DimensionMapping, ChartValidationResult } from '../models/chartModels';
-import { XRFieldTypeMap } from '../../code_analysis/services/xrFieldSchemaService';
+import { XRFieldTypeMap } from '../models/xrFieldModels';
 
 /**
  * BabiaXR Dimension Validator

@@ -29,11 +29,12 @@
       "active_servers": 11,
       "babia_templates": 2,
       "code_analysis": 87,
-      "commands": 8,
+      "commands": 6,
+      "platform": 7,
       "python_env": 5,
       "servers": 11,
       "utils": 14,
-      "views": 20,
+      "views": 15,
       "visualization_settings": 6,
       "visualize_data": 2
     },
@@ -69,8 +70,8 @@
   },
   "informational": {
     "src.files": 334,
-    "src.lines": 48974,
-    "src.functions": 3279,
+    "src.lines": 49038,
+    "src.functions": 3283,
     "src.unreachableLines": 0,
     "console.topFiles": [
       {
@@ -108,6 +109,10 @@
         "count": 5
       },
       {
+        "file": "src/platform/tree/baseInterfaces.ts",
+        "count": 5
+      },
+      {
         "file": "src/python_env/runtime/venvManager.ts",
         "count": 5
       },
@@ -117,10 +122,6 @@
       },
       {
         "file": "src/utils/jsonFieldAnalyzer.ts",
-        "count": 5
-      },
-      {
-        "file": "src/views/common/baseInterfaces.ts",
         "count": 5
       },
       {
@@ -221,15 +222,15 @@
       },
       {
         "file": "src/code_analysis/export/exportManifest.ts",
-        "lines": 595
+        "lines": 596
+      },
+      {
+        "file": "src/servers/runtime/httpServer.ts",
+        "lines": 582
       },
       {
         "file": "src/servers/runtime/broadcast/screenBroadcastSignalingServer.ts",
         "lines": 581
-      },
-      {
-        "file": "src/servers/runtime/httpServer.ts",
-        "lines": 576
       },
       {
         "file": "src/code_analysis/engine/utils/executePython.ts",
@@ -272,6 +273,20 @@
       "from": 1,
       "to": 2,
       "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1 at e16b95e8)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 0,
+      "to": 2,
+      "reason": "#42: commandRegistry.ts moved from commands/shared/ to platform/commands/; its two any move with it (commands 8 -> 6, total unchanged)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 2,
+      "to": 7,
+      "reason": "#42: views/common/baseInterfaces.ts moved to platform/tree/ (its src-layout.md destination); its any moves with it (views and platform shift by the same count, total unchanged)",
       "date": "2026-11-25"
     }
   ]

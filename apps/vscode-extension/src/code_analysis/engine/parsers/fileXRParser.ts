@@ -55,6 +55,7 @@ import {
     LOGO_RUNTIME_OUTPUT_NAME,
 } from '../components/customComponents';
 import { getLogger } from '../../../core/logging/sink';
+import { resolveTemplatePath } from '../../../platform/templatePaths';
 
 const logger = getLogger('FILE_XR_PARSER');
 
@@ -121,7 +122,7 @@ export class FileXRParser {
             const dataJsonPath = path.join(session.outputPath, 'data.json');
             await fs.promises.writeFile(dataJsonPath, JSON.stringify(analysisData, null, 2), 'utf8');
 
-            const liveSSEPath = path.join(this.context.extensionPath, 'templates', 'xr', 'sse', 'live_sse_fileXR.js');
+            const liveSSEPath = resolveTemplatePath(this.context.extensionPath, 'xr', 'sse', 'live_sse_fileXR.js');
             const mainJSPath = path.join(session.outputPath, 'main.js');
             if (fs.existsSync(liveSSEPath)) {
                 await fs.promises.copyFile(liveSSEPath, mainJSPath);

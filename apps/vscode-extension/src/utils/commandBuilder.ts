@@ -8,7 +8,7 @@
  */
 
 import * as vscode from 'vscode';
-import type { ExtensionCommandRegistration } from '../commands/shared';
+import type { ExtensionCommandRegistration } from '../platform/commands/commandRegistry';
 import { handleError, ErrorDomain, ErrorSeverity } from './errorHandler';
 import { getLogger } from '../core/logging/sink';
 

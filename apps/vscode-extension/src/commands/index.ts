@@ -9,7 +9,7 @@ import { getVisualizationSettingsCommandRegistrations } from './visualization_se
 import { getLearnMoreCommandRegistrations } from './learn_more/learnMoreCommands';
 import { getGeneralCommandRegistrations } from './common/generalCommands';
 import { getCollaborationCommandRegistrations } from './collaboration/collaborationCommands';
-import { ExtensionCommandRegistration, assertUniqueCommandIds } from './shared';
+import { ExtensionCommandRegistration, assertUniqueCommandIds } from '../platform/commands/commandRegistry';
 import { CommandBuilder } from '../utils/commandBuilder';
 import { BabiaExamplesTreeDataProvider } from '../babia_examples/views/babiaExamplesTreeView';
 import { CodeXRLogger } from '../core/logging/logger';

@@ -201,7 +201,7 @@ async function runScenario(scenario) {
     for (const answer of scenario.answers || []) {
         fake.queueAnswer(answer);
     }
-    const context = { name: 'fake extension context' };
+    const context = { name: 'fake extension context', extensionPath: projectRoot };
     const transcript = {
         console: [],
         constructed: [],
@@ -364,7 +364,7 @@ test('launcher: the key behaviours, stated outright', () => {
         `http://localhost:${REQUESTED_PORT}/?codexr_token=fixture`, '<fixture>/scene/index.html', 'browser',
     ]]);
 
-    // No scene file: the runtime's own __dirname-relative templates folder.
+    // No scene file: the templates folder of the extension root (context.extensionPath).
     const templates = transcripts['http, no scene file: the templates root, no main file'];
     assert.equal(templates.constructed[0].config.staticRoot, '<project>/templates');
     assert.equal(templates.constructed[0].config.mainFile, '<undefined>');

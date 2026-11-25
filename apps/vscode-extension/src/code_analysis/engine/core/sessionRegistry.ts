@@ -19,6 +19,15 @@ import { getLogger } from '../../../core/logging/sink';
 
 const logger = getLogger('UNIFIED_REGISTRY');
 
+/**
+ * What createSession did: built a new session, or found a live one for the
+ * same target, mode, type and depth (re-announced, not recreated). Telling the
+ * user is the caller's job (AnalysisOrchestrator).
+ */
+export type SessionCreationResult =
+    | { kind: 'created'; session: UnifiedAnalysisSession }
+    | { kind: 'duplicate'; existing: UnifiedAnalysisSession };
+
 
 export class UnifiedSessionRegistry {
     private static instance: UnifiedSessionRegistry;
@@ -69,7 +78,7 @@ export class UnifiedSessionRegistry {
     /**
      * Create a new unified analysis session - SIMPLIFIED
      */
-    async createSession(params: SessionCreationParams): Promise<UnifiedAnalysisSession | null> {
+    async createSession(params: SessionCreationParams): Promise<SessionCreationResult> {
         try {
             logger.debug(`Creating session`, {
                 targetPath: params.targetPath,
@@ -80,9 +89,8 @@ export class UnifiedSessionRegistry {
 
             const duplicateSession = this.hasDuplicateSession(params);
             if (duplicateSession) {
-                this.warnAboutDuplicate(duplicateSession);
                 this._onSessionChanged.fire(duplicateSession);
-                return null;
+                return { kind: 'duplicate', existing: duplicateSession };
             }
 
             const id = generateNonce();
@@ -121,36 +129,11 @@ export class UnifiedSessionRegistry {
             this._onSessionChanged.fire(session);
 
             logger.debug(() => `Created session ${id} for ${targetName}`);
-            return session;
+            return { kind: 'created', session };
 
         } catch (error) {
             logger.error('Error creating session:', error);
             throw error;
-        }
-    }
-
-    /**
-     * Tells the user why a duplicate request was refused. A finished analysis
-     * offers to open the Active Analyses view.
-     */
-    private warnAboutDuplicate(duplicateSession: UnifiedAnalysisSession): void {
-        if (duplicateSession.status === 'monitoring') {
-            vscode.window.showWarningMessage(
-                `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
-                'Open Active Analyses'
-            ).then(choice => {
-                if (choice === 'Open Active Analyses') {
-                    vscode.commands.executeCommand('workbench.view.extension.codeXRView');
-                }
-            });
-        } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
-            vscode.window.showWarningMessage(
-                `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
-            );
-        } else {
-            vscode.window.showWarningMessage(
-                `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
-            );
         }
     }
 

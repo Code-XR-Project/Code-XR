@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SectionProvider, ModularTreeItem } from './common/baseInterfaces';
+import { SectionProvider, ModularTreeItem } from '../platform/tree/baseInterfaces';
 import { createSectionDefinitions, LazySectionDefinition } from './sectionDefinitions';
 import type { SectionChild } from './common/sectionChild';
 import { PythonEnvUiStateService } from '../python_env/runtime/pythonEnvUiState';
