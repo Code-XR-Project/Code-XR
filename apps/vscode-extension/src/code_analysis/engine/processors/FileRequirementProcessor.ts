@@ -3,15 +3,6 @@ import { ThemeUtils } from '../utils/themeUtils';
 import { UnifiedAnalysisSession } from '../core/analysisSession';
 import { AnalysisBootstrap, BootstrapProcessedRequirements } from './analysisBootstrap';
 
-export interface FileRequirement {
-    filePath: string;
-    fileName: string;
-    fileType: 'template';
-    priority: 'critical';
-    extractionStrategy: 'full';
-    reason: string;
-}
-
 export interface ProcessedRequirements {
     sessionId: string;
     analysisMode: string;
