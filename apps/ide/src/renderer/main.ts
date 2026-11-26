@@ -6,7 +6,19 @@ import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter } from './notifications.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createAgentsView } from './agents/agentsView.ts';
+import { registerAgentCommands } from './agents/agentCommands.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
+import { createCommandRegistry } from './commands/commandRegistry.ts';
+import { installKeybindings } from './commands/keybindingService.ts';
+import { formatKeybinding } from './commands/keybindings.ts';
+import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
+import { createQuickOpenFiles } from './quickOpenFiles.ts';
+import { createSearchView } from './search/searchView.ts';
+import { createQuickInput } from './commands/quickInput.ts';
+import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
+import { pickListView, type PickItem } from './commands/paletteModel.ts';
+import { createEditorStatus } from './editor/editorStatus.ts';
+import { eolChoices, indentationChoices, languageChoices, type Choice } from './editor/editorStatusModel.ts';
 import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -15,6 +27,10 @@ if (!root) {
 }
 
 const api = window.codexr;
+/** Whether this window has a folder open (#18: commands that need one are hidden without it). */
+let folderIsOpen = false;
+/** The active editor's file, for quick open's recent list (#164). */
+let activeFile: string | null = null;
 const workbench = renderWorkbench(root);
 // #153: VS Code-style notifications, kept clear of the scene view (a native view drawn over the page).
 const notifications = createNotificationCenter(document.body);
@@ -34,9 +50,14 @@ function editorGroup(): Promise<EditorGroup> {
     editorsLoading ??= import('./editor/editorGroup.ts').then(({ createEditorGroup }) => {
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
-            onActiveChange: (path) => { document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR'; },
+            onActiveChange: (path) => {
+                document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
+                activeFile = path;
+                if (path) { quickOpenFiles.opened(path); }
+            },
             onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
             onOpenFilesChange: () => updateWatched(),
+            onStatusState: (state) => editorStatus.show(state),
         });
         return editors;
     });
@@ -94,6 +115,9 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
 
 /** #139: the main process stops the old folder's scene; the panel follows, and the new folder may be analysed. */
 function folderOpened(root: string): void {
+    folderIsOpen = true;
+    quickOpenFiles.reset();
+    searchView.reset();
     scenePanel.close();
     runView.setHasFolder(true);
     runView.folderOpened(root);
@@ -103,6 +127,9 @@ api.workspace.onDidChange((workspace) => {
     if (workspace) {
         folderOpened(workspace.root);
     } else {
+        folderIsOpen = false;
+        quickOpenFiles.reset();
+        searchView.reset();
         scenePanel.close();
         runView.setHasFolder(false);
     }
@@ -111,6 +138,7 @@ api.workspace.onDidChange((workspace) => {
 api.workspace.current().then(
     (workspace) => {
         runView.setHasFolder(workspace !== null);
+        folderIsOpen = workspace !== null;
         if (workspace) {
             runView.folderOpened(workspace.root);
         }
@@ -119,23 +147,136 @@ api.workspace.current().then(
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),
 );
 
+// #165: search across the workspace, in its own side-bar view.
+const searchView = createSearchView(workbench.searchView, api.workspace, {
+    openMatch: (path, match) => void editorGroup().then((group) => group.openAt(path, match.line, match.column, match.length)),
+    replaceInOpenFiles: (paths, replace) => editors?.replaceInOpenFiles(paths, replace) ?? { handled: [], replacements: 0 },
+    confirm: (message) => window.confirm(message),
+    onStatus: (message) => {
+        workbench.setStatus(message);
+        notifications.notify('info', message);
+    },
+});
+
 // #137: the terminal panel; xterm.js loads with the first terminal.
 const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
 });
 
-const commands: Record<IdeCommand, () => void> = {
-    'workspace.openFolder': () => explorer.openFolder(),
-    'file.save': () => void editors?.save(),
-    'file.saveAll': () => void editors?.saveAll(),
-    'editor.close': () => editors?.closeActive(),
-    'file.newFile': () => void explorer.newFile(),
-    'file.newFolder': () => void explorer.newFolder(),
-    'terminal.toggle': () => terminal.toggle(),
-    'terminal.new': () => void terminal.newTerminal(),
-    'terminal.closePanel': () => terminal.hide(),
+// #18: every action is a command in one registry: the palette lists them,
+// the menu's accelerators and the workbench's own keys run them.
+let platform: string = navigator.userAgent.includes('Macintosh') ? 'darwin' : 'linux';
+const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`));
+// #164: the workspace's files, listed by the main process each time quick
+// open opens (a stale list is shown meanwhile), and the recently opened ones.
+const quickOpenFiles = createQuickOpenFiles(() => api.workspace.listFiles(), () => quickInput.refresh());
+const quickInput = createQuickInput(document.body, {
+    label: 'Search files by name (> for commands, : for a line, @ for symbols)',
+    view: (value) => {
+        if (folderIsOpen && quickOpenFiles.files() === null) {
+            // Typing a file name after opening the box as the palette: list the files now.
+            quickOpenFiles.reload();
+        }
+        return paletteView(value, {
+        commands: registry.list(),
+        isEnabled: (id) => registry.isEnabled(id),
+        recent: registry.recent(),
+        formatKey: (binding) => formatKeybinding(binding, platform),
+        lineCount: editors?.activeLineCount() ?? null,
+        hasFolder: folderIsOpen,
+        files: quickOpenFiles.files(),
+        filesTruncated: quickOpenFiles.truncated(),
+        recentFiles: quickOpenFiles.recent(),
+        activeFile,
+        });
+    },
+    accept: (action) => {
+        if (action.kind === 'command') {
+            registry.execute(action.id);
+        } else if (action.kind === 'line') {
+            editors?.goToLine(action.line, action.column);
+        } else if (action.kind === 'file') {
+            void editorGroup().then((group) => group.open(action.path));
+        } else if (action.kind === 'symbols') {
+            editors?.showSymbols();
+        }
+    },
+    rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
+});
+/** Opens a picker (#166) over `choices`; Enter applies the chosen value. */
+function pick<T>(label: string, choices: readonly Choice<T>[], apply: (value: T) => void): void {
+    const items: PickItem[] = choices.map(({ id, label: text, description }) => ({ id, label: text, ...(description ? { description } : {}) }));
+    quickInput.open('', {
+        label,
+        view: (value) => pickListView(items, value),
+        accept: (action) => {
+            const choice = action.kind === 'pick' ? choices.find((candidate) => candidate.id === action.id) : undefined;
+            if (choice) {
+                apply(choice.value);
+            }
+        },
+    });
+}
+const pickIndentation = (): void => {
+    const state = editors?.statusState();
+    if (state) { pick('Select indentation', indentationChoices(state), (value) => editors?.setIndentation(value)); }
 };
-api.commands.onCommand((command) => commands[command]());
+const pickEndOfLine = (): void => {
+    const state = editors?.statusState();
+    if (state) { pick('Select end of line sequence', eolChoices(state.eol), (value) => editors?.setEndOfLine(value)); }
+};
+const pickLanguage = (): void => {
+    const state = editors?.statusState();
+    if (state && editors) { pick('Select language mode', languageChoices(editors.languages(), state.languageId), (value) => editors?.setLanguage(value)); }
+};
+// #166: the active editor's items in the status bar.
+const editorStatus = createEditorStatus(workbench.editorStatus, {
+    goToLine: () => { registry.execute('editor.goToLine'); },
+    pickIndentation,
+    pickEndOfLine,
+    pickLanguage,
+});
+registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider() });
+registerWorkbenchCommands(registry, {
+    openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
+    goToLine: () => quickInput.open(LINE_PREFIX),
+    quickOpen: () => {
+        quickOpenFiles.reload();
+        quickInput.open('');
+    },
+    goToSymbol: () => editors?.showSymbols(),
+    hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
+    changeIndentation: pickIndentation,
+    changeEndOfLine: pickEndOfLine,
+    changeLanguageMode: pickLanguage,
+    openFolder: () => explorer.openFolder(),
+    hasFolder: () => folderIsOpen,
+    newFile: () => void explorer.newFile(),
+    newFolder: () => void explorer.newFolder(),
+    save: () => void editors?.save(),
+    saveAll: () => void editors?.saveAll(),
+    closeEditor: () => editors?.closeActive(),
+    toggleTerminal: () => terminal.toggle(),
+    newTerminal: () => void terminal.newTerminal(),
+    closeTerminalPanel: () => terminal.hide(),
+    showView: (view) => workbench.showView(view),
+    showSearch: () => {
+        workbench.showView('search');
+        searchView.focus(editors?.selectedText());
+    },
+    analyseProject: () => void runView.analyse(),
+    canAnalyse: () => runView.canAnalyse(),
+    setUpPython: () => void api.python.setUp(),
+    closeScene: () => {
+        scenePanel.close();
+        api.analysis.closeScene().catch((reason: unknown) => workbench.setStatus(String(reason)));
+    },
+    hasScene: () => !workbench.sceneArea.hidden,
+});
+api.commands.onCommand((command: IdeCommand) => {
+    registry.execute(command);
+});
+void appInfo.then((info) => { platform = info.platform; }, () => undefined).finally(() => installKeybindings(registry, platform));
 
 // #15: the Python environment, in the Analysis view and the status bar.
 // The AI agent hub: providers configured with the person's own keys.

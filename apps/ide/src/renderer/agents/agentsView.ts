@@ -17,6 +17,8 @@ const STORAGE_LABEL: Record<KeyStorage, string> = {
 
 export interface AgentsView {
     refresh(): Promise<void>;
+    /** Opens the add-provider form (the "Agents: Add AI Provider" command). */
+    addProvider(): void;
 }
 
 export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void }): AgentsView {
@@ -176,5 +178,5 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         (existing ? key : kindSelect).focus();
     }
 
-    return { refresh };
+    return { refresh, addProvider: () => openForm(null) };
 }
