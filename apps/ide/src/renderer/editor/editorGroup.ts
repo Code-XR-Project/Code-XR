@@ -4,6 +4,8 @@ import { followSystemTheme, monaco } from './monaco.ts';
 import { languageName, type EditorStatusState, type EndOfLine, type Indentation, type LanguageInfo } from './editorStatusModel.ts';
 import { settingOf, type SettingValues } from '../../shared/settings.ts';
 import { closeTargets, cycleTab, discardQuestion, moveTab, type CloseKind, type TabSession } from './tabsModel.ts';
+import { EDITORCONFIG_NAME, editorConfigFolders, parseEditorConfig, resolveEditorConfig, type EditorConfigFile, type EditorConfigProperties } from './editorConfig.ts';
+import { FORMAT_TIMEOUT_MS, indentationOf, saveRules, whitespaceEdits, type AutoSave, type FileSettings, type SaveReason } from './saveTransforms.ts';
 
 /**
  * The editor area (#14): one Monaco editor, one model per open file, and a
@@ -22,6 +24,14 @@ import { closeTargets, cycleTab, discardQuestion, moveTab, type CloseKind, type 
  * makes it a normal tab. Tabs drag to reorder, close in groups from their
  * context menu (one question for all the unsaved ones), and the open tabs
  * with their view state are a session the folder restores.
+ *
+ * Saving (#170): a save formats the file (if asked, and never waiting on a
+ * formatter that fails), trims trailing whitespace and adds the final newline
+ * as one undoable edit, then writes; a project's `.editorconfig` overrides
+ * the settings per file and sets its indentation when it opens. Auto save
+ * runs after a delay (leaving the lines being typed on alone) or when the
+ * editor loses the focus, and never asks a question: a file that changed on
+ * disk waits for an explicit save.
  */
 
 const CLOSE = 'M6 6l12 12M18 6L6 18';
@@ -41,6 +51,12 @@ interface OpenFile {
     bom: boolean;
     /** #167: a preview tab, replaced by the next preview until it is kept. */
     preview: boolean;
+    /** #170: what the file's `.editorconfig` files set. */
+    config: EditorConfigProperties;
+    /** #170: the pending auto save after a delay. */
+    autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
+    /** #170: a save is being written (an auto save does not start a second one). */
+    saving: boolean;
 }
 
 export interface OpenOptions {
@@ -101,6 +117,8 @@ export interface EditorGroup {
     restore(session: TabSession): Promise<void>;
     /** #18: applies the editor settings in force. */
     applySettings(settings: SettingValues): void;
+    /** #170: formats the active file with its language's formatter; false when it has none. */
+    formatDocument(): Promise<boolean>;
 }
 
 export function createEditorGroup(
@@ -269,10 +287,13 @@ export function createEditorGroup(
         const file: OpenFile = {
             path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs,
             diskState: 'same', viewState: null, bom: content.text.startsWith(BOM), preview: false,
+            config: {}, autoSaveTimer: undefined, saving: false,
         };
         setPreview(file, preview);
+        void applyEditorConfig(file);
         model.onDidChangeContent(() => {
             refreshTab(file);
+            scheduleAutoSave(file);
             // Editing keeps a preview tab (a reload from disk leaves it clean, so it stays a preview).
             if (isDirty(file)) { setPreview(file, false); }
         });
@@ -298,6 +319,68 @@ export function createEditorGroup(
         return file;
     }
 
+    // #170: the save settings in force, and the .editorconfig files read so far (by folder).
+    let fileSettings: FileSettings = { trimTrailingWhitespace: false, insertFinalNewline: false, formatOnSave: false };
+    let autoSave: AutoSave = 'off';
+    let autoSaveDelay = 1000;
+    let defaultIndent = { insertSpaces: true, tabSize: 4 };
+    let editorConfigs = new Map<string, Promise<EditorConfigFile | null>>();
+
+    function readEditorConfig(folder: string): Promise<EditorConfigFile | null> {
+        let pending = editorConfigs.get(folder);
+        if (!pending) {
+            const path = folder === '' ? EDITORCONFIG_NAME : `${folder}/${EDITORCONFIG_NAME}`;
+            pending = api.readFile(path).then(
+                (content) => (content.kind === 'text' ? parseEditorConfig(content.text) : null),
+                () => null,
+            );
+            editorConfigs.set(folder, pending);
+        }
+        return pending;
+    }
+
+    async function applyEditorConfig(file: OpenFile): Promise<void> {
+        const folders = editorConfigFolders(file.path);
+        const read = await Promise.all(folders.map(async (folder) => ({ folder, file: await readEditorConfig(folder) })));
+        if (files.get(file.path) !== file) {
+            return; // closed meanwhile
+        }
+        const had = indentationOf(file.config) !== null;
+        file.config = resolveEditorConfig(read.flatMap((entry) => (entry.file ? [{ folder: entry.folder, file: entry.file }] : [])), file.path);
+        const indentation = indentationOf(file.config);
+        if (indentation) {
+            file.model.updateOptions(indentation);
+        } else if (had) {
+            // The .editorconfig no longer says: back to what the content suggests.
+            file.model.detectIndentation(defaultIndent.insertSpaces, defaultIndent.tabSize);
+        }
+    }
+
+    function scheduleAutoSave(file: OpenFile): void {
+        clearTimeout(file.autoSaveTimer);
+        if (autoSave !== 'afterDelay' || !isDirty(file) || file.saving) {
+            return;
+        }
+        file.autoSaveTimer = setTimeout(() => {
+            if (files.get(file.path) === file) {
+                void saveFile(file, 'afterDelay');
+            }
+        }, autoSaveDelay);
+    }
+
+    function saveOnFocusChange(targets: readonly OpenFile[]): void {
+        if (autoSave !== 'onFocusChange') {
+            return;
+        }
+        for (const file of targets) {
+            if (isDirty(file)) {
+                void saveFile(file, 'focusChange');
+            }
+        }
+    }
+    editor.onDidBlurEditorText(() => saveOnFocusChange(active ? [active] : []));
+    window.addEventListener('blur', () => saveOnFocusChange([...files.values()]));
+
     function close_(file: OpenFile): void {
         closeFiles([file]);
     }
@@ -315,6 +398,7 @@ export function createEditorGroup(
         const closing = new Set(targets);
         const activeIndex = active ? order.indexOf(active) : -1;
         for (const file of targets) {
+            clearTimeout(file.autoSaveTimer);
             files.delete(file.path);
             file.tab.remove();
             file.model.dispose();
@@ -339,10 +423,73 @@ export function createEditorGroup(
         return file.bom && !text.startsWith(BOM) ? BOM + text : text;
     }
 
-    async function saveFile(file: OpenFile): Promise<boolean> {
+    /** #170: formats the active file; rejects on a formatter error or after FORMAT_TIMEOUT_MS. */
+    async function formatActive(): Promise<boolean> {
+        const action = editor.getAction('editor.action.formatDocument');
+        if (!action || !action.isSupported()) {
+            return false;
+        }
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(() => reject(new Error(`the formatter took longer than ${FORMAT_TIMEOUT_MS / 1000} s`)), FORMAT_TIMEOUT_MS);
+        });
+        try {
+            await Promise.race([action.run(), timeout]);
+        } finally {
+            clearTimeout(timer);
+        }
+        return true;
+    }
+
+    /** #170: the save-time edits (format, whitespace, line endings, byte order mark) for `file`. */
+    async function prepareSave(file: OpenFile, reason: SaveReason): Promise<void> {
+        const rules = saveRules(fileSettings, file.config);
+        if (rules.formatOnSave && reason !== 'afterDelay' && file === active && editor.getModel() === file.model) {
+            try {
+                await formatActive();
+            } catch (error) {
+                callbacks.onStatus(`${file.path} was saved without formatting: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+        const cursorLines = reason === 'afterDelay' && file === active
+            ? new Set((editor.getSelections() ?? []).flatMap((selection) => [selection.startLineNumber, selection.endLineNumber]))
+            : new Set<number>();
+        const edits = whitespaceEdits(file.model.getLinesContent(), rules, file.model.getEOL(), cursorLines);
+        if (edits.length > 0) {
+            const selections = file === active ? editor.getSelections() ?? [] : [];
+            file.model.pushEditOperations(selections, edits.map((edit) => ({
+                range: new monaco.Range(edit.line, edit.startColumn, edit.line, edit.endColumn),
+                text: edit.text,
+            })), () => null);
+        }
+        const eol = rules.endOfLine === 'crlf' ? '\r\n' : rules.endOfLine === 'lf' ? '\n' : null;
+        if (eol !== null && file.model.getEOL() !== eol) {
+            file.model.pushEOL(eol === '\r\n' ? monaco.editor.EndOfLineSequence.CRLF : monaco.editor.EndOfLineSequence.LF);
+        }
+        if (rules.bom !== undefined) {
+            file.bom = rules.bom;
+        }
+    }
+
+    async function saveFile(file: OpenFile, reason: SaveReason = 'explicit'): Promise<boolean> {
         if (!isDirty(file)) {
             return true;
         }
+        if (reason !== 'explicit' && (file.saving || file.diskState !== 'same')) {
+            // An auto save never asks: a file that changed or vanished on disk waits for Save.
+            return false;
+        }
+        clearTimeout(file.autoSaveTimer);
+        file.saving = true;
+        try {
+            return await writeFile(file, reason);
+        } finally {
+            file.saving = false;
+        }
+    }
+
+    async function writeFile(file: OpenFile, reason: SaveReason): Promise<boolean> {
+        await prepareSave(file, reason);
         const version = file.model.getAlternativeVersionId();
         const write = (expected: number | undefined) => api.writeFile(file.path, fileText(file), expected);
         try {
@@ -352,6 +499,12 @@ export function createEditorGroup(
             } catch (error) {
                 if (!String(error).includes(MODIFIED_ON_DISK)) {
                     throw error;
+                }
+                if (reason !== 'explicit') {
+                    file.diskState = 'changed';
+                    refreshTab(file);
+                    callbacks.onStatus(`${file.path} changed on disk, so it was not auto-saved. Save it to choose.`);
+                    return false;
                 }
                 if (!window.confirm(`${file.path} changed on disk since it was opened.\n\nOverwrite it with your version?`)) {
                     callbacks.onStatus(`${file.path} was not saved: it changed on disk.`);
@@ -363,7 +516,9 @@ export function createEditorGroup(
             file.mtimeMs = result.mtimeMs;
             file.diskState = 'same';
             refreshTab(file);
-            callbacks.onStatus(`Saved ${file.path}`);
+            if (reason === 'explicit') {
+                callbacks.onStatus(`Saved ${file.path}`);
+            }
             return true;
         } catch (error) {
             callbacks.onStatus(`Could not save ${file.path}: ${String(error)}`);
@@ -643,6 +798,29 @@ export function createEditorGroup(
                 cursorBlinking: settingOf<'blink' | 'smooth' | 'phase' | 'expand' | 'solid'>(snapshot, 'editor.cursorBlinking'),
                 smoothScrolling: settingOf<boolean>(snapshot, 'editor.smoothScrolling'),
             });
+            // #170: saving.
+            fileSettings = {
+                trimTrailingWhitespace: settingOf<boolean>(snapshot, 'files.trimTrailingWhitespace'),
+                insertFinalNewline: settingOf<boolean>(snapshot, 'files.insertFinalNewline'),
+                formatOnSave: settingOf<boolean>(snapshot, 'editor.formatOnSave'),
+            };
+            autoSave = settingOf<AutoSave>(snapshot, 'files.autoSave');
+            autoSaveDelay = settingOf<number>(snapshot, 'files.autoSaveDelay');
+            defaultIndent = { insertSpaces: settingOf<boolean>(snapshot, 'editor.insertSpaces'), tabSize: settingOf<number>(snapshot, 'editor.tabSize') };
+            for (const file of files.values()) {
+                scheduleAutoSave(file);
+            }
+        },
+        async formatDocument(): Promise<boolean> {
+            if (!active) {
+                return false;
+            }
+            try {
+                return await formatActive();
+            } catch (error) {
+                callbacks.onStatus(`Could not format ${active.path}: ${error instanceof Error ? error.message : String(error)}`);
+                return true;
+            }
         },
         keepActive(): void {
             if (active) {
@@ -688,7 +866,7 @@ export function createEditorGroup(
             }
         },
         async saveAll(): Promise<void> {
-            const results = await Promise.all([...files.values()].map(saveFile));
+            const results = await Promise.all([...files.values()].map((file) => saveFile(file)));
             const failed = results.filter((ok) => !ok).length;
             if (failed === 0) {
                 callbacks.onStatus('All files saved');
@@ -707,6 +885,7 @@ export function createEditorGroup(
                 file.model.dispose();
             }
             files.clear();
+            editorConfigs = new Map();
             active = null;
             activate(null);
             reportUnsaved();
@@ -740,6 +919,11 @@ export function createEditorGroup(
         },
         async onDiskChanged(paths: readonly string[]): Promise<void> {
             const changed = new Set(paths);
+            // #170: an .editorconfig changed: read them again and re-apply them to every open file.
+            if (paths.some((path) => path === EDITORCONFIG_NAME || path.endsWith(`/${EDITORCONFIG_NAME}`))) {
+                editorConfigs = new Map();
+                await Promise.all([...files.values()].map(applyEditorConfig));
+            }
             await Promise.all([...files.values()].filter((file) => changed.has(file.path)).map(followDisk));
         },
     };

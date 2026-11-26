@@ -35,6 +35,7 @@ export interface WorkbenchCommandTargets {
     openFolderSettingsFile(): void;
     openKeybindings(): void;
     selectColorTheme(): void;
+    formatDocument(): void;
     showSearch(): void;
     analyseProject(): void;
     canAnalyse(): boolean;
@@ -65,6 +66,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.quickOpen', category: 'Go', title: 'Go to File…', ...menu('workbench.quickOpen'), recordRecent: false, run: targets.quickOpen },
         { id: 'editor.goToSymbol', category: 'Go', title: 'Go to Symbol in Editor…', ...menu('editor.goToSymbol'), enabled: targets.hasActiveEditor, run: targets.goToSymbol },
         { id: 'editor.goToLine', category: 'Go', title: 'Go to Line/Column…', ...menu('editor.goToLine'), enabled: targets.hasActiveEditor, run: targets.goToLine },
+        { id: 'editor.formatDocument', category: 'Editor', title: 'Format Document', keybinding: 'Shift+Alt+F', enabled: targets.hasActiveEditor, run: targets.formatDocument },
         { id: 'editor.changeIndentation', category: 'Editor', title: 'Indent Using…', enabled: targets.hasActiveEditor, run: targets.changeIndentation },
         { id: 'editor.changeEndOfLine', category: 'Editor', title: 'Change End of Line Sequence', enabled: targets.hasActiveEditor, run: targets.changeEndOfLine },
         { id: 'editor.changeLanguageMode', category: 'Editor', title: 'Change Language Mode', enabled: targets.hasActiveEditor, run: targets.changeLanguageMode },
