@@ -68,6 +68,12 @@ export class FunctionMetricsService {
         });
     }
 
+    /** #178: whether the window's metrics include this file (a change on disk then re-measures it). */
+    knows(contents: WebContents, root: string, relativePath: string): boolean {
+        const metrics = this.windows.get(contents.id);
+        return metrics?.root === root && metrics.files.some((file) => file.path === relativePath);
+    }
+
     /** A file was written: re-measure it when this window has metrics for its folder. */
     fileSaved(contents: WebContents, root: string, relativePath: string, absolutePath: string): void {
         const metrics = this.windows.get(contents.id);

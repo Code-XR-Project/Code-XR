@@ -26,6 +26,8 @@ export interface ProblemsView {
     setMetricProblems(problems: readonly Problem[], measured: boolean): void;
     /** Moves the focus into the filter (View: Focus Problems). */
     focusFilter(): void;
+    /** #178: shows the panel filtered to these words (a lens's function). */
+    filterTo(text: string): void;
 }
 
 export interface ProblemsHooks {
@@ -232,6 +234,11 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
         focusFilter(): void {
             host.show('problems');
             filter.focus();
+        },
+        filterTo(text: string): void {
+            filter.value = text;
+            host.show('problems');
+            render();
         },
     };
 }
