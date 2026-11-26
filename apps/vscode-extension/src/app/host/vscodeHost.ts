@@ -10,8 +10,20 @@ import type {
     HostStatusIndicator,
 } from '../../core/host/codeXRHost';
 import { hostPathsFromContext } from '../../core/host/hostPaths';
+import { getLogger } from '../../platform/logging/sink';
+
+const logger = getLogger('HOST');
 
 /** The VS Code command (and arguments) behind each host signal. */
+/**
+ * The `when`-clause context keys behind each state signal, spelled out in full:
+ * package.json menus read them, and the feature baseline looks for the literals.
+ */
+const CONTEXT_KEYS: Record<Extract<HostSignal, { kind: 'state' }>['key'], string> = {
+    'pythonEnv.uiLocked': 'codeXR.pythonEnv.uiLocked',
+    'pythonEnv.retryAvailable': 'codeXR.pythonEnv.retryAvailable',
+};
+
 export function signalToCommand(signal: HostSignal): { command: string; args: unknown[] } {
     switch (signal.kind) {
         case 'refresh':
@@ -19,7 +31,7 @@ export function signalToCommand(signal: HostSignal): { command: string; args: un
                 ? { command: 'codexr.servers.refresh', args: [] }
                 : { command: 'codeXR.activeServers.refreshServers', args: [] };
         case 'state':
-            return { command: 'setContext', args: [`codeXR.${signal.key}`, signal.value] };
+            return { command: 'setContext', args: [CONTEXT_KEYS[signal.key], signal.value] };
         case 'revealSidebar':
             return { command: 'workbench.view.extension.codeXRView', args: [] };
         case 'openServerSettings':
@@ -115,7 +127,10 @@ export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
         },
         signal(signal) {
             const { command, args } = signalToCommand(signal);
-            void vscode.commands.executeCommand(command, ...args);
+            // A signal is fire-and-forget for the core; a failing command is logged, never left unhandled.
+            vscode.commands.executeCommand(command, ...args).then(undefined, (error: unknown) => {
+                logger.warn(`Host signal ${signal.kind} (${command}) failed:`, error);
+            });
         },
     };
 }
