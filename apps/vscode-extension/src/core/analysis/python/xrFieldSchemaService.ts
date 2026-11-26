@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { DimensionDataType } from '../../charts/chartModels';
 import type {
     XRFieldDefinition,
@@ -8,6 +7,7 @@ import type {
 } from '../../charts/xrFieldModels';
 import { ExecutePython } from './executePython';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('XR_FIELD_SCHEMA');
 
@@ -31,11 +31,11 @@ export class XRFieldSchemaService {
     private readonly executePython: ExecutePython;
     private readonly memoryCache = new Map<XRSchemaTargetType, XRFieldSchema>();
 
-    private constructor(private readonly context: vscode.ExtensionContext) {
+    private constructor(private readonly context: CoreContext) {
         this.executePython = new ExecutePython(context);
     }
 
-    public static getInstance(context: vscode.ExtensionContext): XRFieldSchemaService {
+    public static getInstance(context: CoreContext): XRFieldSchemaService {
         if (!XRFieldSchemaService.instance) {
             XRFieldSchemaService.instance = new XRFieldSchemaService(context);
         }

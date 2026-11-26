@@ -6,7 +6,6 @@
  * providing only LivePanel-specific configuration (theme, folder name, watcher type).
  */
 
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { UnifiedSessionRegistry } from '../session/sessionRegistry';
 import { FileRequirementProcessor, ProcessedRequirements } from '../processors/FileRequirementProcessor';
@@ -15,6 +14,7 @@ import { AnalysisConfigurationStorage } from '../configuration/analysisConfigura
 import { executeLaunchPipeline } from './launchPipeline';
 import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('LAUNCHER_LIVE_PANEL');
 
@@ -23,7 +23,7 @@ const LOG_PREFIX = 'NEW_LAUNCHER_LIVEPANEL_ANALYSIS';
 /** Step 1 of both LivePanel launches: process the requirements with the configured view theme. */
 async function processThemedRequirements(
     session: UnifiedAnalysisSession,
-    context: vscode.ExtensionContext,
+    context: CoreContext,
     configStorage: AnalysisConfigurationStorage,
 ): Promise<ProcessedRequirements> {
     const currentTheme = await configStorage.getViewTheme();
@@ -35,7 +35,7 @@ async function processThemedRequirements(
 /** The watcher step of both LivePanel launches; a failure rejects (the pipeline reports it). */
 async function startSessionWatcher(
     session: UnifiedAnalysisSession,
-    context: vscode.ExtensionContext,
+    context: CoreContext,
 ): Promise<string | undefined | null> {
     const watcher = new SessionWatcherManager(context);
     return watcher.startWatchingSession(session);
@@ -48,7 +48,7 @@ export class LauncherLivePanel {
      */
     static async launchFileLivePanelAnalysis(
         session: UnifiedAnalysisSession,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<void> {
         const registry = UnifiedSessionRegistry.getInstance(context);
         const configStorage = AnalysisConfigurationStorage.getInstance(context);
@@ -77,7 +77,7 @@ export class LauncherLivePanel {
      */
     static async launchDirectoryLivePanelAnalysis(
         session: UnifiedAnalysisSession,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<void> {
         const configStorage = AnalysisConfigurationStorage.getInstance(context);
 

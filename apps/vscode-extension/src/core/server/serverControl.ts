@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { ActiveServer, ActiveServerRuntime } from './registry/activeServerModel';
 import type { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { getActiveServerRegistry } from './registry/activeServerRegistry';
@@ -8,6 +7,7 @@ import { sseManager } from './sse/SSEManager';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { getLogger } from '../../platform/logging/sink';
 import { getHost } from '../host/hostRegistry';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('ACTIVE_SERVERS');
 
@@ -32,12 +32,12 @@ export interface StopAllServersResult {
 }
 
 export class ServerControl {
-    private static extensionContext: vscode.ExtensionContext;
+    private static extensionContext: CoreContext;
     
     /**
      * Initialize with extension context
      */
-    public static initialize(context: vscode.ExtensionContext): void {
+    public static initialize(context: CoreContext): void {
         ServerControl.extensionContext = context;
     }
     

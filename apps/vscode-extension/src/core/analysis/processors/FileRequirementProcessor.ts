@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
 import { ThemeUtils } from '../utils/themeUtils';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { AnalysisBootstrap, BootstrapProcessedRequirements } from './analysisBootstrap';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('FILE_REQUIREMENT_PROCESSOR');
 
@@ -18,7 +18,7 @@ export interface ProcessedRequirements {
 export class FileRequirementProcessor {
     private analysisBootstrap: AnalysisBootstrap;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: CoreContext) {
         logger.debug('Initializing FileRequirementProcessor...');
         this.analysisBootstrap = new AnalysisBootstrap(context);
         ThemeUtils.initialize(context);

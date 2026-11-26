@@ -1,5 +1,4 @@
 import * as path from 'path';
-import type { ExtensionContext } from 'vscode';
 import { HttpServer } from './httpServer';
 import { HttpsDefaultServer } from './httpsDefaultServer';
 import { HttpsCustomServer } from './httpsCustomServer';
@@ -7,6 +6,7 @@ import type { ServerSettings } from './serverSettingsManager';
 import type { LaunchMode, CertMode } from './registry/activeServerModel';
 import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('SERVER');
 
@@ -114,7 +114,7 @@ export function determineCertMode(serverType: ServerType, httpsOverridden?: bool
  * Launch server by type - delegates to existing server implementations
  */
 export async function launchServerByType(
-    context: ExtensionContext,
+    context: CoreContext,
     serverType: ServerType,
     settings: ServerSettings,
     port: number,

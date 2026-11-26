@@ -4,12 +4,12 @@
  * Handles template processing, placeholder replacement, and HTML generation for DOM visualization
  */
 
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { getVisualizationConfiguration, TemplateVisualizationSettings } from '../getVisualizationConfiguration';
 import { generateNonce } from '../../../shared/nonceGenerator';
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('TEMPLATE_HTML_PROCESSOR');
 
@@ -40,7 +40,7 @@ export class TemplateHTMLProcessor {
      */
     static async processHTMLTemplate(
         templateData: HTMLTemplateData,
-        context: vscode.ExtensionContext
+        context: CoreContext
     ): Promise<HTMLProcessingResult> {
         try {
             logger.debug('Starting HTML template processing...');
@@ -119,7 +119,7 @@ export class TemplateHTMLProcessor {
      * Load DOM visualization template from templates/xr/html/dom-visualization-template.html
      * @private
      */
-    private static async loadDOMTemplate(context: vscode.ExtensionContext): Promise<string | null> {
+    private static async loadDOMTemplate(context: CoreContext): Promise<string | null> {
         try {
             const templatePath = resolveTemplatePath(
                 context.extensionPath,
@@ -150,7 +150,7 @@ export class TemplateHTMLProcessor {
      * Load HTML live reload JavaScript from templates/xr/sse/live_sse_fileDOM.js
      * @private
      */
-    private static async loadHTMLLiveReloadJS(context: vscode.ExtensionContext): Promise<string | null> {
+    private static async loadHTMLLiveReloadJS(context: CoreContext): Promise<string | null> {
         try {
             const jsPath = resolveTemplatePath(
                 context.extensionPath,

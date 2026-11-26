@@ -1,7 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import type { HostDisposable } from '../host/codeXRHost';
 import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
 import { ActiveServer } from '../server/registry/activeServerModel';
@@ -16,6 +15,7 @@ import {
 import { CloudflaredBinaryManager } from './cloudflaredBinaryManager';
 import { getLogger } from '../../platform/logging/sink';
 import { getHost } from '../host/hostRegistry';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('REMOTE_ACCESS');
 
@@ -51,7 +51,7 @@ export class RemoteAccessManager implements HostDisposable {
     private disposed = false;
     private autoStartSuppressed = false;
 
-    private constructor(private readonly context: vscode.ExtensionContext) {
+    private constructor(private readonly context: CoreContext) {
         this.binaryManager = new CloudflaredBinaryManager(context);
         this.registrySubscription = getActiveServerRegistry().onRegistryChange((event) => {
             if (event.type === 'serverRemoved' && event.serverId) {
@@ -66,7 +66,8 @@ export class RemoteAccessManager implements HostDisposable {
         });
     }
 
-    public static initialize(context: vscode.ExtensionContext): RemoteAccessManager {
+    /** `subscriptions`: the application disposes the manager with it (the extension: `ExtensionContext.subscriptions`). */
+    public static initialize(context: CoreContext & { readonly subscriptions: HostDisposable[] }): RemoteAccessManager {
         if (!RemoteAccessManager.instance) {
             RemoteAccessManager.instance = new RemoteAccessManager(context);
             context.subscriptions.push(RemoteAccessManager.instance);

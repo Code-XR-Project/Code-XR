@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import { sseManager } from '../sse/SSEManager';
 import { fileToServerMap } from '../fileToServerMap';
@@ -17,6 +16,7 @@ import { UnifiedSessionRegistry } from '../../analysis/session/sessionRegistry';
 import { resolveAnalysisServerCapabilities } from '../analysisServerCapabilities';
 import { AnalysisAvailabilitySnapshot } from '../collaboration/collaborationSessionApi';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 /** Debounce of a live refresh after a save; retries back off from it (HIST-1). */
 const HISTORICAL_REFRESH_DEBOUNCE_MS = 350;
@@ -31,7 +31,7 @@ const logger = getLogger('ANALYSIS_FEATURE_HOST');
 
 /** The slice of the server configuration the analysis features run on. */
 export interface AnalysisFeatureHostConfig {
-    extensionContext?: vscode.ExtensionContext;
+    extensionContext?: CoreContext;
     analysisSessionId?: string;
     staticRoot?: string;
     port: number;
@@ -157,7 +157,7 @@ export class AnalysisFeatureHost {
      * a refresh skipped elsewhere runs on re-entry (HIST-4).
      */
     private attachHistoricalComparison(
-        extensionContext: vscode.ExtensionContext,
+        extensionContext: CoreContext,
         sessionId: string,
         staticRoot: string,
     ): void {

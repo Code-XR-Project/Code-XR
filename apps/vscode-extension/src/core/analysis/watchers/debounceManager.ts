@@ -8,12 +8,12 @@
  * into one clean implementation used by all watchers (file, directory, DOM).
  */
 
-import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { ConfigurationConverter } from './configurationConverter';
 import { getLogger } from '../../../platform/logging/sink';
 import { getHost } from '../../host/hostRegistry';
 import type { HostStatusIndicator } from '../../host/codeXRHost';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('DEBOUNCE_MANAGER');
 
@@ -51,7 +51,7 @@ export class DebounceManager {
      * Read the debounce delay from user configuration.
      * Returns -1 when auto-analysis is disabled.
      */
-    static async getDebounceDelay(context: vscode.ExtensionContext): Promise<number> {
+    static async getDebounceDelay(context: CoreContext): Promise<number> {
         try {
             const storage = AnalysisConfigurationStorage.getInstance(context);
 

@@ -3,7 +3,6 @@
  * Handles parsing of directory structure for XR visualization.
  */
 
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
@@ -36,6 +35,7 @@ import { readXrChartMappingUiRuntimeContent, XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_
 import { readPointerPolicyRuntimeContent, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../scene-assets/pointerPolicyComponentAsset';
 import { readImmersiveRigRuntimeContent, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../scene-assets/immersiveRigComponentAsset';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
+import type { CoreContext } from '../../host/hostPaths';
 
 /**
  * The runtime assets a directory XR scene loads: [output name, reader] pairs,
@@ -81,7 +81,7 @@ interface DirectoryXRSharedBootstrap {
 export class DirectoryXRParser {
     async parseDirectoryForXR(
         session: UnifiedAnalysisSession,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
         bootstrap?: DirectoryXRSharedBootstrap,
     ): Promise<DirectoryXRParsingResult> {
         try {

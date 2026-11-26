@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
 import { GitRepositoryService } from '../history/gitRepositoryService';
 import { GitExportOutcome, runGitRevisionExport } from './gitRevisionExportCore';
@@ -11,7 +10,7 @@ import {
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
 import { VenvManager } from '../python-env/venvManager';
 import { resolveBackendScriptPath } from '../analysis/python/backendScriptPath';
-import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
+import { hostPathsFromContext, privateStorageRoot, type CoreContext } from '../host/hostPaths';
 import type { HostCancellation, HostProgress } from '../host/codeXRHost';
 
 /**
@@ -39,7 +38,7 @@ export interface GitExportPreflight {
  * export is always an informed user decision.
  */
 export async function inspectGitRevisionExport(
-    context: vscode.ExtensionContext,
+    context: CoreContext,
     session: ExportableSession,
 ): Promise<GitExportPreflight> {
     const storageRoot = privateStorageRoot(hostPathsFromContext(context));
@@ -60,7 +59,7 @@ export async function inspectGitRevisionExport(
 }
 
 export async function exportGitRevisionData(
-    context: vscode.ExtensionContext,
+    context: CoreContext,
     session: ExportableSession,
     destinationPath: string,
     request: GitRevisionExportRequest,

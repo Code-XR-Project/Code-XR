@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import { TemplateHTMLProcessor, HTMLTemplateData } from '../../charts/processing/templateHTMLProcessor';
 import { CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, readCodeXrAvatarRuntimeContent } from '../scene-assets/avatarComponentAsset';
@@ -7,6 +6,7 @@ import { readVirtualScreenManagerRuntimeContent, VIRTUAL_SCREEN_MANAGER_RUNTIME_
 import { readPointerPolicyRuntimeContent, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../scene-assets/pointerPolicyComponentAsset';
 import { readImmersiveRigRuntimeContent, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../scene-assets/immersiveRigComponentAsset';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('VISUALIZE_DOM_PARSER');
 
@@ -19,9 +19,9 @@ const logger = getLogger('VISUALIZE_DOM_PARSER');
  * - Returns processed template files ready for visualization
  */
 export class VisualizeDOMParser {
-    private context: vscode.ExtensionContext;
+    private context: CoreContext;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: CoreContext) {
         logger.debug('Initializing VisualizeDOMParser...');
         this.context = context;
         logger.debug('VisualizeDOMParser initialized successfully');

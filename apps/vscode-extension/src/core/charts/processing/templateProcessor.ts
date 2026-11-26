@@ -5,9 +5,9 @@ import { CreateChart } from './placeholders/createChart';
 import { CreateStructure } from './placeholders/createStructure';
 import { XRFieldTypeMap, XRSchemaTargetType } from '../xrFieldModels';
 import * as fs from 'fs';
-import * as vscode from 'vscode';
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('TEMPLATE_PROCESSOR');
 
@@ -33,7 +33,7 @@ export class TemplateProcessor {
         mappings: DimensionMapping[],
         title: string,
         dataSource: string,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
         outputPath: string,
         analysisData?: any[], // Add optional analysis data to detect type
         options?: XRVisualizationGenerationOptions,
@@ -151,7 +151,7 @@ export class TemplateProcessor {
     /**
      * Load XR base template from templates/xr/file/xr-visualization.html
      */
-    private static async loadXRTemplate(context: vscode.ExtensionContext): Promise<string | null> {
+    private static async loadXRTemplate(context: CoreContext): Promise<string | null> {
         try {
             const templatePath = resolveTemplatePath(context.extensionPath, 'xr', 'file', 'xr-visualization.html');
 
@@ -191,7 +191,7 @@ export class TemplateProcessor {
         title: string,
         dataSource: string,
         analysisType: 'xr' | 'dom' | 'none',
-        context: vscode.ExtensionContext,
+        context: CoreContext,
         chartType?: string,
         isDirectoryAnalysis?: boolean
     ) {

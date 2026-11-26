@@ -3,12 +3,12 @@
  * Central entry point for all file and directory session watchers.
  */
 
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { FileWatcherOrchestrator } from './fileWatcherOrchestrator';
 import { DirectoryWatcherOrchestrator } from './directoryWatcherOrchestrator';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('SESSION_WATCHER_MANAGER');
 
@@ -23,7 +23,7 @@ interface ManagedWatcher {
 export class SessionWatcherManager {
     private static activeWatchers: Map<string, ManagedWatcher> = new Map();
 
-    constructor(private context: vscode.ExtensionContext) {}
+    constructor(private context: CoreContext) {}
 
     async startWatchingSession(session: UnifiedAnalysisSession): Promise<string | null> {
         try {
@@ -107,7 +107,7 @@ export class SessionWatcherManager {
         return updatedCount;
     }
 
-    static async refreshActiveWatcherConfigurations(context: vscode.ExtensionContext): Promise<number> {
+    static async refreshActiveWatcherConfigurations(context: CoreContext): Promise<number> {
         const manager = new SessionWatcherManager(context);
         return manager.updateAllWatcherConfigurations();
     }

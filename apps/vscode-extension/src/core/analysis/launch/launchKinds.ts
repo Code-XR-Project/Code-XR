@@ -7,14 +7,14 @@
  * descriptor only names its launcher per target type. The in-scene analyses a
  * surface offers are declared on the analysis types (analysisTypes.ts).
  */
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession, TargetType } from '../session/analysisSession';
 import { LauncherLivePanel } from '../launchers/launcherLivePanel';
 import { LauncherXRAnalysis } from '../launchers/launcherXRAnalysis';
 import { LauncherVisualizeDOM } from '../launchers/launcherVisualizeDOM';
 import { LaunchKindId } from './analysisTypes';
+import type { CoreContext } from '../../host/hostPaths';
 
-type Launch = (session: UnifiedAnalysisSession, context: vscode.ExtensionContext) => Promise<void>;
+type Launch = (session: UnifiedAnalysisSession, context: CoreContext) => Promise<void>;
 
 export interface LaunchKind {
     id: LaunchKindId;

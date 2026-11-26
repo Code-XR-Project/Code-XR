@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { ExecutePython } from '../python/executePython';
@@ -10,6 +9,7 @@ import { SHA256Generator } from '../utils/sha256Generator';
 import { buildTrackedFileSnapshot } from '../watchers/directorySnapshot';
 import { resolveTrackedSystemPath } from '../watchers/directoryReanalysisData';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('ANALYSIS_BOOTSTRAP');
 
@@ -40,7 +40,7 @@ export class AnalysisBootstrap {
     private visualizeDOMParser: VisualizeDOMParser;
     private fileXRParser: FileXRParser;
 
-    constructor(private readonly context: vscode.ExtensionContext) {
+    constructor(private readonly context: CoreContext) {
         this.executePython = new ExecutePython(context);
         this.livePanelParser = new LivePanelParser(context);
         this.visualizeDOMParser = new VisualizeDOMParser(context);

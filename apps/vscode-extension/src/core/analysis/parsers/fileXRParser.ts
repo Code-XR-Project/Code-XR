@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
@@ -32,6 +31,7 @@ import { copyLogoRuntimeToOutput, LOGO_RUNTIME_OUTPUT_NAME } from '../scene-asse
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 import { getHost } from '../../host/hostRegistry';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('FILE_XR_PARSER');
 
@@ -111,10 +111,10 @@ export interface ParsedXRFileAnalysis {
 }
 
 export class FileXRParser {
-    private context: vscode.ExtensionContext;
+    private context: CoreContext;
     private configStorage: AnalysisConfigurationStorage;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: CoreContext) {
         this.context = context;
         this.configStorage = AnalysisConfigurationStorage.getInstance(context);
     }

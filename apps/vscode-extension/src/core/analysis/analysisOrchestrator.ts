@@ -3,12 +3,12 @@
  * Central coordinator for all analysis operations in the new engine
  */
 
-import * as vscode from 'vscode';
 import { resolveLauncher } from './launch/launchKinds';
 import { UnifiedSessionRegistry } from './session/sessionRegistry';
 import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './session/analysisSession';
 import { getLogger } from '../../platform/logging/sink';
 import { getHost } from '../host/hostRegistry';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
 
@@ -46,7 +46,7 @@ export class AnalysisOrchestrator {
         targetPath: string,
         analysisMode: AnalysisMode,
         targetType: TargetType,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
         isDeep: boolean = false
     ): Promise<void> {
         logger.debug(() => `Orchestrating ${analysisMode} analysis for ${targetType}: ${targetPath} (deep: ${isDeep})`);

@@ -3,8 +3,8 @@
  * Unified session structure for the new analysis engine
  */
 
-import * as vscode from 'vscode';
 import { FileHash } from '../utils/fileHashCalculator';
+import type { CoreContext } from '../../host/hostPaths';
 
 export type AnalysisMode = 'LivePanel' | 'XR' | 'VisualizeDOM';
 export type TargetType = 'file' | 'directory';
@@ -82,5 +82,5 @@ export interface SessionCreationParams {
     analysisMode: AnalysisMode;
     targetType: TargetType;
     isDeep?: boolean;
-    context: vscode.ExtensionContext;
+    context: CoreContext;
 }

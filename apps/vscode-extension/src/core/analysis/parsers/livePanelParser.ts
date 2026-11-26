@@ -10,20 +10,20 @@
  * which were ~95 % identical.
  */
 
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { generateNonce } from '../../../shared/nonceGenerator';
 import { ThemeUtils } from '../utils/themeUtils';
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('LIVE_PANEL_PARSER');
 
 export class LivePanelParser {
-    private context: vscode.ExtensionContext;
+    private context: CoreContext;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: CoreContext) {
         logger.debug('Initializing LivePanelParser...');
         this.context = context;
         logger.debug('LivePanelParser initialized successfully');

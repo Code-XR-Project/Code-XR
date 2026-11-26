@@ -3,7 +3,6 @@
  * Handles file-based re-analysis for XR, LivePanel and VisualizeDOM sessions.
  */
 
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
@@ -17,6 +16,7 @@ import { SHA256Generator } from '../utils/sha256Generator';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../refresh/analysisRefreshCoordinator';
 import { getLogger } from '../../../platform/logging/sink';
 import { getHost } from '../../host/hostRegistry';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('FILE_WATCHER_ORCHESTRATOR');
 
@@ -34,7 +34,7 @@ export class FileWatcherOrchestrator {
 
     constructor(
         private session: UnifiedAnalysisSession,
-        private context: vscode.ExtensionContext,
+        private context: CoreContext,
     ) {
         this.reAnalysisManager = new ReAnalysisManager(context);
         this.configurationStorage = AnalysisConfigurationStorage.getInstance(context);

@@ -3,7 +3,6 @@
  * Monitors directory sessions and performs incremental re-analysis after debounce.
  */
 
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
@@ -19,6 +18,7 @@ import { isRelevantDirectoryEvent, shouldIgnoreDirectoryName } from './analysisF
 import { scanDirectoryScope } from './directorySnapshot';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../refresh/analysisRefreshCoordinator';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('DIRECTORY_WATCHER_ORCHESTRATOR');
 
@@ -37,7 +37,7 @@ export class DirectoryWatcherOrchestrator {
 
     constructor(
         private session: UnifiedAnalysisSession,
-        private context: vscode.ExtensionContext,
+        private context: CoreContext,
     ) {
         this.configurationStorage = AnalysisConfigurationStorage.getInstance(context);
         this.sourceHashTracker = new FileHashTracker(session.filesToHash);

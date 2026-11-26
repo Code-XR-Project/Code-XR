@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { decorateDirectoryEntries } from './gitAnalysisShared';
@@ -31,7 +30,7 @@ import {
     ProjectEvolutionRequest,
     ProjectEvolutionResult,
 } from './historicalComparisonModels';
-import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
+import { hostPathsFromContext, privateStorageRoot, type CoreContext } from '../host/hostPaths';
 
 const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
 const DEFAULT_MAX_FRAMES = 24;
@@ -66,7 +65,7 @@ export class ProjectEvolutionService {
     private frameCount = 0;
 
     public constructor(
-        private readonly context: vscode.ExtensionContext,
+        private readonly context: CoreContext,
         private readonly sessionId: string,
         private readonly staticRoot: string,
         sourceCatalog?: GitAnalysisSourceCatalog,
