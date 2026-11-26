@@ -130,6 +130,13 @@ export function createSettingsView(container: HTMLElement, api: CodeXRApi['setti
         }
     }
 
+    function disabledIf(node: HTMLElement, disabled: boolean): HTMLElement {
+        if (disabled && (node instanceof HTMLInputElement || node instanceof HTMLSelectElement)) {
+            node.disabled = true;
+        }
+        return node;
+    }
+
     function renderRow(row: SettingRow): HTMLElement {
         const { setting } = row;
         const id = `setting-${setting.key.replace(/[^a-zA-Z0-9]/g, '-')}`;
@@ -144,7 +151,7 @@ export function createSettingsView(container: HTMLElement, api: CodeXRApi['setti
             el('div', { className: 'settings-row-head' }, [title, reset]),
             el('p', { className: 'settings-description muted small', text: setting.description }),
             ...(row.note ? [el('p', { className: 'settings-note small', text: row.note })] : []),
-            el('div', { className: 'settings-control' }, [control(row)]),
+            el('div', { className: 'settings-control' }, [disabledIf(control(row), row.readOnly)]),
             el('code', { className: 'settings-key muted small', text: setting.key }),
         ]);
     }

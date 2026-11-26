@@ -113,7 +113,7 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
                 command('Close Editor', 'editor.close'),
                 { type: 'separator' },
                 // #18: the Settings view (the renderer owns it).
-                { label: 'Preferences', submenu: [command('Settings', 'workbench.openSettings'), command('Keyboard Shortcuts', 'workbench.openKeybindings')] },
+                { label: 'Preferences', submenu: [command('Settings', 'workbench.openSettings'), command('Keyboard Shortcuts', 'workbench.openKeybindings'), command('Color Theme', 'workbench.selectTheme')] },
                 { type: 'separator' },
                 isMac ? { role: 'close', accelerator: 'CmdOrCtrl+Shift+W' } : { role: 'quit' },
             ],

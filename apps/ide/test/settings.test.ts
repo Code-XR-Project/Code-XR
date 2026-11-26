@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-    cleanSettings, formatSettingsFile, parseSettingsFile, resolveSettings, SETTINGS, settingOf, stripJsonComments, validSettingValue,
+    COLOR_THEME_SETTING, cleanSettings, formatSettingsFile, isColorTheme, parseSettingsFile, resolveSettings, SETTINGS, settingOf, stripJsonComments, validSettingValue,
 } from '../src/shared/settings.ts';
 import { FOLDER_SETTINGS_PATH, memoryStorage, SettingsService } from '../src/main/settings/settingsService.ts';
 import { Workspace } from '../src/main/workspace/workspace.ts';
-import { matchesFilter, parseControlValue, settingRows } from '../src/renderer/settings/settingsModel.ts';
+import { matchesFilter, parseControlValue, settingRows, themeChoices } from '../src/renderer/settings/settingsModel.ts';
 
 describe('settings schema (#18)', () => {
     it('has unique keys and defaults its own validator accepts', () => {
@@ -122,5 +122,29 @@ describe('Settings view rows (#18)', () => {
         assert.equal(parseControlValue(fontSize, '14.5'), null);
         assert.equal(parseControlValue(fontSize, ''), null);
         assert.equal(parseControlValue(fontSize, '99'), null);
+    });
+});
+
+describe('the colour theme setting (#171)', () => {
+    it('is the user\'s alone: a folder value is ignored and cannot be written', async () => {
+        const snapshot = resolveSettings({ [COLOR_THEME_SETTING]: 'light' }, { [COLOR_THEME_SETTING]: 'dark' });
+        assert.equal(snapshot.effective[COLOR_THEME_SETTING], 'light');
+        assert.equal(resolveSettings({}, null).effective[COLOR_THEME_SETTING], 'system');
+        assert.equal(validSettingValue(COLOR_THEME_SETTING, 'solarized'), undefined);
+        assert.equal(isColorTheme('dark'), true);
+        assert.equal(isColorTheme('Dark'), false);
+        const service = new SettingsService(memoryStorage());
+        await assert.rejects(service.update(null, 'folder', COLOR_THEME_SETTING, 'dark'), /only be set for the user/);
+        assert.equal((await service.update(null, 'user', COLOR_THEME_SETTING, 'dark')).effective[COLOR_THEME_SETTING], 'dark');
+    });
+
+    it('shows read-only on the Folder tab and lists the picker\'s choices', () => {
+        const snapshot = resolveSettings({ [COLOR_THEME_SETTING]: 'light' }, { [COLOR_THEME_SETTING]: 'dark' });
+        const folderRow = settingRows(snapshot, 'folder', 'theme').flatMap((group) => group.rows)[0];
+        assert.deepEqual([folderRow?.value, folderRow?.modified, folderRow?.readOnly], ['light', false, true]);
+        assert.match(folderRow?.note ?? '', /every window/);
+        const userRow = settingRows(snapshot, 'user', 'theme').flatMap((group) => group.rows)[0];
+        assert.deepEqual([userRow?.value, userRow?.modified, userRow?.readOnly, userRow?.note], ['light', true, false, null]);
+        assert.deepEqual(themeChoices('dark').map((choice) => [choice.id, choice.description ?? '']), [['system', ''], ['dark', 'current'], ['light', '']]);
     });
 });

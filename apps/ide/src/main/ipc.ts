@@ -11,6 +11,8 @@ import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolder
 import type { SettingsService } from './settings/settingsService.ts';
 import type { KeybindingsService } from './settings/keybindingsService.ts';
 import { setMenuAccelerators } from './menu.ts';
+import { applyColorTheme, previewColorTheme } from './settings/theme.ts';
+import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { cancelSearch, replaceInFiles, startSearch } from './workspace/searchService.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -80,6 +82,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.settingsGet, (event) => settings.snapshot(workspaceOrNull(event.sender)));
     handle(IPC_CHANNELS.settingsUpdate, async (event, scope, key, value) => {
         const report = await settings.update(workspaceOrNull(event.sender), scope, key, value);
+        if (key === COLOR_THEME_SETTING) {
+            applyColorTheme(report.effective[COLOR_THEME_SETTING]);
+        }
         for (const win of BrowserWindow.getAllWindows()) {
             const contents = win.webContents;
             if (contents.isDestroyed()) { continue; }
@@ -91,6 +96,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         }
         return report;
     });
+    // #171: the theme picker previews before the choice is stored.
+    handle(IPC_CHANNELS.settingsPreviewTheme, (_event, theme) => previewColorTheme(theme));
     handle(IPC_CHANNELS.settingsFolderFile, (event) => settings.ensureFolderFile(workspaceOf(event.sender)));
     // #18, part 3: the user's keybindings are one file for every window, so every window hears a change.
     handle(IPC_CHANNELS.keybindingsGet, () => keybindings.snapshot());

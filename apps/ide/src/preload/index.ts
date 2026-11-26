@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import type { SettingScope, SettingValue } from '../shared/settings.ts';
+import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.ts';
 import type { UserKeybinding } from '../shared/keybindings.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
@@ -107,6 +107,7 @@ const api: CodeXRApi = Object.freeze({
         get: () => ipcRenderer.invoke(IPC_CHANNELS.settingsGet),
         update: (scope: SettingScope, key: string, value: SettingValue | null) => ipcRenderer.invoke(IPC_CHANNELS.settingsUpdate, scope, key, value),
         folderFile: () => ipcRenderer.invoke(IPC_CHANNELS.settingsFolderFile),
+        previewTheme: (theme: ColorTheme | null) => ipcRenderer.invoke(IPC_CHANNELS.settingsPreviewTheme, theme),
         onDidChange: (listener: (report: SettingsReport) => void) => subscribe(IPC_EVENTS.settingsChanged, listener),
     }),
     keybindings: Object.freeze({

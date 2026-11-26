@@ -28,6 +28,7 @@ const healthy: SmokeProbe = {
     tabs: { previewReplaced: true, kept: true, cycled: true, sessionSaved: true, closedAll: true },
     settings: { listed: true, applied: true, reset: true },
     keybindings: { opened: true, recorded: true, works: true, reset: true },
+    theme: { previewed: true, reverted: true, stored: true },
     cspViolations: [],
 };
 
