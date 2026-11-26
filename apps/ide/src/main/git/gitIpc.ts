@@ -46,7 +46,7 @@ export function gitServiceOf(contents: WebContents): GitService | null {
     dispose(contents.id);
     let realRoot = workspace.root;
     try {
-        realRoot = fs.realpathSync(workspace.root);
+        realRoot = fs.realpathSync.native(workspace.root);
     } catch {
         // Gone: every later call fails on its own.
     }

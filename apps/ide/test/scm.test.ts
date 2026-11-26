@@ -13,7 +13,7 @@ import { branchLabel, branchPickerView, changeCount, parseBranchAction, scmGroup
 import { emptyGitStatus, GIT_IPC_CHANNELS, type GitStatus } from '../src/shared/git.ts';
 import { ALLOWED_IPC_CHANNELS } from '../src/shared/api.ts';
 
-const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-ide-git-')));
+const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-ide-git-')));
 after(() => fs.rmSync(base, { recursive: true, force: true }));
 
 describe('parsePorcelainV2', () => {
