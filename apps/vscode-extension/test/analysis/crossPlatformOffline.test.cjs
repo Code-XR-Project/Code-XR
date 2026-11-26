@@ -87,6 +87,21 @@ test('S14 EVO-10: an old blob missing from a partial clone is reported, not down
         t.skip('this git cannot make a partial clone');
         return;
     }
+    // Some git versions keep the old blob after a blob:none clone of a tiny
+    // local repository; then there is nothing missing to report.
+    const oldBlob = `${git(clone, ['rev-parse', 'HEAD~1'])}:a.js`;
+    const blobPresent = (() => {
+        try {
+            childProcess.execFileSync('git', ['cat-file', '-e', oldBlob], { cwd: clone, stdio: 'ignore', env: gitOfflineEnvironment() });
+            return true;
+        } catch {
+            return false;
+        }
+    })();
+    if (blobPresent) {
+        t.skip(`${git(clone, ['--version'])} kept the old blob in the partial clone`);
+        return;
+    }
     const objectCount = () => git(clone, ['count-objects', '-v']);
     const before = objectCount();
     const service = new GitRepositoryService(clone, path.join(root, 'snapshots'));
@@ -94,7 +109,8 @@ test('S14 EVO-10: an old blob missing from a partial clone is reported, not down
         && source.commitSha === git(clone, ['rev-parse', 'HEAD~1']));
     assert.ok(old, 'the first commit is offered');
     const resolved = await service.resolveSource(old.id);
-    await assert.rejects(service.materialize(resolved), /git-object-missing/);
+    await assert.rejects(service.materialize(resolved), /git-object-missing/,
+        `${git(clone, ['--version'])}: objects before ${JSON.stringify(before)}, after ${JSON.stringify(objectCount())}`);
     assert.equal(objectCount(), before, 'nothing was fetched');
     await service.dispose();
 });
