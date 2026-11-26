@@ -20,7 +20,8 @@ export class DependencyGraphService {
     });
     /** Cancels the file-scope analysis in flight when the service is disposed. */
     private readonly disposal = new AbortController();
-    private revision = 0;
+    /** Seeded from the files already on disk (#110), see `highestDatasetRevision`. */
+    private revision: number;
     private generated = false;
     private readonly extractionCachePath: string;
     private readonly fileScopeCache = new Map<string, DependencyGraphDataset>();
@@ -37,6 +38,7 @@ export class DependencyGraphService {
             sessionId,
             'extraction-cache.json',
         );
+        this.revision = highestDatasetRevision(path.join(staticRoot, 'dependencies'));
     }
 
     public getAvailability(): { enabled: boolean; reason: string | null } {
@@ -272,6 +274,35 @@ export class DependencyGraphService {
             current = parent;
         }
     }
+}
+
+/** The two dataset kinds; they share one revision counter. */
+export const DATASET_PREFIXES = ['dependency-graph-', 'dependency-scope-'] as const;
+
+/**
+ * The highest `<prefix><revision>.json` already in `directory`, over every
+ * dataset kind, or 0 (#110). A service re-created on a static root that
+ * already holds datasets must continue after them: restarting at 1 would
+ * write a file that `pruneDatasetRevisions` (which keeps the highest numbers)
+ * deletes at once, leaving the room entity pointing at a 404.
+ */
+export function highestDatasetRevision(directory: string): number {
+    let entries: string[];
+    try {
+        entries = fs.readdirSync(directory);
+    } catch {
+        return 0;
+    }
+    let highest = 0;
+    for (const name of entries) {
+        for (const prefix of DATASET_PREFIXES) {
+            const match = name.startsWith(prefix) ? /^(\d+)\.json$/.exec(name.slice(prefix.length)) : null;
+            if (match) {
+                highest = Math.max(highest, Number(match[1]));
+            }
+        }
+    }
+    return highest;
 }
 
 /** How many revisions of each dataset kind stay on disk (DEPGRAPH-9). */
