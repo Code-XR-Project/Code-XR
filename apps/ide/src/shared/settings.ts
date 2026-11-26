@@ -58,6 +58,9 @@ export const SETTINGS: readonly SettingDefinition[] = [
     { key: 'editor.smoothScrolling', category: 'Editor', title: 'Smooth Scrolling', description: 'Animate scrolling in the editor.', type: 'boolean', default: false },
     // #170: saving. A project's .editorconfig wins over the three whitespace settings for the files it covers.
     { key: 'editor.formatOnSave', category: 'Editor', title: 'Format On Save', description: 'Format the file as it is saved, with the formatter its language has. A save never waits on a formatter that fails or hangs.', type: 'boolean', default: false },
+    // #172: the Outline section under the explorer, and the breadcrumbs above the editor.
+    { key: 'outline.sortBy', category: 'Outline', title: 'Sort By', description: 'The order of the symbols in the Outline view: where they are in the file, or by name.', type: 'enum', options: ['position', 'name'], optionLabels: ['Position in the file', 'Name'], default: 'position' },
+    { key: 'breadcrumbs.enabled', category: 'Breadcrumbs', title: 'Enabled', description: 'Show the file\'s folders and the symbols around the cursor above the editor.', type: 'boolean', default: true },
     { key: 'files.autoSave', category: 'Files', title: 'Auto Save', description: 'Save edits without being asked: after a delay, or when the editor loses the focus.', type: 'enum', options: ['off', 'afterDelay', 'onFocusChange'], optionLabels: ['Off', 'After a delay', 'When the editor loses focus'], default: 'off' },
     { key: 'files.autoSaveDelay', category: 'Files', title: 'Auto Save Delay', description: 'Milliseconds after the last edit before an auto save, when Auto Save is "After a delay".', type: 'number', min: 100, max: 60000, integer: true, default: 1000 },
     { key: 'files.trimTrailingWhitespace', category: 'Files', title: 'Trim Trailing Whitespace', description: 'Remove spaces and tabs at the end of lines when saving.', type: 'boolean', default: false },

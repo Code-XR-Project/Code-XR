@@ -31,12 +31,14 @@ describe('analysed file count (#203)', () => {
         fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify([{}]));
         const stop = watchAnalysedFileCount(path.join(dir, 'index.html'), 1, (files) => counts.push(files));
         try {
-            // macOS FSEvents can drop a change made right after the watch starts, so the
-            // write is repeated until it is seen; the watcher reports each new count once.
-            const deadline = Date.now() + 8000;
-            for (let tick = 0; counts.length === 0 && Date.now() < deadline; tick++) {
-                if (tick % 10 === 0) {
+            // macOS's FSEvents can drop a change made in the same instant the watch starts,
+            // so the rewrite is repeated until one is seen (the count stays 2: one report).
+            const deadline = Date.now() + 5000;
+            let nextWrite = 0;
+            while (counts.length === 0 && Date.now() < deadline) {
+                if (Date.now() >= nextWrite) {
                     fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify([{}, {}]));
+                    nextWrite = Date.now() + 750;
                 }
                 await new Promise((resolve) => setTimeout(resolve, 50));
             }

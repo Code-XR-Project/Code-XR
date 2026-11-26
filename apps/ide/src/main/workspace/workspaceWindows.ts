@@ -19,6 +19,17 @@ let onFolderChange: ((contents: WebContents, root: string | null) => void) | nul
 export function setFolderChangeListener(listener: (contents: WebContents, root: string | null) => void): void {
     onFolderChange = listener;
 }
+/** #21: more listeners (the language servers of the previous folder stop). */
+const extraFolderListeners: ((contents: WebContents, root: string | null) => void)[] = [];
+export function addFolderChangeListener(listener: (contents: WebContents, root: string | null) => void): void {
+    extraFolderListeners.push(listener);
+}
+function folderChanged(contents: WebContents, root: string | null): void {
+    onFolderChange?.(contents, root);
+    for (const listener of extraFolderListeners) {
+        listener(contents, root);
+    }
+}
 let recent: RecentFolders | null = null;
 
 /** Starts recording opened folders in `file` (not in the smoke run, which must leave no trace). */
@@ -134,12 +145,12 @@ export async function setWorkspace(contents: WebContents, folder: string): Promi
         contents.once('destroyed', () => {
             workspaces.get(contents.id)?.dispose();
             workspaces.delete(contents.id);
-            onFolderChange?.(contents, null);
+            folderChanged(contents, null);
         });
     }
     workspaces.set(contents.id, workspace);
     log.info(`Opened folder ${workspace.root}`);
-    onFolderChange?.(contents, workspace.root);
+    folderChanged(contents, workspace.root);
     await recent?.add(workspace.root).catch((error: unknown) => log.warn(`Could not record ${workspace.root} as recent: ${String(error)}`));
     return workspace.info;
 }

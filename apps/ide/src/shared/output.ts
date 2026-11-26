@@ -10,6 +10,8 @@ export const OUTPUT_CHANNELS = [
     { id: 'core', label: 'Analysis core' },
     { id: 'python', label: 'Python environment' },
     { id: 'servers', label: 'Servers and tunnel' },
+    // #21: the language servers (TypeScript, Python): start, stop, crashes, their own messages.
+    { id: 'lsp', label: 'Language servers' },
 ] as const;
 
 export type OutputChannelId = (typeof OUTPUT_CHANNELS)[number]['id'];

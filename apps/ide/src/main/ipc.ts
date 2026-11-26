@@ -5,6 +5,8 @@ import type { TerminalHost } from './terminal/terminalHost.ts';
 import type { AgentServices } from './agents/agentsRuntime.ts';
 import { registerAgentHandlers } from './agents/agentsIpc.ts';
 import { registerGitHandlers } from './git/gitIpc.ts';
+import type { LspHost } from './lsp/lspHost.ts';
+import { registerLspHandlers } from './lsp/lspIpc.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -27,7 +29,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices, lsp: LspHost): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -141,6 +143,11 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
 
     // #15: the Python environment. #154: set-up asks nothing; the IDE installs its own dependencies.
     handle(IPC_CHANNELS.problemsFunctionMetrics, (event) => core.metrics.snapshot(event.sender));
+    // #172: the outline of a file no analysis measured asks the backend for that file alone.
+    handle(IPC_CHANNELS.problemsFileFunctions, (event, path) => {
+        const workspace = workspaceOf(event.sender);
+        return core.metrics.fileFunctions(event.sender, workspace.root, String(path), workspace.displayPath(path, 'absolute'));
+    });
     handle(IPC_CHANNELS.pythonStatus, () => core.python.status());
     handle(IPC_CHANNELS.pythonSetUp, () => core.python.setUp());
     handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());
@@ -204,6 +211,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     registerAgentHandlers(handle, agents, (contents) => core.analysis.outputDirectory(contents));
     // #17: Source Control (git/gitIpc.ts).
     registerGitHandlers(handle);
+    // #21: language servers (lsp/lspIpc.ts).
+    registerLspHandlers(handle, lsp);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

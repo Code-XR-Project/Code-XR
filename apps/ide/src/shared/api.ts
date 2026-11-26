@@ -1,7 +1,7 @@
 import type { ColorTheme, SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
 import type { UserKeybinding } from './keybindings.ts';
 import type { OutputChannelId } from './output.ts';
-import type { FunctionMetricsSnapshot } from './problems.ts';
+import type { FileFunctionMetrics, FunctionMetricsSnapshot } from './problems.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -16,6 +16,7 @@ import type { FunctionMetricsSnapshot } from './problems.ts';
 
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentsApi } from './agents.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitApi } from './git.ts';
+import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspApi } from './lsp.ts';
 
 /** Facts about the running IDE, shown on the welcome screen and in About. */
 export interface AppInfo {
@@ -320,6 +321,8 @@ export interface CodeXRApi {
     readonly agents: AgentsApi;
     /** #17: Source Control for the open folder (contract in git.ts). */
     readonly git: GitApi;
+    /** #21: language servers for Monaco (contract in lsp.ts). */
+    readonly lsp: LspApi;
     readonly app: {
         getInfo(): Promise<AppInfo>;
         /** Messages from the core (environment set up, a server stopped ...). */
@@ -480,6 +483,12 @@ export interface CodeXRApi {
     readonly problems: {
         /** The window's latest metrics, or null before an analysis of its folder. */
         functionMetrics(): Promise<FunctionMetricsSnapshot | null>;
+        /**
+         * #172: the functions of one file of the folder, for its outline: the
+         * window's metrics when an analysis measured it, otherwise measured
+         * now (null when the backend cannot read it or Python is not set up).
+         */
+        fileFunctions(path: string): Promise<FileFunctionMetrics | null>;
         /** An analysis or a save measured the functions again (null: the folder changed). */
         onMetricsChanged(listener: (snapshot: FunctionMetricsSnapshot | null) => void): Unsubscribe;
     };
@@ -544,6 +553,7 @@ export const IPC_CHANNELS = {
     outputLines: 'codexr:output:lines',
     outputClear: 'codexr:output:clear',
     problemsFunctionMetrics: 'codexr:problems:function-metrics',
+    problemsFileFunctions: 'codexr:problems:file-functions',
     keybindingsGet: 'codexr:keybindings:get',
     keybindingsUpdate: 'codexr:keybindings:update',
     keybindingsSetMenu: 'codexr:keybindings:set-menu',
@@ -573,6 +583,8 @@ export const IPC_CHANNELS = {
     ...AGENT_IPC_CHANNELS,
     // #17: Source Control keeps its own channel list in git.ts.
     ...GIT_IPC_CHANNELS,
+    // #21: the language client keeps its own channel list in lsp.ts.
+    ...LSP_IPC_CHANNELS,
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -601,6 +613,7 @@ export const IPC_EVENTS = {
     metricsChanged: 'codexr:problems:metrics-changed',
     ...AGENT_IPC_EVENTS,
     ...GIT_IPC_EVENTS,
+    ...LSP_IPC_EVENTS,
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

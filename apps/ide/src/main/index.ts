@@ -23,6 +23,8 @@ import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
 import { startAgents, type AgentServices } from './agents/agentsRuntime.ts';
 import { setScenePreloadPath } from './analysis/sceneView.ts';
+import { appIconPath } from './appIcon.ts';
+import { createLspHost, type LspHost } from './lsp/lspHost.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -65,9 +67,12 @@ if (!isSmoke && !app.requestSingleInstanceLock()) {
 let terminals: TerminalHost | null = null;
 // A12: MCP server processes likewise.
 let agentServices: AgentServices | null = null;
+// #21: so do the language servers.
+let languageServers: LspHost | null = null;
 app.on('will-quit', () => {
     void terminals?.killAll();
     void agentServices?.mcp.closeAll();
+    void languageServers?.stopAll();
 });
 
 async function start(): Promise<void> {
@@ -81,6 +86,8 @@ async function start(): Promise<void> {
     const terminalHost = createTerminalHost({ isSmoke });
     terminals = terminalHost;
     setScenePreloadPath(SCENE_PRELOAD_PATH);
+    // macOS shows the dock icon, not the window's: the Code-XR logo there too.
+    app.dock?.setIcon(appIconPath());
     const core = startCore({ isSmoke });
     setAboutDependencies({
         async describe() {
@@ -95,7 +102,9 @@ async function start(): Promise<void> {
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
     agentServices = startAgents({ isSmoke, commandRunner: terminalHost.commandRunner });
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices);
+    const lsp = createLspHost();
+    languageServers = lsp;
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp);
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);
@@ -130,6 +139,7 @@ async function start(): Promise<void> {
         const result = await runSmoke(win, origins);
         process.stdout.write(`${SMOKE_RESULT_PREFIX}${JSON.stringify(result)}\n`);
         await terminalHost.killAll();
+        await lsp.stopAll();
         app.exit(result.ok ? 0 : 1);
         return;
     }

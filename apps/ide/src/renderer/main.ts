@@ -14,6 +14,8 @@ import { registerAgentCommands } from './agents/agentCommands.ts';
 import { createProblemsView } from './problems/problemsView.ts';
 import { metricProblems, type FunctionMetricsSnapshot, type MetricThresholds, type Problem } from '../shared/problems.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
+import type { OutlineController } from './editor/outlineController.ts';
+import { createOutlineView } from './outline/outlineView.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
 import { formatKeybinding } from './commands/keybindings.ts';
@@ -68,8 +70,19 @@ appInfo.then(
 // and the explorer come up without it.
 let editors: EditorGroup | null = null;
 let editorsLoading: Promise<EditorGroup> | null = null;
+// #172: the Outline section; its symbols come with the editor (editor/outlineController.ts).
+const outlineView = createOutlineView(workbench.outlineView, {
+    storage: layoutStorage(),
+    sort: 'position',
+    reveal: (symbol, focus) => editors?.goToLine(symbol.line, 1, focus),
+    onSortChange: (sort) => void api.settings.update('user', 'outline.sortBy', sort).catch((error: unknown) => workbench.setStatus(`Could not change the outline order: ${String(error)}`)),
+});
+let outline: OutlineController | null = null;
+let outlineLanguage: string | null = null;
 function editorGroup(): Promise<EditorGroup> {
-    editorsLoading ??= import('./editor/editorGroup.ts').then(({ createEditorGroup }) => {
+    editorsLoading ??= Promise.all([import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts')]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }]) => {
+        // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
+        installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             onActiveChange: (path) => {
@@ -77,19 +90,39 @@ function editorGroup(): Promise<EditorGroup> {
                 activeFile = path;
                 scheduleSessionSave();
                 if (path) { quickOpenFiles.opened(path); }
+                outline?.activeChanged();
             },
             onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
             onOpenFilesChange: () => updateWatched(),
-            onStatusState: (state) => editorStatus.show(state),
+            onStatusState: (state) => {
+                editorStatus.show(state);
+                if (state && state.languageId !== outlineLanguage) {
+                    outlineLanguage = state.languageId;
+                    outline?.activeChanged();
+                }
+                if (state) { outline?.cursorMoved(state.line); }
+            },
             onSessionChange: () => scheduleSessionSave(),
             copyPath: (path, kind) => copyPath(path, kind),
             revealInExplorer: (path) => void revealInExplorer(path),
             showTabMenu: (path, x, y) => showTabMenu(path, x, y),
             onMarkersChange: () => problemsView.setEditorProblems(editors?.editorProblems() ?? []),
             showFunctionProblems: (path, name) => problemsView.filterTo(`'${name}' ${path}`),
+            onFileClean: (path) => outline?.fileClean(path),
         });
+        outline = createOutlineController({
+            editors,
+            view: outlineView,
+            api,
+            openFile: (path) => void editors?.open(path),
+            revealFolder: (path) => void revealInExplorer(path),
+            rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
+        });
+        outline.setSnapshot(metricSnapshot);
+        outline.activeChanged();
         if (settingsReport) {
             editors.applySettings(settingsReport.effective);
+            outline.setBreadcrumbsEnabled(settingOf<boolean>(settingsReport, 'breadcrumbs.enabled'));
         }
         editors.setMetricProblems(currentMetricProblems);
         if (metricThresholds) {
@@ -318,6 +351,8 @@ function applySettings(report: SettingsReport): void {
         parameters: settingOf<number>(report, 'problems.metrics.maxParameters'),
     };
     metricsInEditor = settingOf<boolean>(report, 'problems.metrics.showInEditor');
+    outlineView.setSort(settingOf<string>(report, 'outline.sortBy') === 'name' ? 'name' : 'position');
+    outline?.setBreadcrumbsEnabled(settingOf<boolean>(report, 'breadcrumbs.enabled'));
     refreshMetricProblems();
 }
 function loadSettings(): Promise<void> {
@@ -361,6 +396,7 @@ function refreshMetricProblems(): void {
 function receiveMetrics(snapshot: FunctionMetricsSnapshot | null): void {
     metricSnapshot = snapshot;
     refreshMetricProblems();
+    outline?.setSnapshot(snapshot);
 }
 api.problems.onMetricsChanged(receiveMetrics);
 api.problems.functionMetrics().then((snapshot) => { if (snapshot) { receiveMetrics(snapshot); } }, () => undefined);
