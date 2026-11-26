@@ -1,3 +1,5 @@
+import type { ColorTheme, SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
+import type { UserKeybinding } from './keybindings.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -128,6 +130,14 @@ export const IDE_COMMANDS = [
     'workbench.commandPalette', 'editor.goToLine',
     // #164: quick open (Go > Go to File..., Ctrl/Cmd+P) and the active editor's symbols (Ctrl/Cmd+Shift+O).
     'workbench.quickOpen', 'editor.goToSymbol',
+    // #169: the layout (View > Appearance, Ctrl/Cmd+B and Ctrl/Cmd+J).
+    'view.toggleSideBar', 'view.togglePanel', 'view.toggleMaximizedPanel', 'view.toggleZenMode', 'view.resetLayout',
+    // #18: settings (File > Preferences > Settings, Ctrl/Cmd+,).
+    'workbench.openSettings',
+    // #18, part 3: File > Preferences > Keyboard Shortcuts (its Ctrl/Cmd+K S chord is the workbench's).
+    'workbench.openKeybindings',
+    // #171: File > Preferences > Color Theme (its Ctrl/Cmd+K Ctrl/Cmd+T chord is the workbench's).
+    'workbench.selectTheme',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
@@ -383,6 +393,8 @@ export interface CodeXRApi {
         rename(path: string, newName: string): Promise<string>;
         /** Moves an entry to the operating system's trash (never deletes outright). */
         trash(path: string): Promise<void>;
+        /** #167: copies an entry's path to the clipboard, absolute or relative to the folder, with the OS's separators. */
+        copyPath(path: string, kind: 'absolute' | 'relative'): Promise<void>;
         /** Recently opened folders, most recent first (absolute paths, for display and `openRecent`). */
         recentFolders(): Promise<readonly string[]>;
         /** Opens a folder from `recentFolders()`; any other path is refused. */
@@ -419,6 +431,43 @@ export interface CodeXRApi {
         /** Menu commands for the renderer to run (Open Folder…, Save, Save All, Close Editor). */
         onCommand(listener: (command: IdeCommand) => void): Unsubscribe;
     };
+    /** #18: the user's and the open folder's settings (shared/settings.ts holds the schema). */
+    readonly settings: {
+        get(): Promise<SettingsReport>;
+        /** Sets `key` in a scope (null removes it, back to the next level); rejects a value the schema refuses. */
+        update(scope: SettingScope, key: string, value: SettingValue | null): Promise<SettingsReport>;
+        /** Creates `.codexr/settings.json` if needed and resolves with its workspace path, to open in the editor. */
+        folderFile(): Promise<string>;
+        /** #171: shows a colour theme without storing it (null: back to the stored one). */
+        previewTheme(theme: ColorTheme | null): Promise<void>;
+        /** The settings changed (in this window, or the user's in another one). */
+        onDidChange(listener: (report: SettingsReport) => void): Unsubscribe;
+    };
+    /** #18, part 3: the user's keybinding rules (shared/keybindings.ts holds the format). */
+    readonly keybindings: {
+        get(): Promise<KeybindingsReport>;
+        /** Replaces the rules; rejects a malformed one. Every window hears the change. */
+        update(entries: readonly UserKeybinding[]): Promise<KeybindingsReport>;
+        /**
+         * The application menu's accelerators, by command ID (null: none), as
+         * the renderer resolved them; the main process rebuilds the menu.
+         */
+        setMenuAccelerators(accelerators: Readonly<Record<string, string | null>>): Promise<void>;
+        onDidChange(listener: (report: KeybindingsReport) => void): Unsubscribe;
+    };
+}
+
+/** The user's keybinding rules, where they live and why some could not be read. */
+export interface KeybindingsReport {
+    readonly entries: readonly UserKeybinding[];
+    readonly errors: readonly string[];
+    /** The file's absolute path, to show (null in the smoke run, which keeps them in memory). */
+    readonly file: string | null;
+}
+
+/** The settings in force, both files, and why a file could not be read. */
+export interface SettingsReport extends SettingsSnapshot {
+    readonly errors: readonly string[];
 }
 
 /**
@@ -440,6 +489,14 @@ export const IPC_CHANNELS = {
     workspaceReportUnsaved: 'codexr:workspace:report-unsaved',
     workspaceCreateEntry: 'codexr:workspace:create-entry',
     workspaceRename: 'codexr:workspace:rename',
+    workspaceCopyPath: 'codexr:workspace:copy-path',
+    settingsGet: 'codexr:settings:get',
+    settingsUpdate: 'codexr:settings:update',
+    settingsFolderFile: 'codexr:settings:folder-file',
+    settingsPreviewTheme: 'codexr:settings:preview-theme',
+    keybindingsGet: 'codexr:keybindings:get',
+    keybindingsUpdate: 'codexr:keybindings:update',
+    keybindingsSetMenu: 'codexr:keybindings:set-menu',
     workspaceTrash: 'codexr:workspace:trash',
     workspaceRecentFolders: 'codexr:workspace:recent-folders',
     workspaceOpenRecent: 'codexr:workspace:open-recent',
@@ -484,6 +541,8 @@ export const IPC_EVENTS = {
     analysisSceneShareChanged: 'codexr:analysis:scene-share-changed',
     terminalData: 'codexr:terminal:data',
     terminalExit: 'codexr:terminal:exit',
+    settingsChanged: 'codexr:settings:changed',
+    keybindingsChanged: 'codexr:keybindings:changed',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

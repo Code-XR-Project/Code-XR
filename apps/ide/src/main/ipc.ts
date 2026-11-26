@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
 import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, SCENE_ADDRESSES, type AnalysisKind, type AppInfo, type AutoStartMode, type SceneAddress } from '../shared/api.ts';
 import type { TerminalHost } from './terminal/terminalHost.ts';
@@ -9,7 +9,12 @@ import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
 import { setSceneBounds } from './analysis/sceneView.ts';
 import { sanitizeBounds } from './analysis/sceneUrl.ts';
-import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
+import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
+import type { SettingsService } from './settings/settingsService.ts';
+import type { KeybindingsService } from './settings/keybindingsService.ts';
+import { setMenuAccelerators } from './menu.ts';
+import { applyColorTheme, previewColorTheme } from './settings/theme.ts';
+import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { cancelSearch, replaceInFiles, startSearch } from './workspace/searchService.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -19,7 +24,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, agents: AgentServices): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, agents: AgentServices): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -75,6 +80,43 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceReportUnsaved, (event, count) => reportUnsaved(event.sender, count));
     handle(IPC_CHANNELS.workspaceCreateEntry, (event, parent, name, kind) => workspaceOf(event.sender).createEntry(parent, name, kind));
     handle(IPC_CHANNELS.workspaceRename, (event, path, newName) => workspaceOf(event.sender).rename(path, newName));
+    // #18: settings. A change to the user's settings reaches every window; a folder's, its own window.
+    handle(IPC_CHANNELS.settingsGet, (event) => settings.snapshot(workspaceOrNull(event.sender)));
+    handle(IPC_CHANNELS.settingsUpdate, async (event, scope, key, value) => {
+        const report = await settings.update(workspaceOrNull(event.sender), scope, key, value);
+        if (key === COLOR_THEME_SETTING) {
+            applyColorTheme(report.effective[COLOR_THEME_SETTING]);
+        }
+        for (const win of BrowserWindow.getAllWindows()) {
+            const contents = win.webContents;
+            if (contents.isDestroyed()) { continue; }
+            if (contents === event.sender) {
+                contents.send(IPC_EVENTS.settingsChanged, report);
+            } else if (scope === 'user') {
+                contents.send(IPC_EVENTS.settingsChanged, await settings.snapshot(workspaceOrNull(contents)));
+            }
+        }
+        return report;
+    });
+    // #171: the theme picker previews before the choice is stored.
+    handle(IPC_CHANNELS.settingsPreviewTheme, (_event, theme) => previewColorTheme(theme));
+    handle(IPC_CHANNELS.settingsFolderFile, (event) => settings.ensureFolderFile(workspaceOf(event.sender)));
+    // #18, part 3: the user's keybindings are one file for every window, so every window hears a change.
+    handle(IPC_CHANNELS.keybindingsGet, () => keybindings.snapshot());
+    handle(IPC_CHANNELS.keybindingsUpdate, async (_event, entries) => {
+        const report = await keybindings.update(entries);
+        for (const win of BrowserWindow.getAllWindows()) {
+            if (!win.webContents.isDestroyed()) {
+                win.webContents.send(IPC_EVENTS.keybindingsChanged, report);
+            }
+        }
+        return report;
+    });
+    handle(IPC_CHANNELS.keybindingsSetMenu, (_event, accelerators) => setMenuAccelerators(accelerators));
+    // #167: the path is checked against the folder before anything reaches the clipboard.
+    handle(IPC_CHANNELS.workspaceCopyPath, (event, path, kind) => {
+        clipboard.writeText(workspaceOf(event.sender).displayPath(path, kind));
+    });
     handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
     handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
     handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));

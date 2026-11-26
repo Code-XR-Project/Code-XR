@@ -66,6 +66,19 @@ export class Workspace {
         return entries.sort((a, b) => (a.kind === b.kind ? collator.compare(a.name, b.name) : a.kind === 'directory' ? -1 : 1));
     }
 
+    /**
+     * #167: an entry's path for the clipboard, absolute or relative to the
+     * folder, with the OS's separators. The path is parsed like any other
+     * (no `..`, no absolute path), so nothing outside the folder is named.
+     */
+    displayPath(relativePath: unknown, kind: unknown): string {
+        if (kind !== 'absolute' && kind !== 'relative') {
+            throw new Error('Unknown path kind.');
+        }
+        const segments = parseWorkspacePath(relativePath);
+        return kind === 'absolute' ? path.join(this.root, ...segments) : segments.join(path.sep);
+    }
+
     /** #164: every file for quick open, from the real root so a symlinked root lists like the explorer. */
     listFiles(): Promise<FileIndex> {
         return listWorkspaceFiles(this.realRoot, this.rules);

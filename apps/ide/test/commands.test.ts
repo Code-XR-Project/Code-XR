@@ -197,11 +197,22 @@ describe('workbench commands', () => {
         }
     });
 
-    it('show the same accelerators the application menu registers', () => {
+    it('give the menu an item for every command it owns a key for (#18, part 3)', () => {
         const menu = readFileSync(new URL('../src/main/menu.ts', import.meta.url), 'utf8');
-        const pairs = [...menu.matchAll(/accelerator: '([^']+)',[^{}]*?sendCommand\(win, '([^']+)'\)/g)]
-            .map((match) => [match[2], match[1]] as const);
-        assert.ok(pairs.length >= 9, 'the menu items were not found; did the menu format change?');
-        assert.deepEqual(Object.fromEntries(pairs), MENU_KEYBINDINGS);
+        const ids = new Set([...menu.matchAll(/command\('[^']+', '([^']+)'\)/g)].map((match) => match[1]));
+        assert.ok(ids.size >= 14, 'the menu items were not found; did the menu format change?');
+        for (const id of Object.keys(MENU_KEYBINDINGS)) {
+            assert.ok(ids.has(id), `MENU_KEYBINDINGS has ${id} but the menu has no item for it`);
+        }
+        // Every command item goes through command(), so none can hard-code an accelerator of its own.
+        assert.equal([...menu.matchAll(/sendCommand\(win, /g)].length, 1);
+        const registry = createCommandRegistry();
+        for (const command of workbenchCommands(targets)) {
+            registry.register(command);
+        }
+        for (const [id, key] of Object.entries(MENU_KEYBINDINGS)) {
+            assert.equal(registry.get(id)?.keybinding, key);
+            assert.equal(registry.get(id)?.keybindingSource, 'menu');
+        }
     });
 });

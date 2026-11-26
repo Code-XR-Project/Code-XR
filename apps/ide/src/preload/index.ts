@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.ts';
+import type { UserKeybinding } from '../shared/keybindings.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 import { AGENT_IPC_CHANNELS, type ProviderInput } from '../shared/agents.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
@@ -85,6 +87,7 @@ const api: CodeXRApi = Object.freeze({
         createEntry: (parent: string, name: string, kind: 'file' | 'directory') =>
             ipcRenderer.invoke(IPC_CHANNELS.workspaceCreateEntry, parent, name, kind),
         rename: (path: string, newName: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRename, path, newName),
+        copyPath: (path: string, kind: 'absolute' | 'relative') => ipcRenderer.invoke(IPC_CHANNELS.workspaceCopyPath, path, kind),
         trash: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrash, path),
         recentFolders: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceRecentFolders),
         openRecent: (folder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenRecent, folder),
@@ -108,6 +111,19 @@ const api: CodeXRApi = Object.freeze({
         kill: (id: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalKill, id),
         onData: (listener: (event: TerminalDataEvent) => void) => subscribe(IPC_EVENTS.terminalData, listener),
         onExit: (listener: (event: TerminalExitEvent) => void) => subscribe(IPC_EVENTS.terminalExit, listener),
+    }),
+    settings: Object.freeze({
+        get: () => ipcRenderer.invoke(IPC_CHANNELS.settingsGet),
+        update: (scope: SettingScope, key: string, value: SettingValue | null) => ipcRenderer.invoke(IPC_CHANNELS.settingsUpdate, scope, key, value),
+        folderFile: () => ipcRenderer.invoke(IPC_CHANNELS.settingsFolderFile),
+        previewTheme: (theme: ColorTheme | null) => ipcRenderer.invoke(IPC_CHANNELS.settingsPreviewTheme, theme),
+        onDidChange: (listener: (report: SettingsReport) => void) => subscribe(IPC_EVENTS.settingsChanged, listener),
+    }),
+    keybindings: Object.freeze({
+        get: () => ipcRenderer.invoke(IPC_CHANNELS.keybindingsGet),
+        update: (entries: readonly UserKeybinding[]) => ipcRenderer.invoke(IPC_CHANNELS.keybindingsUpdate, entries),
+        setMenuAccelerators: (accelerators: Readonly<Record<string, string | null>>) => ipcRenderer.invoke(IPC_CHANNELS.keybindingsSetMenu, accelerators),
+        onDidChange: (listener: (report: KeybindingsReport) => void) => subscribe(IPC_EVENTS.keybindingsChanged, listener),
     }),
     commands: Object.freeze({
         onCommand: (listener: (command: IdeCommand) => void) => {

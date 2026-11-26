@@ -1,5 +1,6 @@
 import type { AppInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
+import { createLayout, type LayoutStorage, type WorkbenchLayout } from './layout/layout.ts';
 
 /**
  * The workbench shell: activity bar, side bar, editor area and status bar.
@@ -13,6 +14,7 @@ interface ActivityItem {
     readonly id: string;
     readonly label: string;
     readonly icon: string; // SVG path data, 24x24 viewBox
+    readonly bottom?: boolean;
 }
 
 const ACTIVITY: readonly ActivityItem[] = [
@@ -23,9 +25,12 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
     // The AI agent hub (agents/agentsView.ts).
     { id: 'agents', label: 'Agents', icon: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
+    // #18: the Settings view, at the foot of the activity bar as in VS Code.
+    { id: 'settings', label: 'Settings', icon: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', bottom: true },
 ];
 
-export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr' | 'agents';
+/** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
+export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
 
 export interface Workbench {
     /** The explorer's pane of the side bar. */
@@ -36,6 +41,10 @@ export interface Workbench {
     readonly analysisView: HTMLElement;
     /** The Agents view's pane of the side bar (AI agent hub). */
     readonly agentsView: HTMLElement;
+    /** The Settings view's pane of the side bar (#18, settings/settingsView.ts). */
+    readonly settingsView: HTMLElement;
+    /** The Keyboard Shortcuts pane (#18, part 3, settings/keybindingsView.ts), shown under the Settings item. */
+    readonly keybindingsView: HTMLElement;
     /** Shows a view in the side bar, as clicking its activity item does. */
     showView(id: ViewId): void;
     /** The status-bar item of the Python environment; clicking it opens the Analysis view. */
@@ -54,17 +63,26 @@ export interface Workbench {
     readonly panel: HTMLElement;
     /** The status bar's slot for the active editor's items (#166, editor/editorStatus.ts). */
     readonly editorStatus: HTMLElement;
+    /** Sizes and visibility of the side bar, panel and scene column (#169, layout/layout.ts). */
+    readonly layout: WorkbenchLayout;
 }
 
-export function renderWorkbench(root: HTMLElement): Workbench {
+export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null = null): Workbench {
     const buttons = new Map<ViewId, HTMLButtonElement>();
     const activityBar = el('nav', { className: 'activity-bar', attrs: { 'aria-label': 'Views' } },
         ACTIVITY.map((item, index) => {
             const button = el('button', {
-                className: index === 0 ? 'activity-item is-active' : 'activity-item',
+                className: ['activity-item', index === 0 ? 'is-active' : '', item.bottom ? 'is-bottom' : ''].filter(Boolean).join(' '),
                 attrs: { type: 'button', title: item.label, 'aria-label': item.label, 'aria-pressed': String(index === 0), 'data-view': item.id },
             }, [icon(item.icon)]);
-            button.addEventListener('click', () => showView(item.id as ViewId));
+            // #169: clicking the active view's item hides the side bar, as in VS Code; any click shows it again.
+            button.addEventListener('click', () => {
+                if (button.classList.contains('is-active') && layout.sideBarVisible && !layout.zen) {
+                    layout.setSideBarVisible(false);
+                } else {
+                    showView(item.id as ViewId);
+                }
+            });
             buttons.set(item.id as ViewId, button);
             return button;
         }));
@@ -77,19 +95,24 @@ export function renderWorkbench(root: HTMLElement): Workbench {
         el('p', { className: 'muted side-note', text: 'Run an analysis from the Analysis view: its XR scene opens beside the code.' }),
     ]);
     const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView, agentsView]);
+    const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
+    const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
+    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
 
-    function showView(id: ViewId): void {
+    function showView(id: ViewId, reveal = true): void {
+        if (reveal && (!layout.sideBarVisible || layout.zen)) {
+            layout.setSideBarVisible(true);
+        }
+        const activity: ViewId = id === 'keybindings' ? 'settings' : id;
         for (const [viewId, pane] of panes) {
             pane.hidden = viewId !== id;
             const button = buttons.get(viewId);
-            button?.classList.toggle('is-active', viewId === id);
-            button?.setAttribute('aria-pressed', String(viewId === id));
+            button?.classList.toggle('is-active', viewId === activity);
+            button?.setAttribute('aria-pressed', String(viewId === activity));
         }
-        sideBarFrame.setAttribute('aria-label', ACTIVITY.find((item) => item.id === id)?.label ?? id);
+        sideBarFrame.setAttribute('aria-label', id === 'keybindings' ? 'Keyboard Shortcuts' : ACTIVITY.find((item) => item.id === id)?.label ?? id);
     }
-    showView('explorer');
 
     const infoList = el('dl', { className: 'info-list' });
     const status = el('p', { className: 'muted', text: 'Connecting to the main process…' });
@@ -121,13 +144,17 @@ export function renderWorkbench(root: HTMLElement): Workbench {
 
     const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, panel, sceneArea, statusBar]);
     root.replaceChildren(shell);
+    const layout = createLayout({ shell, sideBar: sideBarFrame, panel, sceneArea }, storage);
+    showView('explorer', false);
 
     return {
         sideBar,
         searchView,
         analysisView,
         agentsView,
-        showView,
+        settingsView,
+        keybindingsView,
+        showView: (id: ViewId) => showView(id),
         setPythonStatus(text: string, tooltip: string, state: string): void {
             pythonItem.hidden = false;
             pythonItem.textContent = text;
@@ -142,6 +169,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
         },
         panel,
         editorStatus,
+        layout,
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },

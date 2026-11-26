@@ -19,7 +19,14 @@ import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
 import { createEditorStatus } from './editor/editorStatus.ts';
 import { eolChoices, indentationChoices, languageChoices, type Choice } from './editor/editorStatusModel.ts';
-import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
+import { parseSession, serializeSession, sessionKey } from './editor/tabsModel.ts';
+import { showContextMenu, type ContextMenuItem } from './contextMenu.ts';
+import { createSettingsView } from './settings/settingsView.ts';
+import { createKeybindingsView } from './settings/keybindingsView.ts';
+import { menuAccelerators } from './settings/keybindingsModel.ts';
+import { COLOR_THEME_SETTING, isColorTheme, settingOf, type ColorTheme } from '../shared/settings.ts';
+import { themeChoices } from './settings/settingsModel.ts';
+import type { IdeCommand, KeybindingsReport, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
 if (!root) {
@@ -31,7 +38,15 @@ const api = window.codexr;
 let folderIsOpen = false;
 /** The active editor's file, for quick open's recent list (#164). */
 let activeFile: string | null = null;
-const workbench = renderWorkbench(root);
+// #169: the layout is remembered in the renderer's storage (inside the IDE's user-data folder).
+function layoutStorage(): Storage | null {
+    try {
+        return window.localStorage;
+    } catch {
+        return null;
+    }
+}
+const workbench = renderWorkbench(root, layoutStorage());
 // #153: VS Code-style notifications, kept clear of the scene view (a native view drawn over the page).
 const notifications = createNotificationCenter(document.body);
 new ResizeObserver(() => notifications.setRightInset(workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width))
@@ -53,12 +68,20 @@ function editorGroup(): Promise<EditorGroup> {
             onActiveChange: (path) => {
                 document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
                 activeFile = path;
+                scheduleSessionSave();
                 if (path) { quickOpenFiles.opened(path); }
             },
             onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
             onOpenFilesChange: () => updateWatched(),
             onStatusState: (state) => editorStatus.show(state),
+            onSessionChange: () => scheduleSessionSave(),
+            copyPath: (path, kind) => copyPath(path, kind),
+            revealInExplorer: (path) => void revealInExplorer(path),
+            showTabMenu: (path, x, y) => showTabMenu(path, x, y),
         });
+        if (settingsReport) {
+            editors.applySettings(settingsReport.effective);
+        }
         return editors;
     });
     return editorsLoading;
@@ -89,12 +112,97 @@ function updateWatched(): void {
     }, 100);
 }
 
+// #167: the open tabs are a session of the folder, kept in the renderer's
+// storage under the folder's path and restored when the folder opens again.
+let sessionRoot: string | null = null;
+let sessionTimer: ReturnType<typeof setTimeout> | undefined;
+function saveSession(): void {
+    clearTimeout(sessionTimer);
+    if (sessionRoot === null || !editors) {
+        return;
+    }
+    try {
+        layoutStorage()?.setItem(sessionKey(sessionRoot), serializeSession(editors.session()));
+    } catch {
+        // Storage full or unavailable: the tabs are just not remembered.
+    }
+}
+function scheduleSessionSave(): void {
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(saveSession, 300);
+}
+window.addEventListener('beforeunload', saveSession);
+/** The tabs follow the folder: the old folder's session is saved, the new one's restored. */
+function switchTabsFolder(root: string | null): void {
+    if (root === sessionRoot && root !== null) {
+        return;
+    }
+    saveSession();
+    sessionRoot = null;
+    editors?.reset();
+    // #18: the new folder brings its own settings.
+    void Promise.resolve().then(loadSettings);
+    if (root === null) {
+        return;
+    }
+    let saved;
+    try {
+        saved = parseSession(layoutStorage()?.getItem(sessionKey(root)) ?? null);
+    } catch {
+        saved = parseSession(null);
+    }
+    if (saved.tabs.length === 0) {
+        sessionRoot = root;
+        return;
+    }
+    void editorGroup().then(async (group) => {
+        await group.restore(saved);
+        sessionRoot = root;
+        saveSession();
+    });
+}
+function copyPath(path: string, kind: 'absolute' | 'relative'): void {
+    api.workspace.copyPath(path, kind).then(
+        () => workbench.setStatus(`Copied the ${kind === 'absolute' ? 'path' : 'relative path'} of ${path}`),
+        (error: unknown) => workbench.setStatus(`Could not copy the path: ${String(error)}`),
+    );
+}
+async function revealInExplorer(path: string): Promise<void> {
+    workbench.showView('explorer');
+    if (!(await explorer.reveal(path))) {
+        workbench.setStatus(`${path} is not in the explorer.`);
+    }
+}
+function showTabMenu(path: string, x: number, y: number): void {
+    const key = (id: string): string => {
+        const binding = registry.keybindings(id)[0];
+        return binding ? formatKeybinding(binding, platform) : '';
+    };
+    const items: ContextMenuItem[] = [
+        { label: 'Close', keybinding: key('editor.close'), run: () => editors?.closeActive(), testId: 'tab-menu-close' },
+        { label: 'Close Others', run: () => editors?.closeGroup('others', path), testId: 'tab-menu-close-others' },
+        { label: 'Close to the Right', run: () => editors?.closeGroup('right', path), testId: 'tab-menu-close-right' },
+        { label: 'Close Saved', keybinding: key('editor.closeSaved'), run: () => editors?.closeGroup('saved', path), testId: 'tab-menu-close-saved' },
+        { label: 'Close All', keybinding: key('editor.closeAll'), run: () => editors?.closeGroup('all', path), testId: 'tab-menu-close-all' },
+        { separator: true },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
+        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
+        { separator: true },
+        { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
+        { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
+    ];
+    showContextMenu(items, x, y, {
+        label: `Actions for ${path}`,
+        rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
+    });
+}
+
 const explorer = createExplorer(workbench.sideBar, api.workspace, {
-    onOpenFile: (path) => void editorGroup().then((group) => group.open(path)),
+    onOpenFile: (path, preview) => void editorGroup().then((group) => group.open(path, { preview })),
     onError: (message) => workbench.setStatus(message),
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
     onOpened: (workspace) => {
-        editors?.reset();
+        switchTabsFolder(workspace.root);
         folderOpened(workspace.root);
     },
     onExpandedChange: () => updateWatched(),
@@ -104,12 +212,16 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
 });
 
 api.workspace.onDidChangeFiles((paths) => {
+    // #18: the folder's settings file saved in the editor (or changed on disk) takes effect.
+    if (paths.includes('.codexr/settings.json')) {
+        void loadSettings();
+    }
     void explorer.refresh(paths);
     void editors?.onDiskChanged(paths);
 });
 
 function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
-    editors?.reset();
+    switchTabsFolder(workspace?.root ?? null);
     void explorer.show(workspace);
 }
 
@@ -142,6 +254,7 @@ api.workspace.current().then(
         if (workspace) {
             runView.folderOpened(workspace.root);
         }
+        switchTabsFolder(workspace?.root ?? null);
         return explorer.show(workspace);
     },
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),
@@ -158,15 +271,43 @@ const searchView = createSearchView(workbench.searchView, api.workspace, {
     },
 });
 
+// #18: settings, user and folder. The main process stores and validates
+// them; the renderer shows them and applies the ones in force.
+let settingsReport: SettingsReport | null = null;
+function applySettings(report: SettingsReport): void {
+    settingsReport = report;
+    settingsView.show(report);
+    editors?.applySettings(report.effective);
+    terminal.setFontSize(settingOf<number>(report, 'terminal.integrated.fontSize'));
+}
+function loadSettings(): Promise<void> {
+    return api.settings.get().then(applySettings, (error: unknown) => workbench.setStatus(`Could not read the settings: ${String(error)}`));
+}
+function openFolderSettingsFile(): void {
+    api.settings.folderFile().then(
+        (path) => void editorGroup().then((group) => group.open(path)),
+        (error: unknown) => workbench.setStatus(`Could not open the folder settings: ${String(error)}`),
+    );
+}
+const settingsView = createSettingsView(workbench.settingsView, api.settings, {
+    onError: (message) => notifications.notify('error', message),
+    openFolderFile: openFolderSettingsFile,
+    openKeybindings: () => registry.execute('workbench.openKeybindings'),
+});
+api.settings.onDidChange(applySettings);
+
 // #137: the terminal panel; xterm.js loads with the first terminal.
 const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
+    toggleMaximized: () => workbench.layout.togglePanelMaximized(),
 });
+workbench.layout.onDidChange(() => terminal.setMaximized(workbench.layout.panelMaximized));
+void loadSettings();
 
 // #18: every action is a command in one registry: the palette lists them,
 // the menu's accelerators and the workbench's own keys run them.
 let platform: string = navigator.userAgent.includes('Macintosh') ? 'darwin' : 'linux';
-const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`));
+const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`), platform);
 // #164: the workspace's files, listed by the main process each time quick
 // open opens (a stale list is shown meanwhile), and the recently opened ones.
 const quickOpenFiles = createQuickOpenFiles(() => api.workspace.listFiles(), () => quickInput.refresh());
@@ -182,6 +323,7 @@ const quickInput = createQuickInput(document.body, {
         isEnabled: (id) => registry.isEnabled(id),
         recent: registry.recent(),
         formatKey: (binding) => formatKeybinding(binding, platform),
+        keybindingOf: (id) => registry.keybindings(id)[0],
         lineCount: editors?.activeLineCount() ?? null,
         hasFolder: folderIsOpen,
         files: quickOpenFiles.files(),
@@ -214,6 +356,45 @@ function pick<T>(label: string, choices: readonly Choice<T>[], apply: (value: T)
             if (choice) {
                 apply(choice.value);
             }
+        },
+    });
+}
+/**
+ * #171: the colour theme picker. Moving through the list previews each theme
+ * (the main process switches what every page sees as prefers-color-scheme);
+ * Enter stores it in the user's settings, Escape goes back to the stored one.
+ */
+function selectColorTheme(): void {
+    const current = settingsReport ? settingOf<ColorTheme>(settingsReport, COLOR_THEME_SETTING) : 'system';
+    const choices = themeChoices(isColorTheme(current) ? current : 'system');
+    const items: PickItem[] = choices.map(({ id, label, description }) => ({ id, label, ...(description ? { description } : {}) }));
+    let previewed: string | undefined = current;
+    const preview = (theme: ColorTheme | null): void => {
+        api.settings.previewTheme(theme).catch((error: unknown) => workbench.setStatus(`Could not preview the theme: ${String(error)}`));
+    };
+    quickInput.open('', {
+        label: 'Select color theme',
+        initialId: current,
+        view: (value) => pickListView(items, value),
+        onActive: (id) => {
+            if (isColorTheme(id) && id !== previewed) {
+                previewed = id;
+                preview(id);
+            }
+        },
+        onClose: (accepted) => {
+            if (!accepted && previewed !== current) {
+                preview(null);
+            }
+        },
+        accept: (action) => {
+            if (action.kind !== 'pick' || !isColorTheme(action.id)) {
+                return;
+            }
+            api.settings.update('user', COLOR_THEME_SETTING, action.id === 'system' ? null : action.id).then(applySettings, (error: unknown) => {
+                preview(null);
+                notifications.notify('error', `Could not change the theme: ${String(error)}`);
+            });
         },
     });
 }
@@ -272,11 +453,67 @@ registerWorkbenchCommands(registry, {
         api.analysis.closeScene().catch((reason: unknown) => workbench.setStatus(String(reason)));
     },
     hasScene: () => !workbench.sceneArea.hidden,
+    toggleSideBar: () => workbench.layout.toggleSideBar(),
+    togglePanel: () => terminal.toggle(),
+    toggleMaximizedPanel: () => workbench.layout.togglePanelMaximized(),
+    hasPanel: () => terminal.visible,
+    toggleZenMode: () => workbench.layout.toggleZen(),
+    resetLayout: () => workbench.layout.reset(),
+    openSettings: () => {
+        workbench.showView('settings');
+        settingsView.focus();
+    },
+    openFolderSettingsFile: () => openFolderSettingsFile(),
+    selectColorTheme,
+    formatDocument: () => {
+        void editors?.formatDocument().then((formatted) => {
+            if (!formatted) {
+                workbench.setStatus(`No formatter for ${editors?.statusState()?.languageName ?? 'this file'}.`);
+            }
+        });
+    },
+    openKeybindings: () => {
+        workbench.showView('keybindings');
+        keybindingsView.focus();
+        // A hand edit of keybindings.json shows up when the view opens.
+        void loadKeybindings();
+    },
+    closeEditors: (kind) => editors?.closeGroup(kind),
+    cycleEditor: (delta) => editors?.cycle(delta),
+    keepEditor: () => editors?.keepActive(),
+    copyActivePath: (kind) => { if (activeFile) { copyPath(activeFile, kind); } },
+    revealActiveFile: () => { if (activeFile) { void revealInExplorer(activeFile); } },
+    hasEditors: () => (editors?.openPaths().length ?? 0) > 0,
 });
 api.commands.onCommand((command: IdeCommand) => {
     registry.execute(command);
 });
 void appInfo.then((info) => { platform = info.platform; }, () => undefined).finally(() => installKeybindings(registry, platform));
+
+// #18, part 3: the user's keybindings. The main process stores the rules;
+// the registry applies them, and the menu is told which keys it now owns.
+function pushMenuAccelerators(suspended = false): void {
+    api.keybindings.setMenuAccelerators(menuAccelerators(registry, suspended)).catch((error: unknown) => workbench.setStatus(`Could not update the menu keys: ${String(error)}`));
+}
+function applyKeybindings(report: KeybindingsReport): void {
+    registry.setUserKeybindings(report.entries);
+    pushMenuAccelerators();
+    keybindingsView.show(report);
+}
+function loadKeybindings(): Promise<void> {
+    return api.keybindings.get().then(applyKeybindings, (error: unknown) => workbench.setStatus(`Could not read the keybindings: ${String(error)}`));
+}
+const keybindingsView = createKeybindingsView(workbench.keybindingsView, api.keybindings, registry, platform, {
+    onError: (message) => notifications.notify('error', message),
+    openSettings: () => {
+        workbench.showView('settings');
+        settingsView.focus();
+    },
+    onRecording: (recording) => pushMenuAccelerators(recording),
+    formatKey: (key) => formatKeybinding(key, platform),
+});
+api.keybindings.onDidChange(applyKeybindings);
+void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
 // The AI agent hub: providers configured with the person's own keys.

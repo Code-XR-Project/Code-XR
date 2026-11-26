@@ -47,9 +47,15 @@ body {
 }
 
 .workbench {
+  /* #169: layout/layout.ts sets --side-size, --panel-size and --scene-size;
+     the classes side-hidden, panel-maximized and zen collapse areas. */
+  --activity-col: 48px;
+  --side-col: var(--side-size, 260px);
+  --scene-col: var(--scene-size, 45%);
+  --status-row: 24px;
   display: grid;
-  grid-template-columns: 48px minmax(180px, 260px) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto 24px;
+  grid-template-columns: var(--activity-col) var(--side-col) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto var(--status-row);
   grid-template-areas:
     'activity side editor'
     'activity side panel'
@@ -330,15 +336,34 @@ body {
 }
 
 @media (max-width: 720px) {
-  .workbench {
-    grid-template-columns: 48px 1fr;
-    grid-template-areas:
-      'activity editor'
-      'activity panel'
-      'status status';
-  }
+  .workbench { --side-col: 0px; }
   .side-bar { display: none; }
 }
+
+/* #169: hidden side bar, maximised panel, zen mode and the sashes. */
+.workbench.side-hidden { --side-col: 0px; }
+.workbench.side-hidden .side-bar { display: none; }
+.workbench.panel-maximized { grid-template-rows: 0 minmax(0, 1fr) var(--status-row); }
+.workbench.panel-maximized .editor-area { display: none; }
+.workbench.zen { --activity-col: 0px; --side-col: 0px; --status-row: 0px; }
+.workbench.zen .activity-bar,
+.workbench.zen .side-bar,
+.workbench.zen .status-bar,
+.workbench.zen .panel { display: none; }
+.sash {
+  position: relative;
+  z-index: 5;
+  touch-action: none;
+}
+.sash[hidden] { display: none; }
+.sash:hover, .sash:active, .sash:focus-visible { background: var(--accent); opacity: 0.5; outline: none; }
+.sash-side { grid-area: side; justify-self: end; width: 6px; margin-right: -3px; cursor: ew-resize; }
+/* The scene is a native view over its slot: the sash stays on the editor's side of the border. */
+.sash-scene { grid-area: scene; justify-self: start; width: 6px; margin-left: -5px; cursor: ew-resize; }
+.sash-panel { grid-area: panel; align-self: start; height: 6px; margin-top: -3px; cursor: ns-resize; }
+.workbench.is-resizing { user-select: none; }
+.workbench.is-resizing-columns, .workbench.is-resizing-columns * { cursor: ew-resize !important; }
+.workbench.is-resizing-rows, .workbench.is-resizing-rows * { cursor: ns-resize !important; }
 
 /* Side-bar views (#15): one pane per activity item. */
 .side-pane[hidden] { display: none; }
@@ -405,7 +430,7 @@ body {
 /* The analysis scene beside the code (#16). The scene is drawn by the main
    process over .scene-slot; this column only reserves the space. */
 .workbench.has-scene {
-  grid-template-columns: 48px minmax(180px, 260px) minmax(0, 1fr) minmax(320px, 45%);
+  grid-template-columns: var(--activity-col) var(--side-col) minmax(0, 1fr) var(--scene-col);
   grid-template-areas:
     'activity side editor scene'
     'activity side panel scene'
@@ -458,13 +483,7 @@ body {
 .scene-share-error { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--crit); }
 .scene-slot { flex: 1; min-height: 0; }
 @media (max-width: 720px) {
-  .workbench.has-scene {
-    grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      'activity editor scene'
-      'activity panel scene'
-      'status status status';
-  }
+  .workbench.has-scene { --scene-col: minmax(0, 1fr); }
 }
 
 /* Terminal panel (#137): tabs over xterm.js views, under the editor area. */
@@ -477,18 +496,10 @@ body {
   min-height: 0;
   background: var(--editor);
   border-top: 1px solid var(--line);
+  height: var(--panel-size, 260px);
 }
 .panel[hidden] { display: none; }
-.panel-sash {
-  position: absolute;
-  top: -3px;
-  left: 0;
-  right: 0;
-  height: 6px;
-  cursor: ns-resize;
-  z-index: 2;
-}
-.panel-sash:hover, .panel-sash:active { background: var(--accent); opacity: 0.5; }
+.workbench.panel-maximized .panel { height: auto; }
 .panel-header {
   flex: none;
   display: flex;
@@ -824,6 +835,104 @@ body {
 .search-preview del { background: color-mix(in srgb, var(--crit) 22%, transparent); color: inherit; }
 .search-preview ins { background: color-mix(in srgb, #3fb950 26%, transparent); color: inherit; text-decoration: none; }
 .search-more { padding: 2px 12px 2px 34px; }
+
+/* Context menus (#167, contextMenu.ts): the terminal menu's look, at the pointer. */
+.context-menu {
+  position: fixed;
+  z-index: 70;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 4px 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+  font-size: 13px;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 4px 12px;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.context-menu-item:hover:not(:disabled), .context-menu-item:focus-visible { background: var(--hover); outline: none; }
+.context-menu-item:disabled { color: var(--muted); cursor: default; }
+.context-menu-key { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.context-menu-separator { height: 1px; margin: 4px 0; background: var(--line); }
+
+/* Editor tabs (#167): a preview tab is italic until it is kept; the drop marker while dragging. */
+.editor-tab.is-preview .tab-label { font-style: italic; }
+.editor-tab.is-dragging { opacity: 0.5; }
+.editor-tab.is-drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.editor-tab.is-drop-after { box-shadow: inset -2px 0 0 var(--accent); }
+
+/* Settings (#18): filter, User / Folder tabs, one row per setting. */
+.activity-item.is-bottom { margin-top: auto; }
+.settings-head { display: flex; flex-direction: column; gap: 6px; margin: 0 12px 8px; }
+.settings-filter { flex: none; width: 100%; box-sizing: border-box; }
+.settings-scopes { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.settings-scope {
+  padding: 4px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.settings-scope:hover:not(:disabled) { color: var(--fg); }
+.settings-scope.is-active { color: var(--fg); border-bottom-color: var(--accent); }
+.settings-scope:disabled { opacity: 0.5; cursor: default; }
+.settings-scope-note { margin: 0; }
+.link-button { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
+.link-button:hover { text-decoration: underline; }
+.link-button[hidden] { display: none; }
+.settings-errors { margin: 0 12px; }
+.settings-error { margin: 0 0 6px; color: var(--crit); }
+.settings-group .side-bar-subtitle { margin: 12px 12px 4px; }
+.settings-row { display: grid; gap: 4px; margin: 0 4px 0 8px; padding: 8px 8px 8px 6px; border-left: 2px solid transparent; }
+.settings-row.is-modified { border-left-color: var(--accent); }
+.settings-row:focus-within { background: var(--hover); }
+.settings-row-head { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+.settings-title { flex: 1; min-width: 0; font-weight: 600; }
+.settings-category { color: var(--muted); font-weight: 400; }
+.settings-description, .settings-note, .settings-key { margin: 0; }
+.settings-note { color: var(--accent); }
+.settings-key { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; overflow-wrap: anywhere; }
+.settings-reset[hidden] { display: none; }
+.settings-control { display: flex; }
+.settings-input, .settings-select {
+  width: 100%;
+  max-width: 320px;
+  height: 26px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+}
+.settings-input[type='number'] { max-width: 100px; }
+.settings-input:focus, .settings-select:focus { border-color: var(--accent); outline: none; }
+.settings-input[aria-invalid='true'] { border-color: var(--crit); }
+.settings-control input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+/* #18, part 3: the Keyboard Shortcuts view (rows reuse the settings rows). */
+.keybinding-keys { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; align-items: center; }
+.settings-row-head .icon-button[hidden] { display: none; }
+.settings-row.is-recording { border-left-color: var(--accent); background: var(--hover); }
+.keybinding-recorder { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; caret-color: transparent; }
+.keybinding-recorder:focus { border-color: var(--accent); outline: none; }
+.settings-input:disabled, .settings-select:disabled { opacity: 0.6; cursor: default; }
 
 /* AI agent hub (agents/agentsView.ts): reuses the side-bar, button and badge styles above. */
 .agents-store-note { margin: 0 12px 8px; padding: 6px 8px; border: 1px solid var(--crit); border-radius: 4px; }

@@ -89,6 +89,11 @@ export function workspaceOf(contents: WebContents): Workspace {
     return workspace;
 }
 
+/** The window's open folder, or null (settings work without one). */
+export function workspaceOrNull(contents: WebContents): Workspace | null {
+    return workspaces.get(contents.id) ?? null;
+}
+
 export function currentWorkspaceInfo(contents: WebContents): WorkspaceInfo | null {
     return workspaces.get(contents.id)?.info ?? null;
 }

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
 import { IPC_EVENTS, type IdeCommand } from '../shared/api.ts';
+import { isChord, isValidKeybinding, MENU_KEYBINDINGS } from '../shared/keybindings.ts';
 import { clearRecentFolders, openRecentFromMenu } from './workspace/workspaceWindows.ts';
 
 /** What Help > About shows of the IDE's dependencies (#161), set once the core runs. */
@@ -43,32 +44,77 @@ async function showAbout(win: BrowserWindow | undefined): Promise<void> {
     }
 }
 
+/** The accelerators the renderer resolved from the user's keybindings (#18, part 3), by command ID. */
+let acceleratorOverrides: Readonly<Record<string, string | null>> = {};
+let lastMenu: { readonly isDevelopment: boolean; readonly recentFolders: readonly string[] } | null = null;
+
+/**
+ * Takes the menu accelerators the renderer resolved (#18, part 3) and
+ * rebuilds the menu if they changed. Only commands the menu owns, and only
+ * single-stroke accelerators, are accepted: a chord cannot be a menu key.
+ */
+export function setMenuAccelerators(value: unknown): void {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Menu accelerators must be an object.');
+    }
+    const next: Record<string, string | null> = {};
+    for (const [id, accelerator] of Object.entries(value as Record<string, unknown>)) {
+        if (!Object.hasOwn(MENU_KEYBINDINGS, id)) {
+            continue;
+        }
+        if (accelerator === null) {
+            next[id] = null;
+        } else if (typeof accelerator === 'string' && isValidKeybinding(accelerator) && !isChord(accelerator)) {
+            next[id] = accelerator;
+        }
+    }
+    if (JSON.stringify(next) === JSON.stringify(acceleratorOverrides)) {
+        return;
+    }
+    acceleratorOverrides = next;
+    if (lastMenu) {
+        installApplicationMenu(lastMenu.isDevelopment, lastMenu.recentFolders);
+    }
+}
+
+function acceleratorFor(id: string): string | undefined {
+    return Object.hasOwn(acceleratorOverrides, id) ? acceleratorOverrides[id] ?? undefined : MENU_KEYBINDINGS[id];
+}
+
+/** A menu item that runs a renderer command, with the command's accelerator (built-in or the user's). */
+function command(label: string, id: IdeCommand): MenuItemConstructorOptions {
+    const accelerator = acceleratorFor(id);
+    return { label, ...(accelerator ? { accelerator } : {}), click: (_item, win) => sendCommand(win, id) };
+}
+
 /**
  * The application menu. File > Open Folder… arrived with #14; Edit and View
- * keep the standard roles until the command palette (#18).
+ * keep the standard roles until the command palette (#18). Command items take
+ * their accelerators from `MENU_KEYBINDINGS` and the user's keybindings.
  */
 export function installApplicationMenu(isDevelopment: boolean, recentFolders: readonly string[] = []): void {
+    lastMenu = { isDevelopment, recentFolders };
     const isMac = process.platform === 'darwin';
     const template: MenuItemConstructorOptions[] = [
         ...(isMac ? [{ role: 'appMenu' } as MenuItemConstructorOptions] : []),
         {
             label: 'File',
             submenu: [
-                {
-                    label: 'Open Folder…',
-                    accelerator: 'CmdOrCtrl+O',
-                    // The renderer asks first if editors hold unsaved changes, then opens the picker.
-                    click: (_item, win) => sendCommand(win, 'workspace.openFolder'),
-                },
+                // The renderer asks first if editors hold unsaved changes, then opens the picker.
+                command('Open Folder…', 'workspace.openFolder'),
                 { label: 'Open Recent', submenu: recentSubmenu(recentFolders) },
                 { type: 'separator' },
-                { label: 'New File…', accelerator: 'CmdOrCtrl+N', click: (_item, win) => sendCommand(win, 'file.newFile') },
-                { label: 'New Folder…', click: (_item, win) => sendCommand(win, 'file.newFolder') },
+                command('New File…', 'file.newFile'),
+                command('New Folder…', 'file.newFolder'),
                 { type: 'separator' },
-                { label: 'Save', accelerator: 'CmdOrCtrl+S', click: (_item, win) => sendCommand(win, 'file.save') },
-                { label: 'Save All', accelerator: 'CmdOrCtrl+Alt+S', click: (_item, win) => sendCommand(win, 'file.saveAll') },
+                command('Save', 'file.save'),
+                command('Save All', 'file.saveAll'),
                 { type: 'separator' },
-                { label: 'Close Editor', accelerator: 'CmdOrCtrl+W', click: (_item, win) => sendCommand(win, 'editor.close') },
+                command('Close Editor', 'editor.close'),
+                { type: 'separator' },
+                // #18: the Settings view (the renderer owns it).
+                { label: 'Preferences', submenu: [command('Settings', 'workbench.openSettings'), command('Keyboard Shortcuts', 'workbench.openKeybindings'), command('Color Theme', 'workbench.selectTheme')] },
+                { type: 'separator' },
                 isMac ? { role: 'close', accelerator: 'CmdOrCtrl+Shift+W' } : { role: 'quit' },
             ],
         },
@@ -78,15 +124,29 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
             submenu: [
                 // #18: every action, by name. The accelerator lives here so it also works while the
                 // terminal or the scene view has the focus; F1 is the workbench's own alias.
-                { label: 'Command Palette…', accelerator: 'CmdOrCtrl+Shift+P', click: (_item, win) => sendCommand(win, 'workbench.commandPalette') },
+                command('Command Palette…', 'workbench.commandPalette'),
+                { type: 'separator' },
+                {
+                    // #169: the renderer owns the layout. Zen mode's Ctrl/Cmd+K Z is a chord, which a menu
+                    // accelerator cannot express: the workbench listens for it.
+                    label: 'Appearance',
+                    submenu: [
+                        command('Side Bar', 'view.toggleSideBar'),
+                        command('Panel', 'view.togglePanel'),
+                        command('Maximize Panel', 'view.toggleMaximizedPanel'),
+                        command('Zen Mode', 'view.toggleZenMode'),
+                        { type: 'separator' },
+                        command('Reset Layout', 'view.resetLayout'),
+                    ],
+                },
                 { type: 'separator' },
                 ...(isDevelopment
                     ? ([{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }] as MenuItemConstructorOptions[])
                     : []),
                 // #137: the renderer owns the panel; Ctrl+` on every OS, as in VS Code.
-                { label: 'Terminal', accelerator: 'Ctrl+`', click: (_item, win) => sendCommand(win, 'terminal.toggle') },
-                { label: 'New Terminal', accelerator: 'Ctrl+Shift+`', click: (_item, win) => sendCommand(win, 'terminal.new') },
-                { label: 'Close Terminal Panel', click: (_item, win) => sendCommand(win, 'terminal.closePanel') },
+                command('Terminal', 'terminal.toggle'),
+                command('New Terminal', 'terminal.new'),
+                command('Close Terminal Panel', 'terminal.closePanel'),
                 { type: 'separator' },
                 { role: 'resetZoom' },
                 { role: 'zoomIn' },
@@ -98,9 +158,9 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
         {
             label: 'Go',
             submenu: [
-                { label: 'Go to File…', accelerator: 'CmdOrCtrl+P', click: (_item, win) => sendCommand(win, 'workbench.quickOpen') },
-                { label: 'Go to Symbol in Editor…', accelerator: 'CmdOrCtrl+Shift+O', click: (_item, win) => sendCommand(win, 'editor.goToSymbol') },
-                { label: 'Go to Line/Column…', accelerator: 'Ctrl+G', click: (_item, win) => sendCommand(win, 'editor.goToLine') },
+                command('Go to File…', 'workbench.quickOpen'),
+                command('Go to Symbol in Editor…', 'editor.goToSymbol'),
+                command('Go to Line/Column…', 'editor.goToLine'),
             ],
         },
         { role: 'windowMenu' },

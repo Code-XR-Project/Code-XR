@@ -40,6 +40,14 @@ export interface SmokeProbe {
     readonly searchFound: boolean;
     /** #166: the status bar shows the cursor position and the language of the open file. */
     readonly editorStatus: string;
+    /** #169: Ctrl/Cmd+K Z toggled zen mode, the side-bar sash resized it from the keyboard and the size was saved, the active activity item hid the side bar. */
+    readonly layout: { readonly zen: boolean; readonly resized: boolean; readonly saved: boolean; readonly sideBarToggled: boolean };
+    /** #167: a click opened a preview that the next click replaced, a double click kept it, Ctrl+PageDown cycled, the session was saved, the tab menu closed all. */
+    readonly tabs: { readonly previewReplaced: boolean; readonly kept: boolean; readonly cycled: boolean; readonly sessionSaved: boolean; readonly closedAll: boolean };
+    /** #18: the Settings view changed the editor font size (stored by the main process, applied to Monaco), and its reset undid it. */
+    readonly settings: { readonly listed: boolean; readonly applied: boolean; readonly reset: boolean };
+    readonly theme: { readonly previewed: boolean; readonly reverted: boolean; readonly stored: boolean };
+    readonly keybindings: { readonly opened: boolean; readonly recorded: boolean; readonly works: boolean; readonly reset: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -163,6 +171,144 @@ const RENDERER_PROBE = `(async () => {
         }
         palette.focusReturned = !!layer && layer.hidden && !!document.activeElement?.closest('.monaco-editor');
     }
+    // #169: the layout. Zen mode by its chord (the first stroke goes on to Monaco, which keeps its own chords).
+    const layout = { zen: false, resized: false, saved: false, sideBarToggled: false };
+    const shell = document.querySelector('.workbench');
+    const chordKey = (key, code, mod) => window.dispatchEvent(new KeyboardEvent('keydown', { key, code, ctrlKey: mod && !isMacProbe, metaKey: mod && isMacProbe, bubbles: true, cancelable: true }));
+    chordKey('k', 'KeyK', true);
+    chordKey('z', 'KeyZ', false);
+    const zenOn = !!shell?.classList.contains('zen');
+    chordKey('k', 'KeyK', true);
+    chordKey('z', 'KeyZ', false);
+    layout.zen = zenOn && !shell?.classList.contains('zen');
+    const sideBar = document.querySelector('[data-testid="side-bar"]');
+    const sash = document.querySelector('[data-testid="sash-side"]');
+    if (sideBar && sash) {
+        const before = sideBar.getBoundingClientRect().width;
+        sash.focus();
+        sash.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+        const after = sideBar.getBoundingClientRect().width;
+        layout.resized = after > before;
+        try {
+            layout.saved = JSON.parse(localStorage.getItem('codexr.layout') ?? '{}').sideBarWidth === Math.round(after);
+        } catch { layout.saved = false; }
+        sash.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        const active = document.querySelector('.activity-item.is-active');
+        active?.click();
+        const hidden = sideBar.getBoundingClientRect().width === 0;
+        active?.click();
+        layout.sideBarToggled = hidden && sideBar.getBoundingClientRect().width > 0;
+    }
+    // #167: preview tabs, cycling, the saved session and the tab menu.
+    const tabsProbe = { previewReplaced: false, kept: false, cycled: false, sessionSaved: false, closedAll: false };
+    const tabPaths = () => [...document.querySelectorAll('[data-testid="editor-tabs"] .editor-tab')].map((tab) => tab.getAttribute('data-path'));
+    const waitFor = async (check, ms = 5000) => {
+        const until = Date.now() + ms;
+        while (!check() && Date.now() < until) { await new Promise((r) => setTimeout(r, 50)); }
+        return check();
+    };
+    const explorerRow = (path) => document.querySelector('[data-testid="explorer-tree"] [data-path="' + path + '"]');
+    const tabOf = (path) => document.querySelector('[data-testid="editor-tabs"] .editor-tab[data-path="' + path + '"]');
+    if (explorerRow('README.md') && explorerRow('tsconfig.json')) {
+        const keptBefore = tabPaths().filter((path) => !tabOf(path)?.classList.contains('is-preview'));
+        explorerRow('README.md').click();
+        await waitFor(() => tabOf('README.md'));
+        explorerRow('tsconfig.json').click();
+        await waitFor(() => tabOf('tsconfig.json'));
+        tabsProbe.previewReplaced = !tabOf('README.md') && !!tabOf('tsconfig.json')?.classList.contains('is-preview')
+            && keptBefore.every((path) => tabOf(path));
+        tabOf('tsconfig.json')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        tabsProbe.kept = !tabOf('tsconfig.json')?.classList.contains('is-preview');
+        explorerRow('README.md').click();
+        await waitFor(() => tabOf('README.md')?.getAttribute('aria-selected') === 'true');
+        const order = tabPaths();
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', code: 'PageDown', ctrlKey: true, bubbles: true, cancelable: true }));
+        const activeAfter = document.querySelector('[data-testid="editor-tabs"] .editor-tab[aria-selected="true"]')?.getAttribute('data-path');
+        tabsProbe.cycled = activeAfter === order[(order.indexOf('README.md') + 1) % order.length];
+        await new Promise((r) => setTimeout(r, 450));
+        const sessionEntry = Object.keys(localStorage).find((key) => key.startsWith('codexr.tabs:'));
+        try {
+            const saved = JSON.parse(localStorage.getItem(sessionEntry ?? '') ?? '{}');
+            tabsProbe.sessionSaved = Array.isArray(saved.tabs) && saved.tabs.some((tab) => tab.path === 'tsconfig.json') && saved.preview === 'README.md';
+        } catch { tabsProbe.sessionSaved = false; }
+        const confirmBefore = window.confirm;
+        window.confirm = () => true;
+        tabOf('README.md')?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 40 }));
+        document.querySelector('[data-testid="tab-menu-close-all"]')?.click();
+        window.confirm = confirmBefore;
+        tabsProbe.closedAll = tabPaths().length === 0 && !document.querySelector('[data-testid="context-menu"]');
+    }
+    // #18: the Settings view. The smoke run keeps the user's settings in memory.
+    const settingsProbe = { listed: false, applied: false, reset: false };
+    document.querySelector('.activity-item[data-view="settings"]')?.click();
+    const fontInput = document.querySelector('[data-testid="settings-view"] input[data-key="editor.fontSize"]');
+    settingsProbe.listed = !!fontInput && document.querySelectorAll('[data-testid="settings-row"]').length > 5;
+    explorerRow('package.json')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await waitFor(() => tabOf('package.json'));
+    const editorFont = () => parseFloat(getComputedStyle(document.querySelector('.monaco-editor .view-lines') ?? document.body).fontSize);
+    if (fontInput) {
+        fontInput.value = '21';
+        fontInput.dispatchEvent(new Event('change', { bubbles: true }));
+        settingsProbe.applied = await waitFor(() => editorFont() === 21);
+        const reset = document.querySelector('[data-testid="settings-row"][data-key="editor.fontSize"] .settings-reset');
+        reset?.click();
+        settingsProbe.reset = await waitFor(() => editorFont() === 13);
+    }
+    // #18, part 3: Keyboard Shortcuts. Opened by its chord, Zen Mode gets F9, F9 runs it, reset restores the chord.
+    const keybindingsProbe = { opened: false, recorded: false, works: false, reset: false };
+    const isMac = navigator.userAgent.includes('Macintosh');
+    const press = (target, code, keyName, mods) => target.dispatchEvent(new KeyboardEvent('keydown', { code, key: keyName, bubbles: true, cancelable: true, ...(mods || {}) }));
+    press(document.body, 'KeyK', 'k', isMac ? { metaKey: true } : { ctrlKey: true });
+    press(document.body, 'KeyS', 's');
+    keybindingsProbe.opened = await waitFor(() => {
+        const view = document.querySelector('[data-testid="keybindings-view"]');
+        return view && !view.hidden && view.querySelectorAll('[data-testid="keybinding-row"]').length > 20;
+    });
+    const zenRow = () => document.querySelector('[data-testid="keybinding-row"][data-command="view.toggleZenMode"]');
+    zenRow()?.querySelector('[data-testid="keybinding-change"]')?.click();
+    const recorder = await waitFor(() => document.querySelector('[data-testid="keybinding-recorder"]'));
+    if (recorder) {
+        press(recorder, 'F9', 'F9');
+        press(recorder, 'Enter', 'Enter');
+        keybindingsProbe.recorded = await waitFor(() => (zenRow()?.querySelector('[data-testid="keybinding-keys"]')?.textContent ?? '') === 'F9' && zenRow()?.classList.contains('is-modified'));
+        const isZen = () => !!document.querySelector('.workbench.zen');
+        const before = isZen();
+        press(document.body, 'F9', 'F9');
+        const toggled = await waitFor(() => isZen() !== before);
+        press(document.body, 'F9', 'F9');
+        keybindingsProbe.works = toggled && await waitFor(() => isZen() === before);
+        zenRow()?.querySelector('[data-testid="keybinding-reset"]')?.click();
+        keybindingsProbe.reset = await waitFor(() => !zenRow()?.classList.contains('is-modified') && (zenRow()?.querySelector('[data-testid="keybinding-keys"]')?.textContent ?? '').includes('K Z'));
+    }
+    // #171: the theme picker previews Dark then Light, Escape reverts, Enter on Light stores it and Monaco follows.
+    const themeProbe = { previewed: false, reverted: false, stored: false };
+    const isLight = () => window.matchMedia('(prefers-color-scheme: light)').matches;
+    const systemLight = isLight();
+    const field = () => document.querySelector('[data-testid="quick-input-field"]');
+    const openThemes = async () => {
+        press(document.body, 'KeyK', 'k', isMac ? { metaKey: true } : { ctrlKey: true });
+        press(document.body, 'KeyT', 't', isMac ? { metaKey: true } : { ctrlKey: true });
+        return waitFor(() => document.querySelector('[data-testid="quick-input-list"] [data-id="light"]'));
+    };
+    if (await openThemes()) {
+        press(field(), 'ArrowDown', 'ArrowDown');
+        const darkShown = await waitFor(() => !isLight());
+        press(field(), 'ArrowDown', 'ArrowDown');
+        themeProbe.previewed = darkShown && await waitFor(() => isLight());
+        press(field(), 'Escape', 'Escape');
+        themeProbe.reverted = await waitFor(() => isLight() === systemLight);
+    }
+    if (await openThemes()) {
+        press(field(), 'ArrowDown', 'ArrowDown');
+        press(field(), 'ArrowDown', 'ArrowDown');
+        press(field(), 'Enter', 'Enter');
+        const monacoLight = () => { const editor = document.querySelector('.monaco-editor'); return !!editor && !editor.classList.contains('vs-dark'); };
+        themeProbe.stored = await waitFor(() => isLight() && monacoLight())
+            && (await window.codexr.settings.get()).user['workbench.colorTheme'] === 'light';
+        await window.codexr.settings.update('user', 'workbench.colorTheme', null);
+        await waitFor(() => isLight() === systemLight);
+    }
+    document.querySelector('.activity-item[data-view="explorer"]')?.click();
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
@@ -186,6 +332,11 @@ const RENDERER_PROBE = `(async () => {
         quickOpenFound,
         searchFound,
         editorStatus,
+        layout,
+        tabs: tabsProbe,
+        settings: settingsProbe,
+        keybindings: keybindingsProbe,
+        theme: themeProbe,
         cspViolations,
     };
 })()`;
@@ -248,6 +399,11 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.searchFound) { failures.push('the Search view did not find renderWorkbench in src/renderer/workbench.ts'); }
         if (!probe.quickOpenFound) { failures.push('quick open did not find src/main/index.ts'); }
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
+        if (!probe.layout.zen || !probe.layout.resized || !probe.layout.saved || !probe.layout.sideBarToggled) { failures.push(`the layout did not respond (${JSON.stringify(probe.layout)})`); }
+        if (Object.values(probe.settings).some((ok) => !ok)) { failures.push(`the Settings view did not change the editor (${JSON.stringify(probe.settings)})`); }
+        if (Object.values(probe.theme).some((ok) => !ok)) { failures.push(`the theme picker did not switch the theme (${JSON.stringify(probe.theme)})`); }
+        if (Object.values(probe.keybindings).some((ok) => !ok)) { failures.push(`Keyboard Shortcuts did not rebind Zen Mode (${JSON.stringify(probe.keybindings)})`); }
+        if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!terminal) {
