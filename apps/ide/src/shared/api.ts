@@ -45,6 +45,12 @@ export interface DirEntry {
     readonly ignored: boolean;
 }
 
+/** Something the window shows that should follow the disk: an expanded folder or an open file. */
+export interface WatchedEntry {
+    readonly path: string;
+    readonly kind: 'file' | 'directory';
+}
+
 /** A file read for the editor. Binary and oversized files are reported, not sent. */
 export type FileContent =
     | { readonly kind: 'text'; readonly path: string; readonly text: string; readonly mtimeMs: number }
@@ -88,6 +94,15 @@ export interface CodeXRApi {
          * never silently overwrites someone else's edit.
          */
         writeFile(path: string, text: string, expectedMtimeMs?: number): Promise<SaveResult>;
+        /**
+         * Watches the folders behind these entries and replaces the previous
+         * set; changes arrive through `onDidChangeFiles`.
+         */
+        setWatched(entries: readonly WatchedEntry[]): Promise<void>;
+        /** Workspace paths that changed on disk: the entries themselves and the folders listing them. */
+        onDidChangeFiles(listener: (paths: readonly string[]) => void): Unsubscribe;
+        /** How many open files have unsaved changes; closing the window asks first while it is above 0. */
+        reportUnsaved(count: number): Promise<void>;
         /** Fires when the workspace changes from outside the renderer (`--folder=` at startup). */
         onDidChange(listener: (workspace: WorkspaceInfo | null) => void): Unsubscribe;
     };
@@ -108,6 +123,8 @@ export const IPC_CHANNELS = {
     workspaceListDirectory: 'codexr:workspace:list-directory',
     workspaceReadFile: 'codexr:workspace:read-file',
     workspaceWriteFile: 'codexr:workspace:write-file',
+    workspaceSetWatched: 'codexr:workspace:set-watched',
+    workspaceReportUnsaved: 'codexr:workspace:report-unsaved',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -118,6 +135,7 @@ export const ALLOWED_IPC_CHANNELS: ReadonlySet<string> = new Set(Object.values(I
 export const IPC_EVENTS = {
     workspaceChanged: 'codexr:workspace:changed',
     command: 'codexr:command',
+    workspaceFilesChanged: 'codexr:workspace:files-changed',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

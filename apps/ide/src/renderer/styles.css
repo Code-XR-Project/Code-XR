@@ -218,6 +218,9 @@ body {
 .editor-tab:hover .tab-close, .editor-tab[aria-selected='true'] .tab-close { visibility: visible; }
 .editor-tab.is-dirty:not(:hover) .tab-close { display: none; }
 .tab-close:hover { background: var(--hover); }
+/* The disk moved behind an unsaved tab (#14): changed, or deleted. */
+.editor-tab.is-conflict .tab-label { color: var(--accent); }
+.editor-tab.is-deleted .tab-label { color: var(--crit); text-decoration: line-through; }
 .tab-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
 .editor-host { flex: 1; min-height: 0; }
 .editor-placeholder { flex: 1; display: grid; place-items: center; }

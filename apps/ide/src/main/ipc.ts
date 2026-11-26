@@ -1,5 +1,6 @@
 import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
-import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, type AppInfo } from '../shared/api.ts';
+import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, IPC_EVENTS, type AppInfo } from '../shared/api.ts';
+import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
 import { currentWorkspaceInfo, pickAndOpenFolder, workspaceOf } from './workspace/workspaceWindows.ts';
@@ -48,6 +49,15 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceReadFile, (event, path) => workspaceOf(event.sender).readFile(path));
     handle(IPC_CHANNELS.workspaceWriteFile, (event, path, text, expectedMtimeMs) =>
         workspaceOf(event.sender).writeFile(path, text, expectedMtimeMs));
+    handle(IPC_CHANNELS.workspaceSetWatched, (event, entries) => {
+        const sender = event.sender;
+        workspaceOf(sender).setWatched(entries, (paths) => {
+            if (!sender.isDestroyed()) {
+                sender.send(IPC_EVENTS.workspaceFilesChanged, paths);
+            }
+        });
+    });
+    handle(IPC_CHANNELS.workspaceReportUnsaved, (event, count) => reportUnsaved(event.sender, count));
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

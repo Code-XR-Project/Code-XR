@@ -3,6 +3,7 @@ import path from 'node:path';
 import { MODIFIED_ON_DISK, type DirEntry, type FileContent, type SaveResult, type WorkspaceInfo } from '../../shared/api.ts';
 import { EXCLUDED_NAMES, isIgnored, parseGitignore, type IgnoreRule } from './ignoreRules.ts';
 import { childPath, isInside, parseWorkspacePath, resolveInWorkspace } from './workspacePath.ts';
+import { foldersToWatch, WorkspaceWatcher } from './watcher.ts';
 
 /** Files above this are not sent to the editor (Monaco slows down well before). */
 export const MAX_EDITOR_FILE_BYTES = 5 * 1024 * 1024;
@@ -20,6 +21,7 @@ export class Workspace {
     readonly root: string;
     private readonly realRoot: string;
     private readonly rules: readonly IgnoreRule[];
+    private watcher: WorkspaceWatcher | null = null;
 
     private constructor(root: string, realRoot: string, rules: readonly IgnoreRule[]) {
         this.root = root;
@@ -104,6 +106,32 @@ export class Workspace {
         }
         await fs.writeFile(absolute, text, 'utf8');
         return { mtimeMs: (await fs.stat(absolute)).mtimeMs };
+    }
+
+    /**
+     * Watches the folders behind `entries` (expanded folders, open files) and
+     * calls `onChange` with the workspace paths that changed. Replaces the
+     * previous set; the first call decides the listener.
+     */
+    setWatched(entries: unknown, onChange: (paths: readonly string[]) => void): void {
+        if (!Array.isArray(entries) || entries.length > 10_000) {
+            throw new Error('Watched entries must be an array of at most 10000 items.');
+        }
+        const parsed = entries.map((entry: unknown) => {
+            const candidate = entry as { path?: unknown; kind?: unknown } | null;
+            if (!candidate || typeof candidate.path !== 'string' || (candidate.kind !== 'file' && candidate.kind !== 'directory')) {
+                throw new Error('Each watched entry needs a path and a kind.');
+            }
+            return { path: candidate.path, kind: candidate.kind as 'file' | 'directory' };
+        });
+        this.watcher ??= new WorkspaceWatcher(this.root, this.realRoot, onChange);
+        this.watcher.setFolders(foldersToWatch(parsed));
+    }
+
+    /** Stops every watcher (window closed, or another folder opened). */
+    dispose(): void {
+        this.watcher?.dispose();
+        this.watcher = null;
     }
 
     /** The real path of a workspace path; throws if it (or a symlink on the way) leads outside. */

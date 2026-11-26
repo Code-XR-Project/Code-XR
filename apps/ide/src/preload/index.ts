@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type IdeCommand, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type IdeCommand, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -26,6 +26,15 @@ const api: CodeXRApi = Object.freeze({
         readFile: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadFile, path),
         writeFile: (path: string, text: string, expectedMtimeMs?: number) =>
             ipcRenderer.invoke(IPC_CHANNELS.workspaceWriteFile, path, text, expectedMtimeMs),
+        setWatched: (entries: readonly WatchedEntry[]) => ipcRenderer.invoke(IPC_CHANNELS.workspaceSetWatched, entries),
+        onDidChangeFiles: (listener: (paths: readonly string[]) => void) => {
+            const wrapped = (_event: IpcRendererEvent, paths: readonly string[]): void => listener(paths);
+            ipcRenderer.on(IPC_EVENTS.workspaceFilesChanged, wrapped);
+            return () => {
+                ipcRenderer.removeListener(IPC_EVENTS.workspaceFilesChanged, wrapped);
+            };
+        },
+        reportUnsaved: (count: number) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReportUnsaved, count),
         onDidChange: (listener: (workspace: WorkspaceInfo | null) => void) => {
             const wrapped = (_event: IpcRendererEvent, workspace: WorkspaceInfo | null): void => listener(workspace);
             ipcRenderer.on(IPC_EVENTS.workspaceChanged, wrapped);

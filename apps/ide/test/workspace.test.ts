@@ -151,6 +151,21 @@ describe('Workspace', () => {
         assert.ok(!fs.existsSync(path.join(root, 'missing.txt')), 'a save created a file');
     });
 
+    it('validates the watched entries before watching anything', async () => {
+        const workspace = await Workspace.open(root);
+        const noop = (): void => {};
+        try {
+            assert.throws(() => workspace.setWatched('src', noop), /array/);
+            assert.throws(() => workspace.setWatched(new Array(10_001).fill({ path: '', kind: 'directory' }), noop), /array/);
+            assert.throws(() => workspace.setWatched([{ path: 'src' }], noop), /path and a kind/);
+            assert.throws(() => workspace.setWatched([{ path: 3, kind: 'file' }], noop), /path and a kind/);
+            assert.throws(() => workspace.setWatched([{ path: '../secret', kind: 'directory' }], noop));
+            assert.doesNotThrow(() => workspace.setWatched([{ path: '', kind: 'directory' }, { path: 'src/main.ts', kind: 'file' }], noop));
+        } finally {
+            workspace.dispose();
+        }
+    });
+
     it('refuses to open a file as a folder', async () => {
         await assert.rejects(() => Workspace.open(path.join(root, 'README.md')), /Not a folder/);
     });

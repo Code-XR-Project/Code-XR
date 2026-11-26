@@ -25,8 +25,14 @@ export function currentWorkspaceInfo(contents: WebContents): WorkspaceInfo | nul
 /** Opens `folder` in the window that owns `contents`. */
 export async function setWorkspace(contents: WebContents, folder: string): Promise<WorkspaceInfo> {
     const workspace = await Workspace.open(folder);
-    if (!workspaces.has(contents.id)) {
-        contents.once('destroyed', () => workspaces.delete(contents.id));
+    const previous = workspaces.get(contents.id);
+    if (previous) {
+        previous.dispose();
+    } else {
+        contents.once('destroyed', () => {
+            workspaces.get(contents.id)?.dispose();
+            workspaces.delete(contents.id);
+        });
     }
     workspaces.set(contents.id, workspace);
     log.info(`Opened folder ${workspace.root}`);

@@ -1,7 +1,7 @@
 import { renderWorkbench } from './workbench.ts';
 import { createExplorer } from './explorer.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
-import type { IdeCommand } from '../shared/api.ts';
+import type { IdeCommand, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
 if (!root) {
@@ -24,6 +24,8 @@ function editorGroup(): Promise<EditorGroup> {
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             onActiveChange: (path) => { document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR'; },
+            onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
+            onOpenFilesChange: () => updateWatched(),
         });
         return editors;
     });
@@ -40,11 +42,32 @@ function confirmDiscard(action: string): boolean {
     return window.confirm(`${action} discards unsaved changes in:\n${list}\n\nContinue?`);
 }
 
+// What the main process watches: the expanded folders (their listings) and
+// the open files. Recomputed on a short debounce, since expanding a folder
+// tree or restoring tabs changes it many times in a row.
+let watchTimer: ReturnType<typeof setTimeout> | undefined;
+function updateWatched(): void {
+    clearTimeout(watchTimer);
+    watchTimer = setTimeout(() => {
+        const entries: WatchedEntry[] = [
+            ...explorer.expandedFolders().map((path) => ({ path, kind: 'directory' as const })),
+            ...(editors?.openPaths() ?? []).map((path) => ({ path, kind: 'file' as const })),
+        ];
+        api.workspace.setWatched(entries).catch((error: unknown) => workbench.setStatus(`Could not watch the folder: ${String(error)}`));
+    }, 100);
+}
+
 const explorer = createExplorer(workbench.sideBar, api.workspace, {
     onOpenFile: (path) => void editorGroup().then((group) => group.open(path)),
     onError: (message) => workbench.setStatus(message),
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
     onOpened: () => editors?.reset(),
+    onExpandedChange: () => updateWatched(),
+});
+
+api.workspace.onDidChangeFiles((paths) => {
+    void explorer.refresh(paths);
+    void editors?.onDiskChanged(paths);
 });
 
 function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {

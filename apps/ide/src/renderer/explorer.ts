@@ -16,6 +16,10 @@ export interface Explorer {
     show(workspace: WorkspaceInfo | null): Promise<void>;
     /** The folder picker, after `confirmOpenFolder` agrees. */
     openFolder(): void;
+    /** The root (`''`) and every expanded folder: what should follow the disk. */
+    expandedFolders(): string[];
+    /** Re-lists the loaded folders among `paths` (changed on disk), keeping what is expanded. */
+    refresh(paths: readonly string[]): Promise<void>;
 }
 
 interface TreeNode {
@@ -36,6 +40,8 @@ export function createExplorer(
         confirmOpenFolder(): boolean;
         /** A new folder was opened from the picker. */
         onOpened?(workspace: WorkspaceInfo): void;
+        /** A folder was expanded or collapsed (the watched set changes). */
+        onExpandedChange?(): void;
     },
 ): Explorer {
     const title = el('h2', { className: 'side-bar-title', text: 'Explorer' });
@@ -65,17 +71,55 @@ export function createExplorer(
 
     async function loadChildren(parent: string, level: number): Promise<HTMLUListElement> {
         const group = el('ul', { attrs: { role: parent === '' ? 'tree' : 'group' } });
+        await fillGroup(group, parent, level);
+        return group;
+    }
+
+    /**
+     * Lists `parent` into `group`. Rows already there for the same path and
+     * kind are kept as they are (with their expanded subtree and focus); rows
+     * for entries that disappeared are dropped with their descendants.
+     */
+    async function fillGroup(group: HTMLUListElement, parent: string, level: number): Promise<void> {
         let entries: readonly DirEntry[];
         try {
             entries = await api.listDirectory(parent);
         } catch (error) {
             callbacks.onError(`Could not list ${parent || 'the folder'}: ${String(error)}`);
-            return group;
+            return;
         }
-        for (const entry of entries) {
-            group.append(renderItem(entry, level));
+        const existing = new Map<string, TreeNode>();
+        for (const row of group.querySelectorAll<HTMLElement>(':scope > li > [role="treeitem"]')) {
+            const node = nodes.get(row);
+            if (node) { existing.set(`${node.entry.kind}:${node.entry.path}`, node); }
         }
-        return group;
+        const items = entries.map((entry) => {
+            const key = `${entry.kind}:${entry.path}`;
+            const kept = existing.get(key);
+            if (kept) {
+                existing.delete(key);
+                kept.row.classList.toggle('is-ignored', entry.ignored);
+                return kept.item;
+            }
+            return renderItem(entry, level);
+        });
+        for (const gone of existing.values()) {
+            forget(gone.item);
+        }
+        group.replaceChildren(...items);
+    }
+
+    function forget(item: HTMLElement): void {
+        for (const row of item.querySelectorAll<HTMLElement>('[role="treeitem"]')) {
+            nodes.delete(row);
+        }
+    }
+
+    function nodeAt(path: string): TreeNode | undefined {
+        for (const node of nodes.values()) {
+            if (node.entry.path === path) { return node; }
+        }
+        return undefined;
     }
 
     function renderItem(entry: DirEntry, level: number): HTMLLIElement {
@@ -115,6 +159,7 @@ export function createExplorer(
         if (node.group) {
             node.group.hidden = !expand;
         }
+        callbacks.onExpandedChange?.();
     }
 
     function activate(node: TreeNode): void {
@@ -197,7 +242,34 @@ export function createExplorer(
         if (!first) {
             body.append(el('p', { className: 'muted', text: 'This folder is empty.' }));
         }
+        callbacks.onExpandedChange?.();
     }
 
-    return { show, openFolder };
+    function expandedFolders(): string[] {
+        if (!tree) {
+            return [];
+        }
+        return ['', ...[...nodes.values()].filter((node) => node.expanded && !node.row.closest('[hidden]')).map((node) => node.entry.path)];
+    }
+
+    async function refresh(paths: readonly string[]): Promise<void> {
+        if (!tree) {
+            return;
+        }
+        for (const path of new Set(paths)) {
+            if (path === '') {
+                await fillGroup(tree, '', 1);
+                continue;
+            }
+            const node = nodeAt(path);
+            if (node?.group && node.entry.kind === 'directory') {
+                await fillGroup(node.group, path, Number(node.row.getAttribute('aria-level')) + 1);
+            }
+        }
+        if (!tree.querySelector('[role="treeitem"][tabindex="0"]')) {
+            tree.querySelector<HTMLElement>('[role="treeitem"]')?.setAttribute('tabindex', '0');
+        }
+    }
+
+    return { show, openFolder, expandedFolders, refresh };
 }
