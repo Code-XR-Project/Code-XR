@@ -18,6 +18,8 @@ const healthy: SmokeProbe = {
     readFileKind: 'text',
     traversalRefused: true,
     editorOpened: true,
+    fileIconsShown: 9,
+    fileIconsBroken: [],
     cspViolations: [],
 };
 
@@ -40,6 +42,8 @@ describe('evaluateSmoke', () => {
         ['unreadable file', { readFileKind: null }, /readFile failed/],
         ['traversal allowed', { traversalRefused: false }, /out of the folder/],
         ['no editor', { editorOpened: false }, /Monaco/],
+        ['no file icons', { fileIconsShown: 0 }, /no file icon/],
+        ['broken file icons', { fileIconsBroken: ['python'] }, /did not load: python/],
         ['CSP violated', { cspViolations: ['style-src inline'] }, /CSP violations/],
     ];
     for (const [name, change, message] of breakages) {

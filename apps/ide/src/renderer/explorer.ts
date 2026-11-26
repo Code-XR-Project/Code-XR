@@ -1,5 +1,5 @@
 import type { CodeXRApi, DirEntry, WorkspaceInfo } from '../shared/api.ts';
-import { el, icon } from './dom.ts';
+import { el, fileIcon, icon } from './dom.ts';
 
 /**
  * The explorer (#14): the open folder as a tree that loads each folder's
@@ -8,11 +8,11 @@ import { el, icon } from './dom.ts';
  * enters, Left collapses or goes to the parent, Enter/Space activates, Home/End.
  * F2 renames the focused entry and Delete moves it to the trash; New File and
  * New Folder create inside the focused folder (or the focused file's folder).
+ * Each row shows the icon of its language or type (#138, `fileIcons.ts`);
+ * a folder's icon opens and closes with it.
  */
 
 const CHEVRON = 'M9 6l6 6-6 6';
-const FOLDER = 'M3 6h7l2 2h9v11H3z';
-const FILE = 'M6 3h8l4 4v14H6z';
 const NEW_FILE = 'M6 3h8l4 4v14H6zM12 11v6M9 14h6';
 const NEW_FOLDER = 'M3 6h7l2 2h9v11H3zM12 11v6M9 14h6';
 
@@ -165,7 +165,7 @@ export function createExplorer(
             },
         }, [
             isDir ? icon(CHEVRON, 'tree-chevron') : el('span', { className: 'tree-chevron-space' }),
-            icon(isDir ? FOLDER : FILE, 'tree-icon'),
+            fileIcon(entry.name, entry.kind),
             el('span', { className: 'tree-label', text: entry.name }),
         ]);
         row.style.paddingLeft = `${4 + (level - 1) * 12}px`;
@@ -180,6 +180,7 @@ export function createExplorer(
         }
         node.expanded = expand;
         node.row.setAttribute('aria-expanded', String(expand));
+        node.row.querySelector(':scope > .file-icon')?.replaceWith(fileIcon(node.entry.name, 'directory', expand));
         if (expand && !node.group) {
             node.group = await loadChildren(node.entry.path, Number(node.row.getAttribute('aria-level')) + 1);
             node.item.append(node.group);
@@ -375,7 +376,7 @@ export function createExplorer(
                 level = Number(folderNode.row.getAttribute('aria-level')) + 1;
             }
         }
-        const row = el('div', { className: 'tree-row is-editing' }, [el('span', { className: 'tree-chevron-space' }), icon(kind === 'directory' ? FOLDER : FILE, 'tree-icon')]);
+        const row = el('div', { className: 'tree-row is-editing' }, [el('span', { className: 'tree-chevron-space' }), fileIcon('', kind)]);
         row.style.paddingLeft = `${4 + (level - 1) * 12}px`;
         const placeholder = el('li', { attrs: { role: 'none' } }, [row]);
         group.prepend(placeholder);

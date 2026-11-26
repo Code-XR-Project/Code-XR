@@ -199,7 +199,7 @@ body {
 .tree-row:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
 .tree-row.is-ignored { color: var(--muted); }
 .tree-label { overflow: hidden; text-overflow: ellipsis; }
-.tree-chevron, .tree-icon {
+.tree-chevron {
   flex: none;
   width: 16px;
   height: 16px;
@@ -212,7 +212,11 @@ body {
 .tree-chevron { transition: transform 0.1s; }
 .tree-row[aria-expanded='true'] > .tree-chevron { transform: rotate(90deg); }
 .tree-chevron-space { flex: none; width: 16px; }
-.tree-icon { color: var(--muted); }
+/* File and folder icons (#138): bundled SVGs, in the explorer and the tabs. */
+/* Each .fi-<name> rule (the image) comes from fileIconStyleSheet() in fileIcons.ts. */
+.file-icon { flex: none; width: 16px; height: 16px; background-repeat: no-repeat; background-position: center; background-size: contain; }
+.tree-row.is-ignored .file-icon { opacity: 0.6; }
+.editor-tab .file-icon { margin-left: -4px; }
 
 .editor-area {
   grid-area: editor;
