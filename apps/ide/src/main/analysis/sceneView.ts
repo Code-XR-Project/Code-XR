@@ -5,6 +5,7 @@ import type { SceneBounds } from '../../shared/api.ts';
 import { allowSceneOrigin } from '../hardening.ts';
 import { log } from '../log.ts';
 import { localSceneOrigin } from './sceneUrl.ts';
+import { allowXrPermission, XR_ARM_MS, type XrArm } from './sceneXrPolicy.ts';
 import { contentTypeOf, isLoopbackUrl, vendoredLibraryFor } from './sceneLibraries.ts';
 
 /**
@@ -60,8 +61,16 @@ function lockedSession(): Session {
             }
             callback({ cancel: !allowed });
         });
-        // No camera, microphone, XR... until #19 allow-lists what entering XR needs.
-        sceneSession.setPermissionRequestHandler((_wc, permission, callback) => {
+        // No camera, microphone... XR only for a few seconds after the
+        // person pressed Enter XR, and only for that scene (#19, sceneXrPolicy.ts).
+        sceneSession.setPermissionRequestHandler((contents, permission, callback, details) => {
+            const win = windowOfScene(contents);
+            const arm = win ? xrArms.get(win.id) ?? null : null;
+            if (allowXrPermission(arm, permission, details.requestingUrl, Date.now())) {
+                log.info(`Scene view: granted ${permission} to enter XR`);
+                callback(true);
+                return;
+            }
             log.warn(`Scene view: denied permission request: ${permission}`);
             callback(false);
         });
@@ -71,6 +80,8 @@ function lockedSession(): Session {
 }
 
 const views = new Map<number, WebContentsView>();
+/** #19: per window, the scene the person just asked to enter in XR. */
+const xrArms = new Map<number, XrArm>();
 
 /** Shows `url` in `win`'s scene view, replacing what it showed. Refuses anything but a local Code-XR server. */
 export async function showScene(win: BrowserWindow, url: string): Promise<void> {
@@ -121,6 +132,43 @@ export function closeScene(win: BrowserWindow): void {
         win.contentView.removeChildView(view);
     }
     view.webContents.close();
+}
+
+/**
+ * #19: whether the window's scene can start an immersive session here (a
+ * headset and its runtime that Chromium sees). False without a scene.
+ */
+export async function sceneSupportsImmersiveXr(win: BrowserWindow): Promise<boolean> {
+    const view = views.get(win.id);
+    if (!view) {
+        return false;
+    }
+    const supported: unknown = await view.webContents.executeJavaScript(
+        'navigator.xr ? navigator.xr.isSessionSupported("immersive-vr").catch(() => false) : false',
+    );
+    return supported === true;
+}
+
+/**
+ * #19: enters the window's scene in XR, as its own VR button would. The
+ * request counts as the person's gesture (they pressed Enter XR in the
+ * header), and the XR permission is armed for this scene only, briefly.
+ */
+export async function enterSceneXr(win: BrowserWindow): Promise<void> {
+    const view = views.get(win.id);
+    const origin = view ? localSceneOrigin(view.webContents.getURL()) : null;
+    if (!view || !origin) {
+        throw new Error('This window shows no scene.');
+    }
+    xrArms.set(win.id, { origin, until: Date.now() + XR_ARM_MS });
+    setTimeout(() => xrArms.delete(win.id), XR_ARM_MS).unref();
+    const entered: unknown = await view.webContents.executeJavaScript(
+        '(() => { const scene = document.querySelector("a-scene"); if (!scene || !scene.enterVR) { return false; } return Promise.resolve(scene.enterVR()).then(() => true); })()',
+        true,
+    );
+    if (entered !== true) {
+        throw new Error('This scene has no XR mode (a LivePanel is a 2D page).');
+    }
 }
 
 /** The URL the window's scene shows, for the smoke run and tests. */

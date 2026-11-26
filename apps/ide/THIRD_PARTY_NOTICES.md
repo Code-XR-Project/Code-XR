@@ -53,3 +53,13 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
+
+## qrcode-generator (QR code of the headset address)
+
+- Project: `qrcode-generator` on npm, 2.0.4, by Kazuhiko Arase
+- Source: https://github.com/kazuhikoarase/qrcode-generator
+- License: MIT
+
+Usage in this package:
+
+- Bundled into the renderer by Vite, through the extension's shared core: the QR code a standalone headset scans to open a shared scene (#19, `apps/vscode-extension/src/core/xr/headsetQr.ts`). Declared as a dependency of the extension workspace, like the rest of the core's. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.

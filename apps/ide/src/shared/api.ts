@@ -248,6 +248,14 @@ export interface SceneInfo {
     readonly share: SceneShareState;
 }
 
+/**
+ * #19: entering the scene in XR from the IDE. `unsupported` means no headset
+ * reached Electron's Chromium here; `message` says what to do instead.
+ */
+export type EnterXrResult =
+    | { readonly ok: true }
+    | { readonly ok: false; readonly reason: 'unsupported' | 'failed'; readonly message: string };
+
 /** A change of the sharing state of the calling window's scene (#155). `url` names the scene it belongs to. */
 export interface SceneShareEvent {
     readonly url: string;
@@ -389,6 +397,15 @@ export interface CodeXRApi {
         /** Copies the window's scene address (local, or the tunnel's invitation link) to the clipboard. */
         copySceneAddress(which: SceneAddress): Promise<void>;
         onDidChangeSceneShare(listener: (event: SceneShareEvent) => void): Unsubscribe;
+        /** #19: enters this window's scene in XR on a headset tethered to this computer, or says why not. */
+        enterXr(): Promise<EnterXrResult>;
+        /** #19: opens this window's scene in the system browser (its local address). */
+        openSceneInBrowser(): Promise<void>;
+        /**
+         * #19: the address a standalone headset opens to join this window's
+         * scene (the tunnel's invitation link), or null while it is not shared.
+         */
+        headsetLink(): Promise<string | null>;
     };
     readonly workspace: {
         /** Shows the folder picker; resolves with the new workspace, or null when cancelled. */
@@ -586,6 +603,9 @@ export const IPC_CHANNELS = {
     analysisStopSharingScene: 'codexr:analysis:stop-sharing-scene',
     analysisCopySceneAddress: 'codexr:analysis:copy-scene-address',
     analysisRevealInScene: 'codexr:analysis:reveal-in-scene',
+    analysisEnterXr: 'codexr:analysis:enter-xr',
+    analysisOpenSceneInBrowser: 'codexr:analysis:open-scene-in-browser',
+    analysisHeadsetLink: 'codexr:analysis:headset-link',
     terminalProfiles: 'codexr:terminal:profiles',
     terminalSetDefaultProfile: 'codexr:terminal:set-default-profile',
     terminalAddCustomProfile: 'codexr:terminal:add-custom-profile',

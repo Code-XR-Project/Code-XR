@@ -1348,6 +1348,17 @@ body {
 .chat-child-answer { font-size: 12px; overflow-wrap: anywhere; }
 .chat-child-answer > :last-child { margin-bottom: 0; }
 
+/* #19: the scene header's XR row and the standalone-headset panel. */
+.scene-header-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scene-xr-button { flex: none; padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.scene-xr-button[hidden], .scene-xr-note[hidden], .scene-headset[hidden] { display: none; }
+.scene-xr-note { padding-left: 70px; color: var(--muted); white-space: normal; }
+.scene-headset { display: flex; align-items: flex-start; gap: 10px; padding: 4px 0 2px 70px; }
+.scene-qr { flex: none; width: 132px; height: 132px; border-radius: 3px; }
+.scene-headset-text { min-width: 0; margin: 0; color: var(--muted); white-space: normal; }
+.scene-headset-text p { margin: 0 0 4px; }
+.scene-headset-text .scene-address { display: block; color: var(--fg); }
+
 /* A12: MCP servers */
 .agents-mcp-target { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; overflow-wrap: anywhere; }
 .agents-tool[hidden] { display: none; }

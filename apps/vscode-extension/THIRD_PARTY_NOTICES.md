@@ -97,6 +97,16 @@ Usage in this project:
 - CodeXR retains explicit language fallbacks and reports when structured parsing is unavailable.
 - The package and its parsers are installed once per CodeXR environment, not once per analysis.
 
+### 8) qrcode-generator
+- Project: qrcode-generator, by Kazuhiko Arase
+- Source: https://github.com/kazuhikoarase/qrcode-generator
+- Package: https://www.npmjs.com/package/qrcode-generator (2.0.4)
+- License: MIT
+
+Usage in this project:
+- Bundled into the extension (and the Code-XR IDE) to draw the QR code a standalone headset scans to open a scene (`src/core/xr/headsetQr.ts`).
+- "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+
 ## Development & Testing Tools
 
 The following tools are used to develop and validate CodeXR. They are **not

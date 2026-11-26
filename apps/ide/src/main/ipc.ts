@@ -205,6 +205,10 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     });
     // #178: a workspace path only, resolved inside the calling window's folder.
     handle(IPC_CHANNELS.analysisRevealInScene, (event, path) => core.analysis.revealInScene(event.sender, workspaceOf(event.sender).displayPath(path, 'absolute')));
+    // #19: XR acts on the calling window's scene only, like sharing.
+    handle(IPC_CHANNELS.analysisEnterXr, (event) => core.analysis.enterXr(ownerOf(event)));
+    handle(IPC_CHANNELS.analysisOpenSceneInBrowser, (event) => core.analysis.openSceneInBrowser(ownerOf(event), (url) => shell.openExternal(url)));
+    handle(IPC_CHANNELS.analysisHeadsetLink, (event) => core.analysis.headsetLink(ownerOf(event)));
     // #137: the terminal. Profiles are addressed by id only; a terminal only by
     // the window that created it (TerminalService checks the owner).
     handle(IPC_CHANNELS.terminalProfiles, () => terminal.profiles());
