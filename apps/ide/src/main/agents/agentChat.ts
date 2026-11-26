@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { AgentChatEvent, AgentProfile, ApprovalDecision, ChatAttachment, ChatMessageView, ChatSession, EditReviewResult, ToolRunView } from '../../shared/agents.ts';
+import type { AgentChatEvent, AgentProfile, ApprovalDecision, ChatAttachment, ChatMessageView, ChatSession, EditReviewResult, SubAgentView, ToolRunView } from '../../shared/agents.ts';
 import type { AgentProfiles } from './agentProfiles.ts';
 import { buildAttachmentContext } from './attachments.ts';
 import { sessionToMarkdown, summaryOf, titleFrom, type ChatSessions, type StoredSession } from './chatSessions.ts';
@@ -48,6 +48,62 @@ export interface ChatWindow {
     emit(event: AgentChatEvent): void;
 }
 
+type Usage = { readonly inputTokens: number; readonly outputTokens: number };
+
+/** Sub-agents a supervisor runs at once unless its profile says otherwise (A11). */
+export const DEFAULT_MAX_PARALLEL = 3;
+
+interface LoopOptions {
+    readonly agent: AgentProfile;
+    readonly messages: readonly ChatMessage[];
+    readonly sessionId: string;
+    readonly signal: AbortSignal;
+    readonly window: ChatWindow;
+    /** 0 for the chat's agent, 1 for its sub-agents (which cannot delegate). */
+    readonly depth: number;
+    onText(text: string): void;
+    report(run: ToolRunView): void;
+}
+
+interface LoopResult {
+    readonly content: string;
+    readonly usage?: Usage;
+    readonly stopped?: boolean;
+    readonly error?: string;
+}
+
+interface ToolOutcome {
+    readonly text: string;
+    readonly isError: boolean;
+    readonly agent?: AgentProfile;
+    /** Tokens a sub-agent spent (A11), added to the answer's usage. */
+    readonly usage?: Usage;
+}
+
+function upsert(runs: ToolRunView[], run: ToolRunView): void {
+    const index = runs.findIndex((existing) => existing.id === run.id);
+    if (index >= 0) {
+        runs[index] = run;
+    } else {
+        runs.push(run);
+    }
+}
+
+/** Runs `work` over `items`, at most `limit` at a time. */
+async function runPool<T>(items: readonly T[], limit: number, work: (item: T) => Promise<void>): Promise<void> {
+    let next = 0;
+    const lanes = Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (next < items.length) {
+            const item = items[next];
+            next += 1;
+            if (item !== undefined) {
+                await work(item);
+            }
+        }
+    });
+    await Promise.all(lanes);
+}
+
 interface PendingReview {
     readonly sessionId: string;
     resolve(result: EditReviewResult): void;
@@ -73,6 +129,8 @@ export class AgentChat {
     private readonly running = new Map<string, AbortController>();
     private readonly approvals = new Map<string, PendingApproval>();
     private readonly reviews = new Map<string, PendingReview>();
+    /** Running sub-agents (A11), by `<sessionId>:<tool call id>`. */
+    private readonly children = new Map<string, AbortController>();
 
     constructor(providers: ProviderRegistry, profiles: AgentProfiles, sessions: ChatSessions, tools: ToolCatalog) {
         this.providers = providers;
@@ -196,42 +254,74 @@ export class AgentChat {
 
     /** Streams one answer, looping through tool calls. Failures become an assistant turn with `error`. */
     private async answer(session: StoredSession, signal: AbortSignal, window: ChatWindow): Promise<ChatMessageView> {
-        let content = '';
-        let model = '';
         const runs: ToolRunView[] = [];
-        let usage: { inputTokens: number; outputTokens: number } | undefined;
-        const finish = (extra: Partial<ChatMessageView>): ChatMessageView => ({
-            role: 'assistant',
-            content,
-            at: new Date().toISOString(),
-            ...(model ? { model } : {}),
-            ...(usage ? { usage } : {}),
-            ...(runs.length > 0 ? { toolRuns: runs } : {}),
-            ...extra,
-        });
-        let agent = await this.profiles.get(session.agentId);
+        const at = (): string => new Date().toISOString();
+        const failed = (error: string): ChatMessageView => ({ role: 'assistant', content: '', at: at(), error });
+        const agent = await this.profiles.get(session.agentId);
         if (!agent) {
-            return finish({ error: 'The agent of this chat was deleted. Start a new chat.' });
+            return failed('The agent of this chat was deleted. Start a new chat.');
         }
-        if (!agent.providerId || !this.providers.list().some((provider) => provider.id === agent?.providerId)) {
-            return finish({ error: `${agent.name} has no provider. Edit the agent and pick one.` });
+        const problem = this.setupProblem(agent);
+        if (problem) {
+            return failed(problem);
         }
-        if (!agent.model) {
-            return finish({ error: `${agent.name} has no model. Edit the agent and pick one.` });
-        }
-        model = agent.model;
-        const tools = this.tools.forAgent(agent.tools);
         const { kept, trimmed } = fitHistory(session.messages);
-        window.emit({ sessionId: session.id, type: 'start', model, trimmed });
-        const messages: ChatMessage[] = kept.map((message) => ({
-            role: message.role,
-            content: `${message.context ?? ''}${message.content || '(no answer)'}`,
-        }));
+        window.emit({ sessionId: session.id, type: 'start', model: agent.model, trimmed });
+        const result = await this.loop({
+            agent,
+            messages: kept.map((message) => ({ role: message.role, content: `${message.context ?? ''}${message.content || '(no answer)'}` })),
+            sessionId: session.id,
+            signal,
+            window,
+            depth: 0,
+            onText: (text) => window.emit({ sessionId: session.id, type: 'delta', text }),
+            report: (run) => {
+                upsert(runs, run);
+                window.emit({ sessionId: session.id, type: 'tool', run });
+            },
+        });
+        return {
+            role: 'assistant',
+            content: result.content,
+            at: at(),
+            model: agent.model,
+            ...(result.usage ? { usage: result.usage } : {}),
+            ...(runs.length > 0 ? { toolRuns: runs } : {}),
+            ...(result.stopped ? { stopped: true } : {}),
+            ...(result.error ? { error: result.error } : {}),
+        };
+    }
+
+    /** Why `agent` cannot answer yet, or null. */
+    private setupProblem(agent: AgentProfile): string | null {
+        if (!agent.providerId || !this.providers.list().some((provider) => provider.id === agent.providerId)) {
+            return `${agent.name} has no provider. Edit the agent and pick one.`;
+        }
+        return agent.model ? null : `${agent.name} has no model. Edit the agent and pick one.`;
+    }
+
+    /**
+     * The model/tool loop shared by an answer and a sub-agent (A11): streams
+     * text to `onText`, runs the tools the model asks for (delegate_task calls
+     * of one turn in parallel, the rest in order) and reports each run.
+     */
+    private async loop(options: LoopOptions): Promise<LoopResult> {
+        let agent = options.agent;
+        const { signal } = options;
+        let content = '';
+        let usage: Usage | undefined;
+        const addUsage = (extra: Usage | undefined): void => {
+            if (extra) {
+                usage = { inputTokens: (usage?.inputTokens ?? 0) + extra.inputTokens, outputTokens: (usage?.outputTokens ?? 0) + extra.outputTokens };
+            }
+        };
+        const tools = this.tools.forAgent(agent.tools).filter((tool) => options.depth === 0 || tool.name !== 'delegate_task');
+        const messages = [...options.messages];
         try {
             const adapter = this.providers.adapterFor(agent.providerId);
             for (let step = 0; ; step += 1) {
                 const request = {
-                    model,
+                    model: agent.model,
                     messages,
                     ...(agent.instructions ? { system: agent.instructions } : {}),
                     ...(agent.temperature !== undefined ? { temperature: agent.temperature } : {}),
@@ -243,27 +333,37 @@ export class AgentChat {
                     if (event.type === 'text') {
                         if (stepText === '' && content !== '') {
                             content += '\n\n';
-                            window.emit({ sessionId: session.id, type: 'delta', text: '\n\n' });
+                            options.onText('\n\n');
                         }
                         stepText += event.text;
                         content += event.text;
-                        window.emit({ sessionId: session.id, type: 'delta', text: event.text });
+                        options.onText(event.text);
                     } else if (event.type === 'tool-call') {
                         calls.push(event.call);
                     } else if (event.type === 'usage') {
-                        usage = { inputTokens: (usage?.inputTokens ?? 0) + event.inputTokens, outputTokens: (usage?.outputTokens ?? 0) + event.outputTokens };
+                        addUsage({ inputTokens: event.inputTokens, outputTokens: event.outputTokens });
                     }
                 }
                 if (calls.length === 0) {
-                    return finish({});
+                    return { content, ...(usage ? { usage } : {}) };
                 }
                 if (step + 1 >= MAX_TOOL_STEPS) {
-                    return finish({ error: `Stopped after ${MAX_TOOL_STEPS} rounds of tool calls. Ask the agent to continue if needed.` });
+                    return { content, ...(usage ? { usage } : {}), error: `Stopped after ${MAX_TOOL_STEPS} rounds of tool calls. Ask the agent to continue if needed.` };
                 }
                 messages.push({ role: 'assistant', content: stepText, toolCalls: calls });
+                const results = new Map<string, ToolOutcome>();
+                // Sub-agents of one turn run together, up to the supervisor's limit.
+                const delegations = calls.filter((call) => call.name === 'delegate_task');
+                await runPool(delegations, Math.min(8, Math.max(1, agent.maxParallel ?? DEFAULT_MAX_PARALLEL)), async (call) => {
+                    results.set(call.id, await this.runTool(agent, call, tools, options));
+                });
+                for (const call of calls.filter((candidate) => candidate.name !== 'delegate_task')) {
+                    results.set(call.id, await this.runTool(agent, call, tools, options));
+                }
                 for (const call of calls) {
-                    const result = await this.runTool(agent, call, tools, session.id, signal, window, runs);
+                    const result = results.get(call.id) ?? { text: 'Error: the tool did not run.', isError: true };
                     messages.push({ role: 'tool', toolCallId: call.id, toolName: call.name, content: result.text, ...(result.isError ? { isError: true } : {}) });
+                    addUsage(result.usage);
                     if (result.agent) {
                         agent = result.agent;
                     }
@@ -271,33 +371,17 @@ export class AgentChat {
             }
         } catch (error) {
             if (signal.aborted || (error instanceof ProviderError && error.kind === 'aborted')) {
-                return finish({ stopped: true });
+                return { content, ...(usage ? { usage } : {}), stopped: true };
             }
-            return finish({ error: error instanceof Error ? error.message : String(error) });
+            return { content, ...(usage ? { usage } : {}), error: error instanceof Error ? error.message : String(error) };
         }
     }
 
     /** Runs one tool call: checks it is allowed, asks first when it is risky, reports progress. */
-    private async runTool(
-        agent: AgentProfile,
-        call: ToolCall,
-        tools: readonly AgentTool[],
-        sessionId: string,
-        signal: AbortSignal,
-        window: ChatWindow,
-        runs: ToolRunView[],
-    ): Promise<{ text: string; isError: boolean; agent?: AgentProfile }> {
+    private async runTool(agent: AgentProfile, call: ToolCall, tools: readonly AgentTool[], options: LoopOptions): Promise<ToolOutcome> {
+        const { sessionId, signal, window, report } = options;
         const tool = tools.find((candidate) => candidate.name === call.name);
         const args = parseArguments(call.arguments);
-        const report = (run: ToolRunView): void => {
-            const index = runs.findIndex((existing) => existing.id === run.id);
-            if (index >= 0) {
-                runs[index] = run;
-            } else {
-                runs.push(run);
-            }
-            window.emit({ sessionId, type: 'tool', run });
-        };
         if (!tool) {
             report({ id: call.id, name: call.name, summary: call.name, status: 'error', result: 'This agent may not use that tool.' });
             return { text: `The tool "${call.name}" is not available to this agent.`, isError: true };
@@ -314,7 +398,7 @@ export class AgentChat {
         let updatedAgent: AgentProfile | undefined;
         if (tool.risk !== 'read' && !tool.reviewsItself && !(agent.alwaysAllow ?? []).includes(tool.name)) {
             report({ id: call.id, name: tool.name, summary, status: 'running', result: 'Waiting for your approval…' });
-            const decision = await this.ask(sessionId, tool, detail, window);
+            const decision = await this.ask(sessionId, tool, detail, window, options.depth > 0 ? agent.name : undefined);
             if (decision === 'deny' || signal.aborted) {
                 report({ id: call.id, name: tool.name, summary, status: 'denied' });
                 return { text: 'The person denied this action. Do not retry it; ask them or try another approach.', isError: true };
@@ -324,11 +408,12 @@ export class AgentChat {
                 updatedAgent = await this.profiles.save({ ...input, alwaysAllow: [...(agent.alwaysAllow ?? []), tool.name] }, id);
             }
         }
-        report({ id: call.id, name: tool.name, summary, status: 'running' });
+        const withAgent = updatedAgent ? { agent: updatedAgent } : {};
+        if (tool.name === 'delegate_task') {
+            return { ...(await this.runChild(call, summary, args, options)), ...withAgent };
+        }
+        report({ id: call.id, name: tool.name, summary, status: 'running', ...(tool.reviewsItself ? { result: 'Waiting for your review…' } : {}) });
         try {
-            if (tool.reviewsItself) {
-                report({ id: call.id, name: tool.name, summary, status: 'running', result: 'Waiting for your review…' });
-            }
             let lastProgress = 0;
             const text = await tool.run(args, {
                 workspace: window.workspace,
@@ -348,19 +433,102 @@ export class AgentChat {
                 }),
             });
             report({ id: call.id, name: tool.name, summary, status: 'done', result: clip(text, RESULT_PREVIEW_CHARS) });
-            return { text, isError: false, ...(updatedAgent ? { agent: updatedAgent } : {}) };
+            return { text, isError: false, ...withAgent };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             report({ id: call.id, name: tool.name, summary, status: 'error', result: message });
-            return { text: `Error: ${message}`, isError: true, ...(updatedAgent ? { agent: updatedAgent } : {}) };
+            return { text: `Error: ${message}`, isError: true, ...withAgent };
         }
     }
 
-    private ask(sessionId: string, tool: AgentTool, detail: string, window: ChatWindow): Promise<ApprovalDecision> {
+    /**
+     * A11: runs a delegate_task call as a sub-agent with its own profile and a
+     * clean context (only the task). Its progress is reported as the call's
+     * `child`; it can be cancelled alone (`cancelRun`) or with the whole answer.
+     */
+    private async runChild(call: ToolCall, summary: string, args: Record<string, unknown>, options: LoopOptions): Promise<ToolOutcome> {
+        const { report } = options;
+        const fail = (message: string): ToolOutcome => {
+            report({ id: call.id, name: 'delegate_task', summary, status: 'error', result: message });
+            return { text: `Error: ${message}`, isError: true };
+        };
+        const name = typeof args['agent'] === 'string' ? args['agent'].trim() : '';
+        const task = typeof args['task'] === 'string' ? args['task'].trim() : '';
+        if (!task || task.length > 50_000) {
+            return fail('The task must be 1 to 50,000 characters.');
+        }
+        const profiles = await this.profiles.list();
+        const child = profiles.find((profile) => profile.name.toLowerCase() === name.toLowerCase());
+        if (!child) {
+            return fail(`There is no agent named "${name}". Available: ${profiles.map((profile) => profile.name).join(', ')}.`);
+        }
+        const problem = this.setupProblem(child);
+        if (problem) {
+            return fail(problem);
+        }
+        const controller = new AbortController();
+        const abort = (): void => controller.abort();
+        options.signal.addEventListener('abort', abort, { once: true });
+        const key = `${options.sessionId}:${call.id}`;
+        this.children.set(key, controller);
+        const runs: ToolRunView[] = [];
+        let text = '';
+        let last = 0;
+        const view = (status: SubAgentView['status'], usage?: Usage): SubAgentView => ({ agent: child.name, model: child.model, task, status, text, runs: [...runs], ...(usage ? { usage } : {}) });
+        const publish = (status: ToolRunView['status'], childStatus: SubAgentView['status'], usage?: Usage, force = false): void => {
+            const now = Date.now();
+            if (force || now - last >= 150) {
+                last = now;
+                report({ id: call.id, name: 'delegate_task', summary, status, child: view(childStatus, usage) });
+            }
+        };
+        publish('running', 'running', undefined, true);
+        try {
+            const result = await this.loop({
+                agent: child,
+                messages: [{ role: 'user', content: task }],
+                sessionId: options.sessionId,
+                signal: controller.signal,
+                window: options.window,
+                depth: options.depth + 1,
+                onText: (delta) => {
+                    text += delta;
+                    publish('running', 'running');
+                },
+                report: (run) => {
+                    upsert(runs, run);
+                    publish('running', 'running', undefined, true);
+                },
+            });
+            if (result.stopped) {
+                publish('error', 'stopped', result.usage, true);
+                return { text: `${child.name} was stopped before finishing.${text ? ` Partial answer:\n${text}` : ''}`, isError: true, ...(result.usage ? { usage: result.usage } : {}) };
+            }
+            if (result.error) {
+                publish('error', 'error', result.usage, true);
+                return { text: `${child.name} failed: ${result.error}${text ? `\nPartial answer:\n${text}` : ''}`, isError: true, ...(result.usage ? { usage: result.usage } : {}) };
+            }
+            publish('done', 'done', result.usage, true);
+            return { text: `${child.name} answered:\n${clip(result.content)}`, isError: false, ...(result.usage ? { usage: result.usage } : {}) };
+        } finally {
+            options.signal.removeEventListener('abort', abort);
+            this.children.delete(key);
+        }
+    }
+
+    /** Cancels one running sub-agent (A11); the supervisor gets a "stopped" result and carries on. */
+    cancelRun(sessionId: unknown, runId: unknown): void {
+        if (typeof sessionId !== 'string' || typeof runId !== 'string') {
+            throw new Error('Invalid run.');
+        }
+        this.children.get(`${sessionId}:${runId}`)?.abort();
+    }
+
+    private ask(sessionId: string, tool: AgentTool, detail: string, window: ChatWindow, agentName?: string): Promise<ApprovalDecision> {
         return new Promise((resolve) => {
             const id = randomUUID();
             this.approvals.set(id, { sessionId, resolve });
-            window.emit({ sessionId, type: 'approval', request: { id, sessionId, tool: tool.name, title: tool.title, detail } });
+            window.emit({ sessionId, type: 'approval', request: { id, sessionId, tool: tool.name, title: tool.title, detail, ...(agentName ? { agent: agentName } : {}) } });
         });
     }
 

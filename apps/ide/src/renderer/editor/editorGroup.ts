@@ -3,7 +3,8 @@ import { el, fileIcon, icon } from '../dom.ts';
 import { followSystemTheme, monaco } from './monaco.ts';
 import { languageName, type EditorStatusState, type EndOfLine, type Indentation, type LanguageInfo } from './editorStatusModel.ts';
 import { settingOf, type SettingValues } from '../../shared/settings.ts';
-import type { Problem, ProblemSeverity } from '../../shared/problems.ts';
+import type { FileFunctionMetrics, MetricThresholds, Problem, ProblemSeverity } from '../../shared/problems.ts';
+import { installMetricLens } from './metricLens.ts';
 import { closeTargets, cycleTab, discardQuestion, moveTab, type CloseKind, type TabSession } from './tabsModel.ts';
 import { EDITORCONFIG_NAME, editorConfigFolders, parseEditorConfig, resolveEditorConfig, type EditorConfigFile, type EditorConfigProperties } from './editorConfig.ts';
 import { FORMAT_TIMEOUT_MS, indentationOf, saveRules, whitespaceEdits, type AutoSave, type FileSettings, type SaveReason } from './saveTransforms.ts';
@@ -54,6 +55,8 @@ interface OpenFile {
     preview: boolean;
     /** #170: what the file's `.editorconfig` files set. */
     config: EditorConfigProperties;
+    /** #178: the metric lenses showed "out of date" (unsaved changes) at the last check. */
+    lensStale: boolean;
     /** #170: the pending auto save after a delay. */
     autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
     /** #170: a save is being written (an auto save does not start a second one). */
@@ -144,6 +147,8 @@ export interface EditorGroup {
     editorProblems(): Problem[];
     /** #173: the Code-XR metric problems, drawn as squiggles in the open files and in the ones opened later. */
     setMetricProblems(problems: readonly Problem[]): void;
+    /** #178: the measured functions as lenses and a complexity strip; `enabled` is the setting. */
+    setFunctionMetrics(files: readonly FileFunctionMetrics[], thresholds: MetricThresholds, enabled: boolean): void;
 }
 
 export function createEditorGroup(
@@ -167,6 +172,8 @@ export function createEditorGroup(
         showTabMenu?(path: string, x: number, y: number): void;
         /** #173: a language's markers changed on an open file. */
         onMarkersChange?(): void;
+        /** #178: a lens over a function past a limit was clicked. */
+        showFunctionProblems?(path: string, name: string): void;
     },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
@@ -210,6 +217,11 @@ export function createEditorGroup(
             };
         }));
     }
+    // #178: a tab with unsaved changes no longer matches the measured file on disk.
+    const metricLens = installMetricLens(FILE_SCHEME, {
+        isStale: (model) => [...files.values()].some((file) => file.model === model && isDirty(file)),
+        showProblems: (path, name) => callbacks.showFunctionProblems?.(path, name),
+    });
     monaco.editor.onDidChangeMarkers((resources) => {
         if (resources.some((uri) => uri.scheme === FILE_SCHEME)) {
             callbacks.onMarkersChange?.();
@@ -281,6 +293,10 @@ export function createEditorGroup(
         file.dirtyMark.title = file.diskState === 'deleted' ? 'Deleted on disk'
             : file.diskState === 'changed' ? 'Changed on disk; your version is unsaved'
                 : dirty ? 'Unsaved changes' : '';
+        if (dirty !== file.lensStale) {
+            file.lensStale = dirty;
+            metricLens.refresh(file.model);
+        }
         reportUnsaved();
     }
 
@@ -338,11 +354,12 @@ export function createEditorGroup(
         const file: OpenFile = {
             path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs,
             diskState: 'same', viewState: null, bom: content.text.startsWith(BOM), preview: false,
-            config: {}, autoSaveTimer: undefined, saving: false,
+            config: {}, autoSaveTimer: undefined, saving: false, lensStale: false,
         };
         setPreview(file, preview);
         void applyEditorConfig(file);
         applyMetricMarkers(file);
+        metricLens.refresh(model);
         model.onDidChangeContent(() => {
             refreshTab(file);
             scheduleAutoSave(file);
@@ -454,6 +471,7 @@ export function createEditorGroup(
             files.delete(file.path);
             file.tab.remove();
             monaco.editor.setModelMarkers(file.model, METRIC_OWNER, []);
+            metricLens.forget(file.model);
             file.model.dispose();
         }
         if (active && closing.has(active)) {
@@ -913,6 +931,9 @@ export function createEditorGroup(
                     endColumn: marker.endColumn,
                 }];
             });
+        },
+        setFunctionMetrics(metricFiles: readonly FileFunctionMetrics[], thresholds: MetricThresholds, enabled: boolean): void {
+            metricLens.update(metricFiles, thresholds, enabled);
         },
         setMetricProblems(problems: readonly Problem[]): void {
             const next = new Map<string, Problem[]>();

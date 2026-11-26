@@ -106,6 +106,7 @@ export const AGENT_IPC_CHANNELS = {
     agentsTools: 'codexr:agents:tools',
     agentsApprove: 'codexr:agents:approve',
     agentsResolveReview: 'codexr:agents:resolve-review',
+    agentsCancelRun: 'codexr:agents:cancel-run',
 } as const;
 
 /** What a tool can do, which decides whether it asks first (A7). */
@@ -127,6 +128,20 @@ export interface ToolRunView {
     readonly status: 'running' | 'done' | 'error' | 'denied';
     /** The start of the result, for the collapsible block. */
     readonly result?: string;
+    /** A11: the sub-agent a `delegate_task` call started, with its own tools and answer. */
+    readonly child?: SubAgentView;
+}
+
+/** A sub-agent working for a supervisor (A11), as the run tree shows it. */
+export interface SubAgentView {
+    readonly agent: string;
+    readonly model: string;
+    readonly task: string;
+    readonly status: 'running' | 'done' | 'error' | 'stopped';
+    /** Its answer so far. */
+    readonly text: string;
+    readonly runs: readonly ToolRunView[];
+    readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
 }
 
 /** A risky tool call waiting for the person (A7). */
@@ -135,6 +150,8 @@ export interface ApprovalRequest {
     readonly sessionId: string;
     readonly tool: string;
     readonly title: string;
+    /** The agent asking, when it is a sub-agent of the chat's agent (A11). */
+    readonly agent?: string;
     /** Exactly what will happen: the command, the file and its change… */
     readonly detail: string;
 }
@@ -193,6 +210,8 @@ export interface AgentProfile {
     readonly tools: readonly string[];
     /** Risky tools the person allowed for this agent with "Always" (A7). */
     readonly alwaysAllow?: readonly string[];
+    /** A11: how many sub-agents it may run at once with delegate_task (1-8, default 3). */
+    readonly maxParallel?: number;
 }
 
 /** What the renderer sends to create (no id) or edit an agent. */
@@ -274,4 +293,6 @@ export interface AgentsApi {
     approve(requestId: string, decision: ApprovalDecision): Promise<void>;
     /** Reports what the person did with a proposed edit (A8). */
     resolveReview(requestId: string, result: EditReviewResult): Promise<void>;
+    /** Cancels one sub-agent (A11) without stopping the rest of the answer. */
+    cancelRun(sessionId: string, runId: string): Promise<void>;
 }
