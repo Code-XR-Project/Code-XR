@@ -11,6 +11,7 @@ import {
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
 import { VenvManager } from '../python-env/venvManager';
 import { resolveBackendScriptPath } from '../analysis/python/backendScriptPath';
+import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
 
 /**
  * VS Code-side wrapper for the export-time Git analysis. It resolves the
@@ -40,9 +41,9 @@ export async function inspectGitRevisionExport(
     context: vscode.ExtensionContext,
     session: ExportableSession,
 ): Promise<GitExportPreflight> {
-    const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
+    const storageRoot = privateStorageRoot(hostPathsFromContext(context));
     const inspectionRoot = path.join(
-        privateStorageRoot,
+        storageRoot,
         'export-git',
         session.id,
         `preflight-${randomUUID()}`,
@@ -64,8 +65,8 @@ export async function exportGitRevisionData(
     request: GitRevisionExportRequest,
     ui: { progress: vscode.Progress<{ message?: string; increment?: number }>; token: vscode.CancellationToken },
 ): Promise<GitExportOutcome> {
-    const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
-    const snapshotRoot = path.join(privateStorageRoot, 'export-git', session.id, 'snapshots');
+    const storageRoot = privateStorageRoot(hostPathsFromContext(context));
+    const snapshotRoot = path.join(storageRoot, 'export-git', session.id, 'snapshots');
     const gitService = new GitRepositoryService(session.targetPath, snapshotRoot);
     const pythonExecutable = new VenvManager(context).getPythonExecutablePath();
     if (!pythonExecutable) {
@@ -78,7 +79,7 @@ export async function exportGitRevisionData(
     const workerFile = path.join('export', 'git_export_analysis_worker.py');
     // The shipped dist copy, or in ExtensionMode.Development only the monorepo
     // sources at <repo>/backend/src (see backendScriptPath.ts).
-    const workerScriptPath = resolveBackendScriptPath(context, workerFile);
+    const workerScriptPath = resolveBackendScriptPath(hostPathsFromContext(context), workerFile);
     const workerPlan = calculateGitExportWorkerPlan(request.performanceProfile);
 
     const readWorkingCopyPayload = async (): Promise<unknown> => {
