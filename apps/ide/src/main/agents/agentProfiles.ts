@@ -118,6 +118,10 @@ export function parseProfile(input: unknown): AgentProfileInput {
     if (!Array.isArray(tools) || tools.some((tool) => typeof tool !== 'string')) {
         throw new Error('Invalid tools.');
     }
+    const maxParallel = record['maxParallel'];
+    if (maxParallel !== undefined && maxParallel !== null && (typeof maxParallel !== 'number' || !Number.isInteger(maxParallel) || maxParallel < 1 || maxParallel > 8)) {
+        throw new Error('Parallel sub-agents must be a whole number from 1 to 8.');
+    }
     const alwaysAllow = record['alwaysAllow'] ?? [];
     if (!Array.isArray(alwaysAllow) || alwaysAllow.some((tool) => typeof tool !== 'string')) {
         throw new Error('Invalid always-allowed tools.');
@@ -130,5 +134,6 @@ export function parseProfile(input: unknown): AgentProfileInput {
         ...(typeof temperature === 'number' ? { temperature } : {}),
         tools: [...new Set(tools as string[])],
         ...(alwaysAllow.length > 0 ? { alwaysAllow: [...new Set(alwaysAllow as string[])] } : {}),
+        ...(typeof maxParallel === 'number' ? { maxParallel } : {}),
     };
 }

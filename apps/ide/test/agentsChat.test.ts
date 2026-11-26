@@ -12,6 +12,7 @@ import { ChatSessions, sessionToMarkdown, titleFrom } from '../src/main/agents/c
 import { AgentChat, fitHistory, type ChatWindow } from '../src/main/agents/agentChat.ts';
 import { ToolCatalog } from '../src/main/agents/tools/toolCatalog.ts';
 import { WORKSPACE_TOOLS } from '../src/main/agents/tools/workspaceTools.ts';
+import { delegateTaskTool } from '../src/main/agents/tools/delegateTool.ts';
 import { ANALYSIS_TOOLS, dependenciesReport, evolutionReport, hotspotsReport, metricsReport } from '../src/main/agents/tools/analysisTools.ts';
 import type { AgentTool, ToolWorkspace } from '../src/main/agents/tools/toolTypes.ts';
 import { buildAttachmentContext } from '../src/main/agents/attachments.ts';
@@ -486,6 +487,107 @@ describe('Code-XR analysis tools (A10)', () => {
         await assert.rejects(tool('get_metrics').run({}, context(null)), /No Code-XR analysis is open/);
         fs.writeFileSync(path.join(root, 'dependency-graph.json'), JSON.stringify(graph));
         assert.match(await tool('get_dependencies').run({ path: 'src/b.ts' }, context(root)), /Used by \(1\):\n- src\/a\.ts/);
+    });
+});
+
+describe('sub-agents (A11)', () => {
+    /** Binds every starter to the test provider so the supervisor can delegate to them. */
+    async function bindAll(profiles: AgentProfiles, providerId: string): Promise<void> {
+        for (const profile of await profiles.list()) {
+            const { id, ...input } = profile;
+            await profiles.save({ ...input, providerId, model: profile.model || 'gpt-test' }, id);
+        }
+    }
+    const answer = (text: string, tokens = 5) => sse([
+        `data: ${JSON.stringify({ choices: [{ delta: { content: text }, finish_reason: 'stop' }] })}\n\n`,
+        `data: {"choices":[],"usage":{"prompt_tokens":${tokens},"completion_tokens":1}}\n\ndata: [DONE]\n\n`,
+    ]);
+    const twoDelegations = () => sse([
+        `data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [
+            { index: 0, id: 'd1', function: { name: 'delegate_task', arguments: JSON.stringify({ agent: 'Code reviewer', task: 'review a.ts' }) } },
+            { index: 1, id: 'd2', function: { name: 'delegate_task', arguments: JSON.stringify({ agent: 'architect', task: 'map the modules' }) } },
+        ] } }] })}\n\n`,
+        'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\ndata: [DONE]\n\n',
+    ]);
+
+    it('runs two sub-agents in parallel with clean contexts and returns their answers to the supervisor', async () => {
+        let active = 0;
+        let peak = 0;
+        const bodies: Array<Record<string, unknown>> = [];
+        const { chat, agent, profiles, provider } = await setup(async (_url, init) => {
+            const body = JSON.parse(String(init.body)) as { messages: Array<{ role: string; content: string }> };
+            bodies.push(body);
+            const last = body.messages.at(-1);
+            if (last?.role === 'user' && last.content === 'plan it') {
+                return twoDelegations();
+            }
+            if (last?.role === 'tool') {
+                return answer('Combined.');
+            }
+            active += 1;
+            peak = Math.max(peak, active);
+            await new Promise((resolve) => setTimeout(resolve, 30));
+            active -= 1;
+            return answer(last?.content === 'review a.ts' ? 'Looks fine.' : 'Three layers.', 10);
+        }, [delegateTaskTool]);
+        await bindAll(profiles, provider.id);
+        const session = await chat.create(null, agent.id);
+        const events: AgentChatEvent[] = [];
+        await chat.send(null, session.id, 'plan it', [], windowOf(events));
+        assert.equal(peak, 2, 'both sub-agents ran at once');
+        const children = bodies.filter((body) => (body['messages'] as Array<{ content: string }>).length <= 2 && (body['messages'] as Array<{ role: string }>).every((m) => m.role !== 'tool') && (body['messages'] as Array<{ content: string }>).at(-1)?.content !== 'plan it');
+        assert.equal(children.length, 2);
+        for (const body of children) {
+            const names = ((body['tools'] ?? []) as Array<{ function: { name: string } }>).map((tool) => tool.function.name);
+            assert.equal(names.includes('delegate_task'), false, 'sub-agents cannot delegate');
+            assert.equal((body['messages'] as unknown[]).filter((m) => (m as { role: string }).role === 'user').length, 1, 'only the task as context');
+        }
+        const answerTurn = (await chat.get(null, session.id)).messages[1];
+        assert.equal(answerTurn?.content, 'Combined.');
+        const runs = answerTurn?.toolRuns ?? [];
+        assert.deepEqual(runs.map((run) => [run.child?.agent, run.child?.status, run.child?.text]), [['Code reviewer', 'done', 'Looks fine.'], ['Architect', 'done', 'Three layers.']]);
+        assert.deepEqual(answerTurn?.usage, { inputTokens: 10 + 10 + 5, outputTokens: 3 }, 'sub-agents\' tokens count in the answer');
+        const lastSupervisorCall = bodies.at(-1)?.['messages'] as Array<{ role: string; content: string }>;
+        assert.deepEqual(lastSupervisorCall.filter((m) => m.role === 'tool').map((m) => m.content), ['Code reviewer answered:\nLooks fine.', 'Architect answered:\nThree layers.']);
+    });
+
+    it('cancels one sub-agent while the supervisor carries on', async () => {
+        const { chat, agent, profiles, provider } = await setup((_url, init) => {
+            const body = JSON.parse(String(init.body)) as { messages: Array<{ role: string; content: string }> };
+            const last = body.messages.at(-1);
+            if (last?.content === 'plan it') {
+                return Promise.resolve(twoDelegations());
+            }
+            if (last?.role === 'tool') {
+                return Promise.resolve(answer('Partial plan.'));
+            }
+            if (last?.content === 'review a.ts') {
+                // Never answers until aborted.
+                return new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))));
+            }
+            return Promise.resolve(answer('Three layers.'));
+        }, [delegateTaskTool]);
+        await bindAll(profiles, provider.id);
+        const session = await chat.create(null, agent.id);
+        await chat.send(null, session.id, 'plan it', [], windowOf([], null, (event) => {
+            if (event.type === 'tool' && event.run.id === 'd1' && event.run.child?.status === 'running') {
+                setTimeout(() => chat.cancelRun(session.id, 'd1'), 10);
+            }
+        }));
+        const turn = (await chat.get(null, session.id)).messages[1];
+        assert.equal(turn?.content, 'Partial plan.');
+        assert.deepEqual(turn?.toolRuns?.map((run) => run.child?.status), ['stopped', 'done']);
+    });
+
+    it('explains an unknown agent name', async () => {
+        let calls = 0;
+        const { chat, agent } = await setup(() => {
+            calls += 1;
+            return Promise.resolve(calls === 1 ? toolCallChunk('x', 'delegate_task', '{"agent":"Ghost","task":"boo"}') : answer('ok'));
+        }, [delegateTaskTool]);
+        const session = await chat.create(null, agent.id);
+        await chat.send(null, session.id, 'go', [], quiet);
+        assert.match((await chat.get(null, session.id)).messages[1]?.toolRuns?.[0]?.result ?? '', /no agent named "Ghost"\. Available: Assistant, Code reviewer, Architect/);
     });
 });
 

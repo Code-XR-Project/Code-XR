@@ -40,6 +40,15 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
     const copy = (text: string): void => {
         navigator.clipboard.writeText(text).then(() => callbacks.onStatus('Copied to the clipboard.'), () => callbacks.onStatus('Could not copy.'));
     };
+    const toolActions = {
+        showScene: callbacks.showScene,
+        copy,
+        cancelRun: (runId: string): void => {
+            if (open) {
+                api.cancelRun(open.session.id, runId).catch((error: unknown) => callbacks.onStatus(errorText(error)));
+            }
+        },
+    };
     const iconButton = (label: string, path: string, onClick: () => void): HTMLButtonElement => {
         const button = el('button', { className: 'icon-button', attrs: { type: 'button', title: label, 'aria-label': label } }, [icon(path)]);
         button.addEventListener('click', (event) => {
@@ -224,13 +233,15 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         instructions.value = existing?.instructions ?? '';
         const temperature = el('input', { className: 'agents-input', attrs: { id: 'agent-temperature', type: 'number', min: '0', max: '2', step: '0.1', placeholder: 'Provider default' } });
         temperature.value = existing?.temperature !== undefined ? String(existing.temperature) : '';
+        const parallel = el('input', { className: 'agents-input', attrs: { id: 'agent-parallel', type: 'number', min: '1', max: '8', step: '1', placeholder: '3', title: 'How many sub-agents delegate_task may run at once' } });
+        parallel.value = existing?.maxParallel !== undefined ? String(existing.maxParallel) : '';
         const toolBoxes = el('fieldset', { className: 'agents-tools', attrs: { 'data-testid': 'agent-tools' } }, [el('legend', { text: 'Tools' })]);
         const chosen = new Set(existing?.tools ?? []);
         const fillTools = (catalog: readonly ToolInfo[]): void => {
             toolBoxes.append(...catalog.map((tool) => {
                 const box = el('input', { attrs: { type: 'checkbox', value: tool.name, 'data-tool': tool.name } });
-                // A new agent starts with every read-only tool, like the starters.
-                box.checked = existing ? chosen.has(tool.name) : tool.risk === 'read';
+                // A new agent starts with every read-only tool, like the starters; delegating (A11) is opt-in.
+                box.checked = existing ? chosen.has(tool.name) : tool.risk === 'read' && tool.name !== 'delegate_task';
                 const always = (existing?.alwaysAllow ?? []).includes(tool.name);
                 const note = tool.risk === 'read' ? 'runs without asking' : always ? 'always allowed' : 'asks first';
                 return el('label', { className: 'agents-tool', attrs: { title: tool.description } }, [
@@ -265,6 +276,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             field('Model', 'agent-model', model, modelList, modelNote),
             field('Instructions', 'agent-instructions', instructions),
             field('Temperature', 'agent-temperature', temperature),
+            field('Parallel sub-agents (delegate_task)', 'agent-parallel', parallel),
             toolBoxes,
             error,
             el('div', { className: 'env-actions' }, [save, cancel]),
@@ -284,6 +296,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
                 model: model.value.trim(),
                 instructions: instructions.value,
                 ...(temperatureValue !== undefined ? { temperature: temperatureValue } : {}),
+                ...(parallel.value.trim() !== '' ? { maxParallel: Number(parallel.value) } : {}),
                 tools: [...toolBoxes.querySelectorAll<HTMLInputElement>('input[data-tool]')].filter((box) => box.checked).map((box) => box.value),
                 ...(existing?.alwaysAllow && !resetAlways ? { alwaysAllow: existing.alwaysAllow } : {}),
             }, existing?.id).then((saved) => {
@@ -439,7 +452,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             }
         } else {
             if (message.toolRuns?.length) {
-                body.append(renderToolRuns(message.toolRuns, { showScene: callbacks.showScene }));
+                body.append(renderToolRuns(message.toolRuns, toolActions));
             }
             body.append(renderMarkdown(message.content, { copy }));
         }
@@ -507,7 +520,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
                 state.transcript.scrollTop = state.transcript.scrollHeight;
             }
         } else if (event.type === 'tool' && state.streamTools) {
-            upsertToolRun(state.streamTools, event.run, { showScene: callbacks.showScene });
+            upsertToolRun(state.streamTools, event.run, toolActions);
         } else if (event.type === 'approval') {
             addApproval(state.streaming?.parentElement ?? state.transcript, event.request);
         } else if (event.type === 'end') {
