@@ -3,6 +3,7 @@ import { appIconPath } from './appIcon.ts';
 import { IPC_EVENTS, type IdeCommand } from '../shared/api.ts';
 import { isChord, isValidKeybinding, MENU_KEYBINDINGS } from '../shared/keybindings.ts';
 import { clearRecentFolders, openRecentFromMenu } from './workspace/workspaceWindows.ts';
+import { checkForUpdates } from './updates/updateCheck.ts';
 
 /** What Help > About shows of the IDE's dependencies (#161), set once the core runs. */
 export interface AboutDependencies {
@@ -169,6 +170,12 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
         {
             role: 'help',
             submenu: [
+                {
+                    // #20: the only way an update check happens unasked is the opt-in setting.
+                    label: 'Check for Updates…',
+                    click: (_item, win) => void checkForUpdates(win instanceof BrowserWindow ? win : undefined, { manual: true }),
+                },
+                { type: 'separator' },
                 {
                     label: 'About Code-XR IDE',
                     // #161: the dependencies and their state, with a way to install what is missing.

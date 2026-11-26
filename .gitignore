@@ -39,3 +39,6 @@ media/v1.2.0/xr_experiences/ar-development.png
 
 # Git worktrees created by Claude Code agent sessions
 .claude/worktrees/
+
+# #20: IDE installers built by electron-builder
+apps/ide/release/

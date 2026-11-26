@@ -15,6 +15,7 @@ Run them from the repository root after `npm ci`:
 | `npm run ide:start` | Build, then run the built IDE (no dev server). |
 | `npm run ide:smoke` | Build, launch the IDE hidden with `--codexr-smoke`, probe the security baseline from inside the real renderer, open a terminal with the default profile and read back the output of `echo codexr-smoke`, exit 0 or 1. On Linux without a display use `xvfb-run -a npm run ide:smoke`. |
 | `npm run ide:test` | Typecheck (Node and web targets separately), lint with zero warnings, unit tests. Part of the root `npm test`. |
+| `npm run dist --workspace=code-xr-ide` | Build the installers for the OS it runs on into `apps/ide/release/` (#20): AppImage and `.deb` on Linux, an NSIS `.exe` on Windows, a `.dmg` on macOS. See [Installers](#installers-20). |
 
 ## Layout
 
@@ -134,6 +135,22 @@ The scene's header has an **XR** row with three buttons. They act on the window'
 
 The core fix that makes this work: a scene opened at the same moment as its server (the IDE's scene view, VS Code's side panel) used to ask for its room before the launch had written the session mapping. It joined `codexr-session:port-<port>`, while every later client joined `codexr-session:<server id>`. `CollaborationSessionApi` now falls back to the active-server registry, which is filled before the page opens.
 
+## Installers (#20)
+
+`npm run dist --workspace=code-xr-ide` builds the extension's Python backend copy, the IDE, then packages it with electron-builder (`electron-builder.config.cjs`) for the OS it runs on. Each installer carries the IDE and, as resources, what the extension's core reads from its install folder: the Python backend (`dist/code_analysis`), `templates/`, `examples/`, the icons the scenes use and the vendored A-Frame/BabiaXR libraries, so a scene renders offline exactly as in development (`process.resourcesPath` is the core's install root when packaged). The TypeScript language server (#21) and `node-pty` (#137) are unpacked from the asar, because a child process and a native module cannot run from inside it. Python itself is not bundled: the IDE finds the system's and sets up its environment on request, as in development (#15).
+
+| OS | File | First run |
+|---|---|---|
+| Windows | `Code-XR-IDE-Setup-<version>.exe` (NSIS; asks where to install) | The installer is not signed, so SmartScreen shows "Windows protected your PC": **More info > Run anyway**. |
+| macOS (Apple silicon) | `Code-XR-IDE-<version>-arm64.dmg` | Signed ad hoc, not notarised, so Gatekeeper refuses a downloaded copy the first time: right-click the app > **Open**, or run `xattr -dr com.apple.quarantine "/Applications/Code-XR IDE.app"`. |
+| Linux | `Code-XR-IDE-<version>-x86_64.AppImage`, `code-xr-ide_<version>_amd64.deb` | AppImage: `chmod +x` it, then run it. `.deb`: `sudo apt install ./code-xr-ide_<version>_amd64.deb`. |
+
+The installers are not signed because the project has no signing certificate (a thesis prototype); nothing in the build needs a secret, so adding one later is a configuration change (`CSC_LINK` / `APPLE_ID`), not a code change. Settings and recent folders stay in the same user-data folder as in development (`code-xr-ide`).
+
+**Releases.** `.github/workflows/ide-release.yml` builds the three installers on Windows, Linux and macOS runners. A pull request that touches the packaging, or a manual run, keeps them as workflow artifacts to try one before tagging. Pushing a tag `ide-vX.Y.Z` that matches `apps/ide/package.json`'s version attaches them to a **draft** GitHub release, which the maintainer reviews and publishes by hand.
+
+**Updates.** The IDE does not update itself. Help > **Check for Updates…** reads the repository's public releases, picks the newest published `ide-vX.Y.Z` above the running version (drafts and pre-releases skipped) and offers to open its page; nothing is downloaded or installed. The setting **Check For Updates On Start-up** (`update.checkOnStartup`, off by default) runs the same check quietly when the IDE starts and speaks only when there is a newer release.
+
 ## Security baseline
 
 Following Electron's [security checklist](https://www.electronjs.org/docs/latest/tutorial/security). Each rule lives in one place and is enforced by a test, a startup assertion or the smoke run:
@@ -152,6 +169,7 @@ Following Electron's [security checklist](https://www.electronjs.org/docs/latest
 | The renderer cannot start a process: a terminal starts only from a detected or user-saved profile, named by id, and only the window that created it can write to it or read it | `src/main/terminal/` (`ProfileRegistry.resolve`, `TerminalService`) | Unit tests (unknown ids, foreign windows, bad sizes and input); smoke opens a terminal and reads its output. |
 | Git runs without a shell, on paths checked inside the open folder; discard asks natively and trashes untracked files | `src/main/git/` (`runGit`, `resolveGitPath`, `gitIpc.ts`) | Unit tests (`..`, absolute paths, symlinks out, globs, option-like branch names); smoke refuses `git.headContent('../package.json')`. |
 | The renderer cannot start or address a language server: it names documents by `codexr-file:` URI inside the open folder and sends only allow-listed requests with rebuilt parameters | `src/main/lsp/` (`lspUri.ts`, `lspProtocol.ts`), `LSP_REQUEST_METHODS` in `src/shared/lsp.ts` | Unit tests (`test/lsp.test.ts`: `..`, encoded separators, other schemes, refused methods, forged completion data). |
+| No network request unless the person asks: the update check runs from Help > Check for Updates…, or at start-up only if `update.checkOnStartup` is turned on (off by default); it reads the public GitHub releases list, downloads nothing and only opens the release page in the browser | `src/main/updates/` (`updateRelease.ts` pure, `updateCheck.ts`) | Unit tests (`test/updateCheck.test.ts`: tags, drafts, pre-releases, versions); never run in the smoke run. |
 | The dev server URL is ignored in a packaged build | `src/main/index.ts` (`app.isPackaged`) | Code review. |
 
 Running as root (containers, some CI images) requires `--no-sandbox`, which the scripts add only in that case. It turns off Chromium's OS-level sandbox and `app.enableSandbox()`; the per-window `sandbox: true` preference and its assertion stay.
