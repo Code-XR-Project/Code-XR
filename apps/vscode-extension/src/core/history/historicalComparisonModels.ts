@@ -131,11 +131,28 @@ export interface AnalysisJobSnapshot {
 }
 
 export interface HistoricalComparisonProgress {
-    state: 'idle' | 'analyzing' | 'ready' | 'error';
+    /** `cancelled`: the job was stopped by a user (LivePanel Cancel, mode leave). */
+    state: 'idle' | 'analyzing' | 'ready' | 'error' | 'cancelled';
     message: string;
     revision?: number;
     /** The job this progress belongs to. */
     jobId?: string;
+}
+
+/**
+ * What `GET /api/historical/status` answers (HIST-13): the state of the
+ * comparison job, so a LivePanel that loaded late or lost its SSE stream can
+ * catch up instead of waiting on an event it missed.
+ */
+export interface HistoricalComparisonStatus {
+    /** idle: nothing running (never ran, or the last job was cancelled); running; done; error. */
+    state: 'idle' | 'running' | 'done' | 'error';
+    /** The current job's id, or the last one's once it ended. */
+    jobId: string | null;
+    /** The revision of the last successful comparison (still on screen after a cancel), or null. */
+    revision: number | null;
+    /** The sentence to show for `error`; null otherwise. */
+    message: string | null;
 }
 
 export interface ProjectEvolutionRequest {

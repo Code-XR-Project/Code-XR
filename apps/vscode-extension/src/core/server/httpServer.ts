@@ -513,6 +513,14 @@ export class HttpServer {
                 await this.historicalBridge.handleHistoricalCompare(req, res);
                 break;
 
+            case '/historical/cancel':
+                await this.historicalBridge.handleHistoricalCancel(req, res);
+                break;
+
+            case '/historical/status':
+                this.historicalBridge.handleHistoricalStatus(req, res);
+                break;
+
             default:
                 sendErrorResponse(res, 404, 'API endpoint not found');
         }

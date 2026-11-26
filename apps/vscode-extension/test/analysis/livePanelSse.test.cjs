@@ -96,6 +96,7 @@ function runPanel(panel, scriptName, spiedFunctions) {
     }
     const historicalPanel = vm.runInContext('historicalPanel', context);
     historicalPanel.handleSseMessage = (message) => { calls.push(['historicalPanel.handleSseMessage', message]); };
+    historicalPanel.syncStatus = () => { calls.push(['historicalPanel.syncStatus']); };
 
     vm.runInContext('initializeSSE()', context);
     assert.equal(sources.length, 1, `${panel}: exactly one EventSource`);
@@ -123,6 +124,9 @@ function runPanel(panel, scriptName, spiedFunctions) {
     play('unknown', () => message({ type: 'something-else' }));
     play('unparseable', () => source.onmessage({ data: '{not json' }));
     play('error', () => source.onerror({}));
+    // EventSource reconnects by itself: events sent meanwhile are lost, so the
+    // comparison status is read again (#108, HIST-13). The first open does not.
+    play('reconnect', () => source.onopen({}));
     return transcript;
 }
 
@@ -131,6 +135,7 @@ const HISTORICAL_STEPS = [
     ['unknown'],
     ['unparseable'],
     ['error', ['showSSEStatus', 'error']],
+    ['reconnect', ['showSSEStatus', 'connected'], ['historicalPanel.syncStatus']],
 ];
 
 test('directory LivePanel: every SSE message drives the same actions', () => {
