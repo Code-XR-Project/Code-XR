@@ -354,6 +354,13 @@ after refreshing the live source.
 - There is no revision overlay or per-delta colouring yet.
 - The target must belong to a local Git repository.
 - Partial clones may require fetching missing objects outside CodeXR.
+  CodeXR never downloads them: a revision whose files are not on this
+  computer is left out with the reason "not on this computer (partial
+  clone)", and every complete revision (HEAD included) stays available.
+- Oldest Git tested for history modes: 2.43 (the Ubuntu 24.04 default),
+  which dies on the first missing partial-clone object instead of reporting
+  it; CodeXR restarts its `git cat-file` reader past that object. CI runs a
+  current Git. Older versions are not tested.
 - Repositories using Git LFS compare the content available in Git objects;
   LFS objects are not downloaded automatically.
 

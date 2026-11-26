@@ -136,6 +136,7 @@
   - In a partial clone (`git clone --filter=blob:none`), CodeXR no longer makes Git download missing files from the remote one by one, and Git can no longer stop to ask for a password. A revision whose files are not on your computer is reported as such ("not on this computer (partial clone)") and left out. With recent Git versions such a file used to be skipped without a word, so the revision was analyzed as if the file did not exist.
   - The historical comparison panel (in the scene and in the LivePanel) says up front when the repository is a partial clone, so you know older revisions may be missing before you pick one.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
+- **Partial clones work with Git 2.43 (the Ubuntu 24.04 default).** In a partial clone, the first file missing from your computer made Git 2.43 stop reading altogether, so every revision was left out of historical comparison and project evolution, the current commit included, with a cryptic "git-cat-file-check-closed (128)" reason. Now only the revisions that need a missing file are left out, each with the reason "not on this computer (partial clone)", and every complete revision stays available. CodeXR still downloads nothing, also on Git versions older than 2.44 that cannot be told to skip the download (#105).
 
 ## [1.2.0] - 2026-07-30
 
