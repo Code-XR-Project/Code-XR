@@ -1,3 +1,4 @@
+import type { SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -128,6 +129,8 @@ export const IDE_COMMANDS = [
     'workbench.quickOpen', 'editor.goToSymbol',
     // #169: the layout (View > Appearance, Ctrl/Cmd+B and Ctrl/Cmd+J).
     'view.toggleSideBar', 'view.togglePanel', 'view.toggleMaximizedPanel', 'view.toggleZenMode', 'view.resetLayout',
+    // #18: settings (File > Preferences > Settings, Ctrl/Cmd+,).
+    'workbench.openSettings',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
@@ -419,6 +422,21 @@ export interface CodeXRApi {
         /** Menu commands for the renderer to run (Open Folder…, Save, Save All, Close Editor). */
         onCommand(listener: (command: IdeCommand) => void): Unsubscribe;
     };
+    /** #18: the user's and the open folder's settings (shared/settings.ts holds the schema). */
+    readonly settings: {
+        get(): Promise<SettingsReport>;
+        /** Sets `key` in a scope (null removes it, back to the next level); rejects a value the schema refuses. */
+        update(scope: SettingScope, key: string, value: SettingValue | null): Promise<SettingsReport>;
+        /** Creates `.codexr/settings.json` if needed and resolves with its workspace path, to open in the editor. */
+        folderFile(): Promise<string>;
+        /** The settings changed (in this window, or the user's in another one). */
+        onDidChange(listener: (report: SettingsReport) => void): Unsubscribe;
+    };
+}
+
+/** The settings in force, both files, and why a file could not be read. */
+export interface SettingsReport extends SettingsSnapshot {
+    readonly errors: readonly string[];
 }
 
 /**
@@ -441,6 +459,9 @@ export const IPC_CHANNELS = {
     workspaceCreateEntry: 'codexr:workspace:create-entry',
     workspaceRename: 'codexr:workspace:rename',
     workspaceCopyPath: 'codexr:workspace:copy-path',
+    settingsGet: 'codexr:settings:get',
+    settingsUpdate: 'codexr:settings:update',
+    settingsFolderFile: 'codexr:settings:folder-file',
     workspaceTrash: 'codexr:workspace:trash',
     workspaceRecentFolders: 'codexr:workspace:recent-folders',
     workspaceOpenRecent: 'codexr:workspace:open-recent',
@@ -483,6 +504,7 @@ export const IPC_EVENTS = {
     analysisSceneShareChanged: 'codexr:analysis:scene-share-changed',
     terminalData: 'codexr:terminal:data',
     terminalExit: 'codexr:terminal:exit',
+    settingsChanged: 'codexr:settings:changed',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

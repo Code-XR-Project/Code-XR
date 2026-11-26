@@ -7,7 +7,8 @@ import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
 import { setSceneBounds } from './analysis/sceneView.ts';
 import { sanitizeBounds } from './analysis/sceneUrl.ts';
-import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
+import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
+import type { SettingsService } from './settings/settingsService.ts';
 import { cancelSearch, replaceInFiles, startSearch } from './workspace/searchService.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -17,7 +18,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -73,6 +74,22 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceReportUnsaved, (event, count) => reportUnsaved(event.sender, count));
     handle(IPC_CHANNELS.workspaceCreateEntry, (event, parent, name, kind) => workspaceOf(event.sender).createEntry(parent, name, kind));
     handle(IPC_CHANNELS.workspaceRename, (event, path, newName) => workspaceOf(event.sender).rename(path, newName));
+    // #18: settings. A change to the user's settings reaches every window; a folder's, its own window.
+    handle(IPC_CHANNELS.settingsGet, (event) => settings.snapshot(workspaceOrNull(event.sender)));
+    handle(IPC_CHANNELS.settingsUpdate, async (event, scope, key, value) => {
+        const report = await settings.update(workspaceOrNull(event.sender), scope, key, value);
+        for (const win of BrowserWindow.getAllWindows()) {
+            const contents = win.webContents;
+            if (contents.isDestroyed()) { continue; }
+            if (contents === event.sender) {
+                contents.send(IPC_EVENTS.settingsChanged, report);
+            } else if (scope === 'user') {
+                contents.send(IPC_EVENTS.settingsChanged, await settings.snapshot(workspaceOrNull(contents)));
+            }
+        }
+        return report;
+    });
+    handle(IPC_CHANNELS.settingsFolderFile, (event) => settings.ensureFolderFile(workspaceOf(event.sender)));
     // #167: the path is checked against the folder before anything reaches the clipboard.
     handle(IPC_CHANNELS.workspaceCopyPath, (event, path, kind) => {
         clipboard.writeText(workspaceOf(event.sender).displayPath(path, kind));

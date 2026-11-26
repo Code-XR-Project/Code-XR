@@ -18,11 +18,14 @@ export interface XtermView {
     fit(): boolean;
     write(data: string): void;
     focus(): void;
+    /** #18: the terminal.integrated.fontSize setting. */
+    setFontSize(size: number): void;
     dispose(): void;
 }
 
 export interface XtermOptions {
     readonly platform: string;
+    readonly fontSize?: number;
     onInput(data: string): void;
 }
 
@@ -71,7 +74,7 @@ export function createXtermView(container: HTMLElement, options: XtermOptions): 
     const term = new Terminal({
         theme: theme(),
         fontFamily: "Consolas, 'Cascadia Mono', Menlo, 'DejaVu Sans Mono', 'Liberation Mono', monospace",
-        fontSize: 13,
+        fontSize: options.fontSize ?? 13,
         cursorBlink: true,
         scrollback: 5000,
         allowProposedApi: false,
@@ -128,6 +131,9 @@ export function createXtermView(container: HTMLElement, options: XtermOptions): 
 
     return {
         get cols() { return term.cols; },
+        setFontSize(size: number): void {
+            term.options.fontSize = size;
+        },
         get rows() { return term.rows; },
         fit(): boolean {
             if (container.clientWidth === 0 || container.clientHeight === 0) {

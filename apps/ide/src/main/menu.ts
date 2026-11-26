@@ -69,6 +69,10 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
                 { label: 'Save All', accelerator: 'CmdOrCtrl+Alt+S', click: (_item, win) => sendCommand(win, 'file.saveAll') },
                 { type: 'separator' },
                 { label: 'Close Editor', accelerator: 'CmdOrCtrl+W', click: (_item, win) => sendCommand(win, 'editor.close') },
+                { type: 'separator' },
+                // #18: the Settings view (the renderer owns it).
+                { label: 'Preferences', submenu: [{ label: 'Settings', accelerator: 'CmdOrCtrl+,', click: (_item, win) => sendCommand(win, 'workbench.openSettings') }] },
+                { type: 'separator' },
                 isMac ? { role: 'close', accelerator: 'CmdOrCtrl+Shift+W' } : { role: 'quit' },
             ],
         },

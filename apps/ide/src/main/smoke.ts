@@ -44,6 +44,8 @@ export interface SmokeProbe {
     readonly layout: { readonly zen: boolean; readonly resized: boolean; readonly saved: boolean; readonly sideBarToggled: boolean };
     /** #167: a click opened a preview that the next click replaced, a double click kept it, Ctrl+PageDown cycled, the session was saved, the tab menu closed all. */
     readonly tabs: { readonly previewReplaced: boolean; readonly kept: boolean; readonly cycled: boolean; readonly sessionSaved: boolean; readonly closedAll: boolean };
+    /** #18: the Settings view changed the editor font size (stored by the main process, applied to Monaco), and its reset undid it. */
+    readonly settings: { readonly listed: boolean; readonly applied: boolean; readonly reset: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -234,6 +236,23 @@ const RENDERER_PROBE = `(async () => {
         window.confirm = confirmBefore;
         tabsProbe.closedAll = tabPaths().length === 0 && !document.querySelector('[data-testid="context-menu"]');
     }
+    // #18: the Settings view. The smoke run keeps the user's settings in memory.
+    const settingsProbe = { listed: false, applied: false, reset: false };
+    document.querySelector('.activity-item[data-view="settings"]')?.click();
+    const fontInput = document.querySelector('[data-testid="settings-view"] input[data-key="editor.fontSize"]');
+    settingsProbe.listed = !!fontInput && document.querySelectorAll('[data-testid="settings-row"]').length > 5;
+    explorerRow('package.json')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await waitFor(() => tabOf('package.json'));
+    const editorFont = () => parseFloat(getComputedStyle(document.querySelector('.monaco-editor .view-lines') ?? document.body).fontSize);
+    if (fontInput) {
+        fontInput.value = '21';
+        fontInput.dispatchEvent(new Event('change', { bubbles: true }));
+        settingsProbe.applied = await waitFor(() => editorFont() === 21);
+        const reset = document.querySelector('[data-testid="settings-row"][data-key="editor.fontSize"] .settings-reset');
+        reset?.click();
+        settingsProbe.reset = await waitFor(() => editorFont() === 13);
+    }
+    document.querySelector('.activity-item[data-view="explorer"]')?.click();
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
@@ -259,6 +278,7 @@ const RENDERER_PROBE = `(async () => {
         editorStatus,
         layout,
         tabs: tabsProbe,
+        settings: settingsProbe,
         cspViolations,
     };
 })()`;
@@ -322,6 +342,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.quickOpenFound) { failures.push('quick open did not find src/main/index.ts'); }
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (!probe.layout.zen || !probe.layout.resized || !probe.layout.saved || !probe.layout.sideBarToggled) { failures.push(`the layout did not respond (${JSON.stringify(probe.layout)})`); }
+        if (Object.values(probe.settings).some((ok) => !ok)) { failures.push(`the Settings view did not change the editor (${JSON.stringify(probe.settings)})`); }
         if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
