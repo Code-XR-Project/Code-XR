@@ -8,6 +8,7 @@ import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { AnalysisService } from '../analysis/analysisService.ts';
 import { FunctionMetricsService } from '../problems/functionMetricsService.ts';
+import { installRoot as extensionInstallRoot } from '../appIcon.ts';
 import { setSceneLibrariesDir } from '../analysis/sceneView.ts';
 import { CloudflaredService } from '../dependencies/cloudflaredService.ts';
 import { setFolderChangeListener } from '../workspace/workspaceWindows.ts';
@@ -38,8 +39,7 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
     if (options.isSmoke) {
         process.once('exit', () => fs.rmSync(storageDir, { recursive: true, force: true }));
     }
-    // Unpackaged, out/main/index.cjs sits in apps/ide: the extension package is apps/vscode-extension.
-    const installRoot = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..', '..', '..', 'vscode-extension');
+    const installRoot = extensionInstallRoot();
 
     let python: PythonEnvironmentService | null = null;
     initializeHost(createElectronHost({

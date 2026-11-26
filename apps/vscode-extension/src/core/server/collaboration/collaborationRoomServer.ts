@@ -52,6 +52,8 @@ const logger = getLogger('COLLABORATION_ROOM_SERVER');
 export interface CollaborationRoomServerOptions {
     authorizeUpgrade?: (request: http.IncomingMessage) => boolean;
     resolveSession?: (request: http.IncomingMessage) => AuthenticatedCollaborationSession | null;
+    /** Whether a connection comes from this machine (loopback, no tunnel); false when not given. */
+    isLocalRequest?: (request: http.IncomingMessage) => boolean;
     handleApplicationMessage?: (
         context: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
@@ -61,6 +63,8 @@ export interface CollaborationRoomServerOptions {
 export interface CollaborationApplicationMessageContext {
     peerId: string;
     roomId: string;
+    /** The sender is on this machine (see `CollaborationPeer.local`). */
+    local: boolean;
     send: (payload: Record<string, unknown>) => void;
     broadcast: (payload: Record<string, unknown>) => void;
     upsertSharedEntity: (entity: SharedEntityState) => void;
@@ -201,6 +205,7 @@ export class CollaborationRoomServer {
             remoteAddress: String(
                 request.headers['cf-connecting-ip'] || request.socket.remoteAddress || 'unknown',
             ).slice(0, 120),
+            local: this.options.isLocalRequest?.(request) ?? false,
         };
         if (peer.session?.anonymousAlias) {
             peer.anonymousDisplayName = peer.session.anonymousAlias;
@@ -281,6 +286,7 @@ export class CollaborationRoomServer {
             const handled = await this.options.handleApplicationMessage({
                 peerId: peer.id,
                 roomId: room.id,
+                local: peer.local,
                 send: (payload) => send(peer, {
                     ...payload,
                     roomId: room.id,

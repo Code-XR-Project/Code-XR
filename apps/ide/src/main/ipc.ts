@@ -4,6 +4,9 @@ import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, I
 import type { TerminalHost } from './terminal/terminalHost.ts';
 import type { AgentServices } from './agents/agentsRuntime.ts';
 import { registerAgentHandlers } from './agents/agentsIpc.ts';
+import { registerGitHandlers } from './git/gitIpc.ts';
+import type { LspHost } from './lsp/lspHost.ts';
+import { registerLspHandlers } from './lsp/lspIpc.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -26,7 +29,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices, lsp: LspHost): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -201,6 +204,10 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
 
     // The AI agent hub (agents/agentsIpc.ts).
     registerAgentHandlers(handle, agents, (contents) => core.analysis.outputDirectory(contents));
+    // #17: Source Control (git/gitIpc.ts).
+    registerGitHandlers(handle);
+    // #21: language servers (lsp/lspIpc.ts).
+    registerLspHandlers(handle, lsp);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

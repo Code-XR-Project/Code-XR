@@ -13,7 +13,7 @@
     "smoke": "node scripts/build.mjs && node scripts/smoke.mjs",
     "typecheck": "node scripts/coreTypes.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.node.json && node ../../node_modules/typescript/bin/tsc -p tsconfig.web.json",
     "lint": "node ../../node_modules/eslint/bin/eslint.js src test scripts eslint.config.mjs --max-warnings 0",
-    "test:unit": "node --test --experimental-strip-types \"test/**/*.test.ts\"",
+    "test:unit": "node --import ./scripts/testCoreAlias.mjs --test --experimental-strip-types \"test/**/*.test.ts\"",
     "test": "npm run typecheck && npm run lint && npm run test:unit"
   },
   "engines": {
@@ -29,6 +29,9 @@
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
     "monaco-editor": "0.57.0",
-    "node-pty": "1.2.0-beta.18"
+    "node-pty": "1.2.0-beta.18",
+    "typescript-language-server": "6.1.0",
+    "vscode-jsonrpc": "9.0.3",
+    "vscode-languageserver-types": "3.18.4"
   }
 }

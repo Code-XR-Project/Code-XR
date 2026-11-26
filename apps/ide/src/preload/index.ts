@@ -4,7 +4,9 @@ import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type ProviderInput } from '../shared/agents.ts';
+import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -53,6 +55,27 @@ const api: CodeXRApi = Object.freeze({
         approve: (requestId: string, decision: ApprovalDecision) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsApprove, requestId, decision),
         resolveReview: (requestId: string, result: EditReviewResult) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsResolveReview, requestId, result),
         cancelRun: (sessionId: string, runId: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsCancelRun, sessionId, runId),
+    }),
+    // #17: only workspace-relative paths and branch names cross; main validates each one.
+    git: Object.freeze({
+        status: () => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStatus),
+        stage: (paths: readonly string[]) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStage, paths),
+        unstage: (paths: readonly string[]) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitUnstage, paths),
+        discard: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitDiscard, path),
+        commit: (message: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitCommit, message),
+        branches: () => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitBranches),
+        switchBranch: (name: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitSwitchBranch, name),
+        createBranch: (name: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitCreateBranch, name),
+        headContent: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitHeadContent, path),
+        onDidChange: (listener: () => void) => subscribe(GIT_IPC_EVENTS.gitChanged, () => listener()),
+    }),
+    // #21: documents by Monaco URI and allow-listed requests; never a server, a path or a command line.
+    lsp: Object.freeze({
+        didOpen: (uri: string, languageId: LspLanguage, version: number, text: string) => ipcRenderer.invoke(LSP_IPC_CHANNELS.lspDidOpen, uri, languageId, version, text),
+        didChange: (uri: string, version: number, text: string) => ipcRenderer.invoke(LSP_IPC_CHANNELS.lspDidChange, uri, version, text),
+        didClose: (uri: string) => ipcRenderer.invoke(LSP_IPC_CHANNELS.lspDidClose, uri),
+        request: (method: LspRequestMethod, params: unknown) => ipcRenderer.invoke(LSP_IPC_CHANNELS.lspRequest, method, params),
+        onDiagnostics: (listener: (event: LspDiagnosticsEvent) => void) => subscribe(LSP_IPC_EVENTS.lspDiagnostics, listener),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),

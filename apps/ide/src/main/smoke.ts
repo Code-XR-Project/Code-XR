@@ -27,6 +27,9 @@ export interface SmokeProbe {
     readonly explorerItems: readonly string[];
     readonly readFileKind: string | null;
     readonly traversalRefused: boolean;
+    /** #17: Source Control answered for the smoke folder and refused a path out of it. */
+    readonly gitStatusState: string | null;
+    readonly gitTraversalRefused: boolean;
     /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
     readonly editorOpened: boolean;
     /** #138: file icons in the explorer and the tabs, and those that failed to load from the app. */
@@ -108,6 +111,10 @@ const RENDERER_PROBE = `(async () => {
     try { readFileKind = (await window.codexr.workspace.readFile('package.json')).kind; } catch { readFileKind = null; }
     let traversalRefused = false;
     try { await window.codexr.workspace.readFile('../package.json'); } catch { traversalRefused = true; }
+    let gitStatusState = null;
+    try { gitStatusState = (await window.codexr.git.status()).state; } catch { gitStatusState = null; }
+    let gitTraversalRefused = false;
+    try { await window.codexr.git.headContent('../package.json'); } catch { gitTraversalRefused = true; }
     document.querySelector('[data-testid="explorer-tree"] [data-path="package.json"]')?.click();
     const editorUntil = Date.now() + 15000;
     const editorReady = () => document.querySelector('.editor-tab[data-path="package.json"][aria-selected="true"]') && document.querySelector('.monaco-editor .view-line');
@@ -341,7 +348,7 @@ const RENDERER_PROBE = `(async () => {
     return {
         title,
         apiType: typeof window.codexr,
-        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal) && Object.isFrozen(window.codexr.agents),
+        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal) && Object.isFrozen(window.codexr.agents) && Object.isFrozen(window.codexr.git),
         apiKeys: Object.keys(window.codexr || {}),
         requireType: typeof window.require,
         processType: typeof window.process,
@@ -353,6 +360,8 @@ const RENDERER_PROBE = `(async () => {
         explorerItems,
         readFileKind,
         traversalRefused,
+        gitStatusState,
+        gitTraversalRefused,
         editorOpened,
         fileIconsShown,
         fileIconsBroken,
@@ -421,6 +430,8 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         }
         if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
         if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
+        if (probe.gitStatusState === null) { failures.push('git.status did not answer'); }
+        if (!probe.gitTraversalRefused) { failures.push('git.headContent followed a path out of the folder'); }
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
         if (probe.fileIconsShown === 0) { failures.push('the explorer and the tabs showed no file icon'); }
         if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }

@@ -2,6 +2,8 @@ import type { AppInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
 import { PROBLEM_ICONS } from './problems/problemsView.ts';
 import { createLayout, type LayoutStorage, type WorkbenchLayout } from './layout/layout.ts';
+// The extension's own logo, bundled by Vite rather than copied into the IDE.
+import codeXrLogoUrl from '../../../vscode-extension/resources/icon.svg?url';
 
 /**
  * The workbench shell: activity bar, side bar, editor area and status bar.
@@ -22,6 +24,8 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'explorer', label: 'Explorer', icon: 'M3 6h7l2 2h9v11H3z' },
     // #165: search across the workspace (search/searchView.ts).
     { id: 'search', label: 'Search', icon: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21' },
+    // #17: Source Control (git/scmView.ts).
+    { id: 'scm', label: 'Source Control', icon: 'M6 3v12M6 15a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM18 9a3 3 0 1 0 0-6a3 3 0 1 0 0 6zM18 9c0 6-12 3-12 6' },
     { id: 'analysis', label: 'Analysis', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
     // The AI agent hub (agents/agentsView.ts).
@@ -31,13 +35,19 @@ const ACTIVITY: readonly ActivityItem[] = [
 ];
 
 /** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
-export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
+export type ViewId = 'explorer' | 'search' | 'scm' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
 
 export interface Workbench {
     /** The explorer's pane of the side bar. */
     readonly sideBar: HTMLElement;
     /** The Search view's pane of the side bar (#165). */
     readonly searchView: HTMLElement;
+    /** The Source Control view's pane of the side bar (#17). */
+    readonly scmView: HTMLElement;
+    /** The status bar's slot for the current branch (#17), at its left. */
+    readonly branchStatus: HTMLElement;
+    /** Whether a side-bar view is the one shown (and the side bar visible). */
+    isViewVisible(id: ViewId): boolean;
     /** The Analysis view's pane of the side bar (#15: the Python environment). */
     readonly analysisView: HTMLElement;
     /** The Agents view's pane of the side bar (AI agent hub). */
@@ -94,6 +104,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
 
     const sideBar = el('div', { className: 'side-pane', attrs: { 'data-view': 'explorer' } });
     const searchView = el('div', { className: 'side-pane', attrs: { 'data-view': 'search', 'data-testid': 'search-view' } });
+    const scmView = el('div', { className: 'side-pane', attrs: { 'data-view': 'scm', 'data-testid': 'scm-view' } });
     const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
     const xrView = el('div', { className: 'side-pane', attrs: { 'data-view': 'xr' } }, [
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
@@ -102,8 +113,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['scm', scmView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, scmView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -122,7 +133,11 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const infoList = el('dl', { className: 'info-list' });
     const status = el('p', { className: 'muted', text: 'Connecting to the main process…' });
 
+    // The logo is drawn as a mask in the text colour: the SVG is black, which would vanish on the dark theme.
+    const logo = el('span', { className: 'welcome-logo', attrs: { 'aria-hidden': 'true', 'data-testid': 'welcome-logo' } });
+    logo.style.setProperty('--logo-url', `url("${codeXrLogoUrl}")`);
     const welcome = el('section', { className: 'welcome', attrs: { 'data-testid': 'welcome', 'data-ready': 'false' } }, [
+        logo,
         el('h1', { className: 'welcome-title' }, [
             document.createTextNode('Code-'),
             el('span', { className: 'accent', text: 'XR' }),
@@ -150,7 +165,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     pythonItem.addEventListener('click', () => showView('analysis'));
     // #166: the active editor's position, indentation, encoding, line endings and language.
     const editorStatus = el('span', { className: 'status-editor', attrs: { 'data-testid': 'editor-status' } });
-    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [problemsItem, statusLeft]), el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
+    const branchStatus = el('span', { className: 'status-branch', attrs: { 'data-testid': 'branch-status' } });
+    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [branchStatus, problemsItem, statusLeft]), el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
 
     const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
     // #137: the bottom panel (hidden until the terminal opens).
@@ -164,6 +180,9 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     return {
         sideBar,
         searchView,
+        scmView,
+        branchStatus,
+        isViewVisible: (id: ViewId) => !panes.get(id)?.hidden && layout.sideBarVisible && !layout.zen,
         analysisView,
         agentsView,
         settingsView,
