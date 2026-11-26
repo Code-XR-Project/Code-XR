@@ -1,4 +1,5 @@
 import type { CommandDefinition, CommandRegistry } from './commandRegistry.ts';
+import type { CloseKind } from '../editor/tabsModel.ts';
 
 /**
  * The IDE's built-in commands (#18). Each feature hands in what it can do and
@@ -39,6 +40,12 @@ export interface WorkbenchCommandTargets {
     hasPanel(): boolean;
     toggleZenMode(): void;
     resetLayout(): void;
+    closeEditors(kind: CloseKind): void;
+    cycleEditor(delta: number): void;
+    keepEditor(): void;
+    copyActivePath(kind: 'absolute' | 'relative'): void;
+    revealActiveFile(): void;
+    hasEditors(): boolean;
 }
 
 /** The menu's accelerators, by command ID: the single place both sides are checked against. */
@@ -77,6 +84,16 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'file.save', category: 'File', title: 'Save', ...menu('file.save'), enabled: targets.hasActiveEditor, run: targets.save },
         { id: 'file.saveAll', category: 'File', title: 'Save All', ...menu('file.saveAll'), run: targets.saveAll },
         { id: 'editor.close', category: 'View', title: 'Close Editor', ...menu('editor.close'), enabled: targets.hasActiveEditor, run: targets.closeEditor },
+        { id: 'editor.closeOthers', category: 'View', title: 'Close Other Editors', enabled: targets.hasActiveEditor, run: () => targets.closeEditors('others') },
+        { id: 'editor.closeToTheRight', category: 'View', title: 'Close Editors to the Right', enabled: targets.hasActiveEditor, run: () => targets.closeEditors('right') },
+        { id: 'editor.closeSaved', category: 'View', title: 'Close Saved Editors', keybinding: 'CmdOrCtrl+K U', enabled: targets.hasEditors, run: () => targets.closeEditors('saved') },
+        { id: 'editor.closeAll', category: 'View', title: 'Close All Editors', keybinding: 'CmdOrCtrl+K W', enabled: targets.hasEditors, run: () => targets.closeEditors('all') },
+        { id: 'editor.next', category: 'View', title: 'Open Next Editor', keybinding: 'Ctrl+PageDown', secondaryKeybindings: ['Ctrl+Tab'], enabled: targets.hasEditors, recordRecent: false, run: () => targets.cycleEditor(1) },
+        { id: 'editor.previous', category: 'View', title: 'Open Previous Editor', keybinding: 'Ctrl+PageUp', secondaryKeybindings: ['Ctrl+Shift+Tab'], enabled: targets.hasEditors, recordRecent: false, run: () => targets.cycleEditor(-1) },
+        { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveEditor, run: targets.keepEditor },
+        { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('absolute') },
+        { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('relative') },
+        { id: 'file.revealInExplorer', category: 'File', title: 'Reveal Active File in Explorer', enabled: targets.hasActiveEditor, run: targets.revealActiveFile },
         { id: 'terminal.toggle', category: 'View', title: 'Toggle Terminal', ...menu('terminal.toggle'), run: targets.toggleTerminal },
         { id: 'terminal.new', category: 'Terminal', title: 'Create New Terminal', ...menu('terminal.new'), run: targets.newTerminal },
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },

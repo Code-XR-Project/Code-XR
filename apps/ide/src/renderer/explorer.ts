@@ -29,6 +29,8 @@ export interface Explorer {
     /** Inline name box for a new file / folder in the focused folder. */
     newFile(): Promise<void>;
     newFolder(): Promise<void>;
+    /** #167: expands the folders down to `path`, selects its row and shows the explorer's focus on it. */
+    reveal(path: string): Promise<boolean>;
 }
 
 interface TreeNode {
@@ -43,7 +45,8 @@ export function createExplorer(
     container: HTMLElement,
     api: CodeXRApi['workspace'],
     callbacks: {
-        onOpenFile(path: string): void;
+        /** #167: a single click opens a preview (`preview` true); Enter and a double click open for keeps. */
+        onOpenFile(path: string, preview: boolean): void;
         onError(message: string): void;
         /** Asked before the picker opens; false keeps the current folder (unsaved editors). */
         confirmOpenFolder(): boolean;
@@ -191,13 +194,33 @@ export function createExplorer(
         callbacks.onExpandedChange?.();
     }
 
-    function activate(node: TreeNode): void {
+    function activate(node: TreeNode, preview = false): void {
         focusRow(node.row);
         if (node.entry.kind === 'directory') {
             void toggle(node);
         } else {
-            callbacks.onOpenFile(node.entry.path);
+            callbacks.onOpenFile(node.entry.path, preview);
         }
+    }
+
+    async function reveal(path: string): Promise<boolean> {
+        const parts = path.split('/');
+        for (let depth = 1; depth < parts.length; depth++) {
+            const folder = nodeAt(parts.slice(0, depth).join('/'));
+            if (!folder || folder.entry.kind !== 'directory') {
+                return false;
+            }
+            if (!folder.expanded) {
+                await toggle(folder, true);
+            }
+        }
+        const node = nodeAt(path);
+        if (!node) {
+            return false;
+        }
+        focusRow(node.row);
+        node.row.scrollIntoView({ block: 'nearest' });
+        return true;
     }
 
     function focusRow(row: HTMLElement): void {
@@ -279,7 +302,12 @@ export function createExplorer(
             }
             const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
             const node = row ? nodes.get(row) : undefined;
-            if (node) { activate(node); }
+            if (node) { activate(node, true); }
+        });
+        root.addEventListener('dblclick', (event) => {
+            const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
+            const node = row ? nodes.get(row) : undefined;
+            if (node && node.entry.kind === 'file') { callbacks.onOpenFile(node.entry.path, false); }
         });
         root.addEventListener('keydown', onKeyDown);
         tree = root;
@@ -467,7 +495,7 @@ export function createExplorer(
         }
     }
 
-    return { show, openFolder, expandedFolders, refresh, newFile: () => createEntry('file'), newFolder: () => createEntry('directory') };
+    return { show, openFolder, expandedFolders, refresh, newFile: () => createEntry('file'), newFolder: () => createEntry('directory'), reveal };
 }
 
 /** The message of an IPC rejection, without Electron's "Error invoking remote method" prefix. */

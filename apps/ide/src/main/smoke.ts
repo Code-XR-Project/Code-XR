@@ -42,6 +42,8 @@ export interface SmokeProbe {
     readonly editorStatus: string;
     /** #169: Ctrl/Cmd+K Z toggled zen mode, the side-bar sash resized it from the keyboard and the size was saved, the active activity item hid the side bar. */
     readonly layout: { readonly zen: boolean; readonly resized: boolean; readonly saved: boolean; readonly sideBarToggled: boolean };
+    /** #167: a click opened a preview that the next click replaced, a double click kept it, Ctrl+PageDown cycled, the session was saved, the tab menu closed all. */
+    readonly tabs: { readonly previewReplaced: boolean; readonly kept: boolean; readonly cycled: boolean; readonly sessionSaved: boolean; readonly closedAll: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -193,6 +195,45 @@ const RENDERER_PROBE = `(async () => {
         active?.click();
         layout.sideBarToggled = hidden && sideBar.getBoundingClientRect().width > 0;
     }
+    // #167: preview tabs, cycling, the saved session and the tab menu.
+    const tabsProbe = { previewReplaced: false, kept: false, cycled: false, sessionSaved: false, closedAll: false };
+    const tabPaths = () => [...document.querySelectorAll('[data-testid="editor-tabs"] .editor-tab')].map((tab) => tab.getAttribute('data-path'));
+    const waitFor = async (check, ms = 5000) => {
+        const until = Date.now() + ms;
+        while (!check() && Date.now() < until) { await new Promise((r) => setTimeout(r, 50)); }
+        return check();
+    };
+    const explorerRow = (path) => document.querySelector('[data-testid="explorer-tree"] [data-path="' + path + '"]');
+    const tabOf = (path) => document.querySelector('[data-testid="editor-tabs"] .editor-tab[data-path="' + path + '"]');
+    if (explorerRow('README.md') && explorerRow('tsconfig.json')) {
+        const keptBefore = tabPaths().filter((path) => !tabOf(path)?.classList.contains('is-preview'));
+        explorerRow('README.md').click();
+        await waitFor(() => tabOf('README.md'));
+        explorerRow('tsconfig.json').click();
+        await waitFor(() => tabOf('tsconfig.json'));
+        tabsProbe.previewReplaced = !tabOf('README.md') && !!tabOf('tsconfig.json')?.classList.contains('is-preview')
+            && keptBefore.every((path) => tabOf(path));
+        tabOf('tsconfig.json')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        tabsProbe.kept = !tabOf('tsconfig.json')?.classList.contains('is-preview');
+        explorerRow('README.md').click();
+        await waitFor(() => tabOf('README.md')?.getAttribute('aria-selected') === 'true');
+        const order = tabPaths();
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', code: 'PageDown', ctrlKey: true, bubbles: true, cancelable: true }));
+        const activeAfter = document.querySelector('[data-testid="editor-tabs"] .editor-tab[aria-selected="true"]')?.getAttribute('data-path');
+        tabsProbe.cycled = activeAfter === order[(order.indexOf('README.md') + 1) % order.length];
+        await new Promise((r) => setTimeout(r, 450));
+        const sessionEntry = Object.keys(localStorage).find((key) => key.startsWith('codexr.tabs:'));
+        try {
+            const saved = JSON.parse(localStorage.getItem(sessionEntry ?? '') ?? '{}');
+            tabsProbe.sessionSaved = Array.isArray(saved.tabs) && saved.tabs.some((tab) => tab.path === 'tsconfig.json') && saved.preview === 'README.md';
+        } catch { tabsProbe.sessionSaved = false; }
+        const confirmBefore = window.confirm;
+        window.confirm = () => true;
+        tabOf('README.md')?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 40 }));
+        document.querySelector('[data-testid="tab-menu-close-all"]')?.click();
+        window.confirm = confirmBefore;
+        tabsProbe.closedAll = tabPaths().length === 0 && !document.querySelector('[data-testid="context-menu"]');
+    }
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
@@ -217,6 +258,7 @@ const RENDERER_PROBE = `(async () => {
         searchFound,
         editorStatus,
         layout,
+        tabs: tabsProbe,
         cspViolations,
     };
 })()`;
@@ -280,6 +322,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.quickOpenFound) { failures.push('quick open did not find src/main/index.ts'); }
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (!probe.layout.zen || !probe.layout.resized || !probe.layout.saved || !probe.layout.sideBarToggled) { failures.push(`the layout did not respond (${JSON.stringify(probe.layout)})`); }
+        if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!terminal) {
