@@ -1,6 +1,5 @@
 import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
-import { openFolderFromMenu } from './workspace/workspaceWindows.ts';
-import { log } from './log.ts';
+import { IPC_EVENTS, type IdeCommand } from '../shared/api.ts';
 
 /**
  * The application menu. File > Open Folder… arrived with #14; Edit and View
@@ -16,15 +15,15 @@ export function installApplicationMenu(isDevelopment: boolean): void {
                 {
                     label: 'Open Folder…',
                     accelerator: 'CmdOrCtrl+O',
-                    click: (_item, win) => {
-                        const target = win instanceof BrowserWindow ? win : BrowserWindow.getFocusedWindow();
-                        if (target) {
-                            openFolderFromMenu(target).catch((error: unknown) => log.error('Open Folder failed.', error));
-                        }
-                    },
+                    // The renderer asks first if editors hold unsaved changes, then opens the picker.
+                    click: (_item, win) => sendCommand(win, 'workspace.openFolder'),
                 },
                 { type: 'separator' },
-                isMac ? { role: 'close' } : { role: 'quit' },
+                { label: 'Save', accelerator: 'CmdOrCtrl+S', click: (_item, win) => sendCommand(win, 'file.save') },
+                { label: 'Save All', accelerator: 'CmdOrCtrl+Alt+S', click: (_item, win) => sendCommand(win, 'file.saveAll') },
+                { type: 'separator' },
+                { label: 'Close Editor', accelerator: 'CmdOrCtrl+W', click: (_item, win) => sendCommand(win, 'editor.close') },
+                isMac ? { role: 'close', accelerator: 'CmdOrCtrl+Shift+W' } : { role: 'quit' },
             ],
         },
         { role: 'editMenu' },
@@ -60,4 +59,10 @@ export function installApplicationMenu(isDevelopment: boolean): void {
         },
     ];
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+/** Menu commands the renderer runs (it owns the editors and their unsaved state). */
+function sendCommand(win: unknown, command: IdeCommand): void {
+    const target = win instanceof BrowserWindow ? win : BrowserWindow.getFocusedWindow();
+    target?.webContents.send(IPC_EVENTS.command, command);
 }

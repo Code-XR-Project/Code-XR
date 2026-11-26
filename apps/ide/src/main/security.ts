@@ -87,17 +87,21 @@ export interface CspOptions {
 /**
  * The Content-Security-Policy for the renderer.
  *
- * Production allows nothing but the app's own files. Development additionally
- * allows the dev server's HMR websocket and inline styles (Vite injects CSS
- * as `<style>` tags while serving); scripts stay `'self'` in both, and neither
- * allows `eval`.
+ * Production allows nothing but the app's own files, with one relaxation for
+ * styles: `'unsafe-inline'` in `style-src`, because Monaco (#14) builds its
+ * theme and decorations as `<style>` elements and `style` attributes at run
+ * time and has no nonce hook. VS Code ships the same relaxation. It is scoped
+ * to styles only: scripts stay `'self'` with no `eval`, and `connect-src`,
+ * `img-src` and `font-src` stay on the app, so injected CSS cannot load or
+ * send anything off it. Development additionally allows the dev server's HMR
+ * websocket.
  */
 export function buildContentSecurityPolicy(options: CspOptions = {}): string {
     const dev = options.devServerOrigin;
     const directives: Array<[string, string[]]> = [
         ['default-src', ["'none'"]],
         ['script-src', ["'self'"]],
-        ['style-src', dev ? ["'self'", "'unsafe-inline'"] : ["'self'"]],
+        ['style-src', ["'self'", "'unsafe-inline'"]],
         ['img-src', ["'self'", 'data:']],
         ['font-src', ["'self'"]],
         ['connect-src', dev ? ["'self'", toWebSocketOrigin(dev)] : ["'self'"]],

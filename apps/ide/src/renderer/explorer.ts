@@ -14,6 +14,8 @@ const FILE = 'M6 3h8l4 4v14H6z';
 
 export interface Explorer {
     show(workspace: WorkspaceInfo | null): Promise<void>;
+    /** The folder picker, after `confirmOpenFolder` agrees. */
+    openFolder(): void;
 }
 
 interface TreeNode {
@@ -27,7 +29,14 @@ interface TreeNode {
 export function createExplorer(
     container: HTMLElement,
     api: CodeXRApi['workspace'],
-    callbacks: { onOpenFile(path: string): void; onError(message: string): void },
+    callbacks: {
+        onOpenFile(path: string): void;
+        onError(message: string): void;
+        /** Asked before the picker opens; false keeps the current folder (unsaved editors). */
+        confirmOpenFolder(): boolean;
+        /** A new folder was opened from the picker. */
+        onOpened?(workspace: WorkspaceInfo): void;
+    },
 ): Explorer {
     const title = el('h2', { className: 'side-bar-title', text: 'Explorer' });
     const body = el('div', { className: 'explorer-body' });
@@ -38,11 +47,21 @@ export function createExplorer(
 
     const openButton = (): HTMLButtonElement => {
         const button = el('button', { className: 'primary-button', text: 'Open Folder…', attrs: { type: 'button', 'data-testid': 'open-folder' } });
-        button.addEventListener('click', () => {
-            api.openFolder().then((info) => { if (info) { void show(info); } }, (error: unknown) => callbacks.onError(`Could not open the folder: ${String(error)}`));
-        });
+        button.addEventListener('click', openFolder);
         return button;
     };
+
+    function openFolder(): void {
+        if (!callbacks.confirmOpenFolder()) {
+            return;
+        }
+        api.openFolder().then((info) => {
+            if (info) {
+                callbacks.onOpened?.(info);
+                void show(info);
+            }
+        }, (error: unknown) => callbacks.onError(`Could not open the folder: ${String(error)}`));
+    }
 
     async function loadChildren(parent: string, level: number): Promise<HTMLUListElement> {
         const group = el('ul', { attrs: { role: parent === '' ? 'tree' : 'group' } });
@@ -180,5 +199,5 @@ export function createExplorer(
         }
     }
 
-    return { show };
+    return { show, openFolder };
 }

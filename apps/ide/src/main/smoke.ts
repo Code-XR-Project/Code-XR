@@ -26,6 +26,9 @@ export interface SmokeProbe {
     readonly explorerItems: readonly string[];
     readonly readFileKind: string | null;
     readonly traversalRefused: boolean;
+    /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
+    readonly editorOpened: boolean;
+    readonly cspViolations: readonly string[];
 }
 
 export interface SmokeResult {
@@ -42,8 +45,16 @@ const RENDERER_PROBE = `(async () => {
     while (!document.querySelector('[data-testid="welcome"][data-ready="true"]') && Date.now() < until) {
         await new Promise((r) => setTimeout(r, 50));
     }
+    // The shell before any file opens (opening one changes the title and replaces the welcome view).
+    const title = document.title;
+    const welcomeRendered = !!document.querySelector('[data-testid="welcome"][data-ready="true"]');
     let evalBlocked = false;
     try { eval('1'); } catch { evalBlocked = true; }
+    // Violation events are queued: let the eval check's own report go by first,
+    // so from here on any violation is the app's.
+    await new Promise((r) => setTimeout(r, 200));
+    const cspViolations = [];
+    document.addEventListener('securitypolicyviolation', (e) => cspViolations.push(e.violatedDirective + ' ' + (e.blockedURI || 'inline') + ' at ' + (e.sourceFile || '?') + ':' + e.lineNumber));
     let infoName = null, infoError = null;
     try { infoName = (await window.codexr.app.getInfo()).name; } catch (e) { infoError = String(e); }
     const treeUntil = Date.now() + 10000;
@@ -55,21 +66,31 @@ const RENDERER_PROBE = `(async () => {
     try { readFileKind = (await window.codexr.workspace.readFile('package.json')).kind; } catch { readFileKind = null; }
     let traversalRefused = false;
     try { await window.codexr.workspace.readFile('../package.json'); } catch { traversalRefused = true; }
+    document.querySelector('[data-testid="explorer-tree"] [data-path="package.json"]')?.click();
+    const editorUntil = Date.now() + 15000;
+    const editorReady = () => document.querySelector('.editor-tab[data-path="package.json"][aria-selected="true"]') && document.querySelector('.monaco-editor .view-line');
+    while (!editorReady() && Date.now() < editorUntil) {
+        await new Promise((r) => setTimeout(r, 50));
+    }
+    const editorOpened = !!editorReady();
+    await new Promise((r) => setTimeout(r, 500));
     return {
-        title: document.title,
+        title,
         apiType: typeof window.codexr,
-        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace),
+        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands),
         apiKeys: Object.keys(window.codexr || {}),
         requireType: typeof window.require,
         processType: typeof window.process,
         evalBlocked,
         windowOpenBlocked: window.open('https://example.com/') === null,
-        welcomeRendered: !!document.querySelector('[data-testid="welcome"][data-ready="true"]'),
+        welcomeRendered,
         infoName,
         infoError,
         explorerItems,
         readFileKind,
         traversalRefused,
+        editorOpened,
+        cspViolations,
     };
 })()`;
 
@@ -93,6 +114,8 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         }
         if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
         if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
+        if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
+        if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!navigationBlocked) { failures.push('navigation to an external URL was not blocked'); }
     return { ok: failures.length === 0, failures, probe, navigationBlocked, platform };

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { MAX_EDITOR_FILE_BYTES, Workspace } from '../src/main/workspace/workspace.ts';
+import { MODIFIED_ON_DISK } from '../src/shared/api.ts';
 
 let base: string;
 let root: string;
@@ -118,6 +119,36 @@ describe('Workspace', () => {
         assert.equal(link?.kind, 'directory');
         assert.equal((await workspace.readFile('src-link/main.ts')).kind, 'text');
         removeLink('src-link');
+    });
+
+    it('saves an existing file and returns its new modification time', async () => {
+        write('notes.txt', 'v1');
+        const workspace = await Workspace.open(root);
+        const read = await workspace.readFile('notes.txt');
+        assert.equal(read.kind, 'text');
+        const saved = await workspace.writeFile('notes.txt', 'v2 é', read.kind === 'text' ? read.mtimeMs : undefined);
+        assert.equal(fs.readFileSync(path.join(root, 'notes.txt'), 'utf8'), 'v2 é');
+        assert.equal(saved.mtimeMs, fs.statSync(path.join(root, 'notes.txt')).mtimeMs);
+    });
+
+    it('refuses to overwrite a file that changed on disk since it was read', async () => {
+        write('shared.txt', 'theirs');
+        const workspace = await Workspace.open(root);
+        const stale = fs.statSync(path.join(root, 'shared.txt')).mtimeMs - 1000;
+        await assert.rejects(() => workspace.writeFile('shared.txt', 'mine', stale), new RegExp(MODIFIED_ON_DISK));
+        assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'theirs');
+    });
+
+    it('refuses bad writes: a folder, a missing file, outside the folder, non-text, too large', async () => {
+        const workspace = await Workspace.open(root);
+        await assert.rejects(() => workspace.writeFile('src', 'x'), /Not a file/);
+        await assert.rejects(() => workspace.writeFile('missing.txt', 'x'));
+        await assert.rejects(() => workspace.writeFile('../secret/key.txt', 'x'));
+        await assert.rejects(() => workspace.writeFile('README.md', 42), /must be a string/);
+        await assert.rejects(() => workspace.writeFile('README.md', 'x', 'yesterday'), /must be a number/);
+        await assert.rejects(() => workspace.writeFile('README.md', 'a'.repeat(MAX_EDITOR_FILE_BYTES + 1)), /too large/);
+        assert.equal(fs.readFileSync(path.join(outside, 'key.txt'), 'utf8'), 'top secret');
+        assert.ok(!fs.existsSync(path.join(root, 'missing.txt')), 'a save created a file');
     });
 
     it('refuses to open a file as a folder', async () => {

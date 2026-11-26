@@ -24,6 +24,8 @@ const ACTIVITY: readonly ActivityItem[] = [
 export interface Workbench {
     /** The side bar's content slot, owned by the explorer. */
     readonly sideBar: HTMLElement;
+    /** The editor area; the welcome view until the first file opens, then the editor group's. */
+    readonly editorArea: HTMLElement;
     showInfo(info: AppInfo): void;
     showError(message: string): void;
     /** Left status-bar text, for short messages ("Opened …"). */
@@ -66,6 +68,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
 
     return {
         sideBar,
+        editorArea,
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },

@@ -50,6 +50,19 @@ export type FileContent =
     | { readonly kind: 'text'; readonly path: string; readonly text: string; readonly mtimeMs: number }
     | { readonly kind: 'binary' | 'too-large'; readonly path: string; readonly size: number };
 
+/** The result of a save: the file's new modification time, to detect later external changes. */
+export interface SaveResult {
+    readonly mtimeMs: number;
+}
+
+/**
+ * Commands the main process asks the renderer to run, from the application
+ * menu and its accelerators (#14). A closed list, so the renderer can ignore
+ * anything else.
+ */
+export const IDE_COMMANDS = ['workspace.openFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
+export type IdeCommand = (typeof IDE_COMMANDS)[number];
+
 /** Unsubscribes a listener registered with an `on…` member. */
 export type Unsubscribe = () => void;
 
@@ -69,8 +82,18 @@ export interface CodeXRApi {
         /** The children of a workspace folder, folders first, then by name. */
         listDirectory(path: string): Promise<readonly DirEntry[]>;
         readFile(path: string): Promise<FileContent>;
-        /** Fires when the workspace changes from outside the renderer (File > Open Folder…). */
+        /**
+         * Writes an existing workspace file. With `expectedMtimeMs` the write is
+         * refused when the file changed on disk since it was read, so a save
+         * never silently overwrites someone else's edit.
+         */
+        writeFile(path: string, text: string, expectedMtimeMs?: number): Promise<SaveResult>;
+        /** Fires when the workspace changes from outside the renderer (`--folder=` at startup). */
         onDidChange(listener: (workspace: WorkspaceInfo | null) => void): Unsubscribe;
+    };
+    readonly commands: {
+        /** Menu commands for the renderer to run (Open Folder…, Save, Save All, Close Editor). */
+        onCommand(listener: (command: IdeCommand) => void): Unsubscribe;
     };
 }
 
@@ -84,6 +107,7 @@ export const IPC_CHANNELS = {
     workspaceCurrent: 'codexr:workspace:current',
     workspaceListDirectory: 'codexr:workspace:list-directory',
     workspaceReadFile: 'codexr:workspace:read-file',
+    workspaceWriteFile: 'codexr:workspace:write-file',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -93,4 +117,8 @@ export const ALLOWED_IPC_CHANNELS: ReadonlySet<string> = new Set(Object.values(I
 /** Events the main process sends to the renderer (main -> renderer only, never invoked). */
 export const IPC_EVENTS = {
     workspaceChanged: 'codexr:workspace:changed',
+    command: 'codexr:command',
 } as const;
+
+/** The error message a refused `writeFile` carries when the file changed on disk. */
+export const MODIFIED_ON_DISK = 'CODEXR_MODIFIED_ON_DISK';

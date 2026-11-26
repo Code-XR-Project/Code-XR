@@ -48,7 +48,7 @@ body {
 
 .workbench {
   display: grid;
-  grid-template-columns: 48px minmax(180px, 260px) 1fr;
+  grid-template-columns: 48px minmax(180px, 260px) minmax(0, 1fr);
   grid-template-rows: 1fr 24px;
   grid-template-areas:
     'activity side editor'
@@ -165,6 +165,63 @@ body {
 }
 
 .welcome { max-width: 520px; width: 100%; }
+
+/* Editor group (#14): tabs over one Monaco editor. */
+.editor-area.has-editors {
+  display: flex;
+  flex-direction: column;
+  place-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+.editor-tabs {
+  flex: none;
+  display: flex;
+  height: 35px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+}
+.editor-tab {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 12px;
+  max-width: 220px;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.editor-tab[aria-selected='true'] { background: var(--editor); color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
+.editor-tab:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-dirty { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.editor-tab.is-dirty .tab-dirty { background: currentColor; }
+.tab-close {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  visibility: hidden;
+}
+.editor-tab:hover .tab-close, .editor-tab[aria-selected='true'] .tab-close { visibility: visible; }
+.editor-tab.is-dirty:not(:hover) .tab-close { display: none; }
+.tab-close:hover { background: var(--hover); }
+.tab-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.editor-host { flex: 1; min-height: 0; }
+.editor-placeholder { flex: 1; display: grid; place-items: center; }
+.editor-host[hidden], .editor-placeholder[hidden] { display: none; }
 
 .welcome-title {
   font-size: clamp(28px, 4vw, 40px);

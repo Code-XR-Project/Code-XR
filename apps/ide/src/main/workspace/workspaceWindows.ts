@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog, type WebContents } from 'electron';
-import { IPC_EVENTS, type WorkspaceInfo } from '../../shared/api.ts';
+import type { WorkspaceInfo } from '../../shared/api.ts';
 import { Workspace } from './workspace.ts';
 import { log } from '../log.ts';
 
@@ -43,12 +43,4 @@ export async function pickAndOpenFolder(contents: WebContents): Promise<Workspac
         return null;
     }
     return setWorkspace(contents, folder);
-}
-
-/** File > Open Folder…: same picker, then tells the renderer, which did not ask. */
-export async function openFolderFromMenu(win: BrowserWindow): Promise<void> {
-    const info = await pickAndOpenFolder(win.webContents);
-    if (info) {
-        win.webContents.send(IPC_EVENTS.workspaceChanged, info);
-    }
 }

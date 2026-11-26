@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { DirEntry, FileContent, WorkspaceInfo } from '../../shared/api.ts';
+import { MODIFIED_ON_DISK, type DirEntry, type FileContent, type SaveResult, type WorkspaceInfo } from '../../shared/api.ts';
 import { EXCLUDED_NAMES, isIgnored, parseGitignore, type IgnoreRule } from './ignoreRules.ts';
 import { childPath, isInside, parseWorkspacePath, resolveInWorkspace } from './workspacePath.ts';
 
@@ -76,6 +76,34 @@ export class Workspace {
             return { kind: 'binary', path: entryPath, size: stat.size };
         }
         return { kind: 'text', path: entryPath, text: bytes.toString('utf8'), mtimeMs: stat.mtimeMs };
+    }
+
+    /**
+     * Overwrites an existing file with `text` (UTF-8). Refuses a folder, a text
+     * over the editor limit, and, when `expectedMtimeMs` is given, a file whose
+     * modification time moved since it was read (`MODIFIED_ON_DISK`). Creating
+     * files is a separate, explicit operation.
+     */
+    async writeFile(relativePath: unknown, text: unknown, expectedMtimeMs?: unknown): Promise<SaveResult> {
+        if (typeof text !== 'string') {
+            throw new Error('File content must be a string.');
+        }
+        if (Buffer.byteLength(text, 'utf8') > MAX_EDITOR_FILE_BYTES) {
+            throw new Error('File is too large to save from the editor.');
+        }
+        if (expectedMtimeMs !== undefined && typeof expectedMtimeMs !== 'number') {
+            throw new Error('expectedMtimeMs must be a number.');
+        }
+        const absolute = await this.realPathInside(relativePath);
+        const before = await fs.stat(absolute);
+        if (!before.isFile()) {
+            throw new Error(`Not a file: ${parseWorkspacePath(relativePath).join('/')}`);
+        }
+        if (expectedMtimeMs !== undefined && before.mtimeMs !== expectedMtimeMs) {
+            throw new Error(MODIFIED_ON_DISK);
+        }
+        await fs.writeFile(absolute, text, 'utf8');
+        return { mtimeMs: (await fs.stat(absolute)).mtimeMs };
     }
 
     /** The real path of a workspace path; throws if it (or a symlink on the way) leads outside. */

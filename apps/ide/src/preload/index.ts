@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type IdeCommand, type WorkspaceInfo } from '../shared/api.ts';
+
+const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
 /**
  * The only bridge between the sandboxed renderer and the rest of the IDE.
@@ -22,11 +24,26 @@ const api: CodeXRApi = Object.freeze({
         current: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceCurrent),
         listDirectory: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceListDirectory, path),
         readFile: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadFile, path),
+        writeFile: (path: string, text: string, expectedMtimeMs?: number) =>
+            ipcRenderer.invoke(IPC_CHANNELS.workspaceWriteFile, path, text, expectedMtimeMs),
         onDidChange: (listener: (workspace: WorkspaceInfo | null) => void) => {
             const wrapped = (_event: IpcRendererEvent, workspace: WorkspaceInfo | null): void => listener(workspace);
             ipcRenderer.on(IPC_EVENTS.workspaceChanged, wrapped);
             return () => {
                 ipcRenderer.removeListener(IPC_EVENTS.workspaceChanged, wrapped);
+            };
+        },
+    }),
+    commands: Object.freeze({
+        onCommand: (listener: (command: IdeCommand) => void) => {
+            const wrapped = (_event: IpcRendererEvent, command: unknown): void => {
+                if (typeof command === 'string' && KNOWN_COMMANDS.has(command)) {
+                    listener(command as IdeCommand);
+                }
+            };
+            ipcRenderer.on(IPC_EVENTS.command, wrapped);
+            return () => {
+                ipcRenderer.removeListener(IPC_EVENTS.command, wrapped);
             };
         },
     }),
