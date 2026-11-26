@@ -77,6 +77,8 @@ export interface GitRevisionAnalysisPolicy {
 export class GitAnalysisSessionContext {
     public readonly sourceCatalog: GitAnalysisSourceCatalog;
     public readonly cache = new Map<string, CachedPayload>();
+    /** Analyses running now, by cache key: one per commit, however many sources name it. */
+    private readonly inFlight = new Map<string, Promise<CachedPayload>>();
     private readonly ownsSourceCatalog: boolean;
     /** Test seam: the per-revision watchdog. */
     public revisionTimeoutMs = REVISION_ANALYSIS_TIMEOUT_MS;
@@ -118,11 +120,35 @@ export class GitAnalysisSessionContext {
             return cached;
         }
 
+        // Two sources on one commit (a tag and its commit, picked together)
+        // share one analysis: they share one snapshots/<sha> folder, and the
+        // first release used to delete it under the second (EVO-2, #104).
+        const pending = this.inFlight.get(cacheKey);
+        if (pending) {
+            return pending;
+        }
+        const run = this.analyzeAndRelease(source, session, cacheKey);
+        this.inFlight.set(cacheKey, run);
+        try {
+            return await run;
+        } finally {
+            if (this.inFlight.get(cacheKey) === run) {
+                this.inFlight.delete(cacheKey);
+            }
+        }
+    }
+
+    private async analyzeAndRelease(
+        source: Extract<ComparisonSource, { kind: 'gitRef' }>,
+        session: UnifiedAnalysisSession,
+        cacheKey: string,
+    ): Promise<CachedPayload> {
         try {
             return await this.analyzeRevision(source, session, cacheKey);
         } finally {
             // The snapshot is only the analyzer's input: once its payload is
             // cached it is dead weight (up to 100 MB per revision, EVO-8).
+            // Released once per commit, after its only analysis has ended.
             await this.gitService.releaseSnapshot(source).catch(() => undefined);
         }
     }
