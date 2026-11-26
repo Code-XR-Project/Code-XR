@@ -38,8 +38,10 @@ const ACTIVITY: readonly ActivityItem[] = [
 export type ViewId = 'explorer' | 'search' | 'scm' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
 
 export interface Workbench {
-    /** The explorer's pane of the side bar. */
+    /** The explorer's part of its side-bar pane (the file tree). */
     readonly sideBar: HTMLElement;
+    /** #172: the Outline section under the file tree, in the same pane. */
+    readonly outlineView: HTMLElement;
     /** The Search view's pane of the side bar (#165). */
     readonly searchView: HTMLElement;
     /** The Source Control view's pane of the side bar (#17). */
@@ -102,7 +104,10 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
             return button;
         }));
 
-    const sideBar = el('div', { className: 'side-pane', attrs: { 'data-view': 'explorer' } });
+    // #172: the explorer pane holds the file tree and, under it, the Outline section.
+    const sideBar = el('div', { className: 'explorer-section' });
+    const outlineView = el('section', { attrs: { 'aria-label': 'Outline', 'data-testid': 'outline-section' } });
+    const explorerPane = el('div', { className: 'side-pane explorer-pane', attrs: { 'data-view': 'explorer' } }, [sideBar, outlineView]);
     const searchView = el('div', { className: 'side-pane', attrs: { 'data-view': 'search', 'data-testid': 'search-view' } });
     const scmView = el('div', { className: 'side-pane', attrs: { 'data-view': 'scm', 'data-testid': 'scm-view' } });
     const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
@@ -113,8 +118,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['scm', scmView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, scmView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [explorerPane, searchView, scmView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -179,6 +184,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
 
     return {
         sideBar,
+        outlineView,
         searchView,
         scmView,
         branchStatus,

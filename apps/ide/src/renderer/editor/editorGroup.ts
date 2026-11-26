@@ -100,8 +100,12 @@ export interface EditorGroup {
     entryMoved(from: string, to: string | null): Promise<void>;
     /** Lines of the active file, or null when no file is active (#18: go to line). */
     activeLineCount(): number | null;
-    /** Moves the cursor of the active file to `line` (and `column`), centred, and focuses the editor. */
-    goToLine(line: number, column?: number): void;
+    /** Moves the cursor of the active file to `line` (and `column`), centred, and focuses the editor (unless `focus` is false). */
+    goToLine(line: number, column?: number, focus?: boolean): void;
+    /** #172: the active file's path and model, for its outline; null without one. */
+    activeModel(): { readonly path: string; readonly model: monaco.editor.ITextModel } | null;
+    /** #172: the bar above the editor where the breadcrumbs go (editor/breadcrumbs.ts). */
+    readonly breadcrumbBar: HTMLElement;
     /** #165: opens `path` and selects `length` characters from `line`:`column` (a search match). */
     openAt(path: string, line: number, column: number, length: number): Promise<void>;
     /**
@@ -174,12 +178,15 @@ export function createEditorGroup(
         onMarkersChange?(): void;
         /** #178: a lens over a function past a limit was clicked. */
         showFunctionProblems?(path: string, name: string): void;
+        /** #172: a tab's text matches the disk again (saved, reloaded, or undone back): its outline may be measured again. */
+        onFileClean?(path: string): void;
     },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
+    const breadcrumbBar = el('div', { className: 'editor-breadcrumbs', attrs: { 'data-testid': 'breadcrumbs', hidden: '' } });
     const host = el('div', { className: 'editor-host', attrs: { 'data-testid': 'editor-host' } });
     const placeholder = el('div', { className: 'editor-placeholder muted' });
-    container.replaceChildren(tabs, host, placeholder);
+    container.replaceChildren(tabs, breadcrumbBar, host, placeholder);
     container.classList.add('has-editors');
 
     followSystemTheme();
@@ -296,6 +303,9 @@ export function createEditorGroup(
         if (dirty !== file.lensStale) {
             file.lensStale = dirty;
             metricLens.refresh(file.model);
+            if (!dirty) {
+                callbacks.onFileClean?.(file.path);
+            }
         }
         reportUnsaved();
     }
@@ -634,6 +644,7 @@ export function createEditorGroup(
         file.mtimeMs = content.mtimeMs;
         file.diskState = 'same';
         refreshTab(file);
+        callbacks.onFileClean?.(file.path);
     }
 
     tabs.addEventListener('keydown', (event) => {
@@ -807,7 +818,9 @@ export function createEditorGroup(
             editor.focus();
         },
         languages: () => monaco.languages.getLanguages(),
-        goToLine(line, column) {
+        breadcrumbBar,
+        activeModel: () => (active ? { path: active.path, model: active.model } : null),
+        goToLine(line, column, focus = true) {
             if (!active) {
                 return;
             }
@@ -816,7 +829,9 @@ export function createEditorGroup(
             const position = { lineNumber, column: Math.min(Math.max(1, column ?? 1), maxColumn) };
             editor.setPosition(position);
             editor.revealPositionInCenterIfOutsideViewport(position);
-            editor.focus();
+            if (focus) {
+                editor.focus();
+            }
         },
         async open(path: string, options: OpenOptions = {}): Promise<void> {
             const existing = files.get(path);

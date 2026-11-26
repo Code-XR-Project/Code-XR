@@ -38,6 +38,17 @@ interface TrackedModel {
 }
 
 let installed = false;
+/** #172: the server's document symbols of a model, for the Outline view; set once the client is installed. */
+let symbolsOf: ((model: monaco.editor.ITextModel) => Promise<monaco.languages.DocumentSymbol[]>) | null = null;
+
+/**
+ * #172: what the language server says the model's symbols are, for the
+ * Outline view and the breadcrumbs: empty when the model's language has no
+ * server running (none installed for Python) or the server found none.
+ */
+export function languageServerSymbols(model: monaco.editor.ITextModel): Promise<monaco.languages.DocumentSymbol[]> {
+    return symbolsOf ? symbolsOf(model) : Promise.resolve([]);
+}
 
 export function installLanguageClient(api: LspApi, host: LanguageClientHost): void {
     if (installed) {
@@ -205,16 +216,18 @@ export function installLanguageClient(api: LspApi, host: LanguageClientHost): vo
         },
     });
 
+    async function documentSymbols(model: monaco.editor.ITextModel): Promise<monaco.languages.DocumentSymbol[]> {
+        const uri = synced(model);
+        if (!uri) {
+            return [];
+        }
+        const result = await request<(Lsp.DocumentSymbol | Lsp.SymbolInformation)[]>('textDocument/documentSymbol', { textDocument: { uri } });
+        return toSymbols(result, uri) as monaco.languages.DocumentSymbol[];
+    }
+    symbolsOf = documentSymbols;
     monaco.languages.registerDocumentSymbolProvider(all, {
         displayName: 'Language server',
-        async provideDocumentSymbols(model) {
-            const uri = synced(model);
-            if (!uri) {
-                return null;
-            }
-            const result = await request<(Lsp.DocumentSymbol | Lsp.SymbolInformation)[]>('textDocument/documentSymbol', { textDocument: { uri } });
-            return toSymbols(result, uri) as monaco.languages.DocumentSymbol[];
-        },
+        provideDocumentSymbols: (model) => documentSymbols(model),
     });
 
     // Go to definition into another file: Monaco has one editor, so the editor group opens the tab.
