@@ -13,6 +13,7 @@ import {
     createGitAnalysisExclusion,
 } from './gitAnalysisEligibility';
 import { sampleTimeline } from './gitTimelineSampler';
+import { buildAutomaticTimeline, buildRangeTimeline } from './projectEvolutionTimeline';
 import {
     describeRevisionType,
     evolutionDirectoryOf,
@@ -34,7 +35,6 @@ import {
 const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
 const DEFAULT_MAX_FRAMES = 24;
 const DEFAULT_ANALYSIS_CONCURRENCY = 4;
-const TIMELINE_SCAN_LIMIT = 240;
 /** A whole movie longer than this is cancelled and reported (EVO-3). */
 export const PROJECT_EVOLUTION_JOB_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -86,7 +86,7 @@ export class ProjectEvolutionService {
 
     public async getReferences(): Promise<ProjectEvolutionReferences> {
         const references = await this.gitService.listReferences();
-        const timeline = await this.buildAutomaticTimeline(references);
+        const timeline = await buildAutomaticTimeline(this.gitService, references);
         const mergedSources = mergeEvolutionSources(references.sources, timeline);
         const filtered = await this.analysis.sourceCatalog.filterSources({
             repositoryRoot: references.repositoryRoot,
@@ -377,81 +377,13 @@ export class ProjectEvolutionService {
     private async resolveAutomaticOrRangeSources(
         request: ProjectEvolutionRequest,
     ): Promise<ComparisonSource[]> {
-        const timeline = await this.buildAutomaticTimeline();
-        const mode = request.mode || 'auto';
-        if (mode === 'range' && request.startSourceId && request.endSourceId) {
-            const startIndex = await this.resolveTimelineIndex(timeline, request.startSourceId);
-            const endIndex = await this.resolveTimelineIndex(timeline, request.endSourceId);
-            // A range the user asked for must never silently degrade into the
-            // full automatic movie — that is how "my range was not analyzed"
-            // presented. Unresolvable endpoints are a loud error instead.
-            if (startIndex < 0 || endIndex < 0) {
-                throw new Error('project-evolution-range-not-found');
-            }
-            const from = Math.min(startIndex, endIndex);
-            const to = Math.max(startIndex, endIndex);
-            return timeline.slice(from, to + 1);
+        const references = await this.gitService.listReferences();
+        if ((request.mode || 'auto') === 'range' && request.startSourceId && request.endSourceId) {
+            // A range the user asked for never degrades into the automatic
+            // movie: an endpoint that cannot be resolved is a loud error.
+            return buildRangeTimeline(this.gitService, references, request.startSourceId, request.endSourceId);
         }
-        return timeline;
-    }
-
-    /**
-     * Position of a picked source inside the commit timeline.
-     *
-     * The picker offers branches, tags and the working copy, whose ids do not
-     * exist in the commit-only timeline — so a direct id match is only the fast
-     * path. Otherwise the source is resolved to its commit sha (branches/tags
-     * point at one) and located by sha; the working copy means "the end".
-     */
-    private async resolveTimelineIndex(
-        timeline: ComparisonSource[],
-        sourceId: string,
-    ): Promise<number> {
-        const byId = timeline.findIndex((source) => source.id === sourceId);
-        if (byId >= 0) {
-            return byId;
-        }
-        if (sourceId === 'working-copy') {
-            return timeline.length - 1;
-        }
-        try {
-            const picked = await this.gitService.resolveSource(sourceId);
-            if (picked.kind !== 'gitRef' || !picked.commitSha) {
-                return -1;
-            }
-            return timeline.findIndex(
-                (source) => source.kind === 'gitRef' && source.commitSha === picked.commitSha,
-            );
-        } catch {
-            return -1;
-        }
-    }
-
-    private async buildAutomaticTimeline(existingReferences?: { sources: ComparisonSource[]; workingTreeDirty: boolean }): Promise<ComparisonSource[]> {
-        const references = existingReferences ?? await this.gitService.listReferences();
-        const timeline = await this.gitService.listTimelineSources(TIMELINE_SCAN_LIMIT);
-        const gitTimeline = timeline.length
-            ? timeline
-            : references.sources.filter((source) => source.kind === 'gitRef');
-        const endAnchor = this.resolveCurrentStateSource(references);
-        if (endAnchor && !gitTimeline.some((source) => source.id === endAnchor.id)) {
-            return [...gitTimeline, endAnchor];
-        }
-        return gitTimeline;
-    }
-
-    /**
-     * The revision a movie must finish on: the branch as it stands right now.
-     *
-     * That is the working copy — it is the checked-out branch whether or not the
-     * tree is dirty, and it is what the user is looking at. The timeline itself
-     * is `--all`, so its last entry may well belong to a different branch and
-     * cannot be trusted as the ending.
-     */
-    private resolveCurrentStateSource(
-        references: { sources: ComparisonSource[]; workingTreeDirty: boolean },
-    ): ComparisonSource | null {
-        return references.sources.find((source) => source.kind === 'workingCopy') || null;
+        return buildAutomaticTimeline(this.gitService, references);
     }
 
     private sampleSources(sources: ComparisonSource[], maxFrames: number): ComparisonSource[] {

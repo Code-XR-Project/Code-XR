@@ -449,18 +449,18 @@ export class ActiveAnalysesCommands {
     private async promptGitRevisionScope(commitCount: number): Promise<GitRevisionScope | undefined> {
         const scopeItem = await vscode.window.showQuickPick([
             {
-                label: `Entire Git history — ${commitCount.toLocaleString()} commits`,
-                description: 'Every commit reachable from all branches and tags',
+                label: `Entire history of the checked-out branch — ${commitCount.toLocaleString()} commits`,
+                description: 'Every commit of HEAD from the first one (first parent: a merge is one step)',
                 scope: { kind: 'all' } as GitRevisionScope,
             },
             {
                 label: 'Only the latest N commits…',
-                description: 'Newest commits across all branches and tags; working copy is added separately',
+                description: 'The newest commits of the checked-out branch; the working copy is added separately',
                 scope: { kind: 'latest', count: 1 } as GitRevisionScope,
             },
         ], {
             title: 'Export Git timeline: choose history range',
-            placeHolder: `${commitCount.toLocaleString()} commits are available`,
+            placeHolder: `${commitCount.toLocaleString()} commits on the checked-out branch. Other branches, stashes and notes are not exported.`,
         });
         if (!scopeItem) {
             return undefined;

@@ -8,6 +8,7 @@ import {
     shouldIgnoreDirectoryName,
 } from '../analysis/watchers/analysisFilePolicy';
 import { currentLaunchSignal } from '../analysis/launch/launchControl';
+import { streamGitLines } from './gitLineStream';
 import type {
     ComparisonSource,
     GitReferenceType,
@@ -79,12 +80,16 @@ export class GitRepositoryService {
         ])).stdout;
         const tagOutput = (await this.runGit(repositoryRoot, [
             'for-each-ref',
-            '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)',
+            '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)%00%(*objecttype)%00%(objecttype)',
             'refs/tags',
         ])).stdout;
         const commitOutput = (await this.runGit(repositoryRoot, [
             'log',
-            '--all',
+            // Branches, tags and remotes, not `--all`: `--all` also walks
+            // refs/stash and refs/notes, whose commits are not history (EVO-6).
+            '--branches',
+            '--tags',
+            '--remotes',
             '--max-count=50',
             '--date=short',
             '--format=%H%x00%ad%x00%ct%x00%P%x00%s',
@@ -146,61 +151,84 @@ export class GitRepositoryService {
         return { ...source, commitSha: resolved };
     }
 
-    public async listTimelineSources(maxCount: number | null = 200): Promise<ComparisonSource[]> {
+    /**
+     * Oldest first: the first-parent history of `tip` (HEAD), never `--all`
+     * (EVO-6), so stashes, notes and other branches are never frames. `exclude`
+     * stops the walk (a range start). No clamp, and streamed (EVO-12).
+     */
+    public async listTimelineSources(
+        maxCount: number | null = 200,
+        tip = 'HEAD',
+        exclude?: string,
+    ): Promise<ComparisonSource[]> {
         const repositoryRoot = await this.resolveRepositoryRoot();
-        const limitArguments = maxCount === null
-            ? []
-            : [`--max-count=${Math.max(1, Math.min(1000, Math.floor(maxCount)))}`];
-        const commitLines = (await this.runGit(repositoryRoot, [
+        if (!await this.revisionExists(repositoryRoot, tip)) {
+            return [];
+        }
+        const limitArguments = maxCount === null ? [] : [`--max-count=${Math.max(1, Math.floor(maxCount))}`];
+        const sources: ComparisonSource[] = [];
+        await streamGitLines(repositoryRoot, [
             'log',
-            '--all',
+            '--first-parent',
             '--reverse',
             ...limitArguments,
             '--date=short',
             '--format=%H%x00%ad%x00%ct%x00%P%x00%s',
-        ])).stdout.split(/\r?\n/).filter(Boolean);
-        const sources: ComparisonSource[] = [];
-        for (const line of commitLines) {
-            const [commitSha, date, committerUnix, parents, subject] = line.split('\0');
-            if (!this.isCommitSha(commitSha)) {
-                continue;
+            tip,
+            ...(exclude ? [`^${exclude}`] : []),
+            '--',
+        ], (line) => {
+            const source = this.parseCommitLine(line);
+            if (source) {
+                sources.push(source);
             }
-            const parentCount = this.countParents(parents);
-            sources.push(this.createGitSource(
-                'commit',
-                commitSha,
-                commitSha.slice(0, 8),
-                commitSha,
-                `${date || ''} ${subject || ''}`.trim(),
-                parentCount > 1 ? 'merge' : 'commit',
-                parentCount,
-                date,
-                committerUnix,
-            ));
-        }
+        }, { timeoutMs: GIT_COMMAND_TIMEOUT_MS, signal: currentLaunchSignal(), describeFailure: describeGitFailure });
         for (const source of sources) {
             this.sourceById.set(source.id, source);
         }
         return sources;
     }
 
-    /**
-     * Lightweight export preflight. Unlike listTimelineSources(), this does
-     * not enumerate or materialize commits; it only tells the user how much
-     * work the complete offline timeline will require.
-     */
+    /** Export preflight: the commits listTimelineSources(null) would list. */
     public async countTimelineCommits(): Promise<number> {
         const repositoryRoot = await this.resolveRepositoryRoot();
+        if (!await this.revisionExists(repositoryRoot, 'HEAD')) {
+            return 0;
+        }
         const rawCount = (await this.runGit(repositoryRoot, [
             'rev-list',
-            '--all',
+            '--first-parent',
             '--count',
+            'HEAD',
+            '--',
         ])).stdout.trim();
         const count = Number.parseInt(rawCount, 10);
         if (!Number.isFinite(count) || count < 0) {
             throw new Error('git-timeline-count-invalid');
         }
         return count;
+    }
+
+    /** Whether `ancestor` is reachable from `descendant` (a commit is its own ancestor). */
+    public async isAncestor(ancestor: string, descendant: string): Promise<boolean> {
+        return this.isCommitSha(ancestor) && this.isCommitSha(descendant) && await this.tryRunGit(
+            await this.resolveRepositoryRoot(), ['merge-base', '--is-ancestor', ancestor, descendant],
+        ) !== null;
+    }
+
+    /** The best common ancestor of two commits, or null for unrelated histories. */
+    public async mergeBase(first: string, second: string): Promise<string | null> {
+        const base = this.isCommitSha(first) && this.isCommitSha(second)
+            ? (await this.tryRunGit(await this.resolveRepositoryRoot(), ['merge-base', first, second]))?.stdout.trim()
+            : '';
+        return base && this.isCommitSha(base) ? base : null;
+    }
+
+    /** The commit HEAD points at, or null in an empty repository. */
+    public async resolveHeadCommit(): Promise<string | null> {
+        const head = await this.tryRunGit(await this.resolveRepositoryRoot(), ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']);
+        const sha = head?.stdout.trim() ?? '';
+        return this.isCommitSha(sha) ? sha : null;
     }
 
     public async resolveSourcesInChronologicalOrder(sourceIds: string[]): Promise<ComparisonSource[]> {
@@ -476,8 +504,13 @@ export class GitRepositoryService {
     private parseTagRefs(stdout: string): ComparisonSource[] {
         const sources: ComparisonSource[] = [];
         for (const line of splitGitLines(stdout)) {
-            const [fullRef, peeledSha, objectSha, shortName, peeledDate, tagDate, peeledUnix, tagUnix] = line.split('\0');
+            const [fullRef, peeledSha, objectSha, shortName, peeledDate, tagDate, peeledUnix, tagUnix, peeledType, objectType] = line.split('\0');
             const commitSha = peeledSha || objectSha;
+            // A tag on a tree or a blob has no history to show and cannot be
+            // resolved as a commit: it is not offered (EVO-7).
+            if ((peeledType || objectType) !== 'commit') {
+                continue;
+            }
             if (!fullRef || !this.isCommitSha(commitSha) || !shortName) {
                 continue;
             }
@@ -488,26 +521,29 @@ export class GitRepositoryService {
 
     /** Recent commits from `git log`, merges typed as such. */
     private parseCommitLog(stdout: string): ComparisonSource[] {
-        const sources: ComparisonSource[] = [];
-        for (const line of splitGitLines(stdout)) {
-            const [commitSha, date, committerUnix, parents, subject] = line.split('\0');
-            if (!this.isCommitSha(commitSha)) {
-                continue;
-            }
-            const parentCount = this.countParents(parents);
-            sources.push(this.createGitSource(
-                'commit',
-                commitSha,
-                commitSha.slice(0, 8),
-                commitSha,
-                `${date || ''} ${subject || ''}`.trim(),
-                parentCount > 1 ? 'merge' : 'commit',
-                parentCount,
-                date,
-                committerUnix,
-            ));
+        return splitGitLines(stdout)
+            .map((line) => this.parseCommitLine(line))
+            .filter((source): source is ComparisonSource => source !== null);
+    }
+
+    /** One `%H %ad %ct %P %s` log line (NUL-separated) as a commit source. */
+    private parseCommitLine(line: string): ComparisonSource | null {
+        const [commitSha, date, committerUnix, parents, subject] = line.split('\0');
+        if (!this.isCommitSha(commitSha)) {
+            return null;
         }
-        return sources;
+        const parentCount = this.countParents(parents);
+        return this.createGitSource(
+            'commit',
+            commitSha,
+            commitSha.slice(0, 8),
+            commitSha,
+            `${date || ''} ${subject || ''}`.trim(),
+            parentCount > 1 ? 'merge' : 'commit',
+            parentCount,
+            date,
+            committerUnix,
+        );
     }
 
     private createGitSource(
@@ -561,6 +597,10 @@ export class GitRepositoryService {
             throw new Error('analysis-target-outside-repository');
         }
         return relativePath.split(path.sep).join('/');
+    }
+
+    private async revisionExists(repositoryRoot: string, revision: string): Promise<boolean> {
+        return (await this.tryRunGit(repositoryRoot, ['rev-parse', '--verify', '--quiet', `${revision}^{commit}`])) !== null;
     }
 
     private async gitObjectExists(repositoryRoot: string, objectSpec: string): Promise<boolean> {
