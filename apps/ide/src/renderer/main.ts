@@ -22,7 +22,8 @@ import { showContextMenu, type ContextMenuItem } from './contextMenu.ts';
 import { createSettingsView } from './settings/settingsView.ts';
 import { createKeybindingsView } from './settings/keybindingsView.ts';
 import { menuAccelerators } from './settings/keybindingsModel.ts';
-import { settingOf } from '../shared/settings.ts';
+import { COLOR_THEME_SETTING, isColorTheme, settingOf, type ColorTheme } from '../shared/settings.ts';
+import { themeChoices } from './settings/settingsModel.ts';
 import type { IdeCommand, KeybindingsReport, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -356,6 +357,45 @@ function pick<T>(label: string, choices: readonly Choice<T>[], apply: (value: T)
         },
     });
 }
+/**
+ * #171: the colour theme picker. Moving through the list previews each theme
+ * (the main process switches what every page sees as prefers-color-scheme);
+ * Enter stores it in the user's settings, Escape goes back to the stored one.
+ */
+function selectColorTheme(): void {
+    const current = settingsReport ? settingOf<ColorTheme>(settingsReport, COLOR_THEME_SETTING) : 'system';
+    const choices = themeChoices(isColorTheme(current) ? current : 'system');
+    const items: PickItem[] = choices.map(({ id, label, description }) => ({ id, label, ...(description ? { description } : {}) }));
+    let previewed: string | undefined = current;
+    const preview = (theme: ColorTheme | null): void => {
+        api.settings.previewTheme(theme).catch((error: unknown) => workbench.setStatus(`Could not preview the theme: ${String(error)}`));
+    };
+    quickInput.open('', {
+        label: 'Select color theme',
+        initialId: current,
+        view: (value) => pickListView(items, value),
+        onActive: (id) => {
+            if (isColorTheme(id) && id !== previewed) {
+                previewed = id;
+                preview(id);
+            }
+        },
+        onClose: (accepted) => {
+            if (!accepted && previewed !== current) {
+                preview(null);
+            }
+        },
+        accept: (action) => {
+            if (action.kind !== 'pick' || !isColorTheme(action.id)) {
+                return;
+            }
+            api.settings.update('user', COLOR_THEME_SETTING, action.id === 'system' ? null : action.id).then(applySettings, (error: unknown) => {
+                preview(null);
+                notifications.notify('error', `Could not change the theme: ${String(error)}`);
+            });
+        },
+    });
+}
 const pickIndentation = (): void => {
     const state = editors?.statusState();
     if (state) { pick('Select indentation', indentationChoices(state), (value) => editors?.setIndentation(value)); }
@@ -421,6 +461,7 @@ registerWorkbenchCommands(registry, {
         settingsView.focus();
     },
     openFolderSettingsFile: () => openFolderSettingsFile(),
+    selectColorTheme,
     openKeybindings: () => {
         workbench.showView('keybindings');
         keybindingsView.focus();

@@ -34,6 +34,7 @@ export interface WorkbenchCommandTargets {
     openSettings(): void;
     openFolderSettingsFile(): void;
     openKeybindings(): void;
+    selectColorTheme(): void;
     showSearch(): void;
     analyseProject(): void;
     canAnalyse(): boolean;
@@ -94,6 +95,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'view.toggleZenMode', category: 'View', title: 'Toggle Zen Mode', keybinding: 'CmdOrCtrl+K Z', run: targets.toggleZenMode },
         { id: 'view.resetLayout', category: 'View', title: 'Reset Layout', run: targets.resetLayout },
         { id: 'workbench.openSettings', category: 'Preferences', title: 'Open Settings', ...menu('workbench.openSettings'), run: targets.openSettings },
+        { id: 'workbench.selectTheme', category: 'Preferences', title: 'Color Theme', keybinding: 'CmdOrCtrl+K CmdOrCtrl+T', run: targets.selectColorTheme },
         { id: 'workbench.openKeybindings', category: 'Preferences', title: 'Open Keyboard Shortcuts', keybinding: 'CmdOrCtrl+K S', run: targets.openKeybindings },
         { id: 'workbench.openFolderSettingsFile', category: 'Preferences', title: 'Open Folder Settings (JSON)', enabled: targets.hasFolder, run: targets.openFolderSettingsFile },
         { id: 'view.showAnalysis', category: 'View', title: 'Show Analysis', run: () => targets.showView('analysis') },

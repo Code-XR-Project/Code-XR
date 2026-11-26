@@ -932,3 +932,4 @@ body {
 .settings-row.is-recording { border-left-color: var(--accent); background: var(--hover); }
 .keybinding-recorder { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; caret-color: transparent; }
 .keybinding-recorder:focus { border-color: var(--accent); outline: none; }
+.settings-input:disabled, .settings-select:disabled { opacity: 0.6; cursor: default; }

@@ -122,6 +122,9 @@ export class SettingsService {
             this.userRaw = applyChange(this.userRaw, key, value);
             await this.storage.write(formatSettingsFile(this.userRaw));
         } else if (scope === 'folder') {
+            if (settingDefinition(key)?.userOnly) {
+                throw new Error('This setting can only be set for the user.');
+            }
             if (!workspace) {
                 throw new Error('Open a folder to change its settings.');
             }

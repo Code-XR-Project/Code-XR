@@ -17,6 +17,8 @@ interface SettingBase<T> {
     readonly description: string;
     readonly category: string;
     readonly default: T;
+    /** Only the user's file may set it (#171: the theme applies to every window, so a folder cannot own it). */
+    readonly userOnly?: boolean;
 }
 
 export type SettingDefinition =
@@ -29,7 +31,17 @@ export type SettingValue = boolean | number | string;
 
 const MONO = "ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace";
 
+/** #171: the colour theme. `system` follows the OS, live. */
+export const COLOR_THEME_SETTING = 'workbench.colorTheme';
+export const COLOR_THEMES = ['system', 'dark', 'light'] as const;
+export type ColorTheme = (typeof COLOR_THEMES)[number];
+
+export function isColorTheme(value: unknown): value is ColorTheme {
+    return typeof value === 'string' && (COLOR_THEMES as readonly string[]).includes(value);
+}
+
 export const SETTINGS: readonly SettingDefinition[] = [
+    { key: COLOR_THEME_SETTING, category: 'Workbench', title: 'Color Theme', description: 'Dark or light, or follow the operating system as it changes. Applies to every window.', type: 'enum', options: COLOR_THEMES, optionLabels: ['Follow the OS', 'Dark', 'Light'], default: 'system', userOnly: true },
     { key: 'editor.fontSize', category: 'Editor', title: 'Font Size', description: 'The editor font size, in pixels.', type: 'number', min: 6, max: 72, integer: true, default: 13 },
     { key: 'editor.fontFamily', category: 'Editor', title: 'Font Family', description: 'The editor fonts, as a CSS font-family list.', type: 'string', maxLength: 300, default: MONO },
     { key: 'editor.lineHeight', category: 'Editor', title: 'Line Height', description: 'The line height in pixels; 0 computes it from the font size.', type: 'number', min: 0, max: 150, integer: true, default: 0 },
@@ -102,7 +114,7 @@ export interface SettingsSnapshot {
 export function resolveSettings(user: SettingValues, folder: SettingValues | null): SettingsSnapshot {
     const effective: Record<string, SettingValue> = {};
     for (const setting of SETTINGS) {
-        effective[setting.key] = folder?.[setting.key] ?? user[setting.key] ?? setting.default;
+        effective[setting.key] = (setting.userOnly ? undefined : folder?.[setting.key]) ?? user[setting.key] ?? setting.default;
     }
     return { user, folder, effective };
 }

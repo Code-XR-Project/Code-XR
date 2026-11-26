@@ -1,4 +1,4 @@
-import type { SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
+import type { ColorTheme, SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
 import type { UserKeybinding } from './keybindings.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
@@ -134,6 +134,8 @@ export const IDE_COMMANDS = [
     'workbench.openSettings',
     // #18, part 3: File > Preferences > Keyboard Shortcuts (its Ctrl/Cmd+K S chord is the workbench's).
     'workbench.openKeybindings',
+    // #171: File > Preferences > Color Theme (its Ctrl/Cmd+K Ctrl/Cmd+T chord is the workbench's).
+    'workbench.selectTheme',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
@@ -432,6 +434,8 @@ export interface CodeXRApi {
         update(scope: SettingScope, key: string, value: SettingValue | null): Promise<SettingsReport>;
         /** Creates `.codexr/settings.json` if needed and resolves with its workspace path, to open in the editor. */
         folderFile(): Promise<string>;
+        /** #171: shows a colour theme without storing it (null: back to the stored one). */
+        previewTheme(theme: ColorTheme | null): Promise<void>;
         /** The settings changed (in this window, or the user's in another one). */
         onDidChange(listener: (report: SettingsReport) => void): Unsubscribe;
     };
@@ -485,6 +489,7 @@ export const IPC_CHANNELS = {
     settingsGet: 'codexr:settings:get',
     settingsUpdate: 'codexr:settings:update',
     settingsFolderFile: 'codexr:settings:folder-file',
+    settingsPreviewTheme: 'codexr:settings:preview-theme',
     keybindingsGet: 'codexr:keybindings:get',
     keybindingsUpdate: 'codexr:keybindings:update',
     keybindingsSetMenu: 'codexr:keybindings:set-menu',

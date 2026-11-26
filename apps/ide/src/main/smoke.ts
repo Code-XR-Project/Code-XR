@@ -46,6 +46,7 @@ export interface SmokeProbe {
     readonly tabs: { readonly previewReplaced: boolean; readonly kept: boolean; readonly cycled: boolean; readonly sessionSaved: boolean; readonly closedAll: boolean };
     /** #18: the Settings view changed the editor font size (stored by the main process, applied to Monaco), and its reset undid it. */
     readonly settings: { readonly listed: boolean; readonly applied: boolean; readonly reset: boolean };
+    readonly theme: { readonly previewed: boolean; readonly reverted: boolean; readonly stored: boolean };
     readonly keybindings: { readonly opened: boolean; readonly recorded: boolean; readonly works: boolean; readonly reset: boolean };
     readonly cspViolations: readonly string[];
 }
@@ -279,6 +280,34 @@ const RENDERER_PROBE = `(async () => {
         zenRow()?.querySelector('[data-testid="keybinding-reset"]')?.click();
         keybindingsProbe.reset = await waitFor(() => !zenRow()?.classList.contains('is-modified') && (zenRow()?.querySelector('[data-testid="keybinding-keys"]')?.textContent ?? '').includes('K Z'));
     }
+    // #171: the theme picker previews Dark then Light, Escape reverts, Enter on Light stores it and Monaco follows.
+    const themeProbe = { previewed: false, reverted: false, stored: false };
+    const isLight = () => window.matchMedia('(prefers-color-scheme: light)').matches;
+    const systemLight = isLight();
+    const field = () => document.querySelector('[data-testid="quick-input-field"]');
+    const openThemes = async () => {
+        press(document.body, 'KeyK', 'k', isMac ? { metaKey: true } : { ctrlKey: true });
+        press(document.body, 'KeyT', 't', isMac ? { metaKey: true } : { ctrlKey: true });
+        return waitFor(() => document.querySelector('[data-testid="quick-input-list"] [data-id="light"]'));
+    };
+    if (await openThemes()) {
+        press(field(), 'ArrowDown', 'ArrowDown');
+        const darkShown = await waitFor(() => !isLight());
+        press(field(), 'ArrowDown', 'ArrowDown');
+        themeProbe.previewed = darkShown && await waitFor(() => isLight());
+        press(field(), 'Escape', 'Escape');
+        themeProbe.reverted = await waitFor(() => isLight() === systemLight);
+    }
+    if (await openThemes()) {
+        press(field(), 'ArrowDown', 'ArrowDown');
+        press(field(), 'ArrowDown', 'ArrowDown');
+        press(field(), 'Enter', 'Enter');
+        const monacoLight = () => { const editor = document.querySelector('.monaco-editor'); return !!editor && !editor.classList.contains('vs-dark'); };
+        themeProbe.stored = await waitFor(() => isLight() && monacoLight())
+            && (await window.codexr.settings.get()).user['workbench.colorTheme'] === 'light';
+        await window.codexr.settings.update('user', 'workbench.colorTheme', null);
+        await waitFor(() => isLight() === systemLight);
+    }
     document.querySelector('.activity-item[data-view="explorer"]')?.click();
     await new Promise((r) => setTimeout(r, 500));
     return {
@@ -307,6 +336,7 @@ const RENDERER_PROBE = `(async () => {
         tabs: tabsProbe,
         settings: settingsProbe,
         keybindings: keybindingsProbe,
+        theme: themeProbe,
         cspViolations,
     };
 })()`;
@@ -371,6 +401,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (!probe.layout.zen || !probe.layout.resized || !probe.layout.saved || !probe.layout.sideBarToggled) { failures.push(`the layout did not respond (${JSON.stringify(probe.layout)})`); }
         if (Object.values(probe.settings).some((ok) => !ok)) { failures.push(`the Settings view did not change the editor (${JSON.stringify(probe.settings)})`); }
+        if (Object.values(probe.theme).some((ok) => !ok)) { failures.push(`the theme picker did not switch the theme (${JSON.stringify(probe.theme)})`); }
         if (Object.values(probe.keybindings).some((ok) => !ok)) { failures.push(`Keyboard Shortcuts did not rebind Zen Mode (${JSON.stringify(probe.keybindings)})`); }
         if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }

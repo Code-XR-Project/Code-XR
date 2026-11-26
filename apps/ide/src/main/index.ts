@@ -6,6 +6,8 @@ import { registerIpcHandlers } from './ipc.ts';
 import { fileStorage, memoryStorage, SettingsService } from './settings/settingsService.ts';
 import { KeybindingsService } from './settings/keybindingsService.ts';
 import { KEYBINDINGS_FILE_NAME } from '../shared/keybindings.ts';
+import { applyColorTheme } from './settings/theme.ts';
+import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { startCore, type CoreServices } from './core/coreRuntime.ts';
 import { installApplicationMenu, setAboutDependencies } from './menu.ts';
 import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
@@ -79,6 +81,8 @@ async function start(): Promise<void> {
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
     registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings);
+    // #171: the stored theme, before the first window paints.
+    applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))

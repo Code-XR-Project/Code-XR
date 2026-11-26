@@ -1,4 +1,4 @@
-import { SETTINGS, type SettingDefinition, type SettingScope, type SettingsSnapshot, type SettingValue } from '../../shared/settings.ts';
+import { COLOR_THEMES, SETTINGS, type ColorTheme, type SettingDefinition, type SettingScope, type SettingsSnapshot, type SettingValue } from '../../shared/settings.ts';
 
 /**
  * The Settings view (#18) as data: which settings a filter shows, grouped by
@@ -14,6 +14,8 @@ export interface SettingRow {
     readonly modified: boolean;
     /** Shown under the title: a folder value hiding the user's, or a user value the folder inherits. */
     readonly note: string | null;
+    /** The scope cannot set it (a user-only setting on the Folder tab): the control is disabled. */
+    readonly readOnly: boolean;
 }
 
 export interface SettingGroup {
@@ -36,18 +38,21 @@ export function settingRows(snapshot: SettingsSnapshot, scope: SettingScope, fil
         if (!matchesFilter(setting, filter)) {
             continue;
         }
-        const own = scope === 'user' ? snapshot.user[setting.key] : snapshot.folder?.[setting.key];
+        const readOnly = scope === 'folder' && setting.userOnly === true;
+        const own = scope === 'user' ? snapshot.user[setting.key] : readOnly ? undefined : snapshot.folder?.[setting.key];
         const user = snapshot.user[setting.key];
         const folder = snapshot.folder?.[setting.key];
         const inherited = scope === 'folder' ? user ?? setting.default : setting.default;
         let note: string | null = null;
-        if (scope === 'user' && folder !== undefined) {
+        if (setting.userOnly && scope === 'folder') {
+            note = 'Only your user settings set this: it applies to every window.';
+        } else if (scope === 'user' && folder !== undefined && !setting.userOnly) {
             note = 'This folder sets its own value, which wins here.';
         } else if (scope === 'folder' && own === undefined && user !== undefined) {
             note = 'Your user setting applies.';
         }
         const rows = groups.get(setting.category) ?? [];
-        rows.push({ setting, value: own ?? inherited, modified: own !== undefined, note });
+        rows.push({ setting, value: own ?? inherited, modified: own !== undefined, note, readOnly });
         groups.set(setting.category, rows);
     }
     return [...groups].map(([category, rows]) => ({ category, rows }));
@@ -70,4 +75,10 @@ export function parseControlValue(setting: SettingDefinition, input: string | bo
         case 'string':
             return typeof input === 'string' && input.length <= setting.maxLength ? input : null;
     }
+}
+
+/** #171: the theme picker's rows, the one in use marked. */
+export function themeChoices(current: ColorTheme): { readonly id: ColorTheme; readonly label: string; readonly description?: string }[] {
+    const labels: Record<ColorTheme, string> = { system: 'Follow the OS', dark: 'Dark', light: 'Light' };
+    return COLOR_THEMES.map((theme) => ({ id: theme, label: labels[theme], ...(theme === current ? { description: 'current' } : {}) }));
 }

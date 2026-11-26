@@ -18,6 +18,12 @@ export interface QuickInputProvider {
     accept(action: PaletteAction): void;
     /** The field's accessible name and placeholder. */
     readonly label?: string;
+    /** The entry to start on when the box opens (#171: the theme in use), instead of the first. */
+    readonly initialId?: string;
+    /** The highlighted entry changed (#171: the theme picker previews it). */
+    onActive?(id: string | undefined): void;
+    /** The box closed: `accepted` when Enter or a click ran an entry, false for Escape or a click outside. */
+    onClose?(accepted: boolean): void;
 }
 
 export interface QuickInput {
@@ -66,17 +72,20 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
     const defaultLabel = 'Type the name of a command to run, or : and a line number';
     let active = 0;
     let returnFocus: HTMLElement | null = null;
+    let pendingInitialId: string | undefined;
 
     function render(): void {
         view = provider.view(input.value);
         if (view.immediate) {
             const action = view.immediate;
             const accepting = provider;
-            close();
+            close(true);
             accepting.accept(action);
             return;
         }
-        active = view.entries.findIndex((entry) => entry.runnable);
+        const initial = pendingInitialId === undefined ? -1 : view.entries.findIndex((entry) => entry.id === pendingInitialId);
+        pendingInitialId = undefined;
+        active = initial >= 0 ? initial : view.entries.findIndex((entry) => entry.runnable);
         if (active < 0) { active = 0; }
         const rows = view.entries.slice(0, MAX_ROWS).map((entry, index) => row(entry, index));
         list.replaceChildren(...rows);
@@ -139,6 +148,7 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
         } else {
             input.removeAttribute('aria-activedescendant');
         }
+        provider.onActive?.(view?.entries[active]?.id);
     }
 
     function move(delta: number): void {
@@ -165,7 +175,7 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
             }
             return;
         }
-        close();
+        close(true);
         accepting.accept(action);
     }
 
@@ -193,7 +203,11 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
     });
 
     function open(value: string, customProvider?: QuickInputProvider): void {
+        if (!layer.hidden) {
+            provider.onClose?.(false);
+        }
         provider = customProvider ?? options;
+        pendingInitialId = provider.initialId;
         const label = provider.label ?? defaultLabel;
         input.setAttribute('aria-label', label);
         input.placeholder = provider.label ?? '';
@@ -209,11 +223,12 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
         input.setSelectionRange(value.length, value.length);
     }
 
-    function close(): void {
+    function close(accepted = false): void {
         if (layer.hidden) {
             return;
         }
         layer.hidden = true;
+        provider.onClose?.(accepted);
         list.replaceChildren();
         view = null;
         const target = returnFocus;
@@ -237,5 +252,5 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
         }
     }
 
-    return { open, close, isOpen: () => !layer.hidden, refresh };
+    return { open, close: () => close(false), isOpen: () => !layer.hidden, refresh };
 }
