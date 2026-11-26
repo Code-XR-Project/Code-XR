@@ -15,6 +15,7 @@ import type { FunctionMetricsSnapshot } from './problems.ts';
  */
 
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentsApi } from './agents.ts';
+import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitApi } from './git.ts';
 
 /** Facts about the running IDE, shown on the welcome screen and in About. */
 export interface AppInfo {
@@ -317,6 +318,8 @@ export type Unsubscribe = () => void;
 export interface CodeXRApi {
     /** The AI agent hub: providers, keys, chats (contract in agents.ts). */
     readonly agents: AgentsApi;
+    /** #17: Source Control for the open folder (contract in git.ts). */
+    readonly git: GitApi;
     readonly app: {
         getInfo(): Promise<AppInfo>;
         /** Messages from the core (environment set up, a server stopped ...). */
@@ -568,6 +571,8 @@ export const IPC_CHANNELS = {
     terminalKill: 'codexr:terminal:kill',
     // The AI agent hub keeps its own channel list in agents.ts.
     ...AGENT_IPC_CHANNELS,
+    // #17: Source Control keeps its own channel list in git.ts.
+    ...GIT_IPC_CHANNELS,
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -595,6 +600,7 @@ export const IPC_EVENTS = {
     outputAppended: 'codexr:output:appended',
     metricsChanged: 'codexr:problems:metrics-changed',
     ...AGENT_IPC_EVENTS,
+    ...GIT_IPC_EVENTS,
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */
