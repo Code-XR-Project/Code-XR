@@ -206,7 +206,7 @@ describe('Workspace', () => {
         const trashed: string[] = [];
         const trashItem = async (absolute: string): Promise<void> => { trashed.push(absolute); };
         await workspace.trash('bin/old.txt', trashItem);
-        assert.deepEqual(trashed, [path.join(fs.realpathSync(root), 'bin', 'old.txt')]);
+        assert.deepEqual(trashed, [path.join(fs.realpathSync.native(root), 'bin', 'old.txt')]);
         await assert.rejects(() => workspace.trash('', trashItem), /cannot be renamed or deleted/);
         await assert.rejects(() => workspace.trash('../secret/key.txt', trashItem));
         await assert.rejects(() => workspace.trash('bin/missing.txt', trashItem));
@@ -221,7 +221,7 @@ describe('Workspace', () => {
         }
         const trashed: string[] = [];
         await workspace.trash('trash-link.txt', async (absolute) => { trashed.push(absolute); });
-        assert.deepEqual(trashed, [path.join(fs.realpathSync(root), 'trash-link.txt')]);
+        assert.deepEqual(trashed, [path.join(fs.realpathSync.native(root), 'trash-link.txt')]);
         removeLink('trash-link.txt');
     });
 
