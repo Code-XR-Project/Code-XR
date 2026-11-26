@@ -9,7 +9,7 @@ import {
 } from './gitExportOptions';
 import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
 import { VenvManager } from '../python-env/venvManager';
-import { resolveBackendScriptPath } from '../analysis/python/backendScriptPath';
+import { resolveBackendScriptPath } from '../host/backendScriptPath';
 import { hostPathsFromContext, privateStorageRoot, type CoreContext } from '../host/hostPaths';
 import type { HostCancellation, HostProgress } from '../host/codeXRHost';
 

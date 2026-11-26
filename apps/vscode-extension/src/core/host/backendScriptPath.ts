@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { HostPaths } from '../../host/codeXRHost';
+import type { HostPaths } from './codeXRHost';
 
 /**
  * Where a Python backend script can be found.

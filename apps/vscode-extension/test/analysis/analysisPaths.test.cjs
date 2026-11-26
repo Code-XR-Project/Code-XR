@@ -6,7 +6,7 @@ const path = require('node:path');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const executePythonSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'executePython.ts'), 'utf8');
 // executePython and the Git export resolve backend scripts through this helper.
-const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'backendScriptPath.ts'), 'utf8');
+const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'host', 'backendScriptPath.ts'), 'utf8');
 const pythonPathSources = executePythonSource + backendScriptPathSource;
 const webpackConfigSource = fs.readFileSync(path.join(projectRoot, 'webpack.config.js'), 'utf8');
 

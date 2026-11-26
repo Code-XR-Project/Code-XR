@@ -235,7 +235,7 @@ test('the compiled resolvers find what they need in a materialized packaged layo
     try {
         const { pythonEntryPoints } = await collectSurface();
         const result = await withFakeVscode(createFakeVscode(), async ({ requireOut }) => {
-            const { resolveBackendScriptPath } = requireOut('core/analysis/python/backendScriptPath.js');
+            const { resolveBackendScriptPath } = requireOut('core/host/backendScriptPath.js');
             const { hostPathsFromContext } = requireOut('core/host/hostPaths.js');
             const paths = hostPathsFromContext(context);
             const scripts = pythonEntryPoints.map((entry) => resolveBackendScriptPath(paths, entry.split(' | ')[0]));
