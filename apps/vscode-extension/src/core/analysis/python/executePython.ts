@@ -451,7 +451,7 @@ export class ExecutePython {
                 // UTF-8 on every platform: a piped stdout on Windows otherwise
                 // uses the ANSI code page, and the DOM backend crashed writing
                 // `→` or any non-Latin text (LAUNCHER-15).
-                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', PYTHONHASHSEED: '0' },
                 stdio: ['pipe', 'pipe', 'pipe'],
             });
 

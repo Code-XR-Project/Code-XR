@@ -3,6 +3,9 @@
     if (!AFRAME?.registerComponent || AFRAME.components[COMPONENT]) { return; }
     AFRAME.registerComponent(COMPONENT, {
       init: function () {
+        // A worker made before init (a setGraph that raced A-Frame) is ended,
+        // not overwritten: one leaked thread per entry (DEPGRAPH-6).
+        this.worker?.terminate?.();
         this.worker = null;
         this.nodes = {};
         this.edges = [];
@@ -85,6 +88,15 @@
         }
         this.worker = createLayoutWorker();
         this.worker.onmessage = this.applyPositions.bind(this);
+        var self = this;
+        // A throw inside the layout used to leave the old graph frozen with no word.
+        this.worker.onerror = function (event) {
+          event?.preventDefault?.();
+          self.pendingGraph = null;
+          self.worker?.terminate?.();
+          self.worker = null;
+          setStatus('The dependency layout failed' + (event?.message ? ' (' + event.message + ')' : '') + '. Try another layout.', true);
+        };
         return this.worker;
       },
       disposeView: function () {
@@ -157,6 +169,9 @@
         });
         this.currentDataset = dataset;
         this.currentView = view;
+        var notice = renderBudgetNotice(dataset.budget);
+        if (notice || state.renderBudgetNotice) { setStatus(notice, false); }
+        state.renderBudgetNotice = notice;
         // Drop any breadcrumb that isn't the tracked one before (re)building —
         // kills a residue left at the old position by a prior mount/re-render,
         // however it got orphaned, so two can never stack.

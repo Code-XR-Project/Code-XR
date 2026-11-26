@@ -122,6 +122,8 @@
     viewGeneration: 0,
     active: false,
     transitionLocked: false,
+    // "Showing 600 of 2,456 nodes…" while the render budget trims the view.
+    renderBudgetNotice: '',
     retryTimers: new Set()
   };
   var refs = {};

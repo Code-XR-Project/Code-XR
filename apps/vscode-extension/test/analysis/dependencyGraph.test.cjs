@@ -1033,9 +1033,9 @@ const directoryBody = { id: 'dir', targetType: 'directory' };
 const fileBody = { id: 'file', targetType: 'file', targetRelativePath: '' };
 const projectBody = { id: 'project', targetType: 'directory' };
 
-// Note 'project after snapshot replaced': the project-dataset fetch does NOT
-// re-check snapshot identity (the dataset fetch does). Pinned as it behaves
-// today; whether to add the clause is a 1.3.0 decision.
+// Note 'project after snapshot replaced': since S13 (DEPGRAPH-11) the
+// project-dataset fetch re-checks snapshot identity like the dataset fetch,
+// so a replaced snapshot's project dataset is dropped.
 const DEPENDENCY_SHARED_STATE_CHARACTERIZATION = {
   "null snapshot": {
     "fetched": [],
@@ -1367,7 +1367,7 @@ const DEPENDENCY_SHARED_STATE_CHARACTERIZATION = {
       "status": "ready"
     },
     "dataset": "file",
-    "projectDataset": "project",
+    "projectDataset": null,
     "fileDatasets": [
       "src/a.ts=file"
     ],

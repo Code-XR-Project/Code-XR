@@ -203,9 +203,33 @@ export class DependencyGraphBridge {
             ...pickAllowed('flowSpeed', payload.flowSpeed, allowedFlowSpeeds),
             ...(Object.keys(relationFilters).length ? { relationFilters } : {}),
             ...(Object.keys(mapping).length ? { mapping } : {}),
-            ...(scope ? { scope } : {}),
+            ...this.scopeWithItsDataset(scope),
         });
         return true;
+    }
+
+    /**
+     * A scope only ever enters the room together with the dataset that draws
+     * it (DEPGRAPH-4): a folder takes the project dataset, a file takes its own
+     * file dataset. A file the room has no dataset for is not accepted here;
+     * the client asks for it with dependency-file-scope-request instead, or a
+     * reload, a late joiner or another participant got an empty table.
+     */
+    private scopeWithItsDataset(
+        scope: { kind: 'directory' | 'file'; relativePath: string } | null,
+    ): Record<string, unknown> {
+        if (!scope) {
+            return {};
+        }
+        const entity = this.room.getRoom()?.getServerEntity(this.room.getRoomId(), 'dependency-graph', 'main');
+        const projectDatasetUrl = typeof entity?.projectDatasetUrl === 'string' ? entity.projectDatasetUrl : '';
+        if (scope.kind === 'directory') {
+            return projectDatasetUrl ? { scope, datasetUrl: projectDatasetUrl } : { scope };
+        }
+        const fileDatasetUrl = typeof entity?.fileDatasetUrl === 'string' ? entity.fileDatasetUrl : '';
+        return fileDatasetUrl && entity?.fileDatasetPath === scope.relativePath
+            ? { scope, datasetUrl: fileDatasetUrl }
+            : {};
     }
 
     public async handleDependencyFileScopeRequestMessage(
@@ -224,18 +248,20 @@ export class DependencyGraphBridge {
                     payload: { message: progressMessage },
                 }),
             );
+            const fileDatasetUrl = `/dependencies/dependency-scope-${dataset.revision}.json`;
+            const filePath = dataset.targetRelativePath || relativePath;
+            // projectDatasetUrl is kept by the merge: the way back up needs it.
             messageContext.upsertSharedEntity({
                 entityKind: 'dependency-graph',
                 entityId: 'main',
                 mode: 'dependency-graph',
                 status: 'ready',
                 message: 'File dependency scope ready.',
-                datasetUrl: `/dependencies/dependency-scope-${dataset.revision}.json`,
+                datasetUrl: fileDatasetUrl,
+                fileDatasetUrl,
+                fileDatasetPath: filePath,
                 revision: dataset.revision,
-                scope: {
-                    kind: 'file',
-                    relativePath: dataset.targetRelativePath || relativePath,
-                },
+                scope: { kind: 'file', relativePath: filePath },
             });
         } catch (error) {
             messageContext.send({
@@ -370,24 +396,7 @@ export class DependencyGraphBridge {
                 && currentScope?.kind === 'file'
                 && typeof currentScope.relativePath === 'string'
             ) {
-                const fileDataset = await this.dependencyGraphService.analyzeFileScope(
-                    currentScope.relativePath,
-                );
-                this.room.getRoom()?.upsertServerEntity(this.room.getRoomId(), {
-                    entityKind: 'dependency-graph',
-                    entityId: 'main',
-                    mode: 'dependency-graph',
-                    status: 'ready',
-                    message: 'File dependencies refreshed.',
-                    datasetUrl: `/dependencies/dependency-scope-${fileDataset.revision}.json`,
-                    projectDatasetUrl: `/dependencies/dependency-graph-${dataset.revision}.json`,
-                    revision: fileDataset.revision,
-                    sourceRevision: dataset.sourceRevision,
-                    scope: {
-                        kind: 'file',
-                        relativePath: fileDataset.targetRelativePath || currentScope.relativePath,
-                    },
-                });
+                await this.publishFileScopeRefresh(dataset, currentScope.relativePath);
                 return;
             }
             this.room.getRoom()?.upsertServerEntity(this.room.getRoomId(), {
@@ -397,6 +406,11 @@ export class DependencyGraphBridge {
                 status: 'ready',
                 message: 'Dependency graph refreshed.',
                 datasetUrl: `/dependencies/dependency-graph-${dataset.revision}.json`,
+                // Both URLs travel with the scope (DEPGRAPH-4); a file dataset
+                // from before this revision is stale (DEPGRAPH-8).
+                projectDatasetUrl: `/dependencies/dependency-graph-${dataset.revision}.json`,
+                fileDatasetUrl: '',
+                fileDatasetPath: '',
                 revision: dataset.revision,
                 sourceRevision: dataset.sourceRevision,
             });
@@ -415,5 +429,32 @@ export class DependencyGraphBridge {
             });
             throw error;
         }
+    }
+
+    /** Re-derives the room's file scope after a project refresh, both URLs with it. */
+    private async publishFileScopeRefresh(
+        dataset: { revision: number; sourceRevision?: number },
+        relativePath: string,
+    ): Promise<void> {
+        if (!this.dependencyGraphService) {
+            return;
+        }
+        const fileDataset = await this.dependencyGraphService.analyzeFileScope(relativePath);
+        const fileDatasetUrl = `/dependencies/dependency-scope-${fileDataset.revision}.json`;
+        const filePath = fileDataset.targetRelativePath || relativePath;
+        this.room.getRoom()?.upsertServerEntity(this.room.getRoomId(), {
+            entityKind: 'dependency-graph',
+            entityId: 'main',
+            mode: 'dependency-graph',
+            status: 'ready',
+            message: 'File dependencies refreshed.',
+            datasetUrl: fileDatasetUrl,
+            fileDatasetUrl,
+            fileDatasetPath: filePath,
+            projectDatasetUrl: `/dependencies/dependency-graph-${dataset.revision}.json`,
+            revision: fileDataset.revision,
+            sourceRevision: dataset.sourceRevision,
+            scope: { kind: 'file', relativePath: filePath },
+        });
     }
 }

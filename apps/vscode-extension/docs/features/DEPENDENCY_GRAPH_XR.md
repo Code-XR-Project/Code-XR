@@ -80,9 +80,23 @@ The first dataset supports:
 - Function or method calls detectable from source text.
 
 Edges are directional from the referencing file to the referenced node.
-Internal references are resolved against normalized relative paths, module
-paths and file stems. Unresolved references become external package nodes.
+A relative specifier (`./util`, `../x/util`, Python `.models`, `..pkg.mod`) is
+resolved first against the importing file's own folder, trying the file, then
+`index.*`, `__init__.py` and `mod.rs` inside it. Other references are looked
+up by normalized relative path, module path and, last, file stem, always in
+that order (since 1.2.1 the order is fixed, so the result no longer depends
+on `PYTHONHASHSEED`; the extension also starts Python with
+`PYTHONHASHSEED=0`). A relative specifier that only matched by stem is
+downgraded from `exact` to `probable`. Unresolved imports, includes and
+inheritance become external package nodes; an unresolved **call** is dropped,
+since `this(`, `String(` or a local helper names no package. Definition sites
+(`def f(`, `function f(`...) are not calls. A mixin `with` counts only on a
+`class`/`object`/`trait` declaration line, and Ada's `with Pkg;` needs its
+`;`, so prose and Python's `with open(` add nothing. In JS/TS, `import type` and a
+default import name no module by themselves; the quoted specifier does.
 External nodes are hidden by default and can be enabled from the XR controls.
+File node ids hash the exact relative path, so `Util.ts` and `util.ts` are
+two nodes.
 
 Calls that cannot be resolved to a unique local definition are marked
 `ambiguous`. They are disabled in the initial view to prevent a dense call
@@ -100,11 +114,24 @@ After extraction CodeXR calculates:
 - Cycle size using strongly connected components.
 
 Cycles are calculated only between internal files. External packages do not
-create false project cycles.
+create false project cycles. A file's `cycleSize` (card label **Cycle size**)
+is the number of files in the strongly connected component it belongs to, 0
+when it is in none.
 
-The group view aggregates nodes by their first directory/package segment. It
-sums metrics, merges equivalent edges and removes self-edges introduced by
-aggregation. Selecting a group opens its file-level view.
+### Folder cards
+
+The directory view folds each child folder into one box, merges equivalent
+edges and removes self-edges introduced by the folding. A folder's card
+describes the folder as drawn, after the relation and external filters:
+
+- **Files** and **Lines** are sums over its files.
+- **Fan-in** / **Fan-out** count the distinct boxes with a drawn edge into /
+  out of the folder; **Degree** counts the distinct neighbours either way.
+- **Relations** counts the drawn edge records touching the box.
+- **In cycles** counts its files that belong to a dependency cycle.
+
+Before 1.2.1 every per-file metric was summed, so the numbers counted edges
+inside the folder and added SCC sizes. Selecting a folder opens it.
 
 ## XR Rendering
 
@@ -113,14 +140,23 @@ its nodes, edges, selection state and layout worker.
 
 Three layouts are available:
 
-1. `force-3d`: a bounded spiral/force-style spatial distribution.
+1. `force-3d`: a deterministic force-directed layout (Fruchterman-Reingold,
+   60 to 150 iterations in the worker) over the table's width and depth,
+   seeded on a sunflower spiral. Connected nodes end up close.
 2. `hierarchical`: directed levels based on incoming dependencies.
 3. `metric-space`: X and Z positions derived from graph metrics.
 
 Layout calculations run in a Web Worker so large graphs do not block the
-A-Frame render loop. The runtime limits a rendered view to 600 nodes and 2,000
-edges. Larger datasets open in group mode and support drilling into a smaller
-area rather than placing thousands of labels in the scene.
+A-Frame render loop. The worker is created once the component has
+initialized, its Blob URL is revoked right after, and a worker error unlocks
+the view with a status message.
+
+The runtime limits a rendered view to 600 nodes and 2,000 edges
+(`RENDER_BUDGET` in `datasetProjection.js`). A larger view keeps the 599
+best-connected nodes (synthetic folder, parent and external-summary nodes
+first), folds the rest into one grey **N more** node that cannot be opened,
+keeps the heaviest edges, and shows "Showing 600 of N nodes..." on the panel.
+Opening a folder or hiding externals shows the rest.
 
 Nodes use language colors by default. The compact controls can remap:
 
@@ -292,7 +328,19 @@ Dependency generation is server-authoritative:
    `dependency-graph/main` shared entity.
 
 Layout, directory/file scope, relation filters, external visibility, mapping
-and edge encoding are shared. Render quality, animated
+and edge encoding are shared.
+
+The shared entity carries the scope together with the dataset that draws it:
+`projectDatasetUrl` (set by every project analysis), `fileDatasetUrl` and
+`fileDatasetPath` (set by a file-scope request, cleared by a new project
+revision), and `datasetUrl` for the current scope. A settings message that
+moves to a folder also points `datasetUrl` at the project dataset; one that
+names a file without a dataset in the room is not accepted, and the browser
+always opens a file through `dependency-file-scope-request` (the server
+answers from its content-hash cache). A browser picks the URL that matches
+the scope, drops its cached file datasets when a new project revision
+arrives, and asks for a missing file dataset instead of drawing an empty
+table. Render quality, animated
 frames, node selection and camera focus remain local.
 
 The same WebSocket is available through Cloudflare Quick Tunnel, so dependency

@@ -111,8 +111,8 @@ async function withBridge(body) {
 
 // ------------------------------------------------------------------ settings
 
-function settingsEntity(DependencyGraphBridge, payload) {
-    const bridge = new DependencyGraphBridge(createHost(createService()), createRoomHooks(undefined));
+function settingsEntity(DependencyGraphBridge, payload, existingEntity) {
+    const bridge = new DependencyGraphBridge(createHost(createService()), createRoomHooks(existingEntity));
     const messageContext = createMessageContext();
     assert.equal(bridge.handleDependencyGraphSettingsMessage(messageContext, { type: 'dependency-graph-settings', payload }), true);
     assert.equal(messageContext.log.length, 1);
@@ -155,12 +155,13 @@ test('settings: every vocabulary value is accepted, in a stable key order', asyn
             edgeEncoding: 'intensity-width',
             showExternal: false,
             layout: 'metric-space',
-        });
+        }, { fileDatasetUrl: '/dependencies/dependency-scope-3.json', fileDatasetPath: 'src/a.ts' });
         assert.deepEqual(Object.keys(everything), [
             'entityKind', 'entityId', 'layout', 'showExternal', 'edgeEncoding', 'flowSize', 'flowSpeed',
-            'relationFilters', 'mapping', 'scope',
+            'relationFilters', 'mapping', 'scope', 'datasetUrl',
         ]);
         assert.deepEqual(everything.scope, { kind: 'file', relativePath: 'src/a.ts' });
+        assert.equal(everything.datasetUrl, '/dependencies/dependency-scope-3.json');
     });
 });
 
@@ -237,7 +238,11 @@ test('settings: relation filters keep known booleans only; mapping keeps known m
 
 test('settings: hostile scopes are refused, safe ones are normalized to forward slashes', async () => {
     await withBridge(async ({ DependencyGraphBridge }) => {
-        const scopeOf = (scope) => settingsEntity(DependencyGraphBridge, { scope }).scope;
+        // The room holds a dataset for every safe path, so only the sanitizer decides here.
+        const scopeOf = (scope) => settingsEntity(DependencyGraphBridge, { scope }, {
+            fileDatasetUrl: '/f.json',
+            fileDatasetPath: String(scope?.relativePath ?? '').replace(/\\/g, '/'),
+        }).scope;
         const table = [
             // [scope, expected]
             [{ kind: 'directory', relativePath: '' }, { kind: 'directory', relativePath: '' }],
@@ -265,6 +270,24 @@ test('settings: hostile scopes are refused, safe ones are normalized to forward 
         for (const [scope, expected] of table) {
             assert.deepEqual(scopeOf(scope), expected, JSON.stringify(scope)?.slice(0, 80));
         }
+    });
+});
+
+test('settings (S13 DEPGRAPH-4): a scope enters the room only with the dataset that draws it', async () => {
+    await withBridge(async ({ DependencyGraphBridge }) => {
+        const room = {
+            projectDatasetUrl: '/dependencies/dependency-graph-4.json',
+            fileDatasetUrl: '/dependencies/dependency-scope-5.json',
+            fileDatasetPath: 'core/a.ts',
+        };
+        const up = settingsEntity(DependencyGraphBridge, { scope: { kind: 'directory', relativePath: 'core' } }, room);
+        assert.deepEqual(up.scope, { kind: 'directory', relativePath: 'core' });
+        assert.equal(up.datasetUrl, room.projectDatasetUrl);
+        const sameFile = settingsEntity(DependencyGraphBridge, { scope: { kind: 'file', relativePath: 'core/a.ts' } }, room);
+        assert.equal(sameFile.datasetUrl, room.fileDatasetUrl);
+        const otherFile = settingsEntity(DependencyGraphBridge, { scope: { kind: 'file', relativePath: 'core/b.ts' } }, room);
+        assert.equal(otherFile.scope, undefined, 'no dataset for that file: the client asks for it instead');
+        assert.equal(otherFile.datasetUrl, undefined);
     });
 });
 

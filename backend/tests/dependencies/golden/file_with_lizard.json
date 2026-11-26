@@ -93,17 +93,17 @@
             "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
           },
           {
-            "id": "file:6641e1be5075de0d",
+            "id": "file:1de33a684cee256c",
             "kind": "file",
-            "label": "shared.gd",
-            "relativePath": "shared.gd",
+            "label": "shared.h",
+            "relativePath": "shared.h",
             "external": false,
             "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
           }
         ],
         "edges": [
           {"id": "edge:545d8e4e68cd62ad", "source": "symbol:7b285fe1f881f097", "target": "symbol:44fa9bc052b29bb5", "kind": "contains", "confidence": "exact", "occurrences": 1},
-          {"id": "edge:826ce299171c7b92", "source": "symbol:7b285fe1f881f097", "target": "file:6641e1be5075de0d", "kind": "include", "confidence": "exact", "occurrences": 1}
+          {"id": "edge:b01af91d46acd7b0", "source": "symbol:7b285fe1f881f097", "target": "file:1de33a684cee256c", "kind": "include", "confidence": "exact", "occurrences": 1}
         ],
         "warnings": [],
         "capabilities": "<the capabilities block at the top of this document>",
@@ -259,7 +259,7 @@
             "ownerId": "symbol:3c5e96565a8b81d1",
             "lineStart": 24,
             "lineEnd": 27,
-            "metrics": {"totalLines": 4, "fanIn": 4, "fanOut": 1, "degree": 5, "dependentCount": 4, "cycleSize": 0, "relationCount": 5, "complexity": 2.0, "parameters": 1, "nestingDepth": 1}
+            "metrics": {"totalLines": 4, "fanIn": 3, "fanOut": 1, "degree": 4, "dependentCount": 3, "cycleSize": 0, "relationCount": 4, "complexity": 2.0, "parameters": 1, "nestingDepth": 1}
           },
           {
             "id": "symbol:efe82b494e759c1b",
@@ -311,7 +311,7 @@
             "ownerId": "symbol:b24a4f1820009c04",
             "lineStart": 42,
             "lineEnd": 43,
-            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 2, "degree": 3, "dependentCount": 1, "cycleSize": 0, "relationCount": 3, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
           },
           {
             "id": "symbol:e79759cb2d04e22a",
@@ -387,9 +387,8 @@
           {"id": "edge:c01864ffc84c944b", "source": "symbol:ab4fab99fef8bc0d", "target": "symbol:84e4a7ce7aa069f5", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:6e62133df1aaae84", "source": "symbol:84e4a7ce7aa069f5", "target": "symbol:51c2912fd5b83643", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:15b14e0802e6f869", "source": "symbol:efe82b494e759c1b", "target": "symbol:51c2912fd5b83643", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
-          {"id": "edge:58478d367138e6ff", "source": "symbol:51c2912fd5b83643", "target": "symbol:3652530f5723cd16", "kind": "call", "confidence": "ambiguous", "occurrences": 2},
           {"id": "edge:5452530fc579e691", "source": "symbol:51c2912fd5b83643", "target": "symbol:efe82b494e759c1b", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
-          {"id": "edge:ccf3027e84f49796", "source": "symbol:d7d1b35781600d61", "target": "symbol:84e4a7ce7aa069f5", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:58478d367138e6ff", "source": "symbol:51c2912fd5b83643", "target": "symbol:3652530f5723cd16", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:9953fd1b38209cc5", "source": "symbol:d7d1b35781600d61", "target": "symbol:e79759cb2d04e22a", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:e8211cdbcb5c1562", "source": "symbol:e79759cb2d04e22a", "target": "symbol:efe82b494e759c1b", "kind": "call", "confidence": "ambiguous", "occurrences": 1}
         ],
@@ -523,8 +522,8 @@
           {"id": "edge:1bf8d49870cc5b4d", "source": "symbol:9e01e82c36d80668", "target": "symbol:bfff1860c7f404b4", "kind": "contains", "confidence": "exact", "occurrences": 1},
           {"id": "edge:fdfe43262819cce6", "source": "symbol:9e01e82c36d80668", "target": "symbol:57f1ad5d92bbfd89", "kind": "contains", "confidence": "exact", "occurrences": 1},
           {"id": "edge:19025d9ff902d7be", "source": "symbol:9e01e82c36d80668", "target": "symbol:29a04306a648558a", "kind": "contains", "confidence": "exact", "occurrences": 1},
-          {"id": "edge:d7bc99310b152549", "source": "symbol:174b92869fdf7c3b", "target": "external:4020ebf55ab37c9d", "kind": "import", "confidence": "exact", "occurrences": 4},
           {"id": "edge:651dd2741876ba53", "source": "symbol:174b92869fdf7c3b", "target": "file:c721056b5b88ec13", "kind": "import", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:d7bc99310b152549", "source": "symbol:174b92869fdf7c3b", "target": "external:4020ebf55ab37c9d", "kind": "import", "confidence": "exact", "occurrences": 2},
           {"id": "edge:27962323a35fc70c", "source": "symbol:174b92869fdf7c3b", "target": "external:95910421b3d2bc9e", "kind": "import", "confidence": "exact", "occurrences": 1},
           {"id": "edge:d6ca9d06b84cfb27", "source": "symbol:174b92869fdf7c3b", "target": "external:b3d557e43b720281", "kind": "inheritance", "confidence": "probable", "occurrences": 1},
           {"id": "edge:8aa22f1b638c2683", "source": "symbol:174b92869fdf7c3b", "target": "external:c8714330c62979f6", "kind": "implementation", "confidence": "probable", "occurrences": 1},
