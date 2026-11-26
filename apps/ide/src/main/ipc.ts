@@ -1,11 +1,11 @@
 import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
-import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AppInfo, type AutoStartMode } from '../shared/api.ts';
+import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, SCENE_ADDRESSES, type AnalysisKind, type AppInfo, type AutoStartMode, type SceneAddress } from '../shared/api.ts';
 import type { TerminalHost } from './terminal/terminalHost.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
-import { closeScene, setSceneBounds } from './analysis/sceneView.ts';
+import { setSceneBounds } from './analysis/sceneView.ts';
 import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
 
@@ -90,7 +90,16 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         return core.analysis.setAutoStart(mode as AutoStartMode);
     });
     handle(IPC_CHANNELS.analysisSetSceneBounds, (event, bounds) => setSceneBounds(ownerOf(event), sanitizeBounds(bounds)));
-    handle(IPC_CHANNELS.analysisCloseScene, (event) => closeScene(ownerOf(event)));
+    handle(IPC_CHANNELS.analysisCloseScene, (event) => core.analysis.closeScene(ownerOf(event)));
+    // #155: sharing acts on the calling window's scene only; no server id or URL comes from the page.
+    handle(IPC_CHANNELS.analysisShareScene, (event) => core.analysis.shareScene(ownerOf(event)));
+    handle(IPC_CHANNELS.analysisStopSharingScene, (event) => core.analysis.stopSharingScene(ownerOf(event)));
+    handle(IPC_CHANNELS.analysisCopySceneAddress, (event, which) => {
+        if (!(SCENE_ADDRESSES as readonly unknown[]).includes(which)) {
+            throw new Error(`Unknown scene address: ${String(which)}`);
+        }
+        core.analysis.copySceneAddress(ownerOf(event), which as SceneAddress);
+    });
     // #137: the terminal. Profiles are addressed by id only; a terminal only by
     // the window that created it (TerminalService checks the owner).
     handle(IPC_CHANNELS.terminalProfiles, () => terminal.profiles());

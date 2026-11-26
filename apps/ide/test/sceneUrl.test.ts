@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { localSceneOrigin, sanitizeBounds, sceneTitle } from '../src/main/analysis/sceneUrl.ts';
+import { localSceneOrigin, sanitizeBounds, sceneTitle, targetName } from '../src/main/analysis/sceneUrl.ts';
 
 describe('localSceneOrigin', () => {
     it('accepts a Code-XR server on loopback', () => {
@@ -44,5 +44,13 @@ describe('sceneTitle', () => {
     it('names the analysed folder on every OS', () => {
         assert.equal(sceneTitle('/home/a/Code-XR'), 'XR · Code-XR');
         assert.equal(sceneTitle('C:\\Users\\a\\Code-XR\\'), 'XR · Code-XR');
+    });
+});
+
+describe('targetName', () => {
+    it('is the folder or file name on every OS', () => {
+        assert.equal(targetName('/home/a/Code-XR/'), 'Code-XR');
+        assert.equal(targetName('C:\\Users\\a\\src\\main.py'), 'main.py');
+        assert.equal(targetName('/'), '/');
     });
 });
