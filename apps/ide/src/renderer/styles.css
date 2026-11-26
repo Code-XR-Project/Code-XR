@@ -925,3 +925,10 @@ body {
 .settings-input:focus, .settings-select:focus { border-color: var(--accent); outline: none; }
 .settings-input[aria-invalid='true'] { border-color: var(--crit); }
 .settings-control input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+/* #18, part 3: the Keyboard Shortcuts view (rows reuse the settings rows). */
+.keybinding-keys { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; align-items: center; }
+.settings-row-head .icon-button[hidden] { display: none; }
+.settings-row.is-recording { border-left-color: var(--accent); background: var(--hover); }
+.keybinding-recorder { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; caret-color: transparent; }
+.keybinding-recorder:focus { border-color: var(--accent); outline: none; }

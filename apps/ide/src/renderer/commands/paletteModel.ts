@@ -47,6 +47,8 @@ export interface PaletteContext {
     readonly isEnabled: (id: string) => boolean;
     readonly recent: readonly string[];
     readonly formatKey: (binding: string) => string;
+    /** A command's key in force, the user's rules applied (#18, part 3); without it, the built-in key. */
+    readonly keybindingOf?: (id: string) => string | undefined;
     /** Lines of the active editor, or null without one. */
     readonly lineCount: number | null;
     /** #164: the workspace's files; null while they are being listed or without a folder. */
@@ -176,14 +178,18 @@ function hint(id: string, label: string, prefix: string): PaletteEntry {
 function commandView(filter: string, context: PaletteContext): PaletteView {
     const query = filter.trim();
     const available = context.commands.filter((command) => context.isEnabled(command.id));
-    const toEntry = (command: CommandDefinition, highlights: readonly number[], group?: string): PaletteEntry => ({
-        id: command.id,
-        label: commandLabel(command),
-        highlights,
-        ...(command.keybinding ? { keybinding: context.formatKey(command.keybinding) } : {}),
-        ...(group ? { group } : {}),
-        runnable: true,
-    });
+    const keyOf = (command: CommandDefinition): string | undefined => (context.keybindingOf ? context.keybindingOf(command.id) : command.keybinding);
+    const toEntry = (command: CommandDefinition, highlights: readonly number[], group?: string): PaletteEntry => {
+        const key = keyOf(command);
+        return {
+            id: command.id,
+            label: commandLabel(command),
+            highlights,
+            ...(key ? { keybinding: context.formatKey(key) } : {}),
+            ...(group ? { group } : {}),
+            runnable: true,
+        };
+    };
     let entries: PaletteEntry[];
     if (query === '') {
         const byId = new Map(available.map((command) => [command.id, command]));

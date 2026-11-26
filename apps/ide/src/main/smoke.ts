@@ -46,6 +46,7 @@ export interface SmokeProbe {
     readonly tabs: { readonly previewReplaced: boolean; readonly kept: boolean; readonly cycled: boolean; readonly sessionSaved: boolean; readonly closedAll: boolean };
     /** #18: the Settings view changed the editor font size (stored by the main process, applied to Monaco), and its reset undid it. */
     readonly settings: { readonly listed: boolean; readonly applied: boolean; readonly reset: boolean };
+    readonly keybindings: { readonly opened: boolean; readonly recorded: boolean; readonly works: boolean; readonly reset: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -252,6 +253,32 @@ const RENDERER_PROBE = `(async () => {
         reset?.click();
         settingsProbe.reset = await waitFor(() => editorFont() === 13);
     }
+    // #18, part 3: Keyboard Shortcuts. Opened by its chord, Zen Mode gets F9, F9 runs it, reset restores the chord.
+    const keybindingsProbe = { opened: false, recorded: false, works: false, reset: false };
+    const isMac = navigator.userAgent.includes('Macintosh');
+    const press = (target, code, keyName, mods) => target.dispatchEvent(new KeyboardEvent('keydown', { code, key: keyName, bubbles: true, cancelable: true, ...(mods || {}) }));
+    press(document.body, 'KeyK', 'k', isMac ? { metaKey: true } : { ctrlKey: true });
+    press(document.body, 'KeyS', 's');
+    keybindingsProbe.opened = await waitFor(() => {
+        const view = document.querySelector('[data-testid="keybindings-view"]');
+        return view && !view.hidden && view.querySelectorAll('[data-testid="keybinding-row"]').length > 20;
+    });
+    const zenRow = () => document.querySelector('[data-testid="keybinding-row"][data-command="view.toggleZenMode"]');
+    zenRow()?.querySelector('[data-testid="keybinding-change"]')?.click();
+    const recorder = await waitFor(() => document.querySelector('[data-testid="keybinding-recorder"]'));
+    if (recorder) {
+        press(recorder, 'F9', 'F9');
+        press(recorder, 'Enter', 'Enter');
+        keybindingsProbe.recorded = await waitFor(() => (zenRow()?.querySelector('[data-testid="keybinding-keys"]')?.textContent ?? '') === 'F9' && zenRow()?.classList.contains('is-modified'));
+        const isZen = () => !!document.querySelector('.workbench.zen');
+        const before = isZen();
+        press(document.body, 'F9', 'F9');
+        const toggled = await waitFor(() => isZen() !== before);
+        press(document.body, 'F9', 'F9');
+        keybindingsProbe.works = toggled && await waitFor(() => isZen() === before);
+        zenRow()?.querySelector('[data-testid="keybinding-reset"]')?.click();
+        keybindingsProbe.reset = await waitFor(() => !zenRow()?.classList.contains('is-modified') && (zenRow()?.querySelector('[data-testid="keybinding-keys"]')?.textContent ?? '').includes('K Z'));
+    }
     document.querySelector('.activity-item[data-view="explorer"]')?.click();
     await new Promise((r) => setTimeout(r, 500));
     return {
@@ -279,6 +306,7 @@ const RENDERER_PROBE = `(async () => {
         layout,
         tabs: tabsProbe,
         settings: settingsProbe,
+        keybindings: keybindingsProbe,
         cspViolations,
     };
 })()`;
@@ -343,6 +371,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (!probe.layout.zen || !probe.layout.resized || !probe.layout.saved || !probe.layout.sideBarToggled) { failures.push(`the layout did not respond (${JSON.stringify(probe.layout)})`); }
         if (Object.values(probe.settings).some((ok) => !ok)) { failures.push(`the Settings view did not change the editor (${JSON.stringify(probe.settings)})`); }
+        if (Object.values(probe.keybindings).some((ok) => !ok)) { failures.push(`Keyboard Shortcuts did not rebind Zen Mode (${JSON.stringify(probe.keybindings)})`); }
         if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }

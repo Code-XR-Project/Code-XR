@@ -7,7 +7,13 @@
  * IDs are unique: registering an ID twice throws, like
  * `assertUniqueCommandIds` in the extension, so two features cannot silently
  * shadow each other. Pure module: no DOM, unit-tested in Node.
+ *
+ * Keys (#18, part 3): a definition carries its built-in keys; the user's
+ * rules (`keybindings.json`) are applied on top by `keybindings(id)`, which
+ * is what the key handler, the palette and the menu read.
  */
+
+import { resolveKeybindings, type UserKeybinding } from '../../shared/keybindings.ts';
 
 export interface CommandDefinition {
     /** Stable ID, `area.action` (for example `file.save`). */
@@ -46,14 +52,37 @@ export interface CommandRegistry {
     execute(id: string): boolean;
     /** The IDs run most recently, newest first (the palette lists them first). */
     recent(): readonly string[];
+    /** A command's built-in keys: its keybinding, then its secondary keys. */
+    defaultKeybindings(id: string): readonly string[];
+    /** A command's keys with the user's rules applied (the first is the one to show). */
+    keybindings(id: string): readonly string[];
+    /** The user's rules, from `keybindings.json`. */
+    userKeybindings(): readonly UserKeybinding[];
+    setUserKeybindings(entries: readonly UserKeybinding[]): void;
 }
 
 const ID_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9-]+)+$/;
 const RECENT_LIMIT = 20;
 
-export function createCommandRegistry(onError: (id: string, error: unknown) => void = () => undefined): CommandRegistry {
+export function createCommandRegistry(onError: (id: string, error: unknown) => void = () => undefined, platform = 'linux'): CommandRegistry {
     const commands = new Map<string, CommandDefinition>();
     let recentIds: string[] = [];
+    let userRules: readonly UserKeybinding[] = [];
+    // Rebuilt when a command comes or goes or the rules change, not on every key press.
+    let resolved: Map<string, string[]> | null = null;
+
+    function defaultKeybindings(id: string): readonly string[] {
+        const command = commands.get(id);
+        return command ? [...(command.keybinding ? [command.keybinding] : []), ...(command.secondaryKeybindings ?? [])] : [];
+    }
+
+    function keybindings(id: string): readonly string[] {
+        if (!resolved) {
+            const defaults = new Map([...commands.keys()].map((key) => [key, defaultKeybindings(key)] as const));
+            resolved = resolveKeybindings(defaults, userRules, platform);
+        }
+        return commands.has(id) ? resolved.get(id) ?? [] : [];
+    }
 
     function isEnabled(id: string): boolean {
         const command = commands.get(id);
@@ -79,9 +108,11 @@ export function createCommandRegistry(onError: (id: string, error: unknown) => v
                 throw new Error(`Command "${command.id}" has no title.`);
             }
             commands.set(command.id, command);
+            resolved = null;
             return () => {
                 if (commands.get(command.id) === command) {
                     commands.delete(command.id);
+                    resolved = null;
                     recentIds = recentIds.filter((id) => id !== command.id);
                 }
             };
@@ -108,6 +139,13 @@ export function createCommandRegistry(onError: (id: string, error: unknown) => v
             return true;
         },
         recent: () => recentIds,
+        defaultKeybindings,
+        keybindings,
+        userKeybindings: () => userRules,
+        setUserKeybindings(entries) {
+            userRules = [...entries];
+            resolved = null;
+        },
     };
 }
 
