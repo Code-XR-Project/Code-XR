@@ -10,6 +10,8 @@
  * any Node, Electron or DOM import.
  */
 
+import { AGENT_IPC_CHANNELS, type AgentsApi } from './agents.ts';
+
 /** Facts about the running IDE, shown on the welcome screen and in About. */
 export interface AppInfo {
     readonly name: string;
@@ -229,6 +231,8 @@ export type Unsubscribe = () => void;
  * except the `on…` subscriptions, which return their `Unsubscribe`.
  */
 export interface CodeXRApi {
+    /** The AI agent hub: providers, keys, chats (contract in agents.ts). */
+    readonly agents: AgentsApi;
     readonly app: {
         getInfo(): Promise<AppInfo>;
         /** Messages from the core (environment set up, a server stopped ...). */
@@ -386,6 +390,8 @@ export const IPC_CHANNELS = {
     terminalInput: 'codexr:terminal:input',
     terminalResize: 'codexr:terminal:resize',
     terminalKill: 'codexr:terminal:kill',
+    // The AI agent hub keeps its own channel list in agents.ts.
+    ...AGENT_IPC_CHANNELS,
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

@@ -19,15 +19,19 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'explorer', label: 'Explorer', icon: 'M3 6h7l2 2h9v11H3z' },
     { id: 'analysis', label: 'Analysis', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
+    // The AI agent hub (agents/agentsView.ts).
+    { id: 'agents', label: 'Agents', icon: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
 ];
 
-export type ViewId = 'explorer' | 'analysis' | 'xr';
+export type ViewId = 'explorer' | 'analysis' | 'xr' | 'agents';
 
 export interface Workbench {
     /** The explorer's pane of the side bar. */
     readonly sideBar: HTMLElement;
     /** The Analysis view's pane of the side bar (#15: the Python environment). */
     readonly analysisView: HTMLElement;
+    /** The Agents view's pane of the side bar (AI agent hub). */
+    readonly agentsView: HTMLElement;
     /** Shows a view in the side bar, as clicking its activity item does. */
     showView(id: ViewId): void;
     /** The status-bar item of the Python environment; clicking it opens the Analysis view. */
@@ -65,8 +69,9 @@ export function renderWorkbench(root: HTMLElement): Workbench {
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
         el('p', { className: 'muted side-note', text: 'Run an analysis from the Analysis view: its XR scene opens beside the code.' }),
     ]);
-    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['analysis', analysisView], ['xr', xrView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, analysisView, xrView]);
+    const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
+    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, analysisView, xrView, agentsView]);
 
     function showView(id: ViewId): void {
         for (const [viewId, pane] of panes) {
@@ -111,6 +116,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     return {
         sideBar,
         analysisView,
+        agentsView,
         showView,
         setPythonStatus(text: string, tooltip: string, state: string): void {
             pythonItem.hidden = false;

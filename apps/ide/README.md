@@ -130,3 +130,12 @@ The first detected profile is the default until the person picks another in the 
 2. Expose it in `src/preload/index.ts`, one member per channel. Never expose `ipcRenderer` or a generic `invoke`.
 3. Register the handler in `src/main/ipc.ts` through `handle()`, which already rejects untrusted frames. Validate every argument: the renderer is untrusted.
 4. Add a unit test for any pure logic, and extend the smoke probe if the capability is security-relevant.
+
+## AI agent hub (stream `ai-agents`)
+
+The Agents view (activity bar, speech-bubble icon) connects the IDE to LLM providers with the person's **own API keys**. There is no Code-XR server in between: every call goes straight from the main process to the provider, and nothing is sent until a provider is configured and used.
+
+- **Providers:** Anthropic, OpenAI, Google Gemini, OpenRouter, Nous Portal, and any OpenAI-compatible endpoint (Ollama, LM Studio…). Three wire protocols cover them (`src/main/agents/providers/`: Anthropic Messages, OpenAI Chat Completions, Gemini `streamGenerateContent`), normalised into one `ChatEvent` stream with text, tool calls, usage and a stop reason. 429/5xx are retried twice with backoff before anything is streamed.
+- **Keys:** `KeyVault` (`src/main/agents/keyVault.ts`) encrypts them with Electron `safeStorage` (Keychain on macOS, DPAPI on Windows, libsecret/kwallet on Linux) into `<userData>/agents/keys.json` (mode 0600). If Linux has no keyring, Electron falls back to `basic_text`, which is obfuscation only: the vault then keeps keys in memory until the IDE quits and writes nothing, and the view says so. Provider settings (no secrets) are in `<userData>/agents/providers.json`.
+- **The renderer never sees a stored key.** It gets `hasKey`, the last four characters and where the key is kept. Fixed providers cannot be pointed at another endpoint from the renderer; a custom endpoint must be https, or http on this machine, with no credentials in the URL.
+- **Contract:** `src/shared/agents.ts` (types + `AGENT_IPC_CHANNELS`, spread into `IPC_CHANNELS`), exposed as `window.codexr.agents`.

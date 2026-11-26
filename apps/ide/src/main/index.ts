@@ -15,6 +15,7 @@ import { folderArgument } from './workspace/workspacePath.ts';
 import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } from './workspace/workspaceWindows.ts';
 import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
+import { startAgents } from './agents/agentsRuntime.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -70,7 +71,7 @@ async function start(): Promise<void> {
         },
         repair: () => void installDependencies(core),
     });
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost);
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, startAgents({ isSmoke }));
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))

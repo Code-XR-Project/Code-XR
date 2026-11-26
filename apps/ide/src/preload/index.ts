@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { AGENT_IPC_CHANNELS, type ProviderInput } from '../shared/agents.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -25,6 +26,14 @@ function subscribe<T>(event: string, listener: (payload: T) => void): Unsubscrib
 }
 
 const api: CodeXRApi = Object.freeze({
+    // The AI agent hub: a stored API key never comes back through here.
+    agents: Object.freeze({
+        secretStore: () => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSecretStore),
+        listProviders: () => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsListProviders),
+        saveProvider: (input: ProviderInput, id?: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSaveProvider, input, id),
+        removeProvider: (id: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsRemoveProvider, id),
+        testProvider: (id: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsTestProvider, id),
+    }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),
         onNotification: (listener: (notification: HostNotification) => void) => subscribe(IPC_EVENTS.hostNotification, listener),

@@ -5,6 +5,7 @@ import { createAnalysisRunView } from './analysisRunView.ts';
 import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter } from './notifications.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
+import { createAgentsView } from './agents/agentsView.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
 
@@ -137,6 +138,10 @@ const commands: Record<IdeCommand, () => void> = {
 api.commands.onCommand((command) => commands[command]());
 
 // #15: the Python environment, in the Analysis view and the status bar.
+// The AI agent hub: providers configured with the person's own keys.
+const agentsView = createAgentsView(workbench.agentsView, api.agents, { onStatus: (message) => workbench.setStatus(message) });
+agentsView.refresh().catch((error: unknown) => workbench.setStatus(`Agents unavailable: ${String(error)}`));
+
 const pythonView = createPythonView(workbench.analysisView, api.python, {
     onStatus: (status) => {
         workbench.setPythonStatus(pythonStatusText(status), status.message, status.state);
