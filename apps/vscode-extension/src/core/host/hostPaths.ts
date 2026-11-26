@@ -15,13 +15,21 @@ import type { HostMode, HostPaths } from './codeXRHost';
  */
 export const EXTENSION_MODE = Object.freeze({ Production: 1, Development: 2, Test: 3 });
 
+/** A file location as the core reads it: `vscode.Uri` fits, so does any `{ fsPath }`. */
+export interface FileLocation {
+    readonly fsPath: string;
+}
+
 /** The part of an `ExtensionContext` that `hostPathsFromContext` reads. */
 export interface ExtensionContextPaths {
     readonly extensionPath: string;
     readonly extensionMode: number;
-    readonly globalStorageUri: { readonly fsPath: string };
-    readonly storageUri?: { readonly fsPath: string } | undefined;
+    readonly globalStorageUri: FileLocation;
+    readonly storageUri?: FileLocation | undefined;
 }
+
+/** What a module that only keeps per-user files needs from the context. */
+export type GlobalStorageContext = Pick<ExtensionContextPaths, 'globalStorageUri'>;
 
 export function hostModeFromExtensionMode(mode: number): HostMode {
     switch (mode) {

@@ -14,15 +14,9 @@ export interface GitBatchObjectMetadata {
     size: number;
 }
 
-interface PendingObjectRequest {
+interface PendingRequest<T> {
     spec: string;
-    resolve: (value: GitBatchObject) => void;
-    reject: (reason: Error) => void;
-}
-
-interface PendingMetadataRequest {
-    spec: string;
-    resolve: (value: GitBatchObjectMetadata) => void;
+    resolve: (value: T) => void;
     reject: (reason: Error) => void;
 }
 
@@ -31,61 +25,62 @@ function gitBatchError(spec: string, detail: string): Error {
 }
 
 /**
- * Persistent `git cat-file --batch` transport. Responses are framed by the
- * byte size announced in Git's header; no line-based content parsing is used,
- * so source files may contain arbitrary bytes and newline sequences.
+ * The answer for an object Git does not have. Newer Git versions answer a
+ * missing promisor object instead of dying: `<oid> missing`, or a header
+ * whose size is not a number (2.5x prints `BAD`, as `ls-tree -l` does, see
+ * gitSnapshotPlan). Object ids here come from commits and trees Git already
+ * read, so an id Git cannot find is a partial-clone gap, not a typo.
  */
-export class GitBatchObjectReader {
-    private readonly child: childProcess.ChildProcessWithoutNullStreams;
-    private readonly pending: PendingObjectRequest[] = [];
-    private buffered = Buffer.alloc(0);
-    private currentHeader: { objectName: string; objectType: string; size: number } | undefined;
+function missingObjectError(spec: string, detail: string): Error {
+    return /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/.test(spec)
+        ? new Error(PARTIAL_CLONE_MISSING_MESSAGE)
+        : gitBatchError(spec, detail);
+}
+
+const MISSING_ANSWER = /\s(?:missing|ambiguous)$|^[0-9a-f]+\s+\S+\s+(?!\d+$)\S+$/;
+
+/**
+ * One persistent `git cat-file` process that survives a partial clone
+ * (EVO-10, #105).
+ *
+ * With `GIT_NO_LAZY_FETCH`, Git 2.43 (the Ubuntu 24.04 default) does not
+ * answer a missing promisor object with a `missing` line: it dies with
+ * `fatal: could not fetch … from promisor remote` (exit 128). Git answers
+ * requests strictly in order and flushes every answer, so the request at the
+ * head of the queue when the process dies is the one that killed it. That
+ * request alone is rejected as "not on this computer"; a fresh process is
+ * started and the requests still queued behind it are sent again. Every
+ * restart consumes one request, so it cannot loop. Newer Git versions that
+ * print a `missing` line never take this path.
+ */
+abstract class GitCatFileProcess<T> {
+    protected readonly pending: Array<PendingRequest<T>> = [];
+    protected buffered = Buffer.alloc(0);
+    private child: childProcess.ChildProcessWithoutNullStreams | null = null;
     private terminalError: Error | undefined;
     private disposed = false;
 
-    public constructor(repositoryRoot: string) {
-        this.child = childProcess.spawn(
-            'git',
-            ['-C', repositoryRoot, 'cat-file', '--batch'],
-            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: gitOfflineEnvironment() },
-        );
-        this.child.stdout.on('data', (chunk: Buffer) => {
-            this.buffered = this.buffered.length
-                ? Buffer.concat([this.buffered, chunk])
-                : Buffer.from(chunk);
-            this.parseAvailableResponses();
-        });
-        let stderr = '';
-        this.child.stderr.on('data', (chunk: Buffer) => {
-            stderr += chunk.toString('utf8');
-        });
-        this.child.on('error', (error) => this.failAll(
-            new Error(`git-cat-file-start-failed: ${error.message}`),
-        ));
-        this.child.on('close', (code) => {
-            if (!this.disposed && (code !== 0 || this.pending.length > 0)) {
-                this.failAll(new Error(isPartialCloneMissingObject(stderr)
-                    ? PARTIAL_CLONE_MISSING_MESSAGE
-                    : `git-cat-file-closed (${String(code)}): ${stderr.trim() || 'no diagnostic'}`));
-            }
-        });
-        this.child.stdin.on('error', (error) => {
-            if (!this.disposed) {
-                this.failAll(new Error(`git-cat-file-input-failed: ${error.message}`));
-            }
-        });
+    protected constructor(
+        private readonly repositoryRoot: string,
+        private readonly batchArgument: string,
+        private readonly label: string,
+    ) {
+        this.start();
     }
 
-    public readObject(spec: string): Promise<GitBatchObject> {
+    protected request(spec: string): Promise<T> {
         if (this.terminalError) {
             return Promise.reject(this.terminalError);
         }
         if (this.disposed) {
-            return Promise.reject(new Error('git-cat-file-reader-disposed'));
+            return Promise.reject(new Error(`${this.label}-reader-disposed`));
         }
-        return new Promise<GitBatchObject>((resolve, reject) => {
+        if (!this.child) {
+            this.start();
+        }
+        return new Promise<T>((resolve, reject) => {
             this.pending.push({ spec, resolve, reject });
-            this.child.stdin.write(`${spec}\n`, 'utf8');
+            this.child?.stdin.write(`${spec}\n`, 'utf8');
         });
     }
 
@@ -94,28 +89,137 @@ export class GitBatchObjectReader {
             return;
         }
         this.disposed = true;
+        const child = this.child;
         if (force) {
-            this.failAll(new Error('git-cat-file-cancelled'));
-            this.child.kill();
+            this.failAll(new Error(`${this.label}-cancelled`));
+            child?.kill();
             return;
         }
-        this.child.stdin.end();
-        if (this.child.exitCode !== null) {
+        if (!child) {
+            return;
+        }
+        child.stdin.end();
+        if (child.exitCode !== null) {
             return;
         }
         await new Promise<void>((resolve) => {
             const timer = setTimeout(() => {
-                this.child.kill();
+                child.kill();
                 resolve();
             }, 2_000);
-            this.child.once('close', () => {
+            child.once('close', () => {
                 clearTimeout(timer);
                 resolve();
             });
         });
     }
 
-    private parseAvailableResponses(): void {
+    /** Resolve or reject as many queued requests as `buffered` allows. */
+    protected abstract parseAvailableResponses(): void;
+
+    /** Forget a half-read response; called when its process is replaced. */
+    protected resetParser(): void {
+        this.buffered = Buffer.alloc(0);
+    }
+
+    protected failAll(error: Error): void {
+        this.terminalError = error;
+        this.resetParser();
+        while (this.pending.length) {
+            this.pending.shift()?.reject(error);
+        }
+    }
+
+    private start(): childProcess.ChildProcessWithoutNullStreams {
+        const child = childProcess.spawn(
+            'git',
+            ['-C', this.repositoryRoot, 'cat-file', this.batchArgument],
+            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: gitOfflineEnvironment() },
+        );
+        this.child = child;
+        let stderr = '';
+        child.stdout.on('data', (chunk: Buffer) => {
+            if (child !== this.child) {
+                return;
+            }
+            this.buffered = this.buffered.length
+                ? Buffer.concat([this.buffered, chunk])
+                : Buffer.from(chunk);
+            this.parseAvailableResponses();
+        });
+        child.stderr.on('data', (chunk: Buffer) => {
+            stderr += chunk.toString('utf8');
+        });
+        child.on('error', (error) => {
+            if (child === this.child && !this.disposed) {
+                this.failAll(new Error(`${this.label}-start-failed: ${error.message}`));
+            }
+        });
+        // A write to a process that just died fails with EPIPE; the `close`
+        // handler below decides what that death means, so it is not fatal here.
+        child.stdin.on('error', () => undefined);
+        child.on('close', (code) => this.handleClose(child, code, stderr));
+        return child;
+    }
+
+    private handleClose(
+        child: childProcess.ChildProcessWithoutNullStreams,
+        code: number | null,
+        stderr: string,
+    ): void {
+        if (child !== this.child || this.disposed || this.terminalError) {
+            return;
+        }
+        this.child = null;
+        if (this.pending.length === 0 && code === 0) {
+            return;
+        }
+        const partialClone = isPartialCloneMissingObject(stderr);
+        if (partialClone && this.pending.length > 0) {
+            this.skipMissingObjectAndRestart();
+            return;
+        }
+        this.failAll(new Error(partialClone
+            ? PARTIAL_CLONE_MISSING_MESSAGE
+            : `${this.label}-closed (${String(code)}): ${stderr.trim() || 'no diagnostic'}`));
+    }
+
+    /** The head request killed the process: reject it, replay the rest. */
+    private skipMissingObjectAndRestart(): void {
+        this.pending.shift()?.reject(new Error(PARTIAL_CLONE_MISSING_MESSAGE));
+        this.resetParser();
+        if (this.pending.length === 0) {
+            return;
+        }
+        const replacement = this.start();
+        for (const request of this.pending) {
+            replacement.stdin.write(`${request.spec}\n`, 'utf8');
+        }
+    }
+}
+
+/**
+ * Persistent `git cat-file --batch` transport. Responses are framed by the
+ * byte size announced in Git's header; no line-based content parsing is used,
+ * so source files may contain arbitrary bytes and newline sequences.
+ */
+export class GitBatchObjectReader extends GitCatFileProcess<GitBatchObject> {
+    private currentHeader: { objectName: string; objectType: string; size: number } | undefined;
+
+    public constructor(repositoryRoot: string) {
+        super(repositoryRoot, '--batch', 'git-cat-file');
+    }
+
+    public readObject(spec: string): Promise<GitBatchObject> {
+        return this.request(spec);
+    }
+
+    protected resetParser(): void {
+        super.resetParser();
+        this.currentHeader = undefined;
+    }
+
+    protected parseAvailableResponses(): void {
         while (this.pending.length > 0) {
             if (!this.currentHeader) {
                 const newline = this.buffered.indexOf(0x0a);
@@ -125,9 +229,9 @@ export class GitBatchObjectReader {
                 const header = this.buffered.subarray(0, newline).toString('utf8').trim();
                 this.buffered = this.buffered.subarray(newline + 1);
                 const request = this.pending[0];
-                if (/\s(?:missing|ambiguous)$/.test(header)) {
+                if (MISSING_ANSWER.test(header)) {
                     this.pending.shift();
-                    request.reject(gitBatchError(request.spec, header));
+                    request.reject(missingObjectError(request.spec, header));
                     continue;
                 }
                 const match = /^([0-9a-f]+)\s+(\S+)\s+(\d+)$/.exec(header);
@@ -146,7 +250,7 @@ export class GitBatchObjectReader {
             if (this.buffered.length < required) {
                 return;
             }
-            const request = this.pending.shift() as PendingObjectRequest;
+            const request = this.pending.shift() as PendingRequest<GitBatchObject>;
             const content = Buffer.from(this.buffered.subarray(0, this.currentHeader.size));
             const separator = this.buffered[this.currentHeader.size];
             this.buffered = this.buffered.subarray(required);
@@ -159,14 +263,6 @@ export class GitBatchObjectReader {
             request.resolve({ ...header, content });
         }
     }
-
-    private failAll(error: Error): void {
-        this.terminalError = error;
-        this.currentHeader = undefined;
-        while (this.pending.length) {
-            this.pending.shift()?.reject(error);
-        }
-    }
 }
 
 /**
@@ -174,92 +270,23 @@ export class GitBatchObjectReader {
  * `--batch-check` process alive and makes limit validation cheap without
  * loading every blob into Node during the indexing phase.
  */
-export class GitBatchMetadataReader {
-    private readonly child: childProcess.ChildProcessWithoutNullStreams;
-    private readonly pending: PendingMetadataRequest[] = [];
-    private buffered = '';
-    private terminalError: Error | undefined;
-    private disposed = false;
-
+export class GitBatchMetadataReader extends GitCatFileProcess<GitBatchObjectMetadata> {
     public constructor(repositoryRoot: string) {
-        this.child = childProcess.spawn(
-            'git',
-            ['-C', repositoryRoot, 'cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'],
-            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: gitOfflineEnvironment() },
-        );
-        this.child.stdout.setEncoding('utf8');
-        this.child.stdout.on('data', (chunk: string) => {
-            this.buffered += chunk;
-            this.parseAvailableResponses();
-        });
-        let stderr = '';
-        this.child.stderr.on('data', (chunk: Buffer) => {
-            stderr += chunk.toString('utf8');
-        });
-        this.child.on('error', (error) => this.failAll(
-            new Error(`git-cat-file-check-start-failed: ${error.message}`),
-        ));
-        this.child.on('close', (code) => {
-            if (!this.disposed && (code !== 0 || this.pending.length > 0)) {
-                this.failAll(new Error(
-                    `git-cat-file-check-closed (${String(code)}): ${stderr.trim() || 'no diagnostic'}`,
-                ));
-            }
-        });
-        this.child.stdin.on('error', (error) => {
-            if (!this.disposed) {
-                this.failAll(new Error(`git-cat-file-check-input-failed: ${error.message}`));
-            }
-        });
+        super(repositoryRoot, '--batch-check=%(objectname) %(objecttype) %(objectsize)', 'git-cat-file-check');
     }
 
     public readMetadata(spec: string): Promise<GitBatchObjectMetadata> {
-        if (this.terminalError) {
-            return Promise.reject(this.terminalError);
-        }
-        if (this.disposed) {
-            return Promise.reject(new Error('git-cat-file-check-reader-disposed'));
-        }
-        return new Promise<GitBatchObjectMetadata>((resolve, reject) => {
-            this.pending.push({ spec, resolve, reject });
-            this.child.stdin.write(`${spec}\n`, 'utf8');
-        });
+        return this.request(spec);
     }
 
-    public async dispose(force = false): Promise<void> {
-        if (this.disposed) {
-            return;
-        }
-        this.disposed = true;
-        if (force) {
-            this.failAll(new Error('git-cat-file-check-cancelled'));
-            this.child.kill();
-            return;
-        }
-        this.child.stdin.end();
-        if (this.child.exitCode !== null) {
-            return;
-        }
-        await new Promise<void>((resolve) => {
-            const timer = setTimeout(() => {
-                this.child.kill();
-                resolve();
-            }, 2_000);
-            this.child.once('close', () => {
-                clearTimeout(timer);
-                resolve();
-            });
-        });
-    }
-
-    private parseAvailableResponses(): void {
-        let newline = this.buffered.indexOf('\n');
+    protected parseAvailableResponses(): void {
+        let newline = this.buffered.indexOf(0x0a);
         while (newline >= 0 && this.pending.length > 0) {
-            const line = this.buffered.slice(0, newline).trim();
-            this.buffered = this.buffered.slice(newline + 1);
-            const request = this.pending.shift() as PendingMetadataRequest;
-            if (/\s(?:missing|ambiguous)$/.test(line)) {
-                request.reject(gitBatchError(request.spec, line));
+            const line = this.buffered.subarray(0, newline).toString('utf8').trim();
+            this.buffered = this.buffered.subarray(newline + 1);
+            const request = this.pending.shift() as PendingRequest<GitBatchObjectMetadata>;
+            if (MISSING_ANSWER.test(line)) {
+                request.reject(missingObjectError(request.spec, line));
             } else {
                 const match = /^([0-9a-f]+)\s+(\S+)\s+(\d+)$/.exec(line);
                 if (!match) {
@@ -272,14 +299,7 @@ export class GitBatchMetadataReader {
                     });
                 }
             }
-            newline = this.buffered.indexOf('\n');
-        }
-    }
-
-    private failAll(error: Error): void {
-        this.terminalError = error;
-        while (this.pending.length) {
-            this.pending.shift()?.reject(error);
+            newline = this.buffered.indexOf(0x0a);
         }
     }
 }

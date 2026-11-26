@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { X509Certificate } from 'crypto';
-import type * as vscode from 'vscode';
+import type { GlobalStorageContext } from '../host/hostPaths';
 import { generate as generateSelfSigned } from 'selfsigned';
 
 export interface GeneratedHttpsCertificatePaths {
@@ -20,7 +20,7 @@ export interface GeneratedHttpsCertificateMetadata {
     sanIpAddresses: string[];
 }
 
-type CertificateStorageContext = Pick<vscode.ExtensionContext, 'globalStorageUri'>;
+type CertificateStorageContext = GlobalStorageContext;
 
 const CERTIFICATE_METADATA_VERSION = 1;
 const CERTIFICATE_DIRECTORY_NAME = 'server-certs';

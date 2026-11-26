@@ -1,7 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import * as vscode from 'vscode';
+import type { HostDisposable } from '../host/codeXRHost';
+import { HostEmitter } from '../host/hostEmitter';
+import type { ExtensionContextPaths } from '../host/hostPaths';
+import { getLogger } from '../../platform/logging/sink';
 import {
     CollaborationProfile,
     DEFAULT_COLLABORATION_PROFILE,
@@ -25,6 +28,13 @@ export const AVATAR_ASSET = {
     triangles: 3_237,
 } as const;
 
+const logger = getLogger('COLLABORATION');
+
+/** What the manager reads from an `ExtensionContext`; a real one fits as it is. */
+export type CollaborationProfileContext = Pick<ExtensionContextPaths, 'globalStorageUri' | 'extensionPath'> & {
+    readonly subscriptions: HostDisposable[];
+};
+
 /** Location inside the packaged extension, relative to `extensionPath`. */
 const AVATAR_ASSET_SEGMENTS = ['resources', 'avatars', AVATAR_ASSET.fileName] as const;
 
@@ -34,9 +44,11 @@ export interface CollaborationConfiguration {
     revision: number;
 }
 
-export class CollaborationProfileManager implements vscode.Disposable {
+export class CollaborationProfileManager implements HostDisposable {
     private static instance: CollaborationProfileManager | null = null;
-    private readonly onDidChangeEmitter = new vscode.EventEmitter<CollaborationConfiguration>();
+    private readonly onDidChangeEmitter = new HostEmitter<CollaborationConfiguration>((error) => {
+        logger.error('Collaboration profile listener failed:', error);
+    });
     private readonly configurationDirectory: string;
     private readonly profilePath: string;
     private readonly installationIdPath: string;
@@ -47,7 +59,7 @@ export class CollaborationProfileManager implements vscode.Disposable {
 
     public readonly onDidChange = this.onDidChangeEmitter.event;
 
-    private constructor(context: vscode.ExtensionContext) {
+    private constructor(context: CollaborationProfileContext) {
         this.configurationDirectory = path.join(context.globalStorageUri.fsPath, 'collaboration');
         this.profilePath = path.join(this.configurationDirectory, 'profile.v1.json');
         this.installationIdPath = path.join(this.configurationDirectory, 'installation-id');
@@ -56,7 +68,7 @@ export class CollaborationProfileManager implements vscode.Disposable {
         this.profile = this.readProfile();
     }
 
-    public static initialize(context: vscode.ExtensionContext): CollaborationProfileManager {
+    public static initialize(context: CollaborationProfileContext): CollaborationProfileManager {
         if (!CollaborationProfileManager.instance) {
             CollaborationProfileManager.instance = new CollaborationProfileManager(context);
             context.subscriptions.push(CollaborationProfileManager.instance);
