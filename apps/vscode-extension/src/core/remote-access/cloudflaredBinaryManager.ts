@@ -37,7 +37,7 @@ const ASSETS: Record<string, CloudflaredAsset> = {
 };
 
 /** Sealed after the user accepts the download modal once. */
-const CLOUDFLARED_CONSENT_KEY = 'codexr.cloudflaredDownloadConsented';
+export const CLOUDFLARED_CONSENT_KEY = 'codexr.cloudflaredDownloadConsented';
 
 export class CloudflaredBinaryManager {
     private readonly binaryDirectory: string;

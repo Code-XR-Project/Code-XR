@@ -12,6 +12,12 @@ import { unsavedCount } from '../unsavedGuard.ts';
  * can never read another window's folder. Dropped when the window goes.
  */
 const workspaces = new Map<number, Workspace>();
+/** Told when a window's folder changes (#139: the analysis of the previous folder stops). */
+let onFolderChange: ((contents: WebContents, root: string | null) => void) | null = null;
+
+export function setFolderChangeListener(listener: (contents: WebContents, root: string | null) => void): void {
+    onFolderChange = listener;
+}
 let recent: RecentFolders | null = null;
 
 /** Starts recording opened folders in `file` (not in the smoke run, which must leave no trace). */
@@ -83,6 +89,11 @@ export function workspaceOf(contents: WebContents): Workspace {
     return workspace;
 }
 
+/** The window's open folder, or null (settings work without one). */
+export function workspaceOrNull(contents: WebContents): Workspace | null {
+    return workspaces.get(contents.id) ?? null;
+}
+
 export function currentWorkspaceInfo(contents: WebContents): WorkspaceInfo | null {
     return workspaces.get(contents.id)?.info ?? null;
 }
@@ -97,10 +108,12 @@ export async function setWorkspace(contents: WebContents, folder: string): Promi
         contents.once('destroyed', () => {
             workspaces.get(contents.id)?.dispose();
             workspaces.delete(contents.id);
+            onFolderChange?.(contents, null);
         });
     }
     workspaces.set(contents.id, workspace);
     log.info(`Opened folder ${workspace.root}`);
+    onFolderChange?.(contents, workspace.root);
     await recent?.add(workspace.root).catch((error: unknown) => log.warn(`Could not record ${workspace.root} as recent: ${String(error)}`));
     return workspace.info;
 }

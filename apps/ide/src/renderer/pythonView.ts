@@ -3,9 +3,9 @@ import { el } from './dom.ts';
 
 /**
  * The Python environment section of the Analysis view (#15). It only shows
- * what the main process reports and asks it to act: checking runs Python,
- * setting up asks for consent in a native dialog first, so nothing here can
- * start a download on its own.
+ * what the main process reports and asks it to act: checking runs Python;
+ * the IDE sets the environment up on its own at start-up (#154), and the Set
+ * up and Repair buttons run the same set-up again.
  */
 
 const LABELS: Record<PythonEnvStatus['state'], string> = {
@@ -39,7 +39,6 @@ export function createPythonView(
     container.replaceChildren(
         el('h2', { className: 'side-bar-title', text: 'Analysis' }),
         section,
-        el('p', { className: 'muted small side-note', text: 'Analyses run in this environment. Running them from the IDE is the next step (#16).' }),
     );
     message.textContent = 'Checking…';
     progress.hidden = true;
@@ -95,10 +94,10 @@ export function createPythonView(
         const remove = (): void => run(() => api.remove());
         switch (status.state) {
             case 'missing-python': actions.replaceChildren(button('Check again', check, true)); break;
-            case 'not-installed': actions.replaceChildren(button('Set up…', setUp, true), button('Check again', check)); break;
+            case 'not-installed': actions.replaceChildren(button('Set up', setUp, true), button('Check again', check)); break;
             case 'installing': actions.replaceChildren(); break;
             case 'ready': actions.replaceChildren(button('Check again', check), button('Remove…', remove)); break;
-            case 'broken': actions.replaceChildren(button('Repair…', setUp, true), button('Remove…', remove)); break;
+            case 'broken': actions.replaceChildren(button('Repair', setUp, true), button('Remove…', remove)); break;
         }
         callbacks.onStatus(status);
     }

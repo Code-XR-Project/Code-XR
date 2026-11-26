@@ -15,7 +15,7 @@ The Python backend is a frequent source of confusion:
 
 `backend/src/main.py` — argparse CLI, JSON output on stdout.
 
-- `--mode {livePanel, xr, schema, dependencies}`
+- `--mode {livePanel, xr, schema, dependencies, functions}` (`functions`, added for the Code-XR IDE's Problems panel #173, returns each analysable file's functions with line range, CCN, NLOC and parameter count, from `utils/function_metrics.py`; with `--type file`, `--project-root` makes the path relative; the extension does not use it)
 - `--type {file, directory}` (the unused `project` alias and the unread `--output` flag were removed in 1.2.1; `--target`, `--files`, `--deep`, `--cache`, `--dependency-refresh`, `--project-root` remain)
 - Three more scripts are spawned directly by TypeScript: `html/html_dom_parser.py` (DOM mode), `summaryFiles/file_reanalysis_coordinator.py` (watcher re-analysis; the folder was misspelled `sumaryFiles/` until 1.2.1) and `export/git_export_analysis_worker.py` (Git export worker pool).
 
@@ -66,7 +66,7 @@ Python source is also pinned on **quote style and import order** by source-text 
 ## Virtual environment (`src/core/python-env/`, commands and tree in `src/features/python-env/`)
 
 - `venvManager.ts` creates/verifies/reinstalls the venv; the package manifest (`pythonPackageManifest.ts`), storage and env UI state live alongside it. User-facing commands: `codeXR.pythonEnv.*` (create/delete/status/reinitialize/verify/debug).
-- Python dependencies are installed into this venv at runtime. The source of truth for the pins is `CODEXR_PYTHON_PACKAGES` in `src/core/python-env/pythonPackageManifest.ts` (only `tree-sitter-language-pack` 1.8.1 since 1.2.1: the metrics need no third-party package); `backend/requirements.txt` is its generated mirror (`npm run python:requirements`, checked by `test/python_env/pythonRequirements.test.cjs`). Note: `tree-sitter-language-pack` downloads its parser libraries from GitHub on first use (the install verification calls `get_parser("python")`).
+- Python dependencies are installed into this venv at runtime. The source of truth for the pins is `CODEXR_PYTHON_PACKAGES` in `src/core/python-env/pythonPackageManifest.ts` (only `tree-sitter-language-pack` 1.8.1 since 1.2.1: the metrics need no third-party package); `backend/requirements.txt` is its generated mirror (`npm run python:requirements`, checked by `test/python_env/pythonRequirements.test.cjs`). Note: `tree-sitter-language-pack` 1.x downloads parser libraries from GitHub on first use. Since 1.2.1 only the set-up does that: `VenvManager` runs `backend/src/tools/download_parsers.py` after installing the packages (and in the startup repair path, which fetches only missing parsers), into `<venv>/codexr-tree-sitter`; `backend/src/utils/tree_sitter_parsers.py` points the pack there, and the dependency engine calls `process()` only when `is_available(grammar)`, otherwise it uses its regex fallback. The install verification only imports the package.
 - Context key `codeXR.pythonEnv.uiLocked` gates analysis context menus while the env is being set up.
 
 ## Languages and metrics

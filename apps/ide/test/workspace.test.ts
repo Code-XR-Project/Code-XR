@@ -60,6 +60,15 @@ after(() => {
 });
 
 describe('Workspace', () => {
+    it('gives an entry path for the clipboard, never one outside the folder (#167)', async () => {
+        const workspace = await Workspace.open(root);
+        assert.equal(workspace.displayPath('src/index.ts', 'absolute'), path.join(path.resolve(root), 'src', 'index.ts'));
+        assert.equal(workspace.displayPath('src/index.ts', 'relative'), ['src', 'index.ts'].join(path.sep));
+        assert.throws(() => workspace.displayPath('../outside.txt', 'absolute'));
+        assert.throws(() => workspace.displayPath('/etc/passwd', 'relative'));
+        assert.throws(() => workspace.displayPath('src/index.ts', 'other'));
+    });
+
     it('lists folders first, then files, in natural order, without .git and node_modules', async () => {
         const workspace = await Workspace.open(root);
         const entries = await workspace.listDirectory('');

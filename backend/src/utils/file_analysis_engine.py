@@ -18,7 +18,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 from babia_path_utils import build_tree_path, normalize_output_paths
 from class_counter_analyzer import analyze_classes
-from code_metrics_analyzer import analyze_file as analyze_function_metrics
+from code_metrics_analyzer import analyze_file as analyze_file_functions
 from file_metric_summary import get_file_size
 from line_metric_utils import build_line_metrics
 from metric_language_contract import get_metric_language
@@ -60,7 +60,7 @@ def _get_file_modified_metadata(file_path: str) -> dict[str, Any]:
     }
 
 
-def _normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
 
     for func in raw_functions or []:
@@ -103,13 +103,13 @@ def build_file_snapshot(file_path: str) -> dict[str, Any]:
     language = get_metric_language(file_path)
     file_name = os.path.basename(file_path)
 
-    metrics_data = analyze_function_metrics(file_path)
+    metrics_data = analyze_file_functions(file_path)
     comment_data = analyze_comments(file_path)
     class_data = analyze_classes(file_path)
     line_metrics = build_line_metrics(file_path, comment_data.get('commentLines', 0))
 
     status = metrics_data.get('status', 'error')
-    normalized_functions = _normalize_function_metrics(metrics_data.get('functions', []))
+    normalized_functions = normalize_function_metrics(metrics_data.get('functions', []))
     function_summary = summarize_function_metrics(normalized_functions)
     complexity_metrics = metrics_data.get('metrics', {}) if status == 'success' else {}
 

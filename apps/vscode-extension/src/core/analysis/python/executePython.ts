@@ -3,7 +3,7 @@ import * as cp from 'child_process';
 import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { VenvManager } from '../../python-env/venvManager';
-import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
+import { getBackendScriptCandidates, resolveBackendScriptPath } from '../../host/backendScriptPath';
 import { hostPathsFromContext, type ExtensionContextPaths } from '../../host/hostPaths';
 import { classifyStderrLine } from './pythonStderrStream';
 import { currentLaunchSignal } from '../launch/launchControl';

@@ -2,10 +2,16 @@ import { app, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { initializeHost } from '@codexr/core/host/hostRegistry';
-import { IPC_EVENTS, type HostNotification } from '../../shared/api.ts';
+import { getHost, initializeHost } from '@codexr/core/host/hostRegistry';
+import { IPC_EVENTS, type HostNotification, type ProgressEvent } from '../../shared/api.ts';
 import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
+import { AnalysisService } from '../analysis/analysisService.ts';
+import { FunctionMetricsService } from '../problems/functionMetricsService.ts';
+import { setSceneLibrariesDir } from '../analysis/sceneView.ts';
+import { CloudflaredService } from '../dependencies/cloudflaredService.ts';
+import { setFolderChangeListener } from '../workspace/workspaceWindows.ts';
+import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 
 /**
  * Starts the extension's core inside the IDE (#15): registers the Electron
@@ -14,7 +20,15 @@ import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
  */
 export interface CoreServices {
     readonly python: PythonEnvironmentService;
+    readonly analysis: AnalysisService;
+    /** The program behind "Share through Cloudflare", installed with the IDE's dependencies (#160). */
+    readonly cloudflared: CloudflaredService;
+    /** #173: the per-function metrics of each window's analysed folder (the Problems panel). */
+    readonly metrics: FunctionMetricsService;
 }
+
+/** Disposed when the app quits: what the core registered (collaboration profiles...). */
+const subscriptions: HostDisposable[] = [];
 
 export function startCore(options: { readonly isSmoke: boolean }): CoreServices {
     // The smoke run must leave no trace in the person's profile (nor in the temp folder).
@@ -35,6 +49,7 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
         events: {
             notify: (severity, message) => broadcast(IPC_EVENTS.hostNotification, { severity, message } satisfies HostNotification),
             progress: (update) => {
+                broadcast(IPC_EVENTS.progress, update satisfies ProgressEvent);
                 if (!update.done) {
                     python?.reportProgress(update.message ?? update.title, update.percent);
                 }
@@ -42,7 +57,22 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
         },
     }));
     python = new PythonEnvironmentService(storageDir, (status) => broadcast(IPC_EVENTS.pythonStatusChanged, status));
-    return { python };
+    // The vendored copies of the scene's CDN libraries (analysis/sceneLibraries.ts); #20 packages them.
+    setSceneLibrariesDir(path.join(installRoot, 'test', 'vendor', 'scene-libraries'));
+    const metrics = new FunctionMetricsService(python);
+    const analysis = new AnalysisService(python, subscriptions, { sceneOpened: (contents, folder) => metrics.analyse(contents, folder) });
+    const cloudflared = new CloudflaredService({ globalStorageUri: { fsPath: storageDir }, globalState: getHost().globalState });
+    // #139: a window that opens another folder stops serving the old one's scene.
+    setFolderChangeListener((contents, root) => {
+        void analysis.folderChanged(contents, root);
+        metrics.folderChanged(contents, root);
+    });
+    app.once('will-quit', () => {
+        for (const disposable of subscriptions.splice(0)) {
+            disposable.dispose();
+        }
+    });
+    return { python, analysis, cloudflared, metrics };
 }
 
 function broadcast(event: string, payload: unknown): void {

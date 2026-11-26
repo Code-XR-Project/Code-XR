@@ -56,7 +56,6 @@ select = [
 "src/livePanels/livePanel_directory_deep_analysis_coordinator.py" = ["E402"]
 "src/livePanels/livePanel_file_analysis_coordinator.py" = ["E402"]
 "src/summaryFiles/file_reanalysis_coordinator.py" = ["E402"]
-"src/tools/lizard_analyzer.py" = ["E402"]
 "src/utils/file_analysis_engine.py" = ["E402"]
 # The suites import the code under test (and their sandbox helper) after the
 # same sys.path bootstrap.
@@ -65,6 +64,7 @@ select = [
 "tests/dependencies/test_dependency_analysis.py" = ["E402"]
 "tests/html_dom/test_html_dom_protocol.py" = ["E402"]
 "tests/xr_file_analysis/test_empty_file_handling.py" = ["E402"]
+"tests/ide_problems/test_function_metrics.py" = ["E402"]
 "tests/xr_schema/test_xr_schema.py" = ["E402"]
 # FA100: these two keep their `typing` generics. xr_field_schema.py is the XR
 # field-schema contract (cleanup skill, section 4: off-limits), and a test pins

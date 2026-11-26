@@ -22,7 +22,7 @@ const {
 // The modules #13 step 2 moved off vscode: each must stay that way.
 const MIGRATED = [
     'core/host/hostPaths.ts',
-    'core/analysis/python/backendScriptPath.ts',
+    'core/host/backendScriptPath.ts',
     'core/charts/settings/settingsFile.ts',
     'core/server/generatedHttpsCertificateManager.ts',
     'core/python-env/pythonEnvStorage.ts',

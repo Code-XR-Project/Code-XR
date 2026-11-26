@@ -15,10 +15,19 @@ export const OUT_DIR = path.join(IDE_ROOT, 'out');
  * source. Type-checked through declarations: see scripts/coreTypes.mjs.
  */
 export const CORE_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'core');
+/** #174: the core's logging (its sink) lives beside it, in the extension's platform layer. */
+export const LOGGING_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'platform', 'logging');
 
 const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
+/**
+ * Native modules cannot be bundled: they load their compiled `.node` file
+ * from their own package folder at run time. node-pty (#137, the terminal)
+ * stays a plain `require('node-pty')` of the main process, resolved from
+ * node_modules; it uses N-API, so the same binary loads in Node and Electron.
+ */
+const MAIN_NATIVE_EXTERNALS = ['node-pty'];
 
-/** @param {'main' | 'preload'} target @param {{ dev?: boolean }} [opts] */
+/** @param {'main' | 'preload' | 'scenePreload'} target @param {{ dev?: boolean }} [opts] */
 export function nodeTargetConfig(target, opts = {}) {
     return {
         configFile: false,
@@ -35,13 +44,13 @@ export function nodeTargetConfig(target, opts = {}) {
             rolldownOptions: {
                 // A sandboxed preload cannot load local files: everything but
                 // electron itself must be bundled in. The main process follows
-                // the same rule so out/ is self-contained.
-                external: NODE_EXTERNALS,
+                // the same rule so out/ is self-contained, native modules aside.
+                external: target === 'main' ? [...NODE_EXTERNALS, ...MAIN_NATIVE_EXTERNALS] : NODE_EXTERNALS,
                 output: { format: 'cjs', entryFileNames: 'index.cjs' },
             },
         },
         ssr: { noExternal: true },
-        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }] },
+        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }, { find: /^@codexr\/logging\//, replacement: `${LOGGING_SRC}/` }] },
     };
 }
 

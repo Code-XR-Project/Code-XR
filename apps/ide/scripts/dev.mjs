@@ -43,9 +43,9 @@ function restartElectron() {
     startElectron();
 }
 
-// Watch main and preload; restart Electron after each successful rebuild.
-const pending = new Set(['main', 'preload']);
-for (const target of /** @type {const} */ (['main', 'preload'])) {
+// Watch main and both preloads (the window's and the scene view's, #16); restart Electron after each successful rebuild.
+const pending = new Set(['main', 'preload', 'scenePreload']);
+for (const target of /** @type {const} */ (['main', 'preload', 'scenePreload'])) {
     const config = nodeTargetConfig(target, { dev: true });
     config.build.watch = {};
     const watcher = /** @type {import('vite').Rollup.RollupWatcher} */ (await build(config));

@@ -72,7 +72,10 @@ test('dependency runtime uses a worker and owns three layouts', () => {
   assert.match(runtime, /Open folder/);
   assert.match(runtime, /Go to parent/);
   assert.match(runtime, /Open file/);
-  assert.match(runtime, /footerReserve: canNavigate \? \.3 : 0/);
+  assert.match(runtime, /footerReserve: canNavigate \|\| editorTarget \? \.3 : 0/);
+  // #16 (Code-XR IDE): a file or symbol opens in the embedding editor, only when the host exposes the bridge.
+  assert.match(runtime, /typeof hostBridge\?\.openInEditor === 'function'/);
+  assert.match(runtime, /'data-codexr-role', 'legend-open-in-editor'/);
   // The per-card action button sits at the card's own (dynamic) bottom edge.
   assert.match(runtime, /-\(card\.height \/ 2\) \+ \.17/);
   assert.match(runtime, /Project root/);

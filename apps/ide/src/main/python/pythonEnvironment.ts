@@ -1,11 +1,16 @@
-import { dialog, type BrowserWindow } from 'electron';
 import { VenvManager } from '@codexr/core/python-env/venvManager';
 import { CODEXR_PYTHON_PACKAGES } from '@codexr/core/python-env/pythonPackageManifest';
 import { PythonEnvUtils } from '@codexr/core/python-env/pythonEnvUtils';
 import { PythonEnvStorage } from '@codexr/core/python-env/pythonEnvStorage';
+import { resolveBackendScriptPath } from '@codexr/core/host/backendScriptPath';
+import { getHost } from '@codexr/core/host/hostRegistry';
+import { execFile } from 'node:child_process';
 import type { PythonEnvStatus, PythonPackageInfo } from '../../shared/api.ts';
-import { log } from '../log.ts';
-import { describePythonEnv, setUpConsent, type PythonFacts } from './pythonStatus.ts';
+import { parseParsersCheck, type ParsersStatus } from '../dependencies/dependencyReport.ts';
+import { channelLog } from '../log.ts';
+import { describePythonEnv, setUpDisclosure, type PythonFacts } from './pythonStatus.ts';
+
+const log = channelLog('python');
 
 const PACKAGES: readonly PythonPackageInfo[] = CODEXR_PYTHON_PACKAGES.map((pkg) => ({ name: pkg.distribution, version: pkg.version, purpose: pkg.purpose }));
 
@@ -13,9 +18,11 @@ const PACKAGES: readonly PythonPackageInfo[] = CODEXR_PYTHON_PACKAGES.map((pkg) 
  * The Python environment of the IDE (#15), run by the core's `VenvManager`
  * (the same code the extension uses) in the IDE's user-data folder.
  *
- * Checking runs Python only. Anything that downloads (set up, repair) starts
- * from a person's click and then asks once more in a native dialog that lists
- * exactly what will be fetched; the renderer cannot skip that question.
+ * Checking runs Python only. Setting up and repairing download the pinned
+ * packages and the language parsers. Adrián decided that the IDE installs its
+ * own dependencies with no question (#154): `ensureReady` runs at start-up,
+ * the Analysis view's buttons run `setUp` directly, and every set-up writes
+ * exactly what it fetches to the log. The VS Code extension still asks.
  */
 export class PythonEnvironmentService {
     private readonly venv: VenvManager;
@@ -46,7 +53,21 @@ export class PythonEnvironmentService {
         return this.publish(describePythonEnv(await this.facts()));
     }
 
-    async setUp(owner: BrowserWindow | null): Promise<PythonEnvStatus> {
+    /**
+     * At start-up (#154): sets the environment up, or repairs it, when it is
+     * missing or incomplete. Does nothing when it is ready or when no Python
+     * is installed (the renderer then explains what to install).
+     */
+    async ensureReady(): Promise<PythonEnvStatus> {
+        const status = await this.status();
+        if (status.state === 'not-installed' || status.state === 'broken') {
+            log.info('Python environment missing or incomplete: setting it up.');
+            return this.setUp();
+        }
+        return status;
+    }
+
+    async setUp(): Promise<PythonEnvStatus> {
         if (this.busy) {
             return this.last ?? this.status();
         }
@@ -55,22 +76,8 @@ export class PythonEnvironmentService {
             return before;
         }
         const python = await this.venv.findSystemPython();
-        const consent = setUpConsent(before, python ? PythonEnvUtils.formatCommand(python.command) : 'the system Python');
-        const options = {
-            type: 'question' as const,
-            title: 'Python environment',
-            message: consent.message,
-            detail: consent.detail,
-            buttons: [before.state === 'broken' ? 'Download and Repair' : 'Download and Set Up', 'Cancel'],
-            defaultId: 1,
-            cancelId: 1,
-            noLink: true,
-        };
-        const { response } = owner ? await dialog.showMessageBox(owner, options) : await dialog.showMessageBox(options);
-        if (response !== 0) {
-            log.info('Python environment set-up declined.');
-            return before;
-        }
+        const disclosure = setUpDisclosure(before, python ? PythonEnvUtils.formatCommand(python.command) : 'the system Python');
+        log.info(`${disclosure.message}\n${disclosure.detail}`);
 
         this.busy = { message: 'Starting…', percent: 0 };
         this.lastError = null;
@@ -90,6 +97,69 @@ export class PythonEnvironmentService {
             this.busy = null;
         }
         return this.status();
+    }
+
+    /**
+     * Which tree-sitter parsers the venv holds (#161), from the backend's
+     * `download_parsers.py --check`: runs the venv's Python, never the network.
+     */
+    async parsersStatus(): Promise<ParsersStatus> {
+        if (this.busy || !this.venv.getEnvironmentStatus().isValid) {
+            return { state: 'unknown', total: 0, missing: [] };
+        }
+        const script = resolveBackendScriptPath(getHost().paths, 'tools/download_parsers.py');
+        const command = PythonEnvUtils.getVenvPythonCommand(this.venvFolder, [script, '--check']);
+        return new Promise((resolve) => {
+            execFile(command.executable, command.args, { timeout: 30_000, windowsHide: true }, (error, stdout) => {
+                if (error) {
+                    log.warn(`Could not check the language parsers: ${error.message}`);
+                    resolve({ state: 'unknown', total: 0, missing: [] });
+                    return;
+                }
+                resolve(parseParsersCheck(stdout));
+            });
+        });
+    }
+
+    /**
+     * #173: per-function metrics from the backend's functions mode, for a
+     * folder (every analysable file under it) or one file of it. Runs the
+     * venv's Python only; resolves with the parsed JSON, or rejects.
+     * `signal` stops a run a newer one replaced.
+     */
+    async functionMetrics(target: string, kind: 'directory' | 'file', root: string, signal?: AbortSignal): Promise<unknown> {
+        if (this.busy || !this.venv.getEnvironmentStatus().isValid) {
+            throw new Error('The Python environment is not ready.');
+        }
+        const script = resolveBackendScriptPath(getHost().paths, 'main.py');
+        const args = [script, '--mode', 'functions', '--type', kind, '--target', target];
+        args.push(...(kind === 'directory' ? ['--deep'] : ['--project-root', root]));
+        const command = PythonEnvUtils.getVenvPythonCommand(this.venvFolder, args);
+        return new Promise((resolve, reject) => {
+            execFile(command.executable, command.args, {
+                timeout: kind === 'directory' ? 10 * 60_000 : 60_000,
+                maxBuffer: 64 * 1024 * 1024,
+                windowsHide: true,
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
+                ...(signal ? { signal } : {}),
+            }, (error, stdout) => {
+                const json = /=== JSON_START ===\r?\n([\s\S]*)\r?\n=== JSON_END ===/.exec(stdout)?.[1];
+                if (error && !json) {
+                    reject(error);
+                    return;
+                }
+                try {
+                    const payload: unknown = JSON.parse(json ?? 'null');
+                    if (payload && typeof payload === 'object' && !Array.isArray(payload) && (payload as { error?: unknown }).error) {
+                        reject(new Error(String((payload as { message?: unknown }).message ?? 'The analysis failed.')));
+                        return;
+                    }
+                    resolve(payload);
+                } catch {
+                    reject(new Error('The backend answered with no metrics.'));
+                }
+            });
+        });
     }
 
     async remove(): Promise<PythonEnvStatus> {

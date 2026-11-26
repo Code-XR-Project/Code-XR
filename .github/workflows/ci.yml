@@ -141,6 +141,12 @@ jobs:
     # real window must open and, from inside the page, prove that the renderer
     # is sandboxed (no require/process), the CSP blocks eval, navigation and
     # window.open are blocked, and the preload API answers over IPC (#12).
+    # #137: it also opens the terminal panel with the default profile (Git
+    # Bash on windows-latest, $SHELL elsewhere), types `echo codexr-smoke` and
+    # reads the output back. node-pty is a native module, but an N-API one
+    # with prebuilt binaries for win32/darwin/linux x64 and arm64 in its npm
+    # package, so `npm ci` compiles nothing and the same binary loads in
+    # Electron: no @electron/rebuild step, no compiler on the runner.
     runs-on: ${{ matrix.os }}
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '0'

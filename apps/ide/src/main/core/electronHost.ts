@@ -11,6 +11,7 @@ import type {
     HostSignal,
     HostStatusIndicator,
 } from '@codexr/core/host/codeXRHost';
+import { plainCoreText } from '../../shared/output.ts';
 import { JsonKeyValueStore } from './jsonStore.ts';
 import { log } from '../log.ts';
 import { openWorkspaceRoots } from '../workspace/workspaceWindows.ts';
@@ -61,7 +62,8 @@ export function createElectronHost(options: ElectronHostOptions): CodeXRHost {
         },
         globalState: store,
         notifier: {
-            async notify(severity, message, ...actions): Promise<string | undefined> {
+            async notify(severity, raw, ...actions): Promise<string | undefined> {
+                const message = plainCoreText(raw);
                 log.info(`[core ${severity}] ${message}`);
                 if (actions.length === 0) {
                     options.events.notify(severity, message);
@@ -71,10 +73,10 @@ export function createElectronHost(options: ElectronHostOptions): CodeXRHost {
                 return askNatively(ownerWindow(), severity, message, undefined, actions);
             },
             async confirm(message, confirmOptions): Promise<string | undefined> {
-                return askNatively(ownerWindow(), confirmOptions.severity ?? 'warning', message, confirmOptions.detail, confirmOptions.actions);
+                return askNatively(ownerWindow(), confirmOptions.severity ?? 'warning', plainCoreText(message), confirmOptions.detail, confirmOptions.actions);
             },
             status(message: string): HostDisposable {
-                options.events.notify('info', message);
+                options.events.notify('info', plainCoreText(message));
                 return NOOP_DISPOSABLE;
             },
             createStatusIndicator(): HostStatusIndicator {
@@ -93,8 +95,8 @@ export function createElectronHost(options: ElectronHostOptions): CodeXRHost {
             const progress: HostProgress = {
                 report(value): void {
                     if (typeof value.increment === 'number') {
-                        // The core reports steps as running totals (0, 20, 55 ... 100): keep the largest seen.
-                        percent = Math.max(percent, Math.min(100, value.increment));
+                        // VS Code contract: each increment adds to the total so far (#158).
+                        percent = Math.min(100, percent + Math.max(0, value.increment));
                     }
                     options.events.progress({ id, title: progressOptions.title, message: value.message, percent, done: false });
                 },

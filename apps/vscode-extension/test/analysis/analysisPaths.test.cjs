@@ -6,7 +6,7 @@ const path = require('node:path');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const executePythonSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'executePython.ts'), 'utf8');
 // executePython and the Git export resolve backend scripts through this helper.
-const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'analysis', 'python', 'backendScriptPath.ts'), 'utf8');
+const backendScriptPathSource = fs.readFileSync(path.join(projectRoot, 'src', 'core', 'host', 'backendScriptPath.ts'), 'utf8');
 const pythonPathSources = executePythonSource + backendScriptPathSource;
 const webpackConfigSource = fs.readFileSync(path.join(projectRoot, 'webpack.config.js'), 'utf8');
 
@@ -29,8 +29,8 @@ test('webpack copies Python assets from <repo>/backend/src into dist/code_analys
 test('Python analysis uses Code-XR\'s own metrics analyzer, not lizard', () => {
     const backendSrc = path.join(projectRoot, '..', '..', 'backend', 'src');
     const fileEngineSource = fs.readFileSync(path.join(backendSrc, 'utils', 'file_analysis_engine.py'), 'utf8');
-    assert.match(fileEngineSource, /from code_metrics_analyzer import analyze_file as analyze_function_metrics/);
-    assert.match(fileEngineSource, /metrics_data = analyze_function_metrics\(file_path\)/);
+    assert.match(fileEngineSource, /from code_metrics_analyzer import analyze_file as analyze_file_functions/);
+    assert.match(fileEngineSource, /metrics_data = analyze_file_functions\(file_path\)/);
 
     const importsLizard = [];
     const walk = (dir) => {

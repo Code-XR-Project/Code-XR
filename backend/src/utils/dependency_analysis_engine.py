@@ -20,6 +20,8 @@ from typing import Iterable, Iterator, Tuple
 
 from directory_scan_utils import is_analyzable_file_path, scan_directory_files_for_analysis
 from metric_language_contract import get_metric_language, get_metric_language_names
+from tree_sitter_parsers import grammar_for
+from tree_sitter_parsers import is_available as parser_available
 
 RELATIONS = ("import", "include", "require", "inheritance", "implementation", "call", "contains")
 # 4: inheritance targets no longer carry generic constraints, Python `class X: pass`
@@ -137,12 +139,11 @@ def _read_text(file_path: str) -> tuple[str, str | None]:
 
 
 def _extract_structured_targets(language: str, text: str) -> tuple[bool, list[tuple[str, str, str]]]:
-    aliases = {
-        "C++": "cpp", "C#": "csharp", "Objective-C": "objc",
-        "JavaScript": "javascript", "TypeScript": "typescript",
-        "TTCN-3": "ttcn", "GDScript": "gdscript",
-    }
-    grammar = aliases.get(language, language.lower().replace("-", "").replace(" ", "_"))
+    # Only a parser already downloaded by the environment set-up is used:
+    # asking the pack for any other would make it fetch one from GitHub.
+    grammar = grammar_for(language)
+    if not parser_available(grammar):
+        return False, []
     try:
         from tree_sitter_language_pack import ProcessConfig, process
         result = process(
