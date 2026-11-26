@@ -194,7 +194,7 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.terminalKill, (event, id) => terminal.kill(event.sender, id));
 
     // The AI agent hub (agents/agentsIpc.ts).
-    registerAgentHandlers(handle, agents);
+    registerAgentHandlers(handle, agents, (contents) => core.analysis.outputDirectory(contents));
     // #17: Source Control (git/gitIpc.ts).
     registerGitHandlers(handle);
 

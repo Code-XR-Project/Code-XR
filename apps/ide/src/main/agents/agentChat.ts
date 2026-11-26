@@ -43,6 +43,8 @@ export function fitHistory(messages: readonly ChatMessageView[], budget = HISTOR
 /** What a chat needs from the window it runs in. */
 export interface ChatWindow {
     readonly workspace: ToolWorkspace | null;
+    /** The static folder of the window's Code-XR analysis (A10). */
+    analysisOutput?(): string | null;
     emit(event: AgentChatEvent): void;
 }
 
@@ -327,9 +329,18 @@ export class AgentChat {
             if (tool.reviewsItself) {
                 report({ id: call.id, name: tool.name, summary, status: 'running', result: 'Waiting for your review…' });
             }
+            let lastProgress = 0;
             const text = await tool.run(args, {
                 workspace: window.workspace,
                 signal,
+                ...(window.analysisOutput ? { analysisOutput: window.analysisOutput } : {}),
+                progress: (output) => {
+                    const now = Date.now();
+                    if (now - lastProgress >= 200) {
+                        lastProgress = now;
+                        report({ id: call.id, name: tool.name, summary, status: 'running', result: output });
+                    }
+                },
                 reviewEdit: (request) => new Promise((resolve) => {
                     const id = randomUUID();
                     this.reviews.set(id, { sessionId, resolve });

@@ -31,7 +31,7 @@ export interface AgentsView {
     newChat(): Promise<void>;
 }
 
-export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void; reviewEdit(request: EditReviewRequest): Promise<EditReviewResult> } & Omit<AttachmentSources, 'onStatus'>): AgentsView {
+export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void; reviewEdit(request: EditReviewRequest): Promise<EditReviewResult>; showScene(): void } & Omit<AttachmentSources, 'onStatus'>): AgentsView {
     let agents: readonly AgentProfile[] = [];
     let toolCatalog: readonly ToolInfo[] | null = null;
     let providers: readonly ProviderView[] = [];
@@ -225,11 +225,12 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         const temperature = el('input', { className: 'agents-input', attrs: { id: 'agent-temperature', type: 'number', min: '0', max: '2', step: '0.1', placeholder: 'Provider default' } });
         temperature.value = existing?.temperature !== undefined ? String(existing.temperature) : '';
         const toolBoxes = el('fieldset', { className: 'agents-tools', attrs: { 'data-testid': 'agent-tools' } }, [el('legend', { text: 'Tools' })]);
-        const chosen = new Set(existing ? existing.tools : ['list_directory', 'read_file', 'find_files', 'search_text']);
+        const chosen = new Set(existing?.tools ?? []);
         const fillTools = (catalog: readonly ToolInfo[]): void => {
             toolBoxes.append(...catalog.map((tool) => {
                 const box = el('input', { attrs: { type: 'checkbox', value: tool.name, 'data-tool': tool.name } });
-                box.checked = chosen.has(tool.name);
+                // A new agent starts with every read-only tool, like the starters.
+                box.checked = existing ? chosen.has(tool.name) : tool.risk === 'read';
                 const always = (existing?.alwaysAllow ?? []).includes(tool.name);
                 const note = tool.risk === 'read' ? 'runs without asking' : always ? 'always allowed' : 'asks first';
                 return el('label', { className: 'agents-tool', attrs: { title: tool.description } }, [
@@ -438,7 +439,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             }
         } else {
             if (message.toolRuns?.length) {
-                body.append(renderToolRuns(message.toolRuns));
+                body.append(renderToolRuns(message.toolRuns, { showScene: callbacks.showScene }));
             }
             body.append(renderMarkdown(message.content, { copy }));
         }
@@ -506,7 +507,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
                 state.transcript.scrollTop = state.transcript.scrollHeight;
             }
         } else if (event.type === 'tool' && state.streamTools) {
-            upsertToolRun(state.streamTools, event.run);
+            upsertToolRun(state.streamTools, event.run, { showScene: callbacks.showScene });
         } else if (event.type === 'approval') {
             addApproval(state.streaming?.parentElement ?? state.transcript, event.request);
         } else if (event.type === 'end') {

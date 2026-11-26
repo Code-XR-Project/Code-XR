@@ -4,8 +4,8 @@ import type { JsonKeyValueStore } from '../core/jsonStore.ts';
 
 const STORE_KEY = 'agents.profiles';
 
-/** The read-only workspace tools (A7) every starter gets; risky tools are opt-in. */
-export const READ_TOOLS: readonly string[] = ['list_directory', 'read_file', 'find_files', 'search_text'];
+/** The read-only tools every starter gets: workspace (A7) and Code-XR analyses (A10). Risky tools are opt-in. */
+export const READ_TOOLS: readonly string[] = ['list_directory', 'read_file', 'find_files', 'search_text', 'get_metrics', 'get_hotspots', 'get_dependencies', 'get_evolution'];
 
 /** The starters every installation begins with (A4); all editable. */
 export const STARTER_AGENTS: readonly Omit<AgentProfile, 'id' | 'providerId' | 'model'>[] = [

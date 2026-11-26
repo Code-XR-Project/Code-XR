@@ -601,6 +601,7 @@ const reviewEdit = createEditReviewer(workbench.editorArea.parentElement ?? docu
 const agentsView = createAgentsView(workbench.agentsView, api.agents, {
     onStatus: (message) => workbench.setStatus(message),
     reviewEdit,
+    showScene: () => workbench.showView('xr'),
     listFiles: async () => (await api.workspace.listFiles()).files,
     activeSelection: () => {
         const selection = editors?.activeSelection();
