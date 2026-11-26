@@ -535,7 +535,7 @@
         "generatedAt": ""
       },
       "cache": {
-        "version": 3,
+        "version": 4,
         "root": "<root>",
         "files": {
           "c_sample.c": {

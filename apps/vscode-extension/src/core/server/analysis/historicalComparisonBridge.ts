@@ -7,6 +7,10 @@ import { GitAnalysisSourceError } from '../../history/gitAnalysisEligibility';
 import { JobCancelledError, JobTicket } from '../../analysis/launch/jobRunner';
 import { HistoricalComparisonRequest, HistoricalComparisonResult } from '../../history/historicalComparisonModels';
 import { classifyHistoricalComparisonError } from '../../history/historicalComparisonService';
+import {
+    HISTORICAL_COMPARISON_CANCELLED_MESSAGE,
+    HISTORICAL_COMPARISON_TIMEOUT_MESSAGE,
+} from '../../history/historicalComparisonStatus';
 import { analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../analysis/watchers/sessionWatcherManager';
 import { readJsonBody, sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
@@ -116,12 +120,85 @@ export class HistoricalComparisonBridge {
                 });
                 this.host.notifyLivePanelHistoricalUpdated(result.revision);
             } catch (error) {
+                if (error instanceof JobCancelledError && error.reason !== 'timeout') {
+                    this.host.notifyLivePanelHistoricalProgress({
+                        state: 'cancelled',
+                        message: HISTORICAL_COMPARISON_CANCELLED_MESSAGE,
+                        jobId: ticket.id,
+                    });
+                    return;
+                }
                 this.host.notifyLivePanelHistoricalProgress({
                     state: 'error',
-                    message: error instanceof Error ? error.message : String(error),
+                    message: error instanceof JobCancelledError
+                        ? HISTORICAL_COMPARISON_TIMEOUT_MESSAGE
+                        : error instanceof Error ? error.message : String(error),
+                    jobId: ticket.id,
                 });
             }
         })();
+    }
+
+    /**
+     * LivePanel REST endpoint: cancel the running comparison (HIST-7). The
+     * same service call as the room's `historical-comparison-cancel`, so the
+     * job's children are killed and the slot frees the same way. An optional
+     * `jobId` limits it to that job: a page that is closing cancels its own
+     * job, never one another page started since.
+     */
+    public async handleHistoricalCancel(
+        req: http.IncomingMessage,
+        res: http.ServerResponse,
+    ): Promise<void> {
+        if (req.method !== 'POST') {
+            sendErrorResponse(res, 405, 'Method not allowed');
+            return;
+        }
+        if (!this.historicalComparisonService) {
+            sendErrorResponse(res, 404, 'Historical comparison is not available for this session.');
+            return;
+        }
+        let jobId = '';
+        try {
+            const payload = await readJsonBody(req);
+            jobId = typeof payload.jobId === 'string' ? payload.jobId : '';
+        } catch {
+            sendErrorResponse(res, 400, 'Invalid request body');
+            return;
+        }
+        const current = this.historicalComparisonService.getJobStatus();
+        if (jobId && current?.id !== jobId) {
+            sendJsonResponse(res, 200, { cancelled: false, jobId: current?.id ?? null });
+            return;
+        }
+        sendJsonResponse(res, 200, this.cancelRunningComparison());
+    }
+
+    /**
+     * LivePanel REST endpoint: idle / running / done / error and the revision
+     * to load (HIST-13). The panel reads it on load and after an SSE
+     * reconnect, so a missed `historical-updated` cannot leave it waiting.
+     */
+    public handleHistoricalStatus(
+        req: http.IncomingMessage,
+        res: http.ServerResponse,
+    ): void {
+        if (req.method !== 'GET') {
+            sendErrorResponse(res, 405, 'Method not allowed');
+            return;
+        }
+        if (!this.historicalComparisonService) {
+            sendErrorResponse(res, 404, 'Historical comparison is not available for this session.');
+            return;
+        }
+        sendJsonResponse(res, 200, this.historicalComparisonService.getComparisonStatus());
+    }
+
+    /** The one cancel path, shared by the room message and the LivePanel route. */
+    private cancelRunningComparison(): { cancelled: boolean; jobId: string | null } {
+        const service = this.historicalComparisonService!;
+        const jobId = service.getJobStatus()?.id ?? null;
+        return { cancelled: service.cancelComparison(), jobId };
     }
 
     public async handleHistoricalComparisonReferencesMessage(
@@ -146,17 +223,17 @@ export class HistoricalComparisonBridge {
         if (!this.historicalComparisonService) {
             return false;
         }
-        const job = this.historicalComparisonService.getJobStatus();
-        if (!this.historicalComparisonService.cancelComparison()) {
+        const { cancelled, jobId } = this.cancelRunningComparison();
+        if (!cancelled) {
             messageContext.send({
                 type: 'historical-comparison-cancelled',
-                payload: { message: 'No historical comparison is running.', jobId: job?.id ?? null },
+                payload: { message: 'No historical comparison is running.', jobId },
             });
             return true;
         }
         messageContext.broadcast({
             type: 'historical-comparison-cancelled',
-            payload: { message: 'Historical comparison cancelled.', jobId: job?.id ?? null },
+            payload: { message: HISTORICAL_COMPARISON_CANCELLED_MESSAGE, jobId },
         });
         return true;
     }

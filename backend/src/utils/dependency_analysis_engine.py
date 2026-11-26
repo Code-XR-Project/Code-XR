@@ -22,7 +22,9 @@ from directory_scan_utils import is_analyzable_file_path, scan_directory_files_f
 from metric_language_contract import get_metric_language, get_metric_language_names
 
 RELATIONS = ("import", "include", "require", "inheritance", "implementation", "call", "contains")
-CACHE_VERSION = 3
+# 4: inheritance targets no longer carry generic constraints, Python `class X: pass`
+# bodies or C++ access specifiers (#110), so a version-3 cache holds stale targets.
+CACHE_VERSION = 4
 
 CAPABILITIES = {
     language: {
@@ -44,7 +46,9 @@ IMPORT_PATTERNS = [
     ("include", re.compile(r'(?m)^\s*#\s*include\s*[<"]([^>"]+)[>"]')),
     ("import", re.compile(r'(?m)^\s*(?:from\s+([\w.]+)\s+import|import\s+' + _NOT_JS_IMPORT + r'([\w.]+))')),
     ("import", re.compile(r'(?m)^\s*import\s+(?:[\w.*{},\s]+\s+from\s+)?[\'"]([^\'"]+)[\'"]')),
-    ("require", re.compile(r'(?m)\brequire\s*\(?\s*[\'"]([^\'"]+)[\'"]')),
+    # Not the string 'require' (`'import' | 'require'`), and the specifier starts
+    # with a non-blank: the gap between two quoted strings is no module (#110).
+    ("require", re.compile(r'(?m)(?<![\w\'"`$.])require\s*\(?\s*[\'"]([^\'"\s][^\'"]*)[\'"]')),
     ("import", re.compile(r'(?m)^\s*(?:use|using)\s+([A-Za-z_][\w.:/]*)')),
     ("import", re.compile(r'(?m)^\s*import\s+' + _NOT_JS_IMPORT + r'([A-Za-z_][\w.:/]*)')),
     ("import", re.compile(r'(?m)^\s*import\s+from\s+([A-Za-z_][\w.:/]*)')),
@@ -56,16 +60,42 @@ IMPORT_PATTERNS = [
     ("import", re.compile(r'@import\s*\(\s*"([^"]+)"\s*\)')),
 ]
 
+# A generic parameter list (up to three levels of nesting) right after the type name.
+# Its `extends` is a constraint (`class A<T extends B>`), not the declared base: skipping
+# the list keeps `string>`, `any` and `object` from becoming external packages (#110).
+_TYPE_PARAMETERS = r'(?:[ \t]*<(?:[^<>\n]|<(?:[^<>\n]|<[^<>\n]*>)*>)*>)?'
+# Kotlin/Scala primary constructor: `class A(val x: Int) : B()`.
+_CONSTRUCTOR = r'(?:[ \t]*\([^()\n]*\))?'
+# A base type name. `<...>` is not part of it: a generic suffix is a type argument.
+_TYPE_NAME = r'([A-Za-z_][\w.]*(?:::[A-Za-z_]\w*)*)'
+# Declaration-line modifiers, so a mixin pattern only fires on a declaration.
+_DECLARATION_START = (
+    r'(?m)^[ \t]*(?:(?:export|default|public|private|protected|internal|abstract|final|'
+    r'sealed|open|data|case|implicit|static|partial)[ \t]+)*'
+)
+
 INHERITANCE_PATTERNS = [
+    # `class A extends B`, and `:` bases (C++, C#, Swift, Kotlin, Objective-C). The `:`
+    # branch is off for Python and GDScript, where `class X: pass` opens a body.
     ("inheritance", re.compile(
-        r'\b(?:class|interface|struct)[ \t]+\w+[^{:\n]*(?:extends[ \t]+|:[ \t]*)([A-Za-z_][\w.:<>]*)'
+        r'\b(?:class|interface|struct)[ \t]+\w+' + _TYPE_PARAMETERS + _CONSTRUCTOR
+        + r'[^{:\n<(]*?\bextends[ \t]+' + _TYPE_NAME
     )),
-    ("implementation", re.compile(r'\bimplements\s+([A-Za-z_][\w.:<>]*)')),
-    # A mixin (`class A extends B with C`) only on a declaration line: a bare
-    # `with` also matched Python's `with open(` and "with a ..." in comments.
-    ("implementation", re.compile(r'\b(?:class|object|trait|enum|mixin)\b[^\n{;]*?\bwith\s+([A-Za-z_][\w.:<>]*)')),
+    ("inheritance", re.compile(
+        r'\b(?:class|interface|struct)[ \t]+\w+' + _TYPE_PARAMETERS + _CONSTRUCTOR
+        + r'[^{:\n<(]*?(?<!:):(?!:)[ \t]*(?:(?:public|protected|private|virtual)[ \t]+)*' + _TYPE_NAME
+    )),
+    ("implementation", re.compile(r'\bimplements[ \t]+' + _TYPE_NAME)),
+    # A mixin (`class A extends B with C`) only on a declaration line: a bare `with`
+    # also matched Python's `with open(`, and "object with scheme" in a comment (#110).
+    ("implementation", re.compile(
+        _DECLARATION_START + r'(?:class|object|trait|enum|mixin)\b[^\n{;]*?\bwith[ \t]+' + _TYPE_NAME
+    )),
     ("inheritance", re.compile(r'(?m)^\s*extends\s+[\'"]?([^\'"\s]+)')),
 ]
+_COLON_BASE_PATTERN = INHERITANCE_PATTERNS[1][1]
+# Languages whose `class X:` line ends the header: no base follows the colon.
+_NO_COLON_BASES = {"Python", "GDScript"}
 
 CALL_PATTERN = re.compile(r'\b([A-Za-z_][\w.]*)\s*\(')
 CALL_KEYWORDS = {
@@ -141,9 +171,11 @@ def _extract_structured_targets(language: str, text: str) -> tuple[bool, list[tu
         return False, []
 
 
-def _iter_raw_targets(text: str) -> Iterator[tuple[str, str, str, int]]:
+def _iter_raw_targets(text: str, language: str = "") -> Iterator[tuple[str, str, str, int]]:
     """Yield (kind, value, confidence, match offset) in source-pattern order."""
     for kind, pattern in IMPORT_PATTERNS + INHERITANCE_PATTERNS:
+        if pattern is _COLON_BASE_PATTERN and language in _NO_COLON_BASES:
+            continue
         for match in pattern.finditer(text):
             value = next((group for group in match.groups() if group), "")
             for part in re.split(r"\s*,\s*", value):
@@ -161,14 +193,14 @@ def _iter_raw_targets(text: str) -> Iterator[tuple[str, str, str, int]]:
         yield "call", value, "ambiguous", match.start()
 
 
-def _extract_targets(text: str) -> list[tuple[str, str, str]]:
-    return [(kind, value, confidence) for kind, value, confidence, _offset in _iter_raw_targets(text)]
+def _extract_targets(text: str, language: str = "") -> list[tuple[str, str, str]]:
+    return [(kind, value, confidence) for kind, value, confidence, _offset in _iter_raw_targets(text, language)]
 
 
-def _extract_targets_with_lines(text: str) -> list[tuple[str, str, str, int]]:
+def _extract_targets_with_lines(text: str, language: str = "") -> list[tuple[str, str, str, int]]:
     return [
         (kind, value, confidence, text.count("\n", 0, offset) + 1)
-        for kind, value, confidence, offset in _iter_raw_targets(text)
+        for kind, value, confidence, offset in _iter_raw_targets(text, language)
     ]
 
 
@@ -537,6 +569,7 @@ def _resolve_file_edge_counts(
     nodes: list[dict[str, object]],
     importer_relative: str = "",
     exact_lookup: dict[str, str] | None = None,
+    language: str = "",
 ) -> tuple[dict[tuple[str, str, str, str], int], dict[str, dict[str, object]]]:
     """Edge counts for one file, plus the project files it reaches.
 
@@ -547,7 +580,7 @@ def _resolve_file_edge_counts(
     external_nodes: dict[str, str] = {}
     local_nodes: dict[str, dict[str, object]] = {}
     edge_counts: dict[tuple[str, str, str, str], int] = defaultdict(int)
-    for relation, reference, confidence, line in _extract_targets_with_lines(text):
+    for relation, reference, confidence, line in _extract_targets_with_lines(text, language):
         if relation == "call":
             source_id = next((
                 symbol_id for start, end, symbol_id in function_ranges
@@ -622,7 +655,7 @@ def analyze_file_dependencies(
     local_lookup, local_paths, exact_lookup = _project_file_lookup(root, target)
     edge_counts, local_nodes = _resolve_file_edge_counts(
         text, module_id, function_ranges, symbol_lookup, local_lookup, local_paths, nodes,
-        relative, exact_lookup,
+        relative, exact_lookup, language,
     )
     nodes.extend(local_nodes.values())
     edges.extend(_build_edges(edge_counts))
@@ -885,7 +918,7 @@ def _extract_file_targets(
     parser_available, structured_targets = _extract_structured_targets(language, text)
     targets = sorted({
         target
-        for target in [*structured_targets, *_extract_targets(text)]
+        for target in [*structured_targets, *_extract_targets(text, language)]
     })
     total_lines = len(text.splitlines())
     return targets, parser_available, content_hash, total_lines

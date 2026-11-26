@@ -8,11 +8,19 @@
  * `GIT_NO_LAZY_FETCH` Git reports the object as missing instead, and
  * `GIT_TERMINAL_PROMPT=0` / `GCM_INTERACTIVE=never` keep any credential
  * helper from waiting for input that will never come.
+ *
+ * `GIT_NO_LAZY_FETCH` only exists since Git 2.44 (backported to some
+ * distribution builds, such as Ubuntu's 2.43). `GIT_ALLOW_PROTOCOL` set to a
+ * protocol that does not exist allows no transport at all, so an older Git
+ * that ignores the first variable still cannot reach the remote: the lazy
+ * fetch fails with the same "could not fetch … from promisor remote" (#105).
+ * History commands only read local objects, so nothing legitimate needs one.
  */
 export function gitOfflineEnvironment(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
     return {
         ...base,
         GIT_NO_LAZY_FETCH: '1',
+        GIT_ALLOW_PROTOCOL: 'codexr-offline',
         GIT_TERMINAL_PROMPT: '0',
         GCM_INTERACTIVE: 'never',
     };
