@@ -11,7 +11,8 @@ const pythonPathSources = executePythonSource + backendScriptPathSource;
 const webpackConfigSource = fs.readFileSync(path.join(projectRoot, 'webpack.config.js'), 'utf8');
 
 test('executePython resolves runtime scripts from code_analysis paths', () => {
-    assert.match(executePythonSource, /resolveBackendScriptPath\(this\.context, scriptName\)/);
+    assert.match(executePythonSource, /const paths = hostPathsFromContext\(this\.context\);/);
+    assert.match(executePythonSource, /resolveBackendScriptPath\(paths, scriptName\)/);
     assert.match(pythonPathSources, /'dist', 'code_analysis', 'python'/);
     // Development fallback: the backend sources live at <repo>/backend/src.
     assert.match(pythonPathSources, /'\.\.', '\.\.', 'backend', 'src'/);

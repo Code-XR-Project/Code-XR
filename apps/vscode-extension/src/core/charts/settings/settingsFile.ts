@@ -1,5 +1,5 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
+import type { FileLocation } from '../../host/hostPaths';
 
 /**
  * Where the visualization settings live on disk, and the globalState key of
@@ -20,10 +20,10 @@ export interface StoredVisualizationSettingsJson {
     palette: string;
 }
 
-export function getVisualizationConfigDirectory(globalStorageUri: vscode.Uri): string {
+export function getVisualizationConfigDirectory(globalStorageUri: FileLocation): string {
     return path.join(globalStorageUri.fsPath, VISUALIZATION_CONFIG_DIR);
 }
 
-export function getVisualizationSettingsFilePath(globalStorageUri: vscode.Uri): string {
+export function getVisualizationSettingsFilePath(globalStorageUri: FileLocation): string {
     return path.join(getVisualizationConfigDirectory(globalStorageUri), SETTINGS_FILE);
 }

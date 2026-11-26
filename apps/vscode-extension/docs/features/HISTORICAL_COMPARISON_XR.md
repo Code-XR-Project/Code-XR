@@ -303,6 +303,22 @@ kills its Git and Python processes and keeps the previous comparison. A second
 start is answered `busy` to that participant only, and the live-refresh flag
 follows the request that succeeded, not the one that was asked.
 
+Leaving History (the room switches to another mode) cancels a comparison that
+has no result yet and tells the room with `historical-comparison-cancelled`;
+the live refresh of the comparison already shown is left to finish.
+
+The LivePanel has the same controls over REST (no room there):
+
+- `POST /api/historical/cancel` `{ jobId? }` calls the same service cancel as
+  the room message. With `jobId` it stops only that job, which is what the
+  page sends (by `sendBeacon`) when it is closed while its comparison has no
+  result yet. The outcome reaches the panel as SSE `historical-progress` with
+  state `cancelled`.
+- `GET /api/historical/status` answers `{ state, jobId, revision, message }`,
+  `state` being `idle`, `running`, `done` or `error` and `revision` the last
+  successful comparison. The panel reads it on load and after every SSE
+  reconnect, and loads `revision` when it is not on screen.
+
 ### Live comparison over time (1.2.1)
 
 - **Live refresh.** A comparison with a working-copy side refreshes after each

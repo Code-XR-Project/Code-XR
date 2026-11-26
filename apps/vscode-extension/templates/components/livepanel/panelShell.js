@@ -106,14 +106,16 @@ function flashSSEStatus(message) {
  * Connect a panel to its server's `/events` stream (SSE) and dispatch every
  * message type. Both LivePanel templates use this; what differs per panel is
  * passed in. EventSource reconnects on its own, so an error only updates the
- * status indicator. Messages arrive flat (`{ type }`) or nested in the
+ * status indicator; on the reconnect the historical panel re-reads the
+ * comparison status, because events sent while the stream was down are lost
+ * (HIST-13). Messages arrive flat (`{ type }`) or nested in the
  * EnhancedSSEManager envelope (`{ data: { type } }`).
  *
  * @param {Object} options
  * @param {string} options.label                Log prefix, e.g. 'FILE_ANALYSIS'.
  * @param {() => void} options.onAnalysisUpdated   The panel's data was re-analyzed.
  * @param {() => void} options.onDependencyUpdated The dependency dataset was rewritten.
- * @param {{handleSseMessage: (message: Object) => void}} options.historicalPanel
+ * @param {{handleSseMessage: (message: Object) => void, syncStatus: () => void}} options.historicalPanel
  * @param {(...args: unknown[]) => void} [options.trace]  Verbose diagnostics (default: none).
  * @returns {EventSource|null} also kept on `window.analysisSSE`.
  */
@@ -164,10 +166,15 @@ function createLivePanelSse(options) {
   trace(`${label}: Initializing SSE for live updates...`);
   try {
     const eventSource = new EventSource('/events');
+    let openedBefore = false;
 
     eventSource.onopen = function () {
       trace(`${label}: SSE connection opened`);
       showSSEStatus('connected');
+      if (openedBefore) {
+        options.historicalPanel.syncStatus();
+      }
+      openedBefore = true;
     };
 
     eventSource.onmessage = function (event) {
