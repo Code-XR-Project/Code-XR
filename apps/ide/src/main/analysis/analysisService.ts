@@ -12,11 +12,13 @@ import { RemoteAccessManager } from '@codexr/core/remote-access/remoteAccessMana
 import { getActiveServerRegistry } from '@codexr/core/server/registry/activeServerRegistry';
 import { ServerControl } from '@codexr/core/server/serverControl';
 import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager';
-import { AUTO_START_MODES, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type SceneAddress, type SceneInfo, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
+import { AUTO_START_MODES, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type SceneAddress, type SceneInfo, type SceneFilesEvent, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
 import { channelLog } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
-import { readAnalysedFileCount } from './analysedFiles.ts';
+import { readAnalysedFileCount, watchAnalysedFileCount } from './analysedFiles.ts';
 import { closeScene, showScene } from './sceneView.ts';
+import { sceneTargetToWorkspacePath } from './sceneEditorTarget.ts';
+import type { SceneEditorTarget } from '../../shared/sceneBridge.ts';
 import { sceneTitle, targetName } from './sceneUrl.ts';
 import { isQuickTunnelUrl, sameShareState, SerialQueue, startShareOnce, STOPPED, toSceneShareState } from './sceneShare.ts';
 
@@ -45,6 +47,8 @@ interface WindowScene {
     readonly url: string;
     /** The sharing state last sent to the window (#155), to send changes only. */
     share: SceneShareState;
+    /** #16: stops following the analysis's file count. */
+    unwatch: () => void;
 }
 
 export class AnalysisService {
@@ -179,6 +183,7 @@ export class AnalysisService {
             return;
         }
         this.scenes.delete(contents.id);
+        previous.unwatch();
         const win = contents.isDestroyed() ? null : BrowserWindow.fromWebContents(contents);
         if (win && !win.isDestroyed()) {
             closeScene(win);
@@ -254,6 +259,24 @@ export class AnalysisService {
         clipboard.writeText(invitation);
     }
 
+    /**
+     * The scene asked to open a file in the editor (#16): resolved against
+     * the folder the scene analysed, and only a file inside the window's open
+     * folder is opened. Returns the workspace path to open, or null.
+     */
+    openFromScene(win: BrowserWindow, workspaceRoot: string | undefined, target: SceneEditorTarget): { readonly path: string; readonly line?: number | undefined } | null {
+        const scene = this.scenes.get(win.webContents.id);
+        if (!scene || !workspaceRoot) {
+            return null;
+        }
+        const relative = sceneTargetToWorkspacePath(workspaceRoot, scene.folder, target.path);
+        if (!relative) {
+            log.warn(`Scene asked to open a path outside the folder: ${target.path}`);
+            return null;
+        }
+        return target.line === undefined ? { path: relative } : { path: relative, line: target.line };
+    }
+
     /** The scene's close button: the view goes and so does any tunnel; the local server keeps running, as in the extension. */
     async closeScene(win: BrowserWindow): Promise<void> {
         closeScene(win);
@@ -310,8 +333,18 @@ export class AnalysisService {
             return;
         }
         const previous = this.scenes.get(win.webContents.id);
-        const share = toSceneShareState(getActiveServerRegistry().getServer(serverId)?.remoteAccess);
-        this.scenes.set(win.webContents.id, { folder: this.ownerFolder, kind: this.ownerKind, serverId, url: serverUrl, share });
+        previous?.unwatch();
+        const server = getActiveServerRegistry().getServer(serverId);
+        const share = toSceneShareState(server?.remoteAccess);
+        const files = await readAnalysedFileCount(server?.htmlFile);
+        const contents = win.webContents;
+        const unwatch = watchAnalysedFileCount(server?.htmlFile, files, (count) => {
+            if (!contents.isDestroyed()) {
+                contents.send(IPC_EVENTS.analysisSceneFilesChanged, { url: serverUrl, files: count } satisfies SceneFilesEvent);
+            }
+        });
+        win.once('closed', unwatch);
+        this.scenes.set(win.webContents.id, { folder: this.ownerFolder, kind: this.ownerKind, serverId, url: serverUrl, share, unwatch });
         if (previous && previous.serverId !== serverId) {
             // A new analysis replaces the window's scene; its old server (and tunnel) has nothing left to show.
             void this.stopTunnel(previous.serverId);
@@ -325,7 +358,7 @@ export class AnalysisService {
             kind: this.ownerKind,
             target: targetName(this.ownerFolder),
             targetPath: this.ownerFolder,
-            files: await readAnalysedFileCount(getActiveServerRegistry().getServer(serverId)?.htmlFile),
+            files,
             share,
         };
         win.webContents.send(IPC_EVENTS.analysisSceneOpened, scene);

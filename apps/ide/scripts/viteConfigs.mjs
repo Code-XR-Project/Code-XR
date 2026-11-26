@@ -27,7 +27,7 @@ const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtin
  */
 const MAIN_NATIVE_EXTERNALS = ['node-pty'];
 
-/** @param {'main' | 'preload'} target @param {{ dev?: boolean }} [opts] */
+/** @param {'main' | 'preload' | 'scenePreload'} target @param {{ dev?: boolean }} [opts] */
 export function nodeTargetConfig(target, opts = {}) {
     return {
         configFile: false,

@@ -3,7 +3,7 @@ import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.
 import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type ProviderInput } from '../shared/agents.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
@@ -72,6 +72,8 @@ const api: CodeXRApi = Object.freeze({
         setSceneBounds: (bounds: SceneBounds | null) => ipcRenderer.invoke(IPC_CHANNELS.analysisSetSceneBounds, bounds),
         closeScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisCloseScene),
         onDidOpenScene: (listener: (scene: SceneInfo) => void) => subscribe(IPC_EVENTS.analysisSceneOpened, listener),
+        onDidChangeSceneFiles: (listener: (event: SceneFilesEvent) => void) => subscribe(IPC_EVENTS.analysisSceneFilesChanged, listener),
+        onDidRequestOpenInEditor: (listener: (event: SceneOpenInEditorEvent) => void) => subscribe(IPC_EVENTS.analysisOpenInEditor, listener),
         // #155: no server id crosses the bridge; main acts on the calling window's scene.
         shareScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisShareScene),
         stopSharingScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisStopSharingScene),

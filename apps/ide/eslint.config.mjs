@@ -53,7 +53,7 @@ export default [
     },
     {
         // The preload may only require 'electron' (sandbox rule) and src/shared.
-        files: ['src/preload/**/*.ts'],
+        files: ['src/preload/**/*.ts', 'src/scenePreload/**/*.ts'],
         rules: {
             'no-restricted-imports': ['error', { patterns: [{ group: ['node:*', '../main/*', '@codexr/core/*', '@codexr/logging/*'], message: 'A sandboxed preload may only use electron and src/shared.' }] }],
         },

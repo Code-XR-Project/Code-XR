@@ -9,5 +9,5 @@
       "@codexr/logging/*": ["./.core-types/platform/logging/*"]
     }
   },
-  "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts", "test/**/*.ts"]
+  "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/scenePreload/**/*.ts", "src/shared/**/*.ts", "test/**/*.ts"]
 }

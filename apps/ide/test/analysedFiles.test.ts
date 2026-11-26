@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { countAnalysedRecords, readAnalysedFileCount } from '../src/main/analysis/analysedFiles.ts';
+import { countAnalysedRecords, readAnalysedFileCount, watchAnalysedFileCount } from '../src/main/analysis/analysedFiles.ts';
 
 describe('analysed file count (#203)', () => {
     it('counts the records of data.json', () => {
@@ -23,5 +23,27 @@ describe('analysed file count (#203)', () => {
         } finally {
             fs.rmSync(dir, { recursive: true, force: true });
         }
+    });
+
+    it('reports a changed count after data.json is rewritten (#16)', async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-analysed-'));
+        const counts: number[] = [];
+        fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify([{}]));
+        const stop = watchAnalysedFileCount(path.join(dir, 'index.html'), 1, (files) => counts.push(files));
+        try {
+            fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify([{}, {}]));
+            const deadline = Date.now() + 5000;
+            while (counts.length === 0 && Date.now() < deadline) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+            assert.deepEqual(counts, [2]);
+        } finally {
+            stop();
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('watches nothing without a served file', () => {
+        assert.doesNotThrow(watchAnalysedFileCount(undefined, undefined, () => assert.fail('no change expected')));
     });
 });

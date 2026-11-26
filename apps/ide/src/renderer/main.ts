@@ -617,6 +617,11 @@ const scenePanel = createScenePanel(workbench.sceneArea, api.analysis, {
     onError: (message) => workbench.setStatus(message),
 });
 api.analysis.onDidOpenScene((scene) => scenePanel.show(scene));
+// #16: "Open in editor" on a dependency-graph node, a LivePanel row. The
+// path was resolved and checked against the open folder by the main process.
+api.analysis.onDidRequestOpenInEditor(({ path, line }) => {
+    void editorGroup().then((group) => line === undefined ? group.open(path) : group.openAt(path, line, 1, 0));
+});
 api.python.onDidChangeStatus((status) => {
     pythonView.show(status);
     notifyPython(status);
