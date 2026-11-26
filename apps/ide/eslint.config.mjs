@@ -35,7 +35,8 @@ export default [
                     { group: ['electron', 'electron/*'], message: 'The renderer cannot use Electron. Add a member to CodeXRApi instead.' },
                     { group: ['node:*'], message: 'The renderer cannot use Node. Add a member to CodeXRApi instead.' },
                     { group: ['../main/*', '../preload/*'], message: 'The renderer may only import src/shared.' },
-                    { group: ['@codexr/core/*', '@codexr/logging/*'], message: 'The core runs in the main process only (#15). Add a member to CodeXRApi instead.' },
+                    // core/metrics is the exception: pure logic shared with the extension (#173/#178).
+                    { group: ['@codexr/core/*', '!@codexr/core/metrics', '@codexr/logging/*'], message: 'The core runs in the main process only (#15), except the pure core/metrics. Add a member to CodeXRApi instead.' },
                 ],
             }],
             'no-restricted-properties': ['error',

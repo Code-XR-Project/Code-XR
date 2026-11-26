@@ -4,7 +4,11 @@
 
 ### CodeXR 1.2.1: Internal Code Quality
 
-**This release adds no features.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way, with the same results. What changed is on the inside: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. If you upgrade, you should notice nothing, and that is the goal.
+**This release adds no features, with one exception.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way, with the same results. What changed is on the inside: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. The one addition, below, brings the plugin level with the Code-XR IDE, which shares its code.
+
+#### Added
+
+- **Function metrics in the editor and in Problems.** After a folder or project analysis, every function over a limit shows up as a Code-XR warning in the Problems view ("'route' has a cyclomatic complexity of 18 (limit 10)."). Every measured function also gets a CodeLens with its complexity, lines of code and parameters, and the functions the XR scene draws as high or critical complexity are marked beside the code and in the overview ruler. Saving a file measures it again; while it has unsaved changes its lens says the numbers are out of date. The limits and the lenses are settings (`codeXR.problems.metrics.maxComplexity`, `maxFunctionLines`, `maxParameters`, `showInEditor`); a limit of 0 turns that check off. The same logic drives the Code-XR IDE's Problems panel. This is the release's one deliberate exception to "no features", decided by the maintainer on 2026-11-26 so that the plugin and the IDE keep the same Code-XR features.
 
 #### Internal improvements
 
@@ -33,7 +37,7 @@
 - **"CodeXR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
 - **Diagnostics now go to the "CodeXR" output channel instead of the developer console.** Open *View → Output* and pick **CodeXR** to read them. Warnings and errors are always written there; step-by-step detail (which includes file paths) is written only when `codeXR.debug.verboseLogs` is on, as that setting already promised. Messages logged while the extension is still starting are no longer lost: they appear in the channel as soon as it opens. The generated XR and DOM scenes and the directory LivePanel page also stop printing their routine loading and live-reload messages to the browser console; their warnings and errors are still printed there.
 
-- **Nothing changes in VS Code, but the dependency graph and the directory LivePanel can now hand a file to an embedding editor.** When the page runs inside the Code-XR IDE, a file or symbol card of the dependency graph offers *Open in editor* and a LivePanel row opens its file there. In VS Code and in a browser both behave exactly as before.
+- **Open a file of the dependency graph in VS Code.** A file or symbol card in the XR dependency graph now has an *Open in editor* button, which opens that file in VS Code (at the symbol's line), the same as in the Code-XR IDE. The button only appears in a browser on your own machine. A guest who joined through a Cloudflare link or the local network does not see it, and the server refuses the request from them anyway. In the Code-XR IDE a row of the directory LivePanel also opens its file in the editor; in VS Code the row works as before.
 
 - **A new AI AGENTS section in the sidebar says what is coming.** It holds a single "coming soon" row: AI agents that chat about your code and its Code-XR analyses, with your own provider keys. It has no command and makes no network call.
 

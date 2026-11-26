@@ -463,6 +463,29 @@
           "type": "boolean",
           "default": false,
           "description": "Enable verbose CodeXR debug logging in the dedicated output channel."
+        },
+        "codeXR.problems.metrics.maxComplexity": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 0,
+          "markdownDescription": "After a folder or project analysis, a function whose cyclomatic complexity (CCN) is above this is a warning in the Problems view. `0` turns the check off."
+        },
+        "codeXR.problems.metrics.maxFunctionLines": {
+          "type": "integer",
+          "default": 50,
+          "minimum": 0,
+          "markdownDescription": "A function with more lines of code (NLOC) than this is a warning in the Problems view. `0` turns the check off."
+        },
+        "codeXR.problems.metrics.maxParameters": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 0,
+          "markdownDescription": "A function that takes more parameters than this is a warning in the Problems view. `0` turns the check off."
+        },
+        "codeXR.problems.metrics.showInEditor": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "After an analysis, show each function's complexity, lines of code and parameters above it (CodeLens), and mark the functions the scene draws as high or critical complexity beside the code."
         }
       }
     },

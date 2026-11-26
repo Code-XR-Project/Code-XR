@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog, type WebContents } from 'electron';
-import type { WorkspaceInfo } from '../../shared/api.ts';
+import path from 'node:path';
+import type { SceneOpenInEditorEvent, WorkspaceInfo } from '../../shared/api.ts';
 import { IPC_EVENTS } from '../../shared/api.ts';
 import { Workspace } from './workspace.ts';
 import { log } from '../log.ts';
@@ -74,6 +75,31 @@ export async function openRecentFromMenu(win: BrowserWindow, folder: string): Pr
         log.error('Open Recent failed.', error);
         void dialog.showMessageBox(win, { type: 'error', title: 'Open Recent', message: String(error instanceof Error ? error.message : error) });
     }
+}
+
+/**
+ * #16: opens `absolutePath` in the editor of the window whose folder holds it
+ * (the most recently focused one first). The core already checked the path;
+ * the renderer gets it workspace-relative, as for any other open.
+ */
+export function openInWindowEditor(absolutePath: string, line: number | undefined): boolean {
+    const focused = BrowserWindow.getFocusedWindow();
+    const candidates = [...workspaces.entries()].sort(([a], [b]) => Number(b === focused?.webContents.id) - Number(a === focused?.webContents.id));
+    for (const [contentsId, workspace] of candidates) {
+        const relative = path.relative(path.resolve(workspace.root), path.resolve(absolutePath));
+        if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
+            continue;
+        }
+        const win = BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed() && candidate.webContents.id === contentsId);
+        if (!win) {
+            continue;
+        }
+        const request: SceneOpenInEditorEvent = { path: relative.split(path.sep).join('/'), ...(line === undefined ? {} : { line }) };
+        win.webContents.send(IPC_EVENTS.analysisOpenInEditor, request);
+        win.focus();
+        return true;
+    }
+    return false;
 }
 
 /** The root folder of every open window, for the core's `workspaceFolders()`. */

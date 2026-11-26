@@ -14,7 +14,7 @@ import type {
 import { plainCoreText } from '../../shared/output.ts';
 import { JsonKeyValueStore } from './jsonStore.ts';
 import { log } from '../log.ts';
-import { openWorkspaceRoots } from '../workspace/workspaceWindows.ts';
+import { openInWindowEditor, openWorkspaceRoots } from '../workspace/workspaceWindows.ts';
 
 /**
  * The IDE's implementation of the core's host seam (#15; the extension's is
@@ -124,6 +124,8 @@ export function createElectronHost(options: ElectronHostOptions): CodeXRHost {
             return true;
         },
         workspaceFolders: () => openWorkspaceRoots(),
+        // #16: "Open in editor" sent through the analysis server (a scene opened outside the IDE's own view).
+        openInEditor: async (absolutePath: string, line?: number) => openInWindowEditor(absolutePath, line),
         signal(signal: HostSignal): void {
             // The extension maps these to tree refreshes and context keys; the
             // IDE's views pull their state instead, so nothing listens yet.

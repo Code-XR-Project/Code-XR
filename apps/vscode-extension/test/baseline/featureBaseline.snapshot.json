@@ -133,7 +133,11 @@
     "codexr | codexrTree | CodeXR"
   ],
   "settings": [
-    "codeXR.debug.verboseLogs | boolean | false"
+    "codeXR.debug.verboseLogs | boolean | false",
+    "codeXR.problems.metrics.maxComplexity | integer | 10",
+    "codeXR.problems.metrics.maxFunctionLines | integer | 50",
+    "codeXR.problems.metrics.maxParameters | integer | 5",
+    "codeXR.problems.metrics.showInEditor | boolean | true"
   ],
   "keybindings": [],
   "shippedFiles": [
