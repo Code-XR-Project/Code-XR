@@ -12,6 +12,7 @@ import { log } from './log.ts';
 import { IPC_EVENTS } from '../shared/api.ts';
 import { folderArgument } from './workspace/workspacePath.ts';
 import { initRecentFolders, setWorkspace } from './workspace/workspaceWindows.ts';
+import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -47,12 +48,19 @@ if (!isSmoke && !app.requestSingleInstanceLock()) {
     });
 }
 
+// #137: every pty dies with the app. `app.exit` (the smoke run) skips
+// will-quit, so that path kills them itself.
+let terminals: TerminalHost | null = null;
+app.on('will-quit', () => terminals?.killAll());
+
 async function start(): Promise<void> {
     nativeTheme.themeSource = 'system';
     if (!isDevelopment) {
         serveRenderer(RENDERER_DIR);
     }
-    registerIpcHandlers(origins, isDevelopment, startCore({ isSmoke }));
+    const terminalHost = createTerminalHost({ isSmoke });
+    terminals = terminalHost;
+    registerIpcHandlers(origins, isDevelopment, startCore({ isSmoke }), terminalHost);
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))
@@ -74,6 +82,7 @@ async function start(): Promise<void> {
     if (isSmoke) {
         const result = await runSmoke(win, origins);
         process.stdout.write(`${SMOKE_RESULT_PREFIX}${JSON.stringify(result)}\n`);
+        terminalHost.killAll();
         app.exit(result.ok ? 0 : 1);
         return;
     }
