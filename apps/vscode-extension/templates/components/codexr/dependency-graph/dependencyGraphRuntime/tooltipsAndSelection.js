@@ -103,12 +103,17 @@
         var canNavigate = selection.type === 'node'
           && (record.data.kind === 'group' || record.data.kind === 'file' || record.data.syntheticExternal)
           && record.data.syntheticKind !== 'budget-rest';
-        // A host that embeds the scene beside an editor (the Code-XR IDE,
-        // #16) exposes CodeXRHostBridge: a file or symbol then also opens in
-        // that editor. Without the bridge (a browser) nothing changes.
+        // #16: a file or symbol opens in the host's editor. The Code-XR IDE
+        // embeds the scene beside its editor and exposes CodeXRHostBridge;
+        // anywhere else (VS Code's browser tab) a page on this machine asks
+        // the analysis server, which opens the file in VS Code or the IDE. A
+        // guest through a tunnel or the LAN gets no button (and the server
+        // would refuse it anyway).
         var hostBridge = root.CodeXRHostBridge;
+        var canOpenInEditor = typeof hostBridge?.openInEditor === 'function'
+          || (typeof client()?.sendMessage === 'function' && isLocalPage());
         var editorTarget = selection.type === 'node'
-          && typeof hostBridge?.openInEditor === 'function'
+          && canOpenInEditor
           && !record.data.external && !record.data.syntheticExternal && !record.data.syntheticKind
           && (record.data.kind === 'file' || record.data.kind === 'symbol')
           && record.data.relativePath
@@ -155,7 +160,8 @@
             canNavigate ? 1.1 : 1.5,
             function (event) {
               event.stopPropagation?.();
-              hostBridge.openInEditor(editorTarget);
+              if (typeof hostBridge?.openInEditor === 'function') { hostBridge.openInEditor(editorTarget); }
+              else { client()?.sendMessage?.('open-in-editor', editorTarget); }
             },
             '#0f766e'
           );

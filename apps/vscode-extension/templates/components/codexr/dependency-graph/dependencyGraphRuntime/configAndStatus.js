@@ -130,6 +130,11 @@
 
   function doc() { return root.document; }
   function client() { return root.CodeXRCollaborationRuntime?.getClient?.(root) || null; }
+  /** The page is served to this machine (loopback), not to a guest through a tunnel or the LAN (#16). */
+  function isLocalPage() {
+    var host = String(root.location?.hostname || '');
+    return host === 'localhost' || host === '[::1]' || host === '::1' || /^127(?:\.\d{1,3}){3}$/.test(host);
+  }
   function config() {
     var script = doc()?.getElementById('codexr-tooling-config-xr-mapping-ui');
     try { return JSON.parse(script?.textContent || '{}'); } catch { return {}; }

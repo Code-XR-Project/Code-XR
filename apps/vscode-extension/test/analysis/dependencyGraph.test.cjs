@@ -76,6 +76,9 @@ test('dependency runtime uses a worker and owns three layouts', () => {
   // #16 (Code-XR IDE): a file or symbol opens in the embedding editor, only when the host exposes the bridge.
   assert.match(runtime, /typeof hostBridge\?\.openInEditor === 'function'/);
   assert.match(runtime, /'data-codexr-role', 'legend-open-in-editor'/);
+  // Without the IDE's bridge, a page on this machine asks the analysis server (VS Code and the IDE alike).
+  assert.match(runtime, /client\(\)\?\.sendMessage\?\.\('open-in-editor', editorTarget\)/);
+  assert.match(runtime, /function isLocalPage\(\)/);
   // The per-card action button sits at the card's own (dynamic) bottom edge.
   assert.match(runtime, /-\(card\.height \/ 2\) \+ \.17/);
   assert.match(runtime, /Project root/);
