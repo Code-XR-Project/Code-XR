@@ -53,22 +53,16 @@ set up and torn down inside ``build_goldens``:
   lizard's functions are merged with the lexical scan and given an owner), not
   the packages themselves.
 
-Known non-determinism the goldens have to neutralize
------------------------------------------------------
-``_normalize_reference`` returns ``list({...})``: the candidate keys of a
-reference come out in set order, which depends on the interpreter's str hash
-seed, and the engine takes the FIRST candidate that resolves. With the fixture
-corpus, ``#include "shared.h"`` resolves to ``shared.h`` in one process and to
-``shared.gd`` (the first file whose stem is ``shared``) in the next. A snapshot
-of that cannot be stable, so the goldens are built with the candidates tried in
-sorted order. For every single reference that is one of the orders the engine
-really uses today, made repeatable; the membership of the candidate list is
-still the engine's. The price: sorted order tries the bare stem first, so the
-goldens show ``shared.h`` resolved to ``shared.gd``, and they cannot see a
-change that only reorders the candidates. Whoever makes ``_normalize_reference``
-return an ordered list MUST delete ``canonical_candidate_order`` in the same
-change and regenerate, or the goldens keep pinning an order production no
-longer uses; the diff then shows what the fix changed.
+Candidate order (fixed in 1.2.1, DEPGRAPH-3)
+--------------------------------------------
+``_normalize_reference`` used to return ``list({...})``, so the key tried
+first, and so the file an ambiguous stem resolved to, followed the interpreter's
+str hash seed, and the goldens had to sort the candidates to be repeatable. It
+now returns an ordered list (full path, without suffix, dotted, stem) and a
+relative specifier is resolved next to its importer first, so the goldens are
+built from the engine's own order. ``record_candidate_lookups`` only records
+which references were looked up; it changes nothing. A golden that depends on
+the hash seed again is caught by ``test_goldens_are_reproduced_under_other_str_hash_seeds``.
 
 Oddities that are in the goldens because they are today's behaviour
 -------------------------------------------------------------------
@@ -398,23 +392,20 @@ def forced_environment(optional_dependencies):
 
 
 @contextlib.contextmanager
-def canonical_candidate_order(engine, seen):
-    """Try a reference's candidate keys in sorted order (see the module docstring)."""
+def record_candidate_lookups(engine, seen):
+    """Record the references the engine looks up, in the engine's own order."""
     original = getattr(engine, '_normalize_reference', None)
     if original is None:
-        # A rename or a move is fine, but it has to be followed here: without
-        # this shim the goldens are red or green depending on the hash seed.
         raise AssertionError(
-            'dependency_analysis_engine._normalize_reference is gone. The goldens sort the '
-            'candidate keys it returns (module docstring, "Known non-determinism"); point '
-            'canonical_candidate_order at whatever produces the candidate keys now.'
+            'dependency_analysis_engine._normalize_reference is gone; point '
+            'record_candidate_lookups at whatever produces the candidate keys now.'
         )
 
-    def ordered(reference):
+    def recorded(reference):
         seen.append(reference)
-        return sorted(original(reference))
+        return original(reference)
 
-    with mock.patch.object(engine, '_normalize_reference', ordered):
+    with mock.patch.object(engine, '_normalize_reference', recorded):
         yield
 
 
@@ -588,7 +579,7 @@ class GoldenBuild:
         self.documents = {}       # golden file name -> rendered JSON text
         self.unnormalized = {}    # the directory documents before normalization
         self.roots = []           # absolute paths no document may contain
-        # References that went through canonical_candidate_order, per mode.
+        # References the engine looked up, per mode.
         self.candidate_lookups = {'directory': [], 'file': []}
         self.import_state_before = None
         self.import_state_after = None
@@ -610,7 +601,7 @@ def _build_documents(build, scratch):
 
     def directory_document(engine, file_name, pins, names):
         cases = {}
-        with canonical_candidate_order(engine, build.candidate_lookups['directory']):
+        with record_candidate_lookups(engine, build.candidate_lookups['directory']):
             for name in names:
                 root, recursive = DIRECTORY_CASES[name]
                 cases[name] = _directory_case(engine, roots[root], recursive, scratch)
@@ -622,7 +613,7 @@ def _build_documents(build, scratch):
 
     def file_document(engine, file_name, pins):
         cases = {}
-        with canonical_candidate_order(engine, build.candidate_lookups['file']):
+        with record_candidate_lookups(engine, build.candidate_lookups['file']):
             for root, targets in (
                 ('fixture corpus', CORPUS_FILE_TARGETS),
                 ('project', PROJECT_FILE_TARGETS),
@@ -790,9 +781,9 @@ class DependencyGoldenTests(unittest.TestCase):
         self.assertTrue(find_leaked_paths(_build.unnormalized, _build.roots))
         self.assertEqual([], find_leaked_paths(_build.documents, _build.roots))
 
-    def test_the_candidate_order_shim_is_on_the_resolution_path_of_both_modes(self):
+    def test_the_lookup_recorder_is_on_the_resolution_path_of_both_modes(self):
         # If resolution stops going through engine._normalize_reference the
-        # shim is dead and the goldens silently depend on the hash seed again.
+        # recorder is dead and this file no longer sees what it pins.
         # 'shared.h' is the reference whose candidates resolve to two files.
         self.assertIn('shared.h', _build.candidate_lookups['directory'])
         self.assertIn('shared.h', _build.candidate_lookups['file'])

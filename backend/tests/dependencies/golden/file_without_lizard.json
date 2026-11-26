@@ -93,17 +93,17 @@
             "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
           },
           {
-            "id": "file:6641e1be5075de0d",
+            "id": "file:1de33a684cee256c",
             "kind": "file",
-            "label": "shared.gd",
-            "relativePath": "shared.gd",
+            "label": "shared.h",
+            "relativePath": "shared.h",
             "external": false,
             "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
           }
         ],
         "edges": [
           {"id": "edge:ca750f601141afaf", "source": "symbol:7b285fe1f881f097", "target": "symbol:3bcbe297b5c313a1", "kind": "contains", "confidence": "exact", "occurrences": 1},
-          {"id": "edge:826ce299171c7b92", "source": "symbol:7b285fe1f881f097", "target": "file:6641e1be5075de0d", "kind": "include", "confidence": "exact", "occurrences": 1}
+          {"id": "edge:b01af91d46acd7b0", "source": "symbol:7b285fe1f881f097", "target": "file:1de33a684cee256c", "kind": "include", "confidence": "exact", "occurrences": 1}
         ],
         "warnings": ["cpp_sample.cpp: Lizard unavailable (No module named 'lizard'); lexical symbol fallback used"],
         "capabilities": "<the capabilities block at the top of this document>",
@@ -259,7 +259,7 @@
             "ownerId": "symbol:3c5e96565a8b81d1",
             "lineStart": 24,
             "lineEnd": 29,
-            "metrics": {"totalLines": 6, "fanIn": 4, "fanOut": 1, "degree": 5, "dependentCount": 4, "cycleSize": 0, "relationCount": 5, "complexity": 0.0, "parameters": 0, "nestingDepth": 0}
+            "metrics": {"totalLines": 6, "fanIn": 3, "fanOut": 1, "degree": 4, "dependentCount": 3, "cycleSize": 0, "relationCount": 4, "complexity": 0.0, "parameters": 0, "nestingDepth": 0}
           },
           {
             "id": "symbol:efe82b494e759c1b",
@@ -311,7 +311,7 @@
             "ownerId": "symbol:20220c8ab2d2efcf",
             "lineStart": 42,
             "lineEnd": 45,
-            "metrics": {"totalLines": 4, "fanIn": 1, "fanOut": 2, "degree": 3, "dependentCount": 1, "cycleSize": 0, "relationCount": 3, "complexity": 0.0, "parameters": 0, "nestingDepth": 0}
+            "metrics": {"totalLines": 4, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2, "complexity": 0.0, "parameters": 0, "nestingDepth": 0}
           },
           {
             "id": "symbol:85cade72dadeebd7",
@@ -387,9 +387,8 @@
           {"id": "edge:2ecf67c03ea30809", "source": "symbol:e806f5725dab4f6f", "target": "symbol:39570242f4db87cb", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:3faaefbb20f69030", "source": "symbol:39570242f4db87cb", "target": "symbol:81328e90f7aaab64", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:d134b4e89f8cebe6", "source": "symbol:efe82b494e759c1b", "target": "symbol:81328e90f7aaab64", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
-          {"id": "edge:46186c2538e59184", "source": "symbol:81328e90f7aaab64", "target": "symbol:3652530f5723cd16", "kind": "call", "confidence": "ambiguous", "occurrences": 2},
           {"id": "edge:803a050761484acd", "source": "symbol:81328e90f7aaab64", "target": "symbol:efe82b494e759c1b", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
-          {"id": "edge:ba5e57c6d858c643", "source": "symbol:02d72c1a9c9f022d", "target": "symbol:39570242f4db87cb", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:46186c2538e59184", "source": "symbol:81328e90f7aaab64", "target": "symbol:3652530f5723cd16", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:f96caf2f7b46b23b", "source": "symbol:02d72c1a9c9f022d", "target": "symbol:85cade72dadeebd7", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
           {"id": "edge:dbe18864819453dd", "source": "symbol:85cade72dadeebd7", "target": "symbol:efe82b494e759c1b", "kind": "call", "confidence": "ambiguous", "occurrences": 1}
         ],
@@ -509,8 +508,8 @@
           {"id": "edge:c84f01866c332539", "source": "symbol:174b92869fdf7c3b", "target": "symbol:60c69b46daf29131", "kind": "contains", "confidence": "exact", "occurrences": 1},
           {"id": "edge:d7a0410c24cb82a5", "source": "symbol:60c69b46daf29131", "target": "symbol:b07f24fef848070c", "kind": "contains", "confidence": "exact", "occurrences": 1},
           {"id": "edge:fa74baacf1c720a0", "source": "symbol:60c69b46daf29131", "target": "symbol:3bb8854fd18189ab", "kind": "contains", "confidence": "exact", "occurrences": 1},
-          {"id": "edge:d7bc99310b152549", "source": "symbol:174b92869fdf7c3b", "target": "external:4020ebf55ab37c9d", "kind": "import", "confidence": "exact", "occurrences": 4},
           {"id": "edge:651dd2741876ba53", "source": "symbol:174b92869fdf7c3b", "target": "file:c721056b5b88ec13", "kind": "import", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:d7bc99310b152549", "source": "symbol:174b92869fdf7c3b", "target": "external:4020ebf55ab37c9d", "kind": "import", "confidence": "exact", "occurrences": 2},
           {"id": "edge:27962323a35fc70c", "source": "symbol:174b92869fdf7c3b", "target": "external:95910421b3d2bc9e", "kind": "import", "confidence": "exact", "occurrences": 1},
           {"id": "edge:d6ca9d06b84cfb27", "source": "symbol:174b92869fdf7c3b", "target": "external:b3d557e43b720281", "kind": "inheritance", "confidence": "probable", "occurrences": 1},
           {"id": "edge:8aa22f1b638c2683", "source": "symbol:174b92869fdf7c3b", "target": "external:c8714330c62979f6", "kind": "implementation", "confidence": "probable", "occurrences": 1},

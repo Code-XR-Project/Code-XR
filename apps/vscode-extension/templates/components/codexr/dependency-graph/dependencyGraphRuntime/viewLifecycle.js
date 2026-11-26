@@ -2,8 +2,14 @@
   function renderCurrentGraphIfReady() {
     if (!state.active || !state.dataset || state.snapshot?.status !== 'ready') { return; }
     var component = refs.graph?.components?.[COMPONENT];
-    if (!component?.setGraph) { return; }
+    if (!isGraphComponentReady(component)) { return; }
     component.setGraph(filteredDataset(), state.snapshot);
+  }
+
+  // A-Frame exposes a component before running its init; a setGraph then made
+  // a worker that init overwrote (DEPGRAPH-6). Wait for `initialized`.
+  function isGraphComponentReady(component) {
+    return Boolean(component?.setGraph) && component.initialized !== false;
   }
 
   function renderGraphWhenReady(graph, snapshot, viewGeneration, attempt) {
@@ -13,7 +19,7 @@
       return;
     }
     var component = refs.graph.components?.[COMPONENT];
-    if (component?.setGraph) {
+    if (isGraphComponentReady(component)) {
       component.setGraph(graph, snapshot);
       return;
     }
@@ -59,10 +65,42 @@
       && state.active;
   }
 
+  // A new project dataset makes every cached file dataset stale (DEPGRAPH-8),
+  // except the one the same snapshot just delivered.
+  function setProjectDataset(dataset, keepFileKey) {
+    if (state.projectDataset && state.projectDataset !== dataset
+        && Number(state.projectDataset.revision) !== Number(dataset.revision)) {
+      var kept = keepFileKey ? state.fileDatasets[keepFileKey] : null;
+      state.fileDatasets = {};
+      if (kept) { state.fileDatasets[keepFileKey] = kept; }
+    }
+    state.projectDataset = dataset;
+  }
+
+  function scopeFileKey(snapshot) {
+    return snapshot.scope?.kind === 'file' ? normalizeRelativePath(snapshot.scope.relativePath) : '';
+  }
+
+  // The dataset that draws the snapshot's scope (DEPGRAPH-4).
+  function datasetUrlForScope(snapshot) {
+    if (snapshot.scope?.kind === 'file') {
+      var fileUrl = snapshot.fileDatasetUrl
+        && normalizeRelativePath(snapshot.fileDatasetPath) === scopeFileKey(snapshot)
+        ? snapshot.fileDatasetUrl : '';
+      return fileUrl || snapshot.datasetUrl;
+    }
+    return snapshot.projectDatasetUrl || snapshot.datasetUrl;
+  }
+
+  function hasDatasetForScope(snapshot) {
+    var fileKey = scopeFileKey(snapshot);
+    return fileKey ? Boolean(state.fileDatasets[fileKey]) : Boolean(state.projectDataset);
+  }
+
   function storeDataset(snapshot, dataset) {
     state.dataset = dataset;
     if (dataset.targetType === 'directory') {
-      state.projectDataset = dataset;
+      setProjectDataset(dataset, scopeFileKey(snapshot));
     } else {
       var fileKey = normalizeRelativePath(
         dataset.targetRelativePath || snapshot.scope?.relativePath
@@ -72,17 +110,16 @@
   }
 
   // A file-scoped snapshot also points at the project-wide dataset; keep it
-  // when it is still wanted. (Unlike the dataset fetch this does not re-check
-  // snapshot identity - pinned as-is by dependencyGraph.test.cjs.)
+  // when it is still wanted, by the same snapshot (DEPGRAPH-11).
   async function loadProjectDataset(snapshot, loadGeneration, viewGeneration, signal) {
     var projectResponse = await fetch(
       snapshot.projectDatasetUrl + '?sourceRevision=' + Number(snapshot.sourceRevision || 0),
       signal ? { cache: 'no-store', signal: signal } : { cache: 'no-store' }
     );
-    if (projectResponse.ok && isLoadCurrent(loadGeneration, viewGeneration)) {
+    if (projectResponse.ok && isLoadCurrent(loadGeneration, viewGeneration) && state.snapshot === snapshot) {
       var projectDataset = await projectResponse.json();
-      if (projectDataset?.targetType === 'directory') {
-        state.projectDataset = projectDataset;
+      if (projectDataset?.targetType === 'directory' && state.snapshot === snapshot) {
+        setProjectDataset(projectDataset, scopeFileKey(snapshot));
       }
     }
   }
@@ -120,8 +157,9 @@
     try {
       var loadGeneration = ++state.datasetLoadGeneration;
       var viewGeneration = state.viewGeneration;
+      var primaryUrl = datasetUrlForScope(snapshot);
       var response = await fetch(
-        snapshot.datasetUrl + '?revision=' + snapshot.revision,
+        primaryUrl + '?revision=' + snapshot.revision,
         signal ? { cache: 'no-store', signal: signal } : { cache: 'no-store' }
       );
       if (!response.ok) {
@@ -132,10 +170,16 @@
         return;
       }
       storeDataset(snapshot, dataset);
-      if (snapshot.projectDatasetUrl) {
+      if (snapshot.projectDatasetUrl && snapshot.projectDatasetUrl !== primaryUrl) {
         await loadProjectDataset(snapshot, loadGeneration, viewGeneration, signal);
       }
       state.loadError = null;
+      if (!hasDatasetForScope(snapshot) && scopeFileKey(snapshot) && !client()?.isOfflineExport?.()) {
+        // An older room entity named a file without its dataset: ask for it
+        // rather than drawing an empty table.
+        setStatus('Loading symbols for ' + scopeFileKey(snapshot) + '...', false);
+        client()?.sendMessage?.('dependency-file-scope-request', { relativePath: scopeFileKey(snapshot) });
+      }
       renderGraph();
       setTransitionLocked(false);
     } catch (error) {
@@ -404,6 +448,15 @@
       buildExternalSummaryDataset: buildExternalSummaryDataset,
       projectDirectoryScope: projectDirectoryScope,
       projectFileScope: projectFileScope,
+      aggregateMetricsFromEdges: aggregateMetricsFromEdges,
+      applyRenderBudget: applyRenderBudget,
+      renderBudgetNotice: renderBudgetNotice,
+      datasetUrlForScope: datasetUrlForScope,
+      setProjectDataset: setProjectDataset,
+      createLayoutWorker: createLayoutWorker,
+      isGraphComponentReady: isGraphComponentReady,
+      openFile: openFile,
+      state: state,
       normalizeRelativePath: normalizeRelativePath,
       symbolVisual: symbolVisual,
       selectDependencyMode: selectDependencyMode

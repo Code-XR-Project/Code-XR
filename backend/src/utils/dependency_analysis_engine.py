@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import posixpath
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -34,15 +35,21 @@ CAPABILITIES = {
     for language in get_metric_language_names()
 }
 
+# A bare `import x` names a module in Python, Java, Kotlin, Scala...; in JS/TS
+# `import type {T} from './t'` or `import React from 'react'` it does not, and the
+# quoted specifier is read by the pattern below instead (DEPGRAPH-3).
+_NOT_JS_IMPORT = r'(?!type\b|typeof\b)(?![^\n]*\bfrom\s*[\'"])'
+
 IMPORT_PATTERNS = [
     ("include", re.compile(r'(?m)^\s*#\s*include\s*[<"]([^>"]+)[>"]')),
-    ("import", re.compile(r'(?m)^\s*(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))')),
+    ("import", re.compile(r'(?m)^\s*(?:from\s+([\w.]+)\s+import|import\s+' + _NOT_JS_IMPORT + r'([\w.]+))')),
     ("import", re.compile(r'(?m)^\s*import\s+(?:[\w.*{},\s]+\s+from\s+)?[\'"]([^\'"]+)[\'"]')),
     ("require", re.compile(r'(?m)\brequire\s*\(?\s*[\'"]([^\'"]+)[\'"]')),
     ("import", re.compile(r'(?m)^\s*(?:use|using)\s+([A-Za-z_][\w.:/]*)')),
-    ("import", re.compile(r'(?m)^\s*import\s+([A-Za-z_][\w.:/]*)')),
+    ("import", re.compile(r'(?m)^\s*import\s+' + _NOT_JS_IMPORT + r'([A-Za-z_][\w.:/]*)')),
     ("import", re.compile(r'(?m)^\s*import\s+from\s+([A-Za-z_][\w.:/]*)')),
-    ("import", re.compile(r'(?m)^\s*with\s+([A-Za-z_][\w.]*)')),
+    # Ada's `with Pkg;` / `with A, B;`, not Python's `with open(...)`.
+    ("import", re.compile(r'(?m)^\s*with\s+([A-Za-z_][\w.]*)(?=\s*[;,])')),
     ("import", re.compile(r'(?m)^\s*-include(?:_lib)?\s*\(\s*"([^"]+)"\s*\)')),
     ("import", re.compile(r'(?m)^\s*uses\s+([A-Za-z_][\w.]*)')),
     ("import", re.compile(r'(?m)^\s*friend\s+module\s+([A-Za-z_][\w.]*)')),
@@ -53,7 +60,10 @@ INHERITANCE_PATTERNS = [
     ("inheritance", re.compile(
         r'\b(?:class|interface|struct)[ \t]+\w+[^{:\n]*(?:extends[ \t]+|:[ \t]*)([A-Za-z_][\w.:<>]*)'
     )),
-    ("implementation", re.compile(r'\b(?:implements|with)\s+([A-Za-z_][\w.:<>]*)')),
+    ("implementation", re.compile(r'\bimplements\s+([A-Za-z_][\w.:<>]*)')),
+    # A mixin (`class A extends B with C`) only on a declaration line: a bare
+    # `with` also matched Python's `with open(` and "with a ..." in comments.
+    ("implementation", re.compile(r'\b(?:class|object|trait|enum|mixin)\b[^\n{;]*?\bwith\s+([A-Za-z_][\w.:<>]*)')),
     ("inheritance", re.compile(r'(?m)^\s*extends\s+[\'"]?([^\'"\s]+)')),
 ]
 
@@ -61,7 +71,13 @@ CALL_PATTERN = re.compile(r'\b([A-Za-z_][\w.]*)\s*\(')
 CALL_KEYWORDS = {
     "if", "for", "while", "switch", "catch", "return", "sizeof", "typeof",
     "function", "func", "def", "class", "new", "print", "echo", "match",
+    # Keywords and receivers that look like calls but name no module (DEPGRAPH-2).
+    "this", "super", "self", "constructor", "async", "await", "yield", "elif",
+    "else", "and", "or", "not", "in", "is", "with", "assert", "lambda", "except",
+    "instanceof", "void", "delete", "throw", "raise", "foreach", "until", "unless",
 }
+# `def f(`, `function f(`, `fn f(`... are definitions, not calls.
+DEFINITION_PREFIX = re.compile(r'\b(?:def|function|func|fn|fun|sub|proc|method)\s+$')
 
 SYMBOL_TYPE_MAP = {
     "interface": "interface", "trait": "trait", "struct": "struct",
@@ -137,9 +153,12 @@ def _iter_raw_targets(text: str) -> Iterator[tuple[str, str, str, int]]:
                     yield kind, normalized, confidence, match.start()
     for match in CALL_PATTERN.finditer(text):
         value = match.group(1)
-        leaf = value.rsplit(".", 1)[-1]
-        if leaf.lower() not in CALL_KEYWORDS:
-            yield "call", value, "ambiguous", match.start()
+        head, leaf = value.split(".", 1)[0], value.rsplit(".", 1)[-1]
+        if leaf.lower() in CALL_KEYWORDS or (head != value and head.lower() in {"this", "self", "super"}):
+            continue
+        if DEFINITION_PREFIX.search(text, max(0, match.start() - 16), match.start()):
+            continue
+        yield "call", value, "ambiguous", match.start()
 
 
 def _extract_targets(text: str) -> list[tuple[str, str, str]]:
@@ -483,9 +502,11 @@ def _add_function_symbols(
     return function_ranges
 
 
-def _project_file_lookup(root: str, target: str) -> tuple[dict[str, str], dict[str, str]]:
-    """(candidate key -> file node id, file node id -> relative path) for the project's other files."""
+def _project_file_lookup(root: str, target: str) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+    """(candidate key -> file node id, file node id -> relative path, full-path key -> file node id)
+    for the project's other files."""
     local_lookup: dict[str, str] = {}
+    exact_lookup: dict[str, str] = {}
     local_paths: dict[str, str] = {}
     try:
         project_files = scan_directory_files_for_analysis(
@@ -497,11 +518,13 @@ def _project_file_lookup(root: str, target: str) -> tuple[dict[str, str], dict[s
         candidate_relative = _portable_relative(root, candidate)
         if os.path.realpath(candidate) == target:
             continue
-        candidate_id = _node_id("file", candidate_relative.lower())
+        candidate_id = _node_id("file", candidate_relative)
         local_paths[candidate_id] = candidate_relative
         for key in _candidate_keys(candidate_relative):
             local_lookup.setdefault(key, candidate_id)
-    return local_lookup, local_paths
+        for key in _path_keys(candidate_relative):
+            exact_lookup.setdefault(key, candidate_id)
+    return local_lookup, local_paths, exact_lookup
 
 
 def _resolve_file_edge_counts(
@@ -512,6 +535,8 @@ def _resolve_file_edge_counts(
     local_lookup: dict[str, str],
     local_paths: dict[str, str],
     nodes: list[dict[str, object]],
+    importer_relative: str = "",
+    exact_lookup: dict[str, str] | None = None,
 ) -> tuple[dict[tuple[str, str, str, str], int], dict[str, dict[str, object]]]:
     """Edge counts for one file, plus the project files it reaches.
 
@@ -533,7 +558,11 @@ def _resolve_file_edge_counts(
                 continue
         else:
             source_id = module_id
-            target_id = _first_match(reference, local_lookup)
+            target_id, beside_importer = _resolve_reference(
+                reference, importer_relative, local_lookup, exact_lookup or {},
+            )
+            if target_id and not beside_importer and confidence == "exact":
+                confidence = "probable"
             if not target_id:
                 target_id = _ensure_external_node(reference, external_nodes, nodes)
             elif target_id not in local_nodes:
@@ -590,9 +619,10 @@ def analyze_file_dependencies(
         snapshot.get("functions", []), classes, class_ids, source_lines,
         relative, language, module_id, nodes, edges, symbol_lookup,
     )
-    local_lookup, local_paths = _project_file_lookup(root, target)
+    local_lookup, local_paths, exact_lookup = _project_file_lookup(root, target)
     edge_counts, local_nodes = _resolve_file_edge_counts(
         text, module_id, function_ranges, symbol_lookup, local_lookup, local_paths, nodes,
+        relative, exact_lookup,
     )
     nodes.extend(local_nodes.values())
     edges.extend(_build_edges(edge_counts))
@@ -622,18 +652,78 @@ def _candidate_keys(relative_path: str) -> set[str]:
     }
 
 
+def _path_keys(relative_path: str) -> list[str]:
+    """The full-path keys of a file: with and without its suffix."""
+    portable = relative_path.replace("\\", "/").lower()
+    return list(dict.fromkeys([portable, portable.rsplit(".", 1)[0] if "." in posixpath.basename(portable) else portable]))
+
+
 def _normalize_reference(reference: str) -> list[str]:
+    """Lookup keys for ``reference``, most specific first, in a fixed order.
+
+    It used to be a set, so the key tried first (and so the file an ambiguous
+    stem resolved to) changed with PYTHONHASHSEED from one run to the next.
+    """
     value = reference.strip().replace("\\", "/")
     value = re.sub(r"^(?:crate|self|super|root)::", "", value)
     value = value.replace("::", "/")
     value = re.sub(r"^\./", "", value)
     without_suffix = value.rsplit(".", 1)[0] if "/" in value and "." in Path(value).name else value
-    return list({
+    return list(dict.fromkeys([
         value.lower(),
         without_suffix.lower(),
         value.replace(".", "/").lower(),
         Path(value).stem.lower(),
-    })
+    ]))
+
+
+def _relative_reference_keys(reference: str, importer_relative: str) -> list[str] | None:
+    """Lookup keys for a relative specifier joined to the importer's folder.
+
+    ``./util``, ``../x/util`` (JS/TS and the like) and ``.models``, ``..pkg.mod``
+    (Python) name a file next to the importer, not any file with that stem.
+    None when ``reference`` is not relative.
+    """
+    value = reference.strip().replace("\\", "/")
+    folder = posixpath.dirname(importer_relative)
+    if value.startswith(("./", "../")) or value in {".", ".."}:
+        joined = posixpath.normpath(posixpath.join(folder, value))
+    else:
+        python = re.match(r"^(\.+)([\w.]*)$", value)
+        if not python:
+            return None
+        for _level in range(len(python.group(1)) - 1):
+            folder = posixpath.dirname(folder)
+        joined = posixpath.normpath(posixpath.join(folder, python.group(2).replace(".", "/")))
+    if joined.startswith("../") or joined == "..":
+        return []
+    joined = "" if joined == "." else joined
+    base = joined.lower()
+    stripped = base.rsplit(".", 1)[0] if "." in posixpath.basename(base) else base
+    keys = [base, stripped]
+    for index_name in ("index", "__init__", "mod"):
+        keys.append(posixpath.join(base, index_name) if base else index_name)
+    return list(dict.fromkeys(key for key in keys if key))
+
+
+def _resolve_reference(
+    reference: str,
+    importer_relative: str,
+    lookup: dict[str, str],
+    exact_lookup: dict[str, str],
+) -> tuple[str | None, bool]:
+    """(node id, resolved next to the importer) for one reference.
+
+    A relative specifier is first looked up among full paths only; a miss falls
+    back to the old project-wide key lookup, reported as not exact.
+    """
+    relative_keys = _relative_reference_keys(reference, importer_relative)
+    if relative_keys is not None:
+        target = next((exact_lookup[key] for key in relative_keys if key in exact_lookup), None)
+        if target:
+            return target, True
+        return _first_match(reference, lookup), False
+    return _first_match(reference, lookup), True
 
 
 def _tarjan(nodes: Iterable[str], adjacency: dict[str, set[str]]) -> list[list[str]]:
@@ -818,20 +908,32 @@ def _resolve_edge_counts(
     extracted_by_node: dict[str, list[TargetTuple]],
     lookup: dict[str, str],
     nodes: list[dict[str, object]],
+    exact_lookup: dict[str, str] | None = None,
+    relative_by_node: dict[str, str] | None = None,
 ) -> dict[tuple[str, str, str, str], int]:
     """Resolve every target to a file node or an external node (appended to ``nodes``).
 
-    Self-references are dropped; the first candidate key that resolves wins.
+    Self-references are dropped. A relative specifier resolves against the
+    importer's folder first (DEPGRAPH-3). A call that names no project file is
+    dropped, as in file scope: ``this(``, ``String(`` or a local helper is not an
+    external package (DEPGRAPH-2).
     """
     edge_counts: dict[tuple[str, str, str, str], int] = defaultdict(int)
     external_nodes: dict[str, str] = {}
+    exact_lookup = exact_lookup or {}
+    relative_by_node = relative_by_node or {}
     for source_id in parsed:
+        importer = relative_by_node.get(source_id, "")
         for relation, reference, confidence in extracted_by_node[source_id]:
-            target_id = _first_match(reference, lookup)
+            target_id, beside_importer = _resolve_reference(reference, importer, lookup, exact_lookup)
             if target_id == source_id:
                 continue
             if not target_id:
+                if relation == "call":
+                    continue
                 target_id = _ensure_external_node(reference, external_nodes, nodes)
+            elif not beside_importer and confidence == "exact":
+                confidence = "probable"
             edge_counts[(source_id, target_id, relation, confidence)] += 1
     return edge_counts
 
@@ -868,11 +970,14 @@ def analyze_dependencies(
     cached_files = cache["files"] if cache.get("root") == root else {}
     next_cached_files: dict[str, object] = {}
     extracted_by_node: dict[str, list[TargetTuple]] = {}
+    exact_lookup: dict[str, str] = {}
+    relative_by_node: dict[str, str] = {}
     files_by_relative, refresh_relative = _resolve_scan_set(root, recursive, refresh, cached_files)
 
     for relative, file_path in sorted(files_by_relative.items()):
         language = get_metric_language(file_path)
-        node_id = _node_id("file", relative.lower())
+        # The exact path: `Util.ts` and `util.ts` are two files (DEPGRAPH-10).
+        node_id = _node_id("file", relative)
         cached = None if relative in refresh_relative else _cached_targets(cached_files.get(relative), language)
         if cached is None:
             cached = _extract_file_targets(relative, file_path, language, warnings)
@@ -889,9 +994,14 @@ def analyze_dependencies(
         nodes.append(_file_node(node_id, relative, language, total_lines))
         for key in _candidate_keys(relative):
             lookup.setdefault(key, node_id)
+        for key in _path_keys(relative):
+            exact_lookup.setdefault(key, node_id)
+        relative_by_node[node_id] = relative
         parsed.append(node_id)
 
-    edges = _build_edges(_resolve_edge_counts(parsed, extracted_by_node, lookup, nodes))
+    edges = _build_edges(_resolve_edge_counts(
+        parsed, extracted_by_node, lookup, nodes, exact_lookup, relative_by_node,
+    ))
     _add_graph_metrics(nodes, edges)
 
     for language, available in parser_availability.items():

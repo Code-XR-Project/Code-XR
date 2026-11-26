@@ -28,6 +28,10 @@
   // element and restored verbatim (same contract as the historical-comparison
   // and analysis-mode runtimes).
   var RAYCAST_SUSPENDED_ATTR = 'data-codexr-raycast-suspended';
+  // The documented render budget (DEPGRAPH-5): one entity per node, so a root
+  // with thousands of externals stalled a standalone headset.
+  var RENDER_BUDGET = { nodes: 600, edges: 2000 };
+  var BUDGET_REST_ID = 'scope:budget-rest';
   function suspendSubtreeRaycast(rootElement) {
     if (!rootElement) { return; }
     var suspend = function (element) {
@@ -267,13 +271,50 @@
       external: false,
       metrics: {
         totalLines: 0, fanIn: 0, fanOut: 0, degree: 0,
-        dependentCount: 0, cycleSize: 0, relationCount: 0
+        dependentCount: 0, cycleSize: 0, relationCount: 0, files: 0
       }
     };
   }
+  // A folder card describes the folder, not the sum of its files' cards
+  // (DEPGRAPH-1). Only lines and file counts add up; `cycleSize` on an
+  // aggregate counts its files that sit in a dependency cycle. The graph
+  // metrics come from the edges drawn to the box, in aggregateMetricsFromEdges.
   function addNodeMetrics(target, source) {
-    Object.keys(target.metrics || {}).forEach(function (metric) {
-      target.metrics[metric] += Number(source?.metrics?.[metric] || 0);
+    target.metrics.totalLines += Number(source?.metrics?.totalLines || 0);
+    target.metrics.files += 1;
+    if (Number(source?.metrics?.cycleSize || 0) > 1) { target.metrics.cycleSize += 1; }
+  }
+  /**
+   * Fan-in, fan-out, degree and relations of every aggregate node, from the
+   * edges actually drawn: distinct neighbours in and out, and edge records
+   * touching the box. Run after the relation and external filters, so a card
+   * matches what is on the table.
+   */
+  function aggregateMetricsFromEdges(nodes, edges) {
+    var aggregates = {};
+    nodes.forEach(function (node) {
+      if (node.kind === 'group' && node.metrics) { aggregates[node.id] = { into: new Set(), out: new Set(), relations: 0 }; }
+    });
+    edges.forEach(function (edge) {
+      if (aggregates[edge.source]) {
+        aggregates[edge.source].out.add(edge.target);
+        aggregates[edge.source].relations += 1;
+      }
+      if (aggregates[edge.target] && edge.target !== edge.source) {
+        aggregates[edge.target].into.add(edge.source);
+        aggregates[edge.target].relations += 1;
+      }
+    });
+    return nodes.map(function (node) {
+      var counts = aggregates[node.id];
+      if (!counts) { return node; }
+      var neighbours = new Set(Array.from(counts.into).concat(Array.from(counts.out)));
+      return Object.assign({}, node, {
+        metrics: Object.assign({}, node.metrics, {
+          fanIn: counts.into.size, fanOut: counts.out.size, degree: neighbours.size,
+          dependentCount: counts.into.size, relationCount: counts.relations
+        })
+      });
     });
   }
   function aggregateProjectedEdges(edges, membership, visibleIds) {
@@ -380,6 +421,54 @@
       scopeLabel: dataset.targetRelativePath || 'File dependencies'
     });
   }
+  /**
+   * Keeps the best-connected nodes within RENDER_BUDGET and folds the rest
+   * into one "N more" node, then keeps the heaviest edges within the edge
+   * budget. `budget` says what was left out, or is null when nothing was.
+   */
+  function applyRenderBudget(nodes, edges) {
+    if (nodes.length <= RENDER_BUDGET.nodes && edges.length <= RENDER_BUDGET.edges) {
+      return { nodes: nodes, edges: edges, budget: null };
+    }
+    var keptNodes = nodes;
+    var keptEdges = edges;
+    if (nodes.length > RENDER_BUDGET.nodes) {
+      var degree = {};
+      edges.forEach(function (edge) {
+        degree[edge.source] = (degree[edge.source] || 0) + 1;
+        degree[edge.target] = (degree[edge.target] || 0) + 1;
+      });
+      var ranked = nodes.map(function (node, index) { return { node: node, index: index }; })
+        .sort(function (a, b) {
+          var pinnedA = a.node.syntheticKind || a.node.syntheticExternal ? 1 : 0;
+          var pinnedB = b.node.syntheticKind || b.node.syntheticExternal ? 1 : 0;
+          return pinnedB - pinnedA || (degree[b.node.id] || 0) - (degree[a.node.id] || 0) || a.index - b.index;
+        });
+      var kept = ranked.slice(0, RENDER_BUDGET.nodes - 1).map(function (entry) { return entry.node; });
+      var folded = ranked.slice(RENDER_BUDGET.nodes - 1).map(function (entry) { return entry.node; });
+      var rest = createAggregateNode(BUDGET_REST_ID, folded.length + ' more', '', 'budget-rest');
+      var membership = {};
+      kept.forEach(function (node) { membership[node.id] = node.id; });
+      folded.forEach(function (node) { membership[node.id] = BUDGET_REST_ID; addNodeMetrics(rest, node); });
+      keptNodes = kept.concat([rest]);
+      keptEdges = aggregateProjectedEdges(edges, membership, new Set(keptNodes.map(function (node) { return node.id; })));
+    }
+    if (keptEdges.length > RENDER_BUDGET.edges) {
+      keptEdges = keptEdges.slice().sort(function (a, b) {
+        return Number(b.occurrences || 1) - Number(a.occurrences || 1) || String(a.id).localeCompare(String(b.id));
+      }).slice(0, RENDER_BUDGET.edges);
+    }
+    return {
+      nodes: keptNodes,
+      edges: keptEdges,
+      budget: { totalNodes: nodes.length, totalEdges: edges.length, shownNodes: keptNodes.length, shownEdges: keptEdges.length }
+    };
+  }
+  function renderBudgetNotice(budget) {
+    if (!budget) { return ''; }
+    return 'Showing ' + budget.shownNodes + ' of ' + budget.totalNodes + ' nodes and '
+      + budget.shownEdges + ' of ' + budget.totalEdges + ' relations (render budget). Open a folder or hide externals for the rest.';
+  }
   function filteredDataset() {
     if (!state.snapshot) { return { nodes: [], edges: [] }; }
     var scope = state.snapshot.scope || { kind: 'directory', relativePath: '' };
@@ -400,7 +489,13 @@
       return ids.has(edge.source) && ids.has(edge.target)
         && state.snapshot.relationFilters?.[edge.kind] !== false;
     });
-    return { nodes: nodes, edges: edges, scopeLabel: projected.scopeLabel };
+    var budgeted = applyRenderBudget(nodes, edges);
+    return {
+      nodes: aggregateMetricsFromEdges(budgeted.nodes, budgeted.edges),
+      edges: budgeted.edges,
+      scopeLabel: projected.scopeLabel,
+      budget: budgeted.budget
+    };
   }
 
   function publishState(patch) {

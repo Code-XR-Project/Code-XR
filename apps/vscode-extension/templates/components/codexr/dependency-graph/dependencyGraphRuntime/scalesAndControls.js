@@ -8,16 +8,19 @@
   function openFile(relativePath) {
     var normalized = normalizeRelativePath(relativePath);
     if (!normalized) { return; }
-    if (state.fileDatasets[normalized]) {
-      publishState({ scope: { kind: 'file', relativePath: normalized } });
-      return;
-    }
     // Extracting a file's symbols is a server-side analysis: an exported copy
     // can only drill into files whose dataset was cached before export.
     if (client()?.isOfflineExport?.()) {
+      if (state.fileDatasets[normalized]) {
+        publishState({ scope: { kind: 'file', relativePath: normalized } });
+        return;
+      }
       setStatus('File symbols are not part of this export: drilling into ' + normalized + ' needs the live CodeXR session.', true);
       return;
     }
+    // Live: always ask the server. It answers from its content-hash cache, so
+    // the room gets the file's dataset URL with the scope (DEPGRAPH-4) and an
+    // edited file is never shown from a stale local copy (DEPGRAPH-8).
     setStatus('Loading symbols for ' + normalized + '...', false);
     client()?.sendMessage?.('dependency-file-scope-request', { relativePath: normalized });
   }
@@ -87,6 +90,7 @@
     if (node?.syntheticKind === 'parent') { return { color: COLORS.parent, shape: 'portal' }; }
     if (node?.syntheticKind === 'directory') { return { color: COLORS.directory, shape: 'box' }; }
     if (node?.syntheticKind === 'internal-files') { return { color: '#34d399', shape: 'portal' }; }
+    if (node?.syntheticKind === 'budget-rest') { return { color: '#94a3b8', shape: 'portal' }; }
     if (node?.syntheticExternal) {
       return { color: '#fb923c', shape: layout === 'force-3d' ? 'sphere' : 'portal' };
     }
@@ -135,6 +139,8 @@
 
   function nodeSubtitle(node) {
     if (node?.syntheticKind === 'parent') { return 'Parent directory'; }
+    if (node?.syntheticKind === 'budget-rest') { return 'Not drawn: over the render budget'; }
+    if (node?.syntheticKind === 'internal-files') { return 'Other project files'; }
     if (node?.syntheticKind === 'directory' || node?.kind === 'group') { return 'Directory'; }
     var bits = [];
     if (node?.symbolKind) { bits.push(String(node.symbolKind).toUpperCase()); }
@@ -172,24 +178,29 @@
     var fanOut = Number(metrics.fanOut || 0);
     // Instability (Ce / (Ca + Ce)) — a standard dependency-health metric.
     var instability = (fanIn + fanOut) > 0 ? Math.round((fanOut / (fanIn + fanOut)) * 100) : 0;
+    // A folder counts its files in a cycle; a file shows the size of the cycle
+    // it belongs to (0 when none). See DEPENDENCY_GRAPH_XR.md, "Folder cards".
+    var isGroup = node?.kind === 'group';
+    var cycleLabel = isGroup ? 'In cycles' : 'Cycle size';
+    var cycleValue = Number(metrics.cycleSize || 0);
     return {
       title: node?.label || node?.id || 'Unknown node',
       subtitle: nodeSubtitle(node),
       accentColor: nodeAccentColor(node),
-      rows: [
+      rows: (isGroup ? [{ label: 'Files', value: String(Number(metrics.files || 0)) }] : []).concat([
         { label: 'Fan-in', value: String(fanIn) },
         { label: 'Fan-out', value: String(fanOut) },
         { label: 'Degree', value: String(Number(metrics.degree || 0)) },
         { label: 'Relations', value: String(Number(metrics.relationCount || 0)) },
-        { label: 'Cycle', value: String(Number(metrics.cycleSize || 0)) },
+        { label: cycleLabel, value: String(cycleValue) },
         { label: 'Lines', value: String(Number(metrics.totalLines || 0)) },
         { label: 'Instab.', value: instability + '%' }
-      ],
+      ]),
       primary: 'Fan-in ' + fanIn
         + '   Fan-out ' + fanOut
         + '   Degree ' + Number(metrics.degree || 0),
       secondary: 'Relations ' + Number(metrics.relationCount || 0)
-        + '   Cycle ' + Number(metrics.cycleSize || 0)
+        + '   ' + cycleLabel + ' ' + cycleValue
         + '   Lines ' + Number(metrics.totalLines || 0)
     };
   }
@@ -442,7 +453,7 @@
     ));
     refs.status = state.loadError
       ? text(state.loadError, rowPosition(0, PANEL_ROWS.status), 5.6, '#fca5a5')
-      : text(state.snapshot.message || '', rowPosition(0, PANEL_ROWS.status), 5.6, '#fde68a');
+      : text(state.renderBudgetNotice || state.snapshot.message || '', rowPosition(0, PANEL_ROWS.status), 5.6, '#fde68a');
     refs.controls.appendChild(refs.status);
   }
 
@@ -479,8 +490,26 @@
       'var levels={};n.forEach(function(x){var l=Math.min(6,incoming[x.id]||0);(levels[l]||(levels[l]=[])).push(x);});',
       'Object.keys(levels).forEach(function(k){var a=levels[k];a.forEach(function(x,i){out[x.id]={x:-w/2+(Number(k)+.5)*(w/7),y:.12+(i%4)*.18,z:-d/2+((i+.5)/a.length)*d};});});',
       '}else if(layout==="metric-space"){var xMetric=m.x||"fanOut",zMetric=m.z||"fanIn",maxX=Math.max(1,Number(s.x&&s.x.maximum||1)),maxZ=Math.max(1,Number(s.z&&s.z.maximum||1));n.forEach(function(x){out[x.id]={x:-w/2+(Number(x.metrics[xMetric]||0)/maxX)*w,y:.12,z:-d/2+(Number(x.metrics[zMetric]||0)/maxZ)*d};});',
-      '}else{var count=Math.max(1,n.length);n.forEach(function(x,i){var ring=Math.floor(Math.sqrt(i)),angle=i*2.399963;var radius=Math.min(Math.min(w,d)*.45,.28+ring*.22);out[x.id]={x:Math.cos(angle)*radius,y:.12+(i%5)*.09,z:Math.sin(angle)*radius};});}',
+      // force-3d: a deterministic Fruchterman-Reingold pass over the table's
+      // own width and depth, seeded on a sunflower spiral. It used to ignore the
+      // edges and put every node past the 16th on one circle (DEPGRAPH-5).
+      '}else{var N=n.length,pos={},hw=w*.46,hd=d*.46;',
+      'n.forEach(function(x,i){var r=Math.sqrt((i+.5)/Math.max(1,N)),a=i*2.399963;pos[x.id]={x:Math.cos(a)*r*hw,z:Math.sin(a)*r*hd};});',
+      'var links=e.filter(function(x){return pos[x.source]&&pos[x.target]&&x.source!==x.target;});',
+      'var k=Math.sqrt(w*d/Math.max(1,N))*.6,iters=N>300?60:(N>1?150:0),t=Math.min(w,d)*.1;',
+      'for(var it=0;it<iters;it++){var disp={};n.forEach(function(x){disp[x.id]={x:0,z:0};});',
+      'for(var i=0;i<N;i++){var a=pos[n[i].id];for(var j=i+1;j<N;j++){var b=pos[n[j].id],dx=a.x-b.x,dz=a.z-b.z,dist=Math.max(.001,Math.sqrt(dx*dx+dz*dz)),f=k*k/dist/dist;dx*=f;dz*=f;disp[n[i].id].x+=dx;disp[n[i].id].z+=dz;disp[n[j].id].x-=dx;disp[n[j].id].z-=dz;}}',
+      'links.forEach(function(l){var a=pos[l.source],b=pos[l.target],dx=a.x-b.x,dz=a.z-b.z,dist=Math.max(.001,Math.sqrt(dx*dx+dz*dz)),f=dist/k;dx*=f;dz*=f;disp[l.source].x-=dx;disp[l.source].z-=dz;disp[l.target].x+=dx;disp[l.target].z+=dz;});',
+      'n.forEach(function(x){var q=pos[x.id],v=disp[x.id],len=Math.max(.001,Math.sqrt(v.x*v.x+v.z*v.z)),step=Math.min(len,t);q.x=Math.max(-hw,Math.min(hw,q.x+v.x/len*step));q.z=Math.max(-hd,Math.min(hd,q.z+v.z/len*step));});',
+      't*=.97;}',
+      'n.forEach(function(x,i){out[x.id]={x:pos[x.id].x,y:.12+(i%5)*.09,z:pos[x.id].z};});}',
       'self.postMessage({generation:p.generation,positions:out});};'
     ].join('');
-    return new root.Worker(root.URL.createObjectURL(new root.Blob([source], { type: 'application/javascript' })));
+    var url = root.URL.createObjectURL(new root.Blob([source], { type: 'application/javascript' }));
+    try {
+      return new root.Worker(url);
+    } finally {
+      // The worker has its script once constructed; the URL only leaked.
+      root.URL.revokeObjectURL?.(url);
+    }
   }
