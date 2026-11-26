@@ -18,6 +18,7 @@ type ServerIdAction =
     | 'openInPanel'
     | 'copyUrl'
     | 'copyLanUrl'
+    | 'showHeadsetQr'
     | 'startRemoteAccess'
     | 'copyRemoteInvitation'
     | 'stopRemoteAccess'
@@ -32,6 +33,7 @@ const SERVER_ID_COMMANDS: readonly ServerIdCommand[] = [
     { id: 'codeXR.activeServers.openInPanel', description: 'Open active server in panel', action: 'openInPanel', errorMessage: 'Failed to open active server in panel' },
     { id: 'codeXR.activeServers.copyUrl', description: 'Copy active server URL', action: 'copyUrl', errorMessage: 'Failed to copy active server URL' },
     { id: 'codeXR.activeServers.copyLanUrl', description: 'Copy active server LAN URL', action: 'copyLanUrl', errorMessage: 'Failed to copy active server LAN URL' },
+    { id: 'codeXR.activeServers.showHeadsetQr', description: 'Show the headset address and QR code', action: 'showHeadsetQr', errorMessage: 'Failed to show the headset address' },
     { id: 'codeXR.activeServers.startRemoteAccess', description: 'Start remote access', action: 'startRemoteAccess', errorMessage: 'Failed to start remote access' },
     { id: 'codeXR.activeServers.copyRemoteInvitation', description: 'Copy remote invitation', action: 'copyRemoteInvitation', errorMessage: 'Failed to copy remote invitation' },
     { id: 'codeXR.activeServers.stopRemoteAccess', description: 'Stop remote access', action: 'stopRemoteAccess', errorMessage: 'Failed to stop remote access' },

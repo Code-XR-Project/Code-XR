@@ -4,6 +4,7 @@ import { getActiveServerRegistry } from '../../../core/server/registry/activeSer
 import { ServerControl } from '../../../core/server/serverControl';
 import { openServerInBrowser, openServerInPanel } from '../services/serverOpenActions';
 import { withServer } from '../services/withServer';
+import { showHeadsetQrPanel } from '../services/headsetQrPanel';
 import { NetworkUtils } from '../../../core/server/networkUtils';
 import { RemoteAccessManager } from '../../../core/remote-access/remoteAccessManager';
 import { ServerSettingsManager } from '../../../core/server/serverSettingsManager';
@@ -141,6 +142,11 @@ export class ServerActionHandlers {
         const lanUrl = NetworkUtils.getPrimaryExternalUrl(server.port, protocol);
         await vscode.env.clipboard.writeText(lanUrl);
         void vscode.window.showInformationMessage(`Network address copied: ${lanUrl}`);
+    }
+
+    /** #19: the address a standalone headset opens to join this server's scene, and its QR code. */
+    public static async showHeadsetQr(serverId: string): Promise<void> {
+        return withServer(serverId, async (server) => showHeadsetQrPanel(server));
     }
 
     public static async startRemoteAccess(serverId: string): Promise<void> {

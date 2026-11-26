@@ -195,6 +195,17 @@ export class ActiveServerItemFactory {
             ));
         }
 
+        // #19: what a standalone headset opens, with its QR code.
+        children.push(this.createCommandItem(
+            'Open on a headset',
+            'QR code',
+            'device-mobile',
+            'codeXR.activeServers.showHeadsetQr',
+            server,
+            'info-item',
+            'Show the address a standalone headset (Quest browser...) opens to join this scene, with its QR code.',
+        ));
+
         // The cross-network group exists only when the global setting allows it.
         // Defensive: a live tunnel is never hidden, even if the setting was
         // disabled underneath it.

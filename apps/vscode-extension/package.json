@@ -141,6 +141,11 @@
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
+        "command": "codeXR.activeServers.showHeadsetQr",
+        "title": "Open on a Headset",
+        "enablement": "!codeXR.pythonEnv.uiLocked"
+      },
+      {
         "command": "codeXR.activeServers.startRemoteAccess",
         "title": "Start Remote Access",
         "icon": "$(remote-explorer)",
@@ -817,6 +822,7 @@
   "dependencies": {
     "bufferutil": "^4.1.0",
     "get-port": "^7.1.0",
+    "qrcode-generator": "2.0.4",
     "utf-8-validate": "^6.0.6",
     "ws": "^8.19.0"
   }

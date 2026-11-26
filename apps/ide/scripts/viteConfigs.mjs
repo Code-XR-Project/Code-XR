@@ -71,6 +71,10 @@ export function rendererConfig(opts = {}) {
         server: { host: '127.0.0.1', port: 5174, strictPort: false },
         // #173/#178: the pure, dependency-free metric logic of the core is
         // shared with the VS Code extension; the rest of the core stays in main.
-        resolve: { alias: [{ find: /^@codexr\/core\/metrics\//, replacement: `${CORE_SRC}/metrics/` }] },
+        resolve: { alias: [
+            { find: /^@codexr\/core\/metrics\//, replacement: `${CORE_SRC}/metrics/` },
+            // #19: the QR code of the headset address, shared with the extension.
+            { find: /^@codexr\/core\/xr\//, replacement: `${CORE_SRC}/xr/` },
+        ] },
     };
 }
