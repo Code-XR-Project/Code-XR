@@ -333,7 +333,10 @@ test('historical snapshots use private extension storage and publish only immuta
         'historicalComparisonService.ts',
     );
 
-    assert.match(source, /context\.storageUri\?\.fsPath \|\| context\.globalStorageUri\.fsPath/);
+    // Private storage, never the workspace: since #13 step 2 through the one
+    // shared rule (core/host/hostPaths.ts, behaviour pinned in test/host/hostPaths.test.cjs).
+    assert.match(source, /const storageRoot = privateStorageRoot\(hostPathsFromContext\(context\)\);/);
+    assert.match(source, /path\.join\(\s*storageRoot,\s*'historical-comparisons'/);
     assert.match(source, /'historical-comparisons'/);
     assert.doesNotMatch(source, /\.codexr-comparison-snapshots/);
     assert.match(source, /revision-\$\{revision\}-left\.json/);

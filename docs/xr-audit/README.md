@@ -92,3 +92,9 @@ The repro scripts and harnesses are not part of the repository (they are audit t
 project's shared files under `xr-audit/repro/`. Running them in a sandbox with no CDN access needs the
 Playwright preload `xr-audit/repro/cdn-route.cjs`, which serves A-Frame, BabiaXR and aframe-extras from
 `npm pack` tarballs.
+
+## Fix verification
+
+The fixes of epic #72 were re-checked independently on `v1.2.1` @ `6f827a19` (2026-11-26): 80 of 102
+findings fully fixed, 17 partly fixed, 4 minor still failing, 1 manual-only; all 6 blockers fixed. See
+[verification/README.md](verification/README.md).
