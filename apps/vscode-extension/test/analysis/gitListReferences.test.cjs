@@ -47,7 +47,7 @@ test('the git commands listReferences runs, in order', async () => {
         ['/repo', 'symbolic-ref', '--quiet', '--short', 'HEAD'],
         ['/repo', 'for-each-ref', '--format=%(refname)%00%(objectname)%00%(refname:short)%00%(committerdate:short)%00%(committerdate:unix)', 'refs/heads', 'refs/remotes'],
         ['/repo', 'for-each-ref', '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)%00%(*objecttype)%00%(objecttype)', 'refs/tags'],
-        ['/repo', 'log', '--branches', '--tags', '--remotes', '--max-count=50', '--date=short', '--format=%H%x00%ad%x00%ct%x00%P%x00%s'],
+        ['/repo', 'log', '--branches', '--tags', '--remotes', '--max-count=200', '--date=short', '--format=%H%x00%ad%x00%ct%x00%P%x00%s'],
     ]);
 });
 

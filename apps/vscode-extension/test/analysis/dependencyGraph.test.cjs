@@ -981,7 +981,7 @@ test('every mode runtime keeps its shared-state application passive (mode-entity
 
   const historical = readAssembledRuntime('historical-comparison', 'historicalComparisonRuntime.js');
   assert.match(historical, /function isHistoricalModeActiveOrActivating\(\)/);
-  assert.match(historical, /if \(!isHistoricalModeActiveOrActivating\(\)\) \{\s*state\.result = snapshot\.result;\s*return;/);
+  assert.match(historical, /state\.result = snapshot\.result;\s*if \(!isHistoricalModeActiveOrActivating\(\)\) \{\s*return;/);
 
   const evolutionPart = read('templates/components/codexr/project-evolution/projectEvolutionRuntime/frameApplication.js');
   assert.match(evolutionPart, /function isEvolutionModeActiveOrActivating\(\)/);

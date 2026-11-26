@@ -4,9 +4,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import {
-    isDirectoryAnalysisFile,
-    shouldIgnoreDirectoryName,
-} from '../analysis/watchers/analysisFilePolicy';
+    MAX_SINGLE_FILE_BYTES,
+    MAX_SNAPSHOT_BYTES,
+    planDirectorySnapshot,
+} from './gitSnapshotPlan';
 import { currentLaunchSignal } from '../analysis/launch/launchControl';
 import { streamGitLines } from './gitLineStream';
 import type {
@@ -17,9 +18,11 @@ import type {
 } from './historicalComparisonModels';
 
 const execFile = promisify(childProcess.execFile);
-const MAX_SNAPSHOT_FILES = 5000;
-const MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024;
-const MAX_SINGLE_FILE_BYTES = 8 * 1024 * 1024;
+/**
+ * Recent commits the pickers offer (HIST-11). Was 50, which left a commit
+ * picked a week ago out of reach on a busy repository.
+ */
+export const PICKER_COMMIT_COUNT = 200;
 /** One git command longer than this is killed and reported (HIST-7, EVO-3). */
 export const GIT_COMMAND_TIMEOUT_MS = 180_000;
 
@@ -90,7 +93,7 @@ export class GitRepositoryService {
             '--branches',
             '--tags',
             '--remotes',
-            '--max-count=50',
+            `--max-count=${PICKER_COMMIT_COUNT}`,
             '--date=short',
             '--format=%H%x00%ad%x00%ct%x00%P%x00%s',
         ])).stdout;
@@ -101,7 +104,9 @@ export class GitRepositoryService {
             ...this.parseCommitLog(commitOutput),
         ];
 
-        this.sourceById.clear();
+        // Added to, never cleared (HIST-2): a commit picked for a live
+        // comparison stays resolvable after newer commits push it out of
+        // this listing. Branch and tag ids are re-verified on resolve.
         for (const source of sources) {
             this.sourceById.set(source.id, source);
         }
@@ -140,11 +145,8 @@ export class GitRepositoryService {
         }
 
         const repositoryRoot = await this.resolveRepositoryRoot();
-        const resolved = (await this.runGit(repositoryRoot, [
-            'rev-parse',
-            '--verify',
-            `${source.refName}^{commit}`,
-        ])).stdout.trim();
+        const resolved = (await this.tryRunGit(repositoryRoot, ['rev-parse', '--verify', '--quiet', `${source.refName}^{commit}`]))
+            ?.stdout.trim() ?? '';
         if (!this.isCommitSha(resolved)) {
             throw new Error('comparison-reference-not-found');
         }
@@ -257,7 +259,12 @@ export class GitRepositoryService {
             .map((entry) => entry.source);
     }
 
-    public async materialize(source: ComparisonSource): Promise<MaterializedGitTarget> {
+    /**
+     * Writes one revision of the target into the snapshot folder. A shallow
+     * directory analysis reads only the target's own files, so only those are
+     * copied and counted against the limits (HIST-5).
+     */
+    public async materialize(source: ComparisonSource, options: { recursive?: boolean } = {}): Promise<MaterializedGitTarget> {
         if (source.kind === 'workingCopy') {
             return {
                 targetPath: this.targetPath,
@@ -271,12 +278,12 @@ export class GitRepositoryService {
         const sourceDirectory = path.join(this.snapshotRoot, this.safeSnapshotName(source.commitSha));
         const destinationPath = path.join(sourceDirectory, ...targetRelativePath.split('/'));
         this.assertInside(sourceDirectory, destinationPath);
-        await fs.promises.rm(sourceDirectory, { recursive: true, force: true });
+        await fs.promises.rm(sourceDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
         await fs.promises.mkdir(sourceDirectory, { recursive: true });
 
         const targetStat = await fs.promises.stat(this.targetPath);
         return targetStat.isDirectory()
-            ? this.materializeDirectory(repositoryRoot, source.commitSha, targetRelativePath, sourceDirectory)
+            ? this.materializeDirectory(repositoryRoot, source.commitSha, targetRelativePath, sourceDirectory, options.recursive !== false)
             : this.materializeFile(repositoryRoot, source.commitSha, targetRelativePath, destinationPath);
     }
 
@@ -287,11 +294,11 @@ export class GitRepositoryService {
         }
         const sourceDirectory = path.join(this.snapshotRoot, this.safeSnapshotName(source.commitSha));
         this.assertInside(this.snapshotRoot, sourceDirectory);
-        await fs.promises.rm(sourceDirectory, { recursive: true, force: true });
+        await fs.promises.rm(sourceDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     }
 
     public async dispose(): Promise<void> {
-        await fs.promises.rm(this.snapshotRoot, { recursive: true, force: true });
+        await fs.promises.rm(this.snapshotRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     }
 
     /**
@@ -348,6 +355,7 @@ export class GitRepositoryService {
         commitSha: string,
         targetRelativePath: string,
         sourceDirectory: string,
+        recursive: boolean,
     ): Promise<MaterializedGitTarget> {
         const isRepositoryRoot = targetRelativePath === '.';
         const treeSpec = isRepositoryRoot
@@ -369,7 +377,7 @@ export class GitRepositoryService {
         const rawTree = await this.runGitBuffer(repositoryRoot, [
             ...treeArguments,
         ]);
-        const { repositoryPaths, warnings } = this.planDirectorySnapshot(rawTree, targetRelativePath);
+        const { repositoryPaths, warnings } = planDirectorySnapshot(rawTree, targetRelativePath, recursive);
         await this.copyPlannedFiles(repositoryRoot, commitSha, sourceDirectory, repositoryPaths);
 
         return {
@@ -381,47 +389,6 @@ export class GitRepositoryService {
         };
     }
 
-    /**
-     * The blobs of an `ls-tree -r -z -l` listing to copy, with the warnings
-     * for the entries skipped. Throws when the snapshot would exceed the file
-     * or byte limit, before anything is written.
-     */
-    private planDirectorySnapshot(
-        rawTree: Buffer,
-        targetRelativePath: string,
-    ): { repositoryPaths: string[]; warnings: string[] } {
-        let totalBytes = 0;
-        const warnings: string[] = [];
-        const repositoryPaths: string[] = [];
-        for (const entry of rawTree.toString('utf8').split('\0').filter(Boolean)) {
-            const match = entry.match(/^(\d+)\s+(\w+)\s+([0-9a-f]{40})\s+(-|\d+)\t(.+)$/);
-            if (!match) {
-                continue;
-            }
-            const [, mode, type, , rawSize, repositoryPath] = match;
-            if (type !== 'blob' || mode === '160000') {
-                warnings.push(`Skipped unsupported Git entry: ${repositoryPath}`);
-                continue;
-            }
-            if (!this.shouldMaterializeDirectoryFile(relativeToTarget(targetRelativePath, repositoryPath))) {
-                continue;
-            }
-            const size = Number(rawSize);
-            if (!Number.isFinite(size) || size > MAX_SINGLE_FILE_BYTES) {
-                warnings.push(`Skipped oversized file: ${repositoryPath}`);
-                continue;
-            }
-            if (repositoryPaths.length >= MAX_SNAPSHOT_FILES) {
-                throw new Error('comparison-snapshot-file-limit');
-            }
-            totalBytes += size;
-            if (totalBytes > MAX_SNAPSHOT_BYTES) {
-                throw new Error('comparison-snapshot-size-limit');
-            }
-            repositoryPaths.push(repositoryPath);
-        }
-        return { repositoryPaths, warnings };
-    }
 
     /**
      * Write each planned blob under `sourceDirectory` at its repository path.
@@ -447,21 +414,6 @@ export class GitRepositoryService {
         }
     }
 
-    private shouldMaterializeDirectoryFile(relativePath: string): boolean {
-        if (
-            !relativePath
-            || relativePath.startsWith('../')
-            || path.posix.isAbsolute(relativePath)
-        ) {
-            return false;
-        }
-        const pathParts = relativePath.split('/').filter(Boolean);
-        const directoryParts = pathParts.slice(0, -1);
-        if (directoryParts.some((part) => shouldIgnoreDirectoryName(part))) {
-            return false;
-        }
-        return isDirectoryAnalysisFile(relativePath);
-    }
 
     private buildWorkingCopySource(
         headName: string | null,
@@ -685,11 +637,6 @@ export class GitRepositoryService {
 }
 
 /** A repository path relative to the target folder (`.` is the repository root). */
-function relativeToTarget(targetRelativePath: string, repositoryPath: string): string {
-    return targetRelativePath === '.'
-        ? repositoryPath
-        : path.posix.relative(targetRelativePath, repositoryPath);
-}
 
 /** The non-empty lines of a git command's output, LF or CRLF. */
 function splitGitLines(stdout: string): string[] {

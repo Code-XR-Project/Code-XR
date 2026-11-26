@@ -169,11 +169,16 @@
     if (code !== 'comparison-busy') {
       setComparisonJobRunning(false);
     }
-    var friendlyMessage = code === 'references-unavailable' || /not a git repository|git-command-failed/i.test(rawMessage)
+    // Only a references failure or "not a git repository" means the target is
+    // outside Git; a failed git command elsewhere (a deleted branch) is not
+    // that, and gets its own typed code from the server (HIST-10).
+    var friendlyMessage = code === 'references-unavailable' || /not a git repository/i.test(rawMessage)
       ? 'History compare requires an analysis inside a local Git repository.'
       : code === 'comparison-busy'
         ? 'Another comparison is already being generated.'
         : code === 'comparison-source-no-data' || code === 'comparison-timeout'
+          || code === 'comparison-reference-gone' || code === 'comparison-snapshot-limit'
+          || code === 'comparison-step-timeout' || code === 'comparison-live-refresh-stopped'
           ? rawMessage
         : /git-command-timeout|revision-analysis-timeout/i.test(rawMessage)
           ? 'A Git or analysis step took too long and was stopped. Please try again.'
@@ -188,8 +193,11 @@
       return;
     }
     setComparisonJobRunning(false);
+    // state.result is the room's latest comparison, stored before any await:
+    // a load abandoned because the user left mid-fetch can no longer drop
+    // it, and re-entry re-syncs from it (HIST-4b).
+    state.result = snapshot.result;
     if (!isHistoricalModeActiveOrActivating()) {
-      state.result = snapshot.result;
       return;
     }
     try {
@@ -210,13 +218,16 @@
       ) {
         return;
       }
-      var previousResult = state.result;
-      state.result = result;
-      if (canRefreshLiveSide(result, previousResult)) {
+      // Decide against what is MOUNTED, not against state.result: a result
+      // stored while the mode was parked would otherwise be compared with
+      // itself, and only the live side would be refreshed (HIST-4a).
+      if (canRefreshLiveSide(result, refs.renderedResult || null)) {
         await refreshLiveSide(result, datasets);
       } else {
         await renderComparison(result, datasets[0], datasets[1]);
       }
+      // The datasets are on screen: the loading text must not stay (HIST-10).
+      setStatus('', 'info');
       closePanel();
     } catch (error) {
       if (signal?.aborted) { return; }

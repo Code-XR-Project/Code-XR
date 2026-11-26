@@ -30,7 +30,7 @@ export async function writeEvolutionRevision(
     valid: EvolutionFrameInput[],
     excludedSources: GitAnalysisExclusion[],
 ): Promise<ProjectEvolutionResult> {
-    await fs.promises.rm(revisionDirectory, { recursive: true, force: true });
+    await fs.promises.rm(revisionDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     await fs.promises.mkdir(revisionDirectory, { recursive: true });
     const frames: ProjectEvolutionResult['frames'] = [];
     for (let index = 0; index < valid.length; index += 1) {
@@ -134,7 +134,7 @@ export async function listEvolutionRevisions(evolutionDirectory: string): Promis
 export async function removeOtherEvolutionRevisions(evolutionDirectory: string, keep: number): Promise<void> {
     for (const revision of await listEvolutionRevisions(evolutionDirectory)) {
         if (revision !== keep) {
-            await fs.promises.rm(path.join(evolutionDirectory, `revision-${revision}`), { recursive: true, force: true });
+            await fs.promises.rm(path.join(evolutionDirectory, `revision-${revision}`), { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
         }
     }
 }

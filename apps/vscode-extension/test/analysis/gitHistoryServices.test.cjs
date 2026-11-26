@@ -234,9 +234,9 @@ async function withServices(options, body) {
             const { GitRepositoryService } = requireOut('core/history/gitRepositoryService.js');
             const materialized = [];
             const originalMaterialize = GitRepositoryService.prototype.materialize;
-            GitRepositoryService.prototype.materialize = function countedMaterialize(source) {
+            GitRepositoryService.prototype.materialize = function countedMaterialize(source, options) {
                 materialized.push(source.kind === 'gitRef' ? source.commitSha : source.id);
-                return originalMaterialize.call(this, source);
+                return originalMaterialize.call(this, source, options);
             };
             const eligibility = requireOut('core/history/gitAnalysisEligibility.js');
             const { HistoricalComparisonService } = requireOut(HISTORICAL_MODULE);
@@ -577,13 +577,17 @@ test('historical unusable payloads: each failure becomes the same exclusion erro
             await outcome({ leftSourceId: c2.id, rightSourceId: 'working-copy' }),
             'comparison-source-no-data | no-analyzable-content: The analysis produced no data records.',
         );
+        // S12 (HIST-11): a Python that died or was killed also prints no JSON
+        // markers. That is a transient failure, reported as it is, and the
+        // revision stays in the pickers instead of being excluded for the session.
         analyzer.respond = () => {
             throw new Error('JSON markers not found in output');
         };
         assert.equal(
             await outcome({ leftSourceId: bySha[fixture.shas.c3].id, rightSourceId: 'working-copy' }),
-            'comparison-source-no-data | invalid-payload: The analyzer did not produce a readable JSON payload.',
+            'Error: JSON markers not found in output',
         );
+        assert.ok((await service.getReferences()).sources.some((source) => source.commitSha === fixture.shas.c3));
         analyzer.respond = () => {
             throw new Error('python exploded');
         };

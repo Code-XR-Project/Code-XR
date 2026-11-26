@@ -63,7 +63,7 @@
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 153,
+    "eslint.maxWarnings": 151,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -71,9 +71,9 @@
     }
   },
   "informational": {
-    "src.files": 298,
-    "src.lines": 50386,
-    "src.functions": 3455,
+    "src.files": 299,
+    "src.lines": 50592,
+    "src.functions": 3468,
     "src.unreachableLines": 0,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
@@ -266,7 +266,7 @@
       },
       {
         "file": "src/core/history/gitRepositoryService.ts",
-        "lines": 710
+        "lines": 657
       },
       {
         "file": "src/core/remote-access/remoteSessionAuthority.ts",
