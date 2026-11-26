@@ -1,15 +1,15 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { VenvManager } from '../../python-env/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
-import { hostPathsFromContext } from '../../host/hostPaths';
+import { hostPathsFromContext, type ExtensionContextPaths } from '../../host/hostPaths';
 import { classifyStderrLine } from './pythonStderrStream';
 import { currentLaunchSignal } from '../launch/launchControl';
 import { getLogger } from '../../../platform/logging/sink';
 import type { HostProgress } from '../../host/codeXRHost';
+import { getHost } from '../../host/hostRegistry';
 
 const logger = getLogger('EXECUTE_PYTHON');
 
@@ -69,9 +69,9 @@ function scriptFailureOf(result: unknown): Partial<PythonScriptFailure> | undefi
 
 export class ExecutePython {
     private venvManager: VenvManager;
-    private context: vscode.ExtensionContext;
+    private context: ExtensionContextPaths;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: ExtensionContextPaths) {
         logger.debug('Initializing ExecutePython utility...');
         this.context = context;
         this.venvManager = new VenvManager(context);
@@ -161,12 +161,8 @@ export class ExecutePython {
             return await runAnalysis({ report: () => {} });
         }
 
-        return await vscode.window.withProgress(
-            {
-                location: vscode.ProgressLocation.Notification,
-                title: 'CodeXR Analysis',
-                cancellable: false,
-            },
+        return await getHost().withProgress(
+            { title: 'CodeXR Analysis', cancellable: false },
             runAnalysis,
         );
     }

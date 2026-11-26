@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import type {
     CodeXRHost,
+    HostPromptOptions,
     HostSignal,
     HostStatusIndicator,
 } from '../../core/host/codeXRHost';
@@ -56,6 +57,18 @@ async function showModalMessage(
         default:
             return vscode.window.showWarningMessage(message, messageOptions, ...options.actions);
     }
+}
+
+/** `CodeXRHost.prompt` as a VS Code input box; only the options that were given are set. */
+async function showPrompt(options: HostPromptOptions): Promise<string | undefined> {
+    const box: vscode.InputBoxOptions = { prompt: options.prompt };
+    if (options.title !== undefined) { box.title = options.title; }
+    if (options.placeHolder !== undefined) { box.placeHolder = options.placeHolder; }
+    if (options.password !== undefined) { box.password = options.password; }
+    if (options.value !== undefined) { box.value = options.value; }
+    if (options.validate !== undefined) { box.validateInput = options.validate; }
+    if (options.keepOpen !== undefined) { box.ignoreFocusOut = options.keepOpen; }
+    return vscode.window.showInputBox(box);
 }
 
 export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
@@ -113,9 +126,7 @@ export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
                 (progress, token) => task(progress, token),
             );
         },
-        async prompt(options) {
-            return vscode.window.showInputBox(options);
-        },
+        prompt: showPrompt,
         async clipboardWrite(text) {
             await vscode.env.clipboard.writeText(text);
         },

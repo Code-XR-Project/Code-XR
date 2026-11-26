@@ -93,6 +93,16 @@ export type HostSignal =
     | { readonly kind: 'revealSidebar' }
     | { readonly kind: 'openServerSettings' };
 
+export interface HostPromptOptions {
+    readonly prompt: string;
+    readonly title?: string;
+    readonly placeHolder?: string;
+    readonly password?: boolean;
+    readonly value?: string;
+    readonly validate?: (input: string) => string | undefined;
+    readonly keepOpen?: boolean;
+}
+
 export interface CodeXRHost {
     readonly paths: HostPaths;
     readonly globalState: HostKeyValueStore;
@@ -101,7 +111,12 @@ export interface CodeXRHost {
         options: { title: string; cancellable?: boolean },
         task: (progress: HostProgress, cancellation: HostCancellation) => Promise<T>,
     ): Promise<T>;
-    prompt(options: { prompt: string; placeHolder?: string; password?: boolean; value?: string }): Promise<string | undefined>;
+    /**
+     * Asks for one line of text; undefined when the person cancels. `validate`
+     * returns an error to show (or undefined when the input is fine);
+     * `keepOpen` keeps the box open when focus moves elsewhere.
+     */
+    prompt(options: HostPromptOptions): Promise<string | undefined>;
     clipboardWrite(text: string): Promise<void>;
     /** Opens a URL in the system browser. Callers ask for consent first where the project rules require it. */
     openExternal(url: string): Promise<boolean>;

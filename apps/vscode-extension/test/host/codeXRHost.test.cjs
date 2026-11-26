@@ -181,6 +181,13 @@ const NOTIFYING_THROUGH_HOST = [
     'src/core/server/httpsCustomServer.ts',
     'src/core/server/httpsDefaultServer.ts',
     'src/core/python-env/venvManager.ts',
+    'src/core/remote-access/remoteAccessManager.ts',
+];
+
+// Modules that only used vscode.window for progress or the status line; no notifier canary applies.
+const PROGRESS_OR_STATUS_THROUGH_HOST = [
+    'src/core/analysis/python/executePython.ts',
+    'src/core/analysis/watchers/directoryReAnalyzer.ts',
 ];
 
 test('modules moved to host notifications call no vscode.window message API', () => {
@@ -189,7 +196,8 @@ test('modules moved to host notifications call no vscode.window message API', ()
         const source = fs.readFileSync(path.join(__dirname, '..', '..', file), 'utf8');
         assert.match(source, /getHost\(\)/, `${file}: canary, the host is used`);
         assert.match(source, /notifier\.(notify|confirm)\(/, `${file}: canary, the host notifier is called`);
-        assert.doesNotMatch(source, /vscode\.window\.(show(Information|Warning|Error)Message|setStatusBarMessage)/, `${file} still calls vscode.window`);
+        assert.doesNotMatch(source, /vscode\.window\.(show(Information|Warning|Error)Message|setStatusBarMessage|showInputBox|withProgress)/, `${file} still calls vscode.window`);
+        assert.doesNotMatch(source, /vscode\.(env|commands)\./, `${file} still calls vscode.env or vscode.commands`);
     }
 });
 
@@ -261,6 +269,15 @@ test('createStatusIndicator is a left status-bar item, keeping the priority it i
     });
 });
 
+test('progress and status-line modules go through the host, not vscode.window', () => {
+    const fs = require('node:fs');
+    for (const file of PROGRESS_OR_STATUS_THROUGH_HOST) {
+        const source = fs.readFileSync(path.join(__dirname, '..', '..', file), 'utf8');
+        assert.match(source, /getHost\(\)\.(withProgress|notifier\.status)\(/, `${file}: canary`);
+        assert.doesNotMatch(source, /vscode\.(window|env|commands)\./, `${file} still calls vscode directly`);
+    }
+});
+
 test('the re-analysis countdown uses a host status indicator, not vscode.window', () => {
     const fs = require('node:fs');
     const source = fs.readFileSync(path.join(__dirname, '..', '..', 'src/core/analysis/watchers/debounceManager.ts'), 'utf8');
@@ -300,3 +317,39 @@ test('a failing signal command is logged, never left as an unhandled rejection',
     }
     assert.deepEqual(unhandled, []);
 }));
+
+test('prompt maps title, validate and keepOpen onto the VS Code input box, and sets nothing it was not given', () => withHost({}, async ({ host, fake }) => {
+    const validate = (input) => /^\d{6}$/.test(input) ? undefined : 'Enter exactly six digits.';
+    await host.prompt({ title: 'Pairing code', prompt: 'Code', placeHolder: '000000', validate, keepOpen: true });
+    const options = fake.dialogs[0].options;
+    assert.deepEqual(Object.keys(options).sort(), ['ignoreFocusOut', 'placeHolder', 'prompt', 'title', 'validateInput']);
+    assert.equal(options.ignoreFocusOut, true);
+    assert.equal(options.validateInput, validate);
+}));
+
+// #13 steps 6-7 end state: the core reaches the person and the editor only
+// through the host. What may still name vscode is type positions
+// (ExtensionContext, step 9) and workspace.fs (step 8).
+test('no file under src/core calls vscode.window, vscode.env, vscode.commands or the workspace folders directly', () => {
+    const fs = require('node:fs');
+    const root = path.join(__dirname, '..', '..', 'src', 'core');
+    const offenders = [];
+    let scanned = 0;
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+            } else if (entry.name.endsWith('.ts')) {
+                scanned += 1;
+                const source = fs.readFileSync(full, 'utf8');
+                if (/vscode\.(window|env|commands)\.|vscode\.workspace\.workspaceFolders/.test(source)) {
+                    offenders.push(path.relative(root, full));
+                }
+            }
+        }
+    };
+    walk(root);
+    assert.ok(scanned > 100, `canary: scanned ${scanned} files`);
+    assert.deepEqual(offenders, []);
+});
