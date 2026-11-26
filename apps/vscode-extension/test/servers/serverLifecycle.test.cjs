@@ -629,3 +629,45 @@ test('PortManager: a port held on loopback only is reported busy', async () => {
         assert.equal(await PortManager.isPortFreeEverywhere(heldPort), true);
     });
 });
+
+test('PortManager #111: the get-port fallback scan probes the same three addresses as the main probe', async () => {
+    const fake = createFakeVscode();
+    await withFakeVscode(fake, async ({ requireOut }) => {
+        const { PortManager } = requireOut('core/server/portManager.js');
+        const original = PortManager.isPortAvailableOnHost;
+        const probes = [];
+        // Port 5000 looks taken on loopback only (a dev server on localhost),
+        // which a 0.0.0.0-only scan cannot see on macOS and Windows.
+        PortManager.isPortAvailableOnHost = async (port, host) => {
+            probes.push([port, host]);
+            return !(port === 5000 && host === '127.0.0.1');
+        };
+        try {
+            assert.deepEqual(PortManager.PROBED_HOSTS, ['0.0.0.0', '127.0.0.1', '::1']);
+            // The default host of findAvailablePort is the wildcard.
+            assert.equal(await PortManager.scanSequentially(5000, 5010, '0.0.0.0'), 5001);
+            assert.deepEqual(probes, [
+                [5000, '0.0.0.0'], [5000, '127.0.0.1'],
+                [5001, '0.0.0.0'], [5001, '127.0.0.1'], [5001, '::1'],
+            ]);
+            probes.length = 0;
+            assert.equal(await PortManager.scanSequentially(5000, 5010), 5001);
+            assert.deepEqual(probes.map(([, host]) => host), ['0.0.0.0', '127.0.0.1', '0.0.0.0', '127.0.0.1', '::1']);
+            probes.length = 0;
+            assert.equal(await PortManager.isPortAvailable(5000, '::'), false);
+        } finally {
+            PortManager.isPortAvailableOnHost = original;
+        }
+
+        const holder = net.createServer();
+        await new Promise((resolve) => holder.listen(0, '127.0.0.1', resolve));
+        const heldPort = holder.address().port;
+        try {
+            const found = await PortManager.scanSequentially(heldPort, heldPort + 20, '0.0.0.0');
+            assert.notEqual(found, heldPort);
+            assert.ok(found > heldPort && found <= heldPort + 20);
+        } finally {
+            await new Promise((resolve) => holder.close(resolve));
+        }
+    });
+});
