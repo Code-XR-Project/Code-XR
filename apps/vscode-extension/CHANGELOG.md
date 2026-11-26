@@ -35,6 +35,8 @@
 
 - **Nothing changes in VS Code, but the dependency graph and the directory LivePanel can now hand a file to an embedding editor.** When the page runs inside the Code-XR IDE, a file or symbol card of the dependency graph offers *Open in editor* and a LivePanel row opens its file there. In VS Code and in a browser both behave exactly as before.
 
+- **A new AI AGENTS section in the sidebar says what is coming.** It holds a single "coming soon" row: AI agents that chat about your code and its Code-XR analyses, with your own provider keys. It has no command and makes no network call.
+
 #### Fixed
 
 - **The progress of setting up the Python environment matches what it is doing.** The set-up reported its steps as running totals (20, 55, 70...) while VS Code adds each value to the bar, so the bar filled long before the end; deleting the environment and installing a package did the same. Each step now reports only how far it moved, and the packages and language parsers share the last part of the bar one by one.
