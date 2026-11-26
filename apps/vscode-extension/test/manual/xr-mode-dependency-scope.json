@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "revision": 2,
+  "targetType": "file",
+  "targetRelativePath": "src/analysis.ts",
+  "nodes": [
+    {
+      "id": "symbol:a93acd5c95b121d9",
+      "kind": "symbol",
+      "symbolKind": "module",
+      "label": "analysis.ts",
+      "relativePath": "src/analysis.ts",
+      "language": "TypeScript",
+      "external": false,
+      "lineStart": 1,
+      "lineEnd": 3,
+      "metrics": {
+        "totalLines": 3,
+        "fanIn": 0,
+        "fanOut": 3,
+        "degree": 3,
+        "dependentCount": 0,
+        "cycleSize": 0,
+        "relationCount": 4
+      }
+    },
+    {
+      "id": "symbol:7fe3e15b6bde67d5",
+      "kind": "symbol",
+      "symbolKind": "class",
+      "label": "Analysis",
+      "relativePath": "src/analysis.ts",
+      "language": "TypeScript",
+      "external": false,
+      "ownerId": "symbol:a93acd5c95b121d9",
+      "lineStart": 3,
+      "metrics": {
+        "totalLines": 0,
+        "fanIn": 1,
+        "fanOut": 0,
+        "degree": 1,
+        "dependentCount": 1,
+        "cycleSize": 0,
+        "relationCount": 1
+      }
+    },
+    {
+      "id": "symbol:2ce526b442220a24",
+      "kind": "symbol",
+      "symbolKind": "function",
+      "label": "run",
+      "relativePath": "src/analysis.ts",
+      "language": "TypeScript",
+      "external": false,
+      "ownerId": "symbol:a93acd5c95b121d9",
+      "lineStart": 2,
+      "lineEnd": 2,
+      "metrics": {
+        "totalLines": 1,
+        "fanIn": 1,
+        "fanOut": 0,
+        "degree": 1,
+        "dependentCount": 1,
+        "cycleSize": 0,
+        "relationCount": 2,
+        "complexity": 0.0,
+        "parameters": 0,
+        "nestingDepth": 0
+      }
+    },
+    {
+      "id": "file:ad4ed9fb29a0f9d2",
+      "kind": "file",
+      "label": "server.ts",
+      "relativePath": "src/server.ts",
+      "external": false,
+      "metrics": {
+        "totalLines": 0,
+        "fanIn": 1,
+        "fanOut": 0,
+        "degree": 1,
+        "dependentCount": 1,
+        "cycleSize": 0,
+        "relationCount": 1
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:fa63e660c12fb888",
+      "source": "symbol:a93acd5c95b121d9",
+      "target": "symbol:7fe3e15b6bde67d5",
+      "kind": "contains",
+      "confidence": "exact",
+      "occurrences": 1
+    },
+    {
+      "id": "edge:8bbaf0d696a99cc5",
+      "source": "symbol:a93acd5c95b121d9",
+      "target": "symbol:2ce526b442220a24",
+      "kind": "contains",
+      "confidence": "exact",
+      "occurrences": 1
+    },
+    {
+      "id": "edge:f318e843c89fdddd",
+      "source": "symbol:a93acd5c95b121d9",
+      "target": "file:ad4ed9fb29a0f9d2",
+      "kind": "import",
+      "confidence": "exact",
+      "occurrences": 1
+    },
+    {
+      "id": "edge:4c9328bd38e90066",
+      "source": "symbol:a93acd5c95b121d9",
+      "target": "symbol:2ce526b442220a24",
+      "kind": "call",
+      "confidence": "ambiguous",
+      "occurrences": 1
+    }
+  ],
+  "generatedAt": "2026-11-26T00:00:00.000Z",
+  "sourceRevision": 1
+}

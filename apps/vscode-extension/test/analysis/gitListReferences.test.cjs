@@ -48,6 +48,8 @@ test('the git commands listReferences runs, in order', async () => {
         ['/repo', 'for-each-ref', '--format=%(refname)%00%(objectname)%00%(refname:short)%00%(committerdate:short)%00%(committerdate:unix)', 'refs/heads', 'refs/remotes'],
         ['/repo', 'for-each-ref', '--format=%(refname)%00%(*objectname)%00%(objectname)%00%(refname:short)%00%(*committerdate:short)%00%(committerdate:short)%00%(*committerdate:unix)%00%(committerdate:unix)%00%(*objecttype)%00%(objecttype)', 'refs/tags'],
         ['/repo', 'log', '--branches', '--tags', '--remotes', '--max-count=200', '--date=short', '--format=%H%x00%ad%x00%ct%x00%P%x00%s'],
+        // Partial-clone check (EVO-10): the settings `git clone --filter` writes.
+        ['/repo', 'config', '--get-regexp', '^(extensions\\.partialclone|remote\\..*\\.promisor)$'],
     ]);
 });
 
@@ -119,6 +121,8 @@ test('every format parsed: branches, tags and commits after the working copy', a
             gitRef('commit', sha('f'), 'ffffffff', sha('f'), { description: '' }),
         ],
         pageSize: 5,
+        partialClone: false,
+        notice: null,
     });
     // Every listed source is what resolveSource looks up afterwards.
     assert.deepEqual([...service.sourceById.values()], references.sources);

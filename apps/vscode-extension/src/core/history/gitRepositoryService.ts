@@ -10,7 +10,13 @@ import {
 } from './gitSnapshotPlan';
 import { currentLaunchSignal } from '../analysis/launch/launchControl';
 import { streamGitLines } from './gitLineStream';
-import { PARTIAL_CLONE_MISSING_MESSAGE, gitOfflineEnvironment, isPartialCloneMissingObject } from './gitOfflineEnvironment';
+import {
+    PARTIAL_CLONE_MISSING_MESSAGE,
+    PARTIAL_CLONE_NOTICE,
+    gitOfflineEnvironment,
+    isPartialCloneConfig,
+    isPartialCloneMissingObject,
+} from './gitOfflineEnvironment';
 import type {
     ComparisonSource,
     GitReferenceType,
@@ -115,6 +121,7 @@ export class GitRepositoryService {
             this.sourceById.set(source.id, source);
         }
 
+        const partialClone = await this.isPartialClone(repositoryRoot);
         return {
             repositoryRoot,
             targetRelativePath,
@@ -122,7 +129,19 @@ export class GitRepositoryService {
             activeBranch: headName,
             sources,
             pageSize: 5,
+            partialClone,
+            notice: partialClone ? PARTIAL_CLONE_NOTICE : null,
         };
+    }
+
+    /** Whether `git clone --filter` made this repository (EVO-10). */
+    public async isPartialClone(repositoryRoot: string): Promise<boolean> {
+        const config = await this.tryRunGit(repositoryRoot, [
+            'config',
+            '--get-regexp',
+            '^(extensions\\.partialclone|remote\\..*\\.promisor)$',
+        ]);
+        return isPartialCloneConfig(config?.stdout ?? '');
     }
 
     public async getRepositoryContext(): Promise<{

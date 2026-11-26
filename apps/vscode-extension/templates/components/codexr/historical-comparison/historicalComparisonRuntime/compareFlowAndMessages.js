@@ -149,12 +149,12 @@
       return;
     }
     var excludedCount = Number(state.references?.eligibility?.excludedSources?.length || 0);
-    setStatus(
-      excludedCount
-        ? excludedCount + ' revision(s) were hidden because they contain no analyzable data.'
-        : '',
-      'info'
-    );
+    // A partial clone is said before anyone picks a revision it lacks (EVO-10).
+    var notices = [
+      state.references?.notice ? String(state.references.notice) : '',
+      excludedCount ? excludedCount + ' revision(s) were hidden because they contain no analyzable data.' : ''
+    ].filter(Boolean);
+    setStatus(notices.join('\n'), 'info');
   }
 
   function handleProgress(message) {

@@ -17,7 +17,7 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const out = (relative) => require(path.join(projectRoot, 'out', ...relative.split('/')));
 const { asciiJson } = out('core/export/gitExportPythonWorkerPool.js');
 const { toPortableRelativePath } = out('core/history/gitAnalysisShared.js');
-const { gitOfflineEnvironment, isPartialCloneMissingObject } = out('core/history/gitOfflineEnvironment.js');
+const { gitOfflineEnvironment, isPartialCloneConfig, isPartialCloneMissingObject } = out('core/history/gitOfflineEnvironment.js');
 const { GitRepositoryService } = out('core/history/gitRepositoryService.js');
 
 const roots = [];
@@ -105,7 +105,13 @@ test('S14 EVO-10: an old blob missing from a partial clone is reported, not down
     const objectCount = () => git(clone, ['count-objects', '-v']);
     const before = objectCount();
     const service = new GitRepositoryService(clone, path.join(root, 'snapshots'));
-    const old = (await service.listReferences()).sources.find((source) => source.refType === 'commit' && source.label !== 'two'
+    const references = await service.listReferences();
+    assert.equal(references.partialClone, true, 'the picker knows it is a partial clone');
+    assert.match(references.notice, /partial clone/);
+    const full = await new GitRepositoryService(origin, path.join(root, 'origin-snapshots')).listReferences();
+    assert.equal(full.partialClone, false);
+    assert.equal(full.notice, null);
+    const old = references.sources.find((source) => source.refType === 'commit' && source.label !== 'two'
         && source.commitSha === git(clone, ['rev-parse', 'HEAD~1']));
     assert.ok(old, 'the first commit is offered');
     const resolved = await service.resolveSource(old.id);
@@ -130,4 +136,16 @@ test('S14 EVO-10: an old blob missing from a partial clone is reported, not down
     assert.match(outcome.error.message, /git-object-missing/);
     assert.equal(objectCount(), before, 'nothing was fetched');
     await service.dispose();
+});
+
+test('S14 EVO-10: the partial-clone notice reads the two settings git clone --filter writes', () => {
+    assert.ok(isPartialCloneConfig('remote.origin.promisor true\n'));
+    assert.ok(isPartialCloneConfig('extensions.partialclone origin\r\n'));
+    assert.ok(!isPartialCloneConfig('remote.origin.promisor false\n'));
+    assert.ok(!isPartialCloneConfig(''));
+    const runtime = fs.readFileSync(path.join(projectRoot, 'templates', 'components', 'codexr', 'historical-comparison',
+        'historicalComparisonRuntime', 'compareFlowAndMessages.js'), 'utf8');
+    assert.match(runtime, /state\.references\?\.notice/, 'the XR panel shows the notice');
+    const livePanel = fs.readFileSync(path.join(projectRoot, 'templates', 'components', 'livepanel', 'historicalPanel.js'), 'utf8');
+    assert.match(livePanel, /this\.references\.notice/, 'the LivePanel shows the notice');
 });
