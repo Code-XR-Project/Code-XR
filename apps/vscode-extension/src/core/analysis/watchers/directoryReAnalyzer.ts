@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import type { ExtensionContextPaths } from '../../host/hostPaths';
 /**
  * Directory Re-Analyzer
  * Re-analyzes only the directory entries that actually changed and updates data.json in place.
@@ -26,6 +26,7 @@ import {
 } from './directoryReanalysisData';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
 import { getLogger } from '../../../platform/logging/sink';
+import { getHost } from '../../host/hostRegistry';
 
 const logger = getLogger('DIRECTORY_REANALYZER');
 
@@ -41,7 +42,7 @@ interface IncrementalChangeSet {
 export class DirectoryReAnalyzer {
     private executePython: ExecutePython;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: ExtensionContextPaths) {
         this.executePython = new ExecutePython(context);
     }
 
@@ -145,7 +146,7 @@ export class DirectoryReAnalyzer {
         if (options.notifyClients !== false) {
             await this.sendSSENotification(session);
         }
-        vscode.window.setStatusBarMessage(
+        getHost().notifier.status(
             `$(check) CodeXR re-analysis updated ${changedCount} file(s)`,
             2000,
         );
