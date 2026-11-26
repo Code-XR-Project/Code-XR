@@ -58,7 +58,10 @@ class CodexrHistoricalPanel {
         this.references = payload.references;
         this.populateSelects();
         this.showControls();
-        this.setStatus('Select two versions to compare.', false);
+        // A partial clone is said before anyone picks a revision it lacks (EVO-10).
+        this.setStatus(this.references && this.references.notice
+          ? this.references.notice
+          : 'Select two versions to compare.', false);
         this.bindCompareButton();
       })
       .catch((error) => {

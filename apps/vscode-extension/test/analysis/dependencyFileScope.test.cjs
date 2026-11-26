@@ -144,3 +144,33 @@ test('an invalid Python dataset is an error carrying its message, and nothing is
         assert.equal(pythonCalls.length, 4);
     });
 });
+
+test('DEPGRAPH-9: only the newest two scope files stay on disk, written as compact JSON', async () => {
+    await withService(directorySession, async ({ run, root, written }) => {
+        for (let index = 0; index < 5; index += 1) {
+            await run('pkg/b.py');
+        }
+        assert.deepEqual(written(), ['dependency-scope-4.json', 'dependency-scope-5.json']);
+        const text = fs.readFileSync(path.join(root, 'static', 'dependencies', 'dependency-scope-5.json'), 'utf8');
+        assert.equal(text.includes('\n'), false, 'compact');
+        assert.equal(JSON.parse(text).revision, 5);
+    });
+});
+
+test('DEPGRAPH-9: pruning keeps the newest revisions by number, per prefix, and ignores other files', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-prune-'));
+    try {
+        for (const name of ['dependency-graph-9.json', 'dependency-graph-10.json', 'dependency-graph-2.json',
+            'dependency-scope-1.json', 'dependency-graph-x.json', 'notes.txt']) {
+            fs.writeFileSync(path.join(directory, name), '{}');
+        }
+        const { pruneDatasetRevisions } = await withFakeVscode(createFakeVscode(), async ({ requireOut }) => requireOut('core/dependencies/dependencyGraphService.js'));
+        assert.deepEqual(await pruneDatasetRevisions(directory, 'dependency-graph-'), ['dependency-graph-2.json']);
+        assert.deepEqual(fs.readdirSync(directory).sort(), [
+            'dependency-graph-10.json', 'dependency-graph-9.json', 'dependency-graph-x.json', 'dependency-scope-1.json', 'notes.txt',
+        ]);
+        assert.deepEqual(await pruneDatasetRevisions(path.join(directory, 'missing'), 'dependency-graph-'), []);
+    } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});

@@ -175,9 +175,10 @@ export class DependencyGraphService {
         await fs.promises.mkdir(outputDirectory, { recursive: true });
         await fs.promises.writeFile(
             path.join(outputDirectory, `dependency-scope-${dataset.revision}.json`),
-            JSON.stringify(dataset, null, 2),
+            JSON.stringify(dataset),
             'utf8',
         );
+        await pruneDatasetRevisions(outputDirectory, 'dependency-scope-');
     }
 
     private async executeAnalysis(
@@ -227,16 +228,10 @@ export class DependencyGraphService {
         const outputDirectory = path.join(this.staticRoot, 'dependencies');
         await fs.promises.mkdir(outputDirectory, { recursive: true });
         const fileName = `dependency-graph-${dataset.revision}.json`;
-        await fs.promises.writeFile(
-            path.join(outputDirectory, fileName),
-            JSON.stringify(dataset, null, 2),
-            'utf8',
-        );
-        await fs.promises.writeFile(
-            path.join(this.staticRoot, 'dependency-graph.json'),
-            JSON.stringify(dataset, null, 2),
-            'utf8',
-        );
+        const serialized = JSON.stringify(dataset);
+        await fs.promises.writeFile(path.join(outputDirectory, fileName), serialized, 'utf8');
+        await fs.promises.writeFile(path.join(this.staticRoot, 'dependency-graph.json'), serialized, 'utf8');
+        await pruneDatasetRevisions(outputDirectory, 'dependency-graph-');
         onProgress?.('Dependency graph ready.');
         return dataset;
     }
@@ -277,4 +272,46 @@ export class DependencyGraphService {
             current = parent;
         }
     }
+}
+
+/** How many revisions of each dataset kind stay on disk (DEPGRAPH-9). */
+export const KEPT_DATASET_REVISIONS = 2;
+
+/**
+ * Deletes all but the newest `KEPT_DATASET_REVISIONS` files named
+ * `<prefix><revision>.json` in `directory` (DEPGRAPH-9). Every refresh used to
+ * add a file that was never removed, so a live session grew without bound and
+ * every export copied the whole history. The newest two stay: the one the
+ * room entity points at, and the one a page that has not reloaded yet may
+ * still be fetching. A file another process still holds open (Windows) is
+ * left for the next pass.
+ */
+export async function pruneDatasetRevisions(
+    directory: string,
+    prefix: string,
+    keep: number = KEPT_DATASET_REVISIONS,
+): Promise<string[]> {
+    const pattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)\\.json$`);
+    let entries: string[];
+    try {
+        entries = await fs.promises.readdir(directory);
+    } catch {
+        return [];
+    }
+    const stale = entries
+        .map((name) => ({ name, revision: Number(pattern.exec(name)?.[1]) }))
+        .filter((entry) => Number.isInteger(entry.revision))
+        .sort((left, right) => right.revision - left.revision)
+        .slice(keep)
+        .map((entry) => entry.name);
+    const removed: string[] = [];
+    for (const name of stale) {
+        try {
+            await fs.promises.rm(path.join(directory, name), { force: true });
+            removed.push(name);
+        } catch {
+            // Still open elsewhere; the next refresh tries again.
+        }
+    }
+    return removed;
 }

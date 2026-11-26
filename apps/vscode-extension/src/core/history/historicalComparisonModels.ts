@@ -112,6 +112,13 @@ export interface HistoricalComparisonReferences {
      * mid-job shows the same state as everyone else (S6).
      */
     job?: AnalysisJobSnapshot | null;
+    /**
+     * The repository is a partial clone (`--filter`): revisions whose files
+     * were never downloaded cannot be compared, and CodeXR does not fetch
+     * them. `notice` says so before anyone picks one (EVO-10).
+     */
+    partialClone?: boolean;
+    notice?: string | null;
 }
 
 /** What the room sees of a long analysis job (JobRunner's JobStatus). */

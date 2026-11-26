@@ -401,7 +401,9 @@
         appliedRevision: { single: 1, 'historical-compare': 1, 'dependency-graph': 1 },
         modeRevision: { single: 1, 'historical-compare': 1, 'dependency-graph': 1 }
       };
-      const dependencyState = {
+      // DEPGRAPH-12: a scenario can start from any room state (a late joiner,
+      // a refresh in flight) by setting window.__DEP_STATE before load.
+      const dependencyState = Object.assign({
         entityKind: 'dependency-graph',
         entityId: 'main',
         mode: 'dependency-graph',
@@ -421,7 +423,9 @@
           size: 'degree', height: 'fanIn', color: 'language', x: 'fanOut', z: 'fanIn'
         },
         scope: { kind: 'directory', relativePath: '' }
-      };
+      }, window.__DEP_STATE || {});
+      // What the page asked the server for, in order (DEPGRAPH-12 scenarios).
+      const sent = [];
       const historyResult = {
         revision: 1,
         left: {
@@ -470,6 +474,27 @@
           };
         },
         sendMessage(type, payload) {
+          sent.push([type, payload || null]);
+          if (type === 'dependency-graph-settings') {
+            // The server merges the view settings into the room entity.
+            Object.assign(dependencyState, payload || {});
+            setTimeout(() => apply('dependency-graph', Object.assign({}, dependencyState)), 30);
+            return true;
+          }
+          if (type === 'dependency-file-scope-request') {
+            // Like the bridge: the scope and the dataset that draws it travel together.
+            Object.assign(dependencyState, {
+              status: 'ready',
+              message: 'File dependency scope ready.',
+              revision: Number(dependencyState.revision || 1) + 1,
+              scope: { kind: 'file', relativePath: payload.relativePath },
+              fileDatasetUrl: './xr-mode-dependency-scope.json',
+              fileDatasetPath: payload.relativePath,
+              projectDatasetUrl: dependencyState.projectDatasetUrl || dependencyState.datasetUrl
+            });
+            setTimeout(() => apply('dependency-graph', Object.assign({}, dependencyState)), 30);
+            return true;
+          }
           if (type === 'analysis-mode-selection') {
             Object.assign(analysisState, { mode: 'selection', status: 'selecting', hasUsableSnapshot: false, controllerView: 'visualization-menu' });
             setTimeout(() => apply('analysis-view', analysisState), 120);
@@ -626,7 +651,7 @@
       };
       root.CodeXRCollaborationRuntime = { getClient: () => client };
       root.CodeXRHarness = {
-        apply, analysisState, dependencyState, historyResult, client,
+        apply, analysisState, dependencyState, historyResult, client, sent,
         entityKinds: () => Array.from(entityRuntimes.keys())
       };
     })(window);
