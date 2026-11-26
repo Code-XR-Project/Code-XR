@@ -3,7 +3,7 @@ import { PortManager } from './portManager';
 import { ServerSettingsManager } from './serverSettingsManager';
 import { LaunchMode, CertMode } from './registry/activeServerModel';
 import { getServerRegistrar } from './registry/serverRegistrar';
-import { handleAutoOpening, notifyPortChanged, warnHttpsOverriddenForPanel } from '../../features/active-servers/views/launchNotifications';
+import { getLaunchNotifier, type LaunchNotifier } from './launchNotifier';
 import {
     determineCertMode,
     determineLaunchMode,
@@ -78,19 +78,19 @@ export class MultiServerLauncher {
             return false;
         }
         logger.debug(() => `Port ${requestedPort} already in use. Using port ${boundPort} instead.`);
-        notifyPortChanged(requestedPort, boundPort);
+        getLaunchNotifier().notifyPortChanged(requestedPort, boundPort);
         return true;
     }
 
     /** Opens a freshly launched server per the settings; a failure is logged, never thrown. */
     private async openLaunchedServer(
-        settings: Parameters<typeof handleAutoOpening>[0],
+        settings: Parameters<LaunchNotifier['handleAutoOpening']>[0],
         serverUrl: string,
         htmlFile: string | undefined,
         activeServerId: string
     ): Promise<void> {
         try {
-            await handleAutoOpening(settings, serverUrl, htmlFile, determineLaunchMode(settings), activeServerId);
+            await getLaunchNotifier().handleAutoOpening(settings, serverUrl, htmlFile, determineLaunchMode(settings), activeServerId);
         } catch (error) {
             logger.error('Failed to open the launched server:', error);
         }
@@ -144,7 +144,7 @@ export class MultiServerLauncher {
             const serverType = serverTypeResult.serverType;
             const isHttpsOverridden = serverTypeResult.isOverridden;
             if (isHttpsOverridden) {
-                warnHttpsOverriddenForPanel();
+                getLaunchNotifier().warnHttpsOverriddenForPanel();
             }
 
             logger.debug('Determined server type:', serverType);

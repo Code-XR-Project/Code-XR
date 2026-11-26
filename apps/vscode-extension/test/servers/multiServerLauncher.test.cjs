@@ -232,6 +232,9 @@ async function runScenario(scenario) {
             const { MultiServerLauncher } = requireOut('core/server/multiServerLauncher.js');
             const loaded = (relativePath) => require(path.join(projectRoot, 'out', ...relativePath.split('/')));
             observeLogsAsConsole(loaded('platform/logging/sink.js'), record);
+            // The launch UI the extension registers at activation (#13 step 7: the
+            // launcher no longer imports it), on the scope's own module instances.
+            loaded('core/server/launchNotifier.js').setLaunchNotifier(loaded('features/active-servers/views/launchNotifications.js'));
             const makeFakeServer = (kind) => class {
                 constructor(config) {
                     this.isFakeServer = true;

@@ -4,7 +4,8 @@
  * Path: codexr_analysis/configuration_analysis.json
  */
 
-import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import {
     AnalysisConfiguration,
     AnalysisConfigurationFile,
@@ -19,6 +20,7 @@ import {
     DEFAULT_ANALYSIS_CONFIGURATION
 } from './analysisConfiguration';
 import { getLogger } from '../../../platform/logging/sink';
+import type { GlobalStorageContext } from '../../host/hostPaths';
 
 const logger = getLogger('ANALYSIS');
 
@@ -26,10 +28,10 @@ export class AnalysisConfigurationStorage {
     private static instance: AnalysisConfigurationStorage;
     private readonly STORAGE_FOLDER = 'codexr_analysis';
     private readonly CONFIG_FILE = 'configuration_analysis.json';
-    private context: vscode.ExtensionContext;
+    private context: GlobalStorageContext;
     private cachedConfiguration: AnalysisConfiguration | null = null;
 
-    private constructor(context: vscode.ExtensionContext) {
+    private constructor(context: GlobalStorageContext) {
         this.context = context;
         logger.debug('Initializing configuration storage');
     }
@@ -38,7 +40,7 @@ export class AnalysisConfigurationStorage {
      * Initialize the singleton with the extension context.
      * Must be called once during extension activation before any getInstance() calls.
      */
-    public static initialize(context: vscode.ExtensionContext): AnalysisConfigurationStorage {
+    public static initialize(context: GlobalStorageContext): AnalysisConfigurationStorage {
         if (!AnalysisConfigurationStorage.instance) {
             AnalysisConfigurationStorage.instance = new AnalysisConfigurationStorage(context);
         }
@@ -49,7 +51,7 @@ export class AnalysisConfigurationStorage {
      * Get singleton instance.
      * @param context Optional — only needed if initialize() was not called yet (backward compatibility).
      */
-    public static getInstance(context?: vscode.ExtensionContext): AnalysisConfigurationStorage {
+    public static getInstance(context?: GlobalStorageContext): AnalysisConfigurationStorage {
         if (!AnalysisConfigurationStorage.instance) {
             if (!context) {
                 throw new Error(
@@ -64,12 +66,12 @@ export class AnalysisConfigurationStorage {
     /**
      * Get the full file path for configuration
      */
-    private getConfigurationPath(): vscode.Uri {
-        return vscode.Uri.joinPath(
-            this.context.globalStorageUri,
-            this.STORAGE_FOLDER,
-            this.CONFIG_FILE
-        );
+    private getConfigurationPath(): string {
+        return path.join(this.getConfigurationFolder(), this.CONFIG_FILE);
+    }
+
+    private getConfigurationFolder(): string {
+        return path.join(this.context.globalStorageUri.fsPath, this.STORAGE_FOLDER);
     }
 
     /**
@@ -86,8 +88,7 @@ export class AnalysisConfigurationStorage {
             
             // Check if file exists
             try {
-                const configData = await vscode.workspace.fs.readFile(configPath);
-                const configString = Buffer.from(configData).toString('utf8');
+                const configString = await fs.readFile(configPath, 'utf8');
                 const configFile: AnalysisConfigurationFile = JSON.parse(configString);
                 
                 // Validate and merge with defaults (in case new settings were added)
@@ -124,8 +125,7 @@ export class AnalysisConfigurationStorage {
             const configPath = this.getConfigurationPath();
             
             // Ensure directory exists
-            const folderPath = vscode.Uri.joinPath(this.context.globalStorageUri, this.STORAGE_FOLDER);
-            await vscode.workspace.fs.createDirectory(folderPath);
+            await fs.mkdir(this.getConfigurationFolder(), { recursive: true });
             
             // Create configuration file structure
             const configFile: AnalysisConfigurationFile = {
@@ -139,8 +139,7 @@ export class AnalysisConfigurationStorage {
             
             // Write to file
             const configString = JSON.stringify(configFile, null, 2);
-            const configData = Buffer.from(configString, 'utf8');
-            await vscode.workspace.fs.writeFile(configPath, configData);
+            await fs.writeFile(configPath, configString, 'utf8');
             
             // Update cache
             this.cachedConfiguration = configuration;
@@ -286,7 +285,7 @@ export class AnalysisConfigurationStorage {
      * Get configuration file path for debugging
      */
     public getConfigurationFilePath(): string {
-        return this.getConfigurationPath().fsPath;
+        return this.getConfigurationPath();
     }
 
     /**
@@ -295,7 +294,7 @@ export class AnalysisConfigurationStorage {
     public async configurationExists(): Promise<boolean> {
         try {
             const configPath = this.getConfigurationPath();
-            await vscode.workspace.fs.stat(configPath);
+            await fs.stat(configPath);
             return true;
         } catch {
             return false;
@@ -308,8 +307,7 @@ export class AnalysisConfigurationStorage {
     public async debugGetConfigurationFileContent(): Promise<string | null> {
         try {
             const configPath = this.getConfigurationPath();
-            const configData = await vscode.workspace.fs.readFile(configPath);
-            return Buffer.from(configData).toString('utf8');
+            return await fs.readFile(configPath, 'utf8');
         } catch (error) {
             logger.warn('Configuration file not found or error reading:', error);
             return null;
