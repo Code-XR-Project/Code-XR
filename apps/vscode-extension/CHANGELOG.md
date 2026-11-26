@@ -109,6 +109,14 @@
   - A range now works with any branch, tag or commit the picker offers, in either order. Before, a tag older than the newest 240 commits failed with "project-evolution-range-not-found". Two ends on diverging branches start from their common ancestor.
   - Tags that point at a file or a folder instead of a commit are no longer offered: they could not be used.
   - Export: the Git timeline is the history of the checked-out branch, and the prompt says so. "Only the latest N commits" exports exactly N; before, N was silently cut to 1000, and a very large history could fail with "git timeline could not be listed".
+- **Historical comparison stays correct while you keep working.**
+  - A comparison against your working copy whose refresh fails is retried twice, then the room and LivePanel are told why, and it stops following your edits until you compare again. Before, it retried three times a second for the rest of the session, said nothing, and kept the "Resolving Git references..." text on screen.
+  - A commit you picked stays usable after newer commits push it out of the picker list. Before, it failed with "unknown-comparison-source" after enough new commits. The picker now offers the 200 most recent commits instead of 50.
+  - Coming back to History after another participant compared other revisions now redraws both sides, their nameplates and the change table. Before, only the working-copy side was updated, so the other side kept showing the old revision under a stale name. A comparison received while you left the mode mid-load is no longer lost.
+  - A shallow analysis copies only the files it reads. Before, it copied every nested file of the revision, which was slow and failed on large repositories with "comparison-snapshot-file-limit" even though the files were never analyzed.
+  - Old comparison files are deleted (the current and the previous one are kept), and deleting temporary files retries when Windows holds them locked.
+  - Error messages say what happened: a deleted branch, a revision too large to copy, or a step that took too long. Before, a deleted branch was reported as "requires a local Git repository" and everything else as "Please try again". "Loading comparison datasets..." no longer stays on screen after the comparison is drawn.
+  - A Python analysis that crashed or was stopped no longer hides that commit from both pickers for the rest of the session.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

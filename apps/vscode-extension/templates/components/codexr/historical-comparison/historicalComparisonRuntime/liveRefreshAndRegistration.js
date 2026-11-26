@@ -53,6 +53,7 @@
     updateMappingCompanion();
     state.result = result;
     refs.renderedRevision = result.revision;
+    refs.renderedResult = result;
     await nextFrame();
     // Targeted renormalization: only the refreshed live chart. Renormalizing
     // every chart reset the untouched immutable side to its 'rebuilding'
@@ -120,6 +121,7 @@
     refs.comparisonRoot = null;
     refs.comparisonChartIds = null;
     refs.renderedRevision = null;
+    refs.renderedResult = null;
     releaseSceneToNormal();
     if (clearResult !== false) {
       state.result = null;

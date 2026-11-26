@@ -145,7 +145,7 @@ export class GitAnalysisSessionContext {
         session: UnifiedAnalysisSession,
         cacheKey: string,
     ): Promise<CachedPayload> {
-        const materialized = await this.gitService.materialize(source);
+        const materialized = await this.gitService.materialize(source, { recursive: session.isDeep !== false });
         if (!materialized.targetPath) {
             if (this.policy.missingTarget === 'throw') {
                 throw this.excludeSource(

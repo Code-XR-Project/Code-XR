@@ -150,9 +150,12 @@ test('XR mode panel exposes one labelled Analyses button and no dependency heade
   assert.match(dependencyRuntime, /function hasReadySnapshot\(\)[\s\S]*snapshot\?\.status === 'ready'[\s\S]*snapshot\?\.datasetUrl/);
   assert.match(dependencyRuntime, /function enterDependencyMode\([\s\S]*analysis-mode-activate/);
   assert.match(dependencyRuntime, /function activateReadySnapshot\([\s\S]*return enterDependencyMode\(reason\)/);
+  // The room's result is stored before rendering, before the first await
+  // even, so a load abandoned mid-fetch cannot drop it (S12, HIST-4).
   assert.ok(
-    historyRuntime.indexOf('state.result = result;')
-      < historyRuntime.indexOf('await renderComparison(result, datasets[0], datasets[1]);'),
+    historyRuntime.indexOf('state.result = snapshot.result;') > -1
+      && historyRuntime.indexOf('state.result = snapshot.result;')
+        < historyRuntime.indexOf('await renderComparison(result, datasets[0], datasets[1]);'),
   );
   assert.match(historyRuntime, /async function renderComparison[\s\S]*disposeComparisonGeometry\(false\)/);
 });

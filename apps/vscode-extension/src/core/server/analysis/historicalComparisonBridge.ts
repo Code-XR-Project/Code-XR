@@ -6,6 +6,7 @@ import {
 import { GitAnalysisSourceError } from '../../history/gitAnalysisEligibility';
 import { JobCancelledError, JobTicket } from '../../analysis/launch/jobRunner';
 import { HistoricalComparisonRequest, HistoricalComparisonResult } from '../../history/historicalComparisonModels';
+import { classifyHistoricalComparisonError } from '../../history/historicalComparisonService';
 import { analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../analysis/watchers/sessionWatcherManager';
 import { readJsonBody, sendErrorResponse, sendJsonResponse } from '../http/httpRespond';
@@ -260,7 +261,7 @@ export class HistoricalComparisonBridge {
             }
             messageContext.broadcast({
                 type: 'historical-comparison-error',
-                payload: describeBridgeError(error, 'comparison-failed'),
+                payload: classifyHistoricalComparisonError(error) ?? describeBridgeError(error, 'comparison-failed'),
             });
         }
     }

@@ -193,11 +193,13 @@ test('historical Git service resolves server-owned refs without checkout, fetch,
     assert.doesNotMatch(source, /['"]checkout['"]/);
     assert.doesNotMatch(source, /['"]fetch['"]/);
     assert.doesNotMatch(source, /writeFile\([^)]*\.git/);
-    assert.match(source, /MAX_SNAPSHOT_FILES = 5000/);
-    assert.match(source, /MAX_SNAPSHOT_BYTES = 100 \* 1024 \* 1024/);
+    // The snapshot plan and its limits live in gitSnapshotPlan.ts (S12).
+    const plan = readProjectFile('src', 'core', 'history', 'gitSnapshotPlan.ts');
+    assert.match(plan, /MAX_SNAPSHOT_FILES = 5000/);
+    assert.match(plan, /MAX_SNAPSHOT_BYTES = 100 \* 1024 \* 1024/);
     assert.match(source, /comparison-snapshot-path-escape/);
-    assert.match(source, /comparison-snapshot-file-limit/);
-    assert.match(source, /comparison-snapshot-size-limit/);
+    assert.match(plan, /comparison-snapshot-file-limit/);
+    assert.match(plan, /comparison-snapshot-size-limit/);
 });
 
 test('historical Git service materializes repository roots, branches, tags, commits, and nested targets', async () => {
@@ -459,8 +461,8 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(service, /manifest\.json/);
     assert.match(service, /Project evolution ready\./);
     assert.match(service, /clearGeneratedMovie/);
-    assert.match(service, /fs\.promises\.rm\(revisionDirectory, \{ recursive: true, force: true \}\)/);
-    assert.match(service, /fs\.promises\.rm\(this\.resolveEvolutionDirectory\(\), \{ recursive: true, force: true \}\)/);
+    assert.match(service, /fs\.promises\.rm\(revisionDirectory, \{ recursive: true, force: true, maxRetries: 5, retryDelay: 100 \}\)/);
+    assert.match(service, /fs\.promises\.rm\(this\.resolveEvolutionDirectory\(\), \{ recursive: true, force: true, maxRetries: 5, retryDelay: 100 \}\)/);
     assert.match(service, /cancelAndWait/);
     // Frame selection is the shared sampler (even spacing in time, milestones
     // preferred). The timeline is HEAD's first-parent history, ending on the
