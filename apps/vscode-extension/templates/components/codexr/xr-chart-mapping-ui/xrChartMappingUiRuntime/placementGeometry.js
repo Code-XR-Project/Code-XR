@@ -179,8 +179,17 @@
       z: corner.z + (towardCameraZ / magnitude) * safeForwardOffset
     };
 
-    refs.panel.setAttribute('position', toPosition(targetPosition));
+    // The corner is a preference: the shared placement registry keeps the
+    // controller off screens and tagged panels and inside the room (PANELS-9).
+    // The table is not an obstacle here, since the controller belongs at
+    // its corner. Oriented first so the registry measures the turned panel.
     orientPanelToCamera(config, targetPosition, cameraWorldPosition);
+    var resolve = root.CodeXRCommonRuntime && root.CodeXRCommonRuntime.resolvePanelPlacement;
+    var placed = resolve ? resolve(refs.panel, targetPosition, { avoidTable: false }) : null;
+    var finalPosition = placed ? { x: placed.x, y: placed.y, z: placed.z } : targetPosition;
+
+    refs.panel.setAttribute('position', toPosition(finalPosition));
+    orientPanelToCamera(config, finalPosition, cameraWorldPosition);
   }
 
   function updateAdaptivePlacement() {

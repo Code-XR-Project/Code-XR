@@ -113,6 +113,7 @@ test('common runtime exposes reusable component helpers', () => {
     assert.equal(typeof runtime.attachPickHitbox, 'function');
     assert.equal(typeof runtime.truncateText, 'function');
     assert.equal(typeof runtime.createEntity, 'function');
+    assert.equal(typeof runtime.resolvePanelPlacement, 'function');
 });
 
 test('common tooltip creates the shared visual legend structure and updates content', () => {
@@ -355,4 +356,26 @@ test('tooltip cards are depth-tested, opaque and absorb the pointer ray', () => 
     assert.doesNotMatch(background, /transparent\s*:\s*true/);
     assert.equal(tooltip.background.getAttribute('class'), 'babiaxraycasterclass');
     assert.equal(runtime.createTooltip({ raycastClass: '' }).background.getAttribute('class'), '');
+});
+
+test('shared panel placement: same obstacles as the screens, occlusion, room clamp (PANELS-3/9, #103)', () => {
+    // The registry the non-screen panels go through looks for exactly what
+    // the screens' placementRegistry looks for.
+    assert.match(runtimeSource, /querySelectorAll\?\.\('\[id\^="codexrVirtualScreenRoot"\]'\)/);
+    assert.match(runtimeSource, /querySelectorAll\?\.\('\[data-codexr-panel-obstacle\]'\)/);
+    assert.match(runtimeSource, /'#codexr-analysis-table-geometry'/);
+    assert.match(runtimeSource, /PANEL_TABLE_CHART_HEADROOM = 2\.2/);
+    const screenRegistry = fs.readFileSync(path.join(projectRoot, 'templates', 'components', 'codexr', 'virtual-screen',
+        'virtualScreenRuntime', 'placementRegistry.js'), 'utf8');
+    assert.match(screenRegistry, /DEFAULT_TABLE_CHART_HEADROOM = 2\.2/);
+    // Hidden children (closed menus, idle video planes) do not count.
+    assert.match(runtimeSource, /traverseVisible/);
+    // Nothing free keeps the target, clamped into the room.
+    assert.match(runtimeSource, /return result\(start, false\)/);
+    assert.match(runtimeSource, /const start = clampBoxIntoRoom\(/);
+    // Without THREE (DOM-only pages, node) the target comes back untouched.
+    const runtime = loadRuntime().CodeXRCommonRuntime;
+    const placed = runtime.resolvePanelPlacement(null, { x: 1, y: 2, z: 3 }, {});
+    assert.deepEqual({ ...placed }, { x: 1, y: 2, z: 3, free: false });
+    // Behaviour in the real scene: npm run test:xr-panel-placement-harness.
 });
