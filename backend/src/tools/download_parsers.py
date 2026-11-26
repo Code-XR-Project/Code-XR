@@ -6,6 +6,9 @@ venv's own Python. Prints one JSON line: the cache folder, the grammars
 requested, downloaded and missing. Parsers already in the
 venv are not fetched again, so a run with nothing missing makes no network call. Exit code 0 even when some are missing:
 those languages fall back to pattern matching.
+
+With ``--check`` it only reports which parsers are missing and never touches
+the network (the IDE's About dialog, #161).
 """
 
 from __future__ import annotations
@@ -22,9 +25,14 @@ from metric_language_contract import get_metric_language_names  # noqa: E402
 from tree_sitter_parsers import download_grammars, is_available, required_grammars  # noqa: E402
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    check_only = "--check" in (sys.argv[1:] if argv is None else argv)
     grammars = required_grammars(get_metric_language_names())
     missing = [grammar for grammar in grammars if not is_available(grammar)]
+    if check_only:
+        available = [grammar for grammar in grammars if grammar not in missing]
+        print(json.dumps({"requested": grammars, "downloaded": available, "missing": missing}))
+        return 0
     if not missing:
         # Everything is cached already: no network at all.
         print(json.dumps({"requested": grammars, "downloaded": grammars, "missing": []}))

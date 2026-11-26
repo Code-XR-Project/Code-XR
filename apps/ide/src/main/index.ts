@@ -3,8 +3,9 @@ import path from 'node:path';
 import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
 import { registerIpcHandlers } from './ipc.ts';
-import { startCore } from './core/coreRuntime.ts';
-import { installApplicationMenu } from './menu.ts';
+import { startCore, type CoreServices } from './core/coreRuntime.ts';
+import { installApplicationMenu, setAboutDependencies } from './menu.ts';
+import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
 import { createMainWindow } from './window.ts';
 import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
 import { APP_ORIGIN, trustedOrigins } from './security.ts';
@@ -62,6 +63,13 @@ async function start(): Promise<void> {
     const terminalHost = createTerminalHost({ isSmoke });
     terminals = terminalHost;
     const core = startCore({ isSmoke });
+    setAboutDependencies({
+        async describe() {
+            const [python, parsers, cloudflared] = await Promise.all([core.python.status(), core.python.parsersStatus(), core.cloudflared.status()]);
+            return { text: formatDependencies(describeDependencies(python, parsers, cloudflared)), repairable: canRepair(python, cloudflared) };
+        },
+        repair: () => void installDependencies(core),
+    });
     registerIpcHandlers(origins, isDevelopment, core, terminalHost);
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
@@ -88,7 +96,7 @@ async function start(): Promise<void> {
     // #154: the IDE installs its own analysis dependencies, with progress in the
     // window's notifications, never in the smoke run (it must download nothing).
     if (!isSmoke) {
-        core.python.ensureReady().catch((error: unknown) => log.error('Could not set up the Python environment.', error));
+        void installDependencies(core);
     }
 
     if (isSmoke) {
@@ -120,3 +128,12 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
+
+/**
+ * #154/#160: the IDE installs what it needs with no question: the Python
+ * environment, then cloudflared, one download at a time. Never throws.
+ */
+async function installDependencies(core: CoreServices): Promise<void> {
+    await core.python.ensureReady().catch((error: unknown) => log.error('Could not set up the Python environment.', error));
+    await core.cloudflared.ensureInstalled();
+}

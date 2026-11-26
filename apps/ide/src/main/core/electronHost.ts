@@ -93,8 +93,8 @@ export function createElectronHost(options: ElectronHostOptions): CodeXRHost {
             const progress: HostProgress = {
                 report(value): void {
                     if (typeof value.increment === 'number') {
-                        // The core reports steps as running totals (0, 20, 55 ... 100): keep the largest seen.
-                        percent = Math.max(percent, Math.min(100, value.increment));
+                        // VS Code contract: each increment adds to the total so far (#158).
+                        percent = Math.min(100, percent + Math.max(0, value.increment));
                     }
                     options.events.progress({ id, title: progressOptions.title, message: value.message, percent, done: false });
                 },

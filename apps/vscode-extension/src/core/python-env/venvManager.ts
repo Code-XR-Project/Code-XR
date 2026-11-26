@@ -12,7 +12,7 @@ import {
 } from './pythonPackageManifest';
 import { PARSER_DOWNLOAD_TIMEOUT_MS, parseParserDownload } from './parserDownload';
 import { resolveBackendScriptPath } from '../host/backendScriptPath';
-import type { HostProgress } from '../host/codeXRHost';
+import { InstallProgress } from './installProgress';
 import { getHost } from '../host/hostRegistry';
 import type { GlobalStorageContext } from '../host/hostPaths';
 
@@ -110,30 +110,31 @@ export class VenvManager {
             await getHost().withProgress({
                 title: 'Creating Python Virtual Environment',
                 cancellable: false,
-            }, async (progress) => {
-                this.reportInstallProgress(progress, 0, 'Checking Python installation...');
+            }, async (hostProgress) => {
+                const progress = new InstallProgress(hostProgress, message => this.uiState.reportProgress(message));
+                progress.to(0, 'Checking Python installation...');
 
                 const { command: pythonCommand, version: pythonVersion } = await this.resolveSystemPython();
-                this.reportInstallProgress(progress, 20, `Found Python ${pythonVersion}, creating environment...`);
+                progress.to(20, `Found Python ${pythonVersion}, creating environment...`);
 
                 const venvPath = this.storage.getVenvPath();
                 await this.createVenvWithRetry(pythonCommand, venvPath, progress);
 
-                this.reportInstallProgress(progress, 55, 'Bootstrapping pip inside the virtual environment...');
+                progress.to(55, 'Bootstrapping pip inside the virtual environment...');
                 await this.ensurePipInVenv(progress);
 
-                this.reportInstallProgress(progress, 70, 'Updating pip inside the CodeXR virtual environment...');
+                progress.to(70, 'Updating pip inside the CodeXR virtual environment...');
                 await this.upgradePipInVenv(progress);
 
-                this.reportInstallProgress(progress, 80, 'Installing required packages...');
+                progress.to(80, 'Installing required packages...');
                 await this.installBasePackages(progress);
 
-                this.reportInstallProgress(progress, 95, 'Saving environment metadata...');
+                progress.to(95, 'Saving environment metadata...');
                 const metadata = this.storage.createInitialMetadata(pythonVersion);
                 metadata.dependencies = await this.getInstalledDependencies();
                 await this.storage.saveMetadata(metadata);
 
-                this.reportInstallProgress(progress, 100, 'Environment created successfully!');
+                progress.to(100, 'Environment created successfully!');
             });
 
             this.logInfo('PYTHON_ENV: Virtual environment created successfully');
@@ -161,19 +162,19 @@ export class VenvManager {
     private async createVenvWithRetry(
         pythonCommand: ExecutableCommand,
         venvPath: string,
-        progress: HostProgress,
+        progress: InstallProgress,
     ): Promise<void> {
         const targetState = this.getExistingPathState(venvPath);
 
         try {
             if (targetState === 'directory') {
                 this.logInfo('PYTHON_ENV: Existing venv directory found, using --clear flag to recreate');
-                this.reportInstallProgress(progress, undefined, 'Clearing existing environment...');
+                progress.message('Clearing existing environment...');
                 await this.executeCommand(PythonEnvUtils.appendArgs(pythonCommand, ['-m', 'venv', '--clear', venvPath]));
             } else {
                 if (targetState === 'file') {
                     this.logWarn('PYTHON_ENV: Non-directory item found at venv path, removing blocker before recreation');
-                    this.reportInstallProgress(progress, undefined, 'Removing invalid file blocking the environment path...');
+                    progress.message('Removing invalid file blocking the environment path...');
                     this.removePathIfExists(venvPath);
                 }
 
@@ -192,7 +193,7 @@ export class VenvManager {
         }
 
         try {
-            this.reportInstallProgress(progress, undefined, 'Resolving permission issue, cleaning up...');
+            progress.message('Resolving permission issue, cleaning up...');
             this.logInfo('PYTHON_ENV: Attempting manual cleanup before retry');
             this.removePathIfExists(venvPath);
 
@@ -201,7 +202,7 @@ export class VenvManager {
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
-            this.reportInstallProgress(progress, undefined, 'Recreating environment...');
+            progress.message('Recreating environment...');
             await this.executeCommand(PythonEnvUtils.appendArgs(pythonCommand, ['-m', 'venv', venvPath]));
             this.logInfo('PYTHON_ENV: Venv created successfully (attempt 2 - after manual cleanup)');
             return;
@@ -272,7 +273,7 @@ export class VenvManager {
             }, async (progress) => {
                 progress.report({ increment: 50, message: 'Removing environment files...' });
                 await this.storage.deleteEnvironment();
-                progress.report({ increment: 100, message: 'Environment deleted successfully!' });
+                progress.report({ increment: 50, message: 'Environment deleted successfully!' });
             });
 
             this.uiState.setIdle('Python virtual environment deleted.');
@@ -295,16 +296,16 @@ export class VenvManager {
                 title: `Installing ${packageName}`,
                 cancellable: false,
             }, async (progress) => {
-                progress.report({ increment: 0, message: 'Checking virtual environment pip...' });
+                progress.report({ message: 'Checking virtual environment pip...' });
                 await this.ensurePipInVenv();
 
                 progress.report({ increment: 35, message: `Installing ${packageName} inside the CodeXR virtual environment...` });
                 await this.runVenvPip(['install', packageName]);
 
-                progress.report({ increment: 80, message: 'Updating dependencies list...' });
+                progress.report({ increment: 45, message: 'Updating dependencies list...' });
                 await this.updateDependenciesList();
 
-                progress.report({ increment: 100, message: 'Package installed successfully!' });
+                progress.report({ increment: 20, message: 'Package installed successfully!' });
             });
 
             this.logInfo(`PYTHON_ENV: Package ${packageName} installed successfully`);
@@ -633,7 +634,7 @@ export class VenvManager {
     /**
      * Ensure pip exists and is runnable inside the virtual environment.
      */
-    private async ensurePipInVenv(progress?: HostProgress): Promise<void> {
+    private async ensurePipInVenv(progress?: InstallProgress): Promise<void> {
         const venvPath = this.storage.getVenvPath();
 
         if (await this.isVenvPipAvailable()) {
@@ -642,7 +643,7 @@ export class VenvManager {
 
         this.logWarn('PYTHON_ENV: pip is not available in the virtual environment, trying ensurepip...');
         if (progress) {
-            this.reportInstallProgress(progress, undefined, 'Bootstrapping pip inside the CodeXR virtual environment...');
+            progress.message('Bootstrapping pip inside the CodeXR virtual environment...');
         }
 
         await this.executeCommand(PythonEnvUtils.getEnsurePipCommand(venvPath));
@@ -658,10 +659,10 @@ export class VenvManager {
     /**
      * Try to upgrade pip inside the venv without ever touching the global Python installation.
      */
-    private async upgradePipInVenv(progress?: HostProgress): Promise<void> {
+    private async upgradePipInVenv(progress?: InstallProgress): Promise<void> {
         try {
             if (progress) {
-                this.reportInstallProgress(progress, undefined, 'Upgrading pip inside the CodeXR virtual environment...');
+                progress.message('Upgrading pip inside the CodeXR virtual environment...');
             }
             this.logInfo('PYTHON_ENV: Upgrading pip inside the virtual environment...');
             await this.runVenvPip(['install', '--upgrade', 'pip']);
@@ -684,20 +685,22 @@ export class VenvManager {
     /**
      * Install base packages in the virtual environment.
      */
-    private async installBasePackages(progress?: HostProgress): Promise<void> {
+    private async installBasePackages(progress?: InstallProgress): Promise<void> {
         try {
+            // Packages and parsers share the 80-95% window, one equal part each (#158).
+            const step = progress?.span(80, 95, PythonEnvUtils.REQUIRED_BASE_PACKAGES.length + CODEXR_PYTHON_PACKAGES.length + 1);
+            let index = 0;
+            const reportAt = (at: number) => step ? (message: string) => step(at, message) : undefined;
             for (const pkg of PythonEnvUtils.REQUIRED_BASE_PACKAGES) {
-                if (progress) {
-                    this.reportInstallProgress(progress, 5, `Installing ${pkg}...`);
-                }
+                reportAt(index++)?.(`Installing ${pkg}...`);
                 this.logInfo(`PYTHON_ENV: Installing ${pkg}...`);
                 await this.runVenvPip(['install', pkg]);
             }
 
             for (const pkg of CODEXR_PYTHON_PACKAGES) {
-                await this.installRequiredPackage(pkg, progress);
+                await this.installRequiredPackage(pkg, reportAt(index++));
             }
-            await this.downloadLanguageParsers(progress);
+            await this.downloadLanguageParsers(reportAt(index));
             await this.updateDependenciesList();
 
             this.logInfo('PYTHON_ENV: Base packages installed successfully');
@@ -727,15 +730,13 @@ export class VenvManager {
      * script makes no network call then). A parser that cannot be fetched is
      * logged, never fatal: that language falls back to pattern matching.
      */
-    private async downloadLanguageParsers(progress?: HostProgress): Promise<void> {
+    private async downloadLanguageParsers(report?: (message: string) => void): Promise<void> {
         const script = resolveBackendScriptPath(getHost().paths, 'tools/download_parsers.py');
         if (!fs.existsSync(script)) {
             this.logWarn(`PYTHON_ENV: Parser download script not found at ${script}`);
             return;
         }
-        if (progress) {
-            this.reportInstallProgress(progress, 5, 'Downloading language parsers...');
-        }
+        report?.('Downloading language parsers...');
         try {
             const venvPath = this.storage.getVenvPath();
             const result = await this.executeCommand(
@@ -778,14 +779,12 @@ export class VenvManager {
 
     private async installRequiredPackage(
         pkg: CodeXRPythonPackage,
-        progress?: HostProgress,
+        report?: (message: string) => void,
     ): Promise<void> {
         if (await this.verifyPackage(pkg)) {
             return;
         }
-        if (progress) {
-            this.reportInstallProgress(progress, 10, `Installing ${pkg.distribution} for ${pkg.purpose}...`);
-        }
+        report?.(`Installing ${pkg.distribution} for ${pkg.purpose}...`);
         await this.runVenvPip(['install', getPinnedPythonRequirement(pkg)]);
         if (!(await this.verifyPackage(pkg))) {
             throw new Error(`CodeXR installed ${pkg.distribution} but could not verify it afterwards.`);
@@ -824,15 +823,6 @@ export class VenvManager {
         } catch (error) {
             return false;
         }
-    }
-
-    private reportInstallProgress(
-        progress: HostProgress,
-        increment: number | undefined,
-        message: string,
-    ): void {
-        progress.report(increment === undefined ? { message } : { increment, message });
-        this.uiState.reportProgress(message);
     }
 
     private showWarningNotification(message: string, detail?: string): void {

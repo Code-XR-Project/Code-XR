@@ -2,6 +2,47 @@ import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions } fro
 import { IPC_EVENTS, type IdeCommand } from '../shared/api.ts';
 import { clearRecentFolders, openRecentFromMenu } from './workspace/workspaceWindows.ts';
 
+/** What Help > About shows of the IDE's dependencies (#161), set once the core runs. */
+export interface AboutDependencies {
+    describe(): Promise<{ readonly text: string; readonly repairable: boolean }>;
+    repair(): void;
+}
+
+let aboutDependencies: AboutDependencies | null = null;
+
+export function setAboutDependencies(source: AboutDependencies): void {
+    aboutDependencies = source;
+}
+
+async function showAbout(win: BrowserWindow | undefined): Promise<void> {
+    const versions = `Electron ${process.versions.electron}\nChromium ${process.versions.chrome}\nNode.js ${process.versions.node}`;
+    let dependencies = '';
+    let repairable = false;
+    if (aboutDependencies) {
+        try {
+            const described = await aboutDependencies.describe();
+            dependencies = `\n\nDependencies\n${described.text}`;
+            repairable = described.repairable;
+        } catch (error) {
+            dependencies = `\n\nDependencies\nCould not be checked: ${String(error)}`;
+        }
+    }
+    const options = {
+        type: 'info' as const,
+        title: 'About Code-XR IDE',
+        message: `Code-XR IDE ${app.getVersion()}`,
+        detail: `${versions}${dependencies}\n\nLicensed under GPL-3.0.`,
+        buttons: repairable ? ['OK', 'Install missing dependencies'] : ['OK'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+    };
+    const { response } = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
+    if (response === 1) {
+        aboutDependencies?.repair();
+    }
+}
+
 /**
  * The application menu. File > Open Folder… arrived with #14; Edit and View
  * keep the standard roles until the command palette (#18).
@@ -56,14 +97,8 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
             submenu: [
                 {
                     label: 'About Code-XR IDE',
-                    click: () => {
-                        void dialog.showMessageBox({
-                            type: 'info',
-                            title: 'About Code-XR IDE',
-                            message: `Code-XR IDE ${app.getVersion()}`,
-                            detail: `Electron ${process.versions.electron}\nChromium ${process.versions.chrome}\nNode.js ${process.versions.node}\n\nLicensed under GPL-3.0.`,
-                        });
-                    },
+                    // #161: the dependencies and their state, with a way to install what is missing.
+                    click: (_item, win) => void showAbout(win instanceof BrowserWindow ? win : undefined),
                 },
             ],
         },
