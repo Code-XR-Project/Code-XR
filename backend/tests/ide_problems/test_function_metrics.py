@@ -1,8 +1,6 @@
 """The functions mode of main.py (#173): per-function metrics for the IDE's Problems panel."""
 
-import importlib.util
 import tempfile
-import types
 import unittest
 from pathlib import Path
 import sys
@@ -13,49 +11,7 @@ for extra_path in [PYTHON_ROOT, PYTHON_ROOT / 'utils', PYTHON_ROOT / 'tools', Pa
     if str(extra_path) not in sys.path:
         sys.path.insert(0, str(extra_path))
 
-from backend_sandbox import BackendModuleSandbox
-
-
-class _FakeFunction:
-    def __init__(self, name, start, end, complexity, parameters):
-        self.name = name
-        self.long_name = f'{name}(...)'
-        self.start_line = start
-        self.end_line = end
-        self.nloc = end - start + 1
-        self.cyclomatic_complexity = complexity
-        self.parameter_count = parameters
-        self.max_nesting_depth = 2
-
-
-class _FakeAnalysis:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.nloc = 10
-        stem = Path(file_path).stem
-        self.function_list = [_FakeFunction(f'{stem}_late', 8, 12, 3, 1), _FakeFunction(f'{stem}_main', 1, 6, 14, 4)]
-
-
-fake_lizard_module = types.ModuleType('lizard')
-fake_lizard_module.analyze_file = _FakeAnalysis
-fake_lizard_module.FileAnalyzer = lambda *args, **kwargs: _FakeAnalysis
-fake_lizard_module.get_extensions = lambda *_: []
-
-_sandbox = BackendModuleSandbox(PYTHON_ROOT, fake_lizard_module)
-analyze_function_metrics = None
-
-
-def setUpModule():
-    global analyze_function_metrics
-    _sandbox.enter()
-    spec = importlib.util.spec_from_file_location('function_metrics', PYTHON_ROOT / 'utils' / 'function_metrics.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    analyze_function_metrics = module.analyze_function_metrics
-
-
-def tearDownModule():
-    _sandbox.exit()
+from function_metrics import analyze_function_metrics  # noqa: E402
 
 
 class FunctionMetricsTests(unittest.TestCase):
@@ -63,7 +19,18 @@ class FunctionMetricsTests(unittest.TestCase):
         self.root = tempfile.TemporaryDirectory()
         base = Path(self.root.name)
         (base / 'src' / 'deep').mkdir(parents=True)
-        (base / 'src' / 'deep' / 'engine.py').write_text('def engine():\n    return 1\n', encoding='utf-8')
+        (base / 'src' / 'deep' / 'engine.py').write_text(
+            'def engine_main(a, b, c, d):\n'
+            '    if a and b:\n'
+            '        for x in c:\n'
+            '            return x\n'
+            '    return d\n'
+            '\n'
+            '\n'
+            'def engine_late(value):\n'
+            '    return value\n',
+            encoding='utf-8',
+        )
         (base / 'app.ts').write_text('function app() {}\n', encoding='utf-8')
         (base / 'notes.txt').write_text('not code\n', encoding='utf-8')
 
@@ -80,8 +47,8 @@ class FunctionMetricsTests(unittest.TestCase):
         # Sorted by line, trimmed to the fields the IDE reads.
         self.assertEqual([function['functionName'] for function in engine['functions']], ['engine_main', 'engine_late'])
         self.assertEqual(engine['functions'][0], {
-            'functionName': 'engine_main', 'qualifiedName': 'engine_main(...)', 'lineStart': 1, 'lineEnd': 6,
-            'lineCount': 6, 'complexity': 14, 'parameters': 4, 'maxNestingDepth': 2,
+            'functionName': 'engine_main', 'qualifiedName': 'engine_main(a, b, c, d)', 'lineStart': 1, 'lineEnd': 5,
+            'lineCount': 5, 'complexity': 4, 'parameters': 4, 'maxNestingDepth': 2,
         })
 
     def test_shallow_directory_skips_subfolders(self):
