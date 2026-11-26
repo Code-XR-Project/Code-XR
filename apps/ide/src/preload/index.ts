@@ -4,7 +4,7 @@ import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
-import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ProviderInput } from '../shared/agents.ts';
+import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -57,6 +57,9 @@ const api: CodeXRApi = Object.freeze({
         saveMcpServer: (input: McpServerInput, id?: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSaveMcpServer, input, id),
         removeMcpServer: (id: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsRemoveMcpServer, id),
         refreshMcpServer: (id: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsRefreshMcpServer, id),
+        usage: () => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsUsage),
+        savePrices: (prices: readonly ModelPrice[]) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSavePrices, prices),
+        saveBudget: (budget: BudgetSettings) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSaveBudget, budget),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),

@@ -12,6 +12,7 @@ import { terminalEnvironment } from '../terminal/terminalService.ts';
 import { ProviderRegistry } from './providerRegistry.ts';
 import type { CommandRunner } from './tools/commandTool.ts';
 import { ToolCatalog } from './tools/toolCatalog.ts';
+import { UsageLedger } from './usageLedger.ts';
 
 export interface AgentServices {
     readonly providers: ProviderRegistry;
@@ -20,6 +21,7 @@ export interface AgentServices {
     readonly chat: AgentChat;
     readonly tools: ToolCatalog;
     readonly mcp: McpRegistry;
+    readonly usage: UsageLedger;
 }
 
 /**
@@ -45,7 +47,8 @@ export function startAgents(options: { readonly isSmoke: boolean; readonly comma
         confirmCommand: options.isSmoke ? () => Promise.resolve(false) : confirmCommand,
     });
     tools.addSource(() => mcp.tools());
-    return { providers, profiles, sessions, tools, mcp, chat: new AgentChat(providers, profiles, sessions, tools) };
+    const usage = new UsageLedger(new JsonKeyValueStore(path.join(dir, 'usage.json')));
+    return { providers, profiles, sessions, tools, mcp, usage, chat: new AgentChat(providers, profiles, sessions, tools, usage) };
 }
 
 /** A native dialog, outside the renderer's reach: a local MCP server runs with the person's permissions. */

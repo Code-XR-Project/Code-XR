@@ -111,6 +111,9 @@ export const AGENT_IPC_CHANNELS = {
     agentsSaveMcpServer: 'codexr:agents:save-mcp-server',
     agentsRemoveMcpServer: 'codexr:agents:remove-mcp-server',
     agentsRefreshMcpServer: 'codexr:agents:refresh-mcp-server',
+    agentsUsage: 'codexr:agents:usage',
+    agentsSavePrices: 'codexr:agents:save-prices',
+    agentsSaveBudget: 'codexr:agents:save-budget',
 } as const;
 
 /** What a tool can do, which decides whether it asks first (A7). */
@@ -172,6 +175,64 @@ export interface ToolRunView {
     readonly child?: SubAgentView;
 }
 
+/**
+ * Tokens of one answer or sub-agent, and what they cost (A13). The two costs
+ * are never added together: `estimatedCost` is tokens times the person's
+ * price table (absent when the model has no price), `reportedCost` is what
+ * the provider said it billed (absent when it says nothing), both in USD.
+ */
+export interface TokenUsage {
+    readonly inputTokens: number;
+    readonly outputTokens: number;
+    readonly estimatedCost?: number;
+    readonly reportedCost?: number;
+}
+
+/** One row of the price table: USD per million tokens for a model id (a trailing * matches a prefix). */
+export interface ModelPrice {
+    readonly model: string;
+    readonly inputPerMillion: number;
+    readonly outputPerMillion: number;
+}
+
+export interface BudgetSettings {
+    /** USD per calendar month; 0 means no budget. */
+    readonly monthlyUsd: number;
+    /** Share of the budget (0.1-1) at which the chat warns. */
+    readonly warnAt: number;
+    /** Refuse new model calls once the budget is spent. */
+    readonly hardStop: boolean;
+}
+
+/** Spend of one group (an agent, a provider, a model) in a month. */
+export interface UsageGroup {
+    readonly name: string;
+    readonly calls: number;
+    readonly inputTokens: number;
+    readonly outputTokens: number;
+    readonly estimatedCost: number;
+    readonly reportedCost: number;
+    /** Calls with no price in the table and no reported cost: their cost is unknown. */
+    readonly unpricedCalls: number;
+}
+
+export interface UsageSummary {
+    /** "2026-11". */
+    readonly month: string;
+    readonly total: UsageGroup;
+    readonly byAgent: readonly UsageGroup[];
+    readonly byProvider: readonly UsageGroup[];
+    readonly byModel: readonly UsageGroup[];
+    readonly prices: readonly ModelPrice[];
+    readonly budget: BudgetSettings;
+    /**
+     * What the budget counts: each call's reported cost, or its estimate when
+     * the provider reported none. Shown as its own figure, never as either cost.
+     */
+    readonly budgetSpend: number;
+    readonly budgetState: 'none' | 'ok' | 'warning' | 'reached';
+}
+
 /** A sub-agent working for a supervisor (A11), as the run tree shows it. */
 export interface SubAgentView {
     readonly agent: string;
@@ -181,7 +242,7 @@ export interface SubAgentView {
     /** Its answer so far. */
     readonly text: string;
     readonly runs: readonly ToolRunView[];
-    readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
+    readonly usage?: TokenUsage;
 }
 
 /** A risky tool call waiting for the person (A7). */
@@ -266,8 +327,10 @@ export interface ChatMessageView {
     /** Set on an assistant turn that failed or was stopped. */
     readonly error?: string;
     readonly stopped?: boolean;
-    readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
+    readonly usage?: TokenUsage;
     readonly model?: string;
+    /** The provider the answer came from, by its label at the time (A13). */
+    readonly provider?: string;
     /** Labels of the context attached to a user turn ("src/main.ts", "app.ts:10-24"). */
     readonly attachments?: readonly string[];
     /** The attached context itself, sent to the model before `content` on every turn; not shown. */
@@ -342,4 +405,8 @@ export interface AgentsApi {
     removeMcpServer(id: string): Promise<void>;
     /** Reconnects and lists the server's tools again. */
     refreshMcpServer(id: string): Promise<McpServerView>;
+    /** This month's tokens and costs, the price table and the budget (A13). */
+    usage(): Promise<UsageSummary>;
+    savePrices(prices: readonly ModelPrice[]): Promise<UsageSummary>;
+    saveBudget(budget: BudgetSettings): Promise<UsageSummary>;
 }

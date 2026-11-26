@@ -1,9 +1,11 @@
-import type { AgentChatEvent, AgentProfile, ApprovalRequest, EditReviewRequest, EditReviewResult, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView, ToolInfo } from '../../shared/agents.ts';
+import type { AgentChatEvent, AgentProfile, ApprovalRequest, EditReviewRequest, EditReviewResult, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView, TokenUsage, ToolInfo } from '../../shared/agents.ts';
 import { el, icon } from '../dom.ts';
 import { createAttachmentBar, labelOf, type AttachmentSources } from './chatAttachments.ts';
 import { renderMarkdown } from './chatMarkdown.ts';
 import { renderApproval, renderToolRuns, upsertToolRun } from './chatTools.ts';
 import { createMcpSection } from './mcpSection.ts';
+import { budgetNote, createUsageSection } from './usageSection.ts';
+import { addUsage, formatUsage } from '../../shared/usageFormat.ts';
 import { createProvidersSection } from './providersSection.ts';
 
 /**
@@ -64,6 +66,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
     const providersSection = createProvidersSection(api, { onStatus: callbacks.onStatus, onChanged: () => void refresh() });
     // A12: a server's tools change the catalogue the agent form offers.
     const mcpSection = createMcpSection(api, { onStatus: callbacks.onStatus, onChanged: () => { toolCatalog = null; } });
+    const usageSection = createUsageSection(api, { onStatus: callbacks.onStatus });
     const agentSelect = el('select', { className: 'agents-input', attrs: { 'aria-label': 'Agent for a new chat', 'data-testid': 'agents-new-chat-agent' } });
     const newChatButton = el('button', { className: 'primary-button agents-inline-button', text: 'New chat', attrs: { type: 'button', 'data-action': 'new-chat' } });
     newChatButton.addEventListener('click', () => void startChat(agentSelect.value));
@@ -90,6 +93,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         ]),
         providersSection.element,
         mcpSection.element,
+        usageSection.element,
     ]);
     const chatPane = el('div', { className: 'agents-chat', attrs: { hidden: '', 'data-testid': 'agents-chat' } });
     container.replaceChildren(home, chatPane);
@@ -105,7 +109,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
     };
 
     async function refresh(): Promise<void> {
-        const [nextProviders, nextAgents, sessions] = await Promise.all([api.listProviders(), api.listAgents(), api.listSessions(), providersSection.refresh(), mcpSection.refresh()]);
+        const [nextProviders, nextAgents, sessions] = await Promise.all([api.listProviders(), api.listAgents(), api.listSessions(), providersSection.refresh(), mcpSection.refresh(), usageSection.refresh()]);
         providers = nextProviders;
         agents = nextAgents;
         const previous = agentSelect.value;
@@ -363,6 +367,16 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         const input = el('textarea', { className: 'agents-input agents-chat-input', attrs: { rows: '3', placeholder: `Message ${agent?.name ?? 'the agent'} (Enter to send, Shift+Enter for a new line)`, 'aria-label': 'Message', 'data-testid': 'agents-chat-input' } });
         const send = el('button', { className: 'primary-button agents-inline-button', text: 'Send', attrs: { type: 'button', 'data-action': 'send' } });
         const meta = el('span', { className: 'muted small agents-chat-meta', text: agent ? agentSummary(agent) : 'Deleted agent' });
+        const chatTotal = el('span', { className: 'muted small agents-chat-total', attrs: { 'data-testid': 'agents-chat-total' } });
+        const budgetLine = el('p', { className: 'small agents-budget-note', attrs: { hidden: '', role: 'status', 'data-testid': 'agents-budget-note' } });
+        const refreshBudget = (): void => {
+            api.usage().then((summary) => {
+                const note = budgetNote(summary);
+                budgetLine.hidden = note === '';
+                budgetLine.textContent = note;
+                budgetLine.className = `small agents-budget-note is-${summary.budgetState}`;
+            }, () => undefined);
+        };
         const attachments = createAttachmentBar(input, { listFiles: callbacks.listFiles, activeSelection: callbacks.activeSelection, onStatus: callbacks.onStatus });
 
         const state = {
@@ -372,6 +386,8 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             streamTools: null as HTMLElement | null,
             streamText: '',
             render(): void {
+                const total = state.session.messages.reduce<TokenUsage | undefined>((sum, message) => (message.usage ? addUsage(sum, message.usage) : sum), undefined);
+                chatTotal.textContent = total ? `This chat: ${formatUsage(total)}` : '';
                 transcript.replaceChildren(...state.session.messages.map((message) => renderMessage(message)));
                 if (state.session.messages.length === 0) {
                     transcript.append(el('p', { className: 'muted agents-chat-empty', text: agent && !ready(agent)
@@ -418,7 +434,10 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
                     if (open === state) {
                         state.session = fresh;
                         title.textContent = fresh.title;
+                        state.render();
                     }
+                    refreshBudget();
+                    void usageSection.refresh().catch(() => undefined);
                 }, () => undefined);
                 input.focus();
             });
@@ -445,6 +464,8 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             ]),
             transcript,
             el('div', { className: 'agents-composer' }, [
+                budgetLine,
+                chatTotal,
                 attachments.chips,
                 el('div', { className: 'agents-composer-input' }, [attachments.popup, input]),
                 el('div', { className: 'agents-composer-row' }, [meta, el('span', { className: 'agents-composer-actions' }, [attachments.attachButton, send])]),
@@ -453,6 +474,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         home.hidden = true;
         chatPane.hidden = false;
         state.render();
+        refreshBudget();
         running(initial.running);
         input.focus();
     }
@@ -478,8 +500,9 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         if (message.error) {
             notes.push(el('p', { className: 'error small agents-message-error', text: message.error, attrs: { role: 'alert' } }));
         }
+        // A13: each answer keeps the provider, model and usage it was produced with.
         const footer = !isUser && message.usage
-            ? [el('p', { className: 'muted small agents-usage', text: `${message.model ?? ''} · ${message.usage.inputTokens} in / ${message.usage.outputTokens} out tokens` })]
+            ? [el('p', { className: 'muted small agents-usage', text: [message.provider, message.model, formatUsage(message.usage)].filter(Boolean).join(' · ') })]
             : [];
         const actions = isUser || !message.content ? [] : [iconButton('Copy answer', ICONS.copy, () => copy(message.content))];
         return el('article', { className: `agents-message ${isUser ? 'is-user' : 'is-assistant'}`, attrs: { 'data-role': message.role } }, [

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { AgentChatEvent, AgentProfile, ApprovalDecision, ChatAttachment, ChatMessageView, ChatSession, EditReviewResult, SubAgentView, ToolRunView } from '../../shared/agents.ts';
+import type { AgentChatEvent, AgentProfile, ApprovalDecision, ChatAttachment, ChatMessageView, ChatSession, EditReviewResult, SubAgentView, TokenUsage, ToolRunView } from '../../shared/agents.ts';
 import type { AgentProfiles } from './agentProfiles.ts';
 import { buildAttachmentContext } from './attachments.ts';
 import { sessionToMarkdown, summaryOf, titleFrom, type ChatSessions, type StoredSession } from './chatSessions.ts';
@@ -8,6 +8,8 @@ import { parseArguments } from './providers/anthropic.ts';
 import { ProviderError, type ChatMessage, type ToolCall } from './providers/types.ts';
 import type { ToolCatalog } from './tools/toolCatalog.ts';
 import { clip, type AgentTool, type ToolWorkspace } from './tools/toolTypes.ts';
+import type { UsageLedger } from './usageLedger.ts';
+import { addUsage } from '../../shared/usageFormat.ts';
 
 /**
  * Roughly 100k tokens of history (4 characters a token): what the smallest
@@ -48,7 +50,8 @@ export interface ChatWindow {
     emit(event: AgentChatEvent): void;
 }
 
-type Usage = { readonly inputTokens: number; readonly outputTokens: number };
+type Usage = TokenUsage;
+
 
 /** Sub-agents a supervisor runs at once unless its profile says otherwise (A11). */
 export const DEFAULT_MAX_PARALLEL = 3;
@@ -126,17 +129,23 @@ export class AgentChat {
     private readonly profiles: AgentProfiles;
     private readonly sessions: ChatSessions;
     private readonly tools: ToolCatalog;
+    private readonly ledger: UsageLedger | null;
     private readonly running = new Map<string, AbortController>();
     private readonly approvals = new Map<string, PendingApproval>();
     private readonly reviews = new Map<string, PendingReview>();
     /** Running sub-agents (A11), by `<sessionId>:<tool call id>`. */
     private readonly children = new Map<string, AbortController>();
 
-    constructor(providers: ProviderRegistry, profiles: AgentProfiles, sessions: ChatSessions, tools: ToolCatalog) {
+    constructor(providers: ProviderRegistry, profiles: AgentProfiles, sessions: ChatSessions, tools: ToolCatalog, ledger: UsageLedger | null = null) {
         this.providers = providers;
         this.profiles = profiles;
         this.sessions = sessions;
         this.tools = tools;
+        this.ledger = ledger;
+    }
+
+    private providerLabel(agent: AgentProfile): string {
+        return this.providers.list().find((provider) => provider.id === agent.providerId)?.label ?? agent.providerId;
     }
 
     async get(workspaceRoot: string | null, id: unknown): Promise<ChatSession> {
@@ -285,6 +294,7 @@ export class AgentChat {
             content: result.content,
             at: at(),
             model: agent.model,
+            provider: this.providerLabel(agent),
             ...(result.usage ? { usage: result.usage } : {}),
             ...(runs.length > 0 ? { toolRuns: runs } : {}),
             ...(result.stopped ? { stopped: true } : {}),
@@ -310,9 +320,9 @@ export class AgentChat {
         const { signal } = options;
         let content = '';
         let usage: Usage | undefined;
-        const addUsage = (extra: Usage | undefined): void => {
+        const add = (extra: Usage | undefined): void => {
             if (extra) {
-                usage = { inputTokens: (usage?.inputTokens ?? 0) + extra.inputTokens, outputTokens: (usage?.outputTokens ?? 0) + extra.outputTokens };
+                usage = addUsage(usage, extra);
             }
         };
         const tools = this.tools.forAgent(agent.tools).filter((tool) => options.depth === 0 || tool.name !== 'delegate_task');
@@ -327,7 +337,10 @@ export class AgentChat {
                     ...(agent.temperature !== undefined ? { temperature: agent.temperature } : {}),
                     ...(tools.length > 0 ? { tools: tools.map(({ name, description, parameters }) => ({ name, description, parameters })) } : {}),
                 };
+                // A13: a spent budget set to stop refuses the call before it is made.
+                this.ledger?.assertWithinBudget();
                 let stepText = '';
+                let stepUsage: { inputTokens: number; outputTokens: number; cost?: number } | undefined;
                 const calls: ToolCall[] = [];
                 for await (const event of adapter.stream(request, signal)) {
                     if (event.type === 'text') {
@@ -341,8 +354,12 @@ export class AgentChat {
                     } else if (event.type === 'tool-call') {
                         calls.push(event.call);
                     } else if (event.type === 'usage') {
-                        addUsage({ inputTokens: event.inputTokens, outputTokens: event.outputTokens });
+                        stepUsage = event;
                     }
+                }
+                if (stepUsage) {
+                    const call = { inputTokens: stepUsage.inputTokens, outputTokens: stepUsage.outputTokens, ...(stepUsage.cost !== undefined ? { reportedCost: stepUsage.cost } : {}) };
+                    add(this.ledger ? await this.ledger.record({ agent: agent.name, provider: this.providerLabel(agent), model: agent.model, ...call }) : call);
                 }
                 if (calls.length === 0) {
                     return { content, ...(usage ? { usage } : {}) };
@@ -363,7 +380,7 @@ export class AgentChat {
                 for (const call of calls) {
                     const result = results.get(call.id) ?? { text: 'Error: the tool did not run.', isError: true };
                     messages.push({ role: 'tool', toolCallId: call.id, toolName: call.name, content: result.text, ...(result.isError ? { isError: true } : {}) });
-                    addUsage(result.usage);
+                    add(result.usage);
                     if (result.agent) {
                         agent = result.agent;
                     }
