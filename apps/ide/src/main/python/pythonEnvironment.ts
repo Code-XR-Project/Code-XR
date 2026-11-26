@@ -2,7 +2,11 @@ import { VenvManager } from '@codexr/core/python-env/venvManager';
 import { CODEXR_PYTHON_PACKAGES } from '@codexr/core/python-env/pythonPackageManifest';
 import { PythonEnvUtils } from '@codexr/core/python-env/pythonEnvUtils';
 import { PythonEnvStorage } from '@codexr/core/python-env/pythonEnvStorage';
+import { resolveBackendScriptPath } from '@codexr/core/host/backendScriptPath';
+import { getHost } from '@codexr/core/host/hostRegistry';
+import { execFile } from 'node:child_process';
 import type { PythonEnvStatus, PythonPackageInfo } from '../../shared/api.ts';
+import { parseParsersCheck, type ParsersStatus } from '../dependencies/dependencyReport.ts';
 import { log } from '../log.ts';
 import { describePythonEnv, setUpDisclosure, type PythonFacts } from './pythonStatus.ts';
 
@@ -91,6 +95,28 @@ export class PythonEnvironmentService {
             this.busy = null;
         }
         return this.status();
+    }
+
+    /**
+     * Which tree-sitter parsers the venv holds (#161), from the backend's
+     * `download_parsers.py --check`: runs the venv's Python, never the network.
+     */
+    async parsersStatus(): Promise<ParsersStatus> {
+        if (this.busy || !this.venv.getEnvironmentStatus().isValid) {
+            return { state: 'unknown', total: 0, missing: [] };
+        }
+        const script = resolveBackendScriptPath(getHost().paths, 'tools/download_parsers.py');
+        const command = PythonEnvUtils.getVenvPythonCommand(this.venvFolder, [script, '--check']);
+        return new Promise((resolve) => {
+            execFile(command.executable, command.args, { timeout: 30_000, windowsHide: true }, (error, stdout) => {
+                if (error) {
+                    log.warn(`Could not check the language parsers: ${error.message}`);
+                    resolve({ state: 'unknown', total: 0, missing: [] });
+                    return;
+                }
+                resolve(parseParsersCheck(stdout));
+            });
+        });
     }
 
     async remove(): Promise<PythonEnvStatus> {

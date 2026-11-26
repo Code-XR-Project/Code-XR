@@ -6,7 +6,7 @@ import { CollaborationProfileManager } from '../collaboration/collaborationProfi
 import { ActiveServer } from '../server/registry/activeServerModel';
 import { getActiveServerRegistry } from '../server/registry/activeServerRegistry';
 import { ServerSettingsManager } from '../server/serverSettingsManager';
-import { DEFAULT_REMOTE_ACCESS_STATE, RemoteAccessState } from './remoteAccessModel';
+import { DEFAULT_REMOTE_ACCESS_STATE, RemoteAccessState, tunnelOriginUrl, withCloudflaredOutput } from './remoteAccessModel';
 import {
     PairingFailureEvent,
     PairingRequestCreatedEvent,
@@ -118,7 +118,7 @@ export class RemoteAccessManager implements HostDisposable {
             'quick-tunnel-home',
         );
         await fs.promises.mkdir(isolatedHome, { recursive: true });
-        const args = ['tunnel', '--no-autoupdate', '--url', server.url];
+        const args = ['tunnel', '--no-autoupdate', '--url', tunnelOriginUrl(server.url)];
         if (server.url.startsWith('https://')) {
             args.push('--no-tls-verify');
         }
@@ -407,7 +407,10 @@ export class RemoteAccessManager implements HostDisposable {
     private waitForPublicUrl(child: ChildProcessWithoutNullStreams): Promise<string> {
         return new Promise((resolve, reject) => {
             let settled = false;
+            let output = '';
             const inspect = (chunk: Buffer) => {
+                // Kept (bounded) so a failure can say what cloudflared reported.
+                output = (output + chunk.toString('utf8')).slice(-4000);
                 const match = chunk.toString('utf8').match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i);
                 if (match && !settled) {
                     settled = true;
@@ -428,13 +431,13 @@ export class RemoteAccessManager implements HostDisposable {
                 if (!settled) {
                     settled = true;
                     clearTimeout(timer);
-                    reject(new Error('cloudflared exited before publishing the link.'));
+                    reject(new Error(withCloudflaredOutput('cloudflared exited before publishing the link.', output)));
                 }
             });
             const timer = setTimeout(() => {
                 if (!settled) {
                     settled = true;
-                    reject(new Error('Cloudflare did not publish a temporary link within 30 seconds.'));
+                    reject(new Error(withCloudflaredOutput('Cloudflare did not publish a temporary link within 30 seconds.', output)));
                 }
             }, 30_000);
         });

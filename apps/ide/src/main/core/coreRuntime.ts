@@ -2,12 +2,13 @@ import { app, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { initializeHost } from '@codexr/core/host/hostRegistry';
+import { getHost, initializeHost } from '@codexr/core/host/hostRegistry';
 import { IPC_EVENTS, type HostNotification, type ProgressEvent } from '../../shared/api.ts';
 import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { AnalysisService } from '../analysis/analysisService.ts';
 import { setSceneLibrariesDir } from '../analysis/sceneView.ts';
+import { CloudflaredService } from '../dependencies/cloudflaredService.ts';
 import { setFolderChangeListener } from '../workspace/workspaceWindows.ts';
 import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 
@@ -19,6 +20,8 @@ import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 export interface CoreServices {
     readonly python: PythonEnvironmentService;
     readonly analysis: AnalysisService;
+    /** The program behind "Share through Cloudflare", installed with the IDE's dependencies (#160). */
+    readonly cloudflared: CloudflaredService;
 }
 
 /** Disposed when the app quits: what the core registered (collaboration profiles...). */
@@ -54,6 +57,7 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
     // The vendored copies of the scene's CDN libraries (analysis/sceneLibraries.ts); #20 packages them.
     setSceneLibrariesDir(path.join(installRoot, 'test', 'vendor', 'scene-libraries'));
     const analysis = new AnalysisService(python, subscriptions);
+    const cloudflared = new CloudflaredService({ globalStorageUri: { fsPath: storageDir }, globalState: getHost().globalState });
     // #139: a window that opens another folder stops serving the old one's scene.
     setFolderChangeListener((contents, root) => void analysis.folderChanged(contents, root));
     app.once('will-quit', () => {
@@ -61,7 +65,7 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
             disposable.dispose();
         }
     });
-    return { python, analysis };
+    return { python, analysis, cloudflared };
 }
 
 function broadcast(event: string, payload: unknown): void {
