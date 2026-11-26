@@ -1,0 +1,84 @@
+import { app, BrowserWindow, nativeTheme } from 'electron';
+import path from 'node:path';
+import { applyProcessHardening } from './hardening.ts';
+import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
+import { registerIpcHandlers } from './ipc.ts';
+import { installApplicationMenu } from './menu.ts';
+import { createMainWindow } from './window.ts';
+import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
+import { APP_ORIGIN, trustedOrigins } from './security.ts';
+import { log } from './log.ts';
+
+// Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
+// this file, next to out/preload/index.cjs and out/renderer/.
+const OUT_DIR = path.resolve(__dirname, '..');
+const PRELOAD_PATH = path.join(OUT_DIR, 'preload', 'index.cjs');
+const RENDERER_DIR = path.join(OUT_DIR, 'renderer');
+
+// The dev server is honoured only from an unpackaged build, so an installed
+// IDE can never be pointed at another origin through the environment.
+const devServerUrl = app.isPackaged ? undefined : process.env.CODEXR_IDE_DEV_SERVER_URL || undefined;
+const devServerOrigin = devServerUrl ? new URL(devServerUrl).origin : undefined;
+const isDevelopment = devServerUrl !== undefined;
+const isSmoke = process.argv.includes(SMOKE_FLAG);
+
+const origins = trustedOrigins(devServerOrigin);
+
+registerAppSchemeAsPrivileged();
+applyProcessHardening(origins, devServerOrigin);
+
+if (!isSmoke && !app.requestSingleInstanceLock()) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        const [win] = BrowserWindow.getAllWindows();
+        if (win) {
+            if (win.isMinimized()) { win.restore(); }
+            win.focus();
+        }
+    });
+    app.whenReady().then(start).catch((error: unknown) => {
+        log.error('Startup failed.', error);
+        app.exit(1);
+    });
+}
+
+async function start(): Promise<void> {
+    nativeTheme.themeSource = 'system';
+    if (!isDevelopment) {
+        serveRenderer(RENDERER_DIR);
+    }
+    registerIpcHandlers(origins, isDevelopment);
+    installApplicationMenu(isDevelopment);
+
+    const win = await openMainWindow();
+    log.info(`Window loaded from ${win.webContents.getURL()}${isDevelopment ? ' (dev server)' : ''}.`);
+
+    if (isSmoke) {
+        const result = await runSmoke(win, origins);
+        process.stdout.write(`${SMOKE_RESULT_PREFIX}${JSON.stringify(result)}\n`);
+        app.exit(result.ok ? 0 : 1);
+        return;
+    }
+
+    app.on('activate', () => {
+        // macOS: re-open a window when the dock icon is clicked and none is open.
+        if (BrowserWindow.getAllWindows().length === 0) {
+            void openMainWindow();
+        }
+    });
+}
+
+function openMainWindow(): Promise<BrowserWindow> {
+    return createMainWindow({
+        preloadPath: PRELOAD_PATH,
+        url: devServerUrl ?? `${APP_ORIGIN}/index.html`,
+        show: !isSmoke,
+    });
+}
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});

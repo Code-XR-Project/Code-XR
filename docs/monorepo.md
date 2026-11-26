@@ -8,7 +8,7 @@ Code-XR became an npm-workspaces monorepo so that the VS Code extension and the 
 .
 ├── apps/
 │   ├── vscode-extension/   the published extension (npm workspace "code-xr")
-│   └── ide/                the Code-XR IDE, placeholder only
+│   └── ide/                the Code-XR IDE (npm workspace "code-xr-ide"), in development
 ├── backend/
 │   ├── src/                Python analysis backend
 │   ├── requirements.txt    its exact Python pins, generated from the extension's manifest

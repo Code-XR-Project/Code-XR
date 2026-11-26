@@ -15,6 +15,8 @@ import { CleanAnalysisCommands } from './features/analysis/commands/cleanAnalysi
 import { AnalysisConfigurationStorage } from './core/analysis/configuration/analysisConfigurationStorage';
 import { handleError, ErrorDomain, ErrorSeverity } from './platform/ui/errorHandler';
 import { initializeExtensionContext } from './platform/extensionContext';
+import { initializeHost } from './core/host/hostRegistry';
+import { createVSCodeHost } from './app/host/vscodeHost';
 import { CodeXRLogger } from './platform/logging/logger';
 import { StartupCoordinator } from './app/startup/startupCoordinator';
 import { CollaborationProfileManager } from './core/collaboration/collaborationProfileManager';
@@ -28,6 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const activationStartedAt = Date.now();
 
     initializeExtensionContext(context);
+    initializeHost(createVSCodeHost(context));
     CodeXRLogger.initialize(context);
 
     startupLogger.info('Activating CodeXR.');

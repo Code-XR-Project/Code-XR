@@ -15,7 +15,7 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 | `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (not shipped since 1.2.1), `package.json`, README/CHANGELOG |
 | `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`), with their fixtures (`backend/tests/fixtures/`) |
 | `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (the `test:python` / `test:analysis` / `lint:python` runners, `report-manual-metrics.py`) |
-| `apps/ide/` | Code-XR IDE (Electron + Monaco) — placeholder only, epic #11 |
+| `apps/ide/` | Code-XR IDE (Electron + Monaco), workspace `code-xr-ide`, epic #11 — read `apps/ide/README.md` before touching it (process split, security baseline, IPC contract) |
 | `packages/` | Planned shared workspaces (`core`, `xr-scenes`) — empty, see `packages/README.md` |
 | root | `package.json` (workspaces + mirrored scripts), the only `package-lock.json`, `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `docs/` |
 
@@ -43,7 +43,8 @@ Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo
 |---|---|
 | `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies the Python backend; `templates/` and `examples/` ship from the package root, not from `dist/`) |
 | `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/`, `test/`, `scripts/`, the standalone `templates/` runtimes and the config files |
-| `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests |
+| `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests of the extension, then typecheck + lint + unit tests of the IDE |
+| `npm run ide:dev` / `ide:smoke` | IDE with hot reload / build the IDE and launch it hidden to check the security baseline from inside the real window |
 | `npm run test:unit` | Node native runner over `test/**/*.test.cjs` (not Mocha) |
 | `npm run test:python` (= `test:backend`) / `test:analysis` / `test:all` | Python suites in `backend/tests` / per-language end-to-end metrics / everything |
 | `npm run lint:python` | `ruff check` over `backend/` (config `backend/ruff.toml`, ruff pinned in `backend/requirements-dev.txt`); lint only, never a formatter |
