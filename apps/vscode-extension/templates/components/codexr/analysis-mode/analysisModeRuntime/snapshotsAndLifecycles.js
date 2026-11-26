@@ -210,6 +210,13 @@
               'normal-analysis-data-refreshed'
             );
           }
+        }).catch(function (error) {
+          // LIFECYCLE-12: a failed wait must still bring the chart back
+          // rather than leave Normal analysis empty with an unhandled rejection.
+          root.console?.warn?.('[CodeXR][AnalysisMode] Normal chart did not report ready:', error);
+          if (state.mode === 'single' || state.activeLifecycleMode === 'single') {
+            setNormalVisualizationVisible(true);
+          }
         });
       },
       deactivate: function () {
@@ -231,6 +238,8 @@
       }
       if (attempt < 90) {
         root.setTimeout?.(function () { registerCollaboration(attempt + 1); }, attempt < 30 ? 100 : 1000)?.unref?.();
+      } else {
+        root.console?.info?.('[CodeXR][AnalysisMode] No collaboration client after ~1 min; mode changes are not shared (standalone scene).');
       }
       return;
     }
