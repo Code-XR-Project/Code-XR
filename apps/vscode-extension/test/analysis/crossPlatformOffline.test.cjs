@@ -109,8 +109,25 @@ test('S14 EVO-10: an old blob missing from a partial clone is reported, not down
         && source.commitSha === git(clone, ['rev-parse', 'HEAD~1']));
     assert.ok(old, 'the first commit is offered');
     const resolved = await service.resolveSource(old.id);
-    await assert.rejects(service.materialize(resolved), /git-object-missing/,
-        `${git(clone, ['--version'])}: objects before ${JSON.stringify(before)}, after ${JSON.stringify(objectCount())}`);
+    const outcome = await service.materialize(resolved).then((result) => ({ result }), (error) => ({ error }));
+    if (!outcome.error) {
+        const probe = (args) => {
+            try {
+                return childProcess.execFileSync('git', args, { cwd: clone, encoding: 'utf8', env: gitOfflineEnvironment(), stdio: ['ignore', 'pipe', 'pipe'] });
+            } catch (error) {
+                return `failed: ${error.stderr || error.message}`;
+            }
+        };
+        assert.fail([
+            'materialize resolved',
+            git(clone, ['--version']),
+            `format ${probe(['rev-parse', '--show-object-format']).trim()}`,
+            `ls-tree ${JSON.stringify(probe(['ls-tree', '-r', '-l', old.commitSha]))}`,
+            `result ${JSON.stringify(outcome.result)}`,
+            `objects before ${JSON.stringify(before)}, after ${JSON.stringify(objectCount())}`,
+        ].join(' | '));
+    }
+    assert.match(outcome.error.message, /git-object-missing/);
     assert.equal(objectCount(), before, 'nothing was fetched');
     await service.dispose();
 });
