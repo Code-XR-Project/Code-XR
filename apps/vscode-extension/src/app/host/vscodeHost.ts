@@ -71,6 +71,15 @@ async function showPrompt(options: HostPromptOptions): Promise<string | undefine
     return vscode.window.showInputBox(box);
 }
 
+/** #16: "Open in editor" from an analysis scene, at a 1-based line. */
+async function openInEditor(absolutePath: string, line?: number): Promise<boolean> {
+    const position = new vscode.Position(Math.max(0, (line ?? 1) - 1), 0);
+    await vscode.window.showTextDocument(vscode.Uri.file(absolutePath), {
+        preview: false,
+        selection: new vscode.Range(position, position),
+    });
+    return true;
+}
 export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
     // Looked up on each call, not captured here: a test may replace a
     // `vscode.window` member after the host exists, and the call must reach it.
@@ -136,6 +145,7 @@ export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
         workspaceFolders() {
             return (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
         },
+        openInEditor,
         signal(signal) {
             const { command, args } = signalToCommand(signal);
             // A signal is fire-and-forget for the core; a failing command is logged, never left unhandled.

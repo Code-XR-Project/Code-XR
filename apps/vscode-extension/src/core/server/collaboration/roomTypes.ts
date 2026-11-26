@@ -63,6 +63,8 @@ export interface CollaborationPeer {
     roomId: string | null;
     anonymousDisplayName: string;
     remoteAddress: string;
+    /** On this machine, not through a tunnel or the LAN: the only peers that may act on the host's editor. */
+    local: boolean;
 }
 
 export interface CollaborationRoomState {

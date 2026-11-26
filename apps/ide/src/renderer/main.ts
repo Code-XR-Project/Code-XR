@@ -80,7 +80,9 @@ const outlineView = createOutlineView(workbench.outlineView, {
 let outline: OutlineController | null = null;
 let outlineLanguage: string | null = null;
 function editorGroup(): Promise<EditorGroup> {
-    editorsLoading ??= Promise.all([import('./editor/editorGroup.ts'), import('./editor/outlineController.ts')]).then(([{ createEditorGroup }, { createOutlineController }]) => {
+    editorsLoading ??= Promise.all([import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts')]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }]) => {
+        // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
+        installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             onActiveChange: (path) => {
