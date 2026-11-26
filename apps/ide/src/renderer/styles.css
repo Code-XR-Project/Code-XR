@@ -47,9 +47,15 @@ body {
 }
 
 .workbench {
+  /* #169: layout/layout.ts sets --side-size, --panel-size and --scene-size;
+     the classes side-hidden, panel-maximized and zen collapse areas. */
+  --activity-col: 48px;
+  --side-col: var(--side-size, 260px);
+  --scene-col: var(--scene-size, 45%);
+  --status-row: 24px;
   display: grid;
-  grid-template-columns: 48px minmax(180px, 260px) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto 24px;
+  grid-template-columns: var(--activity-col) var(--side-col) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto var(--status-row);
   grid-template-areas:
     'activity side editor'
     'activity side panel'
@@ -330,15 +336,34 @@ body {
 }
 
 @media (max-width: 720px) {
-  .workbench {
-    grid-template-columns: 48px 1fr;
-    grid-template-areas:
-      'activity editor'
-      'activity panel'
-      'status status';
-  }
+  .workbench { --side-col: 0px; }
   .side-bar { display: none; }
 }
+
+/* #169: hidden side bar, maximised panel, zen mode and the sashes. */
+.workbench.side-hidden { --side-col: 0px; }
+.workbench.side-hidden .side-bar { display: none; }
+.workbench.panel-maximized { grid-template-rows: 0 minmax(0, 1fr) var(--status-row); }
+.workbench.panel-maximized .editor-area { display: none; }
+.workbench.zen { --activity-col: 0px; --side-col: 0px; --status-row: 0px; }
+.workbench.zen .activity-bar,
+.workbench.zen .side-bar,
+.workbench.zen .status-bar,
+.workbench.zen .panel { display: none; }
+.sash {
+  position: relative;
+  z-index: 5;
+  touch-action: none;
+}
+.sash[hidden] { display: none; }
+.sash:hover, .sash:active, .sash:focus-visible { background: var(--accent); opacity: 0.5; outline: none; }
+.sash-side { grid-area: side; justify-self: end; width: 6px; margin-right: -3px; cursor: ew-resize; }
+/* The scene is a native view over its slot: the sash stays on the editor's side of the border. */
+.sash-scene { grid-area: scene; justify-self: start; width: 6px; margin-left: -5px; cursor: ew-resize; }
+.sash-panel { grid-area: panel; align-self: start; height: 6px; margin-top: -3px; cursor: ns-resize; }
+.workbench.is-resizing { user-select: none; }
+.workbench.is-resizing-columns, .workbench.is-resizing-columns * { cursor: ew-resize !important; }
+.workbench.is-resizing-rows, .workbench.is-resizing-rows * { cursor: ns-resize !important; }
 
 /* Side-bar views (#15): one pane per activity item. */
 .side-pane[hidden] { display: none; }
@@ -405,7 +430,7 @@ body {
 /* The analysis scene beside the code (#16). The scene is drawn by the main
    process over .scene-slot; this column only reserves the space. */
 .workbench.has-scene {
-  grid-template-columns: 48px minmax(180px, 260px) minmax(0, 1fr) minmax(320px, 45%);
+  grid-template-columns: var(--activity-col) var(--side-col) minmax(0, 1fr) var(--scene-col);
   grid-template-areas:
     'activity side editor scene'
     'activity side panel scene'
@@ -458,13 +483,7 @@ body {
 .scene-share-error { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--crit); }
 .scene-slot { flex: 1; min-height: 0; }
 @media (max-width: 720px) {
-  .workbench.has-scene {
-    grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      'activity editor scene'
-      'activity panel scene'
-      'status status status';
-  }
+  .workbench.has-scene { --scene-col: minmax(0, 1fr); }
 }
 
 /* Terminal panel (#137): tabs over xterm.js views, under the editor area. */
@@ -477,18 +496,10 @@ body {
   min-height: 0;
   background: var(--editor);
   border-top: 1px solid var(--line);
+  height: var(--panel-size, 260px);
 }
 .panel[hidden] { display: none; }
-.panel-sash {
-  position: absolute;
-  top: -3px;
-  left: 0;
-  right: 0;
-  height: 6px;
-  cursor: ns-resize;
-  z-index: 2;
-}
-.panel-sash:hover, .panel-sash:active { background: var(--accent); opacity: 0.5; }
+.workbench.panel-maximized .panel { height: auto; }
 .panel-header {
   flex: none;
   display: flex;

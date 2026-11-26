@@ -126,6 +126,8 @@ export const IDE_COMMANDS = [
     'workbench.commandPalette', 'editor.goToLine',
     // #164: quick open (Go > Go to File..., Ctrl/Cmd+P) and the active editor's symbols (Ctrl/Cmd+Shift+O).
     'workbench.quickOpen', 'editor.goToSymbol',
+    // #169: the layout (View > Appearance, Ctrl/Cmd+B and Ctrl/Cmd+J).
+    'view.toggleSideBar', 'view.togglePanel', 'view.toggleMaximizedPanel', 'view.toggleZenMode', 'view.resetLayout',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 

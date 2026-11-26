@@ -3,7 +3,9 @@
  * go to the application menu or to the workbench's own key handler:
  * modifiers `CmdOrCtrl`, `Ctrl`, `Cmd`, `Alt`, `Shift`, then one key
  * (`P`, `F1`, `` ` ``, `\`, `Tab`, `PageUp`…). `CmdOrCtrl` is Cmd on macOS
- * and Ctrl elsewhere. Pure module, unit-tested in Node.
+ * and Ctrl elsewhere. A chord is two strokes separated by a space
+ * (`CmdOrCtrl+K Z`, #169); only the workbench's handler can listen for one,
+ * the menu cannot. Pure module, unit-tested in Node.
  */
 
 export type KeyPlatform = 'darwin' | 'win32' | 'linux' | string;
@@ -98,8 +100,26 @@ const KEY_LABELS: Record<string, string> = {
     SPACE: 'Space',
 };
 
-/** How a keybinding is written in the palette and tooltips: "Ctrl+Shift+P", "Cmd+Shift+P" on macOS. */
+/** A keybinding's strokes: one, or two for a chord ("CmdOrCtrl+K Z"). */
+export function parseChord(binding: string, platform: KeyPlatform): readonly ParsedKeybinding[] {
+    const strokes = binding.trim().split(/\s+/);
+    if (strokes.length > 2) {
+        throw new Error(`Keybinding "${binding}" has more than two strokes.`);
+    }
+    return strokes.map((stroke) => parseKeybinding(stroke, platform));
+}
+
+/** True when the key pressed is only a modifier (the second stroke of a chord has not come yet). */
+export function isModifierKey(event: Pick<KeyEventLike, 'key'>): boolean {
+    return event.key === 'Control' || event.key === 'Meta' || event.key === 'Alt' || event.key === 'Shift';
+}
+
+/** How a keybinding is written in the palette and tooltips: "Ctrl+Shift+P", "Cmd+Shift+P" on macOS, "Ctrl+K Z" for a chord. */
 export function formatKeybinding(binding: string, platform: KeyPlatform): string {
+    return binding.trim().split(/\s+/).map((stroke) => formatStroke(stroke, platform)).join(' ');
+}
+
+function formatStroke(binding: string, platform: KeyPlatform): string {
     const parsed = parseKeybinding(binding, platform);
     const parts: string[] = [];
     const isMac = platform === 'darwin';
@@ -118,4 +138,52 @@ export function formatKeybinding(binding: string, platform: KeyPlatform): string
     const key = parsed.key;
     parts.push(KEY_LABELS[key] ?? (key.length === 1 ? key : key.charAt(0) + key.slice(1).toLowerCase()));
     return parts.join('+');
+}
+
+/** A command's keybinding, parsed into its strokes. */
+export interface StrokeBinding {
+    readonly id: string;
+    readonly strokes: readonly ParsedKeybinding[];
+}
+
+/** How long the second stroke of a chord may wait. */
+export const CHORD_TIMEOUT_MS = 3000;
+
+/**
+ * What a key press does (#169): runs a single-stroke binding, finishes a
+ * chord (`chord`: the caller swallows the key), starts a chord (null: the key
+ * goes on, so Monaco still sees `Ctrl+K` and keeps its own chords) or nothing.
+ */
+export interface KeyDispatcher {
+    dispatch(event: KeyEventLike, bindings: readonly StrokeBinding[], canStartChord: boolean): { readonly kind: 'single' | 'chord'; readonly id: string } | null;
+}
+
+export function createKeyDispatcher(now: () => number = () => Date.now()): KeyDispatcher {
+    let pending: { readonly candidates: readonly StrokeBinding[]; readonly until: number } | null = null;
+    return {
+        dispatch(event, bindings, canStartChord) {
+            if (isModifierKey(event)) {
+                return null;
+            }
+            if (pending) {
+                const { candidates, until } = pending;
+                pending = null;
+                const second = now() <= until
+                    ? candidates.find((binding) => binding.strokes[1] !== undefined && matchesKeybinding(event, binding.strokes[1]))
+                    : undefined;
+                if (second) {
+                    return { kind: 'chord', id: second.id };
+                }
+            }
+            const single = bindings.find((binding) => binding.strokes.length === 1 && binding.strokes[0] !== undefined && matchesKeybinding(event, binding.strokes[0]));
+            if (single) {
+                return { kind: 'single', id: single.id };
+            }
+            const chords = bindings.filter((binding) => binding.strokes.length === 2 && binding.strokes[0] !== undefined && matchesKeybinding(event, binding.strokes[0]));
+            if (chords.length > 0 && canStartChord) {
+                pending = { candidates: chords, until: now() + CHORD_TIMEOUT_MS };
+            }
+            return null;
+        },
+    };
 }

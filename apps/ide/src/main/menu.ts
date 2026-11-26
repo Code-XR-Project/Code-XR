@@ -80,6 +80,20 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
                 // terminal or the scene view has the focus; F1 is the workbench's own alias.
                 { label: 'Command Palette…', accelerator: 'CmdOrCtrl+Shift+P', click: (_item, win) => sendCommand(win, 'workbench.commandPalette') },
                 { type: 'separator' },
+                {
+                    // #169: the renderer owns the layout. Zen mode's Ctrl/Cmd+K Z is a chord, which a menu
+                    // accelerator cannot express: the workbench listens for it.
+                    label: 'Appearance',
+                    submenu: [
+                        { label: 'Side Bar', accelerator: 'CmdOrCtrl+B', click: (_item, win) => sendCommand(win, 'view.toggleSideBar') },
+                        { label: 'Panel', accelerator: 'CmdOrCtrl+J', click: (_item, win) => sendCommand(win, 'view.togglePanel') },
+                        { label: 'Maximize Panel', click: (_item, win) => sendCommand(win, 'view.toggleMaximizedPanel') },
+                        { label: 'Zen Mode', click: (_item, win) => sendCommand(win, 'view.toggleZenMode') },
+                        { type: 'separator' },
+                        { label: 'Reset Layout', click: (_item, win) => sendCommand(win, 'view.resetLayout') },
+                    ],
+                },
+                { type: 'separator' },
                 ...(isDevelopment
                     ? ([{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }] as MenuItemConstructorOptions[])
                     : []),

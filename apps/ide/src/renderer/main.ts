@@ -29,7 +29,15 @@ const api = window.codexr;
 let folderIsOpen = false;
 /** The active editor's file, for quick open's recent list (#164). */
 let activeFile: string | null = null;
-const workbench = renderWorkbench(root);
+// #169: the layout is remembered in the renderer's storage (inside the IDE's user-data folder).
+function layoutStorage(): Storage | null {
+    try {
+        return window.localStorage;
+    } catch {
+        return null;
+    }
+}
+const workbench = renderWorkbench(root, layoutStorage());
 // #153: VS Code-style notifications, kept clear of the scene view (a native view drawn over the page).
 const notifications = createNotificationCenter(document.body);
 new ResizeObserver(() => notifications.setRightInset(workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width))
@@ -159,7 +167,9 @@ const searchView = createSearchView(workbench.searchView, api.workspace, {
 // #137: the terminal panel; xterm.js loads with the first terminal.
 const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
+    toggleMaximized: () => workbench.layout.togglePanelMaximized(),
 });
+workbench.layout.onDidChange(() => terminal.setMaximized(workbench.layout.panelMaximized));
 
 // #18: every action is a command in one registry: the palette lists them,
 // the menu's accelerators and the workbench's own keys run them.
@@ -269,6 +279,12 @@ registerWorkbenchCommands(registry, {
         api.analysis.closeScene().catch((reason: unknown) => workbench.setStatus(String(reason)));
     },
     hasScene: () => !workbench.sceneArea.hidden,
+    toggleSideBar: () => workbench.layout.toggleSideBar(),
+    togglePanel: () => terminal.toggle(),
+    toggleMaximizedPanel: () => workbench.layout.togglePanelMaximized(),
+    hasPanel: () => terminal.visible,
+    toggleZenMode: () => workbench.layout.toggleZen(),
+    resetLayout: () => workbench.layout.reset(),
 });
 api.commands.onCommand((command: IdeCommand) => {
     registry.execute(command);

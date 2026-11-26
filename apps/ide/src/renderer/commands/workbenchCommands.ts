@@ -33,6 +33,12 @@ export interface WorkbenchCommandTargets {
     setUpPython(): void;
     closeScene(): void;
     hasScene(): boolean;
+    toggleSideBar(): void;
+    togglePanel(): void;
+    toggleMaximizedPanel(): void;
+    hasPanel(): boolean;
+    toggleZenMode(): void;
+    resetLayout(): void;
 }
 
 /** The menu's accelerators, by command ID: the single place both sides are checked against. */
@@ -48,6 +54,8 @@ export const MENU_KEYBINDINGS: Readonly<Record<string, string>> = {
     'editor.close': 'CmdOrCtrl+W',
     'terminal.toggle': 'Ctrl+`',
     'terminal.new': 'Ctrl+Shift+`',
+    'view.toggleSideBar': 'CmdOrCtrl+B',
+    'view.togglePanel': 'CmdOrCtrl+J',
 };
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
@@ -74,6 +82,11 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },
         { id: 'view.showExplorer', category: 'View', title: 'Show Explorer', keybinding: 'CmdOrCtrl+Shift+E', run: () => targets.showView('explorer') },
         { id: 'search.show', category: 'View', title: 'Search in Files', keybinding: 'CmdOrCtrl+Shift+F', enabled: targets.hasFolder, run: targets.showSearch },
+        { id: 'view.toggleSideBar', category: 'View', title: 'Toggle Side Bar Visibility', ...menu('view.toggleSideBar'), run: targets.toggleSideBar },
+        { id: 'view.togglePanel', category: 'View', title: 'Toggle Panel Visibility', ...menu('view.togglePanel'), run: targets.togglePanel },
+        { id: 'view.toggleMaximizedPanel', category: 'View', title: 'Toggle Maximized Panel', enabled: targets.hasPanel, run: targets.toggleMaximizedPanel },
+        { id: 'view.toggleZenMode', category: 'View', title: 'Toggle Zen Mode', keybinding: 'CmdOrCtrl+K Z', run: targets.toggleZenMode },
+        { id: 'view.resetLayout', category: 'View', title: 'Reset Layout', run: targets.resetLayout },
         { id: 'view.showAnalysis', category: 'View', title: 'Show Analysis', run: () => targets.showView('analysis') },
         { id: 'view.showXrScene', category: 'View', title: 'Show XR Scene', run: () => targets.showView('xr') },
         { id: 'codexr.analyseProjectXrDeep', category: 'Code-XR', title: 'Analyse Project in XR (Deep)', enabled: targets.canAnalyse, run: targets.analyseProject },

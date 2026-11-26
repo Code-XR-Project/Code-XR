@@ -1,5 +1,6 @@
 import type { AppInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
+import { createLayout, type LayoutStorage, type WorkbenchLayout } from './layout/layout.ts';
 
 /**
  * The workbench shell: activity bar, side bar, editor area and status bar.
@@ -50,9 +51,11 @@ export interface Workbench {
     readonly panel: HTMLElement;
     /** The status bar's slot for the active editor's items (#166, editor/editorStatus.ts). */
     readonly editorStatus: HTMLElement;
+    /** Sizes and visibility of the side bar, panel and scene column (#169, layout/layout.ts). */
+    readonly layout: WorkbenchLayout;
 }
 
-export function renderWorkbench(root: HTMLElement): Workbench {
+export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null = null): Workbench {
     const buttons = new Map<ViewId, HTMLButtonElement>();
     const activityBar = el('nav', { className: 'activity-bar', attrs: { 'aria-label': 'Views' } },
         ACTIVITY.map((item, index) => {
@@ -60,7 +63,14 @@ export function renderWorkbench(root: HTMLElement): Workbench {
                 className: index === 0 ? 'activity-item is-active' : 'activity-item',
                 attrs: { type: 'button', title: item.label, 'aria-label': item.label, 'aria-pressed': String(index === 0), 'data-view': item.id },
             }, [icon(item.icon)]);
-            button.addEventListener('click', () => showView(item.id as ViewId));
+            // #169: clicking the active view's item hides the side bar, as in VS Code; any click shows it again.
+            button.addEventListener('click', () => {
+                if (button.classList.contains('is-active') && layout.sideBarVisible && !layout.zen) {
+                    layout.setSideBarVisible(false);
+                } else {
+                    showView(item.id as ViewId);
+                }
+            });
             buttons.set(item.id as ViewId, button);
             return button;
         }));
@@ -75,7 +85,10 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView]]);
     const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView]);
 
-    function showView(id: ViewId): void {
+    function showView(id: ViewId, reveal = true): void {
+        if (reveal && (!layout.sideBarVisible || layout.zen)) {
+            layout.setSideBarVisible(true);
+        }
         for (const [viewId, pane] of panes) {
             pane.hidden = viewId !== id;
             const button = buttons.get(viewId);
@@ -84,7 +97,6 @@ export function renderWorkbench(root: HTMLElement): Workbench {
         }
         sideBarFrame.setAttribute('aria-label', ACTIVITY.find((item) => item.id === id)?.label ?? id);
     }
-    showView('explorer');
 
     const infoList = el('dl', { className: 'info-list' });
     const status = el('p', { className: 'muted', text: 'Connecting to the main process…' });
@@ -116,12 +128,14 @@ export function renderWorkbench(root: HTMLElement): Workbench {
 
     const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, panel, sceneArea, statusBar]);
     root.replaceChildren(shell);
+    const layout = createLayout({ shell, sideBar: sideBarFrame, panel, sceneArea }, storage);
+    showView('explorer', false);
 
     return {
         sideBar,
         searchView,
         analysisView,
-        showView,
+        showView: (id: ViewId) => showView(id),
         setPythonStatus(text: string, tooltip: string, state: string): void {
             pythonItem.hidden = false;
             pythonItem.textContent = text;
@@ -136,6 +150,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
         },
         panel,
         editorStatus,
+        layout,
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },
