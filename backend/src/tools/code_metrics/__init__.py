@@ -15,6 +15,7 @@ from code_metrics.end_parser import parse_end
 from code_metrics.erlang_parser import parse_erlang
 from code_metrics.fortran_parser import parse_fortran
 from code_metrics.indent_parser import parse_indent
+from code_metrics.shell_parser import parse_shell
 from code_metrics.languages import EXTENSION_LANGUAGE, FIXED_FORM_EXTENSIONS, LANGUAGES, Language
 from code_metrics.lexer import Lexer
 from code_metrics.model import Function
@@ -26,6 +27,7 @@ PARSERS = {
     'lua': parse_end,
     'fortran': parse_fortran,
     'erlang': parse_erlang,
+    'shell': parse_shell,
 }
 
 

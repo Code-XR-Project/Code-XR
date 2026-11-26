@@ -146,6 +146,34 @@ _ERLANG = {
     'maybe', 'else',
 }
 
+_RUST = {
+    'as', 'async', 'await', 'break', 'const', 'continue', 'crate', 'dyn', 'else', 'enum', 'extern', 'fn', 'for',
+    'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self',
+    'static', 'struct', 'super', 'trait', 'type', 'unsafe', 'use', 'where', 'while', 'union',
+}
+_DART = {
+    'abstract', 'as', 'assert', 'async', 'await', 'base', 'break', 'case', 'catch', 'class', 'const', 'continue',
+    'covariant', 'default', 'deferred', 'do', 'dynamic', 'else', 'enum', 'export', 'extends', 'extension',
+    'external', 'factory', 'final', 'finally', 'for', 'get', 'hide', 'if', 'implements', 'import', 'in',
+    'interface', 'is', 'late', 'library', 'mixin', 'new', 'on', 'operator', 'part', 'required', 'rethrow',
+    'return', 'sealed', 'set', 'show', 'static', 'super', 'switch', 'sync', 'this', 'throw', 'try', 'typedef',
+    'var', 'void', 'when', 'while', 'with', 'yield',
+}
+_SHELL = {
+    'if', 'then', 'else', 'elif', 'fi', 'case', 'esac', 'for', 'select', 'while', 'until', 'do', 'done', 'in',
+    'function', 'time', 'return', 'break', 'continue', 'local', 'declare', 'typeset', 'readonly', 'export',
+    'unset', 'shift', 'exit', 'eval', 'exec', 'source', 'trap',
+}
+_POWERSHELL = {
+    'begin', 'break', 'catch', 'class', 'continue', 'data', 'define', 'do', 'dynamicparam', 'else', 'elseif',
+    'end', 'enum', 'exit', 'filter', 'finally', 'for', 'foreach', 'from', 'function', 'hidden', 'if', 'in',
+    'param', 'process', 'return', 'static', 'switch', 'throw', 'trap', 'try', 'until', 'using', 'var', 'while',
+    'workflow', 'parallel', 'sequence', 'inlinescript', 'clean',
+}
+_R = {
+    'if', 'else', 'repeat', 'while', 'function', 'for', 'in', 'next', 'break', 'return', 'switch',
+}
+
 RESERVED: dict[str, frozenset] = {
     'C': frozenset(_C), 'C++': frozenset(_CPP), 'Objective-C': frozenset(_OBJC), 'Java': frozenset(_JAVA),
     'C#': frozenset(_CSHARP), 'JavaScript': frozenset(_JS), 'TypeScript': frozenset(_TS), 'Go': frozenset(_GO),
@@ -153,6 +181,8 @@ RESERVED: dict[str, frozenset] = {
     'Solidity': frozenset(_SOLIDITY), 'PHP': frozenset(_PHP), 'Zig': frozenset(_ZIG), 'Perl': frozenset(_PERL),
     'TTCN-3': frozenset(_TTCN), 'Python': frozenset(_PYTHON), 'GDScript': frozenset(_GDSCRIPT),
     'Ruby': frozenset(_RUBY), 'Lua': frozenset(_LUA), 'Fortran': frozenset(_FORTRAN), 'Erlang': frozenset(_ERLANG),
+    'Rust': frozenset(_RUST), 'Dart': frozenset(_DART), 'Shell': frozenset(_SHELL),
+    'PowerShell': frozenset(_POWERSHELL), 'R': frozenset(_R),
 }
 
 

@@ -17,6 +17,10 @@ Per function: `name`, `longName`, `lineStart`, `lineEnd`, `lineCount`, `complexi
 (high > 10, critical > 25), the `status`/`unsupported` envelope, and the same language list and
 extensions as `metric_language_contract.py`. No key is added, removed or renamed.
 
+Epic #219 added fields, never changing an existing one: `cognitiveComplexity`, `halsteadVolume`,
+`halsteadDifficulty`, `halsteadEffort`, `halsteadBugs` and `maintainabilityIndex` per function
+(section 6), and five languages (section 7).
+
 ## 2. Definitions
 
 **Cyclomatic complexity (`complexity`).** McCabe's V(G) in the "decision points + 1" form, with
@@ -73,13 +77,16 @@ lambda belongs to the enclosing function. A TypeScript function *type* (`cb: (x:
 | Module | Role |
 |---|---|
 | `lexer.py` | One configurable tokenizer: comments (incl. nested, line-start `=begin`/POD, Fortran fixed form), strings (prefixes, raw, triple, template literals with `${}`), regex literals, Lua long brackets, PHP tags, C preprocessor lines. |
-| `languages.py` | The 23 contract languages: decision sets, operators, family, and per-language switches; extension → language map. |
+| `languages.py` | The 28 contract languages: decision sets, operators, family, and per-language switches; extension → language map. |
 | `common.py` | `is_decision`: the shared CCN rule (member access, default arms, ternary detection). |
-| `brace_parser.py` | C, C++, Objective-C, Java, C#, JavaScript, TypeScript, Go, Kotlin, Scala, Swift, Solidity, PHP, Zig, Perl, TTCN-3: block stack, per-paren-level statement headers, braceless bodies. |
+| `brace_parser.py` | C, C++, Objective-C, Java, C#, JavaScript, TypeScript, Go, Kotlin, Scala, Swift, Solidity, PHP, Zig, Perl, TTCN-3, Rust, Dart, PowerShell, R: block stack, per-paren-level statement headers, braceless bodies. |
 | `indent_parser.py` | Python, GDScript: logical lines and indentation blocks. |
 | `end_parser.py` | Ruby, Lua: keyword/`end` blocks with modifier detection. |
 | `fortran_parser.py` | Fortran free and fixed form: statements, units, labelled DO. |
 | `erlang_parser.py` | Erlang forms and clauses. |
+| `shell_parser.py` | Shell (Bash, POSIX sh): `if`/`fi`, `case`/`esac`, loops/`done`, keywords only at a command start (section 7). |
+| `cognitive.py` | Cognitive complexity from each function's tokens and their cognitive nesting level (section 6). |
+| `halstead.py`, `keywords.py` | Halstead counts (operators are each language's reserved words and punctuation) and the maintainability index. |
 
 Vue: the first `<script>` block is analyzed in place (other lines blanked, so line numbers are the
 file's), as TypeScript when `lang="ts"`/`"tsx"`.
@@ -138,3 +145,65 @@ wherever the function boundaries agree.
 The impact on Code-XR's numbers: CCN changes only where one of C1–C11 applies; nesting depth
 changes in most functions (it was wrong); line ranges, names and parameters change only for the
 broken cases above.
+
+## 6. The epic #219 metrics
+
+Computed per function from the tokens the function owns (the same tokens that give its NLOC and
+CCN), so every parser family and every language gets them with no rule of its own. File-level
+aggregates are in `xr_field_schema.summarize_function_metrics`.
+
+**Cognitive complexity (`cognitiveComplexity`).** SonarSource's metric (G. Ann Campbell, 2017):
+how hard the control flow is to *read*, where CCN counts how many paths there are to *test*.
+
+- +1 plus the current nesting level for `if` (and `unless`, `guard`, statement modifiers), the
+  conditional operator, `switch`/`match`/`select`/Kotlin `when`/Ruby, Shell and Erlang `case`/
+  `receive`/R `switch`, every loop (`do` and `repeat` counted once, at the keyword: the
+  `while`/`until` tail of a do-loop is not a second loop), and each handler (`catch`, `except`,
+  `rescue`, `trap`);
+- +1 flat for `else if`/`elif`/`elsif`/`elseif` and `else`;
+- +1 flat for each *sequence* of like boolean operators (`a && b && c` is +1, `a && b || c` is +2),
+  `goto`, and a labelled `break`/`continue` (Rust `break 'outer`).
+
+The nesting level counts enclosing `if`/`else`/loop/`switch`/`catch` bodies; `try`/`finally`
+bodies (Swift `do`, Ruby `begin`) do not nest. Never counted: `case` arms, default arms, `try`,
+`finally`, null-coalescing, negation.
+
+Deviations from the white paper, on purpose: lambdas and nested functions do not add nesting
+(in JavaScript/TypeScript and R they are separate functions; elsewhere they are part of the
+enclosing body); recursion is not counted (it needs call resolution, which a lexical analyzer
+does not have); a Ruby `case … else` counts the `else` (+1); a `rescue` clause of a `def`
+without `begin` is not nested; a Rust/Scala match guard `if` is structural.
+
+**Halstead (`halsteadVolume`, `halsteadDifficulty`, `halsteadEffort`, `halsteadBugs`).** Operands
+are identifiers that are not reserved words, plus number and string literals; operators are the
+language's reserved words (`keywords.py`) and operator/punctuation tokens. A bracket pair counts
+once, at the opener. With n1, n2 distinct and N1, N2 total operators and operands:
+V = (N1 + N2) · log2(n1 + n2), D = n1/2 · N2/n2, E = D · V, B = V / 3000. Every value is 0 rather
+than NaN on an empty function.
+
+**Maintainability index (`maintainabilityIndex`).** The normalised (Visual Studio) form, 0–100,
+higher is easier to maintain: MI = max(0, (171 − 5.2 ln V − 0.23 CCN − 16.2 ln NLOC) · 100/171),
+with V and NLOC floored at 1. Rounded to one decimal.
+
+Charts: all six fields are `numeric` in the XR schema, so they are offered on every numeric axis.
+A value of 0 (cognitive complexity of a function without control flow) is dropped from the axes
+that need a positive value (radius, size, area), like any other zero.
+
+## 7. The epic #219 languages
+
+The same definitions (section 2) apply; these are the per-language rules. No Lizard output is an
+oracle for them, so the differential corpus leaves them out (`POST_LIZARD_EXTENSIONS`) and their
+values are counted by hand in `backend/tests/new_languages/`.
+
+| Language | Extensions | Rules |
+|---|---|---|
+| Rust | `.rs` | `fn` items; methods named `Type::method` after their `impl` (the type after `for` in `impl Trait for Type`, generics skipped); `self`/`&self`/`&mut self` is a receiver, not a parameter. CCN: `if`, `while`, `for`, each non-default `match` arm (`_ =>` is the default), `&&`/`\|\|`, match guards. `loop` has no condition and is not a decision (but it is nesting and a cognitive loop). `?` is the try operator, never a ternary. `\|\|` opening a closure and `&&x` (a double reference) are not boolean operators. Lexer: `'a` lifetimes and loop labels, `r#"…"#` raw strings, nested block comments. |
+| Dart | `.dart` | C-style declarations, `=>` expression bodies, named constructors `Point.origin(`, getters and setters (`get value`, `set value`), nullable return types (`int? f(`); `async`/`sync*` after the parameter list. CCN as C plus `??`/`??=` and each non-default arm of a switch expression (`pattern =>`). `on T` handlers without `catch` are not counted. Lexer: `${…}` interpolation, raw `r'…'`, triple quotes, nested comments. |
+| Shell | `.sh`, `.bash` | `name() { }`, `name() ( )`, `function name [()] { }`. A keyword is a keyword only at a command start (`echo done` is a word). CCN: `if`, `elif`, `while`, `until`, `for`, `select`, `&&`/`\|\|`, each `case` pattern except `*)`. Parameters: a shell function declares none, so the count is the highest positional parameter it reads (`$1`, `${2}`, `"$3"`; `$@`/`$*` add none). Lexer: `#` starts a comment only at a word start (`$#`, `${#x}` are not comments), here-documents are data, `$(…)`/`${…}` inside strings, backslash escapes outside strings. No classes. |
+| PowerShell | `.ps1`, `.psm1` | `function`/`filter`/`workflow`; parameters from `(…)` or from the body's `param(…)` block; class methods and constructors named `Class::Method`. Keywords are case-insensitive, names keep their spelling (`Get-Thing`). CCN: `if`, `elseif`, `for`, `foreach`, `while`, `until` (also as the tail of `do`), `catch`, `trap`, `-and`/`-or`/`&&`/`\|\|`, `??`/`??=`, each non-default `switch` arm. No ternary (`?` is also the `Where-Object` alias). Lexer: `<# #>` comments, backtick escapes, `$(…)` in strings, `@" "@` here-strings, `-eq`-style operators, dashed command names as one word. |
+| R | `.r` (any case) | `name <- function(…)`, `name = function(…)`, `name <<- function(…)`, `` `%op%` <- function `` and `\(x)`; brace-less bodies (`function(x) x + 1`) end with their expression. Anonymous functions passed to a call are separate functions, `(anonymous)` (as in JavaScript). CCN: `if`, `for`, `while`, `&&`/`\|\|`, and each named alternative of `switch(x, a = …, b = …, default)` (`b = ,` falls through and is not one). The vectorised `&`/`\|` are not decisions. `repeat` is nesting and a cognitive loop, not a decision. Lexer: `r"(…)"` raw strings, backtick names, dotted identifiers (`is.na`). Classes: `setClass`, `setRefClass`, `R6Class`. |
+
+Comment lines for these five come from the same lexer (`python_comment_analyzer.analyze_lexer_comments`),
+so strings, raw strings, here-documents and `$#` are never mistaken for comments. Dependencies:
+Rust `use`, Dart `import`, shell/PowerShell dot-sourcing, PowerShell `Import-Module`/`using module`,
+R `library()`/`requireNamespace()`/`source()`.

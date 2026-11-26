@@ -27,7 +27,7 @@ The TS bridge is `src/core/analysis/python/executePython.ts`, which spawns the v
 backend/src/
 ├── main.py                 CLI entry; wires sys.path for subpackages
 ├── tools/                  analyzer wrappers
-│   ├── code_metrics_analyzer.py per-function metrics (CCN, NLOC, params, nesting), same JSON as the old Lizard wrapper
+│   ├── code_metrics_analyzer.py per-function metrics (CCN, NLOC, params, nesting, cognitive, Halstead, MI), same JSON as the old Lizard wrapper plus the epic #219 fields
 │   ├── code_metrics/            the analyzer itself: lexer + one parser per language family (spec: docs/lizard-replacement/SPEC.md)
 │   ├── class_counter_analyzer.py
 │   └── python_comment_analyzer.py
@@ -71,8 +71,8 @@ Python source is also pinned on **quote style and import order** by source-text 
 
 ## Languages and metrics
 
-- Metrics: cyclomatic complexity (CCN), LOC/comment lines, function/class counts, parameters, nesting depth — computed by Code-XR's own analyzer (`backend/src/tools/code_metrics/`, spec in `docs/lizard-replacement/SPEC.md`, differential tests against frozen Lizard output in `backend/tests/metrics_differential/`). Dependency relations via **tree-sitter-language-pack** (pinned; confidence levels exact/best-effort/unsupported/ambiguous — see `docs/features/DEPENDENCY_GRAPH_XR.md`).
-- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/core/analysis/languages/languageMetadata.ts` (TS side) + `backend/src/utils/metric_language_contract.py` (Python side: 23 languages, 48 extensions, plus HTML as DOM-only)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
+- Metrics: cyclomatic complexity (CCN), cognitive complexity, Halstead (volume, difficulty, effort, estimated bugs), maintainability index, LOC/comment lines, function/class counts, parameters, nesting depth — computed by Code-XR's own analyzer (`backend/src/tools/code_metrics/`, spec in `docs/lizard-replacement/SPEC.md`, differential tests against frozen Lizard output in `backend/tests/metrics_differential/`). Dependency relations via **tree-sitter-language-pack** (pinned; confidence levels exact/best-effort/unsupported/ambiguous — see `docs/features/DEPENDENCY_GRAPH_XR.md`).
+- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/core/analysis/languages/languageMetadata.ts` (TS side) + `backend/src/utils/metric_language_contract.py` (Python side: 28 languages, 55 extensions since epic #219 added Rust, Dart, Shell, PowerShell and R, plus HTML as DOM-only)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
 
 ## Testing the Python side
 

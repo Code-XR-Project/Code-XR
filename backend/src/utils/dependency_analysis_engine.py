@@ -60,6 +60,12 @@ IMPORT_PATTERNS = [
     ("import", re.compile(r'(?m)^\s*uses\s+([A-Za-z_][\w.]*)')),
     ("import", re.compile(r'(?m)^\s*friend\s+module\s+([A-Za-z_][\w.]*)')),
     ("import", re.compile(r'@import\s*\(\s*"([^"]+)"\s*\)')),
+    # Shell and PowerShell dot-sourcing (`source ./lib.sh`, `. ./lib.ps1`), PowerShell modules,
+    # R packages and scripts (epic #219).
+    ("include", re.compile(r'(?m)^[ \t]*(?:source|\.)[ \t]+["\']?([\w./\\$-]+?\.(?:sh|bash|ps1|psm1))\b')),
+    ("import", re.compile(r'(?mi)^[ \t]*(?:Import-Module|using[ \t]+module)[ \t]+["\']?([\w.\\/-]+)')),
+    ("import", re.compile(r'(?m)\b(?:library|requireNamespace)\s*\(\s*["\']?([A-Za-z][\w.]*)')),
+    ("include", re.compile(r'(?m)\bsource\s*\(\s*["\']([^"\']+\.[Rr])["\']')),
 ]
 
 # A generic parameter list (up to three levels of nesting) right after the type name.
@@ -107,6 +113,7 @@ CALL_KEYWORDS = {
     "this", "super", "self", "constructor", "async", "await", "yield", "elif",
     "else", "and", "or", "not", "in", "is", "with", "assert", "lambda", "except",
     "instanceof", "void", "delete", "throw", "raise", "foreach", "until", "unless",
+    "library", "source", "requireNamespace",
 }
 # `def f(`, `function f(`, `fn f(`... are definitions, not calls.
 DEFINITION_PREFIX = re.compile(r'\b(?:def|function|func|fn|fun|sub|proc|method)\s+$')

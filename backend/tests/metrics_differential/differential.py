@@ -50,6 +50,17 @@ WHITESPACE_INSENSITIVE = ('longName',)
 PRESENCE = 'presence'
 
 
+# Languages added after Lizard was replaced (epic #219): no frozen Lizard output can
+# be their oracle, so the differential corpus leaves them out. Their reference
+# values are counted by hand in tests/new_metrics and tests/new_languages.
+POST_LIZARD_EXTENSIONS = frozenset({'.rs', '.dart', '.sh', '.bash', '.ps1', '.psm1', '.r'})
+
+
+def oracle_extensions(supported_extensions: Iterable[str]) -> list[str]:
+    """The contract extensions the Lizard golden describes."""
+    return [extension for extension in supported_extensions if extension.lower() not in POST_LIZARD_EXTENSIONS]
+
+
 def corpus_files(supported_extensions: Iterable[str]) -> list[str]:
     """Every corpus file with a metric-contract extension, as a backend-relative POSIX path."""
     wanted = {extension.lower() for extension in supported_extensions}

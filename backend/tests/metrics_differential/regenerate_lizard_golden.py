@@ -41,7 +41,7 @@ def main() -> None:
         raise SystemExit(f'lizard {lizard_version} installed, {expected} pinned: install the pinned one')
 
     files = {}
-    for relative in differential.corpus_files(get_supported_metric_extensions()):
+    for relative in differential.corpus_files(differential.oracle_extensions(get_supported_metric_extensions())):
         files[relative] = differential.normalize(analyze_file(str(BACKEND_ROOT / relative)))
 
     document = {'lizardVersion': lizard_version, 'files': files}

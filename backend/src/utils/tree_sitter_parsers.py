@@ -23,7 +23,7 @@ CACHE_DIR_NAME = "codexr-tree-sitter"
 _GRAMMAR_ALIASES = {
     "C++": "cpp", "C#": "csharp", "Objective-C": "objc",
     "JavaScript": "javascript", "TypeScript": "typescript",
-    "TTCN-3": "ttcn", "GDScript": "gdscript",
+    "TTCN-3": "ttcn", "GDScript": "gdscript", "Shell": "bash",
 }
 
 _configured_for: str | None = None

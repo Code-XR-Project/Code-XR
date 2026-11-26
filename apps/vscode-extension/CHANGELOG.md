@@ -4,7 +4,18 @@
 
 ### CodeXR 1.2.1: Internal Code Quality
 
-**This release adds no features.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way. What changed is on the inside: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. The one thing you may notice is in the numbers: CodeXR now computes code metrics with its own analyzer instead of Lizard, so some complexity, nesting-depth and function values are now correct where they used to be wrong (see *Changed* and *Fixed*).
+**Mostly a release about the inside.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. CodeXR now computes code metrics with its own analyzer instead of Lizard, so some complexity, nesting-depth and function values are now correct where they used to be wrong (see *Changed* and *Fixed*). That analyzer made two additions possible: three new metrics and five new languages (see *Added*).
+
+#### Added
+
+- **Three new code metrics, for every function in every language.** They appear in the LivePanel tables and cards, in the chart control panel of the XR scene (on any numeric axis, like the existing metrics) and in the IDE. All existing fields are unchanged; the new ones are added next to them, so older exports keep loading.
+  - **Cognitive complexity** (`cognitiveComplexity`): how hard a function's control flow is to *read*. Cyclomatic complexity counts the paths you need to test; cognitive complexity charges more for each `if`, loop or `catch` the deeper it is nested, and charges once for a chain of `&&`/`||`. Two functions with the same cyclomatic complexity can differ a lot here: the one with deep nesting is the harder one to understand. It follows SonarSource's definition (G. Ann Campbell, 2017).
+  - **Halstead metrics** (`halsteadVolume`, `halsteadDifficulty`, `halsteadEffort`, `halsteadBugs`): the size and density of a function measured by its vocabulary of operators and operands. Volume is how much information the code carries, difficulty how error-prone it is to write or read, effort the product of both, and *estimated bugs* (volume / 3000) a rough count of defects to expect.
+  - **Maintainability index** (`maintainabilityIndex`, 0-100): one score that combines Halstead volume, cyclomatic complexity and lines of code, the formula Visual Studio uses. Higher is easier to maintain; below about 20 a function is hard to maintain, 20-50 moderate, above 50 good.
+  - Directory analyses get the per-file summaries: average and maximum cognitive complexity, average and minimum maintainability index, total Halstead volume and total estimated bugs.
+  - A function without any control flow has a cognitive complexity of 0, so it does not appear on chart axes that need a positive value (pie size, cylinder radius, building area), exactly like a function with 0 parameters today.
+- **Five new languages: Rust, Dart, Shell (Bash), PowerShell and R.** Files ending in `.rs`, `.dart`, `.sh`, `.bash`, `.ps1`, `.psm1` and `.r` are listed in Files by Language and analyzed like any other language: functions, lines, cyclomatic and cognitive complexity, parameters, nesting depth, Halstead, maintainability index, comment lines, classes (where the language has them) and dependencies in the dependency graph. The rules for each language (for example, a shell function's parameters are the positional arguments it reads, and an R `switch()` counts one decision per alternative) are in `docs/lizard-replacement/SPEC.md` of the source repository.
+- **The chart control panel never offers a text field on a numeric axis.** A chart whose numeric axis has no numeric field to show is left out of the panel instead of being drawn with text values.
 
 #### Internal improvements
 

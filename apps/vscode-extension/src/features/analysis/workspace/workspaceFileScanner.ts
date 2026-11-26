@@ -150,6 +150,7 @@ export class WorkspaceFileScanner {
             'TTCN-3': 'ttcn3.svg',
             'Vue': 'vuejs.svg',
             'Zig': 'zig.svg',
+            'Rust': 'rust.svg',
             'HTML': 'html5.svg',
             'GDScript': 'godot.svg',
         };

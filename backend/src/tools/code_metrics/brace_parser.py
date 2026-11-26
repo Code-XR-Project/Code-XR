@@ -72,11 +72,11 @@ NOT_A_NAME = frozenset({
 })
 TRAILER_STARTS = frozenset({
     'const', 'noexcept', 'override', 'final', 'throws', '->', ':', 'where', 'volatile', '&', '&&', 'mutable',
-    'constexpr', 'try', 'throw', 'requires', 'return', 'runs', 'system', 'mtc',
+    'constexpr', 'try', 'throw', 'requires', 'return', 'runs', 'system', 'mtc', 'async', 'sync',
 })
 DECLARATION_BLOCKERS = frozenset({'=', '.', 'return', 'new', ',', '->', '?', ':', '!', '+', '-', '==',
                                   'throw', 'await', 'yield', 'else', 'case', '(', '&&', '||', '?.'})
-NEWLINE_TERMINATED = frozenset({'Go', 'Kotlin', 'Scala', 'Swift'})
+NEWLINE_TERMINATED = frozenset({'Go', 'Kotlin', 'Scala', 'Swift', 'PowerShell', 'R'})
 ACCESS_LABELS = frozenset({'public', 'private', 'protected', 'internal', 'signals', 'slots', 'default'})
 
 
@@ -89,6 +89,7 @@ class BraceParser:
         self.pending: Pending | None = None
         self.virtuals: list[Virtual] = []
         self.package = ''
+        self._last_closed_keyword = ''
 
     # -- helpers -------------------------------------------------------
     @property
@@ -107,6 +108,10 @@ class BraceParser:
         if isinstance(index, Group):
             return '()' if self.t[index.open].text == '(' else '[]'
         return self.t[index].text if 0 <= index < len(self.t) else ''
+
+    def source(self, index: int) -> str:
+        """Spelling as written: PowerShell keywords are case-folded, names keep their case."""
+        return self.t[index].source
 
     def kind(self, index) -> str:
         return 'group' if isinstance(index, Group) else self.t[index].kind
@@ -158,7 +163,7 @@ class BraceParser:
                 if is_decision(self.lang, tokens, index):
                     func.complexity += 1
                 if (text in self.block.arm_separators and self.level == 0
-                        and self.text(index - 1) not in ('else', 'default', '_')):
+                        and self.text(index - 1) not in ('else', 'default', '_', '}')):
                     func.complexity += 1
 
             if token.kind == 'op':
@@ -184,7 +189,7 @@ class BraceParser:
                     self._close_expression_function()
                     self.header.append(index)
                     continue
-                if text == ':' and self.block.kind == 'exprfunc' and self.level == 0 \
+                if text == ':' and self.block.kind == 'exprfunc' and self.level == 0 and self.lang.ternary \
                         and self.lang.separate_closures and self._ternary_balance(self.header) <= 0:
                     self._close_expression_function()      # `c ? (x) => x : other`: the arrow ended
                     self.header.append(index)
@@ -213,7 +218,9 @@ class BraceParser:
             self.header.append(index)
 
         while len(self.blocks) > 1:
-            self.blocks.pop()
+            closed = self.blocks.pop()
+            if closed.func is not None:
+                self._finish_function(closed.func)
         return sorted(self.functions, key=lambda f: (f.start_line, f.name))
 
     def _ternary_balance(self, items: list) -> int:
@@ -248,11 +255,27 @@ class BraceParser:
         if text == 'switch' and lang.name == 'C#' and self.text(index + 1) == '{':
             self.pending = Pending('switch-expr', len(self.blocks) - 1, self.level, True)
             return                         # `value switch { pattern => result, ... }`
+        if text in ('while', 'until') and lang.brace_required and self.text(index - 1) == '}' \
+                and self._closed_block_was_do():
+            return                         # `do { } while (c)`: the tail of a loop already open
+        if text == 'if' and lang.name == 'Rust' and self.block.kind == 'arms' and self.level == 0:
+            arm = list(self.header)
+            commas = [pos for pos, i in enumerate(arm) if not isinstance(i, Group) and self.text(i) == ',']
+            if commas:
+                arm = arm[commas[-1] + 1:]
+            if not any(not isinstance(i, Group) and self.text(i) == '=>' for i in arm):
+                return                     # `Some(x) if x > 0 =>`: a match guard, not an if expression
+        if text == 'for' and lang.name == 'Rust' and any(
+                not isinstance(i, Group) and self.text(i) == 'impl' for i in self.header):
+            return                         # `impl Trait for Type {`
         if text == 'match' and lang.name == 'Scala':
             self.pending = Pending('match', len(self.blocks) - 1, self.level, True)
             return
         ready = text not in lang.cond_keywords
         self.pending = Pending(text, len(self.blocks) - 1, self.level, ready)
+
+    def _closed_block_was_do(self) -> bool:
+        return self._last_closed_keyword == 'do'
 
     def _pending_here(self) -> bool:
         pending = self.pending
@@ -336,6 +359,15 @@ class BraceParser:
         self.block.headers.pop()
         open_index = self.block.opens.pop()
         self.header.append(Group(open_index, index))
+        if (self.lang.braceless_functions and self.text(open_index) == '('
+                and self.text(open_index - 1) in self.lang.function_keywords and self.text(index + 1) != '{'):
+            result = self._keyword_function(self._statement_items())
+            if result is not None and result[0] == 'func':
+                new, start_index = result[1]
+                if self.level == 0:
+                    self.header.clear()
+                self._start_function(new, start_index, index, kind='exprfunc')
+                return
         if (self._pending_here() and not self.pending.ready and not self.lang.brace_required
                 and self.text(open_index) == '('):
             self.pending.ready = True
@@ -363,7 +395,7 @@ class BraceParser:
             self.pending = None
             kind = 'arms' if pending.keyword in self.lang.arm_keywords else 'ctrl'
             nests = pending.keyword not in self.lang.try_keywords
-            block = Block(kind, depth + 1, cdepth=cdepth + (1 if nests else 0))
+            block = Block(kind, depth + 1, cdepth=cdepth + (1 if nests else 0), name=pending.keyword)
             if kind == 'arms':
                 block.arm_separators = self.lang.arm_separators
             if self.level == 0:
@@ -408,7 +440,10 @@ class BraceParser:
             return
         top = len(self.blocks) - 1
         self.virtuals = [v for v in self.virtuals if v.block_index < top]
-        self.blocks.pop()
+        closed = self.blocks.pop()
+        self._last_closed_keyword = closed.name if closed.kind == 'ctrl' else ''
+        if closed.func is not None:
+            self._finish_function(closed.func)
         if self.level == 0:
             self.header.clear()
         self._close_virtuals()
@@ -442,7 +477,57 @@ class BraceParser:
         return True
 
     def _close_expression_function(self) -> None:
-        self.blocks.pop()
+        closed = self.blocks.pop()
+        if closed.func is not None:
+            self._finish_function(closed.func)
+
+    def _finish_function(self, func: Function) -> None:
+        """Per-language extras once a function's tokens are all known."""
+        if self.lang.name == 'PowerShell' and func.parameter_count == 0:
+            func.parameter_count = self._powershell_param_block(func)
+        elif self.lang.name == 'R':
+            func.complexity += self._r_switch_arms(func)
+
+    def _powershell_param_block(self, func: Function) -> int:
+        """`function f { param([int]$a, $b) ... }`: the parameters live in the body's `param(...)`."""
+        tokens = [token for token, _ in func.tokens]
+        for pos, token in enumerate(tokens[:-1]):
+            if token.text == 'param' and tokens[pos + 1].text == '(':
+                inner, depth = [], 0
+                for later in tokens[pos + 1:]:
+                    if later.kind == 'op' and later.text in '([{':
+                        depth += 1
+                        if depth == 1:
+                            continue
+                    elif later.kind == 'op' and later.text in ')]}':
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    inner.append(later)
+                return len(split_params(inner))
+            if token.text == '{' and pos > 2:
+                break                      # `param` must open the body
+        return 0
+
+    def _r_switch_arms(self, func: Function) -> int:
+        """R's `switch(x, a = ..., b = ..., default)`: each named alternative is one decision."""
+        tokens = [token for token, _ in func.tokens]
+        arms = 0
+        for pos, token in enumerate(tokens[:-1]):
+            if token.text != 'switch' or tokens[pos + 1].text != '(':
+                continue
+            depth = 0
+            for later_pos in range(pos + 1, len(tokens)):
+                later = tokens[later_pos]
+                if later.kind == 'op' and later.text in '([{':
+                    depth += 1
+                elif later.kind == 'op' and later.text in ')]}':
+                    depth -= 1
+                    if depth == 0:
+                        break
+                elif depth == 1 and later.text == '=' and tokens[later_pos + 1].text not in (',', ')'):
+                    arms += 1              # `a = value`; `a = ,` falls through to the next arm
+        return arms
 
     # -- header classification ----------------------------------------------
     def _classify(self, items: list, brace_index: int, expression: bool = False):
@@ -464,6 +549,16 @@ class BraceParser:
                 if not isinstance(item, Group) and self.text(item) in ('-', '+') and (
                         pos == 0 or self.t[item].line > self._last_line(items[pos - 1])):
                     return self._objc_method(items[pos:])
+
+        if lang.name == 'PowerShell' and self.block.kind == 'scope' and not expression:
+            result = self._powershell_method(items)
+            if result is not None:
+                return result
+
+        if lang.name == 'Dart':
+            result = self._dart_getter(items)
+            if result is not None:
+                return result
 
         if lang.function_keywords:
             result = self._keyword_function(items)
@@ -501,6 +596,8 @@ class BraceParser:
                 continue
             if lang.name == 'Kotlin' and word == 'enum':
                 continue
+            if lang.name == 'Rust' and word == 'impl':
+                return ('scope', self._rust_impl_name(items[pos + 1:]))
             name = ''
             name_pos = None
             for later_pos in range(pos + 1, len(items)):
@@ -508,7 +605,7 @@ class BraceParser:
                 if isinstance(later, Group):
                     break
                 if self.t[later].kind == 'id':
-                    name = self.t[later].text
+                    name = self.source(later)
                     name_pos = later_pos
                     break
             if lang.declaration_functions and name_pos is not None:
@@ -525,6 +622,28 @@ class BraceParser:
             return ('scope', '(anonymous)')     # anonymous class: Lizard names its methods `(anonymous)::m`
         return None
 
+    def _rust_impl_name(self, items: list) -> str:
+        """`impl<T> Trait for Type<T>` -> 'Type'; `impl Type` -> 'Type'; paths keep their last segment."""
+        words = [i for i in items if not isinstance(i, Group)]
+        texts = [self.text(i) for i in words]
+        if 'for' in texts:
+            words = words[texts.index('for') + 1:]
+        name, angle = '', 0
+        for item in words:
+            t = self.text(item)
+            if t in ('<', '>', '>>'):
+                angle += {'<': 1, '>': -1, '>>': -2}[t]
+                if angle <= 0 and name:
+                    break
+                continue
+            if angle > 0:
+                continue
+            if t == 'where':
+                break
+            if self.t[item].kind == 'id' and t not in ('dyn', 'mut', 'unsafe'):
+                name = t
+        return name
+
     def _qualified(self, name: str) -> str:
         if not self.lang.qualify:
             return name
@@ -539,6 +658,8 @@ class BraceParser:
         if group is not None:
             inner = self.inner(group)
             func.params = split_params(inner, ignore=('*', '/'))
+            if self.lang.ignored_params:
+                func.params = [p for p in func.params if not self._is_receiver(p)]
             long = name
             if self.lang.name == 'C#':      # Lizard: `A::m` as the name, `Ns::A::m(...)` as the long name
                 namespaces = [b.name[4:] for b in self.blocks if b.kind == 'scope' and b.name.startswith('#ns:')]
@@ -551,6 +672,20 @@ class BraceParser:
             if self.lang.paramless_functions:
                 func.parameter_count = 0
         return ('func', (func, start_index))
+
+    def _is_receiver(self, param: list[Token]) -> bool:
+        """Rust `self`, `&self`, `&'a mut self`, `mut self`, `self: Box<Self>`."""
+        words, skip = [], False
+        for token in param:
+            if skip:
+                skip = False
+                continue
+            if token.text == "'":
+                skip = True                # a lifetime: `'a`
+                continue
+            if token.text not in ('&', 'mut'):
+                words.append(token.text)
+        return bool(words) and words[0] in self.lang.ignored_params
 
     def _keyword_function(self, items: list):
         lang = self.lang
@@ -587,8 +722,8 @@ class BraceParser:
                 if t == '<':
                     angle += 1
                     continue
-                if t == '>':
-                    angle = max(angle - 1, 0)
+                if t in ('>', '>>'):
+                    angle = max(angle - len(t), 0)
                     continue
                 if angle:
                     continue
@@ -599,8 +734,9 @@ class BraceParser:
                     continue
                 break
             idents = [i for i in name_parts if self.t[i].kind == 'id']
-            if lang.name in ('Kotlin', 'Swift', 'Scala', 'Zig', 'Go', 'Solidity', 'TTCN-3', 'PHP') and idents:
-                name = self.text(idents[-1])
+            if lang.name in ('Kotlin', 'Swift', 'Scala', 'Zig', 'Go', 'Solidity', 'TTCN-3', 'PHP', 'Rust',
+                             'PowerShell') and idents:
+                name = self.source(idents[-1])
             elif idents:
                 name = ''.join(self.text(i) for i in name_parts)
             else:
@@ -627,7 +763,8 @@ class BraceParser:
         items = list(items)
         while items and not isinstance(items[-1], Group) and self.text(items[-1]) in ('async', 'export', 'default'):
             items.pop()
-        if len(items) >= 2 and not isinstance(items[-1], Group) and self.text(items[-1]) in ('=', ':', ':='):
+        if len(items) >= 2 and not isinstance(items[-1], Group) and self.text(items[-1]) in ('=', ':', ':=', '<-',
+                                                                                              '<<-'):
             target = items[-2]
             if self.text(items[-1]) == ':' and any(
                     not isinstance(i, Group) and self.text(i) == '?' for i in items[:-3]):
@@ -641,6 +778,8 @@ class BraceParser:
                         break
             if not isinstance(target, Group) and self.t[target].kind == 'id':
                 return self.text(target)
+            if self.lang.name == 'R' and not isinstance(target, Group) and self.text(target).startswith('`'):
+                return self.text(target).strip('`')     # `` `%+%` <- function(a, b) ``
         return ''
 
     def _arrow(self, items: list):
@@ -738,6 +877,51 @@ class BraceParser:
         func.long_name = f'{name}({join_tokens(inner)})'
         return ('func', (func, start))
 
+    def _dart_getter(self, items: list):
+        """Dart accessors, named like JavaScript's: `int get value {` / `get value =>` -> 'get value'
+        (no parameter list), `set value(int v) {` -> 'set value'."""
+        group = items[-1] if items and isinstance(items[-1], Group) and self.text(items[-1]) == '()' else None
+        head = items[:-1] if group is not None else items
+        if len(head) < 2 or any(isinstance(i, Group) for i in head[-2:]) or self.t[head[-1]].kind != 'id':
+            return None
+        keyword = self.text(head[-2])
+        if keyword not in ('get', 'set') or (keyword == 'get') != (group is None):
+            return None
+        if any(not isinstance(i, Group) and self.text(i) in ('=', 'return', '.') for i in head[:-2]):
+            return None
+        name = self._qualified(f'{keyword} {self.text(head[-1])}')
+        func = Function(name, self.t[head[-1]].line)
+        if group is None:
+            func.parameter_count = 0
+            func.long_name = name
+        else:
+            inner = self.inner(group)
+            func.params = split_params(inner)
+            func.long_name = f'{name}({join_tokens(inner)})'
+        return ('func', (func, head[-2]))
+
+    def _powershell_method(self, items: list):
+        """PowerShell class member `[int] Add([int] $a) {` or constructor `Point() {`."""
+        if not items or not isinstance(items[-1], Group) or self.text(items[-1]) != '()':
+            return None
+        if len(items) < 2 or isinstance(items[-2], Group) or self.t[items[-2]].kind != 'id':
+            return None
+        name_index = items[-2]
+        name = self._qualified(self.source(name_index))
+        func = Function(name, self.t[name_index].line)
+        inner = self.inner(items[-1])
+        func.params = split_params(inner)
+        func.long_name = f'{name}({join_tokens(inner)})'
+        start = name_index
+        for pos in range(len(items) - 2, -1, -1):
+            if self.t[self._first(items[pos])].line != self.t[name_index].line:
+                break
+            start = self._first(items[pos])
+        return ('func', (func, start))
+
+    def _first(self, item) -> int:
+        return item.open if isinstance(item, Group) else item
+
     def _skip_generics(self, items: list, k: int) -> int:
         if k < 0 or isinstance(items[k], Group) or self.text(items[k]) not in ('>', '>>'):
             return k
@@ -774,7 +958,8 @@ class BraceParser:
             if name_token.kind != 'id' or name_token.text in NOT_A_NAME:
                 continue
             start = k
-            while start >= 2 and not isinstance(items[start - 1], Group) and self.text(items[start - 1]) == '::' \
+            joiners = ('::', '.') if self.lang.name == 'Dart' else ('::',)     # Dart `Point.origin(` constructors
+            while start >= 2 and not isinstance(items[start - 1], Group) and self.text(items[start - 1]) in joiners \
                     and not isinstance(items[start - 2], Group) and self.t[items[start - 2]].kind == 'id':
                 start -= 2
             if start >= 1 and not isinstance(items[start - 1], Group) and self.text(items[start - 1]) == '~':
@@ -784,7 +969,8 @@ class BraceParser:
                 prev = before[-1]
                 if isinstance(prev, Group) and self.text(prev) == '()':
                     continue
-                if not isinstance(prev, Group):
+                nullable = self.lang.name == 'Dart' and self.text(prev) == '?'     # `int? f(`
+                if not isinstance(prev, Group) and not nullable:
                     if self.text(prev) in DECLARATION_BLOCKERS:
                         continue
                     if self.t[prev].kind != 'id' and self.text(prev) not in ('*', '&', '>', '>>', '**', '&&', ']',

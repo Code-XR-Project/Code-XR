@@ -40,6 +40,22 @@ def is_ternary(tokens: list[Token], index: int) -> bool:
     return False
 
 
+_NOT_OPERANDS = frozenset({'move', 'return', 'in', 'else', 'break', 'yield', 'mut', 'match', 'if', 'while'})
+
+
+def is_binary_position(tokens: list[Token], index: int) -> bool:
+    """An operator at index follows an operand. Rust's `||` opening a closure and `&&x`, a reference to a
+    reference, follow an operator or a keyword instead."""
+    if index == 0:
+        return False
+    prev = tokens[index - 1]
+    if prev.kind in ('num', 'str'):
+        return True
+    if prev.kind == 'id':
+        return prev.text not in _NOT_OPERANDS
+    return prev.text in (')', ']', '}', '?')
+
+
 def is_decision(lang: Language, tokens: list[Token], index: int) -> bool:
     token = tokens[index]
     text = token.text
@@ -63,6 +79,8 @@ def is_decision(lang: Language, tokens: list[Token], index: int) -> bool:
             return True
         return False
     if token.kind == 'op':
+        if text in lang.bool_ops and lang.prefix_bool_ops and not is_binary_position(tokens, index):
+            return False
         if text in lang.bool_ops or text in lang.coalesce_ops:
             return True
         if text == '?' and lang.ternary:

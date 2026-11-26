@@ -23,7 +23,7 @@ deviations from the white paper in docs/lizard-replacement/SPEC.md.
 
 from __future__ import annotations
 
-from code_metrics.common import is_ternary
+from code_metrics.common import is_binary_position, is_ternary
 from code_metrics.languages import Language
 from code_metrics.lexer import Token
 
@@ -98,7 +98,7 @@ def _structural(lang: Language, tokens: list[Token], index: int) -> bool:
             return False                       # `repeat ... until c`: counted at `repeat`
         if text == 'while' and family == 'fortran' and prev == 'do':
             return False                       # `do while (c)`: counted at `do`
-        if text == 'while' and family == 'brace' and _is_do_while_tail(tokens, index):
+        if text in ('while', 'until') and family == 'brace' and _is_do_while_tail(tokens, index):
             return False
         if text == 'for' and family == 'erlang':
             return False
@@ -138,6 +138,8 @@ def _flat(lang: Language, tokens: list[Token], index: int) -> bool:
         return True
     if text in ('break', 'continue') and lang.family == 'brace':
         label = tokens[index + 1] if index + 1 < len(tokens) else None
+        if label is not None and label.text == "'" and lang.name == 'Rust':
+            return label.line == tokens[index].line     # `break 'outer`
         return (label is not None and label.kind == 'id' and label.line == tokens[index].line
                 and label.text not in lang.control)
     return False
@@ -170,6 +172,8 @@ def cognitive_complexity(lang: Language, items: list[tuple[Token, int]]) -> int:
                                       and not (prev.kind == 'op' and prev.text not in (')', ']', '}'))):
             last_boolean = ''
         kind = _boolean_kind(lang, token)
+        if kind and lang.prefix_bool_ops and not is_binary_position(tokens, index):
+            kind = ''                          # Rust closure `||`, double reference `&&x`
         if kind:
             if kind != last_boolean:
                 total += 1

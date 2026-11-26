@@ -24,7 +24,12 @@
     "TypeScript": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
     "TTCN-3": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
     "Vue": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
-    "Zig": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"}
+    "Zig": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Rust": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Dart": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Shell": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "PowerShell": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "R": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"}
   },
   "cases": {
     "fixture corpus: python_sample.py": {

@@ -20,7 +20,7 @@ WORD_BOOL = ('and', 'or')
 @dataclass
 class Language:
     name: str
-    family: str                                   # brace | indent | ruby | lua | fortran | erlang
+    family: str                                   # brace | indent | ruby | lua | fortran | erlang | shell
     lexer: LexerConfig
     decisions: frozenset = frozenset()            # keywords, each occurrence +1
     bool_ops: frozenset = frozenset(C_OPS)
@@ -45,6 +45,9 @@ class Language:
     objc_methods: bool = False
     csharp_accessors: bool = False
     zig_captures: bool = False
+    prefix_bool_ops: bool = False                 # Rust: `||` opening a closure, `&&x` a double reference
+    ignored_params: frozenset = frozenset()       # receivers that are not parameters (Rust `self`)
+    braceless_functions: bool = False             # R: `function(x) x + 1` has no braces
     try_keywords: frozenset = frozenset({'try', 'finally'})   # bodies that are not nesting (cognitive)
     # Indentation family -------------------------------------------------
     match_arm_keyword: str = ''
@@ -68,6 +71,13 @@ def _brace(name, **kwargs) -> Language:
     kwargs.setdefault('ternary', True)
     return Language(name=name, family='brace', **kwargs)
 
+
+PS_DASH_OPERATORS = frozenset({
+    'and', 'or', 'xor', 'not', 'band', 'bor', 'bxor', 'bnot', 'shl', 'shr', 'eq', 'ne', 'gt', 'ge', 'lt', 'le',
+    'like', 'notlike', 'match', 'notmatch', 'contains', 'notcontains', 'in', 'notin', 'replace', 'split', 'join',
+    'is', 'isnot', 'as', 'f', 'ceq', 'cne', 'cgt', 'clt', 'cge', 'cle', 'ieq', 'ine', 'clike', 'cmatch',
+    'imatch', 'creplace', 'csplit',
+})
 
 JS_LEXER = dict(quotes=('"', "'"), template_literals=True, regex_literals=True, ident_extra_start='_$',
                 ident_extra_part='_$')
@@ -148,6 +158,41 @@ LANGUAGES: dict[str, Language] = {
                      cond_keywords=frozenset({'if', 'for', 'while', 'select'}),
                      function_keywords=frozenset({'function', 'testcase', 'altstep'}),
                      scope_keywords=frozenset({'module'})),
+    'Rust': _brace('Rust', lexer=LexerConfig(rust_strings=True, char_literal_quote="'", nested_block_comments=True,
+                                            string_prefixes='bc', operators=('..=',)),
+                   ternary=False, brace_required=True, decisions=frozenset({'if', 'for', 'while'}),
+                   control=frozenset({'if', 'else', 'for', 'while', 'loop', 'match'}),
+                   cond_keywords=frozenset({'if', 'for', 'while', 'match'}), arm_keywords=frozenset({'match'}),
+                   arm_separators=frozenset({'=>'}), function_keywords=frozenset({'fn'}),
+                   scope_keywords=frozenset({'impl', 'trait'}), qualify=True, prefix_bool_ops=True,
+                   ignored_params=frozenset({'self'})),
+    'Dart': _brace('Dart', lexer=LexerConfig(triple_quotes=True, interpolation=('${',), string_prefixes='r',
+                                            nested_block_comments=True, operators=('??=', '?..', '...?', '~/')),
+                   declaration_functions=True, decisions=C_DECISIONS, coalesce_ops=frozenset({'??', '??='}),
+                   arm_keywords=frozenset({'switch'}), arm_separators=frozenset({'=>'}),
+                   expression_body_ops=frozenset({'=>'}),
+                   scope_keywords=frozenset({'class', 'mixin', 'extension', 'enum'}), qualify=True),
+    'PowerShell': _brace('PowerShell', lexer=LexerConfig(
+                             line_comments=('#',), block_comments=(('<#', '#>'),), case_insensitive=True,
+                             ident_extra_start='_$', ident_extra_part='_:', interpolation=('$(',), raw_quotes="'",
+                             escape_char='`', here_strings=True, dash_words=True, dash_operators=PS_DASH_OPERATORS),
+                         ternary=False, brace_required=True,
+                         decisions=frozenset({'if', 'elseif', 'for', 'foreach', 'while', 'until', 'catch', 'trap'}),
+                         bool_ops=frozenset(C_OPS + ('-and', '-or')), coalesce_ops=frozenset({'??', '??='}),
+                         control=frozenset({'if', 'elseif', 'else', 'for', 'foreach', 'while', 'until', 'do',
+                                            'switch', 'try', 'catch', 'finally', 'trap'}),
+                         cond_keywords=frozenset({'if', 'elseif', 'for', 'foreach', 'while', 'until', 'switch',
+                                                  'catch', 'trap'}),
+                         arm_keywords=frozenset({'switch'}), arm_separators=frozenset({'{'}),
+                         function_keywords=frozenset({'function', 'filter', 'workflow'}), paramless_functions=True,
+                         scope_keywords=frozenset({'class', 'enum'}), qualify=True),
+    'R': _brace('R', lexer=LexerConfig(line_comments=('#',), block_comments=(), backtick_strings=True,
+                                      ident_extra_start='._', ident_extra_part='._', r_raw_strings=True,
+                                      operators=('<<-', '<-', '->>', '|>', '%>%', '%in%', '%%', '%/%', '%*%', '%o%')),
+                ternary=False, decisions=frozenset({'if', 'for', 'while'}),
+                control=frozenset({'if', 'else', 'for', 'while', 'repeat'}),
+                cond_keywords=frozenset({'if', 'for', 'while'}), function_keywords=frozenset({'function', '\\'}),
+                separate_closures=True, braceless_functions=True),
     'Python': Language('Python', 'indent', LexerConfig(line_comments=('#',), block_comments=(),
                                                        triple_quotes=True, string_prefixes='rbfuRBFU',
                                                        raw_strings_prefix='r'),
@@ -170,6 +215,12 @@ LANGUAGES: dict[str, Language] = {
                                                           case_insensitive=True),
                         decisions=frozenset({'if', 'do', 'case'}),
                         bool_ops=frozenset({'.and.', '.or.'})),
+    'Shell': Language('Shell', 'shell', LexerConfig(line_comments=('#',), block_comments=(), quotes=('"', "'"),
+                                                    backtick_strings=True, interpolation=('$(', '${'), raw_quotes="'",
+                                                    hash_comment_word_start=True, heredocs=True, shell_escapes=True,
+                                                    ident_extra_start='_', ident_extra_part='_-',
+                                                    operators=(';;', ';&', ';;&', '[[', ']]', '$(', '${')),
+                      decisions=frozenset({'if', 'elif', 'while', 'until', 'for', 'select'}), case_keywords=frozenset()),
     'Erlang': Language('Erlang', 'erlang', LexerConfig(line_comments=('%',), block_comments=(), quotes=('"',),
                                                        erlang_chars=True, operators=('=:=', '=/=', '<-', '||')),
                        decisions=frozenset(), bool_ops=frozenset({'and', 'or', 'andalso', 'orelse'})),
@@ -199,6 +250,11 @@ EXTENSION_LANGUAGE = {
     '.ts': 'TypeScript', '.tsx': 'TypeScript',
     '.ttcn': 'TTCN-3', '.ttcn3': 'TTCN-3',
     '.zig': 'Zig',
+    '.rs': 'Rust',
+    '.dart': 'Dart',
+    '.sh': 'Shell', '.bash': 'Shell',
+    '.ps1': 'PowerShell', '.psm1': 'PowerShell',
+    '.r': 'R',
 }
 
 FIXED_FORM_EXTENSIONS = {'.f'}

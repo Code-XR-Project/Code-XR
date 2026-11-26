@@ -59,6 +59,18 @@ class LexerConfig:
     string_prefixes: str = ''          # letters that may glue to a quote: f"..", b"..", @"..", L".."
     ruby_symbols: bool = False         # :name is one literal token
     preprocessor: bool = False         # C family: `#...` lines are one opaque token
+    # Epic #219 languages ----------------------------------------------
+    rust_strings: bool = False         # r"..", r#".."#, br#".."#; `'a` lifetimes and loop labels
+    interpolation: tuple[str, ...] = ()    # openers of code inside double-quoted strings: '${', '$('
+    raw_quotes: str = ''               # quotes whose strings have no escapes (shell/PowerShell '...')
+    escape_char: str = '\\'            # PowerShell escapes with a backtick
+    hash_comment_word_start: bool = False  # shell: `#` starts a comment only at a word start ($#, ${#x})
+    heredocs: bool = False             # shell <<EOF ... EOF bodies are data
+    here_strings: bool = False         # PowerShell @" ... "@ and @' ... '@
+    dash_operators: frozenset = frozenset()   # PowerShell -and, -or, -eq ... as one token
+    dash_words: bool = False           # PowerShell command names: Get-ChildItem is one word
+    r_raw_strings: bool = False        # R 4.0 r"(...)", r"[...]", r"{...}" with optional dashes
+    shell_escapes: bool = False        # shell: a backslash quotes the next character outside strings too
     extra: dict = field(default_factory=dict)
 
 
@@ -93,7 +105,10 @@ class Lexer:
         if cfg.line_block_comments:
             text = _blank_line_blocks(text, cfg.line_block_comments)
 
+        if cfg.heredocs:
+            text = _blank_heredocs(text)
         tokens: list[Token] = []
+        self.comment_lines: set[int] = set()
         n = len(text)
         i = 0
         line = 1
@@ -111,6 +126,10 @@ class Lexer:
             if c == '\\' and i + 1 < n and text[i + 1] == '\n':
                 i += 1
                 continue
+            if cfg.shell_escapes and c == '\\' and i + 1 < n:
+                tokens.append(Token(text[i:i + 2], 'str', line, line, i - line_start))
+                i += 2                     # shell `\$`, `\"`, `\#`, `\``: a quoted character
+                continue
 
             # comments --------------------------------------------------
             if cfg.lua_long_brackets and text.startswith('--', i):
@@ -119,6 +138,7 @@ class Lexer:
                     close = ']' + m.group(1) + ']'
                     end = text.find(close, i + m.end())
                     end = n if end < 0 else end + len(close)
+                    self.comment_lines.update(range(line, line + text.count('\n', i, end) + 1))
                     line += text.count('\n', i, end)
                     line_start = text.rfind('\n', 0, end) + 1 if '\n' in text[i:end] else line_start
                     i = end
@@ -128,6 +148,7 @@ class Lexer:
                 if text.startswith(opener, i):
                     end = self._find_block_end(text, i, opener, closer)
                     newlines = text.count('\n', i, end)
+                    self.comment_lines.update(range(line, line + newlines + 1))
                     if newlines:
                         line += newlines
                         line_start = text.rfind('\n', 0, end) + 1
@@ -136,9 +157,11 @@ class Lexer:
                     break
             if matched_block:
                 continue
-            if any(text.startswith(marker, i) for marker in cfg.line_comments):
+            if any(text.startswith(marker, i) for marker in cfg.line_comments) and not (
+                    cfg.hash_comment_word_start and c == '#' and i > 0 and text[i - 1] not in ' \t\n;|&()'):
                 end = text.find('\n', i)
                 i = n if end < 0 else end
+                self.comment_lines.add(line)
                 continue
 
             col = i - line_start
@@ -164,6 +187,17 @@ class Lexer:
                 continue
 
             # strings ---------------------------------------------------
+            if cfg.here_strings and c == '@' and text[i + 1:i + 2] in ('"', "'") and \
+                    text[i + 2:i + 3] in ('\n', '\r'):
+                closer = '\n' + text[i + 1] + '@'
+                end = text.find(closer, i + 2)
+                end = n if end < 0 else end + len(closer)
+                newlines = text.count('\n', i, end)
+                tokens.append(Token(text[i:end], 'str', line, line + newlines, col))
+                line += newlines
+                line_start = text.rfind('\n', 0, end) + 1
+                i = end
+                continue
             if cfg.triple_quotes and (text.startswith('"""', i) or text.startswith("'''", i)):
                 quote = text[i:i + 3]
                 end = self._scan_string(text, i + 3, quote, escapes=True)
@@ -180,8 +214,11 @@ class Lexer:
                 else:
                     if c == '`' and cfg.template_literals:
                         end = self._scan_template(text, i + 1)
+                    elif cfg.interpolation and c not in cfg.raw_quotes:
+                        end = self._scan_interpolated(text, i + 1, c)
                     else:
-                        end = self._scan_string(text, i + 1, c, escapes=(c != '`'))
+                        end = self._scan_string(text, i + 1, c, escapes=(c != '`' and c not in cfg.raw_quotes),
+                                                escape=cfg.escape_char)
                     newlines = text.count('\n', i, end)
                     tokens.append(Token(text[i:end], 'str', line, line + newlines, col))
                     if newlines:
@@ -221,7 +258,21 @@ class Lexer:
                 if cfg.ident_suffixes and j < n and text[j] in cfg.ident_suffixes and not (
                         j + 1 < n and text[j + 1] in '=:'):
                     j += 1
+                if cfg.dash_words and text[i] != '$':
+                    while j + 1 < n and text[j] == '-' and text[j + 1].isalpha():
+                        j += 2
+                        while j < n and (text[j].isalnum() or text[j] in cfg.ident_extra_part):
+                            j += 1
                 word = text[i:j]
+                raw_end = self._raw_string_end(text, i, j, word)
+                if raw_end:
+                    newlines = text.count('\n', i, raw_end)
+                    tokens.append(Token(text[i:raw_end], 'str', line, line + newlines, col))
+                    if newlines:
+                        line += newlines
+                        line_start = text.rfind('\n', 0, raw_end) + 1
+                    i = raw_end
+                    continue
                 # String prefix glued to a quote (f"..", r'..', b"..", @"..").
                 if (cfg.string_prefixes and j < n and text[j] in cfg.quotes
                         and all(ch in cfg.string_prefixes for ch in word.lower())):
@@ -256,6 +307,12 @@ class Lexer:
                     continue
 
             # operators -------------------------------------------------
+            if cfg.dash_operators and c == '-':
+                m = re.match(r'-([a-zA-Z]+)', text[i:])
+                if m and m.group(1).lower() in cfg.dash_operators:
+                    tokens.append(Token('-' + m.group(1).lower(), 'op', line, line, col))
+                    i += m.end()
+                    continue
             for op in self._ops:
                 if text.startswith(op, i):
                     if op == '?.' and i + 2 < n and text[i + 2].isdigit():
@@ -289,11 +346,11 @@ class Lexer:
         return len(text)
 
     @staticmethod
-    def _scan_string(text: str, i: int, quote: str, escapes: bool) -> int:
+    def _scan_string(text: str, i: int, quote: str, escapes: bool, escape: str = '\\') -> int:
         n = len(text)
         single_line = len(quote) == 1 and quote in '"\''
         while i < n:
-            if escapes and text[i] == '\\':
+            if escapes and text[i] == escape:
                 i += 2
                 continue
             if text.startswith(quote, i):
@@ -303,6 +360,58 @@ class Lexer:
                 return i
             i += 1
         return n
+
+    def _scan_interpolated(self, text: str, i: int, quote: str) -> int:
+        """A string whose `${...}` / `$(...)` hold code, possibly with quotes of their own."""
+        cfg = self.config
+        n = len(text)
+        while i < n:
+            ch = text[i]
+            if ch == cfg.escape_char:
+                i += 2
+                continue
+            if ch == quote:
+                return i + 1
+            opener = next((o for o in cfg.interpolation if text.startswith(o, i)), None)
+            if opener:
+                close = {'{': '}', '(': ')'}[opener[-1]]
+                depth = 1
+                i += len(opener)
+                while i < n and depth:
+                    if text[i] in '"\'' and text[i] in cfg.quotes:
+                        i = (self._scan_interpolated(text, i + 1, text[i]) if text[i] not in cfg.raw_quotes
+                             else self._scan_string(text, i + 1, text[i], escapes=False))
+                        continue
+                    if text[i] == opener[-1]:
+                        depth += 1
+                    elif text[i] == close:
+                        depth -= 1
+                    i += 1
+                continue
+            i += 1
+        return n
+
+    def _raw_string_end(self, text: str, start: int, word_end: int, word: str) -> int:
+        """End of a Rust or R raw string starting at `start`, or 0."""
+        cfg = self.config
+        n = len(text)
+        if cfg.rust_strings and word in ('r', 'br', 'cr') and word_end < n and text[word_end] in '#"':
+            j = word_end
+            while j < n and text[j] == '#':
+                j += 1
+            if j >= n or text[j] != '"':
+                return 0
+            closer = '"' + '#' * (j - word_end)
+            end = text.find(closer, j + 1)
+            return n if end < 0 else end + len(closer)
+        if cfg.r_raw_strings and word in ('r', 'R') and word_end + 1 < n and text[word_end] in '"\'':
+            m = re.match(r'(-*)([(\[{])', text[word_end + 1:])
+            if not m:
+                return 0
+            closer = {'(': ')', '[': ']', '{': '}'}[m.group(2)] + m.group(1) + text[word_end]
+            end = text.find(closer, word_end + 1 + m.end())
+            return n if end < 0 else end + len(closer)
+        return 0
 
     def _scan_template(self, text: str, i: int) -> int:
         n = len(text)
@@ -366,9 +475,16 @@ class Lexer:
             return prev.text in _REGEX_PRECEDERS
         return prev.text in _REGEX_PRECEDERS
 
-    @staticmethod
-    def _looks_like_lifetime(text: str, i: int) -> bool:
-        return False
+    def _looks_like_lifetime(self, text: str, i: int) -> bool:
+        """Rust `'a` (lifetime) or `'outer:` (loop label), not the char literal `'a'`."""
+        if not self.config.rust_strings:
+            return False
+        j = i + 1
+        if j >= len(text) or not (text[j].isalpha() or text[j] == '_'):
+            return False
+        while j < len(text) and (text[j].isalnum() or text[j] == '_'):
+            j += 1
+        return j >= len(text) or text[j] != "'"
 
 
 def _blank(text: str, start: int, end: int) -> str:
@@ -425,6 +541,27 @@ def _find_php_close(text: str, i: int) -> int:
             return i
         i += 1
     return n
+
+
+_HEREDOC = re.compile(r'<<(-?)\s*([\'"]?)([A-Za-z_][A-Za-z0-9_]*)\2')
+
+
+def _blank_heredocs(text: str) -> str:
+    """Shell here-documents: the lines between `<<EOF` and `EOF` are data, not code."""
+    lines = text.split('\n')
+    index = 0
+    while index < len(lines):
+        found = [m for m in _HEREDOC.finditer(lines[index]) if not lines[index][:m.start()].endswith('<')]
+        index += 1
+        for match in found:
+            strip_tabs, delimiter = match.group(1) == '-', match.group(3)
+            while index < len(lines):
+                body = lines[index].lstrip('\t') if strip_tabs else lines[index]
+                lines[index] = ''
+                index += 1
+                if body.strip() == delimiter:
+                    break
+    return '\n'.join(lines)
 
 
 def _blank_fixed_form_comments(text: str) -> str:

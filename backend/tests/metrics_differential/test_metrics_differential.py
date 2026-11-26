@@ -108,13 +108,13 @@ class GoldenCoverageTest(unittest.TestCase):
 
     def test_golden_covers_exactly_the_corpus(self):
         golden = differential.load_json(differential.GOLDEN_PATH)
-        corpus = differential.corpus_files(get_supported_metric_extensions())
+        corpus = differential.corpus_files(differential.oracle_extensions(get_supported_metric_extensions()))
         self.assertEqual(sorted(golden['files']), corpus,
                          'corpus changed: run regenerate_lizard_golden.py with the pinned lizard')
 
     def test_every_contract_extension_has_a_corpus_file(self):
-        covered = {Path(path).suffix.lower() for path in differential.corpus_files(get_supported_metric_extensions())}
-        missing = set(get_supported_metric_extensions()) - covered
+        covered = {Path(path).suffix.lower() for path in differential.corpus_files(differential.oracle_extensions(get_supported_metric_extensions()))}
+        missing = set(differential.oracle_extensions(get_supported_metric_extensions())) - covered
         self.assertEqual(missing, set(), 'every contract extension needs at least one corpus file')
 
     def test_divergences_are_justified(self):
