@@ -61,6 +61,20 @@ async function materialize(targetRelativePath, entries, { exists = true } = {}) 
     return { result, calls, written: written.sort(), sourceDirectory };
 }
 
+test('a blob listed with no size is missing (partial clone): an error, not a silent skip', async () => {
+    const { result, calls, written } = await materialize('.', [
+        blob('src/a.py'),
+        blob('docs/notes.bin', '-'),
+        blob('src/old.py', '-'),
+    ]);
+    assert.match(result.error, /^git-object-missing:/);
+    assert.deepEqual(written, []);
+    assert.equal(calls.some((call) => call[1] === 'show'), false, 'nothing is copied before the plan is complete');
+    // Git 2.5x prints BAD instead of - for the size of a missing blob.
+    const recent = await materialize('.', [blob('src/a.py'), blob('src/old.py', 'BAD')]);
+    assert.match(recent.result.error, /^git-object-missing:/);
+});
+
 test('repository root: copies analysable blobs, warns about submodules and oversized files', async () => {
     const { result, calls, written, sourceDirectory } = await materialize('.', [
         blob('src/a.py'),
@@ -71,7 +85,6 @@ test('repository root: copies analysable blobs, warns about submodules and overs
         blob('big.py', 8 * 1024 * 1024 + 1),
         blob('exact.py', 8 * 1024 * 1024),
         'not an ls-tree line',
-        blob('dash.py', '-'),
     ]);
     assert.deepEqual(result, {
         targetPath: sourceDirectory,
@@ -79,7 +92,6 @@ test('repository root: copies analysable blobs, warns about submodules and overs
         warnings: [
             'Skipped unsupported Git entry: vendor-module',
             'Skipped oversized file: big.py',
-            'Skipped oversized file: dash.py',
         ],
     });
     assert.deepEqual(written, ['exact.py', 'src/a.py', 'src/deep/b.ts']);

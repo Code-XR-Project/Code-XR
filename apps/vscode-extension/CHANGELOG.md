@@ -129,6 +129,10 @@
   - The `force-3d` layout now spreads nodes over the whole table and keeps connected nodes close. Before, every node past the 16th sat on the same circle.
   - Opening the graph no longer leaks a background thread each time, and a layout failure is reported on the panel instead of freezing the table.
   - Re-opening a file after editing it shows its current symbols, not the ones from before the edit.
+- **The Git analyses work on Windows with accented paths and on other drives, and never download on their own.**
+  - Export with History or Evolution no longer fails every revision when your Windows user folder has an accent (`C:\Users\Adrián`). The background Python worker received the path in the wrong encoding and reported "input missing".
+  - A working copy on another drive (for example `D:\projects\app`) keeps the full relative path of each file in a historical comparison, an evolution frame and an export. Before, it collapsed to the file name, so `core/a.ts` and `ui/a.ts` collided and every file looked removed and added.
+  - In a partial clone (`git clone --filter=blob:none`), CodeXR no longer makes Git download missing files from the remote one by one, and Git can no longer stop to ask for a password. A revision whose files are not on your computer is reported as such ("not on this computer (partial clone)") and left out. With recent Git versions such a file used to be skipped without a word, so the revision was analyzed as if the file did not exist.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

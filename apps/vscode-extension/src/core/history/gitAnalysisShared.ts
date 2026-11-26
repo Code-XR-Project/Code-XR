@@ -25,20 +25,39 @@ export function toPortableRelativePath(root: string, candidate: string): string 
     if (!candidate) {
         return 'unknown';
     }
-    if (!path.isAbsolute(candidate)) {
+    if (!isAbsoluteOnAnyPlatform(candidate)) {
         return candidate
             .replace(/\\/g, '/')
             .replace(/^\.\/+/, '')
             .replace(/\/+/g, '/')
             .replace(/^\/|\/$/g, '') || 'unknown';
     }
-    const normalizedCandidate = path.resolve(candidate);
-    const normalizedRoot = path.resolve(root);
-    const relativePath = path.relative(normalizedRoot, normalizedCandidate);
-    if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
-        return relativePath.split(path.sep).join('/');
+    // Both sides in the drive-less POSIX form the Python side already uses
+    // (normalize_path_for_babia). Resolving the drive-less `/work/proj/a.ts`
+    // with the host's `path` put it on the cwd's drive (C:), so a working copy
+    // on D: fell back to basenames and same-named files collided (HIST-6).
+    const normalizedCandidate = path.posix.resolve('/', withoutDrive(candidate));
+    const normalizedRoot = path.posix.resolve('/', withoutDrive(root));
+    const relativePath = path.posix.relative(normalizedRoot, normalizedCandidate);
+    if (!relativePath.startsWith('..') && !path.posix.isAbsolute(relativePath)) {
+        return relativePath;
     }
-    return path.basename(candidate);
+    // Windows and macOS file systems ignore case: `C:\Work` and `c:\work` are one folder.
+    const caseless = path.posix.relative(normalizedRoot.toLowerCase(), normalizedCandidate.toLowerCase());
+    if (caseless && !caseless.startsWith('..') && !path.posix.isAbsolute(caseless)) {
+        return normalizedCandidate.slice(normalizedCandidate.length - caseless.length);
+    }
+    return path.posix.basename(normalizedCandidate);
+}
+
+/** `/x`, `\x`, `C:\x`, `C:/x` and `\\server\share` are absolute, whatever the host OS. */
+function isAbsoluteOnAnyPlatform(value: string): boolean {
+    return /^(?:[A-Za-z]:)?[\\/]/.test(value);
+}
+
+/** Forward slashes, no drive letter, no doubled separators. */
+function withoutDrive(value: string): string {
+    return value.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '').replace(/\/+/g, '/') || '/';
 }
 
 /**

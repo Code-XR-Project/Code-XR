@@ -1,4 +1,5 @@
 import * as childProcess from 'child_process';
+import { PARTIAL_CLONE_MISSING_MESSAGE, gitOfflineEnvironment, isPartialCloneMissingObject } from './gitOfflineEnvironment';
 
 export interface GitBatchObject {
     objectName: string;
@@ -46,7 +47,7 @@ export class GitBatchObjectReader {
         this.child = childProcess.spawn(
             'git',
             ['-C', repositoryRoot, 'cat-file', '--batch'],
-            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] },
+            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: gitOfflineEnvironment() },
         );
         this.child.stdout.on('data', (chunk: Buffer) => {
             this.buffered = this.buffered.length
@@ -63,9 +64,9 @@ export class GitBatchObjectReader {
         ));
         this.child.on('close', (code) => {
             if (!this.disposed && (code !== 0 || this.pending.length > 0)) {
-                this.failAll(new Error(
-                    `git-cat-file-closed (${String(code)}): ${stderr.trim() || 'no diagnostic'}`,
-                ));
+                this.failAll(new Error(isPartialCloneMissingObject(stderr)
+                    ? PARTIAL_CLONE_MISSING_MESSAGE
+                    : `git-cat-file-closed (${String(code)}): ${stderr.trim() || 'no diagnostic'}`));
             }
         });
         this.child.stdin.on('error', (error) => {
@@ -184,7 +185,7 @@ export class GitBatchMetadataReader {
         this.child = childProcess.spawn(
             'git',
             ['-C', repositoryRoot, 'cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'],
-            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] },
+            { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: gitOfflineEnvironment() },
         );
         this.child.stdout.setEncoding('utf8');
         this.child.stdout.on('data', (chunk: string) => {

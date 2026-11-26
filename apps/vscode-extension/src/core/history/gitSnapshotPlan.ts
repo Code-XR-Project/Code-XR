@@ -7,6 +7,7 @@ import {
     isDirectoryAnalysisFile,
     shouldIgnoreDirectoryName,
 } from '../analysis/watchers/analysisFilePolicy';
+import { PARTIAL_CLONE_MISSING_MESSAGE } from './gitOfflineEnvironment';
 
 export const MAX_SNAPSHOT_FILES = 5000;
 export const MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024;
@@ -42,7 +43,7 @@ function planTreeEntry(
     targetRelativePath: string,
     recursive: boolean,
 ): { repositoryPath: string; size: number } | { warning: string } | null {
-    const match = entry.match(/^(\d+)\s+(\w+)\s+([0-9a-f]{40})\s+(-|\d+)\t(.+)$/);
+    const match = entry.match(/^(\d+)\s+(\w+)\s+([0-9a-f]{40})\s+(\S+)\t(.+)$/);
     if (!match) {
         return null;
     }
@@ -57,6 +58,12 @@ function planTreeEntry(
     }
     if (!shouldMaterializeDirectoryFile(relativePath)) {
         return null;
+    }
+    if (!/^\d+$/.test(rawSize)) {
+        // Git lists a blob it does not have (a partial clone) with no size:
+        // `-` in older versions, `BAD` in 2.5x. Skipping it would analyze
+        // the revision silently without this file.
+        throw new Error(PARTIAL_CLONE_MISSING_MESSAGE);
     }
     const size = Number(rawSize);
     if (!Number.isFinite(size) || size > MAX_SINGLE_FILE_BYTES) {

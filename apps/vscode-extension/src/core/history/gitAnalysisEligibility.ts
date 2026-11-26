@@ -78,7 +78,9 @@ export function isDeterministicNoDataError(error: unknown): boolean {
     // "JSON markers not found" and "unable to parse result" are what a killed,
     // crashed or broken-venv Python produces too: a transient failure must
     // not hide a commit from both pickers until the session ends (HIST-11).
-    return /no (?:JSON|data|records)|empty (?:JSON|payload)/i
+    // A blob a partial clone does not hold stays missing (EVO-10): CodeXR
+    // never fetches it, so retrying the revision cannot succeed either.
+    return /no (?:JSON|data|records)|empty (?:JSON|payload)|git-object-missing/i
         .test(message);
 }
 
