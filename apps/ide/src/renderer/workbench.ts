@@ -44,6 +44,8 @@ export interface Workbench {
     setSceneVisible(visible: boolean): void;
     /** The bottom panel under the editor area (#137: the terminal, terminal/terminalPanel.ts). */
     readonly panel: HTMLElement;
+    /** The status bar's slot for the active editor's items (#166, editor/editorStatus.ts). */
+    readonly editorStatus: HTMLElement;
 }
 
 export function renderWorkbench(root: HTMLElement): Workbench {
@@ -99,7 +101,9 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     const statusRight = el('span', { text: '' });
     const pythonItem = el('button', { className: 'status-item', attrs: { type: 'button', 'data-testid': 'python-status', hidden: '' } });
     pythonItem.addEventListener('click', () => showView('analysis'));
-    const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [pythonItem, statusRight])]);
+    // #166: the active editor's position, indentation, encoding, line endings and language.
+    const editorStatus = el('span', { className: 'status-editor', attrs: { 'data-testid': 'editor-status' } });
+    const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
 
     const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
     // #137: the bottom panel (hidden until the terminal opens).
@@ -125,6 +129,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
             shell.classList.toggle('has-scene', visible);
         },
         panel,
+        editorStatus,
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },

@@ -1,6 +1,7 @@
 import { MODIFIED_ON_DISK, type CodeXRApi, type FileContent } from '../../shared/api.ts';
 import { el, fileIcon, icon } from '../dom.ts';
 import { followSystemTheme, monaco } from './monaco.ts';
+import { languageName, type EditorStatusState, type EndOfLine, type Indentation, type LanguageInfo } from './editorStatusModel.ts';
 
 /**
  * The editor area (#14): one Monaco editor, one model per open file, and a
@@ -15,6 +16,7 @@ import { followSystemTheme, monaco } from './monaco.ts';
  */
 
 const CLOSE = 'M6 6l12 12M18 6L6 18';
+const BOM = '\uFEFF';
 
 interface OpenFile {
     readonly path: string;
@@ -26,6 +28,8 @@ interface OpenFile {
     /** What the disk did behind an unsaved tab, shown on the tab until the next save. */
     diskState: 'same' | 'changed' | 'deleted';
     viewState: monaco.editor.ICodeEditorViewState | null;
+    /** The file starts with a UTF-8 byte order mark, written back on save (#166). */
+    bom: boolean;
 }
 
 export interface EditorGroup {
@@ -50,6 +54,14 @@ export interface EditorGroup {
     activeLineCount(): number | null;
     /** Moves the cursor of the active file to `line` (and `column`), centred, and focuses the editor. */
     goToLine(line: number, column?: number): void;
+    /** #166: the status bar's choices, applied to the active file. */
+    setIndentation(indentation: Indentation): void;
+    /** Changes the line endings as one undoable edit (the tab becomes dirty). */
+    setEndOfLine(eol: EndOfLine): void;
+    setLanguage(languageId: string): void;
+    languages(): readonly LanguageInfo[];
+    /** The active file's status, or null without one. */
+    statusState(): EditorStatusState | null;
 }
 
 export function createEditorGroup(
@@ -62,6 +74,8 @@ export function createEditorGroup(
         onUnsavedChange?(count: number): void;
         /** The set of open files changed. */
         onOpenFilesChange?(): void;
+        /** #166: the cursor, indentation, line endings or language of the active file changed (null: no file). */
+        onStatusState?(state: EditorStatusState | null): void;
     },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
@@ -83,6 +97,46 @@ export function createEditorGroup(
 
     const files = new Map<string, OpenFile>();
     let active: OpenFile | null = null;
+
+    // #166: the status bar follows the active editor, at most once a frame.
+    let statusFrame = 0;
+    function statusState(): EditorStatusState | null {
+        const model = active?.model;
+        const position = editor.getPosition();
+        if (!active || !model || !position) {
+            return null;
+        }
+        const selections = editor.getSelections() ?? [];
+        const selectedChars = selections.reduce((sum, selection) => sum + model.getValueLengthInRange(selection), 0);
+        const options = model.getOptions();
+        const languageId = model.getLanguageId();
+        return {
+            line: position.lineNumber,
+            column: position.column,
+            selectedChars,
+            selections: selections.length,
+            insertSpaces: options.insertSpaces,
+            tabSize: options.tabSize,
+            eol: model.getEOL() === '\r\n' ? 'CRLF' : 'LF',
+            bom: active.bom,
+            languageId,
+            languageName: languageName(monaco.languages.getLanguages().find((language) => language.id === languageId), languageId),
+        };
+    }
+    function scheduleStatus(): void {
+        if (!callbacks.onStatusState || statusFrame !== 0) {
+            return;
+        }
+        statusFrame = requestAnimationFrame(() => {
+            statusFrame = 0;
+            callbacks.onStatusState?.(statusState());
+        });
+    }
+    editor.onDidChangeCursorSelection(scheduleStatus);
+    editor.onDidChangeModel(scheduleStatus);
+    editor.onDidChangeModelOptions(scheduleStatus);
+    editor.onDidChangeModelLanguage(scheduleStatus);
+    editor.onDidChangeModelContent((event) => { if (event.eol) { scheduleStatus(); } });
 
     const isDirty = (file: OpenFile): boolean => file.model.getAlternativeVersionId() !== file.savedVersion;
 
@@ -147,7 +201,10 @@ export function createEditorGroup(
         }, [fileIcon(name, 'file'), el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
         const uri = monaco.Uri.from({ scheme: 'codexr-file', path: `/${content.path}` });
         const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(content.text, undefined, uri);
-        const file: OpenFile = { path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs, diskState: 'same', viewState: null };
+        const file: OpenFile = {
+            path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs,
+            diskState: 'same', viewState: null, bom: content.text.startsWith(BOM),
+        };
         model.onDidChangeContent(() => refreshTab(file));
         tab.addEventListener('click', (event) => {
             if ((event.target as Element).closest('.tab-close')) {
@@ -180,12 +237,18 @@ export function createEditorGroup(
         callbacks.onOpenFilesChange?.();
     }
 
+    /** The text to write: Monaco keeps a byte order mark outside the model's text, so put it back. */
+    function fileText(file: OpenFile): string {
+        const text = file.model.getValue(monaco.editor.EndOfLinePreference.TextDefined, true);
+        return file.bom && !text.startsWith(BOM) ? BOM + text : text;
+    }
+
     async function saveFile(file: OpenFile): Promise<boolean> {
         if (!isDirty(file)) {
             return true;
         }
         const version = file.model.getAlternativeVersionId();
-        const write = (expected: number | undefined) => api.writeFile(file.path, file.model.getValue(), expected);
+        const write = (expected: number | undefined) => api.writeFile(file.path, fileText(file), expected);
         try {
             let result;
             try {
@@ -241,7 +304,8 @@ export function createEditorGroup(
             callbacks.onStatus(`${file.path} changed on disk. Your unsaved version is kept; saving asks before overwriting.`);
             return;
         }
-        if (content.text !== file.model.getValue()) {
+        file.bom = content.text.startsWith(BOM);
+        if (content.text !== fileText(file)) {
             file.model.pushEditOperations([], [{ range: file.model.getFullModelRange(), text: content.text }], () => null);
         }
         file.savedVersion = file.model.getAlternativeVersionId();
@@ -265,6 +329,22 @@ export function createEditorGroup(
 
     return {
         activeLineCount: () => (active ? active.model.getLineCount() : null),
+        statusState,
+        setIndentation(indentation) {
+            active?.model.updateOptions({ insertSpaces: indentation.insertSpaces, tabSize: indentation.tabSize, indentSize: indentation.tabSize });
+            editor.focus();
+        },
+        setEndOfLine(eol) {
+            active?.model.pushEOL(eol === 'CRLF' ? monaco.editor.EndOfLineSequence.CRLF : monaco.editor.EndOfLineSequence.LF);
+            editor.focus();
+        },
+        setLanguage(languageId) {
+            if (active) {
+                monaco.editor.setModelLanguage(active.model, languageId);
+            }
+            editor.focus();
+        },
+        languages: () => monaco.languages.getLanguages(),
         goToLine(line, column) {
             if (!active) {
                 return;

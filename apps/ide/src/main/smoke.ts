@@ -34,6 +34,8 @@ export interface SmokeProbe {
     readonly fileIconsBroken: readonly string[];
     /** #18: F1 from the editor opened the palette with the commands, ":3" offered line 3, Escape gave the focus back. */
     readonly palette: { readonly opened: boolean; readonly hasSave: boolean; readonly lineOffered: boolean; readonly focusReturned: boolean };
+    /** #166: the status bar shows the cursor position and the language of the open file. */
+    readonly editorStatus: string;
     readonly cspViolations: readonly string[];
 }
 
@@ -106,6 +108,11 @@ const RENDERER_PROBE = `(async () => {
         const loaded = url && await new Promise((r) => { const img = new Image(); img.onload = () => r(img.naturalWidth > 0); img.onerror = () => r(false); img.src = url; });
         if (!loaded) { fileIconsBroken.push(css); }
     }
+    // #166: the active editor's items in the status bar (drawn on the next frame).
+    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 50)));
+    const editorStatus = document.querySelector('[data-testid="editor-status"]')?.hidden === false
+        ? [...document.querySelectorAll('[data-testid="editor-status"] .status-item')].map((node) => node.textContent).join(' | ')
+        : '';
     // #18: the command palette, opened with F1 from inside Monaco (the workbench's capture-phase key).
     const palette = { opened: false, hasSave: false, lineOffered: false, focusReturned: false };
     const focusedEditor = document.querySelector('.monaco-editor textarea');
@@ -145,6 +152,7 @@ const RENDERER_PROBE = `(async () => {
         fileIconsShown,
         fileIconsBroken,
         palette,
+        editorStatus,
         cspViolations,
     };
 })()`;
@@ -204,6 +212,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }
         if (!probe.palette.opened || !probe.palette.hasSave) { failures.push(`F1 did not open the command palette with the commands (${JSON.stringify(probe.palette)})`); }
         if (!probe.palette.lineOffered || !probe.palette.focusReturned) { failures.push(`go to line or closing the palette failed (${JSON.stringify(probe.palette)})`); }
+        if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!terminal) {

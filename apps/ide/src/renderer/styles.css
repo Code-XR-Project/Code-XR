@@ -396,6 +396,11 @@ body {
 .status-item:hover { background: rgba(255, 255, 255, 0.15); }
 .status-item:focus-visible { outline: 1px solid var(--status-fg); outline-offset: -1px; }
 .status-item[hidden] { display: none; }
+/* #166: the active editor's items; they give way first when the bar is narrow. */
+.status-editor { display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.status-editor[hidden] { display: none; }
+.status-item.is-static { display: inline-flex; align-items: center; cursor: default; }
+.status-item.is-static:hover { background: none; }
 
 /* The analysis scene beside the code (#16). The scene is drawn by the main
    process over .scene-slot; this column only reserves the space. */

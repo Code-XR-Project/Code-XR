@@ -12,16 +12,25 @@ import type { PaletteAction, PaletteEntry, PaletteView } from './paletteModel.ts
  * page and would otherwise hide it. Text goes in through `textContent` only.
  */
 
+/** What a quick input lists for a given text, and what Enter does. */
+export interface QuickInputProvider {
+    view(value: string): PaletteView;
+    accept(action: PaletteAction): void;
+    /** The field's accessible name and placeholder. */
+    readonly label?: string;
+}
+
 export interface QuickInput {
-    /** Opens the box with `value` (for example ">" for the commands). */
-    open(value: string): void;
+    /**
+     * Opens the box with `value` (for example ">" for the commands). Without a
+     * provider it shows the palette; the status bar's pickers (#166) pass their own.
+     */
+    open(value: string, provider?: QuickInputProvider): void;
     close(): void;
     readonly isOpen: () => boolean;
 }
 
-export interface QuickInputOptions {
-    view(value: string): PaletteView;
-    accept(action: PaletteAction): void;
+export interface QuickInputOptions extends QuickInputProvider {
     /** Width taken by the scene column on the right, in pixels. */
     rightInset(): number;
 }
@@ -51,11 +60,13 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
     host.append(layer);
 
     let view: PaletteView | null = null;
+    let provider: QuickInputProvider = options;
+    const defaultLabel = 'Type the name of a command to run, or : and a line number';
     let active = 0;
     let returnFocus: HTMLElement | null = null;
 
     function render(): void {
-        view = options.view(input.value);
+        view = provider.view(input.value);
         active = view.entries.findIndex((entry) => entry.runnable);
         if (active < 0) { active = 0; }
         const rows = view.entries.slice(0, MAX_ROWS).map((entry, index) => row(entry, index));
@@ -136,6 +147,7 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
             return;
         }
         const action = view.action(entry);
+        const accepting = provider;
         if (action.kind === 'none') {
             // A hint row puts its prefix in the field.
             if (entry.fill !== undefined) {
@@ -145,7 +157,7 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
             return;
         }
         close();
-        options.accept(action);
+        accepting.accept(action);
     }
 
     input.addEventListener('input', render);
@@ -171,7 +183,11 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
         }, 0);
     });
 
-    function open(value: string): void {
+    function open(value: string, customProvider?: QuickInputProvider): void {
+        provider = customProvider ?? options;
+        const label = provider.label ?? defaultLabel;
+        input.setAttribute('aria-label', label);
+        input.placeholder = provider.label ?? '';
         if (layer.hidden) {
             const focused = document.activeElement;
             returnFocus = focused instanceof HTMLElement && focused !== document.body ? focused : null;

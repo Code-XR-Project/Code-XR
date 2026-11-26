@@ -12,6 +12,9 @@ import { formatKeybinding } from './commands/keybindings.ts';
 import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
 import { createQuickInput } from './commands/quickInput.ts';
 import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
+import { pickListView, type PickItem } from './commands/paletteModel.ts';
+import { createEditorStatus } from './editor/editorStatus.ts';
+import { eolChoices, indentationChoices, languageChoices, type Choice } from './editor/editorStatusModel.ts';
 import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -44,6 +47,7 @@ function editorGroup(): Promise<EditorGroup> {
             onActiveChange: (path) => { document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR'; },
             onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
             onOpenFilesChange: () => updateWatched(),
+            onStatusState: (state) => editorStatus.show(state),
         });
         return editors;
     });
@@ -155,10 +159,46 @@ const quickInput = createQuickInput(document.body, {
     },
     rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
 });
+/** Opens a picker (#166) over `choices`; Enter applies the chosen value. */
+function pick<T>(label: string, choices: readonly Choice<T>[], apply: (value: T) => void): void {
+    const items: PickItem[] = choices.map(({ id, label: text, description }) => ({ id, label: text, ...(description ? { description } : {}) }));
+    quickInput.open('', {
+        label,
+        view: (value) => pickListView(items, value),
+        accept: (action) => {
+            const choice = action.kind === 'pick' ? choices.find((candidate) => candidate.id === action.id) : undefined;
+            if (choice) {
+                apply(choice.value);
+            }
+        },
+    });
+}
+const pickIndentation = (): void => {
+    const state = editors?.statusState();
+    if (state) { pick('Select indentation', indentationChoices(state), (value) => editors?.setIndentation(value)); }
+};
+const pickEndOfLine = (): void => {
+    const state = editors?.statusState();
+    if (state) { pick('Select end of line sequence', eolChoices(state.eol), (value) => editors?.setEndOfLine(value)); }
+};
+const pickLanguage = (): void => {
+    const state = editors?.statusState();
+    if (state && editors) { pick('Select language mode', languageChoices(editors.languages(), state.languageId), (value) => editors?.setLanguage(value)); }
+};
+// #166: the active editor's items in the status bar.
+const editorStatus = createEditorStatus(workbench.editorStatus, {
+    goToLine: () => { registry.execute('editor.goToLine'); },
+    pickIndentation,
+    pickEndOfLine,
+    pickLanguage,
+});
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
     goToLine: () => quickInput.open(LINE_PREFIX),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
+    changeIndentation: pickIndentation,
+    changeEndOfLine: pickEndOfLine,
+    changeLanguageMode: pickLanguage,
     openFolder: () => explorer.openFolder(),
     hasFolder: () => folderIsOpen,
     newFile: () => void explorer.newFile(),

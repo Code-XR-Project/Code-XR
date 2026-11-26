@@ -30,6 +30,7 @@ export interface PaletteEntry {
 export type PaletteAction =
     | { readonly kind: 'command'; readonly id: string }
     | { readonly kind: 'line'; readonly line: number; readonly column?: number }
+    | { readonly kind: 'pick'; readonly id: string }
     | { readonly kind: 'none' };
 
 export interface PaletteContext {
@@ -150,4 +151,35 @@ function lineView(text: string, lineCount: number | null): PaletteView {
         action: () => (position.column !== undefined ? { kind: 'line', line, column: position.column } : { kind: 'line', line }),
         empty: '',
     };
+}
+
+/** One choice of a picker (#166: language mode, line endings, indentation). */
+export interface PickItem {
+    readonly id: string;
+    readonly label: string;
+    readonly description?: string;
+}
+
+/**
+ * A picker's view: the items matching the text (fuzzy, best first), or all of
+ * them in their own order while the text is empty. Enter picks the item.
+ */
+export function pickListView(items: readonly PickItem[], value: string, empty = 'No matching items'): PaletteView {
+    const query = value.trim();
+    const entries: PaletteEntry[] = query === ''
+        ? items.map((item) => ({ id: item.id, label: item.label, highlights: [], ...(item.description ? { description: item.description } : {}), runnable: true }))
+        : items
+            .flatMap((item, order) => {
+                const match = fuzzyMatch(query, item.label);
+                return match ? [{ item, order, match }] : [];
+            })
+            .sort((a, b) => b.match.score - a.match.score || a.order - b.order)
+            .map(({ item, match }) => ({
+                id: item.id,
+                label: item.label,
+                highlights: match.positions,
+                ...(item.description ? { description: item.description } : {}),
+                runnable: true,
+            }));
+    return { entries, action: (entry) => ({ kind: 'pick', id: entry.id }), empty };
 }

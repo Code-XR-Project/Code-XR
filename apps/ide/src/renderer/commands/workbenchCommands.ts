@@ -11,6 +11,9 @@ export interface WorkbenchCommandTargets {
     openCommandPalette(): void;
     goToLine(): void;
     hasActiveEditor(): boolean;
+    changeIndentation(): void;
+    changeEndOfLine(): void;
+    changeLanguageMode(): void;
     openFolder(): void;
     hasFolder(): boolean;
     newFile(): void;
@@ -50,6 +53,9 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
     return [
         { id: 'workbench.commandPalette', category: 'View', title: 'Command Palette…', ...menu('workbench.commandPalette'), secondaryKeybindings: ['F1'], recordRecent: false, run: targets.openCommandPalette },
         { id: 'editor.goToLine', category: 'Go', title: 'Go to Line/Column…', ...menu('editor.goToLine'), enabled: targets.hasActiveEditor, run: targets.goToLine },
+        { id: 'editor.changeIndentation', category: 'Editor', title: 'Indent Using…', enabled: targets.hasActiveEditor, run: targets.changeIndentation },
+        { id: 'editor.changeEndOfLine', category: 'Editor', title: 'Change End of Line Sequence', enabled: targets.hasActiveEditor, run: targets.changeEndOfLine },
+        { id: 'editor.changeLanguageMode', category: 'Editor', title: 'Change Language Mode', enabled: targets.hasActiveEditor, run: targets.changeLanguageMode },
         { id: 'workspace.openFolder', category: 'File', title: 'Open Folder…', ...menu('workspace.openFolder'), run: targets.openFolder },
         { id: 'file.newFile', category: 'File', title: 'New File…', ...menu('file.newFile'), enabled: targets.hasFolder, run: targets.newFile },
         { id: 'file.newFolder', category: 'File', title: 'New Folder…', enabled: targets.hasFolder, run: targets.newFolder },
