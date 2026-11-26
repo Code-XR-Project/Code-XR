@@ -121,7 +121,7 @@
     "function": "compute@3",
     "field": "longName",
     "lizard": "compute values : List < Int > , offset : Int",
-    "ours": "compute(values:List<Int>, offset:Int)",
+    "ours": "compute(values: List<Int>, offset: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -130,7 +130,7 @@
     "function": "helper@17",
     "field": "longName",
     "lizard": "helper value : Int , offset : Int",
-    "ours": "helper(value:Int, offset:Int)",
+    "ours": "helper(value: Int, offset: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -265,7 +265,7 @@
     "function": "compute@3",
     "field": "longName",
     "lizard": "compute values : List [ Int ] , limit : Int",
-    "ours": "compute(values:List[Int], limit:Int)",
+    "ours": "compute(values: List[Int], limit: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -301,7 +301,7 @@
     "function": "helper@17",
     "field": "longName",
     "lizard": "helper value : Int , offset : Int",
-    "ours": "helper(value:Int, offset:Int)",
+    "ours": "helper(value: Int, offset: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -346,7 +346,7 @@
     "function": "compute@3",
     "field": "longName",
     "lizard": "compute values : [ Int ] , limit : Int",
-    "ours": "compute(values:[Int], limit:Int)",
+    "ours": "compute(values: [Int], limit: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -355,7 +355,7 @@
     "function": "helper@17",
     "field": "longName",
     "lizard": "helper value : Int , offset : Int",
-    "ours": "helper(value:Int, offset:Int)",
+    "ours": "helper(value: Int, offset: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -463,7 +463,7 @@
     "function": "compute@4",
     "field": "longName",
     "lizard": "compute values : [ ] const i32 , limit : i32",
-    "ours": "compute(values:[]const i32, limit:i32)",
+    "ours": "compute(values: []const i32, limit: i32)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -472,7 +472,7 @@
     "function": "helper@18",
     "field": "longName",
     "lizard": "helper value : i32 , offset : i32",
-    "ours": "helper(value:i32, offset:i32)",
+    "ours": "helper(value: i32, offset: i32)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1147,7 +1147,7 @@
     "function": "firstOrNull@37",
     "field": "longName",
     "lizard": "firstOrNull items : List < T > , predicate : T -> Boolean",
-    "ours": "firstOrNull(items:List<T>, predicate:(T)->Boolean)",
+    "ours": "firstOrNull(items: List<T>, predicate: (T)->Boolean)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1156,7 +1156,7 @@
     "function": "walk@22",
     "field": "longName",
     "lizard": "walk limit : Int",
-    "ours": "walk(limit:Int)",
+    "ours": "walk(limit: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1201,7 +1201,7 @@
     "function": "total@3",
     "field": "longName",
     "lizard": "total items : List < Int >",
-    "ours": "total(items:List<Int>)",
+    "ours": "total(items: List<Int>)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1219,7 +1219,7 @@
     "function": "describe@1",
     "field": "longName",
     "lizard": "describe code : Int",
-    "ours": "describe(code:Int)",
+    "ours": "describe(code: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1831,7 +1831,7 @@
     "function": "area@8",
     "field": "longName",
     "lizard": "area s : Shape",
-    "ours": "area(s:Shape)",
+    "ours": "area(s: Shape)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1876,7 +1876,7 @@
     "function": "total@14",
     "field": "longName",
     "lizard": "total shapes : List [ Shape ]",
-    "ours": "total(shapes:List[Shape])",
+    "ours": "total(shapes: List[Shape])",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -1984,7 +1984,7 @@
     "function": "describe@18",
     "field": "longName",
     "lizard": "describe owner : String?",
-    "ours": "describe(owner:String?)",
+    "ours": "describe(owner: String?)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -2011,7 +2011,7 @@
     "function": "process@31",
     "field": "longName",
     "lizard": "process _ values : [ Int ] , transform : Int -> Int",
-    "ours": "process(_ values:[Int], transform:(Int)->Int)",
+    "ours": "process(_ values: [Int], transform: (Int)->Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -2020,7 +2020,7 @@
     "function": "withdraw@10",
     "field": "longName",
     "lizard": "withdraw _ amount : Int",
-    "ours": "withdraw(_ amount:Int)",
+    "ours": "withdraw(_ amount: Int)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -2092,7 +2092,7 @@
     "function": "find@26",
     "field": "longName",
     "lizard": "find",
-    "ours": "find(predicate:(item:T)=>boolean)",
+    "ours": "find(predicate: (item: T)=>boolean)",
     "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
     "spec": "TS-FUNC-TYPE"
   },
@@ -2173,7 +2173,7 @@
     "function": ">@40",
     "field": "longName",
     "lizard": ">",
-    "ours": "load(keys:K[], fetch:(key:K)=>Promise<V>)",
+    "ours": "load(keys: K[], fetch: (key: K)=>Promise<V>)",
     "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
     "spec": "TS-GENERIC"
   },
@@ -2389,7 +2389,7 @@
     "function": "label@1",
     "field": "longName",
     "lizard": "label ( name? : string , fallback : string = \"none\" ) ( input : T )",
-    "ours": "label(name?:string, fallback:string=\"none\")",
+    "ours": "label(name?: string, fallback: string=\"none\")",
     "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
     "spec": "TS-GENERIC"
   },
@@ -2443,7 +2443,7 @@
     "function": "first@23",
     "field": "longName",
     "lizard": "first items : [ ] const ? u32",
-    "ours": "first(items:[]const?u32)",
+    "ours": "first(items: []const?u32)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -2452,7 +2452,7 @@
     "function": "kind@15",
     "field": "longName",
     "lizard": "kind value : i32",
-    "ours": "kind(value:i32)",
+    "ours": "kind(value: i32)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -2479,7 +2479,7 @@
     "function": "parse@3",
     "field": "longName",
     "lizard": "parse text : [ ] const u8",
-    "ours": "parse(text:[]const u8)",
+    "ours": "parse(text: []const u8)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },
@@ -2488,7 +2488,7 @@
     "function": "classify@1",
     "field": "longName",
     "lizard": "classify x : u32",
-    "ours": "classify(x:u32)",
+    "ours": "classify(x: u32)",
     "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
     "spec": "NAME-SIG"
   },

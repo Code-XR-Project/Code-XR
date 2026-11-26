@@ -2,7 +2,7 @@
 
 ## What this project is
 
-**CodeXR** (`code-xr`, published by `aMonteSl`, GPL-3.0) is a VS Code extension that analyzes source code and visualizes the metrics in extended reality. The pipeline: a **Python backend** (Lizard metrics, ~23 languages, run in a venv the extension manages) produces JSON → **BabiaXR/A-Frame templates** turn it into an XR scene → **local HTTP/HTTPS servers with SSE live-reload** serve it to a browser or headset. Three analysis modes share the pipeline: XR scene, LivePanel (2D webview), and DOM visualization. It also offers collaborative XR sessions and opt-in cross-network sharing via Cloudflare tunnels.
+**CodeXR** (`code-xr`, published by `aMonteSl`, GPL-3.0) is a VS Code extension that analyzes source code and visualizes the metrics in extended reality. The pipeline: a **Python backend** (its own code-metrics analyzer since 1.2.1, which replaced Lizard; ~23 languages; run in a venv the extension manages) produces JSON → **BabiaXR/A-Frame templates** turn it into an XR scene → **local HTTP/HTTPS servers with SSE live-reload** serve it to a browser or headset. Three analysis modes share the pipeline: XR scene, LivePanel (2D webview), and DOM visualization. It also offers collaborative XR sessions and opt-in cross-network sharing via Cloudflare tunnels.
 
 Current work: **v1.2.1 — a maintenance release: cleanup, optimization, internal hygiene, no new features** (branch `v1.2.1`; `master` is the PR target and the only other branch). The volatile state of the version lives in `.claude/docs/V1.2.1_STATUS.md` — read it, don't re-derive it from git. **1.2.0 shipped on 2026-07-30**; its cycle is closed and `V1.2.0_STATUS.md` is now a historical record.
 

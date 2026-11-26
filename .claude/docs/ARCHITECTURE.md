@@ -6,7 +6,7 @@
 
 ## The one-paragraph summary
 
-CodeXR is a VS Code extension (291 TS files under `src/`, in five layers since #55) that analyzes source code with a **Python backend** (Lizard metrics, run in a managed virtual environment) and renders the results as **BabiaXR/A-Frame XR scenes** served by **local HTTP/HTTPS servers** with **SSE live-reload**. The extension side is TypeScript; the in-scene runtime is plain JavaScript living in `templates/components/` and injected into generated HTML.
+CodeXR is a VS Code extension (291 TS files under `src/`, in five layers since #55) that analyzes source code with a **Python backend** (its own code-metrics analyzer, `backend/src/tools/code_metrics/`, which replaced Lizard in 1.2.1; run in a managed virtual environment) and renders the results as **BabiaXR/A-Frame XR scenes** served by **local HTTP/HTTPS servers** with **SSE live-reload**. The extension side is TypeScript; the in-scene runtime is plain JavaScript living in `templates/components/` and injected into generated HTML.
 
 ## Main data flow (the pipeline)
 

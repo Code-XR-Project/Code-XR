@@ -41,17 +41,19 @@ The engine takes different paths depending on two OPTIONAL packages, and
 may not be installed. Every golden is therefore built under a forced state,
 set up and torn down inside ``build_goldens``:
 
-* ``directory_without_structured_parser`` / ``file_without_lizard``: both
-  packages look uninstalled (a meta-path finder raises the very
+* ``directory_without_structured_parser`` / ``file_without_metrics_analyzer``:
+  both modules look uninstalled (a meta-path finder raises the very
   ``ModuleNotFoundError`` a missing install produces, so the warnings read as
-  they do in production). This pins the lexical adapter and the "Lizard
-  unavailable ... lexical symbol fallback used" branch.
-* ``directory_with_structured_parser`` / ``file_with_lizard``: deterministic
-  fakes stand in for ``tree_sitter_language_pack`` and ``lizard``. This pins
-  what the engine DOES with their answers (the grammar names it asks for, which
-  structured targets it keeps, how parser availability becomes a warning, how
-  lizard's functions are merged with the lexical scan and given an owner), not
-  the packages themselves.
+  they do in production). This pins the lexical adapter and the "Metrics
+  analyzer unavailable ... lexical symbol fallback used" branch, the safety
+  net for a broken install.
+* ``directory_with_structured_parser`` / ``file_with_metrics_analyzer``: a
+  deterministic fake stands in for ``tree_sitter_language_pack``, and the real
+  ``code_metrics_analyzer`` (pure Python, always present since epic #140)
+  measures the functions. This pins what the engine DOES with their answers
+  (the grammar names it asks for, which structured targets it keeps, how parser
+  availability becomes a warning, how the analyzer's functions are merged with
+  the lexical scan and given an owner), not the parser package itself.
 
 Candidate order (fixed in 1.2.1, DEPGRAPH-3)
 --------------------------------------------
@@ -74,9 +76,12 @@ keeps them, and a fix shows up as a reviewed diff.
 * In a brace language a function declared after a class becomes that class's
   method (shapes.ts: compute, standalone): the brace count includes the
   function's own opening line.
-* With lizard, class lines come from the class counter, which reports the first
+* With the metrics analyzer, class lines come from the class counter, which reports the first
   blank line above a class; Python methods below such a class lose their owner
   (worker.py: describe, run, again are functions of the module).
+* A nested Python function appears twice (``pong.inner`` from the metrics
+  analyzer, ``inner`` from the lexical top-up): the merge matches by (name,
+  first line) and the analyzer qualifies nested names, as Lizard did.
 * Directory mode turns an unresolved call into an external node; file mode
   drops it.
 * The owner-by-name rule is a substring test on the qualified name, so
@@ -125,7 +130,7 @@ GOLDEN_DIR = Path(__file__).resolve().parent / 'golden'
 REGENERATE_SCRIPT = Path(__file__).resolve().with_name('regenerate_golden.py')
 REGENERATE_COMMAND = 'python backend/tests/dependencies/regenerate_golden.py'
 
-OPTIONAL_DEPENDENCIES = ('lizard', 'tree_sitter_language_pack')
+OPTIONAL_DEPENDENCIES = ('code_metrics_analyzer', 'tree_sitter_language_pack')
 ROOT_TOKEN = '<root>'
 ABSENT_TOKEN = '<absent>'
 CAPABILITIES_TOKEN = '<the capabilities block at the top of this document>'
@@ -274,37 +279,6 @@ PROJECT_FILES = {
 }
 PROJECT_FILE_TARGETS = ('worker.py', 'shapes.ts', 'package/util.py')
 
-# What the fake lizard reports, per file name:
-# (name, long name, first line, last line, nloc, complexity, parameters, nesting).
-# * Three functions are left out on purpose (ping, inner, standalone): the
-#   engine tops lizard's list up with its own lexical scan, and that merge is
-#   behaviour. ping and inner sit in the MIDDLE of worker.py, so the merged list
-#   is only in line order (and the ordinals inside the symbol ids only come out
-#   right) because the engine sorts it again.
-# * 'Late::helper' names its class although it is a Python method. With lizard
-#   the class lines are off (see the module docstring), so the long name is the
-#   only way this method finds its owner: without the owner-by-name rule it
-#   would be a function of the module, like describe, run and again.
-# A test below checks that every row points at a line that defines that name.
-FAKE_LIZARD_FUNCTIONS = {
-    'worker.py': (
-        ('describe', 'describe( self )', 10, 11, 2, 1, 1, 0),
-        ('run', 'run( self )', 15, 17, 3, 1, 1, 0),
-        ('again', 'again( self )', 20, 21, 2, 1, 1, 0),
-        ('helper', 'helper( value = 0 )', 24, 27, 4, 2, 1, 1),
-        ('pong', 'pong( )', 35, 38, 4, 1, 0, 1),
-        ('helper', 'Late::helper( self )', 42, 43, 2, 1, 1, 0),
-        ('rebase', 'rebase( )', 46, 47, 2, 1, 0, 0),
-    ),
-    'shapes.ts': (
-        ('area', 'Circle::area', 11, 13, 3, 1, 0, 0),
-        ('compute', 'compute( size : number )', 16, 18, 3, 1, 1, 0),
-    ),
-    'util.py': (
-        ('tool', 'tool( value )', 4, 5, 2, 1, 1, 0),
-    ),
-}
-
 # The fake structured parser has no grammar for TTCN-3, and it chokes on two
 # single files, recognized by their text: shared.zig, the FIRST Zig file in
 # path order, and solidity_sample.sol, the SECOND Solidity file. Today the first
@@ -363,8 +337,8 @@ def forced_environment(optional_dependencies):
 
     ``optional_dependencies`` maps each name in OPTIONAL_DEPENDENCIES to a fake
     module, or to None for "not installed". Backend modules loaded earlier are
-    set aside as well: ``lizard_analyzer`` binds to whatever ``lizard`` it saw
-    at import time, so a cached copy would silently undo the forcing. On exit
+    set aside as well: ``file_analysis_engine`` binds to whatever analyzer it
+    saw at import time, so a cached copy would silently undo the forcing. On exit
     everything loaded inside is dropped and the previous modules come back,
     the same discipline as ``backend_sandbox.BackendModuleSandbox``.
     """
@@ -407,27 +381,6 @@ def record_candidate_lookups(engine, seen):
 
     with mock.patch.object(engine, '_normalize_reference', recorded):
         yield
-
-
-def fake_lizard():
-    def analyze_file(file_path):
-        rows = FAKE_LIZARD_FUNCTIONS.get(Path(file_path).name, ())
-        functions = [
-            types.SimpleNamespace(
-                name=name, long_name=long_name, start_line=first, end_line=last,
-                nloc=nloc, cyclomatic_complexity=complexity,
-                parameter_count=parameters, max_nesting_depth=nesting,
-            )
-            for name, long_name, first, last, nloc, complexity, parameters, nesting in rows
-        ]
-        return types.SimpleNamespace(
-            nloc=sum(function.nloc for function in functions),
-            function_list=functions,
-        )
-
-    module = types.ModuleType('lizard')
-    module.analyze_file = analyze_file
-    return module
 
 
 def fake_structured_parser():
@@ -622,18 +575,18 @@ def _build_documents(build, scratch):
                     cases[f'{root}: {relative}'] = _file_case(engine, roots[root], relative)
         build.documents[file_name] = render_json(_document(pins, cases))
 
-    with forced_environment({'lizard': None, 'tree_sitter_language_pack': None}) as engine:
+    with forced_environment({'code_metrics_analyzer': None, 'tree_sitter_language_pack': None}) as engine:
         directory_document(
             engine, 'directory_without_structured_parser.json',
             'analyze_dependencies; tree_sitter_language_pack not installed (lexical adapter only)',
             tuple(DIRECTORY_CASES),
         )
         file_document(
-            engine, 'file_without_lizard.json',
-            'analyze_file_dependencies; lizard not installed (lexical symbol fallback)',
+            engine, 'file_without_metrics_analyzer.json',
+            'analyze_file_dependencies; code_metrics_analyzer missing (lexical symbol fallback)',
         )
 
-    fakes = {'lizard': fake_lizard(), 'tree_sitter_language_pack': fake_structured_parser()}
+    fakes = {'tree_sitter_language_pack': fake_structured_parser()}
     with forced_environment(fakes) as engine:
         directory_document(
             engine, 'directory_with_structured_parser.json',
@@ -641,8 +594,8 @@ def _build_documents(build, scratch):
             ('fixture corpus, recursive',),
         )
         file_document(
-            engine, 'file_with_lizard.json',
-            'analyze_file_dependencies; fake lizard (see FAKE_LIZARD_FUNCTIONS)',
+            engine, 'file_with_metrics_analyzer.json',
+            'analyze_file_dependencies; the real code_metrics_analyzer',
         )
 
 
@@ -765,11 +718,11 @@ class DependencyGoldenTests(unittest.TestCase):
     def test_directory_answers_match_the_golden_when_a_structured_parser_answers(self):
         self._assert_golden('directory_with_structured_parser.json')
 
-    def test_file_payloads_match_the_golden_when_lizard_is_not_installed(self):
-        self._assert_golden('file_without_lizard.json')
+    def test_file_payloads_match_the_golden_when_the_metrics_analyzer_is_missing(self):
+        self._assert_golden('file_without_metrics_analyzer.json')
 
-    def test_file_payloads_match_the_golden_when_lizard_answers(self):
-        self._assert_golden('file_with_lizard.json')
+    def test_file_payloads_match_the_golden_when_the_metrics_analyzer_answers(self):
+        self._assert_golden('file_with_metrics_analyzer.json')
 
     def test_golden_directory_holds_exactly_the_documents_the_build_produces(self):
         # A golden nobody compares against looks like coverage and is not.
@@ -806,25 +759,6 @@ class DependencyGoldenTests(unittest.TestCase):
 
     def test_building_the_goldens_hands_back_the_import_state_it_found(self):
         self.assertEqual(_build.import_state_before, _build.import_state_after)
-
-    def test_every_fake_lizard_row_points_at_the_line_that_defines_its_function(self):
-        # The engine matches lizard's functions with its own scan by (name,
-        # first line). A row that drifted away from PROJECT_FILES would be
-        # topped up with a twin, and the golden would pin the twin as if it
-        # were behaviour.
-        sources = {
-            Path(relative).name: content.decode('utf-8', 'replace') if isinstance(content, bytes) else content
-            for relative, content in PROJECT_FILES.items()
-        }
-        self.assertEqual(len(PROJECT_FILES), len(sources), 'the fake lizard tells files apart by base name')
-        self.assertTrue(set(FAKE_LIZARD_FUNCTIONS) <= set(sources), sorted(FAKE_LIZARD_FUNCTIONS))
-        for file_name, rows in FAKE_LIZARD_FUNCTIONS.items():
-            lines = sources[file_name].splitlines()
-            self.assertTrue(rows, file_name)
-            for name, _long_name, first, last, *_metrics in rows:
-                with self.subTest(file=file_name, function=name, line=first):
-                    self.assertTrue(1 <= first <= last <= len(lines), (first, last, len(lines)))
-                    self.assertRegex(lines[first - 1], rf'\b{name}\(')
 
     def test_the_comparison_notices_order_changes_and_single_values(self):
         # Guards the comparison itself: whoever makes it "stable" by sorting

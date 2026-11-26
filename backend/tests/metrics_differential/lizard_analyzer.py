@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Lizard Code Analyzer Wrapper.
+Lizard Code Analyzer Wrapper: the analyzer Code-XR shipped until epic #140.
+
+Kept only as a test tool: ``regenerate_lizard_golden.py`` and the differential
+test run it to freeze and re-check what the pinned Lizard reports. Production
+uses ``backend/src/tools/code_metrics_analyzer.py``. Needs the pinned lizard
+from ``backend/requirements-dev.txt``.
 """
 
 from __future__ import annotations
@@ -15,11 +20,11 @@ from typing import Any, Callable
 
 import lizard
 
-UTILS_DIR = Path(__file__).resolve().parent.parent / 'utils'
+UTILS_DIR = Path(__file__).resolve().parents[2] / 'src' / 'utils'
 if str(UTILS_DIR) not in sys.path:
     sys.path.insert(0, str(UTILS_DIR))
 
-from babia_path_utils import normalize_output_paths
+from babia_path_utils import normalize_output_paths  # noqa: E402
 
 
 CleanupFn = Callable[[], None]

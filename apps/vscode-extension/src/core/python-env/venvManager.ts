@@ -465,26 +465,6 @@ export class VenvManager {
     }
 
     /**
-     * Get the lizard executable command for external use.
-     */
-    public getLizardCommand(): string | null {
-        const pythonPath = this.getPythonExecutablePath();
-        if (!pythonPath) {
-            return null;
-        }
-
-        return `"${pythonPath}" -m lizard`;
-    }
-
-    /**
-     * Verify that lizard is working correctly in the environment.
-     */
-    public async verifyLizardInstallation(): Promise<boolean> {
-        const pkg = CODEXR_PYTHON_PACKAGES.find(item => item.distribution === 'lizard');
-        return pkg ? this.verifyPackage(pkg) : false;
-    }
-
-    /**
      * Execute a command and return the result.
      */
     private async executeCommand(command: ExecutableCommand, cwd?: string): Promise<CommandExecutionResult> {

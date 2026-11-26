@@ -8,7 +8,8 @@ for the divergence IDs. Two comparisons run:
   in ``divergences.json``;
 * ``lizard_analyzer`` must equal the golden with NO divergence allowed, which
   proves the golden still describes the pinned Lizard. It is skipped when that
-  Lizard is not installed, i.e. everywhere once #145 drops the dependency.
+  Lizard is not installed (it is a dev-only dependency since #145,
+  in backend/requirements-dev.txt; CI installs it).
 """
 
 from __future__ import annotations

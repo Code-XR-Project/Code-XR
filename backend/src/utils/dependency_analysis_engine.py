@@ -388,7 +388,7 @@ def _build_file_dependency_snapshot(file_path: str, text: str) -> tuple[dict[str
             "language": language,
             "classes": classes,
             "functions": functions,
-        }, f"Lizard unavailable ({error}); lexical symbol fallback used"
+        }, f"Metrics analyzer unavailable ({error}); lexical symbol fallback used"
 
 
 def _add_graph_metrics(nodes: list[dict[str, object]], edges: list[dict[str, object]]) -> None:

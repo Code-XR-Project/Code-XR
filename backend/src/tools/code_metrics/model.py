@@ -46,14 +46,18 @@ class Function:
 def join_tokens(tokens: list[Token]) -> str:
     """Readable source text of a token run: spaces only where two words would merge."""
     out = ''
+    prev_pointer = False
     for token in tokens:
         text = token.source
         if out and (out[-1].isalnum() or out[-1] in '_$') and (text[0].isalnum() or text[0] in '_$'):
             out += ' '
         elif out and text in (',',):
             pass
-        elif out and out[-1] == ',':
-            out += ' '
+        elif out and (out[-1] == ',' or (out[-1] == ':' and not out.endswith('::') and text not in ')]},:')):
+            out += ' '             # `a, b` and the type annotation `a: T`
+        elif out and prev_pointer and (text[0].isalpha() or text[0] == '_'):
+            out += ' '             # `const T& name`, `char* name`
+        prev_pointer = text in ('&', '&&', '*', '**') and len(out) > 0 and (out[-1].isalnum() or out[-1] in '>_')
         out += text
     return out
 

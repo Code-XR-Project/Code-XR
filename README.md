@@ -12,7 +12,7 @@ This repository is an **npm-workspaces monorepo**. It holds the published VS Cod
 |---|---|---|
 | [`apps/vscode-extension/`](apps/vscode-extension/) | The VS Code extension (`aMonteSl.code-xr`): TypeScript sources, XR scene templates and browser runtimes, examples, resources, user docs, tests and packaging scripts. | Active, published |
 | [`apps/ide/`](apps/ide/) | The standalone Code-XR IDE (Electron + Monaco): secure Electron shell, workbench layout, dev/build/smoke scripts. See [`apps/ide/README.md`](apps/ide/README.md). | In development (epic #11) |
-| [`backend/`](backend/) | The Python analysis backend (Lizard metrics, dependency engine, XR/LivePanel/DOM data producers) and its unit tests. Shipped inside the extension at `dist/code_analysis/python`. | Active |
+| [`backend/`](backend/) | The Python analysis backend (its own code-metrics analyzer, dependency engine, XR/LivePanel/DOM data producers) and its unit tests. Shipped inside the extension at `dist/code_analysis/python`. | Active |
 | [`packages/`](packages/) | Code shared between the apps. Empty today: see [`packages/README.md`](packages/README.md) for what moves here and when. | Planned |
 | [`docs/`](docs/) | Repository-level documentation (monorepo layout, cross-platform notes). Extension user docs stay in `apps/vscode-extension/docs/`, next to the README that links them. | Active |
 | [`media/`](media/) | Release screenshot and GIF masters, the shot list ([`SHOTLIST.md`](media/SHOTLIST.md)) and the video index. Nothing reads this folder at HEAD: the extension README loads its images from absolute URLs pinned to the release tag, and the website keeps its own copies. Not shipped. | Archive |

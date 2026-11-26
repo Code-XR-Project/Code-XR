@@ -369,7 +369,7 @@ CodeXR offers powerful analysis modes, each optimized for different file types a
 **Universal capabilities available for files, directories, and projects:**
 
 - **24 Code Languages + HTML DOM**: Full support for JavaScript, TypeScript, Python, C/C++, C#, Java, Ruby, Go, PHP, Swift, Kotlin, Scala, Lua, Erlang, Zig, Perl, Solidity, TTCN-3, Objective-C, Fortran, GDScript, Vue, plus HTML DOM visualization
-- **Cyclomatic Complexity**: Industry-standard complexity calculation using Lizard integration
+- **Cyclomatic Complexity**: Standard McCabe complexity (decisions + 1, short-circuit operators counted), computed by CodeXR's own offline analyzer
 - **Lines of Code Metrics**: Total lines, code lines, comment lines, and blank lines with language-aware parsing
 - **Function Analysis**: Function count, parameter analysis, complexity per function, and cyclomatic density
 - **Class Detection**: Object-oriented structure analysis including inheritance, interfaces, and nested classes
@@ -577,7 +577,7 @@ Customize your scene:
 ### Analysis Engine
 - **Python-based Coordinators**: Redesigned Python-based analysis coordinators for better accuracy
 - **Multi-language Parsing**: Advanced parsing capabilities for 24 code languages plus HTML DOM visualization
-- **Lizard Integration**: Industry-standard complexity analysis using Lizard tool
+- **Own Metrics Analyzer**: Pure-Python, offline analyzer for complexity, nesting depth, parameters and lines of code in every supported language
 - **Dependency Extraction**: Static relation analysis (imports, includes, inheritance, calls) with per-relation confidence
 - **Git Snapshots**: Historical analyses materialize temporary snapshots without ever touching your working tree or `.git`
 - **Performance Optimization**: Optimized for handling large codebases efficiently
@@ -607,7 +607,6 @@ Customize your scene:
 ### Automatic Dependencies
 CodeXR automatically manages the following dependencies:
 - **Python Virtual Environment**: Created in `globalStorage` directory from VS Code
-- **Lizard**: Code complexity analysis tool
 - **tree-sitter-language-pack**: Structured parsers for the XR dependency graph
 - **Required Python Packages**: Automatically installed as needed
 
@@ -712,7 +711,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPLv3)** -
 
 - **BabiaXR Team**: For the powerful visualization framework
 - **A-Frame Community**: For WebXR support and immersive web technologies
-- **Lizard Tool**: For reliable code complexity analysis
+- **Lizard Tool**: CodeXR's complexity engine up to 1.2.0, and the reference its own analyzer is tested against
 - **Meta's Immersive Web Emulator & IWER**: For making real WebXR sessions drivable from a desktop browser, the tooling behind this release's XR validation
 - **VS Code Extension API**: For the extensible platform
 - **Open Source Community**: For continuous feedback and contributions

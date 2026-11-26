@@ -18,9 +18,9 @@ if str(TOOLS_DIR) not in sys.path:
 
 from babia_path_utils import build_tree_path, normalize_output_paths
 from class_counter_analyzer import analyze_classes
+from code_metrics_analyzer import analyze_file as analyze_function_metrics
 from file_metric_summary import get_file_size
 from line_metric_utils import build_line_metrics
-from lizard_analyzer import analyze_file as analyze_with_lizard
 from metric_language_contract import get_metric_language
 from python_comment_analyzer import analyze_comments
 from xr_field_schema import build_complexity_band, safe_ratio, summarize_function_metrics
@@ -103,15 +103,15 @@ def build_file_snapshot(file_path: str) -> dict[str, Any]:
     language = get_metric_language(file_path)
     file_name = os.path.basename(file_path)
 
-    lizard_data = analyze_with_lizard(file_path)
+    metrics_data = analyze_function_metrics(file_path)
     comment_data = analyze_comments(file_path)
     class_data = analyze_classes(file_path)
     line_metrics = build_line_metrics(file_path, comment_data.get('commentLines', 0))
 
-    status = lizard_data.get('status', 'error')
-    normalized_functions = _normalize_function_metrics(lizard_data.get('functions', []))
+    status = metrics_data.get('status', 'error')
+    normalized_functions = _normalize_function_metrics(metrics_data.get('functions', []))
     function_summary = summarize_function_metrics(normalized_functions)
-    complexity_metrics = lizard_data.get('metrics', {}) if status == 'success' else {}
+    complexity_metrics = metrics_data.get('metrics', {}) if status == 'success' else {}
 
     average_complexity = _safe_float(complexity_metrics.get('averageComplexity'), 0.0)
     max_complexity = _safe_int(complexity_metrics.get('maxComplexity'), 0)

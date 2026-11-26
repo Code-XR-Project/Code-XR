@@ -12,7 +12,7 @@ Language support spans two worlds that must change together. The **source of tru
 
 ## Checklist for adding/changing a language
 
-1. **Python contract**: declare the language's metric capabilities in `metric_language_contract.py`. Metrics come primarily from Lizard; dependency relations from `tree-sitter-language-pack` (`utils/dependency_analysis_engine.py`) with confidence levels exact / best-effort / unsupported / ambiguous.
+1. **Python contract**: declare the language's metric capabilities in `metric_language_contract.py`. Metrics come from Code-XR's own analyzer (`backend/src/tools/code_metrics/languages.py` declares the language; add a corpus file to `backend/tests/metrics_differential/corpus/`); dependency relations from `tree-sitter-language-pack` (`utils/dependency_analysis_engine.py`) with confidence levels exact / best-effort / unsupported / ambiguous.
 2. **Field schema impact**: if any metric field is added/renamed, it must flow through `python/utils/xr_field_schema.py` → `--mode schema` → `xrFieldSchemaService.ts` → `dimensionValidator.ts`. A mismatch surfaces as dimension-mapping failures or empty charts. See `.claude/docs/PYTHON_ANALYSIS.md` §field-schema contract.
 3. **TS metadata**: mirror the language in `src/core/analysis/languages/languageMetadata.ts` (extensions, display name, capabilities).
 4. **Fixtures**:

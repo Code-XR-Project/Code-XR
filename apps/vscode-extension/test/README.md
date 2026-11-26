@@ -28,7 +28,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `npm run test:unit`: the unit suites only, against the existing `out/` (it refuses a stale one).
 - `npm run test:python`: run Python backend tests if a Python interpreter is available (under `CI`, a missing interpreter fails).
 - `npm run test:all`: run both the Node and Python suites.
-- `npm run test:analysis`: per-language end-to-end metrics over `backend/manual_test/` with the pinned lizard.
+- `npm run test:analysis`: per-language end-to-end metrics over `backend/manual_test/` (Code-XR's own metrics analyzer, no third-party package).
 - `npm run test:htmlanalysis`: the HTML/DOM analysis suite.
 - `npm run test:core-smoke`: the compiled core runs one LivePanel analysis with no `vscode` and a stub host (#13); needs `compile-tests` and the `test:analysis` venv.
 - `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`, `test:xr-chart-bounds-harness`, `test:xr-panel-placement-harness`: browser harnesses (Playwright's Chromium; the CDN libraries are served from `test/vendor/scene-libraries/` and every other non-local request is aborted, so they run offline). `npm run test:harnesses` runs all six, as the CI `harnesses` job does. The mode and immersive harnesses serve the project over HTTP on 127.0.0.1 (`test/helpers/staticHttpServer.cjs`) instead of opening `file://`, so `fetch()` works in them.

@@ -39,7 +39,7 @@ analyses receive a disabled action with an explanatory reason.
 
 ## Python Environment
 
-Lizard remains responsible for complexity metrics. It is not used to infer
+Code-XR's own metrics analyzer remains responsible for complexity metrics. It is not used to infer
 imports or calls.
 
 `tree-sitter-language-pack` is pinned in the central Python package manifest
@@ -451,7 +451,7 @@ comparison and dependency mode. The filesystem watcher detects a project
 change once and the refresh coordinator delivers it only to the visible mode:
 
 - Normal mode recalculates affected metrics and updates `data.json`.
-- Dependency mode does not run Lizard or modify `data.json`.
+- Dependency mode does not run the metrics analyzer or modify `data.json`.
 - Historical mode updates only `working-copy`; Git revisions stay immutable.
 
 Hidden modes retain a coalesced change set. Returning to a stale mode triggers

@@ -47,7 +47,7 @@ PYTHON_ROOT = PROJECT_ROOT / 'backend' / 'src'
 def _load_private(name, module_path):
     # Loaded by path and never registered in sys.modules: the three modules are
     # stdlib-only, and other suites swap the backend modules in sys.modules for
-    # a sandbox with a fake lizard. A private copy can neither leak into that
+    # a sandbox. A private copy can neither leak into that
     # sandbox nor be evicted by it, whatever order discovery runs the suites in.
     spec = importlib.util.spec_from_file_location(name, module_path)
     module = importlib.util.module_from_spec(spec)
