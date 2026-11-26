@@ -15,7 +15,7 @@ target-version = "py37"
 # (manual_test/) are deliberately bad code that test:analysis measures exactly
 # as it is, and the dependency fixtures exist to be parsed (an "unused" import
 # there is the point). Neither is ever linted, nor "fixed".
-extend-exclude = ["manual_test", "tests/fixtures"]
+extend-exclude = ["manual_test", "tests/fixtures", "tests/metrics_differential/corpus"]
 
 [lint]
 # Pyflakes (F: unused imports and variables, undefined names, ...) plus the

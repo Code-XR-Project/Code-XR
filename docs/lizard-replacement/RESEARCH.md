@@ -74,7 +74,7 @@ Lizard takes the common side of, and which we should keep to stay comparable:
 - `default` / `else` do not count.
 
 Confirmed correct on probes: C, C++, Java, Go, JavaScript, Lua, Fortran, Solidity, Swift (`guard`
-counted, `Int?` not), C# for `??`, Java `catch`, switch expressions (`case 1 ->`).
+counted, `Int?` not), Kotlin `when` arms, C# for `??`, Java `catch`, switch expressions (`case 1 ->`).
 
 Confirmed **wrong** (each reproduced with 1.17.31):
 
@@ -87,7 +87,7 @@ Confirmed **wrong** (each reproduced with 1.17.31):
 | C5 | JavaScript, TypeScript | `??` is tokenized as two `?` | +2 instead of +1 per `??` |
 | C6 | Perl | `:` is in the condition set | a ternary counts +2; any other `:` also counts |
 | C7 | Erlang | `not` is in the condition set | +1 per `not` (negation is not a branch) |
-| C8 | Kotlin | `when` branches are not counted | a 3-arm `when` counts as 0 |
+| C8 | Kotlin | (withdrawn after re-checking: `when` arms are counted, `else ->` is not — correct) | — |
 | C9 | Ruby, Lua | Lua inherits Ruby's set (`&&`, `||`, `rescue`, `ensure`, `when` in Lua) — harmless, those tokens never occur; Ruby misses `unless` | −1 per `unless` in Ruby |
 | C10 | Zig | the `else =>` prong is counted like a case | +1 per `switch` with `else` |
 
@@ -120,9 +120,14 @@ lists them; Lizard silently falls back to its C reader or finds nothing):
 
 **Function detection and names**:
 
-- TypeScript generics: `function f<T extends object>(a: T)` is reported as a function **named `>`**.
-- TypeScript / C#: getters, setters and C# properties (`get y() {}`, `P { get { … } }`) are not
-  detected; their lines are attributed to the previous function, whose `lineEnd` grows.
+- TypeScript generics: `function f<T extends object>(a: T)` is reported as a function **named `>`**,
+  and two consecutive generic functions are **merged into that one `>` record** (the second one
+  disappears). In the corpus file `typescript_optional.ts`, `identity<T>` is missing altogether.
+- TypeScript: a method with a `: void` return annotation swallows the next class member
+  (`long_name = 'm ( x : number ) ( )'`, the getter after it is lost).
+- C#: properties (`P { get { … } }`) are never detected; a class with only properties has zero
+  functions.
+- Kotlin: nesting depth is always 0.
 - PHP (`.php`): `function f($a, $b)` → `parameters = 1` and `long_name = 'f $a $a $b $b'`.
   Code-XR's fallback only re-counts when Lizard says 0, so PHP parameter counts are wrong.
 - Perl: `parameter_count` is always 0 (Code-XR's `my (...) = @_` fallback fixes the common case).
@@ -134,7 +139,7 @@ lists them; Lizard silently falls back to its C reader or finds nothing):
 
 - The **definition** Lizard uses for CCN is standard and worth keeping exactly, so existing numbers
   stay comparable and most of them do not move.
-- The **implementation** has ten confirmed per-language CCN errors, a nesting-depth metric that is
+- The **implementation** has nine confirmed per-language CCN errors, a nesting-depth metric that is
   wrong in every language, four extension families that are silently mis-parsed, and broken names or
   parameter counts for TypeScript generics, accessors and PHP.
 - None of this needs a schema change: every fix changes a **value**, never a key.
@@ -145,7 +150,7 @@ Keep (the differential tests demand an exact match with Lizard): function list, 
 NLOC, parameters, and CCN for every construct Lizard handles right — which is most of them.
 
 Change on purpose (each one an entry in the divergence list of the differential tests, with the
-reason): C1–C10, nesting depth everywhere (real block nesting; `&&`/`||`/`?` do not nest), the
+reason): C1–C10 (except the withdrawn C8), nesting depth everywhere (real block nesting; `&&`/`||`/`?` do not nest), the
 extension gaps, TypeScript generic names, accessors, PHP parameters.
 
 ### Parser choice (open decision)
