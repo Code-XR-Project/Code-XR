@@ -1,5 +1,4 @@
 import * as http from 'http';
-import * as vscode from 'vscode';
 import type { HostDisposable } from '../host/codeXRHost';
 import { sseManager } from './sse/SSEManager';
 import { fileToServerMap } from './fileToServerMap';
@@ -21,6 +20,7 @@ import { HistoricalComparisonBridge } from './analysis/historicalComparisonBridg
 import { ProjectEvolutionBridge } from './analysis/projectEvolutionBridge';
 import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('SERVER');
 
@@ -41,7 +41,7 @@ export interface HttpServerConfig {
     enableCors?: boolean;
     allowedOrigins?: string[];
     mainFile?: string; // Optional main file to serve at root
-    extensionContext?: vscode.ExtensionContext;
+    extensionContext?: CoreContext;
     analysisSessionId?: string;
 }
 

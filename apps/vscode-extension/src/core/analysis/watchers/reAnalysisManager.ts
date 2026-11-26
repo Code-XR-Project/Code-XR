@@ -3,7 +3,6 @@
  * Handles incremental refresh of analysis artifacts after watcher-triggered changes.
  */
 
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
@@ -13,6 +12,7 @@ import { FileRequirementProcessor } from '../processors/FileRequirementProcessor
 import { SaveFiles } from '../utils/saveFiles';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('RE_ANALYSIS_MANAGER');
 
@@ -20,7 +20,7 @@ export class ReAnalysisManager {
     private executePython: ExecutePython;
     private sseManager: SSEManager;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: CoreContext) {
         this.executePython = new ExecutePython(context);
         this.sseManager = SSEManager.getInstance();
     }

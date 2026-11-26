@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../analysis/configuration/analysisConfigurationStorage';
 import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
@@ -20,7 +19,7 @@ import {
     HistoricalComparisonResult,
     HistoricalComparisonStatus,
 } from './historicalComparisonModels';
-import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
+import { hostPathsFromContext, privateStorageRoot, type CoreContext } from '../host/hostPaths';
 
 const ANALYZER_CACHE_VERSION = 'historical-v1';
 
@@ -87,7 +86,7 @@ export class HistoricalComparisonService {
     private readonly sessionStorageRoot: string;
 
     public constructor(
-        private readonly context: vscode.ExtensionContext,
+        private readonly context: CoreContext,
         private readonly sessionId: string,
         private readonly staticRoot: string,
         sourceCatalog?: GitAnalysisSourceCatalog,

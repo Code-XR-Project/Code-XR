@@ -3,7 +3,6 @@
  * Coordina el lanzamiento de servidores usando el sistema existente de MultiServerLauncher.
  */
 
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { MultiServerLauncher } from '../../server/multiServerLauncher';
@@ -16,6 +15,7 @@ import {
     SessionServerInfo,
 } from './sessionServerModels';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('SERVER_LAUNCH_ORCHESTRATOR');
 
@@ -23,7 +23,7 @@ export class ServerLaunchOrchestrator {
     private multiServerLauncher: MultiServerLauncher | null = null;
     private serverSettingsManager: ServerSettingsManager;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: CoreContext) {
         logger.debug('Initializing orchestrator');
         this.serverSettingsManager = ServerSettingsManager.getInstance(context);
     }

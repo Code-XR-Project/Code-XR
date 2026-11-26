@@ -3,7 +3,6 @@
  * Monitors directory sessions and performs incremental re-analysis after debounce.
  */
 
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
@@ -14,12 +13,12 @@ import { ConfigurationConverter } from './configurationConverter';
 import { FileHashTracker } from './fileHashTracker';
 import { DirectoryReAnalyzer } from './directoryReAnalyzer';
 import { ReAnalysisManager } from './reAnalysisManager';
-import { handleError, ErrorDomain, ErrorSeverity } from '../../../platform/ui/errorHandler';
 import { SHA256Generator } from '../utils/sha256Generator';
 import { isRelevantDirectoryEvent, shouldIgnoreDirectoryName } from './analysisFilePolicy';
 import { scanDirectoryScope } from './directorySnapshot';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../refresh/analysisRefreshCoordinator';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('DIRECTORY_WATCHER_ORCHESTRATOR');
 
@@ -38,7 +37,7 @@ export class DirectoryWatcherOrchestrator {
 
     constructor(
         private session: UnifiedAnalysisSession,
-        private context: vscode.ExtensionContext,
+        private context: CoreContext,
     ) {
         this.configurationStorage = AnalysisConfigurationStorage.getInstance(context);
         this.sourceHashTracker = new FileHashTracker(session.filesToHash);
@@ -73,7 +72,7 @@ export class DirectoryWatcherOrchestrator {
             logger.debug(() => `Started with ${this.watchers.size} watched directories`);
             return this.isWatching ? this.watcherId : null;
         } catch (error) {
-            handleError(ErrorDomain.Watcher, 'Error starting watcher', error, ErrorSeverity.Log);
+            logger.error(`WATCHER: Error starting watcher`, error);
             this.cleanup();
             return null;
         }
@@ -93,7 +92,7 @@ export class DirectoryWatcherOrchestrator {
 
             this.debounceManager?.updateDelay(newDelayMs);
         } catch (error) {
-            handleError(ErrorDomain.Watcher, 'Error updating debounce', error, ErrorSeverity.Log);
+            logger.error(`WATCHER: Error updating debounce`, error);
         }
     }
 
@@ -176,7 +175,7 @@ export class DirectoryWatcherOrchestrator {
             }
             await this.reconcileSource(true);
         } catch (error) {
-            handleError(ErrorDomain.Watcher, 'Error in debounce callback', error, ErrorSeverity.Log);
+            logger.error(`WATCHER: Error in debounce callback`, error);
         }
     }
 
@@ -228,7 +227,7 @@ export class DirectoryWatcherOrchestrator {
                 + `(${actuallyChanged.length} changed, ${diff.added.length} added, ${diff.removed.length} removed)`);
             return true;
         } catch (error) {
-            handleError(ErrorDomain.Watcher, 'Error reconciling directory source', error, ErrorSeverity.Log);
+            logger.error(`WATCHER: Error reconciling directory source`, error);
             return false;
         }
     }
@@ -312,7 +311,7 @@ export class DirectoryWatcherOrchestrator {
                 });
                 this.watchers.set(dirPath, watcher);
             } catch (watchError) {
-                handleError(ErrorDomain.Watcher, `Failed to watch ${dirPath}`, watchError, ErrorSeverity.Log);
+                logger.error(`WATCHER: Failed to watch ${dirPath}`, watchError);
             }
         }
 

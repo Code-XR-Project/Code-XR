@@ -1,15 +1,15 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { generateNonce } from '../../shared/nonceGenerator';
-import { CodeXRLogger } from '../../platform/logging/logger';
+import { getLogger } from '../../platform/logging/sink';
 import {
     DEFAULT_REMOTE_ACCESS_SETTINGS,
     RemoteAccessSettings,
 } from '../remote-access/remoteAccessModel';
 import { getHost } from '../host/hostRegistry';
+import type { CoreContext } from '../host/hostPaths';
 
-const logger = CodeXRLogger.getLogger('SERVER_SETTINGS');
+const logger = getLogger('SERVER_SETTINGS');
 
 /**
  * Structured server configuration interface
@@ -58,13 +58,13 @@ export const DEFAULT_SERVER_SETTINGS: ServerSettings = {
 export class ServerSettingsManager {
     private static instance: ServerSettingsManager;
     private settings: ServerSettings;
-    private context: vscode.ExtensionContext;
+    private context: CoreContext;
     private readonly SETTINGS_FILENAME = 'server-settings.json';
     private settingsFilePath: string;
     private initializationPromise: Promise<void> | null = null;
     private initialized = false;
 
-    private constructor(context: vscode.ExtensionContext) {
+    private constructor(context: CoreContext) {
         this.context = context;
         this.settings = { ...DEFAULT_SERVER_SETTINGS, configNonce: generateNonce() };
         this.settingsFilePath = path.join(context.globalStorageUri.fsPath, this.SETTINGS_FILENAME);
@@ -84,7 +84,7 @@ export class ServerSettingsManager {
     /**
      * Get singleton instance.
      */
-    public static getInstance(context?: vscode.ExtensionContext): ServerSettingsManager {
+    public static getInstance(context?: CoreContext): ServerSettingsManager {
         if (!ServerSettingsManager.instance) {
             if (!context) {
                 throw new Error('SERVER: Context required for first initialization');
@@ -126,7 +126,7 @@ export class ServerSettingsManager {
     /**
      * Get extension context.
      */
-    public getExtensionContext(): vscode.ExtensionContext {
+    public getExtensionContext(): CoreContext {
         return this.context;
     }
 

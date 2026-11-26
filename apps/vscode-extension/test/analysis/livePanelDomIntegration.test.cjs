@@ -214,7 +214,7 @@ test('LivePanelParser resolves templates from context.extensionPath like every o
     const fileXRParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
     const visualizeDOMParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'visualizeDOMParser.ts');
 
-    assert.match(source, /constructor\(context: vscode\.ExtensionContext\)/);
+    assert.match(source, /constructor\(context: CoreContext\)/);
     assert.match(source, /this\.context = context;/);
     assert.match(source, /resolveTemplatePath\(this\.context\.extensionPath, 'analysis_livePanel', targetType\)/);
     assert.doesNotMatch(source, /vscode\.extensions\.getExtension/);
@@ -222,8 +222,8 @@ test('LivePanelParser resolves templates from context.extensionPath like every o
 
     // Same construction pattern as the parsers whose launches already work.
     assert.match(bootstrap, /this\.livePanelParser = new LivePanelParser\(context\);/);
-    assert.match(fileXRParser, /constructor\(context: vscode\.ExtensionContext\)/);
-    assert.match(visualizeDOMParser, /constructor\(context: vscode\.ExtensionContext\)/);
+    assert.match(fileXRParser, /constructor\(context: CoreContext\)/);
+    assert.match(visualizeDOMParser, /constructor\(context: CoreContext\)/);
 });
 
 test('LivePanelParser actually loads the real directory and file templates from context.extensionPath, with no vscode.extensions lookup at runtime', async () => {

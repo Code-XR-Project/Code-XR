@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { ExecutePython } from '../analysis/python/executePython';
 import { currentLaunchSignal, runWithLaunchSignal } from '../analysis/launch/launchControl';
@@ -14,6 +13,7 @@ import {
 import { buildAnalyzerCacheKey } from './gitAnalysisShared';
 import { GitRepositoryService } from './gitRepositoryService';
 import { ComparisonSource, GitAnalysisExclusionCode } from './historicalComparisonModels';
+import type { CoreContext } from '../host/hostPaths';
 
 /**
  * One revision's analysis longer than this is killed: in a movie the frame
@@ -88,7 +88,7 @@ export class GitAnalysisSessionContext {
         public readonly gitService: GitRepositoryService,
         private readonly staticRoot: string,
         sourceCatalog: GitAnalysisSourceCatalog | undefined,
-        private readonly extensionContext: vscode.ExtensionContext,
+        private readonly extensionContext: CoreContext,
         private readonly policy: GitRevisionAnalysisPolicy,
     ) {
         this.ownsSourceCatalog = !sourceCatalog;

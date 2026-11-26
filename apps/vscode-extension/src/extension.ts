@@ -19,6 +19,8 @@ import { initializeHost } from './core/host/hostRegistry';
 import { createVSCodeHost } from './app/host/vscodeHost';
 import { setLaunchNotifier } from './core/server/launchNotifier';
 import * as launchNotifications from './features/active-servers/views/launchNotifications';
+import { setServerPanelCloser } from './core/server/serverPanels';
+import { getPanelManager } from './platform/webview/panelManager';
 import { CodeXRLogger } from './platform/logging/logger';
 import { StartupCoordinator } from './app/startup/startupCoordinator';
 import { CollaborationProfileManager } from './core/collaboration/collaborationProfileManager';
@@ -34,6 +36,7 @@ export async function activate(context: vscode.ExtensionContext) {
     initializeExtensionContext(context);
     initializeHost(createVSCodeHost(context));
     setLaunchNotifier(launchNotifications);
+    setServerPanelCloser({ closeServerPanels: (serverIds) => getPanelManager().removePanelsForServers([...serverIds]) });
     CodeXRLogger.initialize(context);
 
     startupLogger.info('Activating CodeXR.');

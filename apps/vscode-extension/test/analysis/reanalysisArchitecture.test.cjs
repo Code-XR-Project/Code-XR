@@ -131,7 +131,7 @@ test('watcher configuration changes propagate to active sessions and directory r
     const analysisBootstrap = readProjectFile('src', 'core', 'analysis', 'processors', 'analysisBootstrap.ts');
 
     assert.match(sessionWatcherManager, /async updateAllWatcherConfigurations\(\): Promise<number>/);
-    assert.match(sessionWatcherManager, /static async refreshActiveWatcherConfigurations\(context: vscode\.ExtensionContext\): Promise<number>/);
+    assert.match(sessionWatcherManager, /static async refreshActiveWatcherConfigurations\(context: CoreContext\): Promise<number>/);
     assert.match(delayCommands, /SessionWatcherManager\.refreshActiveWatcherConfigurations\(this\.context\)/);
     assert.match(enabledCommands, /SessionWatcherManager\.refreshActiveWatcherConfigurations\(this\.context\)/);
     assert.match(fileWatcher, /public async updateDebounceConfiguration\(\): Promise<void>/);

@@ -18,7 +18,6 @@
  * duplicating the orchestration boilerplate.
  */
 
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { UnifiedSessionRegistry } from '../session/sessionRegistry';
 import { ProcessedRequirements } from '../processors/FileRequirementProcessor';
@@ -37,6 +36,7 @@ import {
 } from '../launch/launchControl';
 import { getLogger } from '../../../platform/logging/sink';
 import { getHost } from '../../host/hostRegistry';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('LAUNCH_PIPELINE');
 
@@ -98,7 +98,7 @@ export interface LaunchPipelineConfig {
  */
 export async function executeLaunchPipeline(
     session: UnifiedAnalysisSession,
-    context: vscode.ExtensionContext,
+    context: CoreContext,
     config: LaunchPipelineConfig,
     options: { timeoutMs?: number; control?: LaunchControl } = {},
 ): Promise<void> {
@@ -180,7 +180,7 @@ export async function executeLaunchPipeline(
 /** What the server and watcher steps share. */
 interface StepContext {
     session: UnifiedAnalysisSession;
-    context: vscode.ExtensionContext;
+    context: CoreContext;
     registry: UnifiedSessionRegistry;
     config: LaunchPipelineConfig;
     control: LaunchControl;

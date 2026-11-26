@@ -1,7 +1,7 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('SAVE_FILES');
 
@@ -32,7 +32,7 @@ export class SaveFiles {
         files: Map<string, string>,
         folderName: string,
         analysisType: string,
-        context: vscode.ExtensionContext
+        context: CoreContext
     ): Promise<string> {
         
         logger.debug(() => `Saving ${files.size} files to workspace storage...`);
@@ -137,7 +137,7 @@ export class SaveFiles {
     /**
      * Copia el favicon.ico desde resources al directorio de destino
      */
-    private async copyFavicon(storagePath: string, context: vscode.ExtensionContext): Promise<void> {
+    private async copyFavicon(storagePath: string, context: CoreContext): Promise<void> {
         try {
             // Usar el extensionPath para acceder a los recursos de la extensión
             const extensionPath = context.extensionPath;

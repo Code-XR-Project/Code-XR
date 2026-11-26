@@ -1,6 +1,5 @@
 import * as https from 'https';
 import * as fs from 'fs';
-import type * as vscode from 'vscode';
 import type { HttpServer, HttpServerConfig, ParticipantRemovalOutcome } from './httpServer';
 import type { ConnectedParticipantSummary } from '../collaboration/connectedParticipant';
 import { PortManager } from './portManager';
@@ -9,6 +8,7 @@ import { buildTlsServerOptions } from './httpsTlsOptions';
 import type { RemoteSessionAuthority } from '../remote-access/remoteSessionAuthority';
 import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('SERVER');
 
@@ -17,7 +17,7 @@ export interface HttpsServerBaseConfig extends Omit<HttpServerConfig, 'port'> {
     port: number;
     certPath?: string;
     keyPath?: string;
-    extensionContext?: vscode.ExtensionContext;
+    extensionContext?: CoreContext;
 }
 
 /**

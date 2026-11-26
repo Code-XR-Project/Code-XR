@@ -3,13 +3,13 @@
  * Launches DOM visualization analysis for HTML files using the shared launch pipeline.
  */
 
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SessionWatcherManager } from '../watchers/sessionWatcherManager';
 import { executeLaunchPipeline } from './launchPipeline';
 import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { getLogger } from '../../../platform/logging/sink';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('LAUNCHER_VISUALIZE_DOM');
 
@@ -18,7 +18,7 @@ const LOG_PREFIX = 'NEW_LAUNCHER_VISUALIZEDOM_ANALYSIS';
 export class LauncherVisualizeDOM {
     static async launchVisualizeDOMAnalysis(
         session: UnifiedAnalysisSession,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<void> {
         logger.debug(() => `${LOG_PREFIX}: Target: ${session.targetName} (${session.targetType})`);
         logger.debug(() => `${LOG_PREFIX}: Analysis mode: ${session.analysisMode}`);

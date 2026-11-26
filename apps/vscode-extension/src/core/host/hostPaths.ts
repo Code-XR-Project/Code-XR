@@ -40,6 +40,15 @@ export type GlobalStateContext = GlobalStorageContext & {
     readonly globalState: HostKeyValueStore;
 };
 
+/**
+ * Everything the core reads from the application's start-up context (#13,
+ * step 9): the paths of `ExtensionContextPaths` and the key-value store of
+ * `GlobalStateContext`. A `vscode.ExtensionContext` fits as it is; the IDE
+ * builds one from its `CodeXRHost`. Modules that need less take the narrower
+ * types above.
+ */
+export type CoreContext = ExtensionContextPaths & GlobalStateContext;
+
 export function hostModeFromExtensionMode(mode: number): HostMode {
     switch (mode) {
         case EXTENSION_MODE.Development:

@@ -18,6 +18,31 @@ test('core/host never reaches vscode, directly or through an import', () => {
     }
 });
 
+// #13 step 9: the whole core runs without VS Code. Every .ts file under
+// src/core/ must be in measure().vscodeFree (no import path, type imports
+// included, reaches `vscode`), so the IDE can load any of it.
+test('no file under core/ reaches vscode, directly or through an import', () => {
+    const fs = require('node:fs');
+    const free = new Set(measure().vscodeFree);
+    const src = path.join(__dirname, '..', '..', 'src');
+    const offenders = [];
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+            } else if (entry.name.endsWith('.ts')) {
+                const relative = path.relative(src, full).split(path.sep).join('/');
+                if (!free.has(relative)) {
+                    offenders.push(relative);
+                }
+            }
+        }
+    };
+    walk(path.join(src, 'core'));
+    assert.deepEqual(offenders, []);
+});
+
 test('the host registry stores one host, refuses early reads and resets for tests', () => {
     const registry = require(path.join(__dirname, '..', '..', 'out', 'core', 'host', 'hostRegistry.js'));
     registry.resetHostForTests();

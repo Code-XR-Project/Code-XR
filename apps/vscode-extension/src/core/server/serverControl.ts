@@ -1,16 +1,22 @@
-import * as vscode from 'vscode';
 import { ActiveServer, ActiveServerRuntime } from './registry/activeServerModel';
 import type { UnifiedAnalysisSession } from '../analysis/session/analysisSession';
 import { getActiveServerRegistry } from './registry/activeServerRegistry';
-import { getPanelManager } from '../../platform/webview/panelManager';
+import { closeServerPanels } from './serverPanels';
 import { fileToServerMap } from './fileToServerMap';
 import { sseManager } from './sse/SSEManager';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
-import { handleError, ErrorDomain, ErrorSeverity } from '../../platform/ui/errorHandler';
 import { getLogger } from '../../platform/logging/sink';
 import { getHost } from '../host/hostRegistry';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('ACTIVE_SERVERS');
+
+/** A server that failed to stop: logged, and shown to the person (what `handleError(..., User)` did before #13 step 7). */
+function reportStopFailure(url: string, error: unknown): void {
+    const prefix = `ACTIVE_SERVERS: Failed to stop server ${url}`;
+    logger.error(prefix, error);
+    void getHost().notifier.notify('error', `${prefix}: ${error instanceof Error ? error.message : String(error)}`);
+}
 
 /** How long a graceful shutdown may take before it is forced. */
 const STOP_TIMEOUT_MS = 4000;
@@ -26,12 +32,12 @@ export interface StopAllServersResult {
 }
 
 export class ServerControl {
-    private static extensionContext: vscode.ExtensionContext;
+    private static extensionContext: CoreContext;
     
     /**
      * Initialize with extension context
      */
-    public static initialize(context: vscode.ExtensionContext): void {
+    public static initialize(context: CoreContext): void {
         ServerControl.extensionContext = context;
     }
     
@@ -63,10 +69,8 @@ export class ServerControl {
 
         try {
             // Close associated lateral panel if it exists
-            const panelManager = getPanelManager();
-            if (server.launchMode === 'lateralPanel' && panelManager.hasPanel(serverId)) {
-                logger.debug(() => `ACTIVE_SERVER_PANEL:  DEBUG - Closing lateral panel for server ${serverId}`);
-                panelManager.removePanel(serverId);
+            if (server.launchMode === 'lateralPanel' && closeServerPanels([serverId]) > 0) {
+                logger.debug(() => `ACTIVE_SERVER_PANEL: Closed lateral panel for server ${serverId}`);
             }
 
             // Check if this server is associated with an analysis file and clean up
@@ -111,7 +115,7 @@ export class ServerControl {
             return cleanShutdown;
 
         } catch (error) {
-            handleError(ErrorDomain.ActiveServers, `Failed to stop server ${server.url}`, error, ErrorSeverity.User);
+            reportStopFailure(server.url, error);
             return false;
         } finally {
             // The row always leaves the list: a runtime that refuses to shut
@@ -179,13 +183,12 @@ export class ServerControl {
         }
 
         // First, close all lateral panels for servers that have them
-        const panelManager = getPanelManager();
         const lateralPanelServers = runningServers.filter(server => server.launchMode === 'lateralPanel');
 
         if (lateralPanelServers.length > 0) {
             logger.debug(() => `ACTIVE_SERVER_PANEL: Closing ${lateralPanelServers.length} lateral panels before stopping servers`);
             const serverIdsWithPanels = lateralPanelServers.map(server => server.id);
-            const closedPanelCount = panelManager.removePanelsForServers(serverIdsWithPanels);
+            const closedPanelCount = closeServerPanels(serverIdsWithPanels);
             logger.debug(() => `ACTIVE_SERVER_PANEL: Closed ${closedPanelCount}/${lateralPanelServers.length} lateral panels`);
         }
 
@@ -259,7 +262,7 @@ export class ServerControl {
             }
             
         } catch (error) {
-            handleError(ErrorDomain.ActiveServers, `Closing associated analysis session for server ${serverId}`, error, ErrorSeverity.Warn);
+            logger.warn(`ACTIVE_SERVERS: Closing associated analysis session for server ${serverId}`, error);
         }
     }
 }

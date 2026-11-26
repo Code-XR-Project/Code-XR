@@ -1,4 +1,3 @@
-import type * as vscode from 'vscode';
 import { PortManager } from './portManager';
 import { ServerSettingsManager } from './serverSettingsManager';
 import { LaunchMode, CertMode } from './registry/activeServerModel';
@@ -13,6 +12,7 @@ import {
     ServerType,
 } from './serverFactory';
 import { getLogger } from '../../platform/logging/sink';
+import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('SERVER');
 
@@ -66,7 +66,7 @@ export class MultiServerLauncher {
     private servers: Map<string, RunningServerInfo> = new Map();
     private settingsManager: ServerSettingsManager;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: CoreContext) {
         this.settingsManager = ServerSettingsManager.getInstance(context);
         logger.debug('Multi-server launcher initialized');
     }

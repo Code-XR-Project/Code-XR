@@ -33,3 +33,31 @@ test('core/server never imports the launch notifications feature, and activation
     const extension = fs.readFileSync(path.join(src, 'extension.ts'), 'utf8');
     assert.match(extension, /setLaunchNotifier\(launchNotifications\)/);
 });
+
+test('closing server panels is a no-op until a closer is registered, then delegates', () => {
+    const panels = require(path.join(__dirname, '..', '..', 'out', 'core', 'server', 'serverPanels.js'));
+    panels.setServerPanelCloser(null);
+    assert.equal(panels.closeServerPanels(['a']), 0);
+    const seen = [];
+    panels.setServerPanelCloser({ closeServerPanels: (ids) => { seen.push(...ids); return ids.length; } });
+    assert.equal(panels.closeServerPanels(['a', 'b']), 2);
+    assert.deepEqual(seen, ['a', 'b']);
+    panels.setServerPanelCloser(null);
+});
+
+test('no core module imports platform/webview or platform/ui', () => {
+    const root = path.join(__dirname, '..', '..', 'src', 'core');
+    const offenders = [];
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+            } else if (entry.name.endsWith('.ts') && /from '[./]*platform\/(webview|ui)\//.test(fs.readFileSync(full, 'utf8'))) {
+                offenders.push(path.relative(root, full));
+            }
+        }
+    };
+    walk(root);
+    assert.deepEqual(offenders, []);
+});

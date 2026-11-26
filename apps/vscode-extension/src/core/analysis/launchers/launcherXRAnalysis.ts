@@ -7,7 +7,6 @@
  * FileWatcherOrchestrator / DirectoryWatcherOrchestrator).
  */
 
-import * as vscode from 'vscode';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { UnifiedSessionRegistry } from '../session/sessionRegistry';
 import { FileRequirementProcessor, ProcessedRequirements } from '../processors/FileRequirementProcessor';
@@ -21,6 +20,7 @@ import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { XRFieldSchemaService } from '../python/xrFieldSchemaService';
 import { getLogger } from '../../../platform/logging/sink';
 import { getHost } from '../../host/hostRegistry';
+import type { CoreContext } from '../../host/hostPaths';
 
 const logger = getLogger('LAUNCHER_XR_ANALYSIS');
 
@@ -29,7 +29,7 @@ const LOG_PREFIX = 'NEW_LAUNCHER_XR_ANALYSIS';
 /** Step 1 of both XR launches. */
 async function processRequirements(
     session: UnifiedAnalysisSession,
-    context: vscode.ExtensionContext,
+    context: CoreContext,
 ): Promise<ProcessedRequirements> {
     const processor = new FileRequirementProcessor(context);
     return processor.processRequirements(session);
@@ -38,7 +38,7 @@ async function processRequirements(
 /** The watcher step of both XR launches; a failure rejects (the pipeline reports it). */
 async function startSessionWatcher(
     session: UnifiedAnalysisSession,
-    context: vscode.ExtensionContext,
+    context: CoreContext,
 ): Promise<string | undefined | null> {
     const watcher = new SessionWatcherManager(context);
     return watcher.startWatchingSession(session);
@@ -51,7 +51,7 @@ export class LauncherXRAnalysis {
         analysisType: 'file' | 'directory',
         registry: UnifiedSessionRegistry,
         sessionId: string,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<{ isValid: boolean; error?: string }> {
         logger.debug(() => `${LOG_PREFIX}: Validating ${analysisType} XR configuration...`);
         const label = analysisType.charAt(0).toUpperCase() + analysisType.slice(1);
@@ -115,7 +115,7 @@ export class LauncherXRAnalysis {
         analysisType: 'file' | 'directory',
         registry: UnifiedSessionRegistry,
         sessionId: string,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<{ chartType: string; dimensionMappings: Record<string, string> }> {
         logger.debug(() => `${LOG_PREFIX}: STEP 0 - Validating ${analysisType} XR configuration...`);
         registry.updateSessionStatus(sessionId, 'analyzing', 10);
@@ -150,7 +150,7 @@ export class LauncherXRAnalysis {
 
     static async launchFileXRAnalysis(
         session: UnifiedAnalysisSession,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<void> {
         const registry = UnifiedSessionRegistry.getInstance(context);
 
@@ -176,7 +176,7 @@ export class LauncherXRAnalysis {
 
     static async launchDirectoryXRAnalysis(
         session: UnifiedAnalysisSession,
-        context: vscode.ExtensionContext,
+        context: CoreContext,
     ): Promise<void> {
         const registry = UnifiedSessionRegistry.getInstance(context);
 

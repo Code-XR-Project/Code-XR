@@ -6,9 +6,9 @@ import {
     XR_BOATS_TREE_FIELDS,
 } from '../../chartPresentation';
 import * as fs from 'fs';
-import * as vscode from 'vscode';
 import { getLogger } from '../../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../../platform/templatePaths';
+import type { CoreContext } from '../../../host/hostPaths';
 
 const logger = getLogger('CREATE_STRUCTURE');
 
@@ -28,7 +28,7 @@ export class CreateStructure {
         dataSource: string,
         visualizationSettings: TemplateVisualizationSettings,
         analysisType: 'xr' | 'dom' | 'none' = 'none',
-        context: vscode.ExtensionContext,
+        context: CoreContext,
         chartType?: string,
         isDirectoryAnalysis?: boolean
     ): { success: boolean; placeholders?: Map<string, string>; error?: string } {
@@ -103,7 +103,7 @@ export class CreateStructure {
     /**
      * Get appropriate SSE script with nonce and main.js path based on analysis type
      */
-    private static getSSEScriptWithNonce(analysisType: 'xr' | 'dom' | 'none', nonce: string, context: vscode.ExtensionContext): string {
+    private static getSSEScriptWithNonce(analysisType: 'xr' | 'dom' | 'none', nonce: string, context: CoreContext): string {
         logger.debug(() => `Creating SSE script with nonce for analysis type: ${analysisType}`);
 
         try {
