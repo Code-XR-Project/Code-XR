@@ -76,6 +76,7 @@ const api: CodeXRApi = Object.freeze({
         createEntry: (parent: string, name: string, kind: 'file' | 'directory') =>
             ipcRenderer.invoke(IPC_CHANNELS.workspaceCreateEntry, parent, name, kind),
         rename: (path: string, newName: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRename, path, newName),
+        copyPath: (path: string, kind: 'absolute' | 'relative') => ipcRenderer.invoke(IPC_CHANNELS.workspaceCopyPath, path, kind),
         trash: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrash, path),
         recentFolders: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceRecentFolders),
         openRecent: (folder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenRecent, folder),

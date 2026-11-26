@@ -2,6 +2,7 @@ import { MODIFIED_ON_DISK, type CodeXRApi, type FileContent } from '../../shared
 import { el, fileIcon, icon } from '../dom.ts';
 import { followSystemTheme, monaco } from './monaco.ts';
 import { languageName, type EditorStatusState, type EndOfLine, type Indentation, type LanguageInfo } from './editorStatusModel.ts';
+import { closeTargets, cycleTab, discardQuestion, moveTab, type CloseKind, type TabSession } from './tabsModel.ts';
 
 /**
  * The editor area (#14): one Monaco editor, one model per open file, and a
@@ -13,6 +14,13 @@ import { languageName, type EditorStatusState, type EndOfLine, type Indentation,
  * Files also follow the disk: when the watcher reports an open file, a clean
  * tab takes the new text as one undoable edit, while a dirty tab keeps the
  * person's text and is marked as conflicting (or deleted) until it is saved.
+ *
+ * Tabs (#167): the DOM order of the strip is the tab order. A preview tab
+ * (italic) is what a single click in the explorer opens; the next preview
+ * replaces it, and editing it, double-clicking it or opening it for keeps
+ * makes it a normal tab. Tabs drag to reorder, close in groups from their
+ * context menu (one question for all the unsaved ones), and the open tabs
+ * with their view state are a session the folder restores.
  */
 
 const CLOSE = 'M6 6l12 12M18 6L6 18';
@@ -30,10 +38,17 @@ interface OpenFile {
     viewState: monaco.editor.ICodeEditorViewState | null;
     /** The file starts with a UTF-8 byte order mark, written back on save (#166). */
     bom: boolean;
+    /** #167: a preview tab, replaced by the next preview until it is kept. */
+    preview: boolean;
+}
+
+export interface OpenOptions {
+    /** #167: open as the preview tab (a single click in the explorer). */
+    readonly preview?: boolean;
 }
 
 export interface EditorGroup {
-    open(path: string): Promise<void>;
+    open(path: string, options?: OpenOptions): Promise<void>;
     save(): Promise<void>;
     saveAll(): Promise<void>;
     closeActive(): void;
@@ -73,6 +88,16 @@ export interface EditorGroup {
     languages(): readonly LanguageInfo[];
     /** The active file's status, or null without one. */
     statusState(): EditorStatusState | null;
+    /** #167: closes a group of tabs around `path` (the active tab by default), asking once about unsaved ones. */
+    closeGroup(kind: CloseKind, path?: string): void;
+    /** #167: activates the tab `delta` steps away, wrapping around. */
+    cycle(delta: number): void;
+    /** #167: keeps the active preview tab. */
+    keepActive(): void;
+    /** #167: the open tabs in order, with view states, for the folder's session. */
+    session(): TabSession;
+    /** #167: reopens a saved session's tabs (files that are gone are skipped). */
+    restore(session: TabSession): Promise<void>;
 }
 
 export function createEditorGroup(
@@ -87,6 +112,13 @@ export function createEditorGroup(
         onOpenFilesChange?(): void;
         /** #166: the cursor, indentation, line endings or language of the active file changed (null: no file). */
         onStatusState?(state: EditorStatusState | null): void;
+        /** #167: the tabs' order, preview state or view states changed (the session is worth saving). */
+        onSessionChange?(): void;
+        /** #167: the tab context menu's Copy Path / Copy Relative Path and Reveal in Explorer. */
+        copyPath?(path: string, kind: 'absolute' | 'relative'): void;
+        revealInExplorer?(path: string): void;
+        /** #167: shows the tab context menu (the workbench owns menus and keybinding labels). */
+        showTabMenu?(path: string, x: number, y: number): void;
     },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
@@ -111,6 +143,12 @@ export function createEditorGroup(
 
     const files = new Map<string, OpenFile>();
     let active: OpenFile | null = null;
+    /** The files in tab order: the strip's DOM order. */
+    const ordered = (): OpenFile[] => [...tabs.children].flatMap((tab) => {
+        const file = files.get((tab as HTMLElement).dataset['path'] ?? '');
+        return file ? [file] : [];
+    });
+    const sessionChanged = (): void => callbacks.onSessionChange?.();
 
     // #166: the status bar follows the active editor, at most once a frame.
     let statusFrame = 0;
@@ -205,21 +243,36 @@ export function createEditorGroup(
         callbacks.onActiveChange(file.path);
     }
 
-    function addTab(content: Extract<FileContent, { kind: 'text' }>): OpenFile {
+    function setPreview(file: OpenFile, preview: boolean): void {
+        if (file.preview === preview) {
+            return;
+        }
+        file.preview = preview;
+        file.tab.classList.toggle('is-preview', preview);
+        file.tab.querySelector('.tab-label')?.setAttribute('aria-description', preview ? 'preview' : '');
+        sessionChanged();
+    }
+
+    function addTab(content: Extract<FileContent, { kind: 'text' }>, preview = false, before: Element | null = null): OpenFile {
         const name = content.path.split('/').pop() ?? content.path;
         const dirtyMark = el('span', { className: 'tab-dirty', attrs: { 'aria-hidden': 'true' } });
         const close = el('button', { className: 'tab-close', attrs: { type: 'button', title: 'Close', 'aria-label': `Close ${name}`, tabindex: '-1' } }, [icon(CLOSE)]);
         const tab = el('div', {
             className: 'editor-tab',
-            attrs: { role: 'tab', 'aria-selected': 'false', tabindex: '-1', title: content.path, 'data-path': content.path },
+            attrs: { role: 'tab', 'aria-selected': 'false', tabindex: '-1', title: content.path, 'data-path': content.path, draggable: 'true' },
         }, [fileIcon(name, 'file'), el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
         const uri = monaco.Uri.from({ scheme: 'codexr-file', path: `/${content.path}` });
         const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(content.text, undefined, uri);
         const file: OpenFile = {
             path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs,
-            diskState: 'same', viewState: null, bom: content.text.startsWith(BOM),
+            diskState: 'same', viewState: null, bom: content.text.startsWith(BOM), preview: false,
         };
-        model.onDidChangeContent(() => refreshTab(file));
+        setPreview(file, preview);
+        model.onDidChangeContent(() => {
+            refreshTab(file);
+            // Editing keeps a preview tab (a reload from disk leaves it clean, so it stays a preview).
+            if (isDirty(file)) { setPreview(file, false); }
+        });
         tab.addEventListener('click', (event) => {
             if ((event.target as Element).closest('.tab-close')) {
                 close_(file);
@@ -228,27 +281,53 @@ export function createEditorGroup(
             }
         });
         tab.addEventListener('auxclick', (event) => { if (event.button === 1) { close_(file); } });
-        tabs.append(tab);
+        tab.addEventListener('dblclick', (event) => {
+            if (!(event.target as Element).closest('.tab-close')) { setPreview(file, false); }
+        });
+        tab.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            activate(file);
+            callbacks.showTabMenu?.(file.path, event.clientX, event.clientY);
+        });
+        tabs.insertBefore(tab, before);
         files.set(file.path, file);
         callbacks.onOpenFilesChange?.();
         return file;
     }
 
     function close_(file: OpenFile): void {
-        if (isDirty(file) && !window.confirm(`${file.path} has unsaved changes. Close it and discard them?`)) {
-            return;
+        closeFiles([file]);
+    }
+
+    /** Closes `targets` after one question about the unsaved ones among them; false if the person said no. */
+    function closeFiles(targets: readonly OpenFile[], ask = true): boolean {
+        if (targets.length === 0) {
+            return true;
         }
-        const order = [...files.values()];
-        const index = order.indexOf(file);
-        files.delete(file.path);
-        file.tab.remove();
-        file.model.dispose();
-        if (active === file) {
+        const question = ask ? discardQuestion(targets.map((file) => file.path), new Set(targets.filter(isDirty).map((file) => file.path))) : null;
+        if (question !== null && !window.confirm(question)) {
+            return false;
+        }
+        const order = ordered();
+        const closing = new Set(targets);
+        const activeIndex = active ? order.indexOf(active) : -1;
+        for (const file of targets) {
+            files.delete(file.path);
+            file.tab.remove();
+            file.model.dispose();
+        }
+        if (active && closing.has(active)) {
+            // The neighbour on the right that stays open, else the one on the left.
+            const next = order.slice(activeIndex + 1).find((file) => !closing.has(file))
+                ?? order.slice(0, activeIndex).reverse().find((file) => !closing.has(file))
+                ?? null;
             active = null;
-            activate(order[index + 1] ?? order[index - 1] ?? null);
+            activate(next);
         }
         reportUnsaved();
         callbacks.onOpenFilesChange?.();
+        sessionChanged();
+        return true;
     }
 
     /** The text to write: Monaco keeps a byte order mark outside the model's text, so put it back. */
@@ -329,15 +408,92 @@ export function createEditorGroup(
     }
 
     tabs.addEventListener('keydown', (event) => {
-        const order = [...files.values()];
+        const order = ordered();
         const index = active ? order.indexOf(active) : -1;
-        const target = event.key === 'ArrowRight' ? order[index + 1] : event.key === 'ArrowLeft' ? order[index - 1] : undefined;
+        if (active && (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey))) {
+            const rect = active.tab.getBoundingClientRect();
+            callbacks.showTabMenu?.(active.path, rect.left, rect.bottom);
+            event.preventDefault();
+            return;
+        }
+        const target = event.key === 'ArrowRight' ? order[index + 1]
+            : event.key === 'ArrowLeft' ? order[index - 1]
+                : event.key === 'Home' ? order[0]
+                    : event.key === 'End' ? order[order.length - 1]
+                        : undefined;
         if (target) {
             activate(target);
             target.tab.focus();
             event.preventDefault();
         }
     });
+
+    // #167: drag a tab to reorder; the marker shows which side of the tab under the pointer it lands on.
+    let dragged: OpenFile | null = null;
+    const clearDropMarks = (): void => {
+        for (const tab of tabs.children) {
+            tab.classList.remove('is-drop-before', 'is-drop-after');
+        }
+    };
+    const dropTarget = (event: DragEvent): { readonly before: HTMLElement | null; readonly mark: HTMLElement | null; readonly after: boolean } => {
+        const over = (event.target as Element).closest<HTMLElement>('.editor-tab');
+        if (!over) {
+            return { before: null, mark: tabs.lastElementChild as HTMLElement | null, after: true };
+        }
+        const rect = over.getBoundingClientRect();
+        const after = event.clientX > rect.left + rect.width / 2;
+        return { before: after ? over.nextElementSibling as HTMLElement | null : over, mark: over, after };
+    };
+    tabs.addEventListener('dragstart', (event) => {
+        const tab = (event.target as Element).closest<HTMLElement>('.editor-tab');
+        dragged = tab ? files.get(tab.dataset['path'] ?? '') ?? null : null;
+        if (!dragged || !event.dataTransfer) {
+            return;
+        }
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', dragged.path);
+        dragged.tab.classList.add('is-dragging');
+    });
+    tabs.addEventListener('dragover', (event) => {
+        if (!dragged) {
+            return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) { event.dataTransfer.dropEffect = 'move'; }
+        clearDropMarks();
+        const { mark, after } = dropTarget(event);
+        mark?.classList.add(after ? 'is-drop-after' : 'is-drop-before');
+    });
+    tabs.addEventListener('dragleave', (event) => {
+        if (!tabs.contains(event.relatedTarget as Node | null)) { clearDropMarks(); }
+    });
+    tabs.addEventListener('drop', (event) => {
+        if (!dragged) {
+            return;
+        }
+        event.preventDefault();
+        const { before } = dropTarget(event);
+        const order = moveTab(ordered().map((file) => file.path), dragged.path, before?.dataset['path'] ?? null);
+        for (const path of order) {
+            const file = files.get(path);
+            if (file) { tabs.append(file.tab); }
+        }
+        setPreview(dragged, false);
+        dragged.tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        sessionChanged();
+    });
+    tabs.addEventListener('dragend', () => {
+        dragged?.tab.classList.remove('is-dragging');
+        dragged = null;
+        clearDropMarks();
+    });
+    // A vertical wheel scrolls an overflowing strip sideways, as in VS Code.
+    tabs.addEventListener('wheel', (event) => {
+        if (Math.abs(event.deltaY) > Math.abs(event.deltaX) && tabs.scrollWidth > tabs.clientWidth) {
+            tabs.scrollLeft += event.deltaY;
+            event.preventDefault();
+        }
+    }, { passive: false });
 
     activate(null);
 
@@ -414,9 +570,12 @@ export function createEditorGroup(
             editor.revealPositionInCenterIfOutsideViewport(position);
             editor.focus();
         },
-        async open(path: string): Promise<void> {
+        async open(path: string, options: OpenOptions = {}): Promise<void> {
             const existing = files.get(path);
             if (existing) {
+                if (!options.preview) {
+                    setPreview(existing, false);
+                }
                 activate(existing);
                 return;
             }
@@ -432,7 +591,73 @@ export function createEditorGroup(
                 callbacks.onStatus(content.kind === 'binary' ? `${path} is a binary file.` : `${path} is too large to edit (${size}).`);
                 return;
             }
-            activate(files.get(path) ?? addTab(content));
+            const already = files.get(path);
+            if (already) {
+                // Opened meanwhile (a double click's first click opened the preview).
+                if (!options.preview) {
+                    setPreview(already, false);
+                }
+                activate(already);
+                return;
+            }
+            // A new preview takes the place of the current one, unless that one was edited meanwhile.
+            const previous = options.preview ? ordered().find((file) => file.preview && !isDirty(file)) : undefined;
+            const file = addTab(content, options.preview === true, previous?.tab ?? null);
+            activate(file);
+            if (previous) {
+                closeFiles([previous], false);
+            }
+            sessionChanged();
+        },
+        closeGroup(kind: CloseKind, path?: string): void {
+            const order = ordered();
+            const targets = closeTargets(kind, order.map((file) => ({ path: file.path, dirty: isDirty(file) })), path ?? active?.path ?? null);
+            closeFiles(targets.flatMap((target) => { const file = files.get(target); return file ? [file] : []; }));
+        },
+        cycle(delta: number): void {
+            const next = cycleTab(ordered().map((file) => file.path), active?.path ?? null, delta);
+            const file = next === null ? undefined : files.get(next);
+            if (file) {
+                activate(file);
+            }
+        },
+        keepActive(): void {
+            if (active) {
+                setPreview(active, false);
+            }
+        },
+        session(): TabSession {
+            if (active) {
+                active.viewState = editor.saveViewState();
+            }
+            return {
+                tabs: ordered().map((file) => ({ path: file.path, viewState: file.viewState })),
+                active: active?.path ?? null,
+                preview: ordered().find((file) => file.preview)?.path ?? null,
+            };
+        },
+        async restore(session: TabSession): Promise<void> {
+            for (const saved of session.tabs) {
+                if (files.has(saved.path)) {
+                    continue;
+                }
+                let content: FileContent;
+                try {
+                    content = await api.readFile(saved.path);
+                } catch {
+                    continue; // gone since: skipped
+                }
+                if (content.kind !== 'text' || files.has(saved.path)) {
+                    continue;
+                }
+                const file = addTab(content, saved.path === session.preview);
+                file.viewState = (saved.viewState as monaco.editor.ICodeEditorViewState | null) ?? null;
+            }
+            const target = (session.active === null ? undefined : files.get(session.active)) ?? ordered()[0] ?? null;
+            if (target) {
+                activate(target);
+            }
+            sessionChanged();
         },
         async save(): Promise<void> {
             if (active) {
@@ -454,7 +679,7 @@ export function createEditorGroup(
             }
         },
         reset(): void {
-            for (const file of files.values()) {
+            for (const file of ordered()) {
                 file.tab.remove();
                 file.model.dispose();
             }

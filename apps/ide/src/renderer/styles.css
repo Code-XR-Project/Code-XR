@@ -835,3 +835,41 @@ body {
 .search-preview del { background: color-mix(in srgb, var(--crit) 22%, transparent); color: inherit; }
 .search-preview ins { background: color-mix(in srgb, #3fb950 26%, transparent); color: inherit; text-decoration: none; }
 .search-more { padding: 2px 12px 2px 34px; }
+
+/* Context menus (#167, contextMenu.ts): the terminal menu's look, at the pointer. */
+.context-menu {
+  position: fixed;
+  z-index: 70;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 4px 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+  font-size: 13px;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  padding: 4px 12px;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.context-menu-item:hover:not(:disabled), .context-menu-item:focus-visible { background: var(--hover); outline: none; }
+.context-menu-item:disabled { color: var(--muted); cursor: default; }
+.context-menu-key { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.context-menu-separator { height: 1px; margin: 4px 0; background: var(--line); }
+
+/* Editor tabs (#167): a preview tab is italic until it is kept; the drop marker while dragging. */
+.editor-tab.is-preview .tab-label { font-style: italic; }
+.editor-tab.is-dragging { opacity: 0.5; }
+.editor-tab.is-drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.editor-tab.is-drop-after { box-shadow: inset -2px 0 0 var(--accent); }

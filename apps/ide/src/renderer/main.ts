@@ -17,6 +17,8 @@ import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
 import { createEditorStatus } from './editor/editorStatus.ts';
 import { eolChoices, indentationChoices, languageChoices, type Choice } from './editor/editorStatusModel.ts';
+import { parseSession, serializeSession, sessionKey } from './editor/tabsModel.ts';
+import { showContextMenu, type ContextMenuItem } from './contextMenu.ts';
 import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -59,11 +61,16 @@ function editorGroup(): Promise<EditorGroup> {
             onActiveChange: (path) => {
                 document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
                 activeFile = path;
+                scheduleSessionSave();
                 if (path) { quickOpenFiles.opened(path); }
             },
             onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
             onOpenFilesChange: () => updateWatched(),
             onStatusState: (state) => editorStatus.show(state),
+            onSessionChange: () => scheduleSessionSave(),
+            copyPath: (path, kind) => copyPath(path, kind),
+            revealInExplorer: (path) => void revealInExplorer(path),
+            showTabMenu: (path, x, y) => showTabMenu(path, x, y),
         });
         return editors;
     });
@@ -95,12 +102,95 @@ function updateWatched(): void {
     }, 100);
 }
 
+// #167: the open tabs are a session of the folder, kept in the renderer's
+// storage under the folder's path and restored when the folder opens again.
+let sessionRoot: string | null = null;
+let sessionTimer: ReturnType<typeof setTimeout> | undefined;
+function saveSession(): void {
+    clearTimeout(sessionTimer);
+    if (sessionRoot === null || !editors) {
+        return;
+    }
+    try {
+        layoutStorage()?.setItem(sessionKey(sessionRoot), serializeSession(editors.session()));
+    } catch {
+        // Storage full or unavailable: the tabs are just not remembered.
+    }
+}
+function scheduleSessionSave(): void {
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(saveSession, 300);
+}
+window.addEventListener('beforeunload', saveSession);
+/** The tabs follow the folder: the old folder's session is saved, the new one's restored. */
+function switchTabsFolder(root: string | null): void {
+    if (root === sessionRoot && root !== null) {
+        return;
+    }
+    saveSession();
+    sessionRoot = null;
+    editors?.reset();
+    if (root === null) {
+        return;
+    }
+    let saved;
+    try {
+        saved = parseSession(layoutStorage()?.getItem(sessionKey(root)) ?? null);
+    } catch {
+        saved = parseSession(null);
+    }
+    if (saved.tabs.length === 0) {
+        sessionRoot = root;
+        return;
+    }
+    void editorGroup().then(async (group) => {
+        await group.restore(saved);
+        sessionRoot = root;
+        saveSession();
+    });
+}
+function copyPath(path: string, kind: 'absolute' | 'relative'): void {
+    api.workspace.copyPath(path, kind).then(
+        () => workbench.setStatus(`Copied the ${kind === 'absolute' ? 'path' : 'relative path'} of ${path}`),
+        (error: unknown) => workbench.setStatus(`Could not copy the path: ${String(error)}`),
+    );
+}
+async function revealInExplorer(path: string): Promise<void> {
+    workbench.showView('explorer');
+    if (!(await explorer.reveal(path))) {
+        workbench.setStatus(`${path} is not in the explorer.`);
+    }
+}
+function showTabMenu(path: string, x: number, y: number): void {
+    const key = (id: string): string => {
+        const binding = registry.get(id)?.keybinding;
+        return binding ? formatKeybinding(binding, platform) : '';
+    };
+    const items: ContextMenuItem[] = [
+        { label: 'Close', keybinding: key('editor.close'), run: () => editors?.closeActive(), testId: 'tab-menu-close' },
+        { label: 'Close Others', run: () => editors?.closeGroup('others', path), testId: 'tab-menu-close-others' },
+        { label: 'Close to the Right', run: () => editors?.closeGroup('right', path), testId: 'tab-menu-close-right' },
+        { label: 'Close Saved', keybinding: key('editor.closeSaved'), run: () => editors?.closeGroup('saved', path), testId: 'tab-menu-close-saved' },
+        { label: 'Close All', keybinding: key('editor.closeAll'), run: () => editors?.closeGroup('all', path), testId: 'tab-menu-close-all' },
+        { separator: true },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
+        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
+        { separator: true },
+        { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
+        { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
+    ];
+    showContextMenu(items, x, y, {
+        label: `Actions for ${path}`,
+        rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
+    });
+}
+
 const explorer = createExplorer(workbench.sideBar, api.workspace, {
-    onOpenFile: (path) => void editorGroup().then((group) => group.open(path)),
+    onOpenFile: (path, preview) => void editorGroup().then((group) => group.open(path, { preview })),
     onError: (message) => workbench.setStatus(message),
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
     onOpened: (workspace) => {
-        editors?.reset();
+        switchTabsFolder(workspace.root);
         folderOpened(workspace.root);
     },
     onExpandedChange: () => updateWatched(),
@@ -115,7 +205,7 @@ api.workspace.onDidChangeFiles((paths) => {
 });
 
 function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
-    editors?.reset();
+    switchTabsFolder(workspace?.root ?? null);
     void explorer.show(workspace);
 }
 
@@ -148,6 +238,7 @@ api.workspace.current().then(
         if (workspace) {
             runView.folderOpened(workspace.root);
         }
+        switchTabsFolder(workspace?.root ?? null);
         return explorer.show(workspace);
     },
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),
@@ -285,6 +376,12 @@ registerWorkbenchCommands(registry, {
     hasPanel: () => terminal.visible,
     toggleZenMode: () => workbench.layout.toggleZen(),
     resetLayout: () => workbench.layout.reset(),
+    closeEditors: (kind) => editors?.closeGroup(kind),
+    cycleEditor: (delta) => editors?.cycle(delta),
+    keepEditor: () => editors?.keepActive(),
+    copyActivePath: (kind) => { if (activeFile) { copyPath(activeFile, kind); } },
+    revealActiveFile: () => { if (activeFile) { void revealInExplorer(activeFile); } },
+    hasEditors: () => (editors?.openPaths().length ?? 0) > 0,
 });
 api.commands.onCommand((command: IdeCommand) => {
     registry.execute(command);

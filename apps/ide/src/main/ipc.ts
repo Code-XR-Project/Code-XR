@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
 import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, SCENE_ADDRESSES, type AnalysisKind, type AppInfo, type AutoStartMode, type SceneAddress } from '../shared/api.ts';
 import type { TerminalHost } from './terminal/terminalHost.ts';
@@ -73,6 +73,10 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceReportUnsaved, (event, count) => reportUnsaved(event.sender, count));
     handle(IPC_CHANNELS.workspaceCreateEntry, (event, parent, name, kind) => workspaceOf(event.sender).createEntry(parent, name, kind));
     handle(IPC_CHANNELS.workspaceRename, (event, path, newName) => workspaceOf(event.sender).rename(path, newName));
+    // #167: the path is checked against the folder before anything reaches the clipboard.
+    handle(IPC_CHANNELS.workspaceCopyPath, (event, path, kind) => {
+        clipboard.writeText(workspaceOf(event.sender).displayPath(path, kind));
+    });
     handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
     handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
     handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));

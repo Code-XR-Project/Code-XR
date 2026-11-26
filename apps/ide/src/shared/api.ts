@@ -381,6 +381,8 @@ export interface CodeXRApi {
         rename(path: string, newName: string): Promise<string>;
         /** Moves an entry to the operating system's trash (never deletes outright). */
         trash(path: string): Promise<void>;
+        /** #167: copies an entry's path to the clipboard, absolute or relative to the folder, with the OS's separators. */
+        copyPath(path: string, kind: 'absolute' | 'relative'): Promise<void>;
         /** Recently opened folders, most recent first (absolute paths, for display and `openRecent`). */
         recentFolders(): Promise<readonly string[]>;
         /** Opens a folder from `recentFolders()`; any other path is refused. */
@@ -438,6 +440,7 @@ export const IPC_CHANNELS = {
     workspaceReportUnsaved: 'codexr:workspace:report-unsaved',
     workspaceCreateEntry: 'codexr:workspace:create-entry',
     workspaceRename: 'codexr:workspace:rename',
+    workspaceCopyPath: 'codexr:workspace:copy-path',
     workspaceTrash: 'codexr:workspace:trash',
     workspaceRecentFolders: 'codexr:workspace:recent-folders',
     workspaceOpenRecent: 'codexr:workspace:open-recent',
