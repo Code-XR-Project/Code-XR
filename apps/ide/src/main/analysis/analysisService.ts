@@ -61,9 +61,11 @@ export class AnalysisService {
     /** Per window (by webContents id): the scene it last opened. */
     private readonly scenes = new Map<number, WindowScene>();
     private readonly python: PythonEnvironmentService;
+    private readonly hooks: { sceneOpened?(contents: WebContents, folder: string): void };
 
-    constructor(python: PythonEnvironmentService, subscriptions: HostDisposable[]) {
+    constructor(python: PythonEnvironmentService, subscriptions: HostDisposable[], hooks: { sceneOpened?(contents: WebContents, folder: string): void } = {}) {
         this.python = python;
+        this.hooks = hooks;
         const host = getHost();
         this.context = {
             extensionPath: host.paths.installRoot,
@@ -341,6 +343,10 @@ export class AnalysisService {
             share,
         };
         win.webContents.send(IPC_EVENTS.analysisSceneOpened, scene);
+        // #173: the Problems panel measures the functions of the folder the scene shows.
+        if (this.ownerFolder) {
+            this.hooks.sceneOpened?.(win.webContents, this.ownerFolder);
+        }
         await showScene(win, serverUrl);
     }
 }

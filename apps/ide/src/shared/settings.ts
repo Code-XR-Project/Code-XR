@@ -62,6 +62,10 @@ export const SETTINGS: readonly SettingDefinition[] = [
     { key: 'files.autoSaveDelay', category: 'Files', title: 'Auto Save Delay', description: 'Milliseconds after the last edit before an auto save, when Auto Save is "After a delay".', type: 'number', min: 100, max: 60000, integer: true, default: 1000 },
     { key: 'files.trimTrailingWhitespace', category: 'Files', title: 'Trim Trailing Whitespace', description: 'Remove spaces and tabs at the end of lines when saving.', type: 'boolean', default: false },
     { key: 'files.insertFinalNewline', category: 'Files', title: 'Insert Final Newline', description: 'End the file with a newline when saving.', type: 'boolean', default: false },
+    // #173: the Code-XR metric checks of the Problems panel, applied to the functions the last analysis measured.
+    { key: 'problems.metrics.maxComplexity', category: 'Problems', title: 'Max Cyclomatic Complexity', description: 'A function whose cyclomatic complexity (CCN) is above this is a warning in the Problems panel after an analysis. 0 turns the check off.', type: 'number', min: 0, max: 1000, integer: true, default: 10 },
+    { key: 'problems.metrics.maxFunctionLines', category: 'Problems', title: 'Max Function Lines', description: 'A function with more lines of code (NLOC) than this is a warning in the Problems panel. 0 turns the check off.', type: 'number', min: 0, max: 100000, integer: true, default: 50 },
+    { key: 'problems.metrics.maxParameters', category: 'Problems', title: 'Max Parameters', description: 'A function that takes more parameters than this is a warning in the Problems panel. 0 turns the check off.', type: 'number', min: 0, max: 1000, integer: true, default: 5 },
     { key: 'terminal.integrated.fontSize', category: 'Terminal', title: 'Font Size', description: 'The terminal font size, in pixels.', type: 'number', min: 6, max: 72, integer: true, default: 13 },
 ] as const;
 

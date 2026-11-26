@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.ts';
 import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
+import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 import { AGENT_IPC_CHANNELS, type ProviderInput } from '../shared/agents.ts';
 
@@ -124,6 +125,10 @@ const api: CodeXRApi = Object.freeze({
         lines: (channel: OutputChannelId) => ipcRenderer.invoke(IPC_CHANNELS.outputLines, channel),
         clear: (channel: OutputChannelId) => ipcRenderer.invoke(IPC_CHANNELS.outputClear, channel),
         onAppended: (listener: (event: OutputAppended) => void) => subscribe(IPC_EVENTS.outputAppended, listener),
+    }),
+    problems: Object.freeze({
+        functionMetrics: () => ipcRenderer.invoke(IPC_CHANNELS.problemsFunctionMetrics),
+        onMetricsChanged: (listener: (snapshot: FunctionMetricsSnapshot | null) => void) => subscribe(IPC_EVENTS.metricsChanged, listener),
     }),
     keybindings: Object.freeze({
         get: () => ipcRenderer.invoke(IPC_CHANNELS.keybindingsGet),

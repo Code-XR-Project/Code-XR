@@ -25,7 +25,7 @@ for module_dir in (LIVEPANELS_DIR, XR_DIR):
 
 def main():
     parser = argparse.ArgumentParser(description='Python Analysis Entry Point')
-    parser.add_argument('--mode', required=True, choices=['livePanel', 'xr', 'schema', 'dependencies'], help='Analysis mode')
+    parser.add_argument('--mode', required=True, choices=['livePanel', 'xr', 'schema', 'dependencies', 'functions'], help='Analysis mode')
     parser.add_argument('--type', required=True, choices=['file', 'directory'], help='Analysis type')
     parser.add_argument('--target', help='Target path to analyze')
     # --files is deliberately unused by the extension: executePython.ts never passes it, so
@@ -35,7 +35,7 @@ def main():
     parser.add_argument('--deep', action='store_true', help='Enable deep recursive analysis for directories')
     parser.add_argument('--cache', help='Private dependency extraction cache path')
     parser.add_argument('--dependency-refresh', help='Validated dependency refresh request JSON')
-    parser.add_argument('--project-root', help='Validated project root for file dependency resolution')
+    parser.add_argument('--project-root', help='Validated project root for file dependency resolution (and the relative path of a functions-mode file)')
 
     args = parser.parse_args()
 
@@ -78,6 +78,16 @@ def _dispatch(args):
             args.target,
             project_root=args.project_root,
             cache_path=args.cache,
+        )
+    if args.mode == 'functions':
+        # The Code-XR IDE's Problems panel (#173): per-function metrics, no scene.
+        from function_metrics import analyze_function_metrics
+        return analyze_function_metrics(
+            args.target,
+            args.type,
+            recursive=args.deep,
+            filtered_files=args.files,
+            project_root=args.project_root,
         )
     if args.mode == 'livePanel' and args.type == 'file':
         from livePanel_file_analysis_coordinator import analyze_file_comprehensive

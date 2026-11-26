@@ -362,6 +362,7 @@
     "flag:--target",
     "flag:--type",
     "mode:dependencies",
+    "mode:functions",
     "mode:livePanel",
     "mode:schema",
     "mode:xr",
