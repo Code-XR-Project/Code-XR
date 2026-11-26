@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type IdeCommand, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type HostNotification, type IdeCommand, type PythonEnvStatus, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -15,9 +15,25 @@ const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
  * Sandboxed preloads may only require('electron'); everything else this file
  * imports is bundled into it by scripts/build.mjs.
  */
+/** Subscribes to a main-to-renderer event, handing the listener the payload only. */
+function subscribe<T>(event: string, listener: (payload: T) => void): Unsubscribe {
+    const wrapped = (_event: IpcRendererEvent, payload: T): void => listener(payload);
+    ipcRenderer.on(event, wrapped);
+    return () => {
+        ipcRenderer.removeListener(event, wrapped);
+    };
+}
+
 const api: CodeXRApi = Object.freeze({
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),
+        onNotification: (listener: (notification: HostNotification) => void) => subscribe(IPC_EVENTS.hostNotification, listener),
+    }),
+    python: Object.freeze({
+        status: () => ipcRenderer.invoke(IPC_CHANNELS.pythonStatus),
+        setUp: () => ipcRenderer.invoke(IPC_CHANNELS.pythonSetUp),
+        remove: () => ipcRenderer.invoke(IPC_CHANNELS.pythonRemove),
+        onDidChangeStatus: (listener: (status: PythonEnvStatus) => void) => subscribe(IPC_EVENTS.pythonStatusChanged, listener),
     }),
     workspace: Object.freeze({
         openFolder: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenFolder),

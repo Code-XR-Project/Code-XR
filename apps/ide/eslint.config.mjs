@@ -13,7 +13,7 @@ const COMMON_RULES = {
 };
 
 export default [
-    { ignores: ['out/**', 'node_modules/**'] },
+    { ignores: ['out/**', 'node_modules/**', '.core-types/**'] },
     {
         files: ['**/*.ts'],
         plugins: { '@typescript-eslint': typescriptEslint },
@@ -35,6 +35,7 @@ export default [
                     { group: ['electron', 'electron/*'], message: 'The renderer cannot use Electron. Add a member to CodeXRApi instead.' },
                     { group: ['node:*'], message: 'The renderer cannot use Node. Add a member to CodeXRApi instead.' },
                     { group: ['../main/*', '../preload/*'], message: 'The renderer may only import src/shared.' },
+                    { group: ['@codexr/core/*'], message: 'The core runs in the main process only (#15). Add a member to CodeXRApi instead.' },
                 ],
             }],
             'no-restricted-properties': ['error',
@@ -54,7 +55,7 @@ export default [
         // The preload may only require 'electron' (sandbox rule) and src/shared.
         files: ['src/preload/**/*.ts'],
         rules: {
-            'no-restricted-imports': ['error', { patterns: [{ group: ['node:*', '../main/*'], message: 'A sandboxed preload may only use electron and src/shared.' }] }],
+            'no-restricted-imports': ['error', { patterns: [{ group: ['node:*', '../main/*', '@codexr/core/*'], message: 'A sandboxed preload may only use electron and src/shared.' }] }],
         },
     },
     {

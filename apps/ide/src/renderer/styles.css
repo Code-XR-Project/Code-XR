@@ -333,3 +333,58 @@ body {
   }
   .side-bar { display: none; }
 }
+
+/* Side-bar views (#15): one pane per activity item. */
+.side-pane[hidden] { display: none; }
+.side-note { margin: 12px; }
+.secondary-button {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.secondary-button:hover { background: var(--hover); }
+.primary-button:disabled, .secondary-button:disabled { opacity: 0.6; cursor: default; }
+
+/* Python environment (#15) */
+.env-section .side-bar-subtitle { margin-top: 4px; }
+.env-body { display: grid; gap: 8px; margin: 0 12px; }
+.env-badge {
+  justify-self: start;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.env-badge[data-state='ready'] { color: var(--fg); border-color: var(--accent); }
+.env-badge[data-state='broken'], .env-badge[data-state='missing-python'] { color: var(--crit); border-color: var(--crit); }
+.env-message { margin: 0; }
+.env-detail { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.env-detail[hidden], .env-packages[hidden], .env-location[hidden], .env-progress[hidden] { display: none; }
+.env-progress { width: 100%; accent-color: var(--accent); }
+.env-packages p { margin: 0 0 4px; }
+.env-package-list { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.env-package-name { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; }
+.env-location { margin: 0; overflow-wrap: anywhere; }
+.env-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.env-actions .primary-button { margin: 0; width: auto; }
+
+/* Status bar items */
+.status-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.status-item {
+  padding: 0 6px;
+  height: 20px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.status-item:hover { background: rgba(255, 255, 255, 0.15); }
+.status-item:focus-visible { outline: 1px solid var(--status-fg); outline-offset: -1px; }
+.status-item[hidden] { display: none; }

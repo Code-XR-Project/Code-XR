@@ -35,6 +35,7 @@
 
 #### Fixed
 
+- **Checking the Python environment no longer downloads anything.** Since tree-sitter-language-pack 1.x, the call the extension used to confirm the package worked (`get_parser("python")`) fetched the Python grammar from GitHub the first time, so a simple check made a network request nobody had agreed to. Offline it failed instead, and the extension then reinstalled packages that were already there. The check now only imports the package.
 - **The analysis switcher in the XR scene no longer gets stuck.** One analysis that never finished opening (a dependency or comparison file that never arrived over a slow tunnel, for example) froze the switcher for the rest of the session: every later pick, Normal analysis included, waited behind it until the page was reloaded. Several related problems are fixed:
   - A new pick now cancels the analysis that is still opening and starts at once, and an analysis that takes longer than 45 s to open (90 s for project evolution) is reported as failed.
   - When an analysis cannot open, the selector says why, and its option reads "Retry: …". Before, the message went to a panel that is hidden while the selector is up, so nothing seemed to happen. The failed analysis is no longer reopened by the "Analyses" button or by the room's echo of the pick, and the other participants are sent back to the selector instead of staying in the failed analysis.

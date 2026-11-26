@@ -3,6 +3,7 @@ import path from 'node:path';
 import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
 import { registerIpcHandlers } from './ipc.ts';
+import { startCore } from './core/coreRuntime.ts';
 import { installApplicationMenu } from './menu.ts';
 import { createMainWindow } from './window.ts';
 import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
@@ -51,7 +52,7 @@ async function start(): Promise<void> {
     if (!isDevelopment) {
         serveRenderer(RENDERER_DIR);
     }
-    registerIpcHandlers(origins, isDevelopment);
+    registerIpcHandlers(origins, isDevelopment, startCore({ isSmoke }));
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))

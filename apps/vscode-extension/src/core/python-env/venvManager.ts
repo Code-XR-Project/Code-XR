@@ -413,6 +413,24 @@ export class VenvManager {
     }
 
     /**
+     * The system Python the environment would be created from, or null when
+     * none of the platform's launchers answers. Runs `--version` only: no
+     * network, nothing installed (the IDE asks for consent after this).
+     */
+    public async findSystemPython(): Promise<{ command: ExecutableCommand; version: string } | null> {
+        try {
+            return await this.resolveSystemPython();
+        } catch {
+            return null;
+        }
+    }
+
+    /** True when every package in the manifest imports inside the environment. Runs Python only, no network. */
+    public async areRequiredPackagesInstalled(): Promise<boolean> {
+        return this.verifyRequiredPackages();
+    }
+
+    /**
      * Get environment status information.
      */
     public getEnvironmentStatus(): {

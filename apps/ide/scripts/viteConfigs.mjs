@@ -10,6 +10,11 @@ import { fileURLToPath } from 'node:url';
 
 export const IDE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const OUT_DIR = path.join(IDE_ROOT, 'out');
+/**
+ * The extension's vscode-free core (#13), bundled into the main process from
+ * source. Type-checked through declarations: see scripts/coreTypes.mjs.
+ */
+export const CORE_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'core');
 
 const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
 
@@ -36,6 +41,7 @@ export function nodeTargetConfig(target, opts = {}) {
             },
         },
         ssr: { noExternal: true },
+        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }] },
     };
 }
 

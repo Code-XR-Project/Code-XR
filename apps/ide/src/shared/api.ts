@@ -69,6 +69,42 @@ export interface SaveResult {
 export const IDE_COMMANDS = ['workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
+/**
+ * The Python environment the analyses run in (#15), as the Analysis view and
+ * the status bar show it.
+ * - `missing-python`: no system Python answered; `detail` says how to install one.
+ * - `not-installed`: Python found, the environment was never set up.
+ * - `installing`: a set-up or repair is running (`progress` 0-100).
+ * - `ready`: the environment exists and every analysis package imports.
+ * - `broken`: it exists but is damaged or incomplete, or the last set-up failed.
+ */
+export type PythonEnvState = 'missing-python' | 'not-installed' | 'installing' | 'ready' | 'broken';
+
+export interface PythonPackageInfo {
+    readonly name: string;
+    readonly version: string;
+    readonly purpose: string;
+}
+
+export interface PythonEnvStatus {
+    readonly state: PythonEnvState;
+    readonly message: string;
+    readonly detail?: string | undefined;
+    /** The Python the environment runs (ready) or would be created from (not-installed). */
+    readonly pythonVersion?: string | undefined;
+    readonly progress?: number | undefined;
+    /** Where the environment lives (inside the IDE's user-data folder). */
+    readonly venvPath: string;
+    /** What setting up installs, from the core's pinned manifest. */
+    readonly packages: readonly PythonPackageInfo[];
+}
+
+/** A message from the core for the status bar (`HostNotifier.notify` without choices). */
+export interface HostNotification {
+    readonly severity: 'info' | 'warning' | 'error';
+    readonly message: string;
+}
+
 /** Unsubscribes a listener registered with an `on…` member. */
 export type Unsubscribe = () => void;
 
@@ -79,6 +115,21 @@ export type Unsubscribe = () => void;
 export interface CodeXRApi {
     readonly app: {
         getInfo(): Promise<AppInfo>;
+        /** Messages from the core (environment set up, a server stopped ...). */
+        onNotification(listener: (notification: HostNotification) => void): Unsubscribe;
+    };
+    readonly python: {
+        /** Checks the environment again (runs Python, never downloads). */
+        status(): Promise<PythonEnvStatus>;
+        /**
+         * Sets up or repairs the environment. The main process first asks in a
+         * native dialog that lists what will be downloaded; resolves with the
+         * new status, unchanged when the person declines.
+         */
+        setUp(): Promise<PythonEnvStatus>;
+        /** Deletes the environment after a native confirmation. */
+        remove(): Promise<PythonEnvStatus>;
+        onDidChangeStatus(listener: (status: PythonEnvStatus) => void): Unsubscribe;
     };
     readonly workspace: {
         /** Shows the folder picker; resolves with the new workspace, or null when cancelled. */
@@ -143,6 +194,9 @@ export const IPC_CHANNELS = {
     workspaceTrash: 'codexr:workspace:trash',
     workspaceRecentFolders: 'codexr:workspace:recent-folders',
     workspaceOpenRecent: 'codexr:workspace:open-recent',
+    pythonStatus: 'codexr:python:status',
+    pythonSetUp: 'codexr:python:set-up',
+    pythonRemove: 'codexr:python:remove',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -154,6 +208,8 @@ export const IPC_EVENTS = {
     workspaceChanged: 'codexr:workspace:changed',
     command: 'codexr:command',
     workspaceFilesChanged: 'codexr:workspace:files-changed',
+    pythonStatusChanged: 'codexr:python:status-changed',
+    hostNotification: 'codexr:host:notification',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */
