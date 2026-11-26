@@ -8,6 +8,7 @@ import { UnifiedSessionRegistry } from './session/sessionRegistry';
 import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './session/analysisSession';
 import { getLogger } from '../../platform/logging/sink';
 import { getHost } from '../host/hostRegistry';
+import { notifyAnalysisLaunched } from './analysisEvents';
 import type { CoreContext } from '../host/hostPaths';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
@@ -109,6 +110,10 @@ export class AnalysisOrchestrator {
                 throw unsupported;
             }
             await launch(session, context);
+            notifyAnalysisLaunched(
+                { targetPath: session.targetPath, targetType: session.targetType, analysisMode, isDeep: session.isDeep },
+                (error) => logger.warn('An analysis listener failed:', error),
+            );
 
         } catch (error) {
             logger.error('Error orchestrating analysis:', error);
