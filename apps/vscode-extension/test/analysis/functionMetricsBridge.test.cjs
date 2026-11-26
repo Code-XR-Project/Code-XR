@@ -81,10 +81,12 @@ test('in VS Code: warnings in Problems, a lens per function, out of date while u
         const { registerMetricsInEditor } = requireOut('features/metrics-in-editor/metricsInEditor.js');
         const context = fakeExtensionContext();
         registerMetricsInEditor(context);
-        notifyAnalysisLaunched({ targetPath: '/p', targetType: 'directory', analysisMode: 'XR', isDeep: true }, assert.fail);
+        // A resolved root: on Windows the fake Uri.file turns '/p' into 'D:\\p', as VS Code would.
+        const root = require('node:path').resolve('/p');
+        notifyAnalysisLaunched({ targetPath: root, targetType: 'directory', analysisMode: 'XR', isDeep: true }, assert.fail);
         await new Promise((done) => setTimeout(done, 10));
 
-        const file = require('node:path').join('/p', 'src', 'a.py');
+        const file = require('node:path').join(root, 'src', 'a.py');
         assert.deepEqual([...diagnostics.get(file)].map((d) => [d.message, d.source, d.code, d.range.start.line]), [
             ["'route' has a cyclomatic complexity of 18 (limit 10).", 'Code-XR', 'complexity', 2],
             ["'route' takes 7 parameters (limit 5).", 'Code-XR', 'parameters', 2],
