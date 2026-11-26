@@ -48,6 +48,8 @@ export interface SmokeProbe {
     readonly settings: { readonly listed: boolean; readonly applied: boolean; readonly reset: boolean };
     readonly theme: { readonly previewed: boolean; readonly reverted: boolean; readonly stored: boolean };
     readonly keybindings: { readonly opened: boolean; readonly recorded: boolean; readonly works: boolean; readonly reset: boolean };
+    /** #174: Ctrl/Cmd+Shift+U showed the Output view with the IDE's own log lines, the channel picker switched channel, the close button hid the panel. */
+    readonly output: { readonly shown: boolean; readonly hasLines: boolean; readonly switched: boolean; readonly closed: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -308,12 +310,29 @@ const RENDERER_PROBE = `(async () => {
         await window.codexr.settings.update('user', 'workbench.colorTheme', null);
         await waitFor(() => isLight() === systemLight);
     }
+    // #174: the Output view shows what the main process logged, per channel.
+    const outputProbe = { shown: false, hasLines: false, switched: false, closed: false };
+    press(document.body, 'KeyU', 'U', isMac ? { metaKey: true, shiftKey: true } : { ctrlKey: true, shiftKey: true });
+    const outputLines = () => document.querySelector('[data-testid="output-lines"]');
+    outputProbe.shown = !!(await waitFor(() => !document.querySelector('[data-testid="terminal-panel"]').hidden && !document.querySelector('[data-testid="output-body"]').hidden));
+    outputProbe.hasLines = !!(await waitFor(() => (outputLines()?.childElementCount ?? 0) > 0 && /\\[INFO\\]/.test(outputLines()?.textContent ?? '')));
+    const channelPicker = document.querySelector('[data-testid="output-channel"]');
+    if (channelPicker) {
+        channelPicker.value = 'servers';
+        channelPicker.dispatchEvent(new Event('change'));
+        const serverLines = await window.codexr.output.lines('servers');
+        outputProbe.switched = await waitFor(() => (outputLines()?.childElementCount ?? 0) === serverLines.length);
+        channelPicker.value = 'ide';
+        channelPicker.dispatchEvent(new Event('change'));
+    }
+    document.querySelector('[data-testid="terminal-close-panel"]')?.click();
+    outputProbe.closed = await waitFor(() => document.querySelector('[data-testid="terminal-panel"]').hidden);
     document.querySelector('.activity-item[data-view="explorer"]')?.click();
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
         apiType: typeof window.codexr,
-        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal),
+        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal) && Object.isFrozen(window.codexr.agents),
         apiKeys: Object.keys(window.codexr || {}),
         requireType: typeof window.require,
         processType: typeof window.process,
@@ -337,6 +356,7 @@ const RENDERER_PROBE = `(async () => {
         settings: settingsProbe,
         keybindings: keybindingsProbe,
         theme: themeProbe,
+        output: outputProbe,
         cspViolations,
     };
 })()`;
@@ -403,6 +423,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (Object.values(probe.settings).some((ok) => !ok)) { failures.push(`the Settings view did not change the editor (${JSON.stringify(probe.settings)})`); }
         if (Object.values(probe.theme).some((ok) => !ok)) { failures.push(`the theme picker did not switch the theme (${JSON.stringify(probe.theme)})`); }
         if (Object.values(probe.keybindings).some((ok) => !ok)) { failures.push(`Keyboard Shortcuts did not rebind Zen Mode (${JSON.stringify(probe.keybindings)})`); }
+        if (Object.values(probe.output).some((ok) => !ok)) { failures.push(`the Output panel did not show the logs (${JSON.stringify(probe.output)})`); }
         if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }

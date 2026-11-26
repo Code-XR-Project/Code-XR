@@ -2,8 +2,10 @@ import path from 'node:path';
 import { getHost } from '@codexr/core/host/hostRegistry';
 import { CLOUDFLARED_CONSENT_KEY, CLOUDFLARED_VERSION, CloudflaredBinaryManager } from '@codexr/core/remote-access/cloudflaredBinaryManager';
 import type { GlobalStateContext } from '@codexr/core/host/hostPaths';
-import { log } from '../log.ts';
+import { channelLog } from '../log.ts';
 import type { CloudflaredStatus } from './dependencyReport.ts';
+
+const log = channelLog('servers');
 
 /**
  * cloudflared, the program behind "Share through Cloudflare" (#155), is one

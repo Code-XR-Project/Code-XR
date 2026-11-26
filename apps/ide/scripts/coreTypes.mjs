@@ -16,9 +16,9 @@ import path from 'node:path';
 import { IDE_ROOT } from './viteConfigs.mjs';
 
 const EXTENSION = path.resolve(IDE_ROOT, '..', 'vscode-extension');
-const CORE_SRC = path.join(EXTENSION, 'src', 'core');
+const ROOTS = { core: path.join(EXTENSION, 'src', 'core'), logging: path.join(EXTENSION, 'src', 'platform', 'logging') };
 const OUT = path.join(IDE_ROOT, '.core-types');
-const IMPORT = /from\s+['"]@codexr\/core\/([^'"]+)['"]/g;
+const IMPORT = /from\s+['"]@codexr\/(core|logging)\/([^'"]+)['"]/g;
 
 function* sourceFiles(dir) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -30,9 +30,9 @@ function* sourceFiles(dir) {
 const entries = new Set();
 for (const file of sourceFiles(path.join(IDE_ROOT, 'src'))) {
     for (const match of fs.readFileSync(file, 'utf8').matchAll(IMPORT)) {
-        const target = path.join(CORE_SRC, `${match[1].replace(/\.ts$/, '')}.ts`);
+        const target = path.join(ROOTS[match[1]], `${match[2].replace(/\.ts$/, '')}.ts`);
         if (!fs.existsSync(target)) {
-            throw new Error(`${path.relative(IDE_ROOT, file)} imports @codexr/core/${match[1]}, which does not exist.`);
+            throw new Error(`${path.relative(IDE_ROOT, file)} imports @codexr/${match[1]}/${match[2]}, which does not exist.`);
         }
         entries.add(target);
     }

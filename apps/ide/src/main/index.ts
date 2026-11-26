@@ -7,6 +7,7 @@ import { fileStorage, memoryStorage, SettingsService } from './settings/settings
 import { KeybindingsService } from './settings/keybindingsService.ts';
 import { KEYBINDINGS_FILE_NAME } from '../shared/keybindings.ts';
 import { applyColorTheme } from './settings/theme.ts';
+import { OutputService } from './outputPanel/outputService.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { startCore, type CoreServices } from './core/coreRuntime.ts';
 import { installApplicationMenu, setAboutDependencies } from './menu.ts';
@@ -20,6 +21,7 @@ import { folderArgument } from './workspace/workspacePath.ts';
 import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } from './workspace/workspaceWindows.ts';
 import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
+import { startAgents } from './agents/agentsRuntime.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -61,6 +63,9 @@ let terminals: TerminalHost | null = null;
 app.on('will-quit', () => void terminals?.killAll());
 
 async function start(): Promise<void> {
+    // #174: the Output panel collects from the first line on.
+    const output = new OutputService();
+    output.install();
     nativeTheme.themeSource = 'system';
     if (!isDevelopment) {
         serveRenderer(RENDERER_DIR);
@@ -80,7 +85,7 @@ async function start(): Promise<void> {
     // #18, part 3: the user's keybindings, likewise in memory for the smoke run.
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings);
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, startAgents({ isSmoke }));
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);

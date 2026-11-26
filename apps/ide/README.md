@@ -134,6 +134,14 @@ Following Electron's [security checklist](https://www.electronjs.org/docs/latest
 
 Running as root (containers, some CI images) requires `--no-sandbox`, which the scripts add only in that case. It turns off Chromium's OS-level sandbox and `app.enableSandbox()`; the per-window `sandbox: true` preference and its assertion stay.
 
+## Output panel (#174)
+
+The bottom panel holds several views, VS Code's way: **Terminal** and **Output** today (Problems next, #173), as tabs at the left of the panel's header, the active view's own controls after them, maximise and close at the end (`renderer/panel/panelHost.ts`). `Ctrl+\`` shows the Terminal, **View: Show Output** (`Ctrl/Cmd+Shift+U`) the Output, **Toggle Panel** (`Ctrl/Cmd+J`) the view shown last.
+
+**Output** shows what the IDE writes, one channel at a time: **Code-XR IDE** (the main process's own log), **Analysis core**, **Python environment** (the venv, pip, the parsers) and **Servers and tunnel** (the scene servers, SSE, cloudflared). The main process collects every line (`main/outputPanel/outputService.ts`): its own logger (`main/log.ts`, one logger per channel) and the core's log sink, whose `[SCOPE]` picks the channel (`channelForScope` in `shared/output.ts`, by whole words of the scope). The core's info and debug lines are shown too, which the extension's log file only keeps in development. Before a line is kept, anything that looks like a secret is replaced by `<redacted>`: `--token` style arguments, `key=value` pairs whose key names a secret, `Authorization`/`Bearer` values, Anthropic/OpenAI/GitHub/AWS/Slack key shapes, JWTs (cloudflared's tunnel tokens among them) and passwords in URLs. Each channel keeps its last 5,000 lines (a line over 4,000 characters is cut), in the main process and in the page; new lines reach the window in batches every 80 ms. The view has a channel picker, auto-scroll lock, copy (the selection, or the whole channel) and clear. Error notifications from the analysis, the core and the Python set-up carry a **Show Output** button that opens the channel explaining them.
+
+The core's sink lives in the extension's platform layer, not in `core/`, so the IDE reaches it through a second alias, `@codexr/logging/<path>` (`src/platform/logging`), handled like `@codexr/core` by Vite, `scripts/coreTypes.mjs` and ESLint.
+
 ## Terminal (#137)
 
 A bottom panel of terminal tabs: [xterm.js](https://xtermjs.org/) in the renderer, [node-pty](https://github.com/microsoft/node-pty) in the main process. Each terminal starts in the open folder (the home folder when none is open) and keeps running while you switch tabs or hide the panel.
@@ -163,3 +171,12 @@ The first detected profile is the default until the person picks another in the 
 2. Expose it in `src/preload/index.ts`, one member per channel. Never expose `ipcRenderer` or a generic `invoke`.
 3. Register the handler in `src/main/ipc.ts` through `handle()`, which already rejects untrusted frames. Validate every argument: the renderer is untrusted.
 4. Add a unit test for any pure logic, and extend the smoke probe if the capability is security-relevant.
+
+## AI agent hub (stream `ai-agents`)
+
+The Agents view (activity bar, speech-bubble icon) connects the IDE to LLM providers with the person's **own API keys**. There is no Code-XR server in between: every call goes straight from the main process to the provider, and nothing is sent until a provider is configured and used.
+
+- **Providers:** Anthropic, OpenAI, Google Gemini, OpenRouter, Nous Portal, and any OpenAI-compatible endpoint (Ollama, LM Studio…). Three wire protocols cover them (`src/main/agents/providers/`: Anthropic Messages, OpenAI Chat Completions, Gemini `streamGenerateContent`), normalised into one `ChatEvent` stream with text, tool calls, usage and a stop reason. 429/5xx are retried twice with backoff before anything is streamed.
+- **Keys:** `KeyVault` (`src/main/agents/keyVault.ts`) encrypts them with Electron `safeStorage` (Keychain on macOS, DPAPI on Windows, libsecret/kwallet on Linux) into `<userData>/agents/keys.json` (mode 0600). If Linux has no keyring, Electron falls back to `basic_text`, which is obfuscation only: the vault then keeps keys in memory until the IDE quits and writes nothing, and the view says so. Provider settings (no secrets) are in `<userData>/agents/providers.json`.
+- **The renderer never sees a stored key.** It gets `hasKey`, the last four characters and where the key is kept. Fixed providers cannot be pointed at another endpoint from the renderer; a custom endpoint must be https, or http on this machine, with no credentials in the URL.
+- **Contract:** `src/shared/agents.ts` (types + `AGENT_IPC_CHANNELS`, spread into `IPC_CHANNELS`), exposed as `window.codexr.agents`.

@@ -7,8 +7,10 @@ import { getHost } from '@codexr/core/host/hostRegistry';
 import { execFile } from 'node:child_process';
 import type { PythonEnvStatus, PythonPackageInfo } from '../../shared/api.ts';
 import { parseParsersCheck, type ParsersStatus } from '../dependencies/dependencyReport.ts';
-import { log } from '../log.ts';
+import { channelLog } from '../log.ts';
 import { describePythonEnv, setUpDisclosure, type PythonFacts } from './pythonStatus.ts';
+
+const log = channelLog('python');
 
 const PACKAGES: readonly PythonPackageInfo[] = CODEXR_PYTHON_PACKAGES.map((pkg) => ({ name: pkg.distribution, version: pkg.version, purpose: pkg.purpose }));
 

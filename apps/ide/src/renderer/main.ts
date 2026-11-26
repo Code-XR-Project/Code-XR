@@ -3,8 +3,13 @@ import { createExplorer } from './explorer.ts';
 import { createPythonView, pythonStatusText } from './pythonView.ts';
 import { createAnalysisRunView } from './analysisRunView.ts';
 import { createScenePanel } from './scenePanel.ts';
-import { createNotificationCenter } from './notifications.ts';
+import { createNotificationCenter, type NotificationAction } from './notifications.ts';
+import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
+import { createOutputView } from './outputPanel/outputView.ts';
+import { createPanelHost } from './panel/panelHost.ts';
+import { createAgentsView } from './agents/agentsView.ts';
+import { registerAgentCommands } from './agents/agentCommands.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
@@ -294,12 +299,15 @@ const settingsView = createSettingsView(workbench.settingsView, api.settings, {
 });
 api.settings.onDidChange(applySettings);
 
-// #137: the terminal panel; xterm.js loads with the first terminal.
-const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
+// #174: the bottom panel and its views. #137: the terminal; xterm.js loads with the first terminal.
+const panelHost = createPanelHost(workbench.panel, { toggleMaximized: () => workbench.layout.togglePanelMaximized() });
+workbench.layout.onDidChange(() => panelHost.setMaximized(workbench.layout.panelMaximized));
+const terminal = createTerminalPanel(panelHost, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
-    toggleMaximized: () => workbench.layout.togglePanelMaximized(),
 });
-workbench.layout.onDidChange(() => terminal.setMaximized(workbench.layout.panelMaximized));
+const output = createOutputView(panelHost, api.output, { onError: (message) => workbench.setStatus(message) });
+/** A notification's "Show Output" button, on the channel that explains it. */
+const showOutputAction = (channel: OutputChannelId): NotificationAction => ({ label: 'Show Output', run: () => output.show(channel) });
 void loadSettings();
 
 // #18: every action is a command in one registry: the palette lists them,
@@ -415,6 +423,7 @@ const editorStatus = createEditorStatus(workbench.editorStatus, {
     pickEndOfLine,
     pickLanguage,
 });
+registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider() });
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
     goToLine: () => quickInput.open(LINE_PREFIX),
@@ -437,6 +446,7 @@ registerWorkbenchCommands(registry, {
     toggleTerminal: () => terminal.toggle(),
     newTerminal: () => void terminal.newTerminal(),
     closeTerminalPanel: () => terminal.hide(),
+    showOutput: () => output.show(),
     showView: (view) => workbench.showView(view),
     showSearch: () => {
         workbench.showView('search');
@@ -451,9 +461,17 @@ registerWorkbenchCommands(registry, {
     },
     hasScene: () => !workbench.sceneArea.hidden,
     toggleSideBar: () => workbench.layout.toggleSideBar(),
-    togglePanel: () => terminal.toggle(),
+    togglePanel: () => {
+        if (panelHost.visible) {
+            panelHost.hide();
+        } else if (panelHost.activeView === 'terminal') {
+            terminal.show();
+        } else {
+            panelHost.show();
+        }
+    },
     toggleMaximizedPanel: () => workbench.layout.togglePanelMaximized(),
-    hasPanel: () => terminal.visible,
+    hasPanel: () => panelHost.visible,
     toggleZenMode: () => workbench.layout.toggleZen(),
     resetLayout: () => workbench.layout.reset(),
     openSettings: () => {
@@ -513,6 +531,10 @@ api.keybindings.onDidChange(applyKeybindings);
 void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
+// The AI agent hub: providers configured with the person's own keys.
+const agentsView = createAgentsView(workbench.agentsView, api.agents, { onStatus: (message) => workbench.setStatus(message) });
+agentsView.refresh().catch((error: unknown) => workbench.setStatus(`Agents unavailable: ${String(error)}`));
+
 const pythonView = createPythonView(workbench.analysisView, api.python, {
     onStatus: (status) => {
         workbench.setPythonStatus(pythonStatusText(status), status.message, status.state);
@@ -529,7 +551,7 @@ const runView = createAnalysisRunView(workbench.analysisView, api.analysis, {
         notifications.endProgress('analysis');
         // A launched scene is announced by the core itself ("... Server running on port N").
         if (!ok) {
-            notifications.notify('error', message);
+            notifications.notify('error', message, { actions: [showOutputAction('core')] });
         }
     },
 });
@@ -551,7 +573,7 @@ api.python.status().then((status) => {
 }, (error: unknown) => workbench.setStatus(`Could not check Python: ${String(error)}`));
 api.app.onNotification((notification) => {
     workbench.setStatus(notification.message);
-    notifications.notify(notification.severity, notification.message);
+    notifications.notify(notification.severity, notification.message, notification.severity === 'error' ? { actions: [showOutputAction('core')] } : {});
 });
 // #153: the core's long tasks (the Python set-up steps, the language parsers...) as progress notifications.
 api.app.onProgress((progress) => {
@@ -587,7 +609,7 @@ function notifyPython(status: PythonEnvStatus): void {
         } else {
             notifications.notify('error', 'The analysis dependencies could not be installed.', {
                 detail: status.detail ?? status.message,
-                actions: [{ label: 'Retry', run: () => void api.python.setUp() }],
+                actions: [{ label: 'Retry', run: () => void api.python.setUp() }, showOutputAction('python')],
             });
         }
     } else if (status.state === 'missing-python' && previous !== 'missing-python') {

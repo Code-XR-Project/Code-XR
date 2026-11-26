@@ -23,12 +23,14 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'search', label: 'Search', icon: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21' },
     { id: 'analysis', label: 'Analysis', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
+    // The AI agent hub (agents/agentsView.ts).
+    { id: 'agents', label: 'Agents', icon: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
     // #18: the Settings view, at the foot of the activity bar as in VS Code.
     { id: 'settings', label: 'Settings', icon: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', bottom: true },
 ];
 
 /** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
-export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr' | 'settings' | 'keybindings';
+export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
 
 export interface Workbench {
     /** The explorer's pane of the side bar. */
@@ -37,6 +39,8 @@ export interface Workbench {
     readonly searchView: HTMLElement;
     /** The Analysis view's pane of the side bar (#15: the Python environment). */
     readonly analysisView: HTMLElement;
+    /** The Agents view's pane of the side bar (AI agent hub). */
+    readonly agentsView: HTMLElement;
     /** The Settings view's pane of the side bar (#18, settings/settingsView.ts). */
     readonly settingsView: HTMLElement;
     /** The Keyboard Shortcuts pane (#18, part 3, settings/keybindingsView.ts), shown under the Settings item. */
@@ -90,10 +94,11 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
         el('p', { className: 'muted side-note', text: 'Run an analysis from the Analysis view: its XR scene opens beside the code.' }),
     ]);
+    const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -146,6 +151,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         sideBar,
         searchView,
         analysisView,
+        agentsView,
         settingsView,
         keybindingsView,
         showView: (id: ViewId) => showView(id),

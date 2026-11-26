@@ -13,12 +13,14 @@ import { getActiveServerRegistry } from '@codexr/core/server/registry/activeServ
 import { ServerControl } from '@codexr/core/server/serverControl';
 import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager';
 import { AUTO_START_MODES, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type SceneAddress, type SceneInfo, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
-import { log } from '../log.ts';
+import { channelLog } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { readAnalysedFileCount } from './analysedFiles.ts';
 import { closeScene, showScene } from './sceneView.ts';
 import { sceneTitle, targetName } from './sceneUrl.ts';
 import { isQuickTunnelUrl, sameShareState, SerialQueue, startShareOnce, STOPPED, toSceneShareState } from './sceneShare.ts';
+
+const log = channelLog('core');
 
 /**
  * Runs the extension's analyses from the IDE (#16), through the same core

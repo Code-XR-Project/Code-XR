@@ -1,5 +1,6 @@
 import type { ColorTheme, SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
 import type { UserKeybinding } from './keybindings.ts';
+import type { OutputChannelId } from './output.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -11,6 +12,8 @@ import type { UserKeybinding } from './keybindings.ts';
  * This module is shared by main, preload and renderer, so it must stay free of
  * any Node, Electron or DOM import.
  */
+
+import { AGENT_IPC_CHANNELS, type AgentsApi } from './agents.ts';
 
 /** Facts about the running IDE, shown on the welcome screen and in About. */
 export interface AppInfo {
@@ -297,6 +300,8 @@ export type Unsubscribe = () => void;
  * except the `on…` subscriptions, which return their `Unsubscribe`.
  */
 export interface CodeXRApi {
+    /** The AI agent hub: providers, keys, chats (contract in agents.ts). */
+    readonly agents: AgentsApi;
     readonly app: {
         getInfo(): Promise<AppInfo>;
         /** Messages from the core (environment set up, a server stopped ...). */
@@ -441,6 +446,14 @@ export interface CodeXRApi {
         /** The settings changed (in this window, or the user's in another one). */
         onDidChange(listener: (report: SettingsReport) => void): Unsubscribe;
     };
+    /** #174: the Output panel's channels (shared/output.ts lists them). */
+    readonly output: {
+        /** The lines a channel holds now (at most MAX_OUTPUT_LINES). */
+        lines(channel: OutputChannelId): Promise<readonly string[]>;
+        clear(channel: OutputChannelId): Promise<void>;
+        /** New lines, in batches, or a channel cleared. */
+        onAppended(listener: (event: OutputAppended) => void): Unsubscribe;
+    };
     /** #18, part 3: the user's keybinding rules (shared/keybindings.ts holds the format). */
     readonly keybindings: {
         get(): Promise<KeybindingsReport>;
@@ -453,6 +466,13 @@ export interface CodeXRApi {
         setMenuAccelerators(accelerators: Readonly<Record<string, string | null>>): Promise<void>;
         onDidChange(listener: (report: KeybindingsReport) => void): Unsubscribe;
     };
+}
+
+/** #174: lines added to a channel, or the channel cleared (`cleared`, with no lines). */
+export interface OutputAppended {
+    readonly channel: OutputChannelId;
+    readonly lines: readonly string[];
+    readonly cleared: boolean;
 }
 
 /** The user's keybinding rules, where they live and why some could not be read. */
@@ -492,6 +512,8 @@ export const IPC_CHANNELS = {
     settingsUpdate: 'codexr:settings:update',
     settingsFolderFile: 'codexr:settings:folder-file',
     settingsPreviewTheme: 'codexr:settings:preview-theme',
+    outputLines: 'codexr:output:lines',
+    outputClear: 'codexr:output:clear',
     keybindingsGet: 'codexr:keybindings:get',
     keybindingsUpdate: 'codexr:keybindings:update',
     keybindingsSetMenu: 'codexr:keybindings:set-menu',
@@ -517,6 +539,8 @@ export const IPC_CHANNELS = {
     terminalInput: 'codexr:terminal:input',
     terminalResize: 'codexr:terminal:resize',
     terminalKill: 'codexr:terminal:kill',
+    // The AI agent hub keeps its own channel list in agents.ts.
+    ...AGENT_IPC_CHANNELS,
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -539,6 +563,7 @@ export const IPC_EVENTS = {
     terminalExit: 'codexr:terminal:exit',
     settingsChanged: 'codexr:settings:changed',
     keybindingsChanged: 'codexr:keybindings:changed',
+    outputAppended: 'codexr:output:appended',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

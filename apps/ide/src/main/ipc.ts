@@ -2,6 +2,8 @@ import { app, BrowserWindow, clipboard, ipcMain, shell, type IpcMainInvokeEvent 
 import type { CoreServices } from './core/coreRuntime.ts';
 import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, SCENE_ADDRESSES, type AnalysisKind, type AppInfo, type AutoStartMode, type SceneAddress } from '../shared/api.ts';
 import type { TerminalHost } from './terminal/terminalHost.ts';
+import type { AgentServices } from './agents/agentsRuntime.ts';
+import { registerAgentHandlers } from './agents/agentsIpc.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -10,6 +12,7 @@ import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
 import type { SettingsService } from './settings/settingsService.ts';
 import type { KeybindingsService } from './settings/keybindingsService.ts';
+import type { OutputService } from './outputPanel/outputService.ts';
 import { setMenuAccelerators } from './menu.ts';
 import { applyColorTheme, previewColorTheme } from './settings/theme.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';
@@ -22,7 +25,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -100,6 +103,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.settingsPreviewTheme, (_event, theme) => previewColorTheme(theme));
     handle(IPC_CHANNELS.settingsFolderFile, (event) => settings.ensureFolderFile(workspaceOf(event.sender)));
     // #18, part 3: the user's keybindings are one file for every window, so every window hears a change.
+    // #174: the Output panel.
+    handle(IPC_CHANNELS.outputLines, (_event, channel) => output.lines(channel));
+    handle(IPC_CHANNELS.outputClear, (_event, channel) => output.clear(channel));
     handle(IPC_CHANNELS.keybindingsGet, () => keybindings.snapshot());
     handle(IPC_CHANNELS.keybindingsUpdate, async (_event, entries) => {
         const report = await keybindings.update(entries);
@@ -161,6 +167,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.terminalInput, (event, id, data) => terminal.input(event.sender, id, data));
     handle(IPC_CHANNELS.terminalResize, (event, id, cols, rows) => terminal.resize(event.sender, id, cols, rows));
     handle(IPC_CHANNELS.terminalKill, (event, id) => terminal.kill(event.sender, id));
+
+    // The AI agent hub (agents/agentsIpc.ts).
+    registerAgentHandlers(handle, agents.providers);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.
