@@ -9,6 +9,7 @@ import { hostPathsFromContext } from '../../host/hostPaths';
 import { classifyStderrLine } from './pythonStderrStream';
 import { currentLaunchSignal } from '../launch/launchControl';
 import { getLogger } from '../../../platform/logging/sink';
+import type { HostProgress } from '../../host/codeXRHost';
 
 const logger = getLogger('EXECUTE_PYTHON');
 
@@ -127,7 +128,7 @@ export class ExecutePython {
         logger.debug(() => `Target type: ${session.targetType}`);
         logger.debug(() => `Target path: ${session.targetPath}`);
 
-        const runAnalysis = async (progress: vscode.Progress<{message: string; increment: number}>): Promise<PythonPayload> => {
+        const runAnalysis = async (progress: HostProgress): Promise<PythonPayload> => {
             progress.report({
                 increment: 0,
                 message: `Starting ${session.analysisMode} analysis...`,
@@ -172,7 +173,7 @@ export class ExecutePython {
 
     private async executeFileAnalysis(
         session: UnifiedAnalysisSession,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): Promise<PythonPayload> {
         logger.debug(() => `Executing file analysis for: ${session.targetPath}`);
 
@@ -194,7 +195,7 @@ export class ExecutePython {
 
     private async executeDirectoryAnalysis(
         session: UnifiedAnalysisSession,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): Promise<PythonPayload> {
         logger.debug('Executing directory analysis...');
         logger.debug(() => `Will analyze directory: ${session.targetPath}`);
@@ -228,7 +229,7 @@ export class ExecutePython {
 
     private async executeXRAnalysis(
         session: UnifiedAnalysisSession,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): Promise<PythonPayload> {
         logger.debug(() => `Executing XR analysis for: ${session.targetPath}`);
         logger.debug(() => `Target type: ${session.targetType}`);
@@ -270,7 +271,7 @@ export class ExecutePython {
     private recoverXRResult(
         result: unknown,
         session: UnifiedAnalysisSession,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): unknown {
         const failure = scriptFailureOf(result);
         if (failure?.success === false && failure.rawOutput && failure.error?.includes('JSON markers not found')) {
@@ -287,7 +288,7 @@ export class ExecutePython {
 
     private async executeHTMLDOMAnalysis(
         session: UnifiedAnalysisSession,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): Promise<PythonPayload> {
         logger.debug(() => `Executing HTML DOM analysis for: ${session.targetPath}`);
 
@@ -314,7 +315,7 @@ export class ExecutePython {
     private finishAnalysis(
         result: unknown,
         label: string,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
         failureOf: (result: unknown) => { error?: string } | undefined = scriptFailureOf,
     ): unknown {
         const failure = failureOf(result);
@@ -358,7 +359,7 @@ export class ExecutePython {
     private async executePythonScript(
         scriptName: string,
         args: string[],
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): Promise<PythonPayload> {
         logger.debug(() => `Executing Python script: ${scriptName}`);
         logger.debug(() => `Script arguments: ${args.join(' ')}`);
@@ -442,7 +443,7 @@ export class ExecutePython {
         executable: string,
         fullArgs: string[],
         cwd: string,
-        progress?: vscode.Progress<{message?: string; increment?: number}>,
+        progress?: HostProgress,
     ): Promise<SpawnOutcome> {
         logger.debug(() => `Full command: ${executable} ${fullArgs.join(' ')}`);
         logger.debug(() => `Working directory: ${cwd}`);
