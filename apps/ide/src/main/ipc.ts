@@ -77,9 +77,16 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     });
     handle(IPC_CHANNELS.workspaceSetWatched, (event, entries) => {
         const sender = event.sender;
-        workspaceOf(sender).setWatched(entries, (paths) => {
+        const workspace = workspaceOf(sender);
+        workspace.setWatched(entries, (paths) => {
             if (!sender.isDestroyed()) {
                 sender.send(IPC_EVENTS.workspaceFilesChanged, paths);
+            }
+            // #178: a measured file changed on disk (another program, a git checkout): its lenses are measured again.
+            for (const path of paths) {
+                if (core.metrics.knows(sender, workspace.root, path)) {
+                    core.metrics.fileSaved(sender, workspace.root, path, workspace.displayPath(path, 'absolute'));
+                }
             }
         });
     });

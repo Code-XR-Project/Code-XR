@@ -193,3 +193,30 @@ export function problemCounts(problems: readonly Problem[]): Record<ProblemSever
     }
     return counts;
 }
+
+/**
+ * #178: the scene's complexity bands, as the backend draws them
+ * (`build_complexity_band` in backend/src/utils/xr_field_schema.py): over 25
+ * is critical, over 10 is high. The editor's heat strip uses these, not the
+ * Problems limit, so the editor and the scene agree on a function's colour.
+ */
+export type ComplexityBand = 'normal' | 'high' | 'critical';
+
+export function complexityBand(complexity: number): ComplexityBand {
+    return complexity > 25 ? 'critical' : complexity > 10 ? 'high' : 'normal';
+}
+
+/** #178: the lens over a function, "CCN 7 · NLOC 42 · 3 params", each value over its limit marked. */
+export function metricLensTitle(fn: FunctionMetric, thresholds: MetricThresholds): { readonly title: string; readonly over: boolean } {
+    const part = (label: string, value: number, limit: number, unit = ''): { text: string; over: boolean } => {
+        const over = limit > 0 && value > limit;
+        return { text: `${label}${value}${unit}${over ? ` > ${limit}` : ''}`, over };
+    };
+    const parts = [
+        part('CCN ', fn.complexity, thresholds.complexity),
+        part('NLOC ', fn.lineCount, thresholds.lines),
+        part('', fn.parameters, thresholds.parameters, fn.parameters === 1 ? ' param' : ' params'),
+    ];
+    const over = parts.some((p) => p.over);
+    return { title: `${over ? '$(warning) ' : ''}${parts.map((p) => p.text).join(' · ')}`, over };
+}
