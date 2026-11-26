@@ -21,9 +21,17 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
 ];
 
+export type ViewId = 'explorer' | 'analysis' | 'xr';
+
 export interface Workbench {
-    /** The side bar's content slot, owned by the explorer. */
+    /** The explorer's pane of the side bar. */
     readonly sideBar: HTMLElement;
+    /** The Analysis view's pane of the side bar (#15: the Python environment). */
+    readonly analysisView: HTMLElement;
+    /** Shows a view in the side bar, as clicking its activity item does. */
+    showView(id: ViewId): void;
+    /** The status-bar item of the Python environment; clicking it opens the Analysis view. */
+    setPythonStatus(text: string, tooltip: string, state: string): void;
     /** The editor area; the welcome view until the first file opens, then the editor group's. */
     readonly editorArea: HTMLElement;
     showInfo(info: AppInfo): void;
@@ -33,16 +41,37 @@ export interface Workbench {
 }
 
 export function renderWorkbench(root: HTMLElement): Workbench {
+    const buttons = new Map<ViewId, HTMLButtonElement>();
     const activityBar = el('nav', { className: 'activity-bar', attrs: { 'aria-label': 'Views' } },
         ACTIVITY.map((item, index) => {
             const button = el('button', {
                 className: index === 0 ? 'activity-item is-active' : 'activity-item',
-                attrs: { type: 'button', title: item.label, 'aria-label': item.label, 'aria-pressed': String(index === 0) },
+                attrs: { type: 'button', title: item.label, 'aria-label': item.label, 'aria-pressed': String(index === 0), 'data-view': item.id },
             }, [icon(item.icon)]);
+            button.addEventListener('click', () => showView(item.id as ViewId));
+            buttons.set(item.id as ViewId, button);
             return button;
         }));
 
-    const sideBar = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } });
+    const sideBar = el('div', { className: 'side-pane', attrs: { 'data-view': 'explorer' } });
+    const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
+    const xrView = el('div', { className: 'side-pane', attrs: { 'data-view': 'xr' } }, [
+        el('h2', { className: 'side-bar-title', text: 'XR scene' }),
+        el('p', { className: 'muted side-note', text: 'The XR scene of an analysis opens here once analyses run from the IDE.' }),
+    ]);
+    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['analysis', analysisView], ['xr', xrView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, analysisView, xrView]);
+
+    function showView(id: ViewId): void {
+        for (const [viewId, pane] of panes) {
+            pane.hidden = viewId !== id;
+            const button = buttons.get(viewId);
+            button?.classList.toggle('is-active', viewId === id);
+            button?.setAttribute('aria-pressed', String(viewId === id));
+        }
+        sideBarFrame.setAttribute('aria-label', ACTIVITY.find((item) => item.id === id)?.label ?? id);
+    }
+    showView('explorer');
 
     const infoList = el('dl', { className: 'info-list' });
     const status = el('p', { className: 'muted', text: 'Connecting to the main process…' });
@@ -62,12 +91,22 @@ export function renderWorkbench(root: HTMLElement): Workbench {
 
     const statusLeft = el('span', { text: 'Code-XR' });
     const statusRight = el('span', { text: '' });
-    const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, statusRight]);
+    const pythonItem = el('button', { className: 'status-item', attrs: { type: 'button', 'data-testid': 'python-status', hidden: '' } });
+    pythonItem.addEventListener('click', () => showView('analysis'));
+    const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [pythonItem, statusRight])]);
 
-    root.replaceChildren(el('div', { className: 'workbench' }, [activityBar, sideBar, editorArea, statusBar]));
+    root.replaceChildren(el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, statusBar]));
 
     return {
         sideBar,
+        analysisView,
+        showView,
+        setPythonStatus(text: string, tooltip: string, state: string): void {
+            pythonItem.hidden = false;
+            pythonItem.textContent = text;
+            pythonItem.title = tooltip;
+            pythonItem.dataset['state'] = state;
+        },
         editorArea,
         setStatus(message: string): void {
             statusLeft.textContent = message;

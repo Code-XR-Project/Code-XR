@@ -1,5 +1,6 @@
 import { renderWorkbench } from './workbench.ts';
 import { createExplorer } from './explorer.ts';
+import { createPythonView, pythonStatusText } from './pythonView.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import type { IdeCommand, WatchedEntry } from '../shared/api.ts';
 
@@ -93,3 +94,12 @@ const commands: Record<IdeCommand, () => void> = {
     'file.newFolder': () => void explorer.newFolder(),
 };
 api.commands.onCommand((command) => commands[command]());
+
+// #15: the Python environment, in the Analysis view and the status bar.
+const pythonView = createPythonView(workbench.analysisView, api.python, {
+    onStatus: (status) => workbench.setPythonStatus(pythonStatusText(status), status.message, status.state),
+    onError: (message) => workbench.setStatus(message),
+});
+api.python.onDidChangeStatus((status) => pythonView.show(status));
+api.python.status().then((status) => pythonView.show(status), (error: unknown) => workbench.setStatus(`Could not check Python: ${String(error)}`));
+api.app.onNotification((notification) => workbench.setStatus(notification.message));

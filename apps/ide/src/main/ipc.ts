@@ -1,4 +1,5 @@
-import { app, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import type { CoreServices } from './core/coreRuntime.ts';
 import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, IPC_EVENTS, type AppInfo } from '../shared/api.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
@@ -12,7 +13,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -63,6 +64,11 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
     handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
     handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));
+
+    // #15: the Python environment. Set-up asks in a native dialog before any download.
+    handle(IPC_CHANNELS.pythonStatus, () => core.python.status());
+    handle(IPC_CHANNELS.pythonSetUp, (event) => core.python.setUp(BrowserWindow.fromWebContents(event.sender)));
+    handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

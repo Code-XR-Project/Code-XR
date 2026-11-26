@@ -43,7 +43,7 @@ export interface HostPaths {
 export interface HostKeyValueStore {
     get<T>(key: string): T | undefined;
     get<T>(key: string, defaultValue: T): T;
-    update(key: string, value: unknown): Thenable<void> | Promise<void>;
+    update(key: string, value: unknown): PromiseLike<void>;
 }
 
 export interface HostProgress {

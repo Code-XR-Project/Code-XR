@@ -70,6 +70,11 @@ export async function openRecentFromMenu(win: BrowserWindow, folder: string): Pr
     }
 }
 
+/** The root folder of every open window, for the core's `workspaceFolders()`. */
+export function openWorkspaceRoots(): string[] {
+    return [...new Set([...workspaces.values()].map((workspace) => workspace.root))];
+}
+
 export function workspaceOf(contents: WebContents): Workspace {
     const workspace = workspaces.get(contents.id);
     if (!workspace) {
