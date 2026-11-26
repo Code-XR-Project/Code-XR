@@ -454,7 +454,260 @@
     return mesh;
   }
 
+  // ── Shared panel placement (PANELS-3/9) ────────────────────────────────────
+  // The same placement registry the virtual screens use (placementRegistry.js
+  // in the screen runtime), for the panels that are not screens: the project
+  // evolution playback overlay and the controller (field mapping) panel. The
+  // obstacles are the same set, found the same way: every shown screen root,
+  // every shown entity tagged data-codexr-panel-obstacle, and the analysis
+  // table extended upward by the chart headroom. A panel asks for a world
+  // position; it gets the nearest free one (right, left, up, then further
+  // out), always kept inside the room shell, or the target clamped into the
+  // room when nothing is free. With a viewer position it also refuses a spot
+  // whose silhouette, seen from the viewer, covers a screen or a tagged panel:
+  // two panels 0.2 m apart in depth never intersect, yet the front one hides
+  // the other completely. Positions are world coordinates, so the panel must
+  // be a child of the scene (both callers are).
+  const PANEL_PLACEMENT_GAP = 0.25;
+  const PANEL_PLACEMENT_RINGS = 3;
+  const PANEL_TABLE_CHART_HEADROOM = 2.2;
+  const PANEL_ROOM_MARGIN = 0.05;
+  const PANEL_OBSTACLE_CACHE_MS = 250;
+  // Silhouettes closer than this (tangent units, ~1 degree) count as touching.
+  const PANEL_OCCLUSION_MARGIN = 0.02;
+  const PANEL_SILHOUETTE_NEAR = 0.05;
+  let panelObstacleCache = null;
+
+  function isShownInScene(object3D) {
+    for (let node = object3D; node; node = node.parent) {
+      if (node.visible === false) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function panelRoomBounds() {
+    const document = doc();
+    // In AR the room is hidden: nothing to stay inside (same rule as screens).
+    if (document?.querySelector?.('a-scene')?.is?.('ar-mode')) {
+      return null;
+    }
+    const roomEl = document?.querySelector?.('[codexr-room]');
+    const room = roomEl?.components?.['codexr-room']?.data;
+    if (!roomEl?.object3D || !room) {
+      return null;
+    }
+    const center = roomEl.object3D.position;
+    const wall = Math.max(0.05, Number(room.wallThickness) || 0.25);
+    return {
+      min: { x: center.x - (room.width / 2) + wall + PANEL_ROOM_MARGIN, y: center.y + (Number(room.floorThickness) || 0.22) + PANEL_ROOM_MARGIN, z: center.z - (room.depth / 2) + wall + PANEL_ROOM_MARGIN },
+      max: { x: center.x + (room.width / 2) - wall - PANEL_ROOM_MARGIN, y: center.y + room.height - (Number(room.ceilingThickness) || 0.18) - PANEL_ROOM_MARGIN, z: center.z + (room.depth / 2) - wall - PANEL_ROOM_MARGIN },
+    };
+  }
+
+  // World box of what is actually drawn: Box3.setFromObject also counts
+  // hidden children (a screen's closed menus, idle video plane), which made
+  // a screen look several times its size.
+  function visibleWorldBox(object3D) {
+    const box = new root.THREE.Box3();
+    const part = new root.THREE.Box3();
+    object3D.updateMatrixWorld?.(true);
+    object3D.traverseVisible?.(function (node) {
+      const geometry = node.geometry;
+      if (!geometry) {
+        return;
+      }
+      if (!geometry.boundingBox) {
+        geometry.computeBoundingBox?.();
+      }
+      if (geometry.boundingBox && !geometry.boundingBox.isEmpty()) {
+        box.union(part.copy(geometry.boundingBox).applyMatrix4(node.matrixWorld));
+      }
+    });
+    return box;
+  }
+
+  function collectPlacementObstacles(panelEl, avoidTable) {
+    const now = Date.now();
+    if (panelObstacleCache && panelObstacleCache.panelEl === panelEl
+      && panelObstacleCache.avoidTable === avoidTable
+      && (now - panelObstacleCache.time) < PANEL_OBSTACLE_CACHE_MS) {
+      return panelObstacleCache.list;
+    }
+    const document = doc();
+    const list = [];
+    function add(node, extraHeight, occluder) {
+      if (!node?.object3D || node === panelEl || panelEl?.contains?.(node) || node.contains?.(panelEl)
+        || !isShownInScene(node.object3D)) {
+        return;
+      }
+      const box = visibleWorldBox(node.object3D);
+      if (box.isEmpty()) {
+        return;
+      }
+      box.max.y += extraHeight;
+      list.push({ box: box, occluder: occluder });
+    }
+    document?.querySelectorAll?.('[id^="codexrVirtualScreenRoot"]').forEach(function (node) { add(node, 0, true); });
+    document?.querySelectorAll?.('[data-codexr-panel-obstacle]').forEach(function (node) { add(node, 0, true); });
+    if (avoidTable) {
+      add(document?.querySelector?.('#codexr-analysis-table-geometry'), PANEL_TABLE_CHART_HEADROOM, false);
+    }
+    panelObstacleCache = { panelEl: panelEl, avoidTable: avoidTable, time: now, list: list };
+    return list;
+  }
+
+  function boxCorners(box) {
+    const corners = [];
+    [box.min.x, box.max.x].forEach(function (x) {
+      [box.min.y, box.max.y].forEach(function (y) {
+        [box.min.z, box.max.z].forEach(function (z) {
+          corners.push(new root.THREE.Vector3(x, y, z));
+        });
+      });
+    });
+    return corners;
+  }
+
+  // Angular extent of a set of points seen from `viewer` along `frame`; null
+  // when none is in front of the viewer. Points beside or behind the viewer
+  // are pulled onto a near plane, which only widens the extent.
+  function silhouette(corners, viewer, frame) {
+    const out = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    let inFront = false;
+    for (const corner of corners) {
+      const v = corner.clone().sub(viewer);
+      let depth = v.dot(frame.forward);
+      if (depth > PANEL_SILHOUETTE_NEAR) {
+        inFront = true;
+      } else {
+        depth = PANEL_SILHOUETTE_NEAR;
+      }
+      const sx = v.dot(frame.right) / depth;
+      const sy = v.dot(frame.up) / depth;
+      out.minX = Math.min(out.minX, sx); out.maxX = Math.max(out.maxX, sx);
+      out.minY = Math.min(out.minY, sy); out.maxY = Math.max(out.maxY, sy);
+    }
+    return inFront ? out : null;
+  }
+
+  function viewFrame(viewer, target) {
+    const forward = target.clone().sub(viewer);
+    forward.y = 0;
+    if (forward.lengthSq() < 1e-6) {
+      return null;
+    }
+    forward.normalize();
+    const up = new root.THREE.Vector3(0, 1, 0);
+    const right = new root.THREE.Vector3().crossVectors(forward, up).normalize();
+    return { forward: forward, right: right, up: up };
+  }
+
+  function silhouettesOverlap(a, b) {
+    return a.minX < b.maxX + PANEL_OCCLUSION_MARGIN && b.minX < a.maxX + PANEL_OCCLUSION_MARGIN
+      && a.minY < b.maxY + PANEL_OCCLUSION_MARGIN && b.minY < a.maxY + PANEL_OCCLUSION_MARGIN;
+  }
+
+  function clampBoxIntoRoom(position, half, bounds) {
+    if (!bounds) {
+      return position.clone();
+    }
+    const clamped = position.clone();
+    ['x', 'y', 'z'].forEach(function (axis) {
+      const low = bounds.min[axis] + half[axis];
+      const high = bounds.max[axis] - half[axis];
+      clamped[axis] = low > high ? (bounds.min[axis] + bounds.max[axis]) / 2 : Math.min(high, Math.max(low, clamped[axis]));
+    });
+    return clamped;
+  }
+
+  /**
+   * resolvePanelPlacement(panelEl, target, options) -> { x, y, z, free }
+   * options.size: full extents {x, y, z} (defaults to the panel's current
+   *   world box), options.viewer: viewer world position (enables the
+   *   "does not hide another panel" rule), options.avoidTable (default
+   *   true), options.preferUp: try above before the sides.
+   */
+  function resolvePanelPlacement(panelEl, target, options) {
+    const opts = options || {};
+    if (!root.THREE?.Box3 || !root.THREE?.Vector3 || !target) {
+      return target ? { x: target.x, y: target.y, z: target.z, free: false } : null;
+    }
+    const T = root.THREE;
+    let half;
+    if (opts.size) {
+      half = new T.Vector3(Number(opts.size.x) / 2 || 0, Number(opts.size.y) / 2 || 0, Number(opts.size.z) / 2 || 0);
+    } else if (panelEl?.object3D) {
+      const own = visibleWorldBox(panelEl.object3D);
+      half = own.isEmpty() ? new T.Vector3() : own.getSize(new T.Vector3()).multiplyScalar(0.5);
+    } else {
+      half = new T.Vector3();
+    }
+    const viewer = opts.viewer ? new T.Vector3(opts.viewer.x, opts.viewer.y, opts.viewer.z) : null;
+    const bounds = panelRoomBounds();
+    const obstacles = collectPlacementObstacles(panelEl || null, opts.avoidTable !== false);
+    const start = clampBoxIntoRoom(new T.Vector3(Number(target.x) || 0, Number(target.y) || 0, Number(target.z) || 0), half, bounds);
+    const frame = viewer ? viewFrame(viewer, start) : null;
+
+    function isFree(center) {
+      const box = new T.Box3(center.clone().sub(half), center.clone().add(half));
+      for (const obstacle of obstacles) {
+        if (box.intersectsBox(obstacle.box)) {
+          return false;
+        }
+      }
+      if (!frame) {
+        return true;
+      }
+      const own = silhouette(boxCorners(box), viewer, frame);
+      if (!own) {
+        return true;
+      }
+      for (const obstacle of obstacles) {
+        if (!obstacle.occluder) {
+          continue;
+        }
+        const other = silhouette(boxCorners(obstacle.box), viewer, frame);
+        if (other && silhouettesOverlap(own, other)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function result(position, free) {
+      return { x: position.x, y: position.y, z: position.z, free: free };
+    }
+
+    if (isFree(start)) {
+      return result(start, true);
+    }
+    const right = frame ? frame.right.clone() : new T.Vector3(1, 0, 0);
+    const up = new T.Vector3(0, 1, 0);
+    const stepX = (half.x * 2) + PANEL_PLACEMENT_GAP;
+    const stepY = (half.y * 2) + PANEL_PLACEMENT_GAP;
+    for (let ring = 1; ring <= PANEL_PLACEMENT_RINGS; ring += 1) {
+      const offsets = opts.preferUp
+        ? [[0, ring], [ring, 0], [-ring, 0], [ring, ring], [-ring, ring]]
+        : [[ring, 0], [-ring, 0], [0, ring], [ring, ring], [-ring, ring], [0, -ring]];
+      for (const offset of offsets) {
+        const candidate = clampBoxIntoRoom(
+          start.clone().addScaledVector(right, offset[0] * stepX).addScaledVector(up, offset[1] * stepY),
+          half,
+          bounds,
+        );
+        if (isFree(candidate)) {
+          return result(candidate, true);
+        }
+      }
+    }
+    // Nothing free: the target, but never outside the room.
+    return result(start, false);
+  }
+
   const api = {
+    resolvePanelPlacement: resolvePanelPlacement,
     createTooltip: createTooltip,
     updateTooltip: updateTooltip,
     updateTooltipConnector: updateTooltipConnector,

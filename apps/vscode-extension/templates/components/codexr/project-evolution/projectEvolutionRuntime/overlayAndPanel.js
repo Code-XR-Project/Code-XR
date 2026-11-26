@@ -1,11 +1,17 @@
 // == projectEvolutionRuntime.js | overlayAndPanel (assembled per manifest.json; see COMPONENTS.md) ==
+  // Preferred spot: above the back of the table. It is only a preference: the
+  // shared placement registry moves the overlay off the charts' volume, off
+  // screens and tagged panels, and out of their line of sight (PANELS-9).
+  var OVERLAY_PREFERRED_POSITION = { x: 0, y: 3.35, z: -18 };
+  var OVERLAY_SIZE = { x: 6.2, y: 0.72, z: 0.05 };
+
   function ensurePlaybackOverlay() {
     if (refs.playbackOverlay && refs.playbackOverlay?.isConnected !== false) {
       return refs.playbackOverlay;
     }
     var overlay = entity('a-entity', {
       id: 'codexr-project-evolution-playback-overlay',
-      position: '0 3.35 -18',
+      position: OVERLAY_PREFERRED_POSITION.x + ' ' + OVERLAY_PREFERRED_POSITION.y + ' ' + OVERLAY_PREFERRED_POSITION.z,
       visible: 'false',
       'data-codexr-role': 'project-evolution playback-overlay',
       // Registered with the screens' placement registry while shown (PANELS-9).
@@ -27,14 +33,37 @@
 
   function updatePlaybackOverlay(frame, frameCount, visible) {
     var overlay = ensurePlaybackOverlay();
-    overlay.setAttribute?.('visible', visible && frameCount ? 'true' : 'false');
+    var shown = !!(visible && frameCount);
+    if (shown && !refs.overlayPlaced) {
+      // Placed once per showing: an overlay that hopped every frame would be
+      // unreadable. Hiding it releases the spot (and the registry entry).
+      placePlaybackOverlay(overlay);
+    }
+    if (!shown) { refs.overlayPlaced = false; }
+    overlay.setAttribute?.('visible', shown ? 'true' : 'false');
     if (!visible || !frameCount || !frame) { return; }
     var parts = splitSourceDescription(frame.source || frame);
     refs.overlayTitle?.setAttribute('value', 'Project evolution  ' + (state.frameIndex + 1) + ' / ' + frameCount + '  |  ' + parts.date);
     refs.overlayDetail?.setAttribute('value', compact(parts.label + (parts.subject ? ' - ' + parts.subject : ''), 86));
   }
 
+  function placePlaybackOverlay(overlay) {
+    var resolve = root.CodeXRCommonRuntime?.resolvePanelPlacement;
+    var camera = sceneEl()?.camera;
+    var viewer = null;
+    if (camera?.getWorldPosition && root.THREE) {
+      viewer = camera.getWorldPosition(new root.THREE.Vector3());
+    }
+    var placed = resolve
+      ? resolve(overlay, OVERLAY_PREFERRED_POSITION, { size: OVERLAY_SIZE, viewer: viewer, preferUp: true })
+      : null;
+    var position = placed || OVERLAY_PREFERRED_POSITION;
+    overlay.setAttribute?.('position', position.x + ' ' + position.y + ' ' + position.z);
+    refs.overlayPlaced = true;
+  }
+
   function hidePlaybackOverlay() {
+    refs.overlayPlaced = false;
     refs.playbackOverlay?.setAttribute('visible', 'false');
   }
 

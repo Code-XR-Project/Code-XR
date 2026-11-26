@@ -18,6 +18,8 @@ const HARNESS_RUNTIMES = [
     ['historical-comparison', 'historicalComparisonRuntime.js'],
     ['dependency-graph', 'dependencyGraphRuntime.js'],
     ['project-evolution', 'projectEvolutionRuntime.js'],
+    ['virtual-screen', 'virtualScreenRuntime.js'],
+    ['guide-screen', 'guideScreenRuntime.js'],
 ];
 
 // Single-file shared runtimes the Git analyses depend on (not manifest-assembled).
