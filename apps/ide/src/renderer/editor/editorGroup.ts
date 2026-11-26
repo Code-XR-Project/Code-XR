@@ -153,6 +153,8 @@ export interface EditorGroup {
     setMetricProblems(problems: readonly Problem[]): void;
     /** #178: the measured functions as lenses and a complexity strip; `enabled` is the setting. */
     setFunctionMetrics(files: readonly FileFunctionMetrics[], thresholds: MetricThresholds, enabled: boolean): void;
+    /** #178: a scene is shown beside the code; the editor's context menu offers "Reveal in XR Scene" only then. */
+    setSceneShown(shown: boolean): void;
 }
 
 export function createEditorGroup(
@@ -180,6 +182,8 @@ export function createEditorGroup(
         showFunctionProblems?(path: string, name: string): void;
         /** #172: a tab's text matches the disk again (saved, reloaded, or undone back): its outline may be measured again. */
         onFileClean?(path: string): void;
+        /** #178: "Reveal in XR Scene" from the editor's context menu, on the active file. */
+        revealInScene?(path: string): void;
     },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
@@ -205,6 +209,21 @@ export function createEditorGroup(
 
     const files = new Map<string, OpenFile>();
     let active: OpenFile | null = null;
+
+    // #178: the context menu entry follows the scene (Monaco hides an action whose precondition is false).
+    const sceneShown = editor.createContextKey<boolean>('codexrSceneShown', false);
+    editor.addAction({
+        id: 'codexr.revealInScene',
+        label: 'Reveal in XR Scene',
+        precondition: 'codexrSceneShown',
+        contextMenuGroupId: 'codexr',
+        contextMenuOrder: 1,
+        run: () => {
+            if (active) {
+                callbacks.revealInScene?.(active.path);
+            }
+        },
+    });
 
     // #173: the metric problems by file; squiggles on the open ones, under their own marker owner.
     let metricProblems = new Map<string, Problem[]>();
@@ -819,6 +838,9 @@ export function createEditorGroup(
         },
         languages: () => monaco.languages.getLanguages(),
         breadcrumbBar,
+        setSceneShown(shown): void {
+            sceneShown.set(shown);
+        },
         activeModel: () => (active ? { path: active.path, model: active.model } : null),
         goToLine(line, column, focus = true) {
             if (!active) {

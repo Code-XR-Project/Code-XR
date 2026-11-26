@@ -9,6 +9,7 @@ import { CollaborationProfileManager } from '../collaboration/collaborationProfi
 import { ConnectedParticipantSummary } from '../collaboration/connectedParticipant';
 import { RemoteSessionAuthority } from '../remote-access/remoteSessionAuthority';
 import { handleOpenInEditorMessage, isLoopbackAddress, sessionAnalysisRoot } from './analysis/editorNavigation';
+import { REVEAL_IN_SCENE_MESSAGE, scenePathOf } from './analysis/sceneReveal';
 import { addCorsHeaders, sendErrorResponse, sendJsonResponse } from './http/httpRespond';
 import { StaticAssetServer } from './http/staticAssets';
 import { RemoteAccessPolicy } from './remote/remoteAccessPolicy';
@@ -324,6 +325,20 @@ export class HttpServer {
 
     public setRemotePublicUrl(publicUrl: string | null): void {
         this.remotePublicUrl = publicUrl;
+    }
+
+    /** #178: sends `reveal-in-scene` to the room when `absolutePath` is under the analysed folder. */
+    public revealInScene(absolutePath: string): boolean {
+        const root = sessionAnalysisRoot(this.config.extensionContext, this.config.analysisSessionId);
+        const scenePath = root === null ? null : scenePathOf(root, absolutePath);
+        if (scenePath === null || !this.collaborationRoomServer) {
+            return false;
+        }
+        this.collaborationRoomServer.broadcastServerMessage(this.sessionApi.getCollaborationRoomId(), {
+            type: REVEAL_IN_SCENE_MESSAGE,
+            payload: { path: scenePath },
+        });
+        return true;
     }
 
     public createAuthenticatedBrowserUrl(baseUrl: string): string {

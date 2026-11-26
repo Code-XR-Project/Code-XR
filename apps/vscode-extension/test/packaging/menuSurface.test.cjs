@@ -12,6 +12,7 @@ const { commands, menus, submenus } = manifest.contributes;
 
 const UI_LOCK_GUARD = '!codeXR.pythonEnv.uiLocked';
 const SUBMENU = 'codeXR.analysis.contextMenu';
+const REVEAL_IN_SCENE = 'codeXR.analysis.revealInScene';
 
 const RUN_LAST_FILE = ['analyzeFile', 'analyzeFileXR'];
 const RUN_LAST_DIRECTORY = ['analyzeDirectory', 'analyzeDirectoryDeep', 'analyzeDirectoryXR', 'analyzeDirectoryXRDeep'];
@@ -26,13 +27,18 @@ const MENU_SURFACE = {
     ],
     'explorer/context': [
         ...runLast([...RUN_LAST_FILE, ...RUN_LAST_DIRECTORY, ...RUN_LAST_PROJECT, 'visualizeDOM']),
+        // #178: on a file, while an analysis server runs.
+        REVEAL_IN_SCENE,
         `submenu:${SUBMENU}`,
     ],
     // The editor has no folder under the cursor: no directory entries.
     'editor/context': [
         ...runLast([...RUN_LAST_FILE, ...RUN_LAST_PROJECT, 'visualizeDOM']),
+        REVEAL_IN_SCENE,
         `submenu:${SUBMENU}`,
     ],
+    // #178: the editor tab's own menu.
+    'editor/title/context': [REVEAL_IN_SCENE],
     'view/item/context': [
         'codeXR.analysis.activeAnalyses.showDetails',
         'codeXR.analysis.activeAnalyses.viewInBrowser',

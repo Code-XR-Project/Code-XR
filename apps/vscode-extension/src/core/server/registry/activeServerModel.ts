@@ -68,6 +68,8 @@ export interface ActiveServerRuntime {
     stop(): Promise<void>;
     forceStop(): void;
     createAuthenticatedBrowserUrl(baseUrl: string): string;
+    /** #178: asks the scene to reveal a file of its analysed folder; false when the file is not in it. */
+    revealInScene?(absolutePath: string): boolean;
 }
 
 /**

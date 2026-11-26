@@ -9,6 +9,7 @@ import { EXTENSION_MODE, type CoreContext } from '@codexr/core/host/hostPaths';
 import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 import { setLaunchNotifier } from '@codexr/core/server/launchNotifier';
 import { RemoteAccessManager } from '@codexr/core/remote-access/remoteAccessManager';
+import { revealInScene } from '@codexr/core/server/analysis/sceneReveal';
 import { getActiveServerRegistry } from '@codexr/core/server/registry/activeServerRegistry';
 import { ServerControl } from '@codexr/core/server/serverControl';
 import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager';
@@ -280,6 +281,16 @@ export class AnalysisService {
             this.publishShare(scene.serverId);
         }
         return STOPPED;
+    }
+
+    /**
+     * #178: marks a file of the open folder in this window's scene (the same
+     * core call as the extension's "Reveal in XR Scene"). False when the
+     * window shows no scene, or its analysis does not hold the file.
+     */
+    revealInScene(contents: WebContents, absolutePath: string): boolean {
+        const scene = this.scenes.get(contents.id);
+        return scene !== undefined && revealInScene(absolutePath, [scene.serverId]) > 0;
     }
 
     /** Copies an address of the calling window's scene: its local URL, or the tunnel's invitation link. */

@@ -139,6 +139,11 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
         return this.httpHandler.createAuthenticatedBrowserUrl(baseUrl);
     }
 
+    /** #178: the scene is served by the embedded HttpServer, which owns the room. */
+    public revealInScene(absolutePath: string): boolean {
+        return this.httpHandler.revealInScene(absolutePath);
+    }
+
     public createInvitation(): string {
         return this.httpHandler.createInvitation();
     }

@@ -109,7 +109,9 @@ function editorGroup(): Promise<EditorGroup> {
             onMarkersChange: () => problemsView.setEditorProblems(editors?.editorProblems() ?? []),
             showFunctionProblems: (path, name) => problemsView.filterTo(`'${name}' ${path}`),
             onFileClean: (path) => outline?.fileClean(path),
+            revealInScene: (path) => revealInScene(path),
         });
+        editors.setSceneShown(!workbench.sceneArea.hidden);
         outline = createOutlineController({
             editors,
             view: outlineView,
@@ -219,6 +221,13 @@ async function revealInExplorer(path: string): Promise<void> {
         workbench.setStatus(`${path} is not in the explorer.`);
     }
 }
+/** #178: marks the file in this window's scene (the extension's "Reveal in XR Scene" runs the same core call). */
+function revealInScene(path: string): void {
+    api.analysis.revealInScene(path).then(
+        (shown) => workbench.setStatus(shown ? `Marked ${path} in the XR scene` : `The XR scene does not show ${path}.`),
+        (error: unknown) => workbench.setStatus(`Could not reveal the file in the XR scene: ${String(error)}`),
+    );
+}
 function showTabMenu(path: string, x: number, y: number): void {
     const key = (id: string): string => {
         const binding = registry.keybindings(id)[0];
@@ -236,6 +245,7 @@ function showTabMenu(path: string, x: number, y: number): void {
         { separator: true },
         { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
         { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
+        ...(workbench.sceneArea.hidden ? [] : [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'tab-menu-reveal-in-scene' }]),
         { separator: true },
         ...fileAnalysisItems(path, 'tab-menu'),
     ];
@@ -259,6 +269,7 @@ function showExplorerFileMenu(path: string, x: number, y: number): void {
         { label: 'Open', run: () => void editorGroup().then((group) => group.open(path)), testId: 'explorer-menu-open' },
         { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'explorer-menu-copy-path' },
         { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'explorer-menu-copy-relative-path' },
+        ...(workbench.sceneArea.hidden ? [] : [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }]),
         { separator: true },
         ...fileAnalysisItems(path, 'explorer-menu'),
     ];
@@ -626,6 +637,7 @@ registerWorkbenchCommands(registry, {
     keepEditor: () => editors?.keepActive(),
     copyActivePath: (kind) => { if (activeFile) { copyPath(activeFile, kind); } },
     revealActiveFile: () => { if (activeFile) { void revealInExplorer(activeFile); } },
+    revealActiveFileInScene: () => { if (activeFile) { revealInScene(activeFile); } },
     hasEditors: () => (editors?.openPaths().length ?? 0) > 0,
 });
 api.commands.onCommand((command: IdeCommand) => {
@@ -706,6 +718,7 @@ const runView = createAnalysisRunView(workbench.analysisView, api.analysis, {
 const scenePanel = createScenePanel(workbench.sceneArea, api.analysis, {
     setVisible: (visible) => {
         workbench.setSceneVisible(visible);
+        editors?.setSceneShown(visible);
         notifications.setRightInset(visible ? workbench.sceneArea.getBoundingClientRect().width : 0);
     },
     onError: (message) => workbench.setStatus(message),

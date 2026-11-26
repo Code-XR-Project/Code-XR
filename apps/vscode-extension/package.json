@@ -293,6 +293,11 @@
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
+        "command": "codeXR.analysis.revealInScene",
+        "title": "CodeXR: Reveal in XR Scene",
+        "enablement": "codeXR.analysis.sceneRunning"
+      },
+      {
         "command": "codeXR.analysis.analyzeFile",
         "title": "CodeXR: Analyze File (LivePanel)",
         "icon": "$(file-code)",
@@ -582,6 +587,11 @@
           "group": "codexr@11"
         },
         {
+          "command": "codeXR.analysis.revealInScene",
+          "when": "codeXR.analysis.sceneRunning && resourceScheme == file && !explorerResourceIsFolder && !codeXR.pythonEnv.uiLocked",
+          "group": "codexr@98"
+        },
+        {
           "submenu": "codeXR.analysis.contextMenu",
           "when": "!codeXR.pythonEnv.uiLocked",
           "group": "codexr@99"
@@ -624,9 +634,21 @@
           "group": "codexr@7"
         },
         {
+          "command": "codeXR.analysis.revealInScene",
+          "when": "codeXR.analysis.sceneRunning && resourceScheme == file && !codeXR.pythonEnv.uiLocked",
+          "group": "codexr@98"
+        },
+        {
           "submenu": "codeXR.analysis.contextMenu",
           "when": "!codeXR.pythonEnv.uiLocked",
           "group": "codexr@99"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "codeXR.analysis.revealInScene",
+          "when": "codeXR.analysis.sceneRunning && resourceScheme == file && !codeXR.pythonEnv.uiLocked",
+          "group": "codexr@1"
         }
       ],
       "view/item/context": [
