@@ -2,7 +2,7 @@
 
 Code-XR analyzes source code and lets you walk through it in extended reality: code metrics, the dependency graph, Git history and collaborative sessions, all local, VR optional.
 
-This repository is an **npm-workspaces monorepo**. It holds the published VS Code extension, the Python analysis backend it runs, and the space for the upcoming standalone Code-XR IDE (Electron + Monaco).
+This repository is an **npm-workspaces monorepo**. It holds the published VS Code extension, the Python analysis backend it runs, and the standalone Code-XR IDE (Electron + Monaco), under construction.
 
 > Looking for the extension itself, its features and how to install it? Read **[apps/vscode-extension/README.md](apps/vscode-extension/README.md)**. That file is also the Marketplace page.
 
@@ -11,7 +11,7 @@ This repository is an **npm-workspaces monorepo**. It holds the published VS Cod
 | Path | What lives there | Status |
 |---|---|---|
 | [`apps/vscode-extension/`](apps/vscode-extension/) | The VS Code extension (`aMonteSl.code-xr`): TypeScript sources, XR scene templates and browser runtimes, examples, resources, user docs, tests and packaging scripts. | Active, published |
-| [`apps/ide/`](apps/ide/) | The standalone Code-XR IDE (Electron + Monaco). | Placeholder, not started |
+| [`apps/ide/`](apps/ide/) | The standalone Code-XR IDE (Electron + Monaco): secure Electron shell, workbench layout, dev/build/smoke scripts. See [`apps/ide/README.md`](apps/ide/README.md). | In development (epic #11) |
 | [`backend/`](backend/) | The Python analysis backend (Lizard metrics, dependency engine, XR/LivePanel/DOM data producers) and its unit tests. Shipped inside the extension at `dist/code_analysis/python`. | Active |
 | [`packages/`](packages/) | Code shared between the apps. Empty today: see [`packages/README.md`](packages/README.md) for what moves here and when. | Planned |
 | [`docs/`](docs/) | Repository-level documentation (monorepo layout, cross-platform notes). Extension user docs stay in `apps/vscode-extension/docs/`, next to the README that links them. | Active |
@@ -26,7 +26,8 @@ Requirements: Node.js (version in [`.nvmrc`](.nvmrc)), npm, Git, and Python 3 fo
 
 ```bash
 npm ci              # installs every workspace from the repository root
-npm test            # typecheck + lint + compile-tests + unit tests of the extension
+npm test            # extension gate (typecheck + lint + compile-tests + unit) and IDE gate (typecheck + lint + unit)
+npm run ide:dev     # run the Code-XR IDE with hot reload
 npm run test:backend   # Python backend unit tests
 npm run lint:python    # ruff over backend/ (pip install -r backend/requirements-dev.txt first)
 npm run package:vsix   # builds apps/vscode-extension/artifacts/code-xr-<version>.vsix

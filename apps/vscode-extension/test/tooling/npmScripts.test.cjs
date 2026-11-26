@@ -14,6 +14,10 @@ const packages = {
     root: { dir: repoRoot, manifest: JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8')) },
     'code-xr': { dir: projectRoot, manifest: JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8')) },
 };
+// The Code-XR IDE workspace (epic #11): its scripts and the root ide:* mirrors
+// are checked the same way.
+const ideDir = path.join(repoRoot, 'apps', 'ide');
+packages['code-xr-ide'] = { dir: ideDir, manifest: JSON.parse(fs.readFileSync(path.join(ideDir, 'package.json'), 'utf8')) };
 
 /** The `&&`-separated commands of a script, each split into words. */
 function commandsOf(script) {
@@ -74,10 +78,16 @@ test('every npm script target exists, in the root manifest and the extension wor
 test('every extension script is mirrored at the root, under the same name', () => {
     // README.md promises that `npm run <script>` works from either folder.
     // vscode:prepublish is the one exception: vsce runs it inside the workspace.
+    // A root script may run more after the mirror (the root `test` also runs
+    // the IDE gate), but it must start with it.
     const rootScripts = packages.root.manifest.scripts;
     const missing = Object.keys(packages['code-xr'].manifest.scripts)
         .filter((name) => name !== 'vscode:prepublish')
-        .filter((name) => rootScripts[name] !== `npm run ${name} --workspace=code-xr`);
+        .filter((name) => {
+            const mirror = `npm run ${name} --workspace=code-xr`;
+            const root = rootScripts[name] ?? '';
+            return root !== mirror && !root.startsWith(`${mirror} && `);
+        });
 
     assert.deepEqual(missing, []);
 });

@@ -1,7 +1,7 @@
 {
   "name": "code-xr-monorepo",
   "private": true,
-  "description": "Code-XR monorepo: the VS Code extension, the Python analysis backend and (planned) the Code-XR IDE.",
+  "description": "Code-XR monorepo: the VS Code extension, the Python analysis backend and the Code-XR IDE (Electron + Monaco).",
   "license": "GPL-3.0-only",
   "engines": {
     "node": ">=24"
@@ -19,7 +19,7 @@
     "compile-tests": "npm run compile-tests --workspace=code-xr",
     "watch-tests": "npm run watch-tests --workspace=code-xr",
     "lint": "npm run lint --workspace=code-xr",
-    "test": "npm run test --workspace=code-xr",
+    "test": "npm run test --workspace=code-xr && npm run test --workspace=code-xr-ide",
     "test:basic": "npm run test:basic --workspace=code-xr",
     "test:unit": "npm run test:unit --workspace=code-xr",
     "test:python": "npm run test:python --workspace=code-xr",
@@ -38,7 +38,12 @@
     "guardrails:update": "npm run guardrails:update --workspace=code-xr",
     "python:requirements": "npm run python:requirements --workspace=code-xr",
     "test:backend": "node backend/scripts/run-python-tests.cjs",
-    "lint:python": "node backend/scripts/run-ruff.cjs"
+    "lint:python": "node backend/scripts/run-ruff.cjs",
+    "ide:dev": "npm run dev --workspace=code-xr-ide",
+    "ide:build": "npm run build --workspace=code-xr-ide",
+    "ide:start": "npm run start --workspace=code-xr-ide",
+    "ide:smoke": "npm run smoke --workspace=code-xr-ide",
+    "ide:test": "npm run test --workspace=code-xr-ide"
   },
   "overrides": {
     "serialize-javascript": "7.0.4"

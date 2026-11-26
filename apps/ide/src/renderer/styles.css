@@ -1,0 +1,168 @@
+/*
+ * Workbench styles. Colour tokens follow the Electron + Monaco preview that
+ * was approved for the IDE (adr/assets/0001-ide-preview/): dark first, with a
+ * light theme picked by the operating system preference.
+ */
+:root {
+  color-scheme: dark light;
+  --chrome: #10151c;
+  --panel: #141a22;
+  --editor: #0e1319;
+  --line: #232c37;
+  --hover: #1b2430;
+  --fg: #d5dce5;
+  --muted: #8a96a5;
+  --accent: #2fb0ff;
+  --crit: #f85149;
+  --status: #0b3a5c;
+  --status-fg: #e6f3fc;
+  font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, sans-serif;
+  font-size: 13px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --chrome: #f3f5f8;
+    --panel: #f7f9fb;
+    --editor: #ffffff;
+    --line: #d8dfe7;
+    --hover: #e6ecf2;
+    --fg: #1c2632;
+    --muted: #596677;
+    --accent: #0073bd;
+    --crit: #cf222e;
+    --status: #0073bd;
+    --status-fg: #ffffff;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app { height: 100%; margin: 0; }
+
+body {
+  background: var(--editor);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: 48px minmax(180px, 260px) 1fr;
+  grid-template-rows: 1fr 24px;
+  grid-template-areas:
+    'activity side editor'
+    'status status status';
+  height: 100%;
+}
+
+.activity-bar {
+  grid-area: activity;
+  display: flex;
+  flex-direction: column;
+  background: var(--chrome);
+  border-right: 1px solid var(--line);
+}
+
+.activity-item {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.activity-item:hover { color: var(--fg); }
+.activity-item.is-active { color: var(--fg); border-left-color: var(--accent); }
+.activity-item:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+
+.activity-item svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.side-bar {
+  grid-area: side;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 0 12px;
+  overflow: auto;
+}
+
+.side-bar-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 12px 0;
+}
+
+.editor-area {
+  grid-area: editor;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 24px;
+}
+
+.welcome { max-width: 520px; width: 100%; }
+
+.welcome-title {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.welcome-tagline { color: var(--muted); font-size: 15px; margin: 0 0 24px; }
+
+.accent { color: var(--accent); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.error { color: var(--crit); }
+
+.info-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.info-list:empty { display: none; }
+.info-list dt { color: var(--muted); }
+.info-list dd { margin: 0; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; }
+
+.status-bar {
+  grid-area: status;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+  background: var(--status);
+  color: var(--status-fg);
+}
+
+@media (max-width: 720px) {
+  .workbench {
+    grid-template-columns: 48px 1fr;
+    grid-template-areas:
+      'activity editor'
+      'status status';
+  }
+  .side-bar { display: none; }
+}
