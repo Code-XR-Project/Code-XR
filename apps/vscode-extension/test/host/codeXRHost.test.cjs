@@ -175,6 +175,10 @@ const NOTIFYING_THROUGH_HOST = [
     'src/core/analysis/launchers/launchPipeline.ts',
     'src/core/analysis/launchers/launcherXRAnalysis.ts',
     'src/core/analysis/parsers/fileXRParser.ts',
+    'src/core/analysis/analysisOrchestrator.ts',
+    'src/core/analysis/watchers/fileWatcherOrchestrator.ts',
+    'src/core/server/serverControl.ts',
+    'src/core/server/httpsCustomServer.ts',
 ];
 
 test('modules moved to host notifications call no vscode.window message API', () => {
@@ -182,6 +186,6 @@ test('modules moved to host notifications call no vscode.window message API', ()
     for (const file of NOTIFYING_THROUGH_HOST) {
         const source = fs.readFileSync(path.join(__dirname, '..', '..', file), 'utf8');
         assert.match(source, /getHost\(\)\.notifier\.notify\(/, `${file}: canary, the host call is there`);
-        assert.doesNotMatch(source, /vscode\.window\.show(Information|Warning|Error)Message/, `${file} still calls vscode.window`);
+        assert.doesNotMatch(source, /vscode\.window\.(show(Information|Warning|Error)Message|setStatusBarMessage)/, `${file} still calls vscode.window`);
     }
 });

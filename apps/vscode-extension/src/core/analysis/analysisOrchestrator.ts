@@ -8,6 +8,7 @@ import { resolveLauncher } from './launch/launchKinds';
 import { UnifiedSessionRegistry } from './session/sessionRegistry';
 import { UnifiedAnalysisSession, AnalysisMode, TargetType } from './session/analysisSession';
 import { getLogger } from '../../platform/logging/sink';
+import { getHost } from '../host/hostRegistry';
 
 const logger = getLogger('ANALYSIS_ORCHESTRATOR');
 
@@ -17,20 +18,20 @@ const logger = getLogger('ANALYSIS_ORCHESTRATOR');
  */
 function warnAboutDuplicateSession(duplicateSession: UnifiedAnalysisSession): void {
     if (duplicateSession.status === 'monitoring') {
-        void vscode.window.showWarningMessage(
+        void getHost().notifier.notify('warning',
             `Analysis already complete for "${duplicateSession.targetName}". Use Active Analyses panel to view results.`,
             'Open Active Analyses'
         ).then(choice => {
             if (choice === 'Open Active Analyses') {
-                void vscode.commands.executeCommand('workbench.view.extension.codeXRView');
+                getHost().signal({ kind: 'revealSidebar' });
             }
         });
     } else if (duplicateSession.status === 'creating' || duplicateSession.status === 'analyzing') {
-        void vscode.window.showWarningMessage(
+        void getHost().notifier.notify('warning',
             `Analysis for "${duplicateSession.targetName}" is already in progress (${duplicateSession.status})...`
         );
     } else {
-        void vscode.window.showWarningMessage(
+        void getHost().notifier.notify('warning',
             `Analysis session for "${duplicateSession.targetName}" already exists with status: ${duplicateSession.status}`
         );
     }
@@ -82,7 +83,7 @@ export class AnalysisOrchestrator {
                 // Handle session creation errors (e.g., unsupported file types)
                 logger.error(`Session creation failed:`, sessionError);
                 const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
-                void vscode.window.showErrorMessage(`CodeXR Analysis Error: ${errorMessage}`);
+                void getHost().notifier.notify('error', `CodeXR Analysis Error: ${errorMessage}`);
                 throw sessionError;
             }
             

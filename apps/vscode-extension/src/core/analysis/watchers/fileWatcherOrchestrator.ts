@@ -16,6 +16,7 @@ import { getFileStatSnapshot } from './directorySnapshot';
 import { SHA256Generator } from '../utils/sha256Generator';
 import { AnalysisSourceChangeBatch, analysisRefreshCoordinator } from '../refresh/analysisRefreshCoordinator';
 import { getLogger } from '../../../platform/logging/sink';
+import { getHost } from '../../host/hostRegistry';
 
 const logger = getLogger('FILE_WATCHER_ORCHESTRATOR');
 
@@ -198,7 +199,7 @@ export class FileWatcherOrchestrator {
                 { notifyClients: this.session.analysisMode !== 'XR', silent: true },
             );
         if (!success) {
-            void vscode.window.showErrorMessage(`Failed to update analysis for ${path.basename(this.session.targetPath)}`);
+            void getHost().notifier.notify('error', `Failed to update analysis for ${path.basename(this.session.targetPath)}`);
             sessionRegistry.updateSessionStatus(this.session.id, 'monitoring', 100);
             throw new Error('File re-analysis failed.');
         }
@@ -207,7 +208,7 @@ export class FileWatcherOrchestrator {
         sessionRegistry.updateSessionStatus(this.session.id, 'monitoring', 100);
         const targetName = path.basename(this.session.targetPath);
         const noun = this.session.analysisMode === 'VisualizeDOM' ? 'HTML visualization' : 'analysis';
-        vscode.window.setStatusBarMessage(`$(check) CodeXR re-analysis updated ${noun} for ${targetName}`, 2000);
+        getHost().notifier.status(`$(check) CodeXR re-analysis updated ${noun} for ${targetName}`, 2000);
         logger.debug(() => `Re-analysis completed for ${targetName}`);
     }
 
