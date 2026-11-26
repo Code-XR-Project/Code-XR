@@ -45,6 +45,12 @@ export interface DirEntry {
     readonly ignored: boolean;
 }
 
+/** Something the window shows that should follow the disk: an expanded folder or an open file. */
+export interface WatchedEntry {
+    readonly path: string;
+    readonly kind: 'file' | 'directory';
+}
+
 /** A file read for the editor. Binary and oversized files are reported, not sent. */
 export type FileContent =
     | { readonly kind: 'text'; readonly path: string; readonly text: string; readonly mtimeMs: number }
@@ -60,7 +66,7 @@ export interface SaveResult {
  * menu and its accelerators (#14). A closed list, so the renderer can ignore
  * anything else.
  */
-export const IDE_COMMANDS = ['workspace.openFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
+export const IDE_COMMANDS = ['workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
 /** Unsubscribes a listener registered with an `on…` member. */
@@ -88,7 +94,29 @@ export interface CodeXRApi {
          * never silently overwrites someone else's edit.
          */
         writeFile(path: string, text: string, expectedMtimeMs?: number): Promise<SaveResult>;
-        /** Fires when the workspace changes from outside the renderer (`--folder=` at startup). */
+        /**
+         * Watches the folders behind these entries and replaces the previous
+         * set; changes arrive through `onDidChangeFiles`.
+         */
+        setWatched(entries: readonly WatchedEntry[]): Promise<void>;
+        /** Workspace paths that changed on disk: the entries themselves and the folders listing them. */
+        onDidChangeFiles(listener: (paths: readonly string[]) => void): Unsubscribe;
+        /** How many open files have unsaved changes; closing the window asks first while it is above 0. */
+        reportUnsaved(count: number): Promise<void>;
+        /**
+         * Creates an empty file or a folder named `name` inside the folder
+         * `parent` and resolves with its workspace path. Never overwrites.
+         */
+        createEntry(parent: string, name: string, kind: 'file' | 'directory'): Promise<string>;
+        /** Renames an entry within its folder; resolves with the new workspace path. */
+        rename(path: string, newName: string): Promise<string>;
+        /** Moves an entry to the operating system's trash (never deletes outright). */
+        trash(path: string): Promise<void>;
+        /** Recently opened folders, most recent first (absolute paths, for display and `openRecent`). */
+        recentFolders(): Promise<readonly string[]>;
+        /** Opens a folder from `recentFolders()`; any other path is refused. */
+        openRecent(folder: string): Promise<WorkspaceInfo>;
+        /** Fires when the workspace changes from outside the renderer (`--folder=` at startup, File > Open Recent). */
         onDidChange(listener: (workspace: WorkspaceInfo | null) => void): Unsubscribe;
     };
     readonly commands: {
@@ -108,6 +136,13 @@ export const IPC_CHANNELS = {
     workspaceListDirectory: 'codexr:workspace:list-directory',
     workspaceReadFile: 'codexr:workspace:read-file',
     workspaceWriteFile: 'codexr:workspace:write-file',
+    workspaceSetWatched: 'codexr:workspace:set-watched',
+    workspaceReportUnsaved: 'codexr:workspace:report-unsaved',
+    workspaceCreateEntry: 'codexr:workspace:create-entry',
+    workspaceRename: 'codexr:workspace:rename',
+    workspaceTrash: 'codexr:workspace:trash',
+    workspaceRecentFolders: 'codexr:workspace:recent-folders',
+    workspaceOpenRecent: 'codexr:workspace:open-recent',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -118,6 +153,7 @@ export const ALLOWED_IPC_CHANNELS: ReadonlySet<string> = new Set(Object.values(I
 export const IPC_EVENTS = {
     workspaceChanged: 'codexr:workspace:changed',
     command: 'codexr:command',
+    workspaceFilesChanged: 'codexr:workspace:files-changed',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

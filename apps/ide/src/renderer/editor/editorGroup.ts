@@ -8,6 +8,10 @@ import { followSystemTheme, monaco } from './monaco.ts';
  * or saved (Monaco's alternative version id, so undoing back to the saved
  * text clears it). Saves send the modification time the file had when it was
  * read, and the main process refuses the write if it moved.
+ *
+ * Files also follow the disk: when the watcher reports an open file, a clean
+ * tab takes the new text as one undoable edit, while a dirty tab keeps the
+ * person's text and is marked as conflicting (or deleted) until it is saved.
  */
 
 const CLOSE = 'M6 6l12 12M18 6L6 18';
@@ -19,6 +23,8 @@ interface OpenFile {
     readonly dirtyMark: HTMLElement;
     savedVersion: number;
     mtimeMs: number;
+    /** What the disk did behind an unsaved tab, shown on the tab until the next save. */
+    diskState: 'same' | 'changed' | 'deleted';
     viewState: monaco.editor.ICodeEditorViewState | null;
 }
 
@@ -30,12 +36,29 @@ export interface EditorGroup {
     /** Drops every editor (the workspace changed). Unsaved files must be dealt with first. */
     reset(): void;
     readonly dirtyPaths: () => readonly string[];
+    /** Workspace-relative paths of every open file (they are watched). */
+    openPaths(): string[];
+    /** The watcher reported `paths`; open files among them are re-read. */
+    onDiskChanged(paths: readonly string[]): Promise<void>;
+    /**
+     * An entry was renamed (`to`) or trashed (`to` null) from the explorer.
+     * Clean tabs at or below it follow it (or close); unsaved tabs stay open
+     * and are marked deleted on disk, so no typing is lost.
+     */
+    entryMoved(from: string, to: string | null): Promise<void>;
 }
 
 export function createEditorGroup(
     container: HTMLElement,
     api: CodeXRApi['workspace'],
-    callbacks: { onStatus(message: string): void; onActiveChange(path: string | null): void },
+    callbacks: {
+        onStatus(message: string): void;
+        onActiveChange(path: string | null): void;
+        /** The number of tabs with unsaved changes moved (or a save ended). */
+        onUnsavedChange?(count: number): void;
+        /** The set of open files changed. */
+        onOpenFilesChange?(): void;
+    },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
     const host = el('div', { className: 'editor-host', attrs: { 'data-testid': 'editor-host' } });
@@ -59,10 +82,24 @@ export function createEditorGroup(
 
     const isDirty = (file: OpenFile): boolean => file.model.getAlternativeVersionId() !== file.savedVersion;
 
+    let reportedUnsaved = 0;
+    function reportUnsaved(force = false): void {
+        const count = [...files.values()].filter(isDirty).length;
+        if (force || count !== reportedUnsaved) {
+            reportedUnsaved = count;
+            callbacks.onUnsavedChange?.(count);
+        }
+    }
+
     function refreshTab(file: OpenFile): void {
         const dirty = isDirty(file);
         file.tab.classList.toggle('is-dirty', dirty);
-        file.dirtyMark.title = dirty ? 'Unsaved changes' : '';
+        file.tab.classList.toggle('is-conflict', file.diskState === 'changed');
+        file.tab.classList.toggle('is-deleted', file.diskState === 'deleted');
+        file.dirtyMark.title = file.diskState === 'deleted' ? 'Deleted on disk'
+            : file.diskState === 'changed' ? 'Changed on disk; your version is unsaved'
+                : dirty ? 'Unsaved changes' : '';
+        reportUnsaved();
     }
 
     function showPlaceholder(message: string | null): void {
@@ -106,7 +143,7 @@ export function createEditorGroup(
         }, [el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
         const uri = monaco.Uri.from({ scheme: 'codexr-file', path: `/${content.path}` });
         const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(content.text, undefined, uri);
-        const file: OpenFile = { path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs, viewState: null };
+        const file: OpenFile = { path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs, diskState: 'same', viewState: null };
         model.onDidChangeContent(() => refreshTab(file));
         tab.addEventListener('click', (event) => {
             if ((event.target as Element).closest('.tab-close')) {
@@ -118,6 +155,7 @@ export function createEditorGroup(
         tab.addEventListener('auxclick', (event) => { if (event.button === 1) { close_(file); } });
         tabs.append(tab);
         files.set(file.path, file);
+        callbacks.onOpenFilesChange?.();
         return file;
     }
 
@@ -134,6 +172,8 @@ export function createEditorGroup(
             active = null;
             activate(order[index + 1] ?? order[index - 1] ?? null);
         }
+        reportUnsaved();
+        callbacks.onOpenFilesChange?.();
     }
 
     async function saveFile(file: OpenFile): Promise<boolean> {
@@ -141,19 +181,69 @@ export function createEditorGroup(
             return true;
         }
         const version = file.model.getAlternativeVersionId();
+        const write = (expected: number | undefined) => api.writeFile(file.path, file.model.getValue(), expected);
         try {
-            const result = await api.writeFile(file.path, file.model.getValue(), file.mtimeMs);
+            let result;
+            try {
+                result = await write(file.mtimeMs);
+            } catch (error) {
+                if (!String(error).includes(MODIFIED_ON_DISK)) {
+                    throw error;
+                }
+                if (!window.confirm(`${file.path} changed on disk since it was opened.\n\nOverwrite it with your version?`)) {
+                    callbacks.onStatus(`${file.path} was not saved: it changed on disk.`);
+                    return false;
+                }
+                result = await write(undefined);
+            }
             file.savedVersion = version;
             file.mtimeMs = result.mtimeMs;
+            file.diskState = 'same';
             refreshTab(file);
             callbacks.onStatus(`Saved ${file.path}`);
             return true;
         } catch (error) {
-            callbacks.onStatus(String(error).includes(MODIFIED_ON_DISK)
-                ? `${file.path} changed on disk since it was opened; not saved.`
-                : `Could not save ${file.path}: ${String(error)}`);
+            callbacks.onStatus(`Could not save ${file.path}: ${String(error)}`);
             return false;
         }
+    }
+
+    /** Re-reads one open file after the watcher reported it. */
+    async function followDisk(file: OpenFile): Promise<void> {
+        let content: FileContent;
+        try {
+            content = await api.readFile(file.path);
+        } catch {
+            if (file.diskState !== 'deleted') {
+                file.diskState = 'deleted';
+                refreshTab(file);
+                callbacks.onStatus(`${file.path} was deleted on disk. Its text stays open until you close the tab.`);
+            }
+            return;
+        }
+        if (content.kind !== 'text' || content.mtimeMs === file.mtimeMs) {
+            if (file.diskState === 'deleted' && content.kind === 'text') {
+                file.diskState = 'same';
+                refreshTab(file);
+            }
+            return;
+        }
+        if (files.get(file.path) !== file) {
+            return; // closed while reading
+        }
+        if (isDirty(file)) {
+            file.diskState = 'changed';
+            refreshTab(file);
+            callbacks.onStatus(`${file.path} changed on disk. Your unsaved version is kept; saving asks before overwriting.`);
+            return;
+        }
+        if (content.text !== file.model.getValue()) {
+            file.model.pushEditOperations([], [{ range: file.model.getFullModelRange(), text: content.text }], () => null);
+        }
+        file.savedVersion = file.model.getAlternativeVersionId();
+        file.mtimeMs = content.mtimeMs;
+        file.diskState = 'same';
+        refreshTab(file);
     }
 
     tabs.addEventListener('keydown', (event) => {
@@ -201,6 +291,8 @@ export function createEditorGroup(
             if (failed === 0) {
                 callbacks.onStatus('All files saved');
             }
+            // Always report after Save All: the window may be waiting on it to close.
+            reportUnsaved(true);
         },
         closeActive(): void {
             if (active) {
@@ -215,7 +307,38 @@ export function createEditorGroup(
             files.clear();
             active = null;
             activate(null);
+            reportUnsaved();
+            callbacks.onOpenFilesChange?.();
         },
         dirtyPaths: () => [...files.values()].filter(isDirty).map((file) => file.path),
+        openPaths: () => [...files.keys()],
+        async entryMoved(from: string, to: string | null): Promise<void> {
+            const affected = [...files.values()].filter((file) => file.path === from || file.path.startsWith(`${from}/`));
+            const reopen: string[] = [];
+            let activePath: string | null = null;
+            for (const file of affected) {
+                if (isDirty(file)) {
+                    file.diskState = 'deleted';
+                    refreshTab(file);
+                    continue;
+                }
+                if (to !== null) {
+                    const moved = to + file.path.slice(from.length);
+                    reopen.push(moved);
+                    if (file === active) { activePath = moved; }
+                }
+                close_(file);
+            }
+            for (const path of reopen) {
+                await this.open(path);
+            }
+            if (activePath) {
+                await this.open(activePath);
+            }
+        },
+        async onDiskChanged(paths: readonly string[]): Promise<void> {
+            const changed = new Set(paths);
+            await Promise.all([...files.values()].filter((file) => changed.has(file.path)).map(followDisk));
+        },
     };
 }

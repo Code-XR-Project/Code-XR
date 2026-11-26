@@ -1,8 +1,9 @@
-import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
-import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, type AppInfo } from '../shared/api.ts';
+import { app, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, IPC_EVENTS, type AppInfo } from '../shared/api.ts';
+import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
-import { currentWorkspaceInfo, pickAndOpenFolder, workspaceOf } from './workspace/workspaceWindows.ts';
+import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -48,6 +49,20 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceReadFile, (event, path) => workspaceOf(event.sender).readFile(path));
     handle(IPC_CHANNELS.workspaceWriteFile, (event, path, text, expectedMtimeMs) =>
         workspaceOf(event.sender).writeFile(path, text, expectedMtimeMs));
+    handle(IPC_CHANNELS.workspaceSetWatched, (event, entries) => {
+        const sender = event.sender;
+        workspaceOf(sender).setWatched(entries, (paths) => {
+            if (!sender.isDestroyed()) {
+                sender.send(IPC_EVENTS.workspaceFilesChanged, paths);
+            }
+        });
+    });
+    handle(IPC_CHANNELS.workspaceReportUnsaved, (event, count) => reportUnsaved(event.sender, count));
+    handle(IPC_CHANNELS.workspaceCreateEntry, (event, parent, name, kind) => workspaceOf(event.sender).createEntry(parent, name, kind));
+    handle(IPC_CHANNELS.workspaceRename, (event, path, newName) => workspaceOf(event.sender).rename(path, newName));
+    handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
+    handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
+    handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

@@ -57,6 +57,46 @@ export function isInside(root: string, candidate: string): boolean {
     return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i;
+const WINDOWS_FORBIDDEN = /[<>:"|?*\u0000-\u001f]/;
+const MAX_NAME_LENGTH = 255;
+
+/**
+ * Validates the name of a file or folder to create or rename to, so a project
+ * made on one OS opens on the others: one segment, none of the characters or
+ * device names Windows refuses, no trailing dot or space.
+ */
+export function validateEntryName(input: unknown): string {
+    if (typeof input !== 'string') {
+        throw new Error('A name must be a string.');
+    }
+    const name = input;
+    if (name.trim() === '') {
+        throw new Error('A name is required.');
+    }
+    if (name.length > MAX_NAME_LENGTH) {
+        throw new Error('That name is too long.');
+    }
+    if (name === '.' || name === '..' || name.includes('/') || name.includes('\\')) {
+        throw new Error(`Not a valid name: ${JSON.stringify(name)}`);
+    }
+    if (WINDOWS_FORBIDDEN.test(name)) {
+        throw new Error(`A name may not contain < > : " | ? * or control characters: ${JSON.stringify(name)}`);
+    }
+    if (/[. ]$/.test(name)) {
+        throw new Error(`A name may not end with a dot or a space: ${JSON.stringify(name)}`);
+    }
+    if (WINDOWS_RESERVED.test(name)) {
+        throw new Error(`${JSON.stringify(name)} is reserved on Windows.`);
+    }
+    return name;
+}
+
+/** The parent of a validated workspace path (`''` for a top-level entry). */
+export function parentPath(relativePath: unknown): string {
+    return parseWorkspacePath(relativePath).slice(0, -1).join('/');
+}
+
 /** Joins a workspace-relative parent and a child name with `/`. */
 export function childPath(parent: string, name: string): string {
     return parent === '' ? name : `${parent}/${name}`;

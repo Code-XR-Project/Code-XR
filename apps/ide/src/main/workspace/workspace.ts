@@ -2,7 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { MODIFIED_ON_DISK, type DirEntry, type FileContent, type SaveResult, type WorkspaceInfo } from '../../shared/api.ts';
 import { EXCLUDED_NAMES, isIgnored, parseGitignore, type IgnoreRule } from './ignoreRules.ts';
-import { childPath, isInside, parseWorkspacePath, resolveInWorkspace } from './workspacePath.ts';
+import { childPath, isInside, parentPath, parseWorkspacePath, resolveInWorkspace, validateEntryName } from './workspacePath.ts';
+import { foldersToWatch, WorkspaceWatcher } from './watcher.ts';
 
 /** Files above this are not sent to the editor (Monaco slows down well before). */
 export const MAX_EDITOR_FILE_BYTES = 5 * 1024 * 1024;
@@ -20,6 +21,7 @@ export class Workspace {
     readonly root: string;
     private readonly realRoot: string;
     private readonly rules: readonly IgnoreRule[];
+    private watcher: WorkspaceWatcher | null = null;
 
     private constructor(root: string, realRoot: string, rules: readonly IgnoreRule[]) {
         this.root = root;
@@ -106,6 +108,107 @@ export class Workspace {
         return { mtimeMs: (await fs.stat(absolute)).mtimeMs };
     }
 
+    /**
+     * Creates an empty file or a folder named `name` in the folder `parent`
+     * and returns its workspace path. Never overwrites: an existing entry of
+     * that name (in any case, on a case-insensitive disk) is refused.
+     */
+    async createEntry(parent: unknown, name: unknown, kind: unknown): Promise<string> {
+        if (kind !== 'file' && kind !== 'directory') {
+            throw new Error('kind must be "file" or "directory".');
+        }
+        const entryName = this.checkCreatableName(name);
+        const folder = await this.realPathInside(parent);
+        if (!(await fs.stat(folder)).isDirectory()) {
+            throw new Error(`Not a folder: ${String(parent)}`);
+        }
+        const target = path.join(folder, entryName);
+        if (kind === 'directory') {
+            await fs.mkdir(target).catch((error: NodeJS.ErrnoException) => { throw existsError(error, entryName); });
+        } else {
+            await fs.writeFile(target, '', { flag: 'wx' }).catch((error: NodeJS.ErrnoException) => { throw existsError(error, entryName); });
+        }
+        return childPath(parseWorkspacePath(parent).join('/'), entryName);
+    }
+
+    /**
+     * Renames the entry at `relativePath` within its folder and returns the new
+     * workspace path. A symlink is renamed as a link. Refuses the root, and a
+     * name already taken by another entry (a change of case alone is allowed).
+     */
+    async rename(relativePath: unknown, newName: unknown): Promise<string> {
+        const source = await this.entryPathInside(relativePath);
+        const name = this.checkCreatableName(newName);
+        const target = path.join(path.dirname(source), name);
+        const existing = await fs.lstat(target).catch(() => null);
+        if (existing) {
+            const same = await fs.lstat(source);
+            if (existing.ino !== same.ino || existing.dev !== same.dev) {
+                throw new Error(`${name} already exists.`);
+            }
+        }
+        await fs.rename(source, target);
+        return childPath(parentPath(relativePath), name);
+    }
+
+    /**
+     * Moves the entry at `relativePath` to the OS trash through `trashItem`
+     * (Electron's `shell.trashItem`; injected so this class stays Node-only).
+     * Never deletes outright, and never the root.
+     */
+    async trash(relativePath: unknown, trashItem: (absolute: string) => Promise<void>): Promise<void> {
+        await trashItem(await this.entryPathInside(relativePath));
+    }
+
+    /**
+     * Watches the folders behind `entries` (expanded folders, open files) and
+     * calls `onChange` with the workspace paths that changed. Replaces the
+     * previous set; the first call decides the listener.
+     */
+    setWatched(entries: unknown, onChange: (paths: readonly string[]) => void): void {
+        if (!Array.isArray(entries) || entries.length > 10_000) {
+            throw new Error('Watched entries must be an array of at most 10000 items.');
+        }
+        const parsed = entries.map((entry: unknown) => {
+            const candidate = entry as { path?: unknown; kind?: unknown } | null;
+            if (!candidate || typeof candidate.path !== 'string' || (candidate.kind !== 'file' && candidate.kind !== 'directory')) {
+                throw new Error('Each watched entry needs a path and a kind.');
+            }
+            return { path: candidate.path, kind: candidate.kind as 'file' | 'directory' };
+        });
+        this.watcher ??= new WorkspaceWatcher(this.root, this.realRoot, onChange);
+        this.watcher.setFolders(foldersToWatch(parsed));
+    }
+
+    /** Stops every watcher (window closed, or another folder opened). */
+    dispose(): void {
+        this.watcher?.dispose();
+        this.watcher = null;
+    }
+
+    /**
+     * The path of an entry itself (not resolved if it is a symlink) whose
+     * parent folder is really inside the workspace. Refuses the root.
+     */
+    private async entryPathInside(relativePath: unknown): Promise<string> {
+        const segments = parseWorkspacePath(relativePath);
+        const name = segments.at(-1);
+        if (name === undefined) {
+            throw new Error('The workspace folder itself cannot be renamed or deleted here.');
+        }
+        const entry = path.join(await this.realPathInside(parentPath(relativePath)), name);
+        await fs.lstat(entry);
+        return entry;
+    }
+
+    private checkCreatableName(name: unknown): string {
+        const valid = validateEntryName(name);
+        if (EXCLUDED_NAMES.has(valid)) {
+            throw new Error(`${valid} is hidden by the explorer; create it outside the IDE.`);
+        }
+        return valid;
+    }
+
     /** The real path of a workspace path; throws if it (or a symlink on the way) leads outside. */
     private async realPathInside(relativePath: unknown): Promise<string> {
         const real = await fs.realpath(resolveInWorkspace(this.root, relativePath));
@@ -137,4 +240,8 @@ export class Workspace {
             return null;
         }
     }
+}
+
+function existsError(error: NodeJS.ErrnoException, name: string): Error {
+    return error.code === 'EEXIST' ? new Error(`${name} already exists.`) : error;
 }

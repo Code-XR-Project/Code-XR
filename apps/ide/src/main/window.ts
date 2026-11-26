@@ -1,5 +1,6 @@
 import { BrowserWindow, nativeTheme } from 'electron';
 import { assertSecureWebPreferences, secureWebPreferences } from './security.ts';
+import { guardWindowClose } from './unsavedGuard.ts';
 
 export interface MainWindowOptions {
     readonly preloadPath: string;
@@ -23,6 +24,7 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
     // Startup assertion: what the window actually runs with, not what was
     // asked for. If anything weakens these the IDE refuses to start.
     assertSecureWebPreferences(effectiveWebPreferences(win));
+    guardWindowClose(win);
 
     if (options.show) {
         win.once('ready-to-show', () => win.show());
