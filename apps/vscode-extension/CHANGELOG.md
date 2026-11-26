@@ -142,6 +142,7 @@
   - Returning to Normal analysis shows the chart even when its data could not be confirmed ready; the failure is logged instead of being lost.
   - The dependency graph says "Busy, please wait..." when you press a control during a re-analysis, instead of ignoring the click with no feedback. When the dependency graph or the room connection cannot be set up, the browser console now says so once.
   - Historical comparison files left behind by a crashed session are removed at the next start, and a closed session no longer leaves an empty folder behind.
+- **Project evolution handles the same commit picked twice.** Picking a tag (or a branch) together with the commit it points to, in a manual movie, analysed that commit twice at once over one shared snapshot folder, and the first analysis to finish deleted the folder under the second. One frame could come out built from only part of the files, without a word, or the commit was discarded as "no data records" and hidden from both pickers for the rest of the session. A commit is now analysed once however many picks name it: both frames show the same complete data, its snapshot is deleted only after that one analysis, and a commit that does fail is reported under each pick's own name. (#104)
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
+import type { HostPaths } from '../../host/codeXRHost';
 
 /**
  * Where a Python backend script can be found.
@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
  * `distPath` is the copy webpack ships inside the extension
  * (`dist/code_analysis/python`). `developmentPath` is the monorepo source tree
  * (`<repo>/backend/src`), two levels above `apps/vscode-extension`; it is only
- * offered in `ExtensionMode.Development`. In an installed extension
+ * offered in development mode (the extension: `ExtensionMode.Development`). In an installed extension
  * (`~/.vscode/extensions/<publisher>.<name>-<version>`) the same `../..` is the
  * user's home directory, so a production build must never look there.
  */
@@ -17,15 +17,16 @@ export interface BackendScriptCandidates {
     developmentPath: string | undefined;
 }
 
-type BackendScriptContext = Pick<vscode.ExtensionContext, 'extensionPath' | 'extensionMode'>;
+/** The host paths this needs (#13): callers holding an ExtensionContext pass `hostPathsFromContext(context)`. */
+type BackendScriptPaths = Pick<HostPaths, 'installRoot' | 'mode'>;
 
 export function getBackendScriptCandidates(
-    context: BackendScriptContext,
+    paths: BackendScriptPaths,
     relativeScriptPath: string,
 ): BackendScriptCandidates {
-    const distPath = path.join(context.extensionPath, 'dist', 'code_analysis', 'python', relativeScriptPath);
-    const developmentPath = context.extensionMode === vscode.ExtensionMode.Development
-        ? path.join(context.extensionPath, '..', '..', 'backend', 'src', relativeScriptPath)
+    const distPath = path.join(paths.installRoot, 'dist', 'code_analysis', 'python', relativeScriptPath);
+    const developmentPath = paths.mode === 'development'
+        ? path.join(paths.installRoot, '..', '..', 'backend', 'src', relativeScriptPath)
         : undefined;
     return { distPath, developmentPath };
 }
@@ -37,11 +38,11 @@ export function getBackendScriptCandidates(
  * instead of running a file outside the extension folder.
  */
 export function resolveBackendScriptPath(
-    context: BackendScriptContext,
+    paths: BackendScriptPaths,
     relativeScriptPath: string,
     exists: (candidate: string) => boolean = fs.existsSync,
 ): string {
-    const { distPath, developmentPath } = getBackendScriptCandidates(context, relativeScriptPath);
+    const { distPath, developmentPath } = getBackendScriptCandidates(paths, relativeScriptPath);
     if (exists(distPath) || developmentPath === undefined) {
         return distPath;
     }

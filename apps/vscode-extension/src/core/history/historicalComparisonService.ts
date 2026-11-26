@@ -18,6 +18,7 @@ import {
     HistoricalComparisonRequest,
     HistoricalComparisonResult,
 } from './historicalComparisonModels';
+import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
 
 const ANALYZER_CACHE_VERSION = 'historical-v1';
 
@@ -86,9 +87,9 @@ export class HistoricalComparisonService {
         sourceCatalog?: GitAnalysisSourceCatalog,
     ) {
         const session = this.getSession();
-        const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
+        const storageRoot = privateStorageRoot(hostPathsFromContext(context));
         this.sessionStorageRoot = path.join(
-            privateStorageRoot,
+            storageRoot,
             'historical-comparisons',
             sessionId,
         );

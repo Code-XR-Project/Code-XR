@@ -1439,3 +1439,85 @@ test('S10: the remote HEAD alias is not offered as a branch named after the remo
         fs.rmSync(root, { recursive: true, force: true });
     }
 });
+
+test('EVO-2 (#104): a tag and its commit picked together are analysed once and both frames carry the same complete data', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    runGit(fixture.repo, ['tag', 'evo2-dup', fixture.shas.c2]);
+    try {
+        await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, context, analyzer, materialized }) => {
+            // Slow enough that the two workers overlap: before the fix the
+            // second materialize, or the first release, emptied the shared
+            // snapshots/<sha> folder under the other analysis.
+            analyzer.respond = async (revisionSession) => {
+                await new Promise((resolve) => setTimeout(resolve, 60));
+                return walkFiles(revisionSession.targetPath).map((file) => ({
+                    filePath: file,
+                    fileName: path.basename(file),
+                    totalLines: fs.readFileSync(file, 'utf8').split('\n').length - 1,
+                }));
+            };
+            const catalog = createCatalog();
+            const evolution = new ProjectEvolutionService(context, session.id, session.staticRoot, catalog);
+            const refs = await evolution.getReferences();
+            const tag = refs.sources.find((s) => s.kind === 'gitRef' && s.refType === 'tag' && s.commitSha === fixture.shas.c2);
+            const commit = refs.sources.find((s) => s.kind === 'gitRef' && s.refType === 'commit' && s.commitSha === fixture.shas.c2);
+            assert.ok(tag && commit, 'the picker offers both the tag and its commit');
+
+            const movie = await evolution.generate({ mode: 'manual', sourceIds: [tag.id, commit.id, 'working-copy'] }, () => {});
+            assert.deepEqual(movie.excludedSources, []);
+            assert.deepEqual(catalog.exclusions, [], 'no commit is recorded as deterministically excluded');
+            assert.equal(movie.frames.length, 3);
+            const [first, second] = movie.frames;
+            assert.deepEqual([first.source.id, second.source.id].sort(), [tag.id, commit.id].sort());
+            // c2 has main.js, util/helper.js and feature.js: three records, both frames.
+            assert.equal(first.itemCount, 3);
+            assert.equal(second.itemCount, 3);
+            const revisionDirectory = path.join(session.staticRoot, 'evolution', `revision-${movie.revision}`);
+            assert.deepEqual(readJson(path.join(revisionDirectory, 'data1.json')), readJson(path.join(revisionDirectory, 'data2.json')));
+
+            const sha8 = fixture.shas.c2.slice(0, 8);
+            assert.equal(analyzer.calls.filter((call) => call.id.endsWith(sha8)).length, 1, 'one analysis per commit');
+            assert.equal(materialized.filter((sha) => sha === fixture.shas.c2).length, 1, 'one snapshot per commit');
+            const snapshots = path.join(context.storageUri?.fsPath || context.globalStorageUri.fsPath, 'project-evolution', session.id, 'snapshots');
+            assert.deepEqual(fs.existsSync(snapshots) ? fs.readdirSync(snapshots) : [], [], 'the snapshot is released once both frames have it');
+
+            // Still offered by both pickers afterwards.
+            const after = await evolution.getReferences();
+            assert.ok(after.sources.some((s) => s.id === tag.id));
+            assert.ok(after.sources.some((s) => s.id === commit.id));
+            await evolution.dispose();
+        });
+    } finally {
+        runGit(fixture.repo, ['tag', '-d', 'evo2-dup']);
+    }
+});
+
+test('EVO-2 (#104): a commit shared by two sources that fails is reported under each source\'s own name', async () => {
+    const session = makeSession();
+    writeWorkingCopy(session, [{ filePath: 'main.js', totalLines: 1 }]);
+    runGit(fixture.repo, ['tag', 'evo2-empty', fixture.shas.c1]);
+    try {
+        await withServices({ sessions: [session] }, async ({ ProjectEvolutionService, context, analyzer }) => {
+            const sha8 = fixture.shas.c1.slice(0, 8);
+            analyzer.respond = async (revisionSession) => {
+                await new Promise((resolve) => setTimeout(resolve, 30));
+                return revisionSession.id.endsWith(sha8) ? [] : [{ filePath: 'main.js', totalLines: 1 }];
+            };
+            const evolution = new ProjectEvolutionService(context, session.id, session.staticRoot, createCatalog());
+            const refs = await evolution.getReferences();
+            const tag = refs.sources.find((s) => s.kind === 'gitRef' && s.refType === 'tag' && s.commitSha === fixture.shas.c1);
+            const commit = refs.sources.find((s) => s.kind === 'gitRef' && s.refType === 'commit' && s.commitSha === fixture.shas.c1);
+            const c3 = refs.sources.find((s) => s.kind === 'gitRef' && s.refType === 'commit' && s.commitSha === fixture.shas.c3);
+            const movie = await evolution.generate({ mode: 'manual', sourceIds: [tag.id, commit.id, c3.id, 'working-copy'] }, () => {});
+            assert.equal(analyzer.calls.filter((call) => call.id.endsWith(sha8)).length, 1);
+            assert.deepEqual(
+                movie.excludedSources.map((entry) => [entry.id, entry.label]).sort(),
+                [[commit.id, commit.label], [tag.id, tag.label]].sort(),
+            );
+            await evolution.dispose();
+        });
+    } finally {
+        runGit(fixture.repo, ['tag', '-d', 'evo2-empty']);
+    }
+});

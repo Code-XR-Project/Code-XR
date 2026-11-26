@@ -1,20 +1,20 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CodeXRLogger } from '../../../platform/logging/logger';
+import { getLogger } from '../../../platform/logging/sink';
+import type { GlobalStorageContext } from '../../host/hostPaths';
 
-const logger = CodeXRLogger.getLogger('THEME_UTILS');
+const logger = getLogger('THEME_UTILS');
 
 /**
  * Theme utilities for the analysis engine.
  * Reads the persisted CodeXR analysis configuration from globalStorage when available.
  */
 export class ThemeUtils {
-    private static context: vscode.ExtensionContext | null = null;
+    private static context: GlobalStorageContext | null = null;
     private static readonly STORAGE_FOLDER = 'codexr_analysis';
     private static readonly CONFIG_FILE = 'configuration_analysis.json';
 
-    public static initialize(context: vscode.ExtensionContext): void {
+    public static initialize(context: GlobalStorageContext): void {
         this.context = context;
         logger.debug(() => `Theme utilities initialized with globalStorage at ${context.globalStorageUri.fsPath}.`);
     }
