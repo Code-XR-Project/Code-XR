@@ -32,6 +32,14 @@ function makeInstalledLayout() {
     return { home, extensionPath };
 }
 
+// Since #13 step 2 the helper takes host paths; callers holding an
+// ExtensionContext convert it with hostPathsFromContext, as here.
+function hostPaths(extensionPath, extensionMode) {
+    const { hostPathsFromContext } = require('../../out/core/host/hostPaths.js');
+    const storage = { fsPath: path.join(os.tmpdir(), 'codexr-unused-storage') };
+    return hostPathsFromContext({ extensionPath, extensionMode, globalStorageUri: storage, storageUri: storage });
+}
+
 function withHelper(callback) {
     return withFakeVscode(createFakeVscode(), ({ requireOut }) =>
         callback(requireOut('core/analysis/python/backendScriptPath.js')));
@@ -42,7 +50,7 @@ test('the shipped dist copy wins in every mode', () => {
         const extensionPath = path.join(os.tmpdir(), 'codexr-ext');
         const distPath = path.join(extensionPath, 'dist', 'code_analysis', 'python', SCRIPT);
         for (const mode of [ExtensionMode.Production, ExtensionMode.Development, ExtensionMode.Test]) {
-            const resolved = resolveBackendScriptPath({ extensionPath, extensionMode: mode }, SCRIPT, (candidate) => candidate === distPath);
+            const resolved = resolveBackendScriptPath(hostPaths(extensionPath, mode), SCRIPT, (candidate) => candidate === distPath);
             assert.equal(resolved, distPath);
         }
     });
@@ -54,7 +62,7 @@ test('outside Development a missing dist copy never resolves outside the extensi
         withHelper(({ resolveBackendScriptPath, getBackendScriptCandidates }) => {
             for (const mode of [ExtensionMode.Production, ExtensionMode.Test]) {
                 for (const script of [SCRIPT, WORKER]) {
-                    const context = { extensionPath, extensionMode: mode };
+                    const context = hostPaths(extensionPath, mode);
                     const resolved = resolveBackendScriptPath(context, script);
                     assert.equal(resolved, path.join(extensionPath, 'dist', 'code_analysis', 'python', script));
                     assert.ok(resolved.startsWith(extensionPath + path.sep), `${resolved} escapes ${extensionPath}`);
@@ -71,7 +79,7 @@ test('in Development a missing dist copy falls back to <repo>/backend/src', () =
     withHelper(({ resolveBackendScriptPath }) => {
         const repo = path.join(os.tmpdir(), 'codexr-repo');
         const extensionPath = path.join(repo, 'apps', 'vscode-extension');
-        const context = { extensionPath, extensionMode: ExtensionMode.Development };
+        const context = hostPaths(extensionPath, ExtensionMode.Development);
         assert.equal(
             resolveBackendScriptPath(context, WORKER, () => false),
             path.join(repo, 'backend', 'src', WORKER),

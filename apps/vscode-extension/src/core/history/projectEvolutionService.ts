@@ -31,6 +31,7 @@ import {
     ProjectEvolutionRequest,
     ProjectEvolutionResult,
 } from './historicalComparisonModels';
+import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
 
 const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
 const DEFAULT_MAX_FRAMES = 24;
@@ -63,10 +64,10 @@ export class ProjectEvolutionService {
         sourceCatalog?: GitAnalysisSourceCatalog,
     ) {
         const session = this.getSession();
-        const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
+        const storageRoot = privateStorageRoot(hostPathsFromContext(context));
         this.gitService = new GitRepositoryService(
             session.targetPath,
-            path.join(privateStorageRoot, 'project-evolution', sessionId, 'snapshots'),
+            path.join(storageRoot, 'project-evolution', sessionId, 'snapshots'),
         );
         this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog, context, {
             cacheVersion: ANALYZER_CACHE_VERSION,
