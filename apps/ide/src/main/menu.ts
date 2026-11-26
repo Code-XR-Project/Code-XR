@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, dialog, Menu, nativeImage, type MenuItemConstructorOptions } from 'electron';
+import { appIconPath } from './appIcon.ts';
 import { IPC_EVENTS, type IdeCommand } from '../shared/api.ts';
 import { isChord, isValidKeybinding, MENU_KEYBINDINGS } from '../shared/keybindings.ts';
 import { clearRecentFolders, openRecentFromMenu } from './workspace/workspaceWindows.ts';
@@ -37,6 +38,7 @@ async function showAbout(win: BrowserWindow | undefined): Promise<void> {
         defaultId: 0,
         cancelId: 0,
         noLink: true,
+        icon: nativeImage.createFromPath(appIconPath()).resize({ width: 64, height: 64 }),
     };
     const { response } = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
     if (response === 1) {

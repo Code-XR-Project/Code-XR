@@ -1,4 +1,5 @@
 import { BrowserWindow, nativeTheme } from 'electron';
+import { appIconPath } from './appIcon.ts';
 import { assertSecureWebPreferences, secureWebPreferences } from './security.ts';
 import { guardWindowClose } from './unsavedGuard.ts';
 
@@ -16,6 +17,8 @@ export async function createMainWindow(options: MainWindowOptions): Promise<Brow
         minWidth: 640,
         minHeight: 400,
         title: 'Code-XR',
+        // The Code-XR logo in the title bar and taskbar (Windows, Linux; macOS takes the dock icon, see index.ts).
+        icon: appIconPath(),
         show: false,
         backgroundColor: nativeTheme.shouldUseDarkColors ? '#0e1319' : '#ffffff',
         webPreferences: secureWebPreferences(options.preloadPath),
