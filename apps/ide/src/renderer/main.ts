@@ -3,9 +3,10 @@ import { createExplorer } from './explorer.ts';
 import { createPythonView, pythonStatusText } from './pythonView.ts';
 import { createAnalysisRunView } from './analysisRunView.ts';
 import { createScenePanel } from './scenePanel.ts';
+import { createNotificationCenter } from './notifications.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
-import type { IdeCommand, WatchedEntry } from '../shared/api.ts';
+import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
 if (!root) {
@@ -14,6 +15,10 @@ if (!root) {
 
 const api = window.codexr;
 const workbench = renderWorkbench(root);
+// #153: VS Code-style notifications, kept clear of the scene view (a native view drawn over the page).
+const notifications = createNotificationCenter(document.body);
+new ResizeObserver(() => notifications.setRightInset(workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width))
+    .observe(workbench.sceneArea);
 const appInfo = api.app.getInfo();
 appInfo.then(
     (info) => workbench.showInfo(info),
@@ -141,12 +146,75 @@ const pythonView = createPythonView(workbench.analysisView, api.python, {
 });
 
 // #16: analyses of the open folder, and their scene beside the code.
-const runView = createAnalysisRunView(workbench.analysisView, api.analysis, { onStatus: (message) => workbench.setStatus(message) });
+const runView = createAnalysisRunView(workbench.analysisView, api.analysis, {
+    onStatus: (message) => workbench.setStatus(message),
+    onStarted: (title) => notifications.progress('analysis', { title }),
+    onFinished: (ok, message) => {
+        notifications.endProgress('analysis');
+        // A launched scene is announced by the core itself ("... Server running on port N").
+        if (!ok) {
+            notifications.notify('error', message);
+        }
+    },
+});
 const scenePanel = createScenePanel(workbench.sceneArea, api.analysis, {
-    setVisible: (visible) => workbench.setSceneVisible(visible),
+    setVisible: (visible) => {
+        workbench.setSceneVisible(visible);
+        notifications.setRightInset(visible ? workbench.sceneArea.getBoundingClientRect().width : 0);
+    },
     onError: (message) => workbench.setStatus(message),
 });
 api.analysis.onDidOpenScene((scene) => scenePanel.show(scene));
-api.python.onDidChangeStatus((status) => pythonView.show(status));
-api.python.status().then((status) => pythonView.show(status), (error: unknown) => workbench.setStatus(`Could not check Python: ${String(error)}`));
-api.app.onNotification((notification) => workbench.setStatus(notification.message));
+api.python.onDidChangeStatus((status) => {
+    pythonView.show(status);
+    notifyPython(status);
+});
+api.python.status().then((status) => {
+    pythonView.show(status);
+    notifyPython(status);
+}, (error: unknown) => workbench.setStatus(`Could not check Python: ${String(error)}`));
+api.app.onNotification((notification) => {
+    workbench.setStatus(notification.message);
+    notifications.notify(notification.severity, notification.message);
+});
+// #153: the core's long tasks (the Python set-up steps, the language parsers...) as progress notifications.
+api.app.onProgress((progress) => {
+    const key = `core-${progress.id}`;
+    if (lastPythonState === 'installing') {
+        // The Python set-up's own steps already move its single notification.
+        return;
+    }
+    if (progress.done) {
+        notifications.endProgress(key);
+    } else {
+        notifications.progress(key, { title: progress.title, message: progress.message, percent: progress.percent });
+    }
+});
+
+/**
+ * #154: the Python environment installs itself at start-up; its progress
+ * shows as a notification while it runs, then one notification says how it
+ * ended (with Retry on a failure). A missing Python is said once.
+ */
+let lastPythonState: PythonEnvStatus['state'] | null = null;
+function notifyPython(status: PythonEnvStatus): void {
+    const previous = lastPythonState;
+    lastPythonState = status.state;
+    if (status.state === 'installing') {
+        notifications.progress('python', { title: 'Installing the analysis dependencies', message: status.message, percent: status.progress });
+        return;
+    }
+    notifications.endProgress('python');
+    if (previous === 'installing') {
+        if (status.state === 'ready') {
+            notifications.notify('info', 'The analysis dependencies are installed.');
+        } else {
+            notifications.notify('error', 'The analysis dependencies could not be installed.', {
+                detail: status.detail ?? status.message,
+                actions: [{ label: 'Retry', run: () => void api.python.setUp() }],
+            });
+        }
+    } else if (status.state === 'missing-python' && previous !== 'missing-python') {
+        notifications.notify('warning', status.message, { detail: status.detail });
+    }
+}

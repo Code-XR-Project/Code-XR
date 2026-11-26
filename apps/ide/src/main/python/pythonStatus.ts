@@ -74,11 +74,15 @@ export function installHelp(platform: string): string {
     }
 }
 
-/** The text of the consent dialog: exactly what a set-up downloads and where it goes. */
-export function setUpConsent(status: PythonEnvStatus, launcher: string): { message: string; detail: string } {
+/**
+ * Exactly what a set-up downloads and where it goes. The IDE installs its own
+ * dependencies without asking (#154), so this is written to the IDE's log at
+ * every set-up instead of shown in a dialog; the README carries the same list.
+ */
+export function setUpDisclosure(status: PythonEnvStatus, launcher: string): { message: string; detail: string } {
     const lines = status.packages.map((pkg) => `• ${pkg.name} ${pkg.version}: ${pkg.purpose}`);
     return {
-        message: status.state === 'broken' ? 'Repair the Python environment for Code-XR analyses?' : 'Set up the Python environment for Code-XR analyses?',
+        message: status.state === 'broken' ? 'Repairing the Python environment for Code-XR analyses.' : 'Setting up the Python environment for Code-XR analyses.',
         detail: [
             `Code-XR will create a private virtual environment with ${launcher}${status.pythonVersion ? ` (Python ${status.pythonVersion})` : ''} in:`,
             status.venvPath,

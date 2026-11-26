@@ -20,7 +20,12 @@ export interface AnalysisRunView {
 export function createAnalysisRunView(
     container: HTMLElement,
     api: CodeXRApi['analysis'],
-    callbacks: { onStatus(message: string): void },
+    callbacks: {
+        onStatus(message: string): void;
+        /** #153: an analysis started (shown as a progress notification until it ends). */
+        onStarted?(title: string): void;
+        onFinished?(ok: boolean, message: string): void;
+    },
 ): AnalysisRunView {
     const run = el('button', { className: 'primary-button', text: 'Analyse project in XR (deep)', attrs: { type: 'button', 'data-testid': 'analyse-project-xr-deep' } });
     const note = el('p', { className: 'muted small', attrs: { 'data-testid': 'analysis-note' } });
@@ -55,10 +60,16 @@ export function createAnalysisRunView(
     function start(automatic: boolean): void {
         running = true;
         update();
-        callbacks.onStatus(automatic ? 'Analysing the opened project in XR (deep)…' : 'Analysing the project in XR (deep)…');
+        const title = automatic ? 'Analysing the opened project in XR (deep)…' : 'Analysing the project in XR (deep)…';
+        callbacks.onStatus(title);
+        callbacks.onStarted?.(title);
         api.analyseProject('xr-deep', { auto: automatic }).then((result: AnalysisStartResult) => {
             callbacks.onStatus(result.ok ? 'Analysis ready.' : result.message);
-        }, (error: unknown) => callbacks.onStatus(`The analysis failed: ${String(error)}`)).finally(() => {
+            callbacks.onFinished?.(result.ok, result.ok ? 'The XR (deep) scene is ready beside the code.' : result.message);
+        }, (error: unknown) => {
+            callbacks.onStatus(`The analysis failed: ${String(error)}`);
+            callbacks.onFinished?.(false, `The analysis failed: ${String(error)}`);
+        }).finally(() => {
             running = false;
             if (automatic && !pendingAuto) {
                 autoRoot = null;
@@ -123,7 +134,7 @@ export function createAnalysisRunView(
             autoRoot = root;
             pendingAuto = true;
             if (autoMode === 'xr-deep' && !pythonReady) {
-                callbacks.onStatus('Set up Python in the Analysis view to see this project in XR.');
+                callbacks.onStatus('The XR analysis starts once the analysis dependencies are installed.');
             }
             startPendingAuto();
         },

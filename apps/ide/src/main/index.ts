@@ -61,7 +61,8 @@ async function start(): Promise<void> {
     }
     const terminalHost = createTerminalHost({ isSmoke });
     terminals = terminalHost;
-    registerIpcHandlers(origins, isDevelopment, startCore({ isSmoke }), terminalHost);
+    const core = startCore({ isSmoke });
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost);
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))
@@ -82,6 +83,12 @@ async function start(): Promise<void> {
         } catch (error) {
             log.warn(`Could not reopen ${startup.folder}: ${String(error)}`);
         }
+    }
+
+    // #154: the IDE installs its own analysis dependencies, with progress in the
+    // window's notifications, never in the smoke run (it must download nothing).
+    if (!isSmoke) {
+        core.python.ensureReady().catch((error: unknown) => log.error('Could not set up the Python environment.', error));
     }
 
     if (isSmoke) {
