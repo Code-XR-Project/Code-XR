@@ -766,6 +766,7 @@
     "test:xr-mode-harness": "node test/runners/run-xr-mode-cycle-harness.cjs",
     "test:xr-immersive-harness": "node test/runners/run-xr-immersive-harness.cjs",
     "test:project-evolution-harness": "node test/runners/run-project-evolution-harness.cjs",
+    "test:harnesses": "npm run test:xr-harness && npm run test:xr-chart-bounds-harness && npm run test:xr-mode-harness && npm run test:xr-immersive-harness && npm run test:project-evolution-harness",
     "report:manual-metrics": "node ../../backend/scripts/run-analysis-tests.cjs --report-only",
     "guardrails:measure": "node test/tooling/measureGuardrails.cjs",
     "guardrails:update": "node test/tooling/measureGuardrails.cjs --write",

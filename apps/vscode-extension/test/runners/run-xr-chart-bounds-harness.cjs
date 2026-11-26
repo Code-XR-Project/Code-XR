@@ -15,6 +15,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { createFakeVscode, fakeExtensionContext, withFakeVscode } = require('../helpers/fakeVscode.cjs');
+const { launchHarnessChromium } = require('../helpers/harnessBrowser.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const CHART_TYPES = (process.env.CODEXR_CHART_BOUNDS_TYPES || 'bars,barsmap,cyls,cylsmap,pie,donut,bubbles,boats').split(',');
@@ -220,7 +221,7 @@ async function main() {
         return;
     }
     const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-chart-bounds-'));
-    const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
+    const browser = await launchHarnessChromium(chromium, { args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
     try {
         for (const chartId of CHART_TYPES) {
             for (const rowCount of ROW_COUNTS) {

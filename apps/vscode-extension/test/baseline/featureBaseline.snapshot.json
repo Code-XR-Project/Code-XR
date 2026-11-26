@@ -164,6 +164,7 @@
     "test:all",
     "test:analysis",
     "test:basic",
+    "test:harnesses",
     "test:htmlanalysis",
     "test:integration",
     "test:project-evolution-harness",
