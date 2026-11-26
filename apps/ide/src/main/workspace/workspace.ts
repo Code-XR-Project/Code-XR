@@ -1,9 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { MODIFIED_ON_DISK, type DirEntry, type FileContent, type SaveResult, type WorkspaceInfo } from '../../shared/api.ts';
+import { MODIFIED_ON_DISK, type DirEntry, type ReplaceResult, type SearchMatch, type SearchQuery, type FileContent, type SaveResult, type WorkspaceInfo } from '../../shared/api.ts';
 import { EXCLUDED_NAMES, isIgnored, parseGitignore, type IgnoreRule } from './ignoreRules.ts';
 import { childPath, isInside, parentPath, parseWorkspacePath, resolveInWorkspace, validateEntryName } from './workspacePath.ts';
 import { foldersToWatch, WorkspaceWatcher } from './watcher.ts';
+import { listWorkspaceFiles, type FileIndex } from './fileIndex.ts';
+import { searchWorkspace, type SearchStats } from './textSearch.ts';
+import { replaceInText, type CompiledQuery } from '../../shared/searchText.ts';
 
 /** Files above this are not sent to the editor (Monaco slows down well before). */
 export const MAX_EDITOR_FILE_BYTES = 5 * 1024 * 1024;
@@ -61,6 +64,45 @@ export class Workspace {
             entries.push({ name: dirent.name, path: entryPath, kind, ignored: isIgnored(entryPath, kind === 'directory', this.rules) });
         }
         return entries.sort((a, b) => (a.kind === b.kind ? collator.compare(a.name, b.name) : a.kind === 'directory' ? -1 : 1));
+    }
+
+    /** #164: every file for quick open, from the real root so a symlinked root lists like the explorer. */
+    listFiles(): Promise<FileIndex> {
+        return listWorkspaceFiles(this.realRoot, this.rules);
+    }
+
+    /** #165: searches every file quick open lists (searchService.ts batches the results). */
+    search(query: SearchQuery, compiled: CompiledQuery, onFile: (path: string, matches: SearchMatch[], total: number) => void, signal: AbortSignal): Promise<SearchStats> {
+        return searchWorkspace(this.realRoot, this.rules, query, compiled, onFile, signal);
+    }
+
+    /**
+     * #165: replaces every match in each file, through readFile/writeFile so
+     * the paths are checked like any other, and a file that changed between
+     * the read and the write is reported instead of overwritten.
+     */
+    async replaceInFiles(query: SearchQuery, compiled: CompiledQuery, replacement: string, paths: readonly string[]): Promise<ReplaceResult> {
+        let files = 0;
+        let replacements = 0;
+        const failed: { path: string; message: string }[] = [];
+        for (const file of paths) {
+            try {
+                const content = await this.readFile(file);
+                if (content.kind !== 'text') {
+                    continue;
+                }
+                const result = replaceInText(content.text, new RegExp(compiled.regex.source, compiled.regex.flags), replacement, query.isRegex);
+                if (result.count === 0) {
+                    continue;
+                }
+                await this.writeFile(file, result.text, content.mtimeMs);
+                files++;
+                replacements += result.count;
+            } catch (error) {
+                failed.push({ path: file, message: String(error).includes(MODIFIED_ON_DISK) ? 'changed on disk during the replace' : String(error) });
+            }
+        }
+        return { files, replacements, failed };
     }
 
     async readFile(relativePath: unknown): Promise<FileContent> {

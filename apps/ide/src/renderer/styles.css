@@ -396,6 +396,11 @@ body {
 .status-item:hover { background: rgba(255, 255, 255, 0.15); }
 .status-item:focus-visible { outline: 1px solid var(--status-fg); outline-offset: -1px; }
 .status-item[hidden] { display: none; }
+/* #166: the active editor's items; they give way first when the bar is narrow. */
+.status-editor { display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.status-editor[hidden] { display: none; }
+.status-item.is-static { display: inline-flex; align-items: center; cursor: default; }
+.status-item.is-static:hover { background: none; }
 
 /* The analysis scene beside the code (#16). The scene is drawn by the main
    process over .scene-slot; this column only reserves the space. */
@@ -686,3 +691,136 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* Quick input (#18): the command palette and go to line, top centre of the editor area as in VS Code. */
+.quick-input-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px 0;
+  pointer-events: none;
+}
+.quick-input-layer[hidden] { display: none; }
+.quick-input {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: min(440px, calc(100vh - 48px));
+  padding: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.quick-input-field {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+}
+.quick-input-list {
+  margin-top: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.quick-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.quick-input-row.has-separator { border-top: 1px solid var(--line); border-radius: 0 0 3px 3px; }
+.quick-input-row.is-active { background: var(--hover); box-shadow: inset 2px 0 0 var(--accent); }
+.quick-input-row.is-hint .quick-input-label { color: var(--muted); }
+.quick-input-label { overflow: hidden; text-overflow: ellipsis; }
+.quick-input-label mark { background: transparent; color: var(--accent); font-weight: 600; }
+.quick-input-description { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.quick-input-trailing { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.quick-input-group { font-size: 12px; }
+.quick-input-key {
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--muted);
+  font: 11px/16px ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+}
+.quick-input-empty { margin: 6px 8px 2px; font-size: 12px; }
+
+/* Search view (#165) */
+.search-form { display: flex; flex-direction: column; gap: 6px; padding: 0 12px 8px; }
+.search-query-block { display: flex; align-items: flex-start; gap: 2px; margin-left: -8px; }
+.search-replace-toggle { flex-shrink: 0; margin-top: 2px; }
+.search-replace-toggle svg { transition: transform 0.1s ease; }
+.search-replace-toggle[aria-expanded='true'] svg { transform: rotate(90deg); }
+.search-fields { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.search-row { display: flex; align-items: center; gap: 2px; min-width: 0; position: relative; }
+.search-row[hidden] { display: none; }
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+}
+.search-input:focus { border-color: var(--accent); outline: none; }
+.search-row:first-child .search-input { padding-right: 78px; }
+.search-toggles { position: absolute; right: 2px; display: flex; gap: 1px; }
+.search-toggle { width: 24px; height: 22px; }
+.search-toggle[aria-pressed='true'] { background: var(--hover); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.search-label { display: flex; flex-direction: column; gap: 2px; }
+.search-summary { margin: 0 12px 6px; font-size: 12px; overflow-wrap: anywhere; }
+.search-summary:empty { display: none; }
+.search-results { display: flex; flex-direction: column; }
+.search-file, .search-match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 8px 0 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 0;
+}
+.search-file:hover, .search-match:hover { background: var(--hover); }
+.search-file:focus, .search-match:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+.search-chevron { width: 14px; height: 14px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; transform: rotate(90deg); color: var(--muted); }
+.search-file.is-collapsed .search-chevron { transform: none; }
+.search-file-name { flex-shrink: 0; }
+.search-file-folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.search-count {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--hover);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.search-match { padding-left: 34px; font-size: 12px; }
+.search-line-number { flex-shrink: 0; min-width: 2.5em; text-align: right; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; }
+.search-preview { overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; }
+.search-preview mark { background: color-mix(in srgb, var(--accent) 28%, transparent); color: inherit; border-radius: 2px; }
+.search-preview del { background: color-mix(in srgb, var(--crit) 22%, transparent); color: inherit; }
+.search-preview ins { background: color-mix(in srgb, #3fb950 26%, transparent); color: inherit; text-decoration: none; }
+.search-more { padding: 2px 12px 2px 34px; }

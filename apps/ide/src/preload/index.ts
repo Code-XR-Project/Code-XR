@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -54,6 +54,13 @@ const api: CodeXRApi = Object.freeze({
         openFolder: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenFolder),
         current: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceCurrent),
         listDirectory: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceListDirectory, path),
+        listFiles: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceListFiles),
+        search: (searchId: number, query: SearchQuery) => ipcRenderer.invoke(IPC_CHANNELS.workspaceSearch, searchId, query),
+        cancelSearch: (searchId: number) => ipcRenderer.invoke(IPC_CHANNELS.workspaceCancelSearch, searchId),
+        onSearchResult: (listener: (event: SearchFileEvent) => void) => subscribe(IPC_EVENTS.workspaceSearchResult, listener),
+        onSearchDone: (listener: (event: SearchDoneEvent) => void) => subscribe(IPC_EVENTS.workspaceSearchDone, listener),
+        replaceInFiles: (query: SearchQuery, replacement: string, paths: readonly string[]) =>
+            ipcRenderer.invoke(IPC_CHANNELS.workspaceReplaceInFiles, query, replacement, paths),
         readFile: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadFile, path),
         writeFile: (path: string, text: string, expectedMtimeMs?: number) =>
             ipcRenderer.invoke(IPC_CHANNELS.workspaceWriteFile, path, text, expectedMtimeMs),
