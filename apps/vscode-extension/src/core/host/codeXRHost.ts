@@ -122,5 +122,12 @@ export interface CodeXRHost {
     openExternal(url: string): Promise<boolean>;
     /** Absolute paths of the open workspace folders. */
     workspaceFolders(): readonly string[];
+    /**
+     * Opens a file in the host's editor, at a 1-based line when given (#16:
+     * "Open in editor" from an analysis scene). The core only passes an
+     * existing file inside the analysed folder and an open workspace folder.
+     * Optional: a host without an editor leaves it out.
+     */
+    openInEditor?(absolutePath: string, line?: number): Promise<boolean>;
     signal(signal: HostSignal): void;
 }

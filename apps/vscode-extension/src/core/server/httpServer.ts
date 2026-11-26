@@ -4,10 +4,11 @@ import { sseManager } from './sse/SSEManager';
 import { fileToServerMap } from './fileToServerMap';
 import { NetworkUtils } from './networkUtils';
 import { ScreenBroadcastSignalingServer } from './broadcast/screenBroadcastSignalingServer';
-import { CollaborationRoomServer } from './collaboration/collaborationRoomServer';
+import { CollaborationApplicationMessageContext, CollaborationMessage, CollaborationRoomServer } from './collaboration/collaborationRoomServer';
 import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
 import { ConnectedParticipantSummary } from '../collaboration/connectedParticipant';
 import { RemoteSessionAuthority } from '../remote-access/remoteSessionAuthority';
+import { handleOpenInEditorMessage, isLoopbackAddress, sessionAnalysisRoot } from './analysis/editorNavigation';
 import { addCorsHeaders, sendErrorResponse, sendJsonResponse } from './http/httpRespond';
 import { StaticAssetServer } from './http/staticAssets';
 import { RemoteAccessPolicy } from './remote/remoteAccessPolicy';
@@ -567,6 +568,18 @@ export class HttpServer {
         logger.debug(() => `REQUEST_UPDATE: SSE client registration completed for ${fileUri}`);
     }
 
+    /** Room messages for the analysis; #16 "Open in editor" is answered for every analysis and every host. */
+    private handleRoomMessage(
+        messageContext: CollaborationApplicationMessageContext,
+        message: CollaborationMessage,
+    ): Promise<boolean> | boolean {
+        if (message.type === 'open-in-editor') {
+            const root = sessionAnalysisRoot(this.config.extensionContext, this.config.analysisSessionId);
+            return handleOpenInEditorMessage(messageContext, message.payload, root);
+        }
+        return this.analysisRouter.handleCollaborationMessage(messageContext, message);
+    }
+
     public attachToNodeServer(server: http.Server): void {
         if (this.upgradeAttached) {
             return;
@@ -575,8 +588,8 @@ export class HttpServer {
         this.collaborationRoomServer = new CollaborationRoomServer(server, '/codexr-room', {
             authorizeUpgrade: (request) => this.policy.isWebSocketAuthorized(request),
             resolveSession: (request) => this.remoteSessionAuthority.resolveCookie(request.headers.cookie),
-            handleApplicationMessage: (messageContext, message) =>
-                this.analysisRouter.handleCollaborationMessage(messageContext, message),
+            isLocalRequest: (request) => !this.policy.isRemoteRequest(request) && isLoopbackAddress(request.socket.remoteAddress),
+            handleApplicationMessage: (messageContext, message) => this.handleRoomMessage(messageContext, message),
         });
         if (this.config.analysisSessionId) {
             this.analysisHost.publishAnalysisViewState();
