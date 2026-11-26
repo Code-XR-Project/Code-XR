@@ -6,6 +6,12 @@ import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter } from './notifications.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
+import { createCommandRegistry } from './commands/commandRegistry.ts';
+import { installKeybindings } from './commands/keybindingService.ts';
+import { formatKeybinding } from './commands/keybindings.ts';
+import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
+import { createQuickInput } from './commands/quickInput.ts';
+import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -14,6 +20,8 @@ if (!root) {
 }
 
 const api = window.codexr;
+/** Whether this window has a folder open (#18: commands that need one are hidden without it). */
+let folderIsOpen = false;
 const workbench = renderWorkbench(root);
 // #153: VS Code-style notifications, kept clear of the scene view (a native view drawn over the page).
 const notifications = createNotificationCenter(document.body);
@@ -93,6 +101,7 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
 
 /** #139: the main process stops the old folder's scene; the panel follows, and the new folder may be analysed. */
 function folderOpened(root: string): void {
+    folderIsOpen = true;
     scenePanel.close();
     runView.setHasFolder(true);
     runView.folderOpened(root);
@@ -102,6 +111,7 @@ api.workspace.onDidChange((workspace) => {
     if (workspace) {
         folderOpened(workspace.root);
     } else {
+        folderIsOpen = false;
         scenePanel.close();
         runView.setHasFolder(false);
     }
@@ -110,6 +120,7 @@ api.workspace.onDidChange((workspace) => {
 api.workspace.current().then(
     (workspace) => {
         runView.setHasFolder(workspace !== null);
+        folderIsOpen = workspace !== null;
         if (workspace) {
             runView.folderOpened(workspace.root);
         }
@@ -123,18 +134,55 @@ const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then
     onError: (message) => workbench.setStatus(message),
 });
 
-const commands: Record<IdeCommand, () => void> = {
-    'workspace.openFolder': () => explorer.openFolder(),
-    'file.save': () => void editors?.save(),
-    'file.saveAll': () => void editors?.saveAll(),
-    'editor.close': () => editors?.closeActive(),
-    'file.newFile': () => void explorer.newFile(),
-    'file.newFolder': () => void explorer.newFolder(),
-    'terminal.toggle': () => terminal.toggle(),
-    'terminal.new': () => void terminal.newTerminal(),
-    'terminal.closePanel': () => terminal.hide(),
-};
-api.commands.onCommand((command) => commands[command]());
+// #18: every action is a command in one registry: the palette lists them,
+// the menu's accelerators and the workbench's own keys run them.
+let platform: string = navigator.userAgent.includes('Macintosh') ? 'darwin' : 'linux';
+const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`));
+const quickInput = createQuickInput(document.body, {
+    view: (value) => paletteView(value, {
+        commands: registry.list(),
+        isEnabled: (id) => registry.isEnabled(id),
+        recent: registry.recent(),
+        formatKey: (binding) => formatKeybinding(binding, platform),
+        lineCount: editors?.activeLineCount() ?? null,
+    }),
+    accept: (action) => {
+        if (action.kind === 'command') {
+            registry.execute(action.id);
+        } else if (action.kind === 'line') {
+            editors?.goToLine(action.line, action.column);
+        }
+    },
+    rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
+});
+registerWorkbenchCommands(registry, {
+    openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
+    goToLine: () => quickInput.open(LINE_PREFIX),
+    hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
+    openFolder: () => explorer.openFolder(),
+    hasFolder: () => folderIsOpen,
+    newFile: () => void explorer.newFile(),
+    newFolder: () => void explorer.newFolder(),
+    save: () => void editors?.save(),
+    saveAll: () => void editors?.saveAll(),
+    closeEditor: () => editors?.closeActive(),
+    toggleTerminal: () => terminal.toggle(),
+    newTerminal: () => void terminal.newTerminal(),
+    closeTerminalPanel: () => terminal.hide(),
+    showView: (view) => workbench.showView(view),
+    analyseProject: () => void runView.analyse(),
+    canAnalyse: () => runView.canAnalyse(),
+    setUpPython: () => void api.python.setUp(),
+    closeScene: () => {
+        scenePanel.close();
+        api.analysis.closeScene().catch((reason: unknown) => workbench.setStatus(String(reason)));
+    },
+    hasScene: () => !workbench.sceneArea.hidden,
+});
+api.commands.onCommand((command: IdeCommand) => {
+    registry.execute(command);
+});
+void appInfo.then((info) => { platform = info.platform; }, () => undefined).finally(() => installKeybindings(registry, platform));
 
 // #15: the Python environment, in the Analysis view and the status bar.
 const pythonView = createPythonView(workbench.analysisView, api.python, {

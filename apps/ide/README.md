@@ -81,6 +81,11 @@ The scene is a `WebContentsView` laid over the slot the renderer reserves (`anal
 
 The renderer only reports the slot's bounds (`analysis.setSceneBounds`, sanitised in the main process) and may start an analysis kind from a closed list; the main process re-checks that a folder is open and the Python environment is ready, so nothing here can trigger a download.
 
+**Commands, the command palette and go to line (#18, epic #163).** Every action is a command in one registry (`renderer/commands/commandRegistry.ts`): an `area.action` ID, a category and title, an optional key and an `enabled` check. Registering an ID twice throws, like `assertUniqueCommandIds` in the extension. The built-in commands live in `commands/workbenchCommands.ts`; a feature that adds commands (the AI agents, later voice) registers them there and gets the palette and a key for free.
+
+- **View > Command Palette…** (`Ctrl+Shift+P`, `Cmd+Shift+P` on macOS, or `F1`) lists the enabled commands, recently used first, with their keys; typing filters them with a fuzzy match (`commands/fuzzy.ts`: in-order characters, word starts and runs score higher). **Go > Go to Line/Column…** (`Ctrl+G`) opens the same box with `:` and moves the cursor to `line[:column]`. The box (`commands/quickInput.ts`) sits at the top of the window, left of the scene view, and gives the focus back on Escape.
+- **Who listens for a key.** Keys shown in the application menu are the menu's accelerators, so they work while the terminal or the scene view has the focus; `MENU_KEYBINDINGS` lists them and a unit test checks it against `main/menu.ts`. Other keys (`F1`, `Ctrl+Shift+E`) are handled by `commands/keybindingService.ts`, a capture-phase listener on the window, so they win over Monaco and xterm. Keys are written as Electron accelerators (`CmdOrCtrl+Shift+P`) and matched by physical key, so keyboard layouts do not change them.
+
 ## Security baseline
 
 Following Electron's [security checklist](https://www.electronjs.org/docs/latest/tutorial/security). Each rule lives in one place and is enforced by a test, a startup assertion or the smoke run:

@@ -15,6 +15,9 @@ export interface AnalysisRunView {
     setHasFolder(hasFolder: boolean): void;
     /** A folder has just opened in this window. */
     folderOpened(root: string): void;
+    /** #18: the palette's "Analyse Project in XR"; false when it cannot start now. */
+    analyse(): boolean;
+    readonly canAnalyse: () => boolean;
 }
 
 export function createAnalysisRunView(
@@ -113,7 +116,16 @@ export function createAnalysisRunView(
     }, (error: unknown) => callbacks.onStatus(`Could not read the analysis settings: ${String(error)}`));
     update();
 
+    const canAnalyse = (): boolean => !running && pythonReady && hasFolder;
     return {
+        canAnalyse,
+        analyse(): boolean {
+            if (!canAnalyse()) {
+                return false;
+            }
+            start(false);
+            return true;
+        },
         setPython(status: PythonEnvStatus): void {
             pythonReady = status.state === 'ready';
             update();

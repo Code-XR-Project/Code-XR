@@ -46,6 +46,10 @@ export interface EditorGroup {
      * and are marked deleted on disk, so no typing is lost.
      */
     entryMoved(from: string, to: string | null): Promise<void>;
+    /** Lines of the active file, or null when no file is active (#18: go to line). */
+    activeLineCount(): number | null;
+    /** Moves the cursor of the active file to `line` (and `column`), centred, and focuses the editor. */
+    goToLine(line: number, column?: number): void;
 }
 
 export function createEditorGroup(
@@ -260,6 +264,18 @@ export function createEditorGroup(
     activate(null);
 
     return {
+        activeLineCount: () => (active ? active.model.getLineCount() : null),
+        goToLine(line, column) {
+            if (!active) {
+                return;
+            }
+            const lineNumber = Math.min(Math.max(1, line), active.model.getLineCount());
+            const maxColumn = active.model.getLineMaxColumn(lineNumber);
+            const position = { lineNumber, column: Math.min(Math.max(1, column ?? 1), maxColumn) };
+            editor.setPosition(position);
+            editor.revealPositionInCenterIfOutsideViewport(position);
+            editor.focus();
+        },
         async open(path: string): Promise<void> {
             const existing = files.get(path);
             if (existing) {

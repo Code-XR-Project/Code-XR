@@ -20,6 +20,7 @@ const healthy: SmokeProbe = {
     editorOpened: true,
     fileIconsShown: 9,
     fileIconsBroken: [],
+    palette: { opened: true, hasSave: true, lineOffered: true, focusReturned: true },
     cspViolations: [],
 };
 
@@ -33,6 +34,12 @@ const terminal: TerminalProbe = {
 };
 
 describe('evaluateSmoke', () => {
+    it('fails when F1 does not open the command palette (#18)', () => {
+        const result = evaluateSmoke({ ...healthy, palette: { ...healthy.palette, opened: false } }, true, 'linux', terminal);
+        assert.equal(result.ok, false);
+        assert.match(result.failures.join('\n'), /command palette/);
+    });
+
     it('passes a healthy probe', () => {
         const result = evaluateSmoke(healthy, true, 'linux', terminal);
         assert.deepEqual(result.failures, []);

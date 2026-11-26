@@ -76,6 +76,10 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
         {
             label: 'View',
             submenu: [
+                // #18: every action, by name. The accelerator lives here so it also works while the
+                // terminal or the scene view has the focus; F1 is the workbench's own alias.
+                { label: 'Command Palette…', accelerator: 'CmdOrCtrl+Shift+P', click: (_item, win) => sendCommand(win, 'workbench.commandPalette') },
+                { type: 'separator' },
                 ...(isDevelopment
                     ? ([{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }] as MenuItemConstructorOptions[])
                     : []),
@@ -89,6 +93,12 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
                 { role: 'zoomOut' },
                 { type: 'separator' },
                 { role: 'togglefullscreen' },
+            ],
+        },
+        {
+            label: 'Go',
+            submenu: [
+                { label: 'Go to Line/Column…', accelerator: 'Ctrl+G', click: (_item, win) => sendCommand(win, 'editor.goToLine') },
             ],
         },
         { role: 'windowMenu' },

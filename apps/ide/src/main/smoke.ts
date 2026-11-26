@@ -32,6 +32,8 @@ export interface SmokeProbe {
     /** #138: file icons in the explorer and the tabs, and those that failed to load from the app. */
     readonly fileIconsShown: number;
     readonly fileIconsBroken: readonly string[];
+    /** #18: F1 from the editor opened the palette with the commands, ":3" offered line 3, Escape gave the focus back. */
+    readonly palette: { readonly opened: boolean; readonly hasSave: boolean; readonly lineOffered: boolean; readonly focusReturned: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -104,6 +106,25 @@ const RENDERER_PROBE = `(async () => {
         const loaded = url && await new Promise((r) => { const img = new Image(); img.onload = () => r(img.naturalWidth > 0); img.onerror = () => r(false); img.src = url; });
         if (!loaded) { fileIconsBroken.push(css); }
     }
+    // #18: the command palette, opened with F1 from inside Monaco (the workbench's capture-phase key).
+    const palette = { opened: false, hasSave: false, lineOffered: false, focusReturned: false };
+    const focusedEditor = document.querySelector('.monaco-editor textarea');
+    if (focusedEditor) {
+        focusedEditor.focus();
+        focusedEditor.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1', code: 'F1', bubbles: true, cancelable: true }));
+        const layer = document.querySelector('[data-testid="quick-input"]')?.parentElement;
+        const field = document.querySelector('[data-testid="quick-input-field"]');
+        palette.opened = !!layer && !layer.hidden && document.activeElement === field;
+        const labels = () => [...document.querySelectorAll('[data-testid="quick-input-list"] .quick-input-label')].map((node) => node.textContent);
+        palette.hasSave = labels().includes('File: Save');
+        if (field) {
+            field.value = ':3';
+            field.dispatchEvent(new Event('input'));
+            palette.lineOffered = labels().includes('Go to line 3');
+            field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        }
+        palette.focusReturned = !!layer && layer.hidden && !!document.activeElement?.closest('.monaco-editor');
+    }
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
@@ -123,6 +144,7 @@ const RENDERER_PROBE = `(async () => {
         editorOpened,
         fileIconsShown,
         fileIconsBroken,
+        palette,
         cspViolations,
     };
 })()`;
@@ -180,6 +202,8 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
         if (probe.fileIconsShown === 0) { failures.push('the explorer and the tabs showed no file icon'); }
         if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }
+        if (!probe.palette.opened || !probe.palette.hasSave) { failures.push(`F1 did not open the command palette with the commands (${JSON.stringify(probe.palette)})`); }
+        if (!probe.palette.lineOffered || !probe.palette.focusReturned) { failures.push(`go to line or closing the palette failed (${JSON.stringify(probe.palette)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!terminal) {

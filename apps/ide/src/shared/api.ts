@@ -70,6 +70,8 @@ export const IDE_COMMANDS = [
     'workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close',
     // #137: the terminal panel (View menu, Ctrl+` and Ctrl+Shift+`).
     'terminal.toggle', 'terminal.new', 'terminal.closePanel',
+    // #18: the command palette (View menu, Ctrl/Cmd+Shift+P) and go to line (Go menu, Ctrl+G).
+    'workbench.commandPalette', 'editor.goToLine',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 

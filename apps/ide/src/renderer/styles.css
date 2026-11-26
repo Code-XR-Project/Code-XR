@@ -686,3 +686,73 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* Quick input (#18): the command palette and go to line, top centre of the editor area as in VS Code. */
+.quick-input-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px 0;
+  pointer-events: none;
+}
+.quick-input-layer[hidden] { display: none; }
+.quick-input {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: min(440px, calc(100vh - 48px));
+  padding: 6px;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.quick-input-field {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+  outline: none;
+}
+.quick-input-list {
+  margin-top: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.quick-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.quick-input-row.has-separator { border-top: 1px solid var(--line); border-radius: 0 0 3px 3px; }
+.quick-input-row.is-active { background: var(--hover); box-shadow: inset 2px 0 0 var(--accent); }
+.quick-input-row.is-hint .quick-input-label { color: var(--muted); }
+.quick-input-label { overflow: hidden; text-overflow: ellipsis; }
+.quick-input-label mark { background: transparent; color: var(--accent); font-weight: 600; }
+.quick-input-description { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.quick-input-trailing { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.quick-input-group { font-size: 12px; }
+.quick-input-key {
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--muted);
+  font: 11px/16px ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+}
+.quick-input-empty { margin: 6px 8px 2px; font-size: 12px; }
