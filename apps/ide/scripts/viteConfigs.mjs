@@ -15,6 +15,8 @@ export const OUT_DIR = path.join(IDE_ROOT, 'out');
  * source. Type-checked through declarations: see scripts/coreTypes.mjs.
  */
 export const CORE_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'core');
+/** #174: the core's logging (its sink) lives beside it, in the extension's platform layer. */
+export const LOGGING_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'platform', 'logging');
 
 const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
 /**
@@ -48,7 +50,7 @@ export function nodeTargetConfig(target, opts = {}) {
             },
         },
         ssr: { noExternal: true },
-        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }] },
+        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }, { find: /^@codexr\/logging\//, replacement: `${LOGGING_SRC}/` }] },
     };
 }
 

@@ -1,7 +1,8 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.ts';
 import type { UserKeybinding } from '../shared/keybindings.ts';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import type { OutputChannelId } from '../shared/output.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 import { AGENT_IPC_CHANNELS, type ProviderInput } from '../shared/agents.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
@@ -118,6 +119,11 @@ const api: CodeXRApi = Object.freeze({
         folderFile: () => ipcRenderer.invoke(IPC_CHANNELS.settingsFolderFile),
         previewTheme: (theme: ColorTheme | null) => ipcRenderer.invoke(IPC_CHANNELS.settingsPreviewTheme, theme),
         onDidChange: (listener: (report: SettingsReport) => void) => subscribe(IPC_EVENTS.settingsChanged, listener),
+    }),
+    output: Object.freeze({
+        lines: (channel: OutputChannelId) => ipcRenderer.invoke(IPC_CHANNELS.outputLines, channel),
+        clear: (channel: OutputChannelId) => ipcRenderer.invoke(IPC_CHANNELS.outputClear, channel),
+        onAppended: (listener: (event: OutputAppended) => void) => subscribe(IPC_EVENTS.outputAppended, listener),
     }),
     keybindings: Object.freeze({
         get: () => ipcRenderer.invoke(IPC_CHANNELS.keybindingsGet),

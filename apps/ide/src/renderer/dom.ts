@@ -51,3 +51,22 @@ export function fileIcon(name: string, kind: IconKind, expanded = false): HTMLEl
     const id = iconFor(name, kind, expanded);
     return el('span', { className: `file-icon ${iconClass(id)}`, attrs: { 'aria-hidden': 'true', 'data-icon': id } });
 }
+
+/**
+ * Copies through a throwaway textarea and `execCommand('copy')`: it runs in
+ * a key or click handler (a user gesture), so it needs no clipboard permission, and
+ * the IDE grants none.
+ */
+export function copyText(text: string): void {
+    const active = document.activeElement as HTMLElement | null;
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.append(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+    active?.focus();
+}

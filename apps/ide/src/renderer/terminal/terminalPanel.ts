@@ -1,10 +1,12 @@
 import type { CodeXRApi, TerminalProfile, TerminalProfileList } from '../../shared/api.ts';
 import { el, icon } from '../dom.ts';
+import type { PanelHost } from '../panel/panelHost.ts';
 import type * as XtermModule from './xtermView.ts';
 import type { XtermView } from './xtermView.ts';
 
 /**
- * The terminal panel (#137): a bottom panel of terminal tabs under the editor.
+ * The terminal panel (#137): the Terminal view of the bottom panel (#174),
+ * its terminal tabs in the panel's header.
  *
  * Each tab is an xterm.js view (loaded with the first terminal, in its own
  * chunk) wired to a pty in the main process through `window.codexr.terminal`.
@@ -17,29 +19,23 @@ const ICONS = {
     menu: 'M6 9l6 6 6-6',
     trash: 'M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13',
     close: 'M6 6l12 12M18 6L6 18',
-    maximize: 'M6 15l6-6 6 6M5 4h14',
-    restore: 'M6 9l6 6 6-6M5 20h14',
     terminal: 'M4 17l6-5-6-5M12 19h8',
 } as const;
 
 export interface TerminalPanel {
     readonly visible: boolean;
-    /** Ctrl+`: shows the panel (starting a terminal if there is none) or hides it. */
+    /** Ctrl+`: shows the terminal (starting one if there is none) or hides the panel. */
     toggle(): void;
     show(): void;
     hide(): void;
     /** Starts a terminal from a profile (null: the default) and shows it. */
     newTerminal(profileId?: string | null): Promise<void>;
-    /** Shows the panel as maximised or not (#169); the layout owns the state. */
-    setMaximized(maximized: boolean): void;
     /** #18: the terminals' font size, for the open ones and the next. */
     setFontSize(size: number): void;
 }
 
 export interface TerminalPanelHooks {
     onError(message: string): void;
-    /** The header's maximise button (#169). */
-    toggleMaximized?(): void;
 }
 
 interface TerminalTab {
@@ -51,7 +47,7 @@ interface TerminalTab {
     exited: boolean;
 }
 
-export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal'], platform: Promise<string>, hooks: TerminalPanelHooks): TerminalPanel {
+export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'], platform: Promise<string>, hooks: TerminalPanelHooks): TerminalPanel {
     let activeId: number | null = null;
     let fontSize = 13;
     let loadingView: Promise<typeof XtermModule> | null = null;
@@ -68,26 +64,20 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
     menuButton.setAttribute('aria-haspopup', 'menu');
     menuButton.setAttribute('aria-expanded', 'false');
     const killButton = button('Kill Terminal', ICONS.trash, 'terminal-kill');
-    const closeButton = button('Close Panel', ICONS.close, 'terminal-close-panel');
-    // #169: the panel's size is the layout's (layout/layout.ts): its sash, and maximising it.
-    const maximizeButton = button('Maximize Panel Size', ICONS.maximize, 'terminal-maximize');
-    maximizeButton.setAttribute('aria-pressed', 'false');
-    maximizeButton.hidden = !hooks.toggleMaximized;
-    maximizeButton.addEventListener('click', () => hooks.toggleMaximized?.());
-    const header = el('div', { className: 'panel-header' }, [
-        el('span', { className: 'panel-title', text: 'Terminal' }),
-        tabList,
-        el('div', { className: 'panel-actions' }, [newButton, menuButton, killButton, maximizeButton, closeButton]),
-    ]);
     const body = el('div', { className: 'terminal-body', attrs: { 'data-testid': 'terminal-body' } });
     const empty = el('p', { className: 'muted terminal-empty', text: 'No terminal is running. Start one with + or Ctrl+Shift+`.' });
     body.append(empty);
     const menu = el('div', { className: 'terminal-menu', attrs: { role: 'menu', 'data-testid': 'terminal-menu', hidden: '' } });
-    panel.classList.add('terminal-panel');
-    panel.setAttribute('data-testid', 'terminal-panel');
-    panel.setAttribute('aria-label', 'Terminal');
-    panel.hidden = true;
-    panel.replaceChildren(header, body, menu);
+    host.register({
+        id: 'terminal',
+        label: 'Terminal',
+        body,
+        center: tabList,
+        actions: [newButton, menuButton, killButton],
+        onShow: () => activate(activeId),
+        onHide: () => closeMenu(),
+    });
+    host.element.append(menu);
 
     // Fitting follows the body's size (panel resize, window resize, tab switch).
     let fitFrame = 0;
@@ -95,7 +85,7 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
         cancelAnimationFrame(fitFrame);
         fitFrame = requestAnimationFrame(() => {
             const active = activeId === null ? undefined : tabs.get(activeId);
-            if (active && !panel.hidden && active.view.fit() && !active.exited) {
+            if (active && host.isShowing('terminal') && active.view.fit() && !active.exited) {
                 void api.resize(active.id, active.view.cols, active.view.rows).catch(() => undefined);
             }
         });
@@ -169,7 +159,7 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
             activate(activeId);
         }
         // As in VS Code: closing the last terminal closes the panel.
-        if (tabs.size === 0) {
+        if (tabs.size === 0 && host.isShowing('terminal')) {
             hide();
         }
     }
@@ -341,27 +331,24 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
 
     newButton.addEventListener('click', () => void newTerminal());
     killButton.addEventListener('click', () => { if (activeId !== null) { closeTerminal(activeId); } });
-    closeButton.addEventListener('click', () => hide());
     activate(null);
     void refreshProfiles().catch(() => undefined);
 
     function show(startIfEmpty = true): void {
-        panel.hidden = false;
+        host.show('terminal');
         if (tabs.size === 0 && startIfEmpty) {
             void newTerminal();
-            return;
         }
-        activate(activeId);
     }
 
     function hide(): void {
-        panel.hidden = true;
         closeMenu();
+        host.hide();
     }
 
     return {
-        get visible() { return !panel.hidden; },
-        toggle: () => (panel.hidden ? show() : hide()),
+        get visible() { return host.isShowing('terminal'); },
+        toggle: () => (host.isShowing('terminal') ? hide() : show()),
         show: () => show(),
         hide,
         newTerminal,
@@ -374,13 +361,6 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
                 entry.view.setFontSize(size);
             }
             scheduleFit();
-        },
-        setMaximized(maximized: boolean): void {
-            maximizeButton.setAttribute('aria-pressed', String(maximized));
-            const label = maximized ? 'Restore Panel Size' : 'Maximize Panel Size';
-            maximizeButton.title = label;
-            maximizeButton.setAttribute('aria-label', label);
-            maximizeButton.replaceChildren(icon(maximized ? ICONS.restore : ICONS.maximize));
         },
     };
 }

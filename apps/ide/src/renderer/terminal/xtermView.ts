@@ -1,6 +1,7 @@
 import { Terminal, type ITheme } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import { copyText } from '../dom.ts';
 
 /**
  * One xterm.js terminal (#137), loaded with the panel in its own chunk. It
@@ -47,25 +48,6 @@ function theme(): ITheme {
             ? { black: '#1c2632', yellow: '#946300', brightYellow: '#7a5200', white: '#596677', brightWhite: '#1c2632' }
             : {}),
     };
-}
-
-/**
- * Copies through a throwaway textarea and `execCommand('copy')`: it runs in
- * the key handler (a user gesture), so it needs no clipboard permission, and
- * the IDE grants none.
- */
-function copyText(text: string): void {
-    const active = document.activeElement as HTMLElement | null;
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.append(area);
-    area.select();
-    document.execCommand('copy');
-    area.remove();
-    active?.focus();
 }
 
 export function createXtermView(container: HTMLElement, options: XtermOptions): XtermView {
