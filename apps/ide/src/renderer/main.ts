@@ -1,6 +1,8 @@
 import { renderWorkbench } from './workbench.ts';
 import { createExplorer } from './explorer.ts';
 import { createPythonView, pythonStatusText } from './pythonView.ts';
+import { createAnalysisRunView } from './analysisRunView.ts';
+import { createScenePanel } from './scenePanel.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import type { IdeCommand, WatchedEntry } from '../shared/api.ts';
 
@@ -79,9 +81,15 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
     void explorer.show(workspace);
 }
 
-api.workspace.onDidChange(showWorkspace);
+api.workspace.onDidChange((workspace) => {
+    runView.setHasFolder(workspace !== null);
+    showWorkspace(workspace);
+});
 api.workspace.current().then(
-    (workspace) => explorer.show(workspace),
+    (workspace) => {
+        runView.setHasFolder(workspace !== null);
+        return explorer.show(workspace);
+    },
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),
 );
 
@@ -97,9 +105,20 @@ api.commands.onCommand((command) => commands[command]());
 
 // #15: the Python environment, in the Analysis view and the status bar.
 const pythonView = createPythonView(workbench.analysisView, api.python, {
-    onStatus: (status) => workbench.setPythonStatus(pythonStatusText(status), status.message, status.state),
+    onStatus: (status) => {
+        workbench.setPythonStatus(pythonStatusText(status), status.message, status.state);
+        runView.setPython(status);
+    },
     onError: (message) => workbench.setStatus(message),
 });
+
+// #16: analyses of the open folder, and their scene beside the code.
+const runView = createAnalysisRunView(workbench.analysisView, api.analysis, { onStatus: (message) => workbench.setStatus(message) });
+const scenePanel = createScenePanel(workbench.sceneArea, api.analysis, {
+    setVisible: (visible) => workbench.setSceneVisible(visible),
+    onError: (message) => workbench.setStatus(message),
+});
+api.analysis.onDidOpenScene((scene) => scenePanel.show(scene));
 api.python.onDidChangeStatus((status) => pythonView.show(status));
 api.python.status().then((status) => pythonView.show(status), (error: unknown) => workbench.setStatus(`Could not check Python: ${String(error)}`));
 api.app.onNotification((notification) => workbench.setStatus(notification.message));

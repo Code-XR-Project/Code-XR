@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type HostNotification, type IdeCommand, type PythonEnvStatus, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type HostNotification, type AnalysisKind, type IdeCommand, type PythonEnvStatus, type SceneBounds, type SceneInfo, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -34,6 +34,12 @@ const api: CodeXRApi = Object.freeze({
         setUp: () => ipcRenderer.invoke(IPC_CHANNELS.pythonSetUp),
         remove: () => ipcRenderer.invoke(IPC_CHANNELS.pythonRemove),
         onDidChangeStatus: (listener: (status: PythonEnvStatus) => void) => subscribe(IPC_EVENTS.pythonStatusChanged, listener),
+    }),
+    analysis: Object.freeze({
+        analyseProject: (kind: AnalysisKind) => ipcRenderer.invoke(IPC_CHANNELS.analysisAnalyseProject, kind),
+        setSceneBounds: (bounds: SceneBounds | null) => ipcRenderer.invoke(IPC_CHANNELS.analysisSetSceneBounds, bounds),
+        closeScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisCloseScene),
+        onDidOpenScene: (listener: (scene: SceneInfo) => void) => subscribe(IPC_EVENTS.analysisSceneOpened, listener),
     }),
     workspace: Object.freeze({
         openFolder: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenFolder),

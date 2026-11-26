@@ -1,9 +1,11 @@
 import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
-import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, IPC_EVENTS, type AppInfo } from '../shared/api.ts';
+import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AppInfo } from '../shared/api.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
+import { closeScene, setSceneBounds } from './analysis/sceneView.ts';
+import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -70,6 +72,17 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.pythonSetUp, (event) => core.python.setUp(BrowserWindow.fromWebContents(event.sender)));
     handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());
 
+    // #16: analyses, and the scene view beside the code.
+    handle(IPC_CHANNELS.analysisAnalyseProject, (event, kind) => {
+        const win = ownerOf(event);
+        if (!(ANALYSIS_KINDS as readonly unknown[]).includes(kind)) {
+            throw new Error(`Unknown analysis kind: ${String(kind)}`);
+        }
+        return core.analysis.analyseProject(win, currentWorkspaceInfo(event.sender)?.root, kind as AnalysisKind);
+    });
+    handle(IPC_CHANNELS.analysisSetSceneBounds, (event, bounds) => setSceneBounds(ownerOf(event), sanitizeBounds(bounds)));
+    handle(IPC_CHANNELS.analysisCloseScene, (event) => closeScene(ownerOf(event)));
+
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.
     for (const channel of ALLOWED_IPC_CHANNELS) {
@@ -77,4 +90,12 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
             throw new Error(`IPC channel ${channel} has no handler.`);
         }
     }
+}
+
+function ownerOf(event: IpcMainInvokeEvent): BrowserWindow {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+        throw new Error('The request came from no window.');
+    }
+    return win;
 }

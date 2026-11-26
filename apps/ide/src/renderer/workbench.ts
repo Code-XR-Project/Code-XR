@@ -38,6 +38,10 @@ export interface Workbench {
     showError(message: string): void;
     /** Left status-bar text, for short messages ("Opened …"). */
     setStatus(message: string): void;
+    /** The column beside the editors where an analysis scene is shown (#16), hidden until one opens. */
+    readonly sceneArea: HTMLElement;
+    /** Shows or hides the scene column. */
+    setSceneVisible(visible: boolean): void;
 }
 
 export function renderWorkbench(root: HTMLElement): Workbench {
@@ -57,7 +61,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
     const xrView = el('div', { className: 'side-pane', attrs: { 'data-view': 'xr' } }, [
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
-        el('p', { className: 'muted side-note', text: 'The XR scene of an analysis opens here once analyses run from the IDE.' }),
+        el('p', { className: 'muted side-note', text: 'Run an analysis from the Analysis view: its XR scene opens beside the code.' }),
     ]);
     const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['analysis', analysisView], ['xr', xrView]]);
     const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, analysisView, xrView]);
@@ -95,7 +99,9 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     pythonItem.addEventListener('click', () => showView('analysis'));
     const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [pythonItem, statusRight])]);
 
-    root.replaceChildren(el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, statusBar]));
+    const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
+    const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, sceneArea, statusBar]);
+    root.replaceChildren(shell);
 
     return {
         sideBar,
@@ -108,6 +114,11 @@ export function renderWorkbench(root: HTMLElement): Workbench {
             pythonItem.dataset['state'] = state;
         },
         editorArea,
+        sceneArea,
+        setSceneVisible(visible: boolean): void {
+            sceneArea.hidden = !visible;
+            shell.classList.toggle('has-scene', visible);
+        },
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },

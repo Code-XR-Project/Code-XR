@@ -43,13 +43,35 @@ export function applyProcessHardening(origins: ReadonlySet<string>, devServerOri
     });
 }
 
+/**
+ * The one extra origin a scene view may navigate within (#16): the local
+ * server it was opened on. Set by the scene view, keyed by its web contents,
+ * so the app window itself never gains it.
+ */
+const sceneOrigins = new WeakMap<WebContents, string>();
+
+export function allowSceneOrigin(contents: WebContents, origin: string): void {
+    sceneOrigins.set(contents, origin);
+}
+
+function sameOrigin(url: string, origin: string | undefined): boolean {
+    if (!origin) {
+        return false;
+    }
+    try {
+        return new URL(url).origin === origin;
+    } catch {
+        return false;
+    }
+}
+
 function guardWebContents(contents: WebContents, origins: ReadonlySet<string>): void {
     // No in-window navigation away from the app (a dropped file, a link, a
     // redirect). Links to the web are not opened either: the project rule is
     // no network access without explicit user consent, and the consent UI
     // does not exist yet.
     const blockNavigation = (event: { preventDefault(): void }, url: string): void => {
-        if (!isAllowedNavigation(url, origins)) {
+        if (!isAllowedNavigation(url, origins) && !sameOrigin(url, sceneOrigins.get(contents))) {
             event.preventDefault();
             log.warn(`Blocked navigation to ${url}`);
         }
