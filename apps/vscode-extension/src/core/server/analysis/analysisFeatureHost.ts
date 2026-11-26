@@ -4,7 +4,7 @@ import { sseManager } from '../sse/SSEManager';
 import { fileToServerMap } from '../fileToServerMap';
 import { CollaborationRoomServer } from '../collaboration/collaborationRoomServer';
 import { HistoricalComparisonProgress } from '../../history/historicalComparisonModels';
-import { HistoricalComparisonService } from '../../history/historicalComparisonService';
+import { HistoricalComparisonService, describeHistoricalComparisonError } from '../../history/historicalComparisonService';
 import { GitAnalysisSourceCatalog } from '../../history/gitAnalysisEligibility';
 import { ProjectEvolutionService } from '../../history/projectEvolutionService';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
@@ -15,6 +15,15 @@ import { UnifiedSessionRegistry } from '../../analysis/session/sessionRegistry';
 import { resolveAnalysisServerCapabilities } from '../analysisServerCapabilities';
 import { AnalysisAvailabilitySnapshot } from '../collaboration/collaborationSessionApi';
 import { getLogger } from '../../../platform/logging/sink';
+
+/** Debounce of a live refresh after a save; retries back off from it (HIST-1). */
+const HISTORICAL_REFRESH_DEBOUNCE_MS = 350;
+const HISTORICAL_REFRESH_MAX_ATTEMPTS = 3;
+
+function describeHistoricalRefreshFailure(error: unknown): string {
+    const reason = describeHistoricalComparisonError(error);
+    return `The comparison stopped following your edits: ${reason} Compare again to resume.`;
+}
 
 const logger = getLogger('ANALYSIS_FEATURE_HOST');
 
@@ -48,6 +57,10 @@ export class AnalysisFeatureHost {
     private analysisUpdateSubscription: (() => void) | null = null;
     private historicalRefreshTimer: NodeJS.Timeout | null = null;
     private historicalRefreshQueued = false;
+    /** Consecutive failed live refreshes (HIST-1); reset by a success. */
+    private historicalRefreshFailures = 0;
+    /** A live refresh was skipped while the XR view was elsewhere; run it on re-entry (HIST-4). */
+    private historicalRefreshPendingOnEntry = false;
     private refreshCoordinatorDisposables: Array<() => void> = [];
     private dependencyRefreshHandler: (batch: AnalysisSourceChangeBatch) => Promise<void> =
         async () => undefined;
@@ -111,28 +124,7 @@ export class AnalysisFeatureHost {
             }
 
             if (capabilities.historicalComparison) {
-                this.historicalComparisonService = new HistoricalComparisonService(
-                    this.config.extensionContext,
-                    this.config.analysisSessionId,
-                    this.config.staticRoot,
-                    this.gitAnalysisSourceCatalog ?? undefined,
-                );
-                this.analysisUpdateSubscription = analysisUpdateEvents.on((event) => {
-                    if (event.sessionId !== this.config.analysisSessionId) {
-                        return;
-                    }
-                    if (this.analysisMode === 'LivePanel') {
-                        // LivePanel has no XR view modes: refresh whenever an open
-                        // comparison has a working-copy side (the schedule itself
-                        // no-ops otherwise) and push the result over SSE.
-                        this.scheduleHistoricalComparisonRefresh();
-                        return;
-                    }
-                    const view = analysisRefreshCoordinator.getViewState(event.sessionId);
-                    if (view.mode === 'historical-compare') {
-                        this.scheduleHistoricalComparisonRefresh();
-                    }
-                });
+                this.attachHistoricalComparison(this.config.extensionContext, this.config.analysisSessionId, this.config.staticRoot);
             }
 
             if (capabilities.projectEvolution) {
@@ -153,6 +145,42 @@ export class AnalysisFeatureHost {
                 ),
             );
         }
+    }
+
+    /**
+     * The comparison service and its live link: working-copy edits refresh
+     * the comparison while History is on screen (LivePanel always shows it);
+     * a refresh skipped elsewhere runs on re-entry (HIST-4).
+     */
+    private attachHistoricalComparison(
+        extensionContext: vscode.ExtensionContext,
+        sessionId: string,
+        staticRoot: string,
+    ): void {
+        this.historicalComparisonService = new HistoricalComparisonService(
+            extensionContext,
+            sessionId,
+            staticRoot,
+            this.gitAnalysisSourceCatalog ?? undefined,
+        );
+        this.analysisUpdateSubscription = analysisUpdateEvents.on((event) => {
+            if (event.sessionId !== sessionId) {
+                return;
+            }
+            if (this.isHistoricalViewActive()) {
+                this.scheduleHistoricalComparisonRefresh();
+            } else {
+                this.historicalRefreshPendingOnEntry = this.historicalComparisonService?.hasLiveSource() ?? false;
+            }
+        });
+        this.refreshCoordinatorDisposables.push(
+            analysisRefreshCoordinator.onStateChanged(sessionId, (view) => {
+                if (view.mode === 'historical-compare' && this.historicalRefreshPendingOnEntry) {
+                    this.historicalRefreshPendingOnEntry = false;
+                    this.scheduleHistoricalComparisonRefresh();
+                }
+            }),
+        );
     }
 
     /** Session id, valid whenever any feature service exists. */
@@ -262,7 +290,7 @@ export class AnalysisFeatureHost {
         );
     }
 
-    public scheduleHistoricalComparisonRefresh(): void {
+    public scheduleHistoricalComparisonRefresh(delayMs = HISTORICAL_REFRESH_DEBOUNCE_MS): void {
         if (!this.historicalComparisonService?.hasLiveSource()) {
             return;
         }
@@ -273,7 +301,36 @@ export class AnalysisFeatureHost {
         this.historicalRefreshTimer = setTimeout(() => {
             this.historicalRefreshTimer = null;
             void this.refreshHistoricalComparison();
-        }, 350);
+        }, delayMs);
+    }
+
+    /** LivePanel always shows the comparison; XR only while the room is in History. */
+    private isHistoricalViewActive(): boolean {
+        if (this.analysisMode === 'LivePanel') {
+            return true;
+        }
+        return !!this.config.analysisSessionId
+            && analysisRefreshCoordinator.getViewState(this.config.analysisSessionId).mode === 'historical-compare';
+    }
+
+    /**
+     * Retries a failed live refresh with back-off, at most
+     * HISTORICAL_REFRESH_MAX_ATTEMPTS times, and only while History is on
+     * screen (HIST-1). It used to retry every 350 ms forever without a word.
+     */
+    private retryHistoricalRefresh(): boolean {
+        if (!this.isHistoricalViewActive()) {
+            this.historicalRefreshPendingOnEntry = true;
+            return true;
+        }
+        this.historicalRefreshFailures += 1;
+        if (this.historicalRefreshFailures >= HISTORICAL_REFRESH_MAX_ATTEMPTS) {
+            return false;
+        }
+        this.scheduleHistoricalComparisonRefresh(
+            HISTORICAL_REFRESH_DEBOUNCE_MS * (2 ** this.historicalRefreshFailures),
+        );
+        return true;
     }
 
     private async refreshHistoricalComparison(): Promise<void> {
@@ -282,7 +339,8 @@ export class AnalysisFeatureHost {
         }
         this.historicalRefreshQueued = false;
         if (this.historicalComparisonService.isBusy()) {
-            this.scheduleHistoricalComparisonRefresh();
+            // Another comparison is running: wait for it, without counting a failure.
+            this.scheduleHistoricalComparisonRefresh(HISTORICAL_REFRESH_DEBOUNCE_MS * 2);
             return;
         }
         try {
@@ -292,6 +350,7 @@ export class AnalysisFeatureHost {
                     payload: progress,
                 });
             });
+            this.historicalRefreshFailures = 0;
             if (result) {
                 this.hooks.getRoom()?.upsertServerEntity(this.hooks.getRoomId(), {
                     entityKind: 'historical-comparison',
@@ -303,8 +362,26 @@ export class AnalysisFeatureHost {
             }
         } catch (error) {
             logger.error('[CodeXR][HistoricalComparison] Live refresh failed:', error);
-            this.scheduleHistoricalComparisonRefresh();
+            if (!this.retryHistoricalRefresh()) {
+                this.stopHistoricalLiveRefresh(error);
+            }
         }
+    }
+
+    /**
+     * Gives up on the live link after repeated failures: the room and LivePanel
+     * are told why, and the working-copy side stops following edits until a
+     * new comparison is made.
+     */
+    private stopHistoricalLiveRefresh(error: unknown): void {
+        this.historicalRefreshFailures = 0;
+        this.historicalComparisonService?.suspendLiveRefresh();
+        const message = describeHistoricalRefreshFailure(error);
+        this.hooks.getRoom()?.broadcastServerMessage(this.hooks.getRoomId(), {
+            type: 'historical-comparison-error',
+            payload: { code: 'comparison-live-refresh-stopped', message },
+        });
+        this.notifyLivePanelHistoricalProgress({ state: 'error', message });
     }
 
     public notifyLivePanelHistoricalProgress(progress: HistoricalComparisonProgress): void {

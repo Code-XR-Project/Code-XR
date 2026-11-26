@@ -74,7 +74,11 @@ export function validateGitAnalysisPayload(value: unknown): GitPayloadValidation
 
 export function isDeterministicNoDataError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
-    return /JSON markers not found|unable to parse result|no (?:JSON|data|records)|empty (?:JSON|payload)/i
+    // Only an answer that says "no data" excludes a revision for the session.
+    // "JSON markers not found" and "unable to parse result" are what a killed,
+    // crashed or broken-venv Python produces too: a transient failure must
+    // not hide a commit from both pickers until the session ends (HIST-11).
+    return /no (?:JSON|data|records)|empty (?:JSON|payload)/i
         .test(message);
 }
 

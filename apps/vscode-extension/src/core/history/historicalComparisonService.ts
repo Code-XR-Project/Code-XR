@@ -24,6 +24,46 @@ const ANALYZER_CACHE_VERSION = 'historical-v1';
 /** A comparison (two revisions) longer than this is cancelled and reported (HIST-7). */
 export const HISTORICAL_COMPARISON_JOB_TIMEOUT_MS = 15 * 60 * 1000;
 
+/** Comparison revision files kept on disk: the current one and the one before it (HIST-8). */
+const KEPT_COMPARISON_REVISIONS = 2;
+
+/**
+ * A typed code and a sentence for the failures a user can act on (HIST-10).
+ * Anything else returns null, and the caller reports it as it is.
+ */
+export function classifyHistoricalComparisonError(error: unknown): { code: string; message: string } | null {
+    const raw = error instanceof Error ? error.message : String(error);
+    if (/unknown-comparison-source|comparison-reference-not-found/.test(raw)) {
+        return {
+            code: 'comparison-reference-gone',
+            message: 'A revision of this comparison no longer exists in the repository (a branch or tag was deleted or rewritten). Pick it again.',
+        };
+    }
+    if (/comparison-snapshot-(?:file|size)-limit/.test(raw)) {
+        return {
+            code: 'comparison-snapshot-limit',
+            message: 'A revision is too large to copy for analysis (more than 5,000 files or 100 MB).',
+        };
+    }
+    if (/git-command-timeout|revision-analysis-timeout/.test(raw)) {
+        return {
+            code: 'comparison-step-timeout',
+            message: 'A Git or analysis step took too long and was stopped.',
+        };
+    }
+    return null;
+}
+
+/** One sentence for any comparison failure. */
+export function describeHistoricalComparisonError(error: unknown): string {
+    const known = classifyHistoricalComparisonError(error);
+    if (known) {
+        return known.message;
+    }
+    const raw = error instanceof Error ? error.message : String(error);
+    return `The analysis failed (${raw}).`;
+}
+
 export class HistoricalComparisonService {
     private readonly gitService: GitRepositoryService;
     private readonly analysis: GitAnalysisSessionContext;
@@ -34,6 +74,8 @@ export class HistoricalComparisonService {
         timeoutMs: HISTORICAL_COMPARISON_JOB_TIMEOUT_MS,
     });
     private revision = 0;
+    /** Set when the live link gave up after repeated failures (HIST-1); a new comparison clears it. */
+    private liveRefreshSuspended = false;
 
     public constructor(
         private readonly context: vscode.ExtensionContext,
@@ -108,7 +150,11 @@ export class HistoricalComparisonService {
         const tagged = onProgress
             ? (progress: HistoricalComparisonProgress) => onProgress({ ...progress, jobId: ticket.id })
             : undefined;
-        return ticket.execute(() => this.executeComparison(request, tagged));
+        return ticket.execute(async () => {
+            const result = await this.executeComparison(request, tagged);
+            this.liveRefreshSuspended = false;
+            return result;
+        });
     }
 
     public compare(
@@ -135,7 +181,15 @@ export class HistoricalComparisonService {
         return this.jobs.isBusy();
     }
 
+    /** Stops following working-copy edits until the next successful comparison. */
+    public suspendLiveRefresh(): void {
+        this.liveRefreshSuspended = true;
+    }
+
     public hasLiveSource(): boolean {
+        if (this.liveRefreshSuspended) {
+            return false;
+        }
         return this.activeRequest?.leftSourceId === 'working-copy'
             || this.activeRequest?.rightSourceId === 'working-copy';
     }
@@ -215,12 +269,34 @@ export class HistoricalComparisonService {
             JSON.stringify(result, null, 2),
             'utf8',
         );
+        await this.pruneComparisonRevisions(comparisonDirectory, revision);
         onProgress?.({ state: 'ready', message: 'Historical comparison ready.', revision });
         return result;
     }
 
 
 
+
+    /**
+     * Every comparison, and every live refresh on save, writes three files.
+     * Only the current revision and the one before it (still on screen for
+     * a client that has not loaded the new one) are kept (HIST-8).
+     */
+    private async pruneComparisonRevisions(comparisonDirectory: string, current: number): Promise<void> {
+        let names: string[];
+        try {
+            names = await fs.promises.readdir(comparisonDirectory);
+        } catch {
+            return;
+        }
+        await Promise.all(names.map(async (name) => {
+            const match = /^revision-(\d+)(?:-left|-right)?\.json$/.exec(name);
+            if (match && Number(match[1]) <= current - KEPT_COMPARISON_REVISIONS) {
+                await fs.promises.rm(path.join(comparisonDirectory, name), { force: true, maxRetries: 5, retryDelay: 100 })
+                    .catch(() => undefined);
+            }
+        }));
+    }
 
     private decoratePayload(
         payload: Record<string, unknown>[],

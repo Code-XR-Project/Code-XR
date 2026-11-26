@@ -387,6 +387,7 @@
       }
     }
     refs.renderedRevision = result.revision;
+    refs.renderedResult = result;
   }
 
   // Fast path for re-entering the mode with the comparison still mounted

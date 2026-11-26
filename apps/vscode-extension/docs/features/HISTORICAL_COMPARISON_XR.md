@@ -13,7 +13,9 @@ The comparator can face off:
 - a local branch;
 - a remote branch available locally;
 - a tag;
-- one of the 50 most recent commits available in the local repository.
+- one of the 200 most recent commits available in the local repository (50
+  until 1.2.1). A commit picked once stays resolvable for the session, even
+  after newer commits push it out of that list.
 
 No `checkout`, `fetch` or writes inside `.git` are ever executed. CodeXR
 analyzes temporary snapshots and leaves the active branch, the index and the
@@ -171,7 +173,8 @@ The service obtains:
 - the target's modified state via `status --porcelain`;
 - local and remote branches via `for-each-ref`;
 - lightweight and annotated tags via `for-each-ref`;
-- commits via `log --all --max-count=50`.
+- commits via `log --branches --tags --remotes --max-count=200` (1.2.1: no
+  stash or notes commits).
 
 Before analyzing a reference it is re-resolved with
 `rev-parse --verify <ref>^{commit}`. The result must be a full 40-character
@@ -291,6 +294,37 @@ the `Compare` button reads `Cancel`: it stops the comparison for the whole room,
 kills its Git and Python processes and keeps the previous comparison. A second
 start is answered `busy` to that participant only, and the live-refresh flag
 follows the request that succeeded, not the one that was asked.
+
+### Live comparison over time (1.2.1)
+
+- **Live refresh.** A comparison with a working-copy side refreshes after each
+  save while History is on screen (LivePanel: always).
+  - A failed refresh is retried twice, with back-off (0.7 s, then 1.4 s).
+  - After the third failure the room and LivePanel are told why, and the
+    comparison stops following edits until a new one is made.
+  - Until 1.2.1 it retried every 350 ms, forever and silently.
+- **Leaving and re-entering.** A save made while the room is in another mode
+  is not retried there. The refresh runs when History is entered again.
+- **Re-sync on entry.** The client decides what to redraw against the
+  comparison that is mounted, not against the last one it received.
+  - Re-entering after another participant compared other revisions redraws
+    both sides, the nameplates and the delta table.
+  - A result received while datasets were loading is no longer lost.
+- **Shallow comparisons.** A shallow analysis copies only the target's own
+  files into the snapshot, so a repository with many nested files no longer
+  hits the 5,000-file limit for files that are never read.
+- **Disk usage.**
+  - Each revision's snapshot is deleted as soon as it is analyzed.
+  - Only the current and the previous `comparison/revision-N*` files are kept.
+  - Deletions retry on Windows file locks.
+- **Errors.** Each failure the user can act on has its own code and sentence:
+  - a deleted branch: `comparison-reference-gone`;
+  - a revision too large to copy: `comparison-snapshot-limit`;
+  - a step that took too long: `comparison-step-timeout`.
+  
+  The loading text is cleared once the datasets are drawn. A Python that died
+  without output no longer hides the commit from the pickers for the rest of
+  the session.
 
 ## Testing performed
 

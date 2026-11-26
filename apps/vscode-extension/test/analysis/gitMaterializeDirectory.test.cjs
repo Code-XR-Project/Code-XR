@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { GitRepositoryService } = require('../../out/core/history/gitRepositoryService.js');
+const { shouldMaterializeDirectoryFile } = require('../../out/core/history/gitSnapshotPlan.js');
 
 // Characterization of GitRepositoryService.materializeDirectory (ROADMAP
 // W4-T26, CX-11) with `git ls-tree` and `git show` stubbed: which tree it
@@ -133,10 +134,10 @@ test('the file and size limits abort before anything is copied', async () => {
 });
 
 test('precondition of the copy loop: the planning filter already rejects empty and escaping paths', () => {
-    const service = new GitRepositoryService('/repo', '/snapshots');
+    // The filter moved to gitSnapshotPlan.ts with the rest of the plan (S12).
     for (const relativePath of ['', '../a.py', '../../src/a.py', '/abs/a.py']) {
-        assert.equal(service.shouldMaterializeDirectoryFile(relativePath), false, relativePath);
+        assert.equal(shouldMaterializeDirectoryFile(relativePath), false, relativePath);
     }
-    assert.equal(service.shouldMaterializeDirectoryFile('a.py'), true);
-    assert.equal(service.shouldMaterializeDirectoryFile('sub/a.py'), true);
+    assert.equal(shouldMaterializeDirectoryFile('a.py'), true);
+    assert.equal(shouldMaterializeDirectoryFile('sub/a.py'), true);
 });

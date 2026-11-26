@@ -169,7 +169,7 @@ export class ProjectEvolutionService {
         this.analysis.cache.clear();
         // The whole folder, not only the newest revision (EVO-11): an older
         // movie left behind was what a later export shipped.
-        await fs.promises.rm(this.resolveEvolutionDirectory(), { recursive: true, force: true });
+        await fs.promises.rm(this.resolveEvolutionDirectory(), { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
         this.frameCount = 0;
     }
 
@@ -340,7 +340,7 @@ export class ProjectEvolutionService {
             await removeOtherEvolutionRevisions(evolutionDirectory, revision).catch(() => undefined);
             return result;
         } catch (error) {
-            await fs.promises.rm(revisionDirectory, { recursive: true, force: true }).catch(() => undefined);
+            await fs.promises.rm(revisionDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
             throw error;
         }
     }
