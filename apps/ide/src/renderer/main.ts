@@ -8,6 +8,8 @@ import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
 import { createPanelHost } from './panel/panelHost.ts';
+import { createAgentsView } from './agents/agentsView.ts';
+import { registerAgentCommands } from './agents/agentCommands.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
@@ -421,6 +423,7 @@ const editorStatus = createEditorStatus(workbench.editorStatus, {
     pickEndOfLine,
     pickLanguage,
 });
+registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider() });
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
     goToLine: () => quickInput.open(LINE_PREFIX),
@@ -528,6 +531,10 @@ api.keybindings.onDidChange(applyKeybindings);
 void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
+// The AI agent hub: providers configured with the person's own keys.
+const agentsView = createAgentsView(workbench.agentsView, api.agents, { onStatus: (message) => workbench.setStatus(message) });
+agentsView.refresh().catch((error: unknown) => workbench.setStatus(`Agents unavailable: ${String(error)}`));
+
 const pythonView = createPythonView(workbench.analysisView, api.python, {
     onStatus: (status) => {
         workbench.setPythonStatus(pythonStatusText(status), status.message, status.state);

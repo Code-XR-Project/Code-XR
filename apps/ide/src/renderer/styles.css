@@ -993,3 +993,33 @@ body {
 .keybinding-recorder { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; caret-color: transparent; }
 .keybinding-recorder:focus { border-color: var(--accent); outline: none; }
 .settings-input:disabled, .settings-select:disabled { opacity: 0.6; cursor: default; }
+
+/* AI agent hub (agents/agentsView.ts): reuses the side-bar, button and badge styles above. */
+.agents-store-note { margin: 0 12px 8px; padding: 6px 8px; border: 1px solid var(--crit); border-radius: 4px; }
+.agents-store-note[hidden], .agents-test-result[hidden], .agents-field[hidden] { display: none; }
+.agents-provider-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.agents-provider { display: grid; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.agents-provider-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.agents-provider-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents-provider-key, .agents-provider-url, .agents-test-result { margin: 0; overflow-wrap: anywhere; }
+.agents-test-result[data-state='ok'] { color: var(--accent); }
+.agents-test-result[data-state='error'] { color: var(--crit); }
+.agents-form { display: grid; gap: 10px; margin: 0 12px 12px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--editor); }
+.agents-form .error { margin: 0; overflow-wrap: anywhere; }
+.agents-form .env-actions .primary-button { margin: 0; width: auto; }
+.agents-field { display: grid; gap: 4px; }
+.agents-field label { font-size: 11px; color: var(--muted); }
+.agents-help { margin: 0; }
+.agents-input {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+}
+.agents-input:focus { outline: 1px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.agents-input:disabled { opacity: 0.7; }

@@ -21,6 +21,7 @@ import { folderArgument } from './workspace/workspacePath.ts';
 import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } from './workspace/workspaceWindows.ts';
 import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
+import { startAgents } from './agents/agentsRuntime.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -84,7 +85,7 @@ async function start(): Promise<void> {
     // #18, part 3: the user's keybindings, likewise in memory for the smoke run.
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output);
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, startAgents({ isSmoke }));
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);

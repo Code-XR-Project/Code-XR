@@ -332,7 +332,7 @@ const RENDERER_PROBE = `(async () => {
     return {
         title,
         apiType: typeof window.codexr,
-        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal),
+        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal) && Object.isFrozen(window.codexr.agents),
         apiKeys: Object.keys(window.codexr || {}),
         requireType: typeof window.require,
         processType: typeof window.process,
