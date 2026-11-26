@@ -63,7 +63,7 @@ The scene is a `WebContentsView` laid over the slot the renderer reserves (`anal
 
 - no preload, sandboxed, context isolation, its own in-memory session `codexr-scene` that grants no permission;
 - it may only show, and navigate within, a loopback `http(s)` origin with a port (`sceneUrl.ts`);
-- **nothing leaves the machine**: the scene's pinned CDN libraries (A-Frame, BabiaXR...) are answered from `apps/vscode-extension/test/vendor/scene-libraries/` (`sceneLibraries.ts`; a test checks every external script in `templates/` has a copy) and every other external request is refused. Known gap: A-Frame's default text font (`cdn.aframe.io/fonts/Roboto-msdf.*`) is not vendored yet, so scene text is blank in the IDE. Packaging (#20) must ship the vendored folder.
+- **nothing leaves the machine**: the scene's pinned CDN libraries (A-Frame, BabiaXR...) are answered from `apps/vscode-extension/test/vendor/scene-libraries/` (`sceneLibraries.ts`; a test checks every external script in `templates/` has a copy) and every other external request is refused. A-Frame's default text font (`cdn.aframe.io/fonts/Roboto-msdf.*`) is vendored there too (`fonts/`), so scene text renders offline. Packaging (#20) must ship the vendored folder.
 
 The renderer only reports the slot's bounds (`analysis.setSceneBounds`, sanitised in the main process) and may start an analysis kind from a closed list; the main process re-checks that a folder is open and the Python environment is ready, so nothing here can trigger a download.
 
