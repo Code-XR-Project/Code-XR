@@ -84,6 +84,11 @@ describe('MCP transports (A12)', () => {
         await assert.rejects(client.callTool('echo', { text: 'x' }, new AbortController().signal), /Closed/);
     });
 
+    it('reports a process that exits before answering as one that could not start', async () => {
+        const client = new McpClient(stdioTransport(process.execPath, ['-e', 'process.stderr.write("boom\\r\\n"); process.exit(3)'], { cwd: base, env: {} }));
+        await assert.rejects(client.connect(), /^Error: Could not start .* \(exited with code 3\): boom$/);
+    });
+
     it('reports a command that cannot start', async () => {
         const client = new McpClient(stdioTransport(path.join(base, 'no-such-server'), [], { cwd: base, env: {} }));
         await assert.rejects(client.connect(), /Could not start/);

@@ -45,6 +45,7 @@ export function stdioTransport(command: string, args: readonly string[], options
                 const proc = spawn(invocation.file, invocation.args, { cwd: options.cwd, env: { ...options.env }, windowsHide: true, windowsVerbatimArguments: invocation.verbatim });
                 child = proc;
                 let buffer = '';
+                let answered = false;
                 proc.stdout.setEncoding('utf8');
                 proc.stdout.on('data', (chunk: string) => {
                     buffer += chunk;
@@ -55,6 +56,7 @@ export function stdioTransport(command: string, args: readonly string[], options
                         if (line) {
                             const message = parseMessage(line);
                             if (message) {
+                                answered = true;
                                 onMessage(message);
                             }
                         }
@@ -78,8 +80,13 @@ export function stdioTransport(command: string, args: readonly string[], options
                 });
                 proc.once('exit', (code, signal) => {
                     child = null;
-                    const tail = stderr.trim().split('\n').slice(-3).join(' ').slice(-400);
-                    onClose(`The MCP server exited (${signal ?? `code ${code ?? '?'}`})${tail ? `: ${tail}` : '.'}`);
+                    const tail = stderr.replace(/\r/g, '').trim().split('\n').slice(-3).join(' ').slice(-400);
+                    const how = signal ?? `code ${code ?? '?'}`;
+                    // Before its first message the process never was a server: on Windows a missing
+                    // command still "starts" (cmd.exe), then exits with "is not recognized".
+                    onClose(answered
+                        ? `The MCP server exited (${how})${tail ? `: ${tail}` : '.'}`
+                        : `Could not start ${command} (exited with ${how})${tail ? `: ${tail}` : '.'}`);
                 });
                 proc.stdin.on('error', () => undefined);
             });
