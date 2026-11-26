@@ -997,6 +997,10 @@ test('dispose disposes an owned catalogue only, and removes the private snapshot
             await withShared.dispose();
             assert.equal(shared.disposed, 0, 'an injected catalogue belongs to the host');
             assert.equal(fs.existsSync(snapshots), false);
+            if (folder === 'historical-comparisons') {
+                // HIST-8: the emptied session folder goes with it.
+                assert.equal(fs.existsSync(path.dirname(snapshots)), false);
+            }
 
             const owning = new Service(context, session.id, session.staticRoot);
             const before = ownedDisposals;

@@ -94,9 +94,15 @@
     state.retryTimers.forEach(function (timer) { root.clearTimeout?.(timer); });
     state.retryTimers.clear();
   }
+  // DEPGRAPH-7: shown when a click arrives while the lock is held.
+  var BUSY_STATUS_MESSAGE = 'Busy, please wait...';
   function setTransitionLocked(locked, message) {
     state.transitionLocked = !!locked;
-    if (message) { setStatus(message, false); }
+    if (message) {
+      setStatus(message, false);
+    } else if (!locked && state.busyStatusShown) {
+      setStatus('', false);
+    }
     // The lock is a promise of a server answer; if none arrives the watchdog
     // releases it with a visible error instead of eating every later click.
     if (state.transitionLockTimer) {
@@ -499,7 +505,13 @@
   }
 
   function publishState(patch) {
-    if (!state.snapshot || state.transitionLocked) { return; }
+    if (!state.snapshot) { return; }
+    if (state.transitionLocked) {
+      // DEPGRAPH-7: a click during a re-analysis is still refused, but no
+      // longer vanishes without a word.
+      setStatus(BUSY_STATUS_MESSAGE, false);
+      return;
+    }
     state.snapshot = Object.assign({}, state.snapshot, patch || {});
     client()?.sendMessage?.('dependency-graph-settings', {
       layout: state.snapshot.layout,

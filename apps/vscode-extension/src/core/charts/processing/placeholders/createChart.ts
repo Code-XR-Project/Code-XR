@@ -4,6 +4,32 @@ import { getLogger } from '../../../../platform/logging/sink';
 
 const logger = getLogger('CREATE_CHART');
 
+const HTML_ATTRIBUTE_ESCAPES: Record<string, string> = {
+    '&': '&amp;',
+    '"': '&quot;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '$': '&#36;',
+    '{': '&#123;',
+    '}': '&#125;',
+};
+
+/**
+ * Make a chart title safe inside `babia-<chart>="...; title: <here>; ..."`
+ * (CHARTS-18). A-Frame splits a component string on `;` and has no escape
+ * for it, so a folder named `my;proj` cut the title short and leaked `proj`
+ * as a bogus property: the `;` becomes `,`. The rest is HTML-escaped for the
+ * double-quoted attribute; `$`, `{` and `}` are escaped too so a title can
+ * never be read as a placeholder by a later substitution pass. The browser
+ * decodes the entities before A-Frame sees the string.
+ */
+export function escapeChartTitleForComponent(title: string): string {
+    return String(title ?? '')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/;/g, ',')
+        .replace(/[&"<>${}]/g, (character) => HTML_ATTRIBUTE_ESCAPES[character] ?? character);
+}
+
 /**
  * Chart Creator Module - Specialized for Chart Entity Creation
  * Focused solely on creating chart entities with dimension mappings
@@ -116,7 +142,7 @@ export class CreateChart {
         const placeholders = new Map<string, string>();
 
         // Basic chart placeholders
-        placeholders.set('TITLE', title);
+        placeholders.set('TITLE', escapeChartTitleForComponent(title));
         placeholders.set('PALETTE', palette);
         placeholders.set('CHART_ID', `chart-${chart.id}-${Date.now()}`);
 
@@ -181,7 +207,8 @@ export class CreateChart {
             ];
 
             for (const pattern of patterns) {
-                result = result.replace(pattern, value);
+                // A function replacement: `$&` or `$1` in a value is text, not a pattern.
+                result = result.replace(pattern, () => value);
             }
         }
 

@@ -116,6 +116,60 @@
     return true;
   }
 
+  // BabiaXR 1.3.4 pie/doughnut legends: each slice's `mouseleave` runs
+  // `chartEl.removeChild(legend)`, but a rebuild (re-analysis, pie <-> donut,
+  // remap) has already emptied the chart, legend included. The old slice
+  // still gets its `mouseleave` when the cursor moves on, and removeChild
+  // throws an uncaught NotFoundError (CHARTS-16). Only that one case is
+  // swallowed: a hover legend that is no longer a child of the chart.
+  var BABIA_LEGEND_CHART_COMPONENT_NAMES = ['babia-pie', 'babia-doughnut'];
+  var BABIA_LEGEND_CLASS = 'babiaxrLegend';
+
+  function isDetachedBabiaLegend(parent, child) {
+    return !!child && child.parentNode !== parent
+      && !!child.classList && typeof child.classList.contains === 'function'
+      && child.classList.contains(BABIA_LEGEND_CLASS);
+  }
+
+  function guardBabiaLegendRemoval(el) {
+    if (!el || typeof el.removeChild !== 'function' || el.removeChild[BABIA_COMPAT_PATCH_FLAG]) {
+      return false;
+    }
+    var originalRemoveChild = el.removeChild;
+    var guardedRemoveChild = function (child) {
+      if (isDetachedBabiaLegend(this, child)) {
+        return child;
+      }
+      return originalRemoveChild.call(this, child);
+    };
+    guardedRemoveChild[BABIA_COMPAT_PATCH_FLAG] = true;
+    el.removeChild = guardedRemoveChild;
+    return true;
+  }
+
+  function installBabiaLegendCompat(aframe) {
+    var patched = [];
+    if (!aframe || !aframe.components) {
+      return patched;
+    }
+    BABIA_LEGEND_CHART_COMPONENT_NAMES.forEach(function (name) {
+      var registered = aframe.components[name];
+      var proto = registered && registered.Component && registered.Component.prototype;
+      if (!proto || typeof proto.init !== 'function' || proto.init[BABIA_COMPAT_PATCH_FLAG]) {
+        return;
+      }
+      var originalInit = proto.init;
+      var patchedInit = function () {
+        guardBabiaLegendRemoval(this.el);
+        return originalInit.apply(this, arguments);
+      };
+      patchedInit[BABIA_COMPAT_PATCH_FLAG] = true;
+      proto.init = patchedInit;
+      patched.push(name);
+    });
+    return patched;
+  }
+
   var CHART_SOURCE_PRODUCER_COMPONENTS = ['babia-queryjson', 'babia-treebuilder', 'babia-filter'];
 
   /**
@@ -158,4 +212,5 @@
 
   installBabiaAxisLineCompat(AFRAME);
   installBabiaQueryJsonCompat(AFRAME);
+  installBabiaLegendCompat(AFRAME);
 
