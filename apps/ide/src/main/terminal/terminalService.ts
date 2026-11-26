@@ -58,6 +58,8 @@ interface Running {
     pending: string;
     timer: ReturnType<typeof setTimeout> | undefined;
     exited: boolean;
+    /** Settles when the shell has really gone, so a quit can wait for it. */
+    readonly gone: Promise<void>;
 }
 
 /** Variables the IDE's own process carries that a shell must not inherit. */
@@ -106,10 +108,15 @@ export class TerminalService {
             env: terminalEnvironment(this.options.env),
         });
         const id = this.nextId++;
-        const running: Running = { owner, pty, pending: '', timer: undefined, exited: false };
+        let markGone: () => void = () => undefined;
+        const gone = new Promise<void>((resolve) => {
+            markGone = resolve;
+        });
+        const running: Running = { owner, pty, pending: '', timer: undefined, exited: false, gone };
         this.terminals.set(id, running);
         pty.onData((data) => this.queue(id, running, data));
         pty.onExit(({ exitCode }) => {
+            markGone();
             running.exited = true;
             this.flush(id, running);
             this.terminals.delete(id);
@@ -153,11 +160,24 @@ export class TerminalService {
         }
     }
 
-    /** Kills every terminal: the app is quitting. */
-    killAll(): void {
-        for (const [id, running] of [...this.terminals]) {
+    /**
+     * Kills every terminal: the app is quitting. The promise settles once every
+     * shell has reported its exit, or after `timeoutMs`: on Windows, exiting
+     * the process while ConPTY is still tearing a shell down ends it with a
+     * failure code.
+     */
+    killAll(timeoutMs = 3000): Promise<void> {
+        const gone = [...this.terminals].map(([id, running]) => {
             this.stop(id, running);
-        }
+            return running.gone;
+        });
+        return new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, timeoutMs);
+            void Promise.all(gone).then(() => {
+                clearTimeout(timer);
+                resolve();
+            });
+        });
     }
 
     get size(): number {

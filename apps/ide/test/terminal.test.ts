@@ -201,6 +201,26 @@ describe('TerminalService', () => {
         assert.equal(first.events.length, 0);
     });
 
+    it('lets a quit wait for the shells to go, but not forever', async () => {
+        const { service: terminals, ptys } = service();
+        const owner = new FakeOwner(1);
+        await terminals.create(owner, null, 80, 24, '/');
+        await terminals.create(owner, null, 80, 24, '/');
+        let settled = false;
+        const quitting = terminals.killAll(60_000).then(() => {
+            settled = true;
+        });
+        ptys[0]!.exit(0);
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(settled, false, 'one shell is still going');
+        ptys[1]!.exit(0);
+        await quitting;
+        await terminals.create(owner, null, 80, 24, '/');
+        const started = Date.now();
+        await terminals.killAll(50);
+        assert.ok(Date.now() - started < 5000, 'a shell that never exits does not hold the quit');
+    });
+
     it('caps the terminals per window', async () => {
         const { service: terminals } = service();
         const owner = new FakeOwner(1);

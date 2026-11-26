@@ -27,7 +27,7 @@ export interface TerminalHost {
     input(contents: WebContents, id: unknown, data: unknown): void;
     resize(contents: WebContents, id: unknown, cols: unknown, rows: unknown): void;
     kill(contents: WebContents, id: unknown): void;
-    killAll(): void;
+    killAll(): Promise<void>;
 }
 
 type NodePtyModule = typeof NodePty;

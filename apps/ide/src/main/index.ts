@@ -51,7 +51,7 @@ if (!isSmoke && !app.requestSingleInstanceLock()) {
 // #137: every pty dies with the app. `app.exit` (the smoke run) skips
 // will-quit, so that path kills them itself.
 let terminals: TerminalHost | null = null;
-app.on('will-quit', () => terminals?.killAll());
+app.on('will-quit', () => void terminals?.killAll());
 
 async function start(): Promise<void> {
     nativeTheme.themeSource = 'system';
@@ -82,7 +82,7 @@ async function start(): Promise<void> {
     if (isSmoke) {
         const result = await runSmoke(win, origins);
         process.stdout.write(`${SMOKE_RESULT_PREFIX}${JSON.stringify(result)}\n`);
-        terminalHost.killAll();
+        await terminalHost.killAll();
         app.exit(result.ok ? 0 : 1);
         return;
     }

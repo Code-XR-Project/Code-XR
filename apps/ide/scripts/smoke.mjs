@@ -36,6 +36,10 @@ child.on('exit', (code) => {
         console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it, Monaco opened a file, file icons loaded from the app, no CSP violation, the terminal (${result.terminal?.profile}) ran echo and drew its output.`);
         process.exit(0);
     }
-    console.error(`[smoke] FAILED on ${result.platform}:\n - ${result.failures.join('\n - ')}`);
+    const reasons = [...result.failures];
+    if (code !== 0) {
+        reasons.push(`Electron exited with code ${code}${result.ok ? ' although every check passed' : ''}`);
+    }
+    console.error(`[smoke] FAILED on ${result.platform}:\n - ${reasons.join('\n - ')}`);
     process.exit(1);
 });
