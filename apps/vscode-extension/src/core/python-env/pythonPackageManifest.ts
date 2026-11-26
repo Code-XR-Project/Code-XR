@@ -8,13 +8,6 @@ export interface CodeXRPythonPackage {
 
 export const CODEXR_PYTHON_PACKAGES: readonly CodeXRPythonPackage[] = [
     {
-        distribution: 'lizard',
-        importName: 'lizard',
-        version: '1.17.31',
-        purpose: 'code complexity analysis',
-        verificationArgs: ['-m', 'lizard', '--version'],
-    },
-    {
         distribution: 'tree-sitter-language-pack',
         importName: 'tree_sitter_language_pack',
         version: '1.8.1',

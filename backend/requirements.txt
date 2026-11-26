@@ -2,5 +2,4 @@
 #   apps/vscode-extension/src/core/python-env/pythonPackageManifest.ts
 # Regenerate with `npm run python:requirements` (from the repository root).
 # These are the exact versions the extension installs into its managed venv.
-lizard==1.17.31  # code complexity analysis
 tree-sitter-language-pack==1.8.1  # structured multi-language dependency parsing

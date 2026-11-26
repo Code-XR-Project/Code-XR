@@ -822,3 +822,13 @@ body {
 .chart-subsection {
   margin-top: var(--spacing-lg);
 }
+
+/* Epic #219: maintainability index bands (Visual Studio scale). */
+.maintainability-low {
+  color: var(--danger-color);
+  font-weight: 600;
+}
+
+.maintainability-moderate {
+  color: var(--warning-color);
+}

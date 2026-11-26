@@ -39,7 +39,7 @@ analyses receive a disabled action with an explanatory reason.
 
 ## Python Environment
 
-Lizard remains responsible for complexity metrics. It is not used to infer
+Code-XR's own metrics analyzer remains responsible for complexity metrics. It is not used to infer
 imports or calls.
 
 `tree-sitter-language-pack` is pinned in the central Python package manifest
@@ -63,9 +63,14 @@ The graph uses the same canonical contract as metric analysis:
 
 Python, Ruby, Java, C, C++, C#, Erlang, Fortran, GDScript, Go, JavaScript,
 Kotlin, Lua, Objective-C, PHP, Perl, Scala, Solidity, Swift, TypeScript,
-TTCN-3, Vue and Zig.
+TTCN-3, Vue, Zig, Rust, Dart, Shell, PowerShell and R.
 
-The test fixture contains real source files for all 23 languages. This keeps
+The last five (epic #219) are read by the lexical patterns: Rust `use`, Dart
+`import`, shell and PowerShell dot-sourcing (`source ./lib.sh`, `. ./lib.ps1`),
+PowerShell `Import-Module` / `using module`, and R `library()`,
+`requireNamespace()` and `source()`. The tree-sitter grammar for Shell is `bash`.
+
+The test fixture contains real source files for all 28 languages. This keeps
 the dependency feature aligned with Files by Language and prevents a language
 from disappearing silently during parser changes.
 
@@ -391,7 +396,7 @@ does not run `checkout`, `fetch`, or write to `.git` for dependency analysis.
 
 Automated coverage verifies:
 
-- The 23-language contract and fixture.
+- The 28-language contract and fixture.
 - Explicit capabilities and confidence levels.
 - Valid node/edge references and graph metrics.
 - Runtime packaging in directory XR analyses.
@@ -451,7 +456,7 @@ comparison and dependency mode. The filesystem watcher detects a project
 change once and the refresh coordinator delivers it only to the visible mode:
 
 - Normal mode recalculates affected metrics and updates `data.json`.
-- Dependency mode does not run Lizard or modify `data.json`.
+- Dependency mode does not run the metrics analyzer or modify `data.json`.
 - Historical mode updates only `working-copy`; Git revisions stay immutable.
 
 Hidden modes retain a coalesced change set. Returning to a stale mode triggers

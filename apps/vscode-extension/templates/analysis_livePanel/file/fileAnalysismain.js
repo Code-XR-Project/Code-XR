@@ -46,6 +46,13 @@ function normalizeFunctionEntry(entry) {
     complexity: entry.complexity || 0,
     complexityBand: entry.complexityBand || 'normal',
     cyclomaticDensity: entry.cyclomaticDensity || 0,
+    cognitiveComplexity: entry.cognitiveComplexity || 0,
+    halsteadVolume: entry.halsteadVolume || 0,
+    halsteadDifficulty: entry.halsteadDifficulty || 0,
+    halsteadEffort: entry.halsteadEffort || 0,
+    halsteadBugs: entry.halsteadBugs || 0,
+    // Absent in analyses made before 1.2.1: null, shown as "-", never as a 0 score.
+    maintainabilityIndex: typeof entry.maintainabilityIndex === 'number' ? entry.maintainabilityIndex : null,
     treePath: entry.treePath || '',
   };
 }
@@ -227,12 +234,29 @@ function renderComplexityMetrics() {
     'avg-function-parameters': (analysisData.averageFunctionParameters || 0).toFixed(2),
     'max-function-parameters': analysisData.maxFunctionParameters || 0,
     'avg-nesting-depth': (analysisData.averageFunctionNestingDepth || 0).toFixed(2),
-    'max-nesting-depth': analysisData.maxFunctionNestingDepth || 0
+    'max-nesting-depth': analysisData.maxFunctionNestingDepth || 0,
+    ...newMetricSummary(functions)
   };
 
   Object.entries(complexityMetrics).forEach(([id, value]) => {
     updateElementText(id, value);
   });
+}
+
+// Epic #219: cognitive complexity, Halstead and maintainability, computed from
+// the function rows so older analyses without the fields still render.
+function newMetricSummary(functions) {
+  const cognitive = functions.map((func) => func.cognitiveComplexity || 0);
+  const maintainability = functions
+    .map((func) => func.maintainabilityIndex)
+    .filter((value) => typeof value === 'number');
+  const bugs = functions.reduce((sum, func) => sum + (func.halsteadBugs || 0), 0);
+  return {
+    'avg-cognitive-complexity': cognitive.length ? (cognitive.reduce((a, b) => a + b, 0) / cognitive.length).toFixed(2) : '0.00',
+    'max-cognitive-complexity': cognitive.length ? Math.max(...cognitive) : 0,
+    'min-maintainability-index': maintainability.length ? Math.min(...maintainability).toFixed(1) : '-',
+    'total-halstead-bugs': bugs.toFixed(2),
+  };
 }
 
 function renderComplexitySummary() {
@@ -314,12 +338,36 @@ function renderFunctionsTable() {
         value: func => functionDensity(func),
         render: func => escapeHtml(functionDensity(func).toFixed(3)),
       },
+      { key: 'cognitiveComplexity', label: 'Cognitive', align: 'center', defaultDir: 'desc', searchable: false },
+      {
+        key: 'maintainabilityIndex', label: 'Maint.', align: 'right', defaultDir: 'asc', searchable: false,
+        value: func => (typeof func.maintainabilityIndex === 'number' ? func.maintainabilityIndex : Infinity),
+        render: func => (typeof func.maintainabilityIndex === 'number'
+          ? `<span class="${maintainabilityClass(func.maintainabilityIndex)}">${escapeHtml(func.maintainabilityIndex.toFixed(1))}</span>`
+          : '-'),
+      },
+      {
+        key: 'halsteadVolume', label: 'Volume', align: 'right', defaultDir: 'desc', searchable: false,
+        render: func => escapeHtml((func.halsteadVolume || 0).toFixed(0)),
+      },
+      {
+        key: 'halsteadBugs', label: 'Est. bugs', align: 'right', defaultDir: 'desc', searchable: false,
+        render: func => escapeHtml((func.halsteadBugs || 0).toFixed(3)),
+      },
     ],
   };
 
   // Shared upsert: re-renders the existing table on live updates instead of
   // rebuilding it, so the user's current search and sort survive.
   upsertDataTable('functions-table', config, functions);
+}
+
+// Visual Studio's bands: 20+ maintainable, 10-19 moderate, below 10 hard.
+function maintainabilityClass(value) {
+  if (value < 10) {
+    return 'maintainability-low';
+  }
+  return value < 20 ? 'maintainability-moderate' : 'maintainability-good';
 }
 
 function functionDensity(func) {

@@ -15,7 +15,7 @@ target-version = "py37"
 # (manual_test/) are deliberately bad code that test:analysis measures exactly
 # as it is, and the dependency fixtures exist to be parsed (an "unused" import
 # there is the point). Neither is ever linted, nor "fixed".
-extend-exclude = ["manual_test", "tests/fixtures"]
+extend-exclude = ["manual_test", "tests/fixtures", "tests/metrics_differential/corpus"]
 
 [lint]
 # Pyflakes (F: unused imports and variables, undefined names, ...) plus the
@@ -56,7 +56,6 @@ select = [
 "src/livePanels/livePanel_directory_deep_analysis_coordinator.py" = ["E402"]
 "src/livePanels/livePanel_file_analysis_coordinator.py" = ["E402"]
 "src/summaryFiles/file_reanalysis_coordinator.py" = ["E402"]
-"src/tools/lizard_analyzer.py" = ["E402"]
 "src/utils/file_analysis_engine.py" = ["E402"]
 # The suites import the code under test (and their sandbox helper) after the
 # same sys.path bootstrap.

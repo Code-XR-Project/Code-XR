@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from directory_analysis_engine import collect_directory_targets
-from file_analysis_engine import analyze_with_lizard, normalize_function_metrics
+from file_analysis_engine import analyze_file_functions, normalize_function_metrics
 from metric_language_contract import get_metric_language
 from progress_logger import emit_directory_progress
 
@@ -34,12 +34,12 @@ def _relative_path(file_path: str, root: str) -> str:
 
 def file_function_metrics(file_path: str, root: str) -> dict[str, Any]:
     """One file's functions, trimmed to the fields the Problems panel reads."""
-    lizard_data = analyze_with_lizard(file_path)
-    functions = normalize_function_metrics(lizard_data.get('functions', []))
+    metrics_data = analyze_file_functions(file_path)
+    functions = normalize_function_metrics(metrics_data.get('functions', []))
     return {
         'relativePath': _relative_path(file_path, root),
         'language': get_metric_language(file_path),
-        'status': lizard_data.get('status', 'error'),
+        'status': metrics_data.get('status', 'error'),
         'functions': [{field: function.get(field) for field in FUNCTION_FIELDS} for function in functions],
     }
 

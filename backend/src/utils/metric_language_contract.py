@@ -36,6 +36,11 @@ _LANGUAGE_SPECS: list[tuple[str, list[str]]] = [
     ("TTCN-3", [".ttcn", ".ttcn3"]),
     ("Vue", [".vue"]),
     ("Zig", [".zig"]),
+    ("Rust", [".rs"]),
+    ("Dart", [".dart"]),
+    ("Shell", [".sh", ".bash"]),
+    ("PowerShell", [".ps1", ".psm1"]),
+    ("R", [".r"]),
 ]
 
 DOM_ONLY_LANGUAGE_EXTENSION_MAP: dict[str, list[str]] = {

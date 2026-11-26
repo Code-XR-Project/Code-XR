@@ -57,7 +57,12 @@ ARMS = [
     ['.sol'],
     ['.f', '.f90', '.f95', '.f03', '.f08'],
     ['.gd'],
+    ['.dart'],
+    ['.ps1', '.psm1'],
+    ['.r'],
 ]
+# Arms that exist but can find nothing: shell has no class-like declaration.
+EMPTY_ARMS = [['.sh', '.bash']]
 # No arm lists these: the else branch (warning, zero classes). '.pyw' and '.mjs'
 # are metric-contract extensions the class counter is silent for (V1.2.1_STATUS
 # "Found while building the net", item 9).
@@ -81,7 +86,7 @@ def build_answers():
     corpus = CORPUS.read_text(encoding='utf-8')
     answers = {}
     with tempfile.TemporaryDirectory() as scratch:
-        for extension in [ext for arm in ARMS for ext in arm] + UNLISTED + UPPER_CASE:
+        for extension in [ext for arm in ARMS + EMPTY_ARMS for ext in arm] + UNLISTED + UPPER_CASE:
             target = Path(scratch) / f'sample{extension}'
             target.write_text(corpus, encoding='utf-8', newline='\n')
             result = analyzer.analyze_classes(str(target))
@@ -124,6 +129,14 @@ class ClassCounterGoldenTests(unittest.TestCase):
         for arm in ARMS:
             with self.subTest(arm=arm[0]):
                 self.assertGreater(self.answers[arm[0]]['classCount'], 0)
+
+    def test_empty_arms_answer_zero_without_a_warning(self):
+        for arm in EMPTY_ARMS:
+            for extension in arm:
+                with self.subTest(extension=extension):
+                    self.assertEqual(self.answers[extension]['classCount'], 0)
+                    self.assertNotIn('warning', self.answers[extension])
+                    self.assertEqual(self.golden[extension], self.answers[extension])
 
     def test_unreadable_paths_return_only_an_error(self):
         with tempfile.TemporaryDirectory() as scratch:

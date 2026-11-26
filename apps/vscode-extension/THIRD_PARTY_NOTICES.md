@@ -31,7 +31,7 @@ Usage in this project:
 - License: MIT-style permissive license (see upstream LICENSE.txt)
 
 Usage in this project:
-- Used by the analysis tooling for cyclomatic complexity and code metrics.
+- Development only, since 1.2.1: not shipped and not installed for users. The backend's differential tests use it (`backend/requirements-dev.txt`) to check CodeXR's own metrics analyzer against the results it froze.
 
 ### 4) Robot Expressive
 - Creator: Tomás Laulhé (https://www.patreon.com/quaternius), modified by Don McCurdy

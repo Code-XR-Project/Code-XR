@@ -27,7 +27,8 @@ The TS bridge is `src/core/analysis/python/executePython.ts`, which spawns the v
 backend/src/
 ├── main.py                 CLI entry; wires sys.path for subpackages
 ├── tools/                  analyzer wrappers
-│   ├── lizard_analyzer.py       Lizard → cyclomatic complexity, function/line counts
+│   ├── code_metrics_analyzer.py per-function metrics (CCN, NLOC, params, nesting, cognitive, Halstead, MI), same JSON as the old Lizard wrapper plus the epic #219 fields
+│   ├── code_metrics/            the analyzer itself: lexer + one parser per language family (spec: docs/lizard-replacement/SPEC.md)
 │   ├── class_counter_analyzer.py
 │   └── python_comment_analyzer.py
 ├── export/                 git_export_analysis_worker.py (Git export worker)
@@ -56,8 +57,8 @@ backend/src/
 - `XR_SCHEMA_VERSION` — a bump invalidates every user's cached schema.
 - The order, count and exact label strings of `XR_FILE_FIELDS` (13) and `XR_DIRECTORY_FIELDS` (25); `backend/tests/xr_schema/test_xr_schema.py` pins the counts.
 - The `_text_field(…)` / `_numeric_field(…)` call syntax — `test/analysis/xrFieldSchemaIntegration.test.cjs` regex-matches five of those source lines, double quotes included.
-- The `build_complexity_band` thresholds (`>25`, `>10`), mirrored in `lizard_analyzer.calculate_complexity_metrics` and `summarize_function_metrics`. Three copies on purpose: de-duplicating them is a contract change, not a cleanup.
-- `summarize_function_metrics` — Lizard reports CCN 18, but that is `or 0` guards inside comprehensions, not branching. Leave it alone.
+- The `build_complexity_band` thresholds (`>25`, `>10`), mirrored in `code_metrics_analyzer.calculate_complexity_metrics` and `summarize_function_metrics`. Three copies on purpose: de-duplicating them is a contract change, not a cleanup.
+- `summarize_function_metrics` — Lizard reported CCN 18, but that is `or 0` guards inside comprehensions, not branching. Leave it alone.
 - Every id in `XR_DIRECTORY_FIELDS` must stay a key emitted by `utils/file_metric_summary.py`, and every id in `XR_FILE_FIELDS` a key emitted by `utils/file_analysis_engine.py` (subset checks in `backend/tests/manual_metrics_suite.py`).
 
 Python source is also pinned on **quote style and import order** by source-text tests (`main.py`'s `choices=['livePanel', …]`, `print('=== JSON_START ===')`, the imports that follow the `sys.path` setup). No formatter, no isort.
@@ -65,13 +66,13 @@ Python source is also pinned on **quote style and import order** by source-text 
 ## Virtual environment (`src/core/python-env/`, commands and tree in `src/features/python-env/`)
 
 - `venvManager.ts` creates/verifies/reinstalls the venv; the package manifest (`pythonPackageManifest.ts`), storage and env UI state live alongside it. User-facing commands: `codeXR.pythonEnv.*` (create/delete/status/reinitialize/verify/debug).
-- Python dependencies are installed into this venv at runtime. The source of truth for the pins is `CODEXR_PYTHON_PACKAGES` in `src/core/python-env/pythonPackageManifest.ts` (`lizard` 1.17.31, `tree-sitter-language-pack` 1.8.1); `backend/requirements.txt` is its generated mirror (`npm run python:requirements`, checked by `test/python_env/pythonRequirements.test.cjs`). Note: `tree-sitter-language-pack` 1.x downloads parser libraries from GitHub on first use. Since 1.2.1 only the set-up does that: `VenvManager` runs `backend/src/tools/download_parsers.py` after installing the packages (and in the startup repair path, which fetches only missing parsers), into `<venv>/codexr-tree-sitter`; `backend/src/utils/tree_sitter_parsers.py` points the pack there, and the dependency engine calls `process()` only when `is_available(grammar)`, otherwise it uses its regex fallback. The install verification only imports the package.
+- Python dependencies are installed into this venv at runtime. The source of truth for the pins is `CODEXR_PYTHON_PACKAGES` in `src/core/python-env/pythonPackageManifest.ts` (only `tree-sitter-language-pack` 1.8.1 since 1.2.1: the metrics need no third-party package); `backend/requirements.txt` is its generated mirror (`npm run python:requirements`, checked by `test/python_env/pythonRequirements.test.cjs`). Note: `tree-sitter-language-pack` 1.x downloads parser libraries from GitHub on first use. Since 1.2.1 only the set-up does that: `VenvManager` runs `backend/src/tools/download_parsers.py` after installing the packages (and in the startup repair path, which fetches only missing parsers), into `<venv>/codexr-tree-sitter`; `backend/src/utils/tree_sitter_parsers.py` points the pack there, and the dependency engine calls `process()` only when `is_available(grammar)`, otherwise it uses its regex fallback. The install verification only imports the package.
 - Context key `codeXR.pythonEnv.uiLocked` gates analysis context menus while the env is being set up.
 
 ## Languages and metrics
 
-- Metrics: cyclomatic complexity (CCN), LOC/comment lines, function/class counts, parameters — primarily via **Lizard**. Dependency relations via **tree-sitter-language-pack** (pinned; confidence levels exact/best-effort/unsupported/ambiguous — see `docs/features/DEPENDENCY_GRAPH_XR.md`).
-- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/core/analysis/languages/languageMetadata.ts` (TS side) + `backend/src/utils/metric_language_contract.py` (Python side: 23 languages, 48 extensions, plus HTML as DOM-only)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
+- Metrics: cyclomatic complexity (CCN), cognitive complexity, Halstead (volume, difficulty, effort, estimated bugs), maintainability index, LOC/comment lines, function/class counts, parameters, nesting depth — computed by Code-XR's own analyzer (`backend/src/tools/code_metrics/`, spec in `docs/lizard-replacement/SPEC.md`, differential tests against frozen Lizard output in `backend/tests/metrics_differential/`). Dependency relations via **tree-sitter-language-pack** (pinned; confidence levels exact/best-effort/unsupported/ambiguous — see `docs/features/DEPENDENCY_GRAPH_XR.md`).
+- Language support: README claims 24, dependency-graph doc and roadmap say 23, and `backend/tests/fixtures/dependency-languages/` holds ~25 fixture languages. **The source of truth is `src/core/analysis/languages/languageMetadata.ts` (TS side) + `backend/src/utils/metric_language_contract.py` (Python side: 28 languages, 55 extensions since epic #219 added Rust, Dart, Shell, PowerShell and R, plus HTML as DOM-only)** — check those, not the docs, when a language question matters. (Recorded as documentation debt in `V1.2.0_STATUS.md`.)
 
 ## Testing the Python side
 

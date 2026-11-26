@@ -1,6 +1,6 @@
 # Code-XR analysis backend (Python)
 
-The Python service that produces every analysis Code-XR shows: Lizard-based code metrics for about 23 languages, the dependency engine, the XR / LivePanel / DOM data producers, and the Git export worker.
+The Python service that produces every analysis Code-XR shows: code metrics from Code-XR's own analyzer for 28 languages, the dependency engine, the XR / LivePanel / DOM data producers, and the Git export worker.
 
 | Path | Content |
 |---|---|

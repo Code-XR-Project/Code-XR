@@ -34,6 +34,7 @@
       "core/python-env",
       "core/server",
       "features/active-servers",
+      "features/ai-agents",
       "features/analysis",
       "features/collaboration",
       "features/examples",
@@ -106,6 +107,9 @@
       "core/server",
       "core/xr",
       "features/collaboration",
+      "platform"
+    ],
+    "features/ai-agents": [
       "platform"
     ],
     "features/analysis": [

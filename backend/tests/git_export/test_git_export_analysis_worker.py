@@ -4,7 +4,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 
@@ -15,27 +14,6 @@ for extra_path in [PYTHON_ROOT, PYTHON_ROOT / "utils", PYTHON_ROOT / "tools"]:
         sys.path.insert(0, str(extra_path))
 
 
-class _FakeFunction:
-    name = "sample"
-    start_line = 1
-    end_line = 2
-    nloc = 2
-    cyclomatic_complexity = 1
-    parameter_count = 0
-    max_nesting_depth = 0
-
-
-class _FakeAnalysis:
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.nloc = 2
-        self.function_list = [_FakeFunction()]
-
-
-def _fake_analyze_file(file_path):
-    return _FakeAnalysis(file_path)
-
-
 WORKER_PATH = (
     PYTHON_ROOT / "export" / "git_export_analysis_worker.py"
 )
@@ -43,21 +21,17 @@ WORKER_PATH = (
 
 class GitExportAnalysisWorkerTests(unittest.TestCase):
     def test_directory_and_file_results_are_written_atomically(self):
+        # The worker imports the backend by name; drop cached copies so it binds
+        # to the files on disk, and put them back afterwards.
         isolated_names = [
-            "lizard",
-            "lizard_analyzer",
+            "code_metrics_analyzer",
             "file_analysis_engine",
             "file_metric_summary",
         ]
         originals = {name: sys.modules.get(name) for name in isolated_names}
-        fake_lizard_module = types.ModuleType("lizard")
-        fake_lizard_module.analyze_file = _fake_analyze_file
-        fake_lizard_module.FileAnalyzer = lambda *args, **kwargs: _fake_analyze_file
-        fake_lizard_module.get_extensions = lambda *_: []
         try:
             for name in isolated_names:
                 sys.modules.pop(name, None)
-            sys.modules["lizard"] = fake_lizard_module
             worker_spec = importlib.util.spec_from_file_location(
                 "git_export_analysis_worker_test",
                 WORKER_PATH,
@@ -108,20 +82,7 @@ class GitExportAnalysisWorkerTests(unittest.TestCase):
         # code page; `C:\\Users\\Adrián\\...` arrived as mojibake and every job
         # failed with worker-input-missing. cp1252 emulates that here, and the
         # command is sent unescaped, as raw UTF-8, the worst case.
-        runner = (
-            "import runpy, sys, types\n"
-            "class F:\n"
-            "    name='sample'; start_line=1; end_line=2; nloc=2\n"
-            "    cyclomatic_complexity=1; parameter_count=0; max_nesting_depth=0\n"
-            "class A:\n"
-            "    def __init__(self, p): self.file_path=p; self.nloc=2; self.function_list=[F()]\n"
-            "lizard = types.ModuleType('lizard')\n"
-            "lizard.analyze_file = A\n"
-            "lizard.FileAnalyzer = lambda *a, **k: A\n"
-            "lizard.get_extensions = lambda *_: []\n"
-            "sys.modules['lizard'] = lizard\n"
-            "runpy.run_path(sys.argv[1], run_name='__main__')\n"
-        )
+        runner = "import runpy, sys\nrunpy.run_path(sys.argv[1], run_name='__main__')\n"
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary) / "Adrián" / "código"
             folder.mkdir(parents=True)

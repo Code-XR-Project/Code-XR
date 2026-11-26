@@ -84,9 +84,14 @@ function buildSummaryFromFiles(files) {
     maxFunctionParameters: 0,
     averageFunctionNestingDepth: 0,
     maxFunctionNestingDepth: 0,
+    averageCognitiveComplexity: 0,
+    maxCognitiveComplexity: 0,
+    minMaintainabilityIndex: null,
+    totalHalsteadBugs: 0,
     totalFileSizeBytes: 0,
     languages: {}
   };
+  let cognitiveWeight = 0;
 
   let complexityWeight = 0;
   let parameterWeight = 0;
@@ -113,6 +118,14 @@ function buildSummaryFromFiles(files) {
     summary.criticalComplexityFunctions += file.criticalComplexityFunctions || 0;
     summary.maxFunctionParameters = Math.max(summary.maxFunctionParameters, file.maxFunctionParameters || 0);
     summary.maxFunctionNestingDepth = Math.max(summary.maxFunctionNestingDepth, file.maxFunctionNestingDepth || 0);
+    summary.maxCognitiveComplexity = Math.max(summary.maxCognitiveComplexity, file.maxCognitiveComplexity || 0);
+    summary.totalHalsteadBugs += file.totalHalsteadBugs || 0;
+    // A file without functions has no maintainability score (its 0 is "no data"); older analyses lack the field.
+    if ((file.functionCount || 0) > 0 && typeof file.minMaintainabilityIndex === 'number') {
+      summary.minMaintainabilityIndex = summary.minMaintainabilityIndex === null
+        ? file.minMaintainabilityIndex
+        : Math.min(summary.minMaintainabilityIndex, file.minMaintainabilityIndex);
+    }
 
     const language = file.language || 'Unknown';
     summary.languages[language] = (summary.languages[language] || 0) + 1;
@@ -122,6 +135,7 @@ function buildSummaryFromFiles(files) {
       complexityWeight += (file.cyclomaticComplexityNumber || 0) * functionCount;
       parameterWeight += (file.averageFunctionParameters || 0) * functionCount;
       nestingWeight += (file.averageFunctionNestingDepth || 0) * functionCount;
+      cognitiveWeight += (file.averageCognitiveComplexity || 0) * functionCount;
       totalFunctionsForAggregates += functionCount;
     }
   });
@@ -134,6 +148,9 @@ function buildSummaryFromFiles(files) {
     : 0;
   summary.averageFunctionNestingDepth = totalFunctionsForAggregates > 0
     ? nestingWeight / totalFunctionsForAggregates
+    : 0;
+  summary.averageCognitiveComplexity = totalFunctionsForAggregates > 0
+    ? cognitiveWeight / totalFunctionsForAggregates
     : 0;
   summary.commentRatio = summary.totalLines > 0 ? summary.totalComments / summary.totalLines : 0;
   summary.codeRatio = summary.totalLines > 0 ? totalCodeLines / summary.totalLines : 0;
@@ -381,6 +398,12 @@ function updateSummary() {
   document.getElementById('max-function-params').textContent = summary.maxFunctionParameters || 0;
   document.getElementById('avg-function-nesting').textContent = (summary.averageFunctionNestingDepth || 0).toFixed(2);
   document.getElementById('max-function-nesting').textContent = summary.maxFunctionNestingDepth || 0;
+  document.getElementById('avg-cognitive-complexity').textContent = (summary.averageCognitiveComplexity || 0).toFixed(2);
+  document.getElementById('max-cognitive-complexity').textContent = summary.maxCognitiveComplexity || 0;
+  document.getElementById('min-maintainability-index').textContent = summary.minMaintainabilityIndex === null
+    ? '-'
+    : summary.minMaintainabilityIndex.toFixed(1);
+  document.getElementById('total-halstead-bugs').textContent = (summary.totalHalsteadBugs || 0).toFixed(2);
 }
 
 function findMaxComplexity() {
@@ -629,8 +652,21 @@ function renderFileDetailsTable() {
       numericColumn('maxFunctionNestingDepth', 'Max Nesting'),
       numericColumn('highComplexityFunctions', 'High CCN Fns'),
       numericColumn('criticalComplexityFunctions', 'Critical CCN Fns'),
+      numericColumn('averageCognitiveComplexity', 'Avg Cognitive', { format: value => value.toFixed(1) }),
+      numericColumn('maxCognitiveComplexity', 'Max Cognitive'),
+      {
+        key: 'minMaintainabilityIndex', label: 'Min Maint.', align: 'right', defaultDir: 'asc',
+        value: file => (hasMaintainability(file) ? file.minMaintainabilityIndex : Infinity),
+        render: file => (hasMaintainability(file) ? escapeHtml(file.minMaintainabilityIndex.toFixed(1)) : '-'),
+      },
+      numericColumn('totalHalsteadBugs', 'Est. bugs', { align: 'right', format: value => value.toFixed(2) }),
     ],
   }, fileData);
+}
+
+// A maintainability score only exists for a file with functions, in an analysis made since 1.2.1.
+function hasMaintainability(file) {
+  return (file.functionCount || 0) > 0 && typeof file.minMaintainabilityIndex === 'number';
 }
 
 //  SHARED: Get complexity classification based on file's average CCN

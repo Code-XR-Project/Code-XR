@@ -33,7 +33,9 @@ def analyze_comments(file_path):
         comment_lines = analyze_python_comments(file_path, content)
     elif ext in ['.rb', '.rbw']:
         comment_lines = analyze_ruby_comments(content)
-    elif ext in ['.r', '.gd', '.pl', '.pm']:
+    elif ext in LEXER_COMMENT_EXTENSIONS:
+        comment_lines = analyze_lexer_comments(content, ext)
+    elif ext in ['.gd', '.pl', '.pm']:
         comment_lines = analyze_hash_comments(content)
     elif ext in ['.js', '.mjs', '.cjs', '.ts', '.jsx', '.tsx', '.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hh', '.hxx', '.cs', '.java', '.sol', '.m', '.mm', '.zig', '.ttcn', '.ttcn3', '.go', '.kt', '.kts', '.php', '.scala', '.sc', '.swift']:
         comment_lines = analyze_c_style_comments(content)
@@ -52,6 +54,24 @@ def analyze_comments(file_path):
         "file": file_path,
         "commentLines": len(comment_lines)
     }
+
+
+# Languages added with the own analyzer (epic #219): their comments come from
+# the same lexer that measures them, so strings, raw strings, here-documents,
+# nested block comments and shell `$#` are never mistaken for comments.
+LEXER_COMMENT_EXTENSIONS = ('.rs', '.dart', '.sh', '.bash', '.ps1', '.psm1', '.r')
+
+
+def analyze_lexer_comments(content, ext):
+    from code_metrics import language_for_extension
+    from code_metrics.lexer import Lexer
+
+    language = language_for_extension(ext)
+    if language is None:
+        return set()
+    lexer = Lexer(language.lexer)
+    lexer.tokenize(content)
+    return set(lexer.comment_lines)
 
 
 def analyze_python_comments(file_path, content):

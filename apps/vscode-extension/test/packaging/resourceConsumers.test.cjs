@@ -37,14 +37,8 @@ const SAVE_FILES_MODULE = 'core/analysis/utils/saveFiles.js';
  * The suite fails when a listed file gains a consumer (delete the entry then)
  * and stays quiet when a listed file is deleted or stops shipping.
  */
-const SHIPPED_WITHOUT_CONSUMER = new Map([
-    [
-        'resources/languages_icons/color/rust.svg',
-        'the table that classifies workspace files has no Rust entry, so the live icon lookup is never '
-        + 'asked for it. A file name sitting in an icon table is not a consumer: only a full path or the '
-        + 'executed lookup is',
-    ],
-]);
+// rust.svg was the one entry until Rust joined the language table (epic #219).
+const SHIPPED_WITHOUT_CONSUMER = new Map([]);
 
 /**
  * Working-tree weight that was never part of the package. It is about to be

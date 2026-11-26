@@ -89,11 +89,14 @@ test('XR schema consumers support text-only dimensions for categorical chart axe
 
     assert.match(schemaService, /if \(dataType === 'text'\)/);
     assert.match(templateProcessor, /fieldType === 'text'/);
-    // Candidates are picked by data type, with every field as the fallback so a
-    // declared dimension is never dropped (that published charts with a missing
-    // axis, e.g. barsmap without z_axis → "invalid axis").
-    assert.match(templateProcessor, /dataType === 'text' \? textFields : anyFields/);
-    assert.match(templateProcessor, /return strictFields\.length > 0 \? strictFields : anyFields/);
+    // Candidates are picked by data type. A numeric axis lists numeric fields
+    // only (epic #219, #223), and a chart whose numeric axis has none is not
+    // offered at all instead of being published with that axis missing
+    // (barsmap without z_axis → "invalid axis"); text axes fall back to
+    // every field, since any value renders as a label.
+    assert.match(templateProcessor, /if \(dataType === 'numeric'\) \{\s*return numericFields;/);
+    assert.match(templateProcessor, /return dataType === 'text' && textFields\.length > 0 \? textFields : anyFields/);
+    assert.match(templateProcessor, /if \(candidateFields\.length === 0\) \{\s*return \[\];/);
     assert.match(templateProcessor, /valueRule: dimension\.valueRule/);
     assert.match(templateCharts, /id: 'cylsmap'[\s\S]*name: 'x_axis'[\s\S]*dataType: 'any'/);
     assert.match(templateCharts, /id: 'cylsmap'[\s\S]*name: 'z_axis'[\s\S]*dataType: 'any'/);
