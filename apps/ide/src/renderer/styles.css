@@ -1141,3 +1141,4 @@ body {
 .chat-approval { min-width: 0; max-width: 100%; }
 .chat-tool { min-width: 0; overflow: hidden; }
 .agents-message-body > * { min-width: 0; max-width: 100%; }
+.chat-tool-action { flex: none; margin-left: auto; align-self: center; }

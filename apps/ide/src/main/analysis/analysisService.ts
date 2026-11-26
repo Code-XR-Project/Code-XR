@@ -222,6 +222,13 @@ export class AnalysisService {
         return state;
     }
 
+    /** The static folder of the scene this window shows (epic #189, A10: read by agents' analysis tools), or null. */
+    outputDirectory(contents: WebContents): string | null {
+        const scene = this.scenes.get(contents.id);
+        const htmlFile = scene ? getActiveServerRegistry().getServer(scene.serverId)?.htmlFile : undefined;
+        return htmlFile ? path.dirname(htmlFile) : null;
+    }
+
     async stopSharingScene(win: BrowserWindow): Promise<SceneShareState> {
         const scene = this.scenes.get(win.webContents.id);
         if (scene) {

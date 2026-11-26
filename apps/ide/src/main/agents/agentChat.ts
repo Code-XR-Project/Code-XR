@@ -43,6 +43,8 @@ export function fitHistory(messages: readonly ChatMessageView[], budget = HISTOR
 /** What a chat needs from the window it runs in. */
 export interface ChatWindow {
     readonly workspace: ToolWorkspace | null;
+    /** The static folder of the window's Code-XR analysis (A10). */
+    analysisOutput?(): string | null;
     emit(event: AgentChatEvent): void;
 }
 
@@ -331,6 +333,7 @@ export class AgentChat {
             const text = await tool.run(args, {
                 workspace: window.workspace,
                 signal,
+                ...(window.analysisOutput ? { analysisOutput: window.analysisOutput } : {}),
                 progress: (output) => {
                     const now = Date.now();
                     if (now - lastProgress >= 200) {

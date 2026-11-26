@@ -23,6 +23,8 @@ export interface ToolContext {
     readonly signal: AbortSignal;
     /** Shows a proposed file change to the person and resolves with what they did (A8). */
     reviewEdit(request: Omit<EditReviewRequest, 'id' | 'sessionId'>): Promise<EditReviewResult>;
+    /** The static folder of the window's Code-XR analysis (A10), or null without one. */
+    analysisOutput?(): string | null;
     /** Live output of a long tool (A9), shown in the chat while it runs. */
     progress?(text: string): void;
 }
