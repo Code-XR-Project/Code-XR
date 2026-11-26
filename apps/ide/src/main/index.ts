@@ -11,6 +11,7 @@ import { OutputService } from './outputPanel/outputService.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { startCore, type CoreServices } from './core/coreRuntime.ts';
 import { installApplicationMenu, setAboutDependencies } from './menu.ts';
+import { checkForUpdates } from './updates/updateCheck.ts';
 import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
 import { createMainWindow } from './window.ts';
 import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
@@ -115,6 +116,10 @@ async function start(): Promise<void> {
 
     const win = await openMainWindow();
     log.info(`Window loaded from ${win.webContents.getURL()}${isDevelopment ? ' (dev server)' : ''}.`);
+    // #20: an update check is a network call, so it runs unasked only once the person turned it on.
+    if (!isSmoke && (await settings.snapshot(null)).effective['update.checkOnStartup'] === true) {
+        void checkForUpdates(win, { manual: false });
+    }
 
     const startup = chooseStartupFolder(folderArgument(process.argv), recentFolderList(), isSmoke);
     if (startup.kind !== 'none') {
