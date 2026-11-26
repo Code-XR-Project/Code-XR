@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { PythonEnvUtils } from './pythonEnvUtils';
 import { getLogger } from '../../platform/logging/sink';
+import type { GlobalStorageContext } from '../host/hostPaths';
 
 const logger = getLogger('PYTHON_ENV');
 
@@ -26,12 +26,12 @@ export class PythonEnvStorage {
     private static readonly STATE_FILE = 'state.json';
     private static readonly VENV_DIR = 'venv';
 
-    private context: vscode.ExtensionContext;
+    private context: GlobalStorageContext;
     private pythonEnvPath: string;
     private stateFilePath: string;
     private venvPath: string;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: GlobalStorageContext) {
         this.context = context;
         
         // Initialize paths using global storage
