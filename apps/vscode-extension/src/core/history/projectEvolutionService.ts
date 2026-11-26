@@ -44,6 +44,14 @@ interface ResolvedEvolutionSources {
     exclusions: GitAnalysisExclusion[];
 }
 
+/**
+ * Sources on one commit share its analysis (EVO-2), so a failure may carry
+ * the exclusion of the other source; each frame reports under its own name.
+ */
+function ownExclusion(exclusion: GitAnalysisExclusion, source: ComparisonSource): GitAnalysisExclusion {
+    return exclusion.id === source.id ? exclusion : { ...exclusion, id: source.id, label: source.label };
+}
+
 export class ProjectEvolutionService {
     private readonly gitService: GitRepositoryService;
     private readonly analysis: GitAnalysisSessionContext;
@@ -279,7 +287,7 @@ export class ProjectEvolutionService {
                 } catch (error) {
                     exclusionsByIndex[index] = error instanceof GitAnalysisSourceError
                         && error.exclusions.length
-                        ? error.exclusions[0]
+                        ? ownExclusion(error.exclusions[0], source)
                         : createGitAnalysisExclusion(
                             source,
                             'analysis-failed',
