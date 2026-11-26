@@ -13,7 +13,7 @@ import type { OutputChannelId } from './output.ts';
  * any Node, Electron or DOM import.
  */
 
-import { AGENT_IPC_CHANNELS, type AgentsApi } from './agents.ts';
+import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentsApi } from './agents.ts';
 
 /** Facts about the running IDE, shown on the welcome screen and in About. */
 export interface AppInfo {
@@ -562,6 +562,7 @@ export const IPC_EVENTS = {
     settingsChanged: 'codexr:settings:changed',
     keybindingsChanged: 'codexr:keybindings:changed',
     outputAppended: 'codexr:output:appended',
+    ...AGENT_IPC_EVENTS,
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

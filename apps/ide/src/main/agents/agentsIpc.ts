@@ -1,18 +1,48 @@
-import type { IpcMainInvokeEvent } from 'electron';
-import { AGENT_IPC_CHANNELS } from '../../shared/agents.ts';
-import type { ProviderRegistry } from './providerRegistry.ts';
+import type { IpcMainInvokeEvent, WebContents } from 'electron';
+import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent } from '../../shared/agents.ts';
+import { currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
+import type { AgentServices } from './agentsRuntime.ts';
 
 type Handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => void;
 
 /**
  * The main-process side of `window.codexr.agents`, registered through ipc.ts's
  * `handle` so the same trusted-frame check applies. Every argument is
- * validated by the registry: the renderer is not trusted to send well-formed data.
+ * validated by the services: the renderer is not trusted to send well-formed
+ * data. Chats belong to the folder open in the calling window.
  */
-export function registerAgentHandlers(handle: Handle, providers: ProviderRegistry): void {
+export function registerAgentHandlers(handle: Handle, agents: AgentServices): void {
+    const { providers, profiles, sessions, chat } = agents;
+    const folderOf = (event: IpcMainInvokeEvent): string | null => currentWorkspaceInfo(event.sender)?.root ?? null;
+
     handle(AGENT_IPC_CHANNELS.agentsSecretStore, () => providers.secretStore());
     handle(AGENT_IPC_CHANNELS.agentsListProviders, () => providers.list());
     handle(AGENT_IPC_CHANNELS.agentsSaveProvider, (_event, input, id) => providers.save(input, id));
-    handle(AGENT_IPC_CHANNELS.agentsRemoveProvider, (_event, id) => providers.remove(id));
+    handle(AGENT_IPC_CHANNELS.agentsRemoveProvider, async (_event, id) => {
+        await providers.remove(id);
+        await profiles.unbindProvider(String(id));
+    });
     handle(AGENT_IPC_CHANNELS.agentsTestProvider, (_event, id) => providers.test(id));
+
+    handle(AGENT_IPC_CHANNELS.agentsListAgents, () => profiles.list());
+    handle(AGENT_IPC_CHANNELS.agentsSaveAgent, (_event, input, id) => profiles.save(input, id));
+    handle(AGENT_IPC_CHANNELS.agentsRemoveAgent, (_event, id) => profiles.remove(id));
+
+    handle(AGENT_IPC_CHANNELS.agentsListSessions, (event) => sessions.list(folderOf(event)));
+    handle(AGENT_IPC_CHANNELS.agentsGetSession, (event, id) => chat.get(folderOf(event), id));
+    handle(AGENT_IPC_CHANNELS.agentsCreateSession, (event, agentId) => chat.create(folderOf(event), agentId));
+    handle(AGENT_IPC_CHANNELS.agentsRenameSession, (event, id, title) => sessions.rename(folderOf(event), String(id), title));
+    handle(AGENT_IPC_CHANNELS.agentsDeleteSession, (event, id) => chat.delete(folderOf(event), id));
+    handle(AGENT_IPC_CHANNELS.agentsExportSession, (event, id) => chat.export(folderOf(event), id));
+    handle(AGENT_IPC_CHANNELS.agentsSend, (event, id, text) => chat.send(folderOf(event), id, text, sender(event.sender)));
+    handle(AGENT_IPC_CHANNELS.agentsStop, (_event, id) => chat.stop(id));
+}
+
+/** Streams chat events to the window that asked; a closed window just stops receiving them. */
+function sender(contents: WebContents): (event: AgentChatEvent) => void {
+    return (event) => {
+        if (!contents.isDestroyed()) {
+            contents.send(AGENT_IPC_EVENTS.agentsChat, event);
+        }
+    };
 }

@@ -4,12 +4,23 @@ import type { CommandDefinition, CommandRegistry } from '../commands/commandRegi
 export interface AgentCommandTargets {
     showAgents(): void;
     addProvider(): void;
+    newChat(): void;
 }
 
 /** The AI agent hub's entries in the command palette. */
 export function agentCommands(targets: AgentCommandTargets): CommandDefinition[] {
     return [
         { id: 'agents.showView', category: 'Agents', title: 'Show AI Agents', run: () => targets.showAgents() },
+        {
+            id: 'agents.newChat',
+            category: 'Agents',
+            title: 'New Chat',
+            keybinding: 'CmdOrCtrl+Alt+I',
+            run: () => {
+                targets.showAgents();
+                targets.newChat();
+            },
+        },
         {
             id: 'agents.addProvider',
             category: 'Agents',
