@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { VenvManager } from '../../python-env/venvManager';
 import { getBackendScriptCandidates, resolveBackendScriptPath } from './backendScriptPath';
+import { hostPathsFromContext } from '../../host/hostPaths';
 import { classifyStderrLine } from './pythonStderrStream';
 import { currentLaunchSignal } from '../launch/launchControl';
 import { getLogger } from '../../../platform/logging/sink';
@@ -398,8 +399,9 @@ export class ExecutePython {
      */
     private resolveScriptPath(scriptName: string): string {
         const extensionPath = this.context.extensionPath;
-        const { distPath, developmentPath } = getBackendScriptCandidates(this.context, scriptName);
-        const scriptPath = resolveBackendScriptPath(this.context, scriptName);
+        const paths = hostPathsFromContext(this.context);
+        const { distPath, developmentPath } = getBackendScriptCandidates(paths, scriptName);
+        const scriptPath = resolveBackendScriptPath(paths, scriptName);
 
         if (scriptPath !== distPath) {
             logger.debug('Script not found in dist, trying src directory');
