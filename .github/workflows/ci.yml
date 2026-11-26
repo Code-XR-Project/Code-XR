@@ -129,6 +129,11 @@ jobs:
       - name: HTML DOM analysis
         run: node apps/vscode-extension/test/runners/run-html-analysis-tests.cjs
 
+      # #13: the core runs one analysis with no VS Code at all (a stub host and
+      # the venv the fixture step above built).
+      - name: Core without VS Code
+        run: node apps/vscode-extension/test/runners/run-core-smoke.cjs
+
   ide-smoke:
     name: IDE smoke (${{ matrix.os }})
     # Builds the Code-XR IDE and launches it hidden with --codexr-smoke: the

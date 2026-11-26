@@ -164,6 +164,7 @@
     "test:all",
     "test:analysis",
     "test:basic",
+    "test:core-smoke",
     "test:harnesses",
     "test:htmlanalysis",
     "test:integration",

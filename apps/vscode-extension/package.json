@@ -761,6 +761,7 @@
     "package:vsix": "npm run package && node scripts/package-vsix.mjs",
     "test:analysis": "node ../../backend/scripts/run-analysis-tests.cjs",
     "test:htmlanalysis": "node test/runners/run-html-analysis-tests.cjs",
+    "test:core-smoke": "node test/runners/run-core-smoke.cjs",
     "test:xr-harness": "node test/runners/run-xr-containment-harness.cjs",
     "test:xr-chart-bounds-harness": "npm run compile-tests && node test/runners/run-xr-chart-bounds-harness.cjs",
     "test:xr-mode-harness": "node test/runners/run-xr-mode-cycle-harness.cjs",
