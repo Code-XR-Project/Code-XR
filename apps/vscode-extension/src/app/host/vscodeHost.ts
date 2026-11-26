@@ -6,10 +6,10 @@
 import * as vscode from 'vscode';
 import type {
     CodeXRHost,
-    HostMode,
     HostSignal,
     HostStatusIndicator,
 } from '../../core/host/codeXRHost';
+import { hostPathsFromContext } from '../../core/host/hostPaths';
 
 /** The VS Code command (and arguments) behind each host signal. */
 export function signalToCommand(signal: HostSignal): { command: string; args: unknown[] } {
@@ -27,17 +27,6 @@ export function signalToCommand(signal: HostSignal): { command: string; args: un
     }
 }
 
-export function hostModeOf(mode: vscode.ExtensionMode): HostMode {
-    switch (mode) {
-        case vscode.ExtensionMode.Development:
-            return 'development';
-        case vscode.ExtensionMode.Test:
-            return 'test';
-        default:
-            return 'production';
-    }
-}
-
 export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
     const show = {
         info: vscode.window.showInformationMessage,
@@ -46,12 +35,7 @@ export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
     } as const;
 
     return {
-        paths: {
-            installRoot: context.extensionPath,
-            globalStorageDir: context.globalStorageUri.fsPath,
-            workspaceStorageDir: context.storageUri?.fsPath,
-            mode: hostModeOf(context.extensionMode),
-        },
+        paths: hostPathsFromContext(context),
         globalState: context.globalState,
         notifier: {
             async notify(severity, message, ...actions) {

@@ -31,6 +31,7 @@ import {
     ProjectEvolutionRequest,
     ProjectEvolutionResult,
 } from './historicalComparisonModels';
+import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
 
 const ANALYZER_CACHE_VERSION = 'project-evolution-v1';
 const DEFAULT_MAX_FRAMES = 24;
@@ -41,6 +42,14 @@ export const PROJECT_EVOLUTION_JOB_TIMEOUT_MS = 30 * 60 * 1000;
 interface ResolvedEvolutionSources {
     sources: ComparisonSource[];
     exclusions: GitAnalysisExclusion[];
+}
+
+/**
+ * Sources on one commit share its analysis (EVO-2), so a failure may carry
+ * the exclusion of the other source; each frame reports under its own name.
+ */
+function ownExclusion(exclusion: GitAnalysisExclusion, source: ComparisonSource): GitAnalysisExclusion {
+    return exclusion.id === source.id ? exclusion : { ...exclusion, id: source.id, label: source.label };
 }
 
 export class ProjectEvolutionService {
@@ -63,10 +72,10 @@ export class ProjectEvolutionService {
         sourceCatalog?: GitAnalysisSourceCatalog,
     ) {
         const session = this.getSession();
-        const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
+        const storageRoot = privateStorageRoot(hostPathsFromContext(context));
         this.gitService = new GitRepositoryService(
             session.targetPath,
-            path.join(privateStorageRoot, 'project-evolution', sessionId, 'snapshots'),
+            path.join(storageRoot, 'project-evolution', sessionId, 'snapshots'),
         );
         this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog, context, {
             cacheVersion: ANALYZER_CACHE_VERSION,
@@ -278,7 +287,7 @@ export class ProjectEvolutionService {
                 } catch (error) {
                     exclusionsByIndex[index] = error instanceof GitAnalysisSourceError
                         && error.exclusions.length
-                        ? error.exclusions[0]
+                        ? ownExclusion(error.exclusions[0], source)
                         : createGitAnalysisExclusion(
                             source,
                             'analysis-failed',
