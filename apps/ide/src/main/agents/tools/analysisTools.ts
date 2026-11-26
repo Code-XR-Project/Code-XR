@@ -24,6 +24,7 @@ export const KEY_METRICS = [
     'totalLines', 'codeLines', 'commentRatio', 'functionCount', 'classCount',
     'maxComplexity', 'cyclomaticComplexityNumber', 'highComplexityFunctions', 'criticalComplexityFunctions',
     'maxFunctionLines', 'averageFunctionLines', 'maxFunctionParameters', 'averageFunctionNestingDepth',
+    'maxCognitiveComplexity', 'averageMaintainabilityIndex', 'totalHalsteadBugs',
 ] as const;
 
 const MAX_JSON_BYTES = 64 * 1024 * 1024;
@@ -244,7 +245,7 @@ function analysisTools(): AgentTool[] {
         {
             name: 'get_metrics',
             title: 'Read Code-XR metrics',
-            description: 'Code-XR metrics (lines, functions, complexity, parameters, nesting) for one file, or totals and averages for a folder or the whole project, from the analysis open in the IDE.',
+            description: 'Code-XR metrics (lines, functions, complexity, cognitive complexity, maintainability, parameters, nesting) for one file, or totals and averages for a folder or the whole project, from the analysis open in the IDE.',
             risk: 'read',
             parameters: { type: 'object', properties: { path: { type: 'string', description: 'A file or folder relative to the project root; "" for the whole project.' } } },
             preview: (args) => ({ summary: `metrics of ${normalize(args['path'] as string | undefined) || 'the project'}` }),

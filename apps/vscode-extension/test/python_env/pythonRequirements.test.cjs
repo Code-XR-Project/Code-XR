@@ -20,7 +20,8 @@ test('every requirement is an exact pin', () => {
         .split(/\r?\n/)
         .map((line) => line.replace(/#.*/, '').trim())
         .filter(Boolean);
-    assert.ok(requirements.some((line) => line.startsWith('lizard==')));
+    // Epic #140: code metrics come from backend/src/tools/code_metrics, not lizard.
+    assert.equal(requirements.some((line) => line.startsWith('lizard')), false);
     for (const requirement of requirements) {
         assert.match(requirement, /^[A-Za-z0-9._-]+==\d+(\.\d+)*$/);
     }

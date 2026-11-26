@@ -60,6 +60,11 @@ const LANGUAGES = [
     ['TTCN-3', 'ttcn3', ['.ttcn', '.ttcn3']],
     ['Vue', 'vue', ['.vue']],
     ['Zig', 'zig', ['.zig']],
+    ['Rust', 'rust', ['.rs']],
+    ['Dart', 'dart', ['.dart']],
+    ['Shell', 'shell', ['.sh', '.bash']],
+    ['PowerShell', 'powershell', ['.ps1', '.psm1']],
+    ['R', 'r', ['.r']],
     ['HTML', 'html', ['.html', '.htm', '.xhtml']],
 ];
 

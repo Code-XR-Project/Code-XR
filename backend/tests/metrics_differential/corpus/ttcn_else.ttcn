@@ -1,0 +1,9 @@
+module ttcn_else {
+  function pick(integer a, integer b) return integer {
+    if (a > b) {
+      return a;
+    } else {
+      return b;
+    }
+  }
+}

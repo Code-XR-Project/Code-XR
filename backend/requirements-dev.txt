@@ -2,3 +2,4 @@
 # installed into the extension's managed venv (that is requirements.txt).
 # Install: python -m pip install -r backend/requirements-dev.txt
 ruff==0.17.6  # `npm run lint:python`, configured in backend/ruff.toml
+lizard==1.17.31  # only to regenerate/re-check tests/metrics_differential/lizard_golden.json (epic #140)

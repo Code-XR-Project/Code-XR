@@ -19,9 +19,8 @@ const { scanDirectoryScope } = require('../../out/core/analysis/watchers/directo
 // TypeScript: the directory scan and the fs-event filter gate on
 // DIRECTORY_ANALYSIS_EXTENSIONS, which is wider, and every file they admit is
 // handed to the Python re-analysis coordinator, which does not filter by
-// extension. That is the only road by which a .rs, .jsx or .r file reaches the
-// analyzers, so their Rust, JSX and R arms look dead from the contract and are
-// not.
+// extension. That is the only road by which a .jsx file reaches the analyzers,
+// so their JSX arm looks dead from the contract and is not.
 //
 // Narrowing the watcher to the contract changes which files show up in the
 // data.json of a session that already exists. That is a 1.3.0 decision. Until
@@ -35,11 +34,12 @@ const PYTHON_CONTRACT_SOURCE = '../../backend/src/utils/metric_language_contract
 // This list IS the contract, so it is written out instead of derived: the
 // extensions a live directory session re-analyses although no copy of the metric
 // contract lists them. Python labels such a file "Unknown" and still measures
-// it, and three analyzer arms exist only for them: '.rs' and '.jsx' in
-// class_counter_analyzer.py, '.r' in python_comment_analyzer.py.
+// it, and one analyzer arm exists only for them: '.jsx' in class_counter_analyzer.py.
+// '.rs', '.dart', '.sh', '.bash', '.ps1' and '.r' left this list when they joined
+// the contract (epic #219).
 const OUTSIDE_THE_CONTRACT = [
-    '.bash', '.clj', '.cljs', '.css', '.dart', '.hs', '.jsx', '.less',
-    '.ml', '.mli', '.pas', '.ps1', '.r', '.rs', '.scss', '.sh',
+    '.clj', '.cljs', '.css', '.hs', '.jsx', '.less',
+    '.ml', '.mli', '.pas', '.scss',
 ];
 
 // HTML is rendered by the DOM visualization and never measured, so it is the one
@@ -192,16 +192,17 @@ function admittedBy(gate, extensions) {
 const DATA_CHANGE = 'Changing what the watcher admits beyond the metric contract changes which files appear in the '
     + 'data.json of existing sessions: that is a 1.3.0 decision, not a cleanup.';
 
-test('the directory watcher admits exactly sixteen extensions that the TypeScript language table does not list', () => {
+test('the directory watcher admits exactly ten extensions that the TypeScript language table does not list', () => {
     const { watcher, typescript } = loadContracts();
 
-    // Sixteen is the number the audit and the roadmap quote, so the list above
+    // Sixteen was the number the audit and the roadmap quoted; six of them joined the
+    // contract with epic #219 (.psm1 joined both lists at once), so the list above
     // cannot be edited without this title and those documents being revisited.
-    assert.equal(new Set(OUTSIDE_THE_CONTRACT).size, 16);
+    assert.equal(new Set(OUTSIDE_THE_CONTRACT).size, 10);
     assertSameExtensions(difference(watcher, typescript), OUTSIDE_THE_CONTRACT, DATA_CHANGE);
 });
 
-test('the directory watcher admits exactly the same sixteen extensions that the Python metric contract does not list', () => {
+test('the directory watcher admits exactly the same ten extensions that the Python metric contract does not list', () => {
     const { watcher, python } = loadContracts();
 
     // Python is the side that measures the file. An extension moving INTO its
@@ -227,7 +228,7 @@ test('isMetricAnalysisFile stays the contract-sized gate, equal to the Python me
 
     // The git-history export deduplicates blobs with this predicate precisely
     // because it must NOT follow the wider watcher set. It is the TypeScript
-    // statement of "inside the contract", so it is what the sixteen are outside of.
+    // statement of "inside the contract", so it is what the ten are outside of.
     assertSameExtensions(
         admittedBy(policy.isMetricAnalysisFile, everyKnownExtension),
         python,
@@ -241,7 +242,7 @@ test('isDirectoryAnalysisFile and the fs-event filter admit the whole watcher se
     // The Set is only a declaration. These two exports are what the directory
     // scan, the fs-event handler and the git materializer actually call, so
     // swapping one of them for the narrower predicate is the realistic way to
-    // lose the sixteen while the declaration stays untouched.
+    // lose the ten while the declaration stays untouched.
     assertSameExtensions(admittedBy(policy.isDirectoryAnalysisFile, everyKnownExtension), watcher, DATA_CHANGE);
 
     // No tracked paths: a path the tracker already knows is relevant whatever
@@ -274,7 +275,7 @@ test('a directory scan hands the files outside the metric contract to the increm
 test('both readers see a change made to either artefact, so the pins above cannot pass by reading nothing', () => {
     const { watcher, python } = loadContracts();
 
-    // Deliberately not tied to today's sixteen: it drops whichever extension
+    // Deliberately not tied to today's ten: it drops whichever extension
     // comes first and adds one that exists nowhere, so this test only fails when
     // a reader stops reading, never because the contract legitimately moved.
     const [dropped] = watcher;

@@ -9,6 +9,7 @@ import os
 from typing import Any
 
 from metric_language_contract import get_metric_language
+from xr_field_schema import FILE_METRIC_FIELD_IDS
 
 
 def build_file_metric_summary(file_analysis: dict[str, Any], file_path: str, relative_path: str = None) -> dict[str, Any]:
@@ -41,6 +42,7 @@ def build_file_metric_summary(file_analysis: dict[str, Any], file_path: str, rel
         'maxFunctionLines': file_analysis.get('maxFunctionLines', 0),
         'averageFunctionNestingDepth': file_analysis.get('averageFunctionNestingDepth', 0.0),
         'maxFunctionNestingDepth': file_analysis.get('maxFunctionNestingDepth', 0),
+        **{field_id: file_analysis.get(field_id, 0) for field_id in FILE_METRIC_FIELD_IDS},
         'fileSizeBytes': (
             file_analysis['fileSizeBytes'] if 'fileSizeBytes' in file_analysis else get_file_size(file_path)
         ),
@@ -48,7 +50,7 @@ def build_file_metric_summary(file_analysis: dict[str, Any], file_path: str, rel
 
 
 def get_file_size(file_path: str) -> int:
-    """File size in bytes, 0 when it cannot be read. Lizard-free on purpose."""
+    """File size in bytes, 0 when it cannot be read. Independent of the metrics analyzer on purpose."""
     try:
         return os.path.getsize(file_path)
     except OSError:

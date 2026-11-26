@@ -102,6 +102,26 @@ export const SUPPORTED_LANGUAGES: Record<string, LanguageConfig> = {
         extensions: ['.zig'], 
         name: 'Zig' 
     },
+    rust: {
+        extensions: ['.rs'],
+        name: 'Rust'
+    },
+    dart: {
+        extensions: ['.dart'],
+        name: 'Dart'
+    },
+    shell: {
+        extensions: ['.sh', '.bash'],
+        name: 'Shell'
+    },
+    powershell: {
+        extensions: ['.ps1', '.psm1'],
+        name: 'PowerShell'
+    },
+    r: {
+        extensions: ['.r'],
+        name: 'R'
+    },
     // Web Technologies
     html: { 
         extensions: ['.html', '.htm', '.xhtml'], 

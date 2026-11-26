@@ -389,18 +389,17 @@ function buildSchemaFieldPools(fieldTypeMap: XRFieldTypeMap): SchemaFieldPools {
     };
 }
 
-// Candidates for a dimension: its own data type first, every field as the
-// fallback. Dropping a dimension when its strict pool is empty published
-// an INCOMPLETE contract (e.g. barsmap without z_axis) while still
-// offering the chart — Babia then built axes with non-finite lengths and
-// the table reported "invalid axis". Every declared dimension always gets
-// a candidate list now; the best available field beats no field at all.
+// Candidates for a dimension. A numeric axis lists numeric fields only (Babia
+// scales geometry by the value; text gives NaN axes), and a chart with an
+// unfillable numeric axis is not offered (buildDimensionsForChart returns []),
+// never published with that axis missing or texted ("invalid axis"). Text
+// and `any` axes take every field: any value renders as a label.
 function candidateFieldsFor(dataType: DimensionDataType, pools: SchemaFieldPools): string[] {
     const { numericFields, textFields, anyFields } = pools;
-    const strictFields = dataType === 'numeric'
-        ? numericFields
-        : (dataType === 'text' ? textFields : anyFields);
-    return strictFields.length > 0 ? strictFields : anyFields;
+    if (dataType === 'numeric') {
+        return numericFields;
+    }
+    return dataType === 'text' && textFields.length > 0 ? textFields : anyFields;
 }
 
 function buildDimensionsForChart(chart: ChartMetadata, selectedFields: Map<string, string>, pools: SchemaFieldPools): MappingUiDimension[] {
@@ -408,7 +407,7 @@ function buildDimensionsForChart(chart: ChartMetadata, selectedFields: Map<strin
     for (const dimension of chart.dimensions) {
         const candidateFields = candidateFieldsFor(dimension.dataType, pools);
         if (candidateFields.length === 0) {
-            continue;
+            return [];
         }
 
         const selectedField = selectedFields.get(dimension.name);

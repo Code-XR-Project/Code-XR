@@ -3,8 +3,9 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 /**
- * End-to-end check of the backend over backend/manual_test: builds a venv with
- * the pinned lizard, runs tests/manual_metrics_suite.py, then writes the
+ * End-to-end check of the backend over backend/manual_test: builds a clean venv
+ * (the metrics need no third-party package since epic #140 replaced lizard),
+ * runs tests/manual_metrics_suite.py, then writes the
  * reports with scripts/report-manual-metrics.py. Node builtins only, so it runs
  * without npm ci: `node backend/scripts/run-analysis-tests.cjs [--report-only]`.
  */
@@ -76,30 +77,6 @@ function ensureVenv(systemPython) {
     }
 }
 
-/**
- * The extension installs an exact lizard version into the user's managed venv
- * (apps/vscode-extension/src/core/python-env/pythonPackageManifest.ts). The
- * fixtures must be measured with that same version, so the requirement is read
- * from backend/requirements.txt, the generated mirror of that manifest
- * (apps/vscode-extension/test/python_env/pythonRequirements.test.cjs keeps the
- * two equal), instead
- * of being repeated here. Only lizard is installed, as before.
- */
-function readPinnedLizardRequirement() {
-    const requirementsPath = path.join(backendRoot, 'requirements.txt');
-    const requirements = fs.readFileSync(requirementsPath, 'utf8');
-    const match = /^lizard==([0-9][0-9A-Za-z.+-]*)\s*(?:#.*)?$/m.exec(requirements);
-    if (!match) {
-        throw new Error(`ANALYSIS_TEST_RUNNER: could not read the pinned lizard version from ${requirementsPath}`);
-    }
-    return `lizard==${match[1]}`;
-}
-
-function installDependencies() {
-    run(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
-    run(venvPython, ['-m', 'pip', 'install', readPinnedLizardRequirement()]);
-}
-
 function main() {
     const systemPython = findSystemPython();
     if (!systemPython) {
@@ -108,7 +85,6 @@ function main() {
     }
 
     ensureVenv(systemPython);
-    installDependencies();
 
     if (!reportOnly) {
         run(venvPython, [path.join(backendRoot, 'tests', 'manual_metrics_suite.py')]);
@@ -120,5 +96,3 @@ function main() {
 if (require.main === module) {
     main();
 }
-
-module.exports = { readPinnedLizardRequirement };

@@ -34,7 +34,7 @@ export interface FunctionMetric {
     readonly name: string;
     readonly lineStart: number;
     readonly lineEnd: number;
-    /** Lines of code (Lizard's NLOC). */
+    /** Lines of code (NLOC). */
     readonly lineCount: number;
     readonly complexity: number;
     readonly parameters: number;

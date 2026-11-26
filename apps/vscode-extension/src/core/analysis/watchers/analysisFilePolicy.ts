@@ -69,7 +69,7 @@ const DIRECTORY_ANALYSIS_EXTENSIONS = new Set([
     '.cs', '.erl', '.hrl', '.f90', '.f95', '.f03', '.f08', '.f', '.gd', '.go', '.js', '.mjs', '.cjs',
     '.kt', '.kts', '.lua', '.m', '.mm', '.php', '.phtml', '.php3', '.php4', '.php5', '.pl', '.pm',
     '.scala', '.sc', '.sol', '.swift', '.ts', '.tsx', '.ttcn', '.ttcn3', '.vue', '.zig', '.rs',
-    '.dart', '.r', '.sh', '.bash', '.ps1', '.jsx', '.css', '.scss', '.less', '.clj', '.cljs',
+    '.dart', '.r', '.sh', '.bash', '.ps1', '.psm1', '.jsx', '.css', '.scss', '.less', '.clj', '.cljs',
     '.hs', '.ml', '.mli', '.pas',
 ]);
 

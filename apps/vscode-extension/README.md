@@ -326,7 +326,7 @@ Everything above builds on the workflows introduced up to v1.1.0: the UI, the an
 
 ## Analysis Modes Overview
 
-CodeXR offers powerful analysis modes, each optimized for different file types and use cases. **All analysis modes support 24 code languages plus HTML DOM visualization** with comprehensive file, directory, and project analysis capabilities.
+CodeXR offers powerful analysis modes, each optimized for different file types and use cases. **All analysis modes support 28 code languages plus HTML DOM visualization** with comprehensive file, directory, and project analysis capabilities.
 
 ### LivePanel Analysis Mode
 **Best for:** Detailed metrics review, reporting, and comprehensive code analysis without leaving VS Code
@@ -368,8 +368,8 @@ CodeXR offers powerful analysis modes, each optimized for different file types a
 ### Common Analysis Features (All Types)
 **Universal capabilities available for files, directories, and projects:**
 
-- **24 Code Languages + HTML DOM**: Full support for JavaScript, TypeScript, Python, C/C++, C#, Java, Ruby, Go, PHP, Swift, Kotlin, Scala, Lua, Erlang, Zig, Perl, Solidity, TTCN-3, Objective-C, Fortran, GDScript, Vue, plus HTML DOM visualization
-- **Cyclomatic Complexity**: Industry-standard complexity calculation using Lizard integration
+- **28 Code Languages + HTML DOM**: Full support for JavaScript, TypeScript, Python, C/C++, C#, Java, Ruby, Go, PHP, Swift, Kotlin, Scala, Lua, Erlang, Zig, Perl, Solidity, TTCN-3, Objective-C, Fortran, GDScript, Vue, Rust, Dart, Shell, PowerShell, R, plus HTML DOM visualization
+- **Cyclomatic Complexity**: Standard McCabe complexity (decisions + 1, short-circuit operators counted), computed by CodeXR's own offline analyzer
 - **Lines of Code Metrics**: Total lines, code lines, comment lines, and blank lines with language-aware parsing
 - **Function Analysis**: Function count, parameter analysis, complexity per function, and cyclomatic density
 - **Class Detection**: Object-oriented structure analysis including inheritance, interfaces, and nested classes
@@ -411,7 +411,7 @@ Complete directory analysis implementation
 
 ## Supported Languages
 
-CodeXR provides comprehensive analysis for 24 code languages, plus HTML DOM visualization, through its unified analysis engine:
+CodeXR provides comprehensive analysis for 28 code languages, plus HTML DOM visualization, through its unified analysis engine:
 
 ### Complete Language Support Matrix
 
@@ -439,6 +439,11 @@ CodeXR provides comprehensive analysis for 24 code languages, plus HTML DOM visu
 | **Fortran** | .f90, .f95, .f03, .f08, .f | LivePanel, XR | Exclamation (!) | Modules & Types |
 | **GDScript** | .gd | LivePanel, XR | Hash (#) | Classes |
 | **Vue.js** | .vue | LivePanel, XR | HTML (<!-- -->) | Component Analysis |
+| **Rust** | .rs | LivePanel, XR | C-style (//, /* */, nested) | Structs, Enums & Traits |
+| **Dart** | .dart | LivePanel, XR | C-style (//, /* */, nested) | Classes, Mixins & Enums |
+| **Shell (Bash)** | .sh, .bash | LivePanel, XR | Hash (#) | None (no classes) |
+| **PowerShell** | .ps1, .psm1 | LivePanel, XR | Hash (#) + Block (<# #>) | Classes & Enums |
+| **R** | .r | LivePanel, XR | Hash (#) | S4, Reference & R6 Classes |
 | **HTML** | .html, .htm, .xhtml | DOM Visualization | HTML Comments | Element Structure |
 
 ### Analysis Capabilities by Language
@@ -446,6 +451,8 @@ CodeXR provides comprehensive analysis for 24 code languages, plus HTML DOM visu
 **All Languages Support:**
 - Lines of Code (LOC) counting with accurate parsing
 - Cyclomatic Complexity analysis using industry-standard algorithms
+- Cognitive Complexity (how hard the control flow is to read, SonarSource's definition)
+- Halstead metrics (volume, difficulty, effort, estimated bugs) and the Maintainability Index (0-100)
 - Function parameter counting and analysis
 - Accurate comment detection with language-specific rules
 - Real-time analysis with intelligent file watching
@@ -576,8 +583,8 @@ Customize your scene:
 
 ### Analysis Engine
 - **Python-based Coordinators**: Redesigned Python-based analysis coordinators for better accuracy
-- **Multi-language Parsing**: Advanced parsing capabilities for 24 code languages plus HTML DOM visualization
-- **Lizard Integration**: Industry-standard complexity analysis using Lizard tool
+- **Multi-language Parsing**: Advanced parsing capabilities for 28 code languages plus HTML DOM visualization
+- **Own Metrics Analyzer**: Pure-Python, offline analyzer for complexity, nesting depth, parameters and lines of code in every supported language
 - **Dependency Extraction**: Static relation analysis (imports, includes, inheritance, calls) with per-relation confidence
 - **Git Snapshots**: Historical analyses materialize temporary snapshots without ever touching your working tree or `.git`
 - **Performance Optimization**: Optimized for handling large codebases efficiently
@@ -607,7 +614,6 @@ Customize your scene:
 ### Automatic Dependencies
 CodeXR automatically manages the following dependencies:
 - **Python Virtual Environment**: Created in `globalStorage` directory from VS Code
-- **Lizard**: Code complexity analysis tool
 - **tree-sitter-language-pack**: Structured parsers for the XR dependency graph
 - **Required Python Packages**: Automatically installed as needed
 
@@ -712,7 +718,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPLv3)** -
 
 - **BabiaXR Team**: For the powerful visualization framework
 - **A-Frame Community**: For WebXR support and immersive web technologies
-- **Lizard Tool**: For reliable code complexity analysis
+- **Lizard Tool**: CodeXR's complexity engine up to 1.2.0, and the reference its own analyzer is tested against
 - **Meta's Immersive Web Emulator & IWER**: For making real WebXR sessions drivable from a desktop browser, the tooling behind this release's XR validation
 - **VS Code Extension API**: For the extensible platform
 - **Open Source Community**: For continuous feedback and contributions

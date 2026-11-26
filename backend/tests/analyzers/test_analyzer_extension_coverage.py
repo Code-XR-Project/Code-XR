@@ -47,7 +47,7 @@ PYTHON_ROOT = PROJECT_ROOT / 'backend' / 'src'
 def _load_private(name, module_path):
     # Loaded by path and never registered in sys.modules: the three modules are
     # stdlib-only, and other suites swap the backend modules in sys.modules for
-    # a sandbox with a fake lizard. A private copy can neither leak into that
+    # a sandbox. A private copy can neither leak into that
     # sandbox nor be evicted by it, whatever order discovery runs the suites in.
     spec = importlib.util.spec_from_file_location(name, module_path)
     module = importlib.util.module_from_spec(spec)
@@ -102,6 +102,13 @@ SNIPPETS = {
         '<template>', '  <!-- a comment -->', '  <div></div>', '</template>',
         '<script>', '// a comment', 'class Sample {', '}', 'export default {}', '</script>'),
     'Zig': _source('// a comment', 'const Sample = struct {', '    value: i32,', '};'),
+    # Epic #219 languages: their comments come from the metrics lexer, their classes from the
+    # class counter's own arms (Shell has nothing class-like to count).
+    'Rust': _source('// a comment', 'pub struct Sample {', '    value: i32,', '}'),
+    'Dart': _source('// a comment', 'abstract class Sample {', '}'),
+    'Shell': _source('# a comment', 'sample() {', '  echo hi', '}'),
+    'PowerShell': _source('# a comment', 'class Sample {', '}'),
+    'R': _source('# a comment', 'Sample <- R6::R6Class("Sample")'),
 }
 
 # KNOWN GAP, NOT ENDORSED: contract extensions that reach analyze_classes and
@@ -115,8 +122,9 @@ CLASS_COUNTER_SILENT = frozenset({
     '.hxx',
     '.zig',
     '.ttcn', '.ttcn3',
+    '.sh', '.bash',     # not a gap: shell has no class-like declaration
 })
-CLASS_COUNTER_LANGUAGES_WITHOUT_AN_ARM = frozenset({'TTCN-3', 'Zig'})
+CLASS_COUNTER_LANGUAGES_WITHOUT_AN_ARM = frozenset({'TTCN-3', 'Zig', 'Shell'})
 
 # KNOWN GAP, NOT ENDORSED: contract extensions that reach analyze_comments and
 # fall through, so commentLines reads 0 and those lines are reported as code.
@@ -137,13 +145,12 @@ COMMENT_ANALYZER_LANGUAGES_WITHOUT_AN_ARM = frozenset()
 # those is a legitimate cleanup ('.pod', '.t' and '.st' went in 1.2.1, W2-64).
 # '.hh' is NOT one of them: languageMetadata lists it under C++, so the XR file
 # command accepts a .hh file and its commentLines come from the C-style arm.
+# '.rs' and '.r' were here until they joined the contract (epic #219).
 WATCHER_ONLY_SNIPPETS = {
     '.jsx': SNIPPETS['JavaScript'],
-    '.rs': _source('// a comment', 'struct Sample {', '}'),
-    '.r': _source('# a comment', 'value <- 1'),
 }
-WATCHER_ONLY_WITH_CLASSES = frozenset({'.jsx', '.rs'})
-WATCHER_ONLY_WITH_COMMENTS = frozenset({'.jsx', '.r'})
+WATCHER_ONLY_WITH_CLASSES = frozenset({'.jsx'})
+WATCHER_ONLY_WITH_COMMENTS = frozenset({'.jsx'})
 
 # Every contract snippet in one file. Each arm of either analyzer finds something
 # to count in it, whichever language the arm was written for, so under these
@@ -321,14 +328,10 @@ class WatcherOnlyExtensionCoverageTests(unittest.TestCase):
                 scratch,
                 [(extension, extension, source) for extension, source in WATCHER_ONLY_SNIPPETS.items()])
 
-            # The R snippet has nothing class-like in it, so its zero says
-            # nothing about arms by itself; the polyglot file does.
             polyglot_classes, polyglot_comments = _probe(
                 scratch,
                 [(extension, extension, POLYGLOT) for extension in WATCHER_ONLY_SNIPPETS])
 
-        # Same rule as above, both directions: '.rs' without comment counts and
-        # '.r' without class counts are gaps being pinned, not endorsed.
         self.assertEqual(sorted(with_classes), sorted(WATCHER_ONLY_WITH_CLASSES))
         self.assertEqual(sorted(with_comments), sorted(WATCHER_ONLY_WITH_COMMENTS))
         self.assertEqual(sorted(polyglot_classes), sorted(WATCHER_ONLY_WITH_CLASSES))
