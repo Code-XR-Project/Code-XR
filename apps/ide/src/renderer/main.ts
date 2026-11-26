@@ -69,7 +69,9 @@ appInfo.then(
 let editors: EditorGroup | null = null;
 let editorsLoading: Promise<EditorGroup> | null = null;
 function editorGroup(): Promise<EditorGroup> {
-    editorsLoading ??= import('./editor/editorGroup.ts').then(({ createEditorGroup }) => {
+    editorsLoading ??= Promise.all([import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts')]).then(([{ createEditorGroup }, { installLanguageClient }]) => {
+        // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
+        installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             onActiveChange: (path) => {
