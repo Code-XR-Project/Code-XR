@@ -1,4 +1,4 @@
-import type { AgentChatEvent, AgentProfile, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView, ToolInfo } from '../../shared/agents.ts';
+import type { AgentChatEvent, AgentProfile, ApprovalRequest, EditReviewRequest, EditReviewResult, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView, ToolInfo } from '../../shared/agents.ts';
 import { el, icon } from '../dom.ts';
 import { createAttachmentBar, labelOf, type AttachmentSources } from './chatAttachments.ts';
 import { renderMarkdown } from './chatMarkdown.ts';
@@ -31,7 +31,7 @@ export interface AgentsView {
     newChat(): Promise<void>;
 }
 
-export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void } & Omit<AttachmentSources, 'onStatus'>): AgentsView {
+export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void; reviewEdit(request: EditReviewRequest): Promise<EditReviewResult> } & Omit<AttachmentSources, 'onStatus'>): AgentsView {
     let agents: readonly AgentProfile[] = [];
     let toolCatalog: readonly ToolInfo[] | null = null;
     let providers: readonly ProviderView[] = [];
@@ -466,6 +466,23 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
     }
 
     api.onChat((event: AgentChatEvent) => {
+        if (event.type === 'review') {
+            // The diff opens over the editor whichever chat is on screen, so a review is never lost.
+            callbacks.reviewEdit(event.request).then(
+                (result) => api.resolveReview(event.request.id, result),
+                (error: unknown) => api.resolveReview(event.request.id, { outcome: 'failed', accepted: 0, total: 0, message: errorText(error) }),
+            ).catch((error: unknown) => callbacks.onStatus(errorText(error)));
+            return;
+        }
+        if (event.type === 'approval' && open?.session.id !== event.sessionId) {
+            // An approval for a chat that is not on screen: bring that chat up so the card can be answered.
+            void openChat(event.sessionId).then(() => {
+                if (open?.session.id === event.sessionId) {
+                    addApproval(open.transcript, event.request);
+                }
+            });
+            return;
+        }
         const state = open;
         if (!state || event.sessionId !== state.session.id) {
             return;
@@ -490,11 +507,8 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             }
         } else if (event.type === 'tool' && state.streamTools) {
             upsertToolRun(state.streamTools, event.run);
-        } else if (event.type === 'approval' && state.streaming) {
-            const card = renderApproval(event.request, (decision) => api.approve(event.request.id, decision).catch((error: unknown) => callbacks.onStatus(errorText(error))));
-            state.streaming.parentElement?.append(card);
-            state.transcript.scrollTop = state.transcript.scrollHeight;
-            card.querySelector('button')?.focus();
+        } else if (event.type === 'approval') {
+            addApproval(state.streaming?.parentElement ?? state.transcript, event.request);
         } else if (event.type === 'end') {
             state.streaming = null;
             state.streamTools = null;
@@ -502,6 +516,15 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             state.render();
         }
     });
+
+    function addApproval(parent: HTMLElement, request: ApprovalRequest): void {
+        const card = renderApproval(request, (decision) => api.approve(request.id, decision).catch((error: unknown) => callbacks.onStatus(errorText(error))));
+        parent.append(card);
+        if (open) {
+            open.transcript.scrollTop = open.transcript.scrollHeight;
+        }
+        card.querySelector('button')?.focus();
+    }
 
     return {
         refresh,
