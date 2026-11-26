@@ -175,7 +175,7 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.terminalKill, (event, id) => terminal.kill(event.sender, id));
 
     // The AI agent hub (agents/agentsIpc.ts).
-    registerAgentHandlers(handle, agents.providers);
+    registerAgentHandlers(handle, agents);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

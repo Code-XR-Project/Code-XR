@@ -99,3 +99,11 @@ export function ipcErrorMessage(error: unknown): string {
     const text = error instanceof Error ? error.message : String(error);
     return text.replace(/^Error invoking remote method '[^']*': (?:Error: )?/, '');
 }
+
+/** #203: the header's file count, `1 file`, `870 files`; empty while unknown. */
+export function analysedFilesLabel(count: number | undefined): string {
+    if (count === undefined || !Number.isFinite(count) || count < 0) {
+        return '';
+    }
+    return `${Math.round(count).toLocaleString('en')} ${count === 1 ? 'file' : 'files'}`;
+}

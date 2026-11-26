@@ -14,7 +14,7 @@ import type { FunctionMetricsSnapshot } from './problems.ts';
  * any Node, Electron or DOM import.
  */
 
-import { AGENT_IPC_CHANNELS, type AgentsApi } from './agents.ts';
+import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentsApi } from './agents.ts';
 
 /** Facts about the running IDE, shown on the welcome screen and in About. */
 export interface AppInfo {
@@ -200,7 +200,7 @@ export type AutoStartMode = (typeof AUTO_START_MODES)[number];
 /** Why an analysis did not start; `message` is for display. */
 export type AnalysisStartResult =
     | { readonly ok: true }
-    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'declined' | 'failed'; readonly message: string };
+    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'failed'; readonly message: string };
 
 /**
  * Whether a scene is shared beyond this machine through a Cloudflare quick
@@ -235,6 +235,8 @@ export interface SceneInfo {
     readonly target: string;
     /** Its absolute path, for the header's tooltip only. */
     readonly targetPath: string;
+    /** #203: how many files the analysis took (its own records), when known. */
+    readonly files?: number | undefined;
     readonly share: SceneShareState;
 }
 
@@ -572,6 +574,7 @@ export const IPC_EVENTS = {
     keybindingsChanged: 'codexr:keybindings:changed',
     outputAppended: 'codexr:output:appended',
     metricsChanged: 'codexr:problems:metrics-changed',
+    ...AGENT_IPC_EVENTS,
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */
