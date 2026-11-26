@@ -105,6 +105,45 @@ export interface HostNotification {
     readonly message: string;
 }
 
+/**
+ * A shell the terminal panel can start (#137). Profiles are detected by the
+ * main process per OS, or saved by the person through a native file dialog;
+ * the renderer only ever names one by `id`, so it cannot start any other
+ * executable. `path` and `args` are for display.
+ */
+export interface TerminalProfile {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+    readonly args: readonly string[];
+    readonly source: 'detected' | 'custom';
+}
+
+export interface TerminalProfileList {
+    /** Detected profiles in preference order (Git Bash first on Windows, `$SHELL` first elsewhere), then custom ones. */
+    readonly profiles: readonly TerminalProfile[];
+    /** What a new terminal runs: the saved choice when it still exists, otherwise the first detected profile. */
+    readonly defaultProfileId: string | null;
+}
+
+/** A terminal the main process started. `id` addresses it in every later call and event. */
+export interface TerminalCreated {
+    readonly id: number;
+    readonly profile: TerminalProfile;
+    /** Where the shell started: the open folder, or the home folder when none is open. */
+    readonly cwd: string;
+}
+
+export interface TerminalDataEvent {
+    readonly id: number;
+    readonly data: string;
+}
+
+export interface TerminalExitEvent {
+    readonly id: number;
+    readonly exitCode: number;
+}
+
 /** Unsubscribes a listener registered with an `on…` member. */
 export type Unsubscribe = () => void;
 
