@@ -12,6 +12,8 @@ import * as vscode from 'vscode';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { ConfigurationConverter } from './configurationConverter';
 import { getLogger } from '../../../platform/logging/sink';
+import { getHost } from '../../host/hostRegistry';
+import type { HostStatusIndicator } from '../../host/codeXRHost';
 
 const logger = getLogger('DEBOUNCE_MANAGER');
 
@@ -33,17 +35,14 @@ export class DebounceManager {
     private progressIntervalId: NodeJS.Timeout | null = null;
     private isActive: boolean = false;
     private startTime: number = 0;
-    private statusBarItem: vscode.StatusBarItem | null = null;
+    private statusBarItem: HostStatusIndicator | null = null;
 
     constructor(
         private delayMs: number,
         private callback: () => Promise<void> | void,
         private targetFileName?: string,
     ) {
-        this.statusBarItem = vscode.window.createStatusBarItem(
-            vscode.StatusBarAlignment.Left,
-            100,
-        );
+        this.statusBarItem = getHost().notifier.createStatusIndicator({ priority: 100 });
     }
 
     // ── Static helpers ───────────────────────────────────────────────

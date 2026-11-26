@@ -231,3 +231,36 @@ test('confirm takes a severity for its icon; with no actions it is a modal messa
         { kind: 'error', message: 'Broken', items: ['Retry'] },
     ]);
 }));
+
+test('createStatusIndicator is a left status-bar item, keeping the priority it is given', () => {
+    const created = [];
+    const item = { text: '', tooltip: undefined, show() {}, hide() {}, dispose() {} };
+    return withHost({
+        fake: {
+            overrides: {
+                window: {
+                    createStatusBarItem: (...args) => {
+                        created.push(args);
+                        return item;
+                    },
+                },
+            },
+        },
+    }, ({ host, fake }) => {
+        const indicator = host.notifier.createStatusIndicator({ priority: 100 });
+        host.notifier.createStatusIndicator();
+        indicator.text = '$(clock) Analyzing a.ts in 3s';
+        indicator.tooltip = 'Waiting';
+        const left = fake.vscode.StatusBarAlignment.Left;
+        assert.deepEqual(created, [[left, 100], [left]]);
+        assert.equal(item.text, '$(clock) Analyzing a.ts in 3s');
+        assert.equal(item.tooltip, 'Waiting');
+    });
+});
+
+test('the re-analysis countdown uses a host status indicator, not vscode.window', () => {
+    const fs = require('node:fs');
+    const source = fs.readFileSync(path.join(__dirname, '..', '..', 'src/core/analysis/watchers/debounceManager.ts'), 'utf8');
+    assert.match(source, /getHost\(\)\.notifier\.createStatusIndicator\(\{ priority: 100 \}\)/, 'canary');
+    assert.doesNotMatch(source, /vscode\.window\./);
+});

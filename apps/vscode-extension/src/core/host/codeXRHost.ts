@@ -82,8 +82,8 @@ export interface HostNotifier {
     ): Promise<string | undefined>;
     /** Transient status-line text. */
     status(message: string, timeoutMs?: number): HostDisposable;
-    /** A long-lived status-line item. */
-    createStatusIndicator(): HostStatusIndicator;
+    /** A long-lived status-line item; a higher `priority` sits further toward the start of the line. */
+    createStatusIndicator(options?: { priority?: number }): HostStatusIndicator;
 }
 
 /** UI updates the core asks for, by meaning rather than by VS Code command id. */

@@ -68,8 +68,10 @@ export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
                     ? vscode.window.setStatusBarMessage(message)
                     : vscode.window.setStatusBarMessage(message, timeoutMs);
             },
-            createStatusIndicator(): HostStatusIndicator {
-                const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+            createStatusIndicator(options): HostStatusIndicator {
+                const item = options?.priority === undefined
+                    ? vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
+                    : vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, options.priority);
                 return {
                     get text() {
                         return item.text;
