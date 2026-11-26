@@ -13,6 +13,12 @@
  *    (`historical-updated`) — which is also pushed whenever the working-copy
  *    side is re-analyzed by the incremental watcher chain, keeping an open
  *    comparison live.
+ *  - cancel():     POST /api/historical/cancel {jobId} — the same service
+ *    cancel as XR's `historical-comparison-cancel` (HIST-7). Closing the page
+ *    while this page's job has no result yet cancels it too.
+ *  - syncStatus(): GET /api/historical/status (idle/running/done/error) on load
+ *    and after every SSE reconnect, so a missed SSE event can never leave the
+ *    button on "Comparing..." (HIST-13).
  *  - loadResult(): fetches the /comparison/revision-N.json artifact plus both
  *    side payloads and renders delta tiles, a left/right metric chart and a
  *    per-item detail table (added/removed/modified/unchanged).
@@ -20,6 +26,7 @@
  * Mount contract (same element ids in every template):
  *   #historical-status, #historical-controls,
  *   #historical-left-source, #historical-right-source, #historical-compare-btn,
+ *   #historical-cancel-btn,
  *   #historical-results, #historical-added-count, #historical-removed-count,
  *   #historical-modified-count, #historical-unchanged-count,
  *   #historical-metrics-chart, #historical-detail-table, #historical-meta
@@ -40,6 +47,10 @@ class CodexrHistoricalPanel {
     this.metricsChart = null;
     this.detailTable = null;
     this.busy = false;
+    /** The job this page started or is following; null when idle. */
+    this.jobId = null;
+    /** The comparison revision on screen, so a status read does not reload it. */
+    this.renderedRevision = null;
   }
 
   initialize() {
@@ -63,6 +74,8 @@ class CodexrHistoricalPanel {
           ? this.references.notice
           : 'Select two versions to compare.', false);
         this.bindCompareButton();
+        this.bindPageLeave();
+        return this.syncStatus();
       })
       .catch((error) => {
         console.error('Failed to load historical references:', error);
@@ -109,6 +122,122 @@ class CodexrHistoricalPanel {
       button.dataset.codexrBound = 'true';
       button.addEventListener('click', () => this.compare());
     }
+    const cancelButton = document.getElementById('historical-cancel-btn');
+    if (cancelButton && !cancelButton.dataset.codexrBound) {
+      cancelButton.dataset.codexrBound = 'true';
+      cancelButton.addEventListener('click', () => this.cancel());
+    }
+  }
+
+  /**
+   * Leaving the page leaves History: a job this page started that has no
+   * result yet is cancelled, scoped by its id so it never stops a job another
+   * page started (HIST-7). sendBeacon is the request a closing page keeps.
+   */
+  bindPageLeave() {
+    if (this.pageLeaveBound || typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+      return;
+    }
+    this.pageLeaveBound = true;
+    window.addEventListener('pagehide', () => this.cancelOnLeave());
+  }
+
+  cancelOnLeave() {
+    if (!this.busy || !this.jobId) {
+      return false;
+    }
+    const body = JSON.stringify({ jobId: this.jobId });
+    if (typeof navigator !== 'undefined' && navigator && typeof navigator.sendBeacon === 'function') {
+      return navigator.sendBeacon('/api/historical/cancel', new Blob([body], { type: 'application/json' }));
+    }
+    fetch('/api/historical/cancel', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+    return true;
+  }
+
+  /** Stops the running comparison; the outcome arrives over SSE, or from the status read. */
+  cancel() {
+    const button = document.getElementById('historical-cancel-btn');
+    if (button) {
+      button.disabled = true;
+    }
+    this.setStatus('Cancelling comparison...', false);
+    return fetch('/api/historical/cancel', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(this.jobId ? { jobId: this.jobId } : {}),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        return response.json();
+      })
+      .then((payload) => {
+        if (!payload || !payload.cancelled) {
+          // Nothing of ours was running any more: show what the server has.
+          return this.syncStatus();
+        }
+        return null;
+      })
+      .catch((error) => {
+        if (button) {
+          button.disabled = false;
+        }
+        this.setStatus('Could not cancel the comparison: ' + error.message, true);
+      });
+  }
+
+  /**
+   * Reads GET /api/historical/status and catches up with it: a running job
+   * keeps the buttons busy, a finished one is loaded if it is not on screen,
+   * and an error or a cancel releases the buttons (HIST-13).
+   */
+  syncStatus() {
+    return fetch('/api/historical/status')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        return response.json();
+      })
+      .then((status) => this.applyStatus(status))
+      .catch((error) => {
+        console.error('Failed to read historical comparison status:', error);
+      });
+  }
+
+  applyStatus(status) {
+    if (!status) {
+      return Promise.resolve();
+    }
+    if (status.state === 'running') {
+      this.jobId = status.jobId || this.jobId;
+      if (!this.busy) {
+        this.setBusy(true);
+        this.setStatus('A comparison is running...', false);
+      }
+      return Promise.resolve();
+    }
+    const wasBusy = this.busy;
+    this.setBusy(false);
+    if (status.state === 'error') {
+      if (wasBusy) {
+        this.setStatus(status.message || 'The comparison failed.', true);
+      }
+      return Promise.resolve();
+    }
+    if (status.revision && status.revision !== this.renderedRevision) {
+      return this.loadResult(status.revision);
+    }
+    if (wasBusy && status.state === 'idle') {
+      this.setStatus('Historical comparison cancelled.', false);
+    }
+    return Promise.resolve();
   }
 
   compare() {
@@ -138,7 +267,9 @@ class CodexrHistoricalPanel {
           });
         }
         // Progress and the finished revision arrive over SSE.
-        return null;
+        return response.json().catch(() => ({})).then((body) => {
+          this.jobId = (body && body.jobId) || null;
+        });
       })
       .catch((error) => {
         this.setBusy(false);
@@ -149,6 +280,11 @@ class CodexrHistoricalPanel {
   /** Route the SSE messages this panel understands (called by the template). */
   handleSseMessage(message) {
     if (message.type === 'historical-progress') {
+      if (message.state === 'cancelled') {
+        this.setBusy(false);
+        this.setStatus(message.message || 'Historical comparison cancelled.', false);
+        return true;
+      }
       this.setStatus(message.message || 'Analyzing...', message.state === 'error');
       if (message.state === 'error') {
         this.setBusy(false);
@@ -188,6 +324,7 @@ class CodexrHistoricalPanel {
       ]))
       .then(([result, leftPayload, rightPayload]) => {
         this.render(result, leftPayload, rightPayload);
+        this.renderedRevision = revision;
         this.setStatus(
           `Compared ${result.left.source.label} vs ${result.right.source.label}`
           + ` — updated ${new Date().toLocaleTimeString()}`,
@@ -347,10 +484,19 @@ class CodexrHistoricalPanel {
 
   setBusy(busy) {
     this.busy = busy;
+    if (!busy) {
+      this.jobId = null;
+    }
     const button = document.getElementById('historical-compare-btn');
     if (button) {
       button.disabled = busy;
       button.textContent = busy ? 'Comparing...' : 'Compare';
+    }
+    // Cancel is offered only while a comparison runs.
+    const cancelButton = document.getElementById('historical-cancel-btn');
+    if (cancelButton) {
+      cancelButton.disabled = false;
+      cancelButton.classList.toggle('hidden', !busy);
     }
   }
 

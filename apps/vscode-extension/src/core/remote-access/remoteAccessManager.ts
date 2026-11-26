@@ -2,6 +2,7 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import type { HostDisposable } from '../host/codeXRHost';
 import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
 import { ActiveServer } from '../server/registry/activeServerModel';
 import { getActiveServerRegistry } from '../server/registry/activeServerRegistry';
@@ -34,18 +35,18 @@ interface RemoteCapableServer {
 interface GuestConnection {
     origin: string;
     extensionToken: string;
-    profileSubscription: vscode.Disposable;
+    profileSubscription: HostDisposable;
 }
 
 /** Mirrors the authority's per-request attempt budget. */
 const MAX_PAIRING_CODE_PROMPTS = 5;
 
-export class RemoteAccessManager implements vscode.Disposable {
+export class RemoteAccessManager implements HostDisposable {
     private static instance: RemoteAccessManager | null = null;
     private readonly binaryManager: CloudflaredBinaryManager;
     private readonly shares = new Map<string, ShareRecord>();
     private readonly guestConnections = new Map<string, GuestConnection>();
-    private readonly registrySubscription: vscode.Disposable;
+    private readonly registrySubscription: HostDisposable;
     private disposed = false;
     private autoStartSuppressed = false;
 

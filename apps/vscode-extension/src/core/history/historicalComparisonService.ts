@@ -7,6 +7,7 @@ import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { decorateDirectoryEntries } from './gitAnalysisShared';
 import { CachedPayload, GitAnalysisSessionContext } from './gitAnalysisSessionContext';
 import { JobRunner, JobTicket } from '../analysis/launch/jobRunner';
+import { describeComparisonStatus } from './historicalComparisonStatus';
 import { GitRepositoryService } from './gitRepositoryService';
 import { GitAnalysisSourceCatalog } from './gitAnalysisEligibility';
 import {
@@ -17,6 +18,7 @@ import {
     HistoricalComparisonReferences,
     HistoricalComparisonRequest,
     HistoricalComparisonResult,
+    HistoricalComparisonStatus,
 } from './historicalComparisonModels';
 import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
 
@@ -75,6 +77,10 @@ export class HistoricalComparisonService {
         timeoutMs: HISTORICAL_COMPARISON_JOB_TIMEOUT_MS,
     });
     private revision = 0;
+    /** Revision of the last comparison that succeeded (what the clients show), for the status route (HIST-13). */
+    private lastResultRevision: number | null = null;
+    /** Id of the job that is a live refresh of the comparison on screen, not a new pick (HIST-7). */
+    private refreshJobId: string | null = null;
     /** Set when the live link gave up after repeated failures (HIST-1); a new comparison clears it. */
     private liveRefreshSuspended = false;
     /** `historical-comparisons/<session>`: removed on dispose once its snapshots are gone (HIST-8). */
@@ -156,6 +162,7 @@ export class HistoricalComparisonService {
         return ticket.execute(async () => {
             const result = await this.executeComparison(request, tagged);
             this.liveRefreshSuspended = false;
+            this.lastResultRevision = result.revision ?? this.lastResultRevision;
             return result;
         });
     }
@@ -176,8 +183,26 @@ export class HistoricalComparisonService {
         return this.jobs.cancel('cancelled');
     }
 
+    /**
+     * Cancels the running job only when it has no result on screen yet: a
+     * new pick, not the live refresh of the comparison already shown. Used
+     * when the room leaves History (HIST-7). Returns whether one was stopped.
+     */
+    public cancelComparisonWithoutResult(): boolean {
+        const job = this.jobs.status;
+        if (!this.jobs.isBusy() || !job || job.id === this.refreshJobId) {
+            return false;
+        }
+        return this.cancelComparison();
+    }
+
     public getJobStatus() {
         return this.jobs.status;
+    }
+
+    /** idle / running / done / error, with the revision to load (HIST-13). */
+    public getComparisonStatus(): HistoricalComparisonStatus {
+        return describeComparisonStatus(this.jobs.status, this.lastResultRevision, describeHistoricalComparisonError);
     }
 
     public isBusy(): boolean {
@@ -203,7 +228,13 @@ export class HistoricalComparisonService {
         if (!this.activeRequest || !this.hasLiveSource()) {
             return null;
         }
-        return this.compare({ ...this.activeRequest }, onProgress);
+        const request = { ...this.activeRequest };
+        const ticket = this.reserveComparison(request);
+        if (!ticket) {
+            throw new Error('comparison-busy');
+        }
+        this.refreshJobId = ticket.id;
+        return this.runComparison(ticket, request, onProgress);
     }
 
     public async dispose(): Promise<void> {

@@ -295,6 +295,22 @@ kills its Git and Python processes and keeps the previous comparison. A second
 start is answered `busy` to that participant only, and the live-refresh flag
 follows the request that succeeded, not the one that was asked.
 
+Leaving History (the room switches to another mode) cancels a comparison that
+has no result yet and tells the room with `historical-comparison-cancelled`;
+the live refresh of the comparison already shown is left to finish.
+
+The LivePanel has the same controls over REST (no room there):
+
+- `POST /api/historical/cancel` `{ jobId? }` calls the same service cancel as
+  the room message. With `jobId` it stops only that job, which is what the
+  page sends (by `sendBeacon`) when it is closed while its comparison has no
+  result yet. The outcome reaches the panel as SSE `historical-progress` with
+  state `cancelled`.
+- `GET /api/historical/status` answers `{ state, jobId, revision, message }`,
+  `state` being `idle`, `running`, `done` or `error` and `revision` the last
+  successful comparison. The panel reads it on load and after every SSE
+  reconnect, and loads `revision` when it is not on screen.
+
 ### Live comparison over time (1.2.1)
 
 - **Live refresh.** A comparison with a working-copy side refreshes after each
@@ -354,6 +370,13 @@ after refreshing the live source.
 - There is no revision overlay or per-delta colouring yet.
 - The target must belong to a local Git repository.
 - Partial clones may require fetching missing objects outside CodeXR.
+  CodeXR never downloads them: a revision whose files are not on this
+  computer is left out with the reason "not on this computer (partial
+  clone)", and every complete revision (HEAD included) stays available.
+- Oldest Git tested for history modes: 2.43 (the Ubuntu 24.04 default),
+  which dies on the first missing partial-clone object instead of reporting
+  it; CodeXR restarts its `git cat-file` reader past that object. CI runs a
+  current Git. Older versions are not tested.
 - Repositories using Git LFS compare the content available in Git objects;
   LFS objects are not downloaded automatically.
 

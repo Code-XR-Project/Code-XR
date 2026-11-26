@@ -5,6 +5,8 @@ import { fileToServerMap } from '../fileToServerMap';
 import { CollaborationRoomServer } from '../collaboration/collaborationRoomServer';
 import { HistoricalComparisonProgress } from '../../history/historicalComparisonModels';
 import { HistoricalComparisonService, describeHistoricalComparisonError } from '../../history/historicalComparisonService';
+import { HISTORICAL_COMPARISON_CANCELLED_MESSAGE } from '../../history/historicalComparisonStatus';
+import { JobCancelledError } from '../../analysis/launch/jobRunner';
 import { GitAnalysisSourceCatalog } from '../../history/gitAnalysisEligibility';
 import { ProjectEvolutionService } from '../../history/projectEvolutionService';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
@@ -61,6 +63,8 @@ export class AnalysisFeatureHost {
     private historicalRefreshFailures = 0;
     /** A live refresh was skipped while the XR view was elsewhere; run it on re-entry (HIST-4). */
     private historicalRefreshPendingOnEntry = false;
+    /** The room's mode at the last view change, to see History being left (HIST-7). */
+    private lastViewMode: AnalysisViewMode | null = null;
     private refreshCoordinatorDisposables: Array<() => void> = [];
     private dependencyRefreshHandler: (batch: AnalysisSourceChangeBatch) => Promise<void> =
         async () => undefined;
@@ -173,14 +177,37 @@ export class AnalysisFeatureHost {
                 this.historicalRefreshPendingOnEntry = this.historicalComparisonService?.hasLiveSource() ?? false;
             }
         });
+        this.lastViewMode = analysisRefreshCoordinator.getViewState(sessionId).mode;
         this.refreshCoordinatorDisposables.push(
-            analysisRefreshCoordinator.onStateChanged(sessionId, (view) => {
-                if (view.mode === 'historical-compare' && this.historicalRefreshPendingOnEntry) {
-                    this.historicalRefreshPendingOnEntry = false;
-                    this.scheduleHistoricalComparisonRefresh();
-                }
-            }),
+            analysisRefreshCoordinator.onStateChanged(sessionId, (view) => this.handleHistoricalViewChanged(view)),
         );
+    }
+
+    /**
+     * Entering History runs a refresh skipped elsewhere (HIST-4); leaving it
+     * cancels a comparison with no result yet, told like a Cancel (HIST-7).
+     */
+    public handleHistoricalViewChanged(view: AnalysisViewState): void {
+        const previousMode = this.lastViewMode;
+        this.lastViewMode = view.mode;
+        if (view.mode === 'historical-compare') {
+            if (this.historicalRefreshPendingOnEntry) {
+                this.historicalRefreshPendingOnEntry = false;
+                this.scheduleHistoricalComparisonRefresh();
+            }
+            return;
+        }
+        if (previousMode !== 'historical-compare' || !this.historicalComparisonService) {
+            return;
+        }
+        const jobId = this.historicalComparisonService.getJobStatus()?.id ?? null;
+        if (!this.historicalComparisonService.cancelComparisonWithoutResult()) {
+            return;
+        }
+        this.hooks.getRoom()?.broadcastServerMessage(this.hooks.getRoomId(), {
+            type: 'historical-comparison-cancelled',
+            payload: { message: `${HISTORICAL_COMPARISON_CANCELLED_MESSAGE} You left History.`, jobId },
+        });
     }
 
     /** Session id, valid whenever any feature service exists. */
@@ -361,6 +388,12 @@ export class AnalysisFeatureHost {
                 this.notifyLivePanelHistoricalUpdated(result.revision);
             }
         } catch (error) {
+            if (error instanceof JobCancelledError && error.reason !== 'timeout') {
+                // Stopped on purpose: no retry; the next edit refreshes again.
+                this.historicalRefreshFailures = 0;
+                this.notifyLivePanelHistoricalProgress({ state: 'cancelled', message: HISTORICAL_COMPARISON_CANCELLED_MESSAGE });
+                return;
+            }
             logger.error('[CodeXR][HistoricalComparison] Live refresh failed:', error);
             if (!this.retryHistoricalRefresh()) {
                 this.stopHistoricalLiveRefresh(error);
@@ -395,6 +428,7 @@ export class AnalysisFeatureHost {
             state: progress.state,
             message: progress.message,
             revision: progress.revision,
+            jobId: progress.jobId,
         });
     }
 
