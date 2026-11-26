@@ -17,11 +17,10 @@ const ICONS = {
     menu: 'M6 9l6 6 6-6',
     trash: 'M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13',
     close: 'M6 6l12 12M18 6L6 18',
+    maximize: 'M6 15l6-6 6 6M5 4h14',
+    restore: 'M6 9l6 6 6-6M5 20h14',
     terminal: 'M4 17l6-5-6-5M12 19h8',
 } as const;
-
-const DEFAULT_HEIGHT = 260;
-const MIN_HEIGHT = 120;
 
 export interface TerminalPanel {
     readonly visible: boolean;
@@ -31,10 +30,14 @@ export interface TerminalPanel {
     hide(): void;
     /** Starts a terminal from a profile (null: the default) and shows it. */
     newTerminal(profileId?: string | null): Promise<void>;
+    /** Shows the panel as maximised or not (#169); the layout owns the state. */
+    setMaximized(maximized: boolean): void;
 }
 
 export interface TerminalPanelHooks {
     onError(message: string): void;
+    /** The header's maximise button (#169). */
+    toggleMaximized?(): void;
 }
 
 interface TerminalTab {
@@ -47,7 +50,6 @@ interface TerminalTab {
 }
 
 export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal'], platform: Promise<string>, hooks: TerminalPanelHooks): TerminalPanel {
-    let height = DEFAULT_HEIGHT;
     let activeId: number | null = null;
     let loadingView: Promise<typeof XtermModule> | null = null;
     let profiles: TerminalProfileList = { profiles: [], defaultProfileId: null };
@@ -55,7 +57,6 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
     // Output that arrived before `create` resolved in this page (the two travel separately).
     const early = new Map<number, string>();
 
-    const sash = el('div', { className: 'panel-sash', attrs: { role: 'separator', 'aria-orientation': 'horizontal', 'aria-label': 'Resize terminal panel' } });
     const tabList = el('div', { className: 'terminal-tabs', attrs: { role: 'tablist', 'aria-label': 'Terminals', 'data-testid': 'terminal-tabs' } });
     const button = (label: string, path: string, testId: string): HTMLButtonElement =>
         el('button', { className: 'icon-button', attrs: { type: 'button', title: label, 'aria-label': label, 'data-testid': testId } }, [icon(path)]);
@@ -65,10 +66,15 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
     menuButton.setAttribute('aria-expanded', 'false');
     const killButton = button('Kill Terminal', ICONS.trash, 'terminal-kill');
     const closeButton = button('Close Panel', ICONS.close, 'terminal-close-panel');
+    // #169: the panel's size is the layout's (layout/layout.ts): its sash, and maximising it.
+    const maximizeButton = button('Maximize Panel Size', ICONS.maximize, 'terminal-maximize');
+    maximizeButton.setAttribute('aria-pressed', 'false');
+    maximizeButton.hidden = !hooks.toggleMaximized;
+    maximizeButton.addEventListener('click', () => hooks.toggleMaximized?.());
     const header = el('div', { className: 'panel-header' }, [
         el('span', { className: 'panel-title', text: 'Terminal' }),
         tabList,
-        el('div', { className: 'panel-actions' }, [newButton, menuButton, killButton, closeButton]),
+        el('div', { className: 'panel-actions' }, [newButton, menuButton, killButton, maximizeButton, closeButton]),
     ]);
     const body = el('div', { className: 'terminal-body', attrs: { 'data-testid': 'terminal-body' } });
     const empty = el('p', { className: 'muted terminal-empty', text: 'No terminal is running. Start one with + or Ctrl+Shift+`.' });
@@ -78,14 +84,7 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
     panel.setAttribute('data-testid', 'terminal-panel');
     panel.setAttribute('aria-label', 'Terminal');
     panel.hidden = true;
-    panel.replaceChildren(sash, header, body, menu);
-
-    function applyHeight(): void {
-        const max = Math.max(MIN_HEIGHT, Math.round(window.innerHeight * 0.8));
-        height = Math.min(Math.max(height, MIN_HEIGHT), max);
-        panel.style.height = `${height}px`;
-    }
-    applyHeight();
+    panel.replaceChildren(header, body, menu);
 
     // Fitting follows the body's size (panel resize, window resize, tab switch).
     let fitFrame = 0;
@@ -100,22 +99,6 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
     };
     new ResizeObserver(scheduleFit).observe(body);
 
-    sash.addEventListener('pointerdown', (event) => {
-        event.preventDefault();
-        sash.setPointerCapture(event.pointerId);
-        const startY = event.clientY;
-        const startHeight = height;
-        const move = (e: PointerEvent): void => {
-            height = startHeight + (startY - e.clientY);
-            applyHeight();
-        };
-        const up = (): void => {
-            sash.removeEventListener('pointermove', move);
-            sash.removeEventListener('pointerup', up);
-        };
-        sash.addEventListener('pointermove', move);
-        sash.addEventListener('pointerup', up);
-    });
 
     function activate(id: number | null): void {
         activeId = id;
@@ -355,7 +338,6 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
     newButton.addEventListener('click', () => void newTerminal());
     killButton.addEventListener('click', () => { if (activeId !== null) { closeTerminal(activeId); } });
     closeButton.addEventListener('click', () => hide());
-    window.addEventListener('resize', applyHeight);
     activate(null);
     void refreshProfiles().catch(() => undefined);
 
@@ -379,5 +361,12 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
         show: () => show(),
         hide,
         newTerminal,
+        setMaximized(maximized: boolean): void {
+            maximizeButton.setAttribute('aria-pressed', String(maximized));
+            const label = maximized ? 'Restore Panel Size' : 'Maximize Panel Size';
+            maximizeButton.title = label;
+            maximizeButton.setAttribute('aria-label', label);
+            maximizeButton.replaceChildren(icon(maximized ? ICONS.restore : ICONS.maximize));
+        },
     };
 }

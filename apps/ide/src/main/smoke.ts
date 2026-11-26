@@ -40,6 +40,8 @@ export interface SmokeProbe {
     readonly searchFound: boolean;
     /** #166: the status bar shows the cursor position and the language of the open file. */
     readonly editorStatus: string;
+    /** #169: Ctrl/Cmd+K Z toggled zen mode, the side-bar sash resized it from the keyboard and the size was saved, the active activity item hid the side bar. */
+    readonly layout: { readonly zen: boolean; readonly resized: boolean; readonly saved: boolean; readonly sideBarToggled: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -163,6 +165,34 @@ const RENDERER_PROBE = `(async () => {
         }
         palette.focusReturned = !!layer && layer.hidden && !!document.activeElement?.closest('.monaco-editor');
     }
+    // #169: the layout. Zen mode by its chord (the first stroke goes on to Monaco, which keeps its own chords).
+    const layout = { zen: false, resized: false, saved: false, sideBarToggled: false };
+    const shell = document.querySelector('.workbench');
+    const chordKey = (key, code, mod) => window.dispatchEvent(new KeyboardEvent('keydown', { key, code, ctrlKey: mod && !isMacProbe, metaKey: mod && isMacProbe, bubbles: true, cancelable: true }));
+    chordKey('k', 'KeyK', true);
+    chordKey('z', 'KeyZ', false);
+    const zenOn = !!shell?.classList.contains('zen');
+    chordKey('k', 'KeyK', true);
+    chordKey('z', 'KeyZ', false);
+    layout.zen = zenOn && !shell?.classList.contains('zen');
+    const sideBar = document.querySelector('[data-testid="side-bar"]');
+    const sash = document.querySelector('[data-testid="sash-side"]');
+    if (sideBar && sash) {
+        const before = sideBar.getBoundingClientRect().width;
+        sash.focus();
+        sash.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+        const after = sideBar.getBoundingClientRect().width;
+        layout.resized = after > before;
+        try {
+            layout.saved = JSON.parse(localStorage.getItem('codexr.layout') ?? '{}').sideBarWidth === Math.round(after);
+        } catch { layout.saved = false; }
+        sash.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        const active = document.querySelector('.activity-item.is-active');
+        active?.click();
+        const hidden = sideBar.getBoundingClientRect().width === 0;
+        active?.click();
+        layout.sideBarToggled = hidden && sideBar.getBoundingClientRect().width > 0;
+    }
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
@@ -186,6 +216,7 @@ const RENDERER_PROBE = `(async () => {
         quickOpenFound,
         searchFound,
         editorStatus,
+        layout,
         cspViolations,
     };
 })()`;
@@ -248,6 +279,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.searchFound) { failures.push('the Search view did not find renderWorkbench in src/renderer/workbench.ts'); }
         if (!probe.quickOpenFound) { failures.push('quick open did not find src/main/index.ts'); }
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
+        if (!probe.layout.zen || !probe.layout.resized || !probe.layout.saved || !probe.layout.sideBarToggled) { failures.push(`the layout did not respond (${JSON.stringify(probe.layout)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!terminal) {
