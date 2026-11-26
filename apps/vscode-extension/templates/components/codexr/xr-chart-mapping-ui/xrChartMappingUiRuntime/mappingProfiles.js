@@ -729,6 +729,44 @@
     });
   }
 
+  // A runtime that builds its own chart entities over its own data (the two
+  // sides of the historical comparison) declares, on the entity itself, where
+  // each chart type reads from: `entity.__codexrChartSource(chartId)` returns
+  // `{ from: producerId }` or `{ data: inlineJson, field }`. Without it a
+  // switch can only guess from the previous chart's `from`, and a guess cannot
+  // know that a flat comparison side becomes an inline tree under boats, or
+  // which revision an inline boats side came from: both sides fell back to the
+  // normal analysis' `tree`/`data` (HIST-3).
+  function resolveEntityOwnedChartSource(chartEntity, chartId) {
+    var provider = chartEntity && chartEntity.__codexrChartSource;
+    if (typeof provider !== 'function') {
+      return null;
+    }
+    try {
+      var source = provider(chartId);
+      return source && (source.from || source.data) ? source : null;
+    } catch (error) {
+      console.warn('CODEXR_MAPPING_UI: chart source provider failed for ' + (chartEntity.id || 'chart'), error);
+      return null;
+    }
+  }
+
+  function buildEntityChartData(chartEntity, chartId, existingData, mappingSnapshot) {
+    var ownedSource = resolveEntityOwnedChartSource(chartEntity, chartId);
+    var sourceData = ownedSource && ownedSource.from
+      ? Object.assign({}, existingData, { from: ownedSource.from })
+      : existingData;
+    var componentData = buildRuntimeChartData(chartId, sourceData, mappingSnapshot);
+    if (ownedSource && ownedSource.data) {
+      delete componentData.from;
+      componentData.data = ownedSource.data;
+      componentData.field = ownedSource.field || 'uid';
+    } else if (ownedSource) {
+      delete componentData.data;
+    }
+    return componentData;
+  }
+
   function applyChartTypeToEntity(chartEntity, chartId, mappingSnapshot) {
     var componentName = COMPONENT_BY_CHART[chartId];
     if (!chartEntity || !componentName || typeof chartEntity.setAttribute !== 'function') {
@@ -758,7 +796,7 @@
       chartEntity,
       componentName,
       serializeDeclarativeComponentData(
-        buildRuntimeChartData(chartId, existingData, mappingSnapshot)
+        buildEntityChartData(chartEntity, chartId, existingData, mappingSnapshot)
       )
     );
     scheduleOrphanChartSweep(chartEntity);

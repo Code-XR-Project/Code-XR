@@ -232,6 +232,7 @@
         state.activeChartId = chartId;
       },
       applyChartTypeToEntity: applyChartTypeToEntity,
+      buildEntityChartData: buildEntityChartData,
       applyChartTypeToEntities: applyChartTypeToEntities,
       isHierarchicalChart: isHierarchicalChart,
       clearChartGeneratedChildren: clearChartGeneratedChildren,

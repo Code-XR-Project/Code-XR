@@ -148,26 +148,51 @@
     return sliceEl.id || sourceId;
   }
 
+  // What a comparison clone takes from the scene chart it is modelled on:
+  // nothing but this list. Everything else is either derived for the clone
+  // (id, rotation, scale, containment, chart-id marker, the chart component)
+  // or belongs to the scene chart alone — notably every `data-codexr-*`
+  // ownership marker (normal root, analysis mode), which made the analysis
+  // surface adopt the clones as part of the Normal analysis and hide them with
+  // it (HIST-12, LIFECYCLE-8). A deny-list let each new marker leak by default.
+  var COMPARISON_CLONE_INHERITED_ATTRIBUTES = [
+    // Kept in step with the chart component by the mapping runtime.
+    'codexr-boats-layout-stability'
+  ];
+
+  function comparisonDataSourceId(side) {
+    return side === 'right' ? 'codexrComparisonDataRight' : 'codexrComparisonDataLeft';
+  }
+
+  function buildComparisonSideTree(side) {
+    return buildComparisonBoatsTree(
+      state.payloads[side],
+      comparisonTreeField(getConfig()?.targetType),
+      'codexr-' + side
+    );
+  }
+
+  // Where each chart type reads this side's revision from, asked by the
+  // mapping runtime on every chart switch: a flat chart reads the side's own
+  // producer (sliced by the mapping runtime), boats an inline tree built from
+  // the side's payload. Without it a switch to boats read the normal `tree`
+  // and a switch back read the normal `data` (HIST-3).
+  function createComparisonChartSource(side) {
+    return function (chartId) {
+      if (CHART_ID_BY_COMPONENT['babia-boats'] === chartId) {
+        return { data: serializeInlineBabiaData(buildComparisonSideTree(side)), field: 'uid' };
+      }
+      return { from: comparisonDataSourceId(side) };
+    };
+  }
+
   function createChartFromTemplate(original, id, sourceId, zone, targetType, options) {
     var clone = createEntity('a-entity');
     var componentName = getChartComponentName(original);
-    original.getAttributeNames().forEach(function (attributeName) {
-      if (
-        attributeName === 'id'
-        || attributeName === 'visible'
-        || attributeName === 'position'
-        || attributeName === 'scale'
-        // Orientation and the chart marker are derived below from the chart
-        // this clone actually carries, not copied from an entity that may be
-        // wearing a previous chart's rotation.
-        || attributeName === 'rotation'
-        || attributeName === 'data-codexr-active-chart-id'
-        || attributeName === 'codexr-chart-containment'
-        || CHART_COMPONENT_NAMES.indexOf(attributeName) !== -1
-      ) {
-        return;
+    COMPARISON_CLONE_INHERITED_ATTRIBUTES.forEach(function (attributeName) {
+      if (original.hasAttribute?.(attributeName)) {
+        clone.setAttribute(attributeName, original.getAttribute(attributeName));
       }
-      clone.setAttribute(attributeName, original.getAttribute(attributeName));
     });
     clone.setAttribute('id', id);
     clone.setAttribute('rotation', getChartRotationForComponent(componentName));
@@ -201,6 +226,9 @@
       clone.setAttribute('codexr-chart-containment', containmentProfile.containment);
     }
     clone.dataset.codexrComparisonTargetType = targetType || '';
+    if (options?.side) {
+      clone.__codexrChartSource = createComparisonChartSource(options.side);
+    }
     return clone;
   }
 
@@ -295,24 +323,22 @@
     var chartComponent = getChartComponentName(original);
     var leftFrom = 'codexrComparisonDataLeft';
     var rightFrom = 'codexrComparisonDataRight';
-    var boatsPathField = comparisonTreeField(config?.targetType);
-    var leftChartOptions = null;
-    var rightChartOptions = null;
+    var leftChartOptions = { side: 'left' };
+    var rightChartOptions = { side: 'right' };
     if (isHierarchicalBoatsComponent(chartComponent)) {
       leftFrom = '';
       rightFrom = '';
-      leftChartOptions = {
-        inlineData: buildComparisonBoatsTree(state.payloads.left, boatsPathField, 'codexr-left')
-      };
-      rightChartOptions = {
-        inlineData: buildComparisonBoatsTree(state.payloads.right, boatsPathField, 'codexr-right')
-      };
-    } else {
-      var leftData = createDataSource('codexrComparisonDataLeft', result.left.url + '?revision=' + result.revision);
-      var rightData = createDataSource('codexrComparisonDataRight', result.right.url + '?revision=' + result.revision);
-      refs.comparisonRoot.appendChild(leftData);
-      refs.comparisonRoot.appendChild(rightData);
+      leftChartOptions.inlineData = buildComparisonSideTree('left');
+      rightChartOptions.inlineData = buildComparisonSideTree('right');
     }
+    // Both producers exist whatever the first chart is: a later switch from
+    // boats to a flat chart reads them (HIST-3).
+    refs.comparisonRoot.appendChild(
+      createDataSource(comparisonDataSourceId('left'), result.left.url + '?revision=' + result.revision)
+    );
+    refs.comparisonRoot.appendChild(
+      createDataSource(comparisonDataSourceId('right'), result.right.url + '?revision=' + result.revision)
+    );
 
     await nextFrame();
     if (!isHierarchicalBoatsComponent(chartComponent)) {

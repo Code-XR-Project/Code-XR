@@ -59,14 +59,27 @@
       codexr-analysis-table="mode: single; width: 6.514; depth: 4.118; anchorX: 0; anchorY: 1; anchorZ: -18">
     </a-entity>
     <a-entity id="data" babia-queryjson="url: ./xr-mode-normal-data.json"></a-entity>
-    <!-- Real scenes attach the containment component to every chart; the
+    <!-- Wrapped like the real template (xr-visualization.html): the chart
+         lives under #codexrNormalAnalysisRoot inside #codexrAnalysisSurface,
+         so the surface runtime owns the WRAPPER, not the chart. An unwrapped
+         chart is not what users run and hid the clone-marker leak (HIST-12).
+         Real scenes attach the containment component to every chart; the
          mapping-ui's chart discovery requires it on analysis-root entities,
          so without it the chart-switch path can never resolve this chart. -->
-    <a-entity
-      id="normalChart"
-      position="0 1 -18"
-      codexr-chart-containment="zone: center"
-      babia-bars="from: data; x_axis: name; height: totalLines; radius: complexity; color: language">
+    <a-entity id="codexrAnalysisSurface" data-codexr-analysis-surface="true">
+      <a-entity
+        id="codexrNormalAnalysisRoot"
+        data-codexr-analysis-root="true"
+        data-codexr-analysis-mode="single"
+        data-codexr-normal-root="true">
+        <a-entity
+          id="normalChart"
+          position="0 1 -18"
+          data-codexr-active-chart-id="bars"
+          codexr-chart-containment="zone: center"
+          babia-bars="from: data; x_axis: name; height: totalLines; radius: complexity; color: language">
+        </a-entity>
+      </a-entity>
     </a-entity>
     <a-entity id="rig" position="0 2.8 -5">
       <a-camera id="head" look-controls wasd-controls></a-camera>

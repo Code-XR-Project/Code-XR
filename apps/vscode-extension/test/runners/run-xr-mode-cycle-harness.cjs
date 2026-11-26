@@ -41,6 +41,7 @@ async function runPlaywrightIfAvailable() {
   const browser = await launchHarnessChromium(chromium);
   try {
     await runScenario(browser);
+    await runComparisonScenarios(browser);
     await runDependencyScenarios(browser);
   } finally {
     await browser.close();
@@ -142,6 +143,173 @@ async function runScenario(browser) {
   if (chartSwitch.clicked) {
     assert.notEqual(chartSwitch.after, chartSwitch.before, 'chart selector click must switch the active chart');
   }
+}
+
+// HIST-3 / HIST-12 / LIFECYCLE-8: a historical comparison in the wrapped
+// layout the real template generates. Each side must keep reading ITS revision
+// across every chart switch (Bars <-> Boats, Boats <-> flat), the clones must
+// never be adopted by the Normal analysis, and leaving and re-entering the
+// mode must bring the comparison back visible and settled.
+// Markers the comparison sets on its own clones (never copied).
+const DERIVED_CLONE_MARKERS = ['data-codexr-active-chart-id', 'data-codexr-chart-containment',
+  'data-codexr-comparison-target-type'];
+const COMPARISON_CHART_COMPONENTS = ['babia-bars', 'babia-barsmap', 'babia-cyls', 'babia-cylsmap',
+  'babia-pie', 'babia-doughnut', 'babia-bubbles', 'babia-boats'];
+
+function comparisonState(componentNames) {
+  const isShown = (element) => {
+    for (let node = element; node && node.object3D; node = node.parentNode) {
+      if (!node.object3D.visible) { return false; }
+    }
+    return !!element;
+  };
+  const side = (id) => {
+    const element = document.getElementById(id);
+    if (!element) { return null; }
+    const component = componentNames.filter((name) => element.hasAttribute(name));
+    const data = component.length === 1 ? (element.getAttribute(component[0]) || {}) : {};
+    let namespaces = [];
+    if (data.data) {
+      try {
+        const collect = (nodes) => nodes.flatMap((node) => [String(node.uid || '').split(':')[0], ...collect(node.children || [])]);
+        namespaces = [...new Set(collect(JSON.parse(data.data)))];
+      } catch { namespaces = ['<unparseable>']; }
+    }
+    return {
+      component,
+      from: data.from || '',
+      namespaces,
+      parent: element.parentNode?.id || '',
+      markers: element.getAttributeNames().filter((name) => name.startsWith('data-codexr-')).sort(),
+      shown: isShown(element),
+    };
+  };
+  const mode = window.CodeXRAnalysisModeRuntime.getState();
+  return {
+    mode: mode.mode,
+    transitioning: !!mode.transitioning,
+    status: window.CodeXRHistoricalComparisonRuntime.getState().status || '',
+    chartId: window.CodeXRMappingUiRuntime.getState().chartId,
+    left: side('codexrComparisonChartLeft'),
+    right: side('codexrComparisonChartRight'),
+    normalShown: isShown(document.getElementById('normalChart')),
+    // Comparison nodes the Normal analysis would treat as its own: a normal
+    // root marker on them or an ancestor (LIFECYCLE-8).
+    adoptedByNormal: [...document.querySelectorAll('[id^="codexrComparison"]')]
+      .filter((node) => node.closest('[data-codexr-normal-root="true"], [data-codexr-analysis-mode="single"]'))
+      .map((node) => node.id),
+  };
+}
+
+// True when each side reads its own revision under `component`.
+function sidesReadOwnRevision(state, component) {
+  const flatSource = { left: /^(codexrChartDataSlice__)?codexrComparisonDataLeft$/, right: /^(codexrChartDataSlice__)?codexrComparisonDataRight$/ };
+  return ['left', 'right'].every((key) => {
+    const side = state[key];
+    if (!side || side.component.length !== 1 || side.component[0] !== component) { return false; }
+    if (component === 'babia-boats') {
+      return side.from === '' && side.namespaces.length === 1 && side.namespaces[0] === `codexr-${key}`;
+    }
+    return flatSource[key].test(side.from) && side.namespaces.length === 0;
+  });
+}
+
+async function runComparisonScenarios(browser) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(await harnessUrl(), { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.getElementById('scene')?.hasLoaded
+    && window.CodeXRAnalysisModeRuntime?.getState?.().mode === 'single'
+    && window.CodeXRMappingUiRuntime?.isPanelReady?.(), null, { timeout: 30000 });
+
+  const read = () => page.evaluate(comparisonState, COMPARISON_CHART_COMPONENTS);
+  async function waitFor(predicateSource, argument, label) {
+    try {
+      await page.waitForFunction(
+        ([source, componentNames, arg]) => {
+          const predicate = new Function('state', 'arg', source);
+          return predicate(window.__codexrComparisonState(componentNames), arg);
+        },
+        [predicateSource, COMPARISON_CHART_COMPONENTS, argument],
+        { timeout: 20000, polling: 200 },
+      );
+    } catch {
+      assert.fail(`${label}: comparison stayed at ${JSON.stringify(await read())}`);
+    }
+    return read();
+  }
+  await page.evaluate(`window.__codexrComparisonState = ${comparisonState.toString()};`);
+  await page.evaluate(`window.__sidesReadOwnRevision = ${sidesReadOwnRevision.toString()};`);
+  const settledOn = 'return state.mode === "historical-compare" && !state.transitioning'
+    + ' && state.left && state.right && state.left.shown && state.right.shown'
+    + ' && window.__sidesReadOwnRevision(state, arg);';
+
+  // The chart itself carries the normal-root markers, the way the unwrapped
+  // layout made the Normal analysis adopt copies of them (LIFECYCLE-8).
+  await page.evaluate(() => {
+    const chart = document.getElementById('normalChart');
+    chart.setAttribute('data-codexr-normal-root', 'true');
+    chart.setAttribute('data-codexr-analysis-mode', 'single');
+    chart.setAttribute('data-codexr-harness-sentinel', 'scene-chart-only');
+  });
+
+  // 1. Enter: Compare from the harness client, like the panel's button.
+  await page.evaluate(() => window.CodeXRHistoricalComparisonRuntime.__testing.selectHistoricalMode());
+  await page.evaluate(() => window.CodeXRHarness.client.sendMessage('historical-comparison-start', {
+    leftSourceId: 'working-copy', rightSourceId: 'commit-1',
+  }));
+  const entered = await waitFor(settledOn, 'babia-bars', 'enter the comparison on bars');
+  for (const key of ['left', 'right']) {
+    // Whitelist clone (HIST-12 / LIFECYCLE-8): the scene chart's ownership
+    // markers (stamped on it below, as an unwrapped scene would carry them)
+    // never travel; only the markers derived for the clone itself remain.
+    const copied = entered[key].markers.filter((name) => !DERIVED_CLONE_MARKERS.includes(name));
+    assert.deepEqual(copied, [], `${key} clone carries no copied data-codexr-* marker`);
+    assert.equal(entered[key].parent, 'codexrHistoricalComparisonRoot');
+  }
+  assert.equal(entered.normalShown, false, 'the normal chart is parked under the comparison');
+
+  // 2. Switch chart types through the controller: Bars -> Boats -> Bars ->
+  //    Boats -> Cyls -> Pie. Each step must keep every side on its revision.
+  const journey = [['boats', 'babia-boats'], ['bars', 'babia-bars'], ['boats', 'babia-boats'],
+    ['cyls', 'babia-cyls'], ['pie', 'babia-pie']];
+  for (const [chartId, component] of journey) {
+    const switched = await page.evaluate((id) => window.CodeXRMappingUiRuntime.selectChart(id), chartId);
+    assert.equal(switched, true, `switch to ${chartId} accepted`);
+    await waitFor(settledOn, component, `switch to ${chartId}`);
+  }
+
+  // 3. Leave for the Normal analysis: the clones stay in the comparison root
+  //    (hidden with it), are not adopted as normal roots, and the normal
+  //    chart comes back.
+  await page.evaluate(() => window.CodeXRHarness.client.sendMessage('analysis-mode-activate', { mode: 'single' }));
+  const left = await waitFor('return state.mode === "single" && !state.transitioning && state.normalShown'
+    + ' && !(state.left && state.left.shown) && !(state.right && state.right.shown);', null, 'leave to single');
+  assert.deepEqual(left.adoptedByNormal, [], 'no comparison node is adopted by the Normal analysis');
+  assert.equal(left.left.parent, 'codexrHistoricalComparisonRoot');
+
+  // 4. Re-enter: the preserved comparison comes back visible and settled,
+  //    wearing the chart the controller shows, each side still on its own
+  //    revision. (The controller's chart type is shared across modes, so the
+  //    comparison follows it back; what must never change is the data.)
+  await page.evaluate(() => window.CodeXRHistoricalComparisonRuntime.__testing.selectHistoricalMode());
+  const reentered = await waitFor('const components = { bars: "babia-bars", barsmap: "babia-barsmap", cyls: "babia-cyls",'
+    + ' cylsmap: "babia-cylsmap", pie: "babia-pie", donut: "babia-doughnut", bubbles: "babia-bubbles", boats: "babia-boats" };'
+    + ` ${settledOn.replace('return ', 'return state.status === "" && ').replace('(state, arg)', '(state, components[state.chartId])')}`,
+  null, 're-enter the comparison');
+  assert.equal(reentered.normalShown, false);
+  assert.deepEqual(reentered.adoptedByNormal, []);
+
+  // 5. And it still switches correctly after the round trip.
+  await page.evaluate(() => window.CodeXRMappingUiRuntime.selectChart('boats'));
+  await waitFor(settledOn, 'babia-boats', 'switch to boats after re-entry');
+  await page.evaluate(() => window.CodeXRMappingUiRuntime.selectChart('bars'));
+  await waitFor(settledOn, 'babia-bars', 'switch back to bars after re-entry');
+
+  assert.deepEqual(errors, []);
+  await page.close();
+  console.log('[xr-mode-harness] historical comparison scenarios passed (enter, Bars/Boats/flat switches, leave, re-enter).');
 }
 
 // DEPGRAPH-12: the dependency graph against room states the S13 fixes were
