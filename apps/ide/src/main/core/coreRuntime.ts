@@ -6,6 +6,9 @@ import { initializeHost } from '@codexr/core/host/hostRegistry';
 import { IPC_EVENTS, type HostNotification } from '../../shared/api.ts';
 import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
+import { AnalysisService } from '../analysis/analysisService.ts';
+import { setSceneLibrariesDir } from '../analysis/sceneView.ts';
+import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 
 /**
  * Starts the extension's core inside the IDE (#15): registers the Electron
@@ -14,7 +17,11 @@ import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
  */
 export interface CoreServices {
     readonly python: PythonEnvironmentService;
+    readonly analysis: AnalysisService;
 }
+
+/** Disposed when the app quits: what the core registered (collaboration profiles...). */
+const subscriptions: HostDisposable[] = [];
 
 export function startCore(options: { readonly isSmoke: boolean }): CoreServices {
     // The smoke run must leave no trace in the person's profile (nor in the temp folder).
@@ -42,7 +49,15 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
         },
     }));
     python = new PythonEnvironmentService(storageDir, (status) => broadcast(IPC_EVENTS.pythonStatusChanged, status));
-    return { python };
+    // The vendored copies of the scene's CDN libraries (analysis/sceneLibraries.ts); #20 packages them.
+    setSceneLibrariesDir(path.join(installRoot, 'test', 'vendor', 'scene-libraries'));
+    const analysis = new AnalysisService(python, subscriptions);
+    app.once('will-quit', () => {
+        for (const disposable of subscriptions.splice(0)) {
+            disposable.dispose();
+        }
+    });
+    return { python, analysis };
 }
 
 function broadcast(event: string, payload: unknown): void {

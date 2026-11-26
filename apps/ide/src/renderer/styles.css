@@ -388,3 +388,40 @@ body {
 .status-item:hover { background: rgba(255, 255, 255, 0.15); }
 .status-item:focus-visible { outline: 1px solid var(--status-fg); outline-offset: -1px; }
 .status-item[hidden] { display: none; }
+
+/* The analysis scene beside the code (#16). The scene is drawn by the main
+   process over .scene-slot; this column only reserves the space. */
+.workbench.has-scene {
+  grid-template-columns: 48px minmax(180px, 260px) minmax(0, 1fr) minmax(320px, 45%);
+  grid-template-areas:
+    'activity side editor scene'
+    'status status status status';
+}
+.scene-area {
+  grid-area: scene;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-left: 1px solid var(--line);
+}
+.scene-area[hidden] { display: none; }
+.scene-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 35px;
+  padding: 0 8px 0 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.scene-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-slot { flex: 1; min-height: 0; }
+@media (max-width: 720px) {
+  .workbench.has-scene {
+    grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'activity editor scene'
+      'status status status';
+  }
+}

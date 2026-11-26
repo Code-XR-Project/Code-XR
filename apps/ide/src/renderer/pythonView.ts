@@ -39,7 +39,6 @@ export function createPythonView(
     container.replaceChildren(
         el('h2', { className: 'side-bar-title', text: 'Analysis' }),
         section,
-        el('p', { className: 'muted small side-note', text: 'Analyses run in this environment. Running them from the IDE is the next step (#16).' }),
     );
     message.textContent = 'Checking…';
     progress.hidden = true;

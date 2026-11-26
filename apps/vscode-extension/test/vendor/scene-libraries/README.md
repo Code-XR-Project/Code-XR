@@ -1,9 +1,11 @@
 # Scene libraries for the browser harnesses
 
-Test-only copies of the scripts the XR scenes load from CDNs, so the
-Playwright harnesses run offline and in CI (S15, #87). Nothing here ships:
-the VSIX `files` allowlist does not include `test/`, and generated scenes
-still load the CDN URLs.
+Copies of the scripts the XR scenes load from CDNs, so the Playwright
+harnesses run offline and in CI (S15, #87). Nothing here ships in the VSIX:
+the `files` allowlist does not include `test/`, and generated scenes still
+load the CDN URLs. The Code-XR IDE also answers those URLs from this folder in
+its scene view (`apps/ide/src/main/analysis/sceneLibraries.ts`, #16), so its
+map must follow any version bump here too, and IDE packaging (#20) ships it.
 
 `test/helpers/harnessBrowser.cjs` routes each CDN URL to the file below and
 aborts every other external request, so a harness never touches the network.

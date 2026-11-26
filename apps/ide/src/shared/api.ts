@@ -105,6 +105,29 @@ export interface HostNotification {
     readonly message: string;
 }
 
+/** The analyses the IDE can start (#16). More kinds join as they are wired. */
+export const ANALYSIS_KINDS = ['xr-deep'] as const;
+export type AnalysisKind = (typeof ANALYSIS_KINDS)[number];
+
+/** Why an analysis did not start; `message` is for display. */
+export type AnalysisStartResult =
+    | { readonly ok: true }
+    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'failed'; readonly message: string };
+
+/** An analysis scene served by Code-XR's local server, shown beside the code. */
+export interface SceneInfo {
+    readonly url: string;
+    readonly title: string;
+}
+
+/** Where the scene is drawn, in CSS pixels of the window's content. */
+export interface SceneBounds {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+}
+
 /** Unsubscribes a listener registered with an `on…` member. */
 export type Unsubscribe = () => void;
 
@@ -130,6 +153,20 @@ export interface CodeXRApi {
         /** Deletes the environment after a native confirmation. */
         remove(): Promise<PythonEnvStatus>;
         onDidChangeStatus(listener: (status: PythonEnvStatus) => void): Unsubscribe;
+    };
+    readonly analysis: {
+        /**
+         * Analyses the whole open folder (#16). Refused, not queued, when no
+         * folder is open or the Python environment is not ready: nothing is
+         * ever downloaded from here.
+         */
+        analyseProject(kind: AnalysisKind): Promise<AnalysisStartResult>;
+        /** Where to draw the scene; null hides it (the slot is not visible). */
+        setSceneBounds(bounds: SceneBounds | null): Promise<void>;
+        /** Closes the scene (its server keeps running, as in the extension). */
+        closeScene(): Promise<void>;
+        /** A scene is ready to show; the renderer opens its slot and reports bounds. */
+        onDidOpenScene(listener: (scene: SceneInfo) => void): Unsubscribe;
     };
     readonly workspace: {
         /** Shows the folder picker; resolves with the new workspace, or null when cancelled. */
@@ -197,6 +234,9 @@ export const IPC_CHANNELS = {
     pythonStatus: 'codexr:python:status',
     pythonSetUp: 'codexr:python:set-up',
     pythonRemove: 'codexr:python:remove',
+    analysisAnalyseProject: 'codexr:analysis:analyse-project',
+    analysisSetSceneBounds: 'codexr:analysis:set-scene-bounds',
+    analysisCloseScene: 'codexr:analysis:close-scene',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -210,6 +250,7 @@ export const IPC_EVENTS = {
     workspaceFilesChanged: 'codexr:workspace:files-changed',
     pythonStatusChanged: 'codexr:python:status-changed',
     hostNotification: 'codexr:host:notification',
+    analysisSceneOpened: 'codexr:analysis:scene-opened',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */
