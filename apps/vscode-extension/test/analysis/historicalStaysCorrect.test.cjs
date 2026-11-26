@@ -213,8 +213,9 @@ test('S12 HIST-4/HIST-10: the client decides against the mounted result, keeps a
     assert.match(source, /refs\.renderedResult = result;/);
     assert.match(source, /refs\.renderedResult = null;/);
     // Stored before the first await, so leaving mid-fetch cannot drop it.
-    assert.match(source, /state\.result = snapshot\.result;\n\s+if \(!isHistoricalModeActiveOrActivating\(\)\) \{\n\s+return;/);
-    assert.match(source, /await renderComparison\(result, datasets\[0\], datasets\[1\]\);\n\s+\}\n[\s\S]{0,120}setStatus\('', 'info'\);/);
+    // \r?\n: a Windows checkout assembles the runtime with CRLF line ends.
+    assert.match(source, /state\.result = snapshot\.result;\r?\n\s+if \(!isHistoricalModeActiveOrActivating\(\)\) \{\r?\n\s+return;/);
+    assert.match(source, /await renderComparison\(result, datasets\[0\], datasets\[1\]\);\r?\n\s+\}\r?\n[\s\S]{0,120}setStatus\('', 'info'\);/);
     assert.match(source, /code === 'comparison-live-refresh-stopped'/);
     assert.doesNotMatch(source, /not a git repository\|git-command-failed/);
 });
