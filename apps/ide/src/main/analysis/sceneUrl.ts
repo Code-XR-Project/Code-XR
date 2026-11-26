@@ -52,7 +52,7 @@ export function targetName(target: string): string {
     return parts.at(-1) ?? target;
 }
 
-/** A short title for the scene's header: the analysed folder's name. */
-export function sceneTitle(folder: string): string {
-    return `XR · ${targetName(folder)}`;
+/** A short title for the scene's header: how it is shown, and the analysed folder or file's name. */
+export function sceneTitle(target: string, view: 'XR' | 'LivePanel' = 'XR'): string {
+    return `${view} · ${targetName(target)}`;
 }

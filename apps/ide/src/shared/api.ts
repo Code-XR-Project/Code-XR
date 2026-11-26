@@ -191,8 +191,14 @@ export interface ProgressEvent {
     readonly done: boolean;
 }
 
-/** The analyses the IDE can start (#16). More kinds join as they are wired. */
-export const ANALYSIS_KINDS = ['xr-deep'] as const;
+/** The analyses of the whole open folder the IDE can start (#16). */
+export const PROJECT_ANALYSIS_KINDS = ['xr-deep', 'livepanel-deep'] as const;
+export type ProjectAnalysisKind = (typeof PROJECT_ANALYSIS_KINDS)[number];
+/** The analyses of one file of the open folder (#16), as the extension's explorer menu offers them. */
+export const FILE_ANALYSIS_KINDS = ['xr-file', 'livepanel-file'] as const;
+export type FileAnalysisKind = (typeof FILE_ANALYSIS_KINDS)[number];
+/** Every analysis the IDE can start (#16). */
+export const ANALYSIS_KINDS = [...PROJECT_ANALYSIS_KINDS, ...FILE_ANALYSIS_KINDS] as const;
 export type AnalysisKind = (typeof ANALYSIS_KINDS)[number];
 
 /** What runs when a folder opens (#139): nothing, or the whole project in XR (deep). */
@@ -349,7 +355,9 @@ export interface CodeXRApi {
          * folder is open or the Python environment is not ready: nothing is
          * ever downloaded from here.
          */
-        analyseProject(kind: AnalysisKind, options?: { readonly auto?: boolean }): Promise<AnalysisStartResult>;
+        analyseProject(kind: ProjectAnalysisKind, options?: { readonly auto?: boolean }): Promise<AnalysisStartResult>;
+        /** Analyses one file of the open folder (#16), named by its workspace path; refused as `analyseProject` is. */
+        analyseFile(kind: FileAnalysisKind, path: string): Promise<AnalysisStartResult>;
         /** What runs when a folder opens (#139); `xr-deep` unless the person turned it off. */
         autoStart(): Promise<AutoStartMode>;
         setAutoStart(mode: AutoStartMode): Promise<AutoStartMode>;
@@ -557,6 +565,7 @@ export const IPC_CHANNELS = {
     pythonSetUp: 'codexr:python:set-up',
     pythonRemove: 'codexr:python:remove',
     analysisAnalyseProject: 'codexr:analysis:analyse-project',
+    analysisAnalyseFile: 'codexr:analysis:analyse-file',
     analysisSetSceneBounds: 'codexr:analysis:set-scene-bounds',
     analysisCloseScene: 'codexr:analysis:close-scene',
     analysisGetAutoStart: 'codexr:analysis:get-auto-start',

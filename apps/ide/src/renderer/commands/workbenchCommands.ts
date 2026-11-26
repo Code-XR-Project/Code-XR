@@ -1,6 +1,7 @@
 import type { CommandDefinition, CommandRegistry } from './commandRegistry.ts';
 import type { CloseKind } from '../editor/tabsModel.ts';
 import { MENU_KEYBINDINGS } from '../../shared/keybindings.ts';
+import type { FileAnalysisKind, ProjectAnalysisKind } from '../../shared/api.ts';
 
 export { MENU_KEYBINDINGS };
 
@@ -39,8 +40,11 @@ export interface WorkbenchCommandTargets {
     selectColorTheme(): void;
     formatDocument(): void;
     showSearch(): void;
-    analyseProject(): void;
+    analyseProject(kind: ProjectAnalysisKind): void;
     canAnalyse(): boolean;
+    /** #16: the active editor's file, in XR or as a LivePanel. */
+    analyseActiveFile(kind: FileAnalysisKind): void;
+    canAnalyseActiveFile(): boolean;
     setUpPython(): void;
     closeScene(): void;
     hasScene(): boolean;
@@ -106,7 +110,10 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.openFolderSettingsFile', category: 'Preferences', title: 'Open Folder Settings (JSON)', enabled: targets.hasFolder, run: targets.openFolderSettingsFile },
         { id: 'view.showAnalysis', category: 'View', title: 'Show Analysis', run: () => targets.showView('analysis') },
         { id: 'view.showXrScene', category: 'View', title: 'Show XR Scene', run: () => targets.showView('xr') },
-        { id: 'codexr.analyseProjectXrDeep', category: 'Code-XR', title: 'Analyse Project in XR (Deep)', enabled: targets.canAnalyse, run: targets.analyseProject },
+        { id: 'codexr.analyseProjectXrDeep', category: 'Code-XR', title: 'Analyse Project in XR (Deep)', enabled: targets.canAnalyse, run: () => targets.analyseProject('xr-deep') },
+        { id: 'codexr.analyseProjectLivePanelDeep', category: 'Code-XR', title: 'Analyse Project as LivePanel (Deep)', enabled: targets.canAnalyse, run: () => targets.analyseProject('livepanel-deep') },
+        { id: 'codexr.analyseFileXr', category: 'Code-XR', title: 'Analyse Active File in XR', enabled: targets.canAnalyseActiveFile, run: () => targets.analyseActiveFile('xr-file') },
+        { id: 'codexr.analyseFileLivePanel', category: 'Code-XR', title: 'Analyse Active File as LivePanel', enabled: targets.canAnalyseActiveFile, run: () => targets.analyseActiveFile('livepanel-file') },
         { id: 'codexr.setUpPython', category: 'Code-XR', title: 'Set Up or Repair the Python Environment', run: targets.setUpPython },
         { id: 'codexr.closeScene', category: 'Code-XR', title: 'Close the XR Scene', enabled: targets.hasScene, run: targets.closeScene },
     ];

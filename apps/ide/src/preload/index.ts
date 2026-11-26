@@ -3,7 +3,7 @@ import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.
 import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type ProviderInput } from '../shared/agents.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
@@ -89,8 +89,9 @@ const api: CodeXRApi = Object.freeze({
         onDidChangeStatus: (listener: (status: PythonEnvStatus) => void) => subscribe(IPC_EVENTS.pythonStatusChanged, listener),
     }),
     analysis: Object.freeze({
-        analyseProject: (kind: AnalysisKind, options?: { readonly auto?: boolean }) =>
+        analyseProject: (kind: ProjectAnalysisKind, options?: { readonly auto?: boolean }) =>
             ipcRenderer.invoke(IPC_CHANNELS.analysisAnalyseProject, kind, { auto: options?.auto === true }),
+        analyseFile: (kind: FileAnalysisKind, path: string) => ipcRenderer.invoke(IPC_CHANNELS.analysisAnalyseFile, kind, path),
         autoStart: () => ipcRenderer.invoke(IPC_CHANNELS.analysisGetAutoStart),
         setAutoStart: (mode: AutoStartMode) => ipcRenderer.invoke(IPC_CHANNELS.analysisSetAutoStart, mode),
         setSceneBounds: (bounds: SceneBounds | null) => ipcRenderer.invoke(IPC_CHANNELS.analysisSetSceneBounds, bounds),
