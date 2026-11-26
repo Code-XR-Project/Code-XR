@@ -10,7 +10,7 @@ import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
 import type { SettingsService } from './settings/settingsService.ts';
 import type { KeybindingsService } from './settings/keybindingsService.ts';
-import type { OutputService } from './output/outputService.ts';
+import type { OutputService } from './outputPanel/outputService.ts';
 import { setMenuAccelerators } from './menu.ts';
 import { applyColorTheme, previewColorTheme } from './settings/theme.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';

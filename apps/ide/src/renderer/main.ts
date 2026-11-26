@@ -6,7 +6,7 @@ import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter, type NotificationAction } from './notifications.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
-import { createOutputView } from './output/outputView.ts';
+import { createOutputView } from './outputPanel/outputView.ts';
 import { createPanelHost } from './panel/panelHost.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';

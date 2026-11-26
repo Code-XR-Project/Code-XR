@@ -7,7 +7,7 @@ import { fileStorage, memoryStorage, SettingsService } from './settings/settings
 import { KeybindingsService } from './settings/keybindingsService.ts';
 import { KEYBINDINGS_FILE_NAME } from '../shared/keybindings.ts';
 import { applyColorTheme } from './settings/theme.ts';
-import { OutputService } from './output/outputService.ts';
+import { OutputService } from './outputPanel/outputService.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { startCore, type CoreServices } from './core/coreRuntime.ts';
 import { installApplicationMenu, setAboutDependencies } from './menu.ts';
