@@ -174,3 +174,35 @@ test('DEPGRAPH-9: pruning keeps the newest revisions by number, per prefix, and 
         fs.rmSync(directory, { recursive: true, force: true });
     }
 });
+
+test('#110: a re-created service continues the revision counter after the files on disk', async () => {
+    const { highestDatasetRevision } = await withFakeVscode(createFakeVscode(), async ({ requireOut }) => requireOut('core/dependencies/dependencyGraphService.js'));
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-revision-'));
+    try {
+        assert.equal(highestDatasetRevision(path.join(empty, 'missing')), 0);
+        for (const name of ['dependency-graph-7.json', 'dependency-scope-12.json', 'dependency-graph-x.json',
+            'dependency-graph-99.json.tmp', 'other-50.json']) {
+            fs.writeFileSync(path.join(empty, name), '{}');
+        }
+        assert.equal(highestDatasetRevision(empty), 12);
+    } finally {
+        fs.rmSync(empty, { recursive: true, force: true });
+    }
+
+    await withService(directorySession, async ({ run, root, written }) => {
+        // A previous service on the same static root left revisions 40 and 41.
+        await run('pkg/b.py');
+        const directory = path.join(root, 'static', 'dependencies');
+        fs.rmSync(directory, { recursive: true, force: true });
+        fs.mkdirSync(directory, { recursive: true });
+        fs.writeFileSync(path.join(directory, 'dependency-scope-40.json'), '{}');
+        fs.writeFileSync(path.join(directory, 'dependency-graph-41.json'), '{}');
+        const { DependencyGraphService } = require(path.join(projectRoot, 'out', 'core', 'dependencies', 'dependencyGraphService.js'));
+        const service = new DependencyGraphService(fakeExtensionContext(), 's2', path.join(root, 'static'));
+        service.getSession = () => directorySession(root);
+        const dataset = await service.analyzeFileScope('pkg/b.py');
+        assert.equal(dataset.revision, 42);
+        // The file just written survives the pruning that follows it.
+        assert.deepEqual(written(), ['dependency-graph-41.json', 'dependency-scope-40.json', 'dependency-scope-42.json']);
+    });
+});

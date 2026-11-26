@@ -378,7 +378,7 @@
         "generatedAt": ""
       },
       "cache": {
-        "version": 3,
+        "version": 4,
         "root": "<root>",
         "files": {
           "c_sample.c": {
@@ -611,7 +611,7 @@
         "generatedAt": ""
       },
       "cache": {
-        "version": 3,
+        "version": 4,
         "root": "<root>",
         "files": {
           "geometry.ts": {"hash": "50a2e5c5928bf1c51b78511c0301639cc2cf682691c2a15d5d536ac61dcff343", "language": "TypeScript", "parserAvailable": false, "targets": [], "totalLines": 3},
@@ -824,7 +824,7 @@
         "generatedAt": ""
       },
       "cache": {
-        "version": 3,
+        "version": 4,
         "root": "<root>",
         "files": {
           "geometry.ts": {"hash": "50a2e5c5928bf1c51b78511c0301639cc2cf682691c2a15d5d536ac61dcff343", "language": "TypeScript", "parserAvailable": false, "targets": [], "totalLines": 3},
