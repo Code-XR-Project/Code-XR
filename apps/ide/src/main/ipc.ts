@@ -2,6 +2,7 @@ import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, type AppInfo } from '../shared/api.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
+import { currentWorkspaceInfo, pickAndOpenFolder, workspaceOf } from './workspace/workspaceWindows.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -38,6 +39,13 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         },
         isDevelopment,
     }));
+
+    // #14: the folder open in the calling window. Paths are workspace-relative
+    // and validated by Workspace; a window only ever reaches its own folder.
+    handle(IPC_CHANNELS.workspaceOpenFolder, (event) => pickAndOpenFolder(event.sender));
+    handle(IPC_CHANNELS.workspaceCurrent, (event) => currentWorkspaceInfo(event.sender));
+    handle(IPC_CHANNELS.workspaceListDirectory, (event, path) => workspaceOf(event.sender).listDirectory(path));
+    handle(IPC_CHANNELS.workspaceReadFile, (event, path) => workspaceOf(event.sender).readFile(path));
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

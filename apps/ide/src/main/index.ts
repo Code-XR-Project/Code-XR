@@ -8,6 +8,9 @@ import { createMainWindow } from './window.ts';
 import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
 import { APP_ORIGIN, trustedOrigins } from './security.ts';
 import { log } from './log.ts';
+import { IPC_EVENTS } from '../shared/api.ts';
+import { folderArgument } from './workspace/workspacePath.ts';
+import { setWorkspace } from './workspace/workspaceWindows.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -53,6 +56,15 @@ async function start(): Promise<void> {
 
     const win = await openMainWindow();
     log.info(`Window loaded from ${win.webContents.getURL()}${isDevelopment ? ' (dev server)' : ''}.`);
+
+    const startupFolder = folderArgument(process.argv);
+    if (startupFolder) {
+        try {
+            win.webContents.send(IPC_EVENTS.workspaceChanged, await setWorkspace(win.webContents, startupFolder));
+        } catch (error) {
+            log.error(`Could not open ${startupFolder}.`, error);
+        }
+    }
 
     if (isSmoke) {
         const result = await runSmoke(win, origins);

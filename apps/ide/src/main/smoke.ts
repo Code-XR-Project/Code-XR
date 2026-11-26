@@ -22,6 +22,10 @@ export interface SmokeProbe {
     readonly welcomeRendered: boolean;
     readonly infoName: string | null;
     readonly infoError: string | null;
+    /** #14: names in the explorer's first level for the folder opened with --folder=. */
+    readonly explorerItems: readonly string[];
+    readonly readFileKind: string | null;
+    readonly traversalRefused: boolean;
 }
 
 export interface SmokeResult {
@@ -42,10 +46,19 @@ const RENDERER_PROBE = `(async () => {
     try { eval('1'); } catch { evalBlocked = true; }
     let infoName = null, infoError = null;
     try { infoName = (await window.codexr.app.getInfo()).name; } catch (e) { infoError = String(e); }
+    const treeUntil = Date.now() + 10000;
+    while (!document.querySelector('[data-testid="explorer-tree"] [role="treeitem"]') && Date.now() < treeUntil) {
+        await new Promise((r) => setTimeout(r, 50));
+    }
+    const explorerItems = [...document.querySelectorAll('[data-testid="explorer-tree"] > li > [role="treeitem"]')].map((row) => row.textContent);
+    let readFileKind = null;
+    try { readFileKind = (await window.codexr.workspace.readFile('package.json')).kind; } catch { readFileKind = null; }
+    let traversalRefused = false;
+    try { await window.codexr.workspace.readFile('../package.json'); } catch { traversalRefused = true; }
     return {
         title: document.title,
         apiType: typeof window.codexr,
-        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app),
+        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace),
         apiKeys: Object.keys(window.codexr || {}),
         requireType: typeof window.require,
         processType: typeof window.process,
@@ -54,6 +67,9 @@ const RENDERER_PROBE = `(async () => {
         welcomeRendered: !!document.querySelector('[data-testid="welcome"][data-ready="true"]'),
         infoName,
         infoError,
+        explorerItems,
+        readFileKind,
+        traversalRefused,
     };
 })()`;
 
@@ -72,6 +88,11 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.windowOpenBlocked) { failures.push('window.open is not blocked'); }
         if (!probe.welcomeRendered) { failures.push('the welcome view did not render'); }
         if (probe.infoName !== 'Code-XR IDE') { failures.push(`IPC app.getInfo failed: ${probe.infoError ?? probe.infoName}`); }
+        if (!probe.explorerItems.includes('src') || !probe.explorerItems.includes('package.json')) {
+            failures.push(`the explorer did not list the smoke folder (got ${JSON.stringify(probe.explorerItems)})`);
+        }
+        if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
+        if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
     }
     if (!navigationBlocked) { failures.push('navigation to an external URL was not blocked'); }
     return { ok: failures.length === 0, failures, probe, navigationBlocked, platform };
