@@ -50,6 +50,8 @@ export interface SmokeProbe {
     readonly keybindings: { readonly opened: boolean; readonly recorded: boolean; readonly works: boolean; readonly reset: boolean };
     /** #174: Ctrl/Cmd+Shift+U showed the Output view with the IDE's own log lines, the channel picker switched channel, the close button hid the panel. */
     readonly output: { readonly shown: boolean; readonly hasLines: boolean; readonly switched: boolean; readonly closed: boolean };
+    /** #173: Ctrl/Cmd+Shift+M showed the Problems view with its filter focused, and the status bar carries the counts. */
+    readonly problems: { readonly shown: boolean; readonly statusCounts: boolean };
     readonly cspViolations: readonly string[];
 }
 
@@ -325,6 +327,13 @@ const RENDERER_PROBE = `(async () => {
         channelPicker.value = 'ide';
         channelPicker.dispatchEvent(new Event('change'));
     }
+    // #173: the Problems view, opened by its key; nothing is measured in the smoke run (no analysis).
+    const problemsProbe = { shown: false, statusCounts: false };
+    press(document.body, 'KeyM', 'M', isMac ? { metaKey: true, shiftKey: true } : { ctrlKey: true, shiftKey: true });
+    problemsProbe.shown = !!(await waitFor(() => !document.querySelector('[data-testid="problems-body"]').hidden
+        && document.activeElement === document.querySelector('[data-testid="problems-filter"]')
+        && (document.querySelector('[data-testid="problems-message"]')?.textContent ?? '').length > 0));
+    problemsProbe.statusCounts = /^[0-9]+[0-9]+$/.test((document.querySelector('[data-testid="problems-status"]')?.textContent ?? '').trim());
     document.querySelector('[data-testid="terminal-close-panel"]')?.click();
     outputProbe.closed = await waitFor(() => document.querySelector('[data-testid="terminal-panel"]').hidden);
     document.querySelector('.activity-item[data-view="explorer"]')?.click();
@@ -357,6 +366,7 @@ const RENDERER_PROBE = `(async () => {
         keybindings: keybindingsProbe,
         theme: themeProbe,
         output: outputProbe,
+        problems: problemsProbe,
         cspViolations,
     };
 })()`;
@@ -387,7 +397,7 @@ const TERMINAL_PROBE = `(async () => {
         type('\\r');
         echoed = await wait(() => lines().some((line) => line.trim() === 'codexr-smoke'), 20000);
     }
-    const status = document.querySelector('.status-bar > span')?.textContent ?? '';
+    const status = document.querySelector('.status-bar .status-message')?.textContent ?? '';
     return { opened, profile, echoed, screen: lines().filter((line) => line.trim() !== '').slice(-8), status, cspViolations };
 })()`;
 
@@ -423,6 +433,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (Object.values(probe.settings).some((ok) => !ok)) { failures.push(`the Settings view did not change the editor (${JSON.stringify(probe.settings)})`); }
         if (Object.values(probe.theme).some((ok) => !ok)) { failures.push(`the theme picker did not switch the theme (${JSON.stringify(probe.theme)})`); }
         if (Object.values(probe.keybindings).some((ok) => !ok)) { failures.push(`Keyboard Shortcuts did not rebind Zen Mode (${JSON.stringify(probe.keybindings)})`); }
+        if (Object.values(probe.problems).some((ok) => !ok)) { failures.push(`the Problems panel did not open (${JSON.stringify(probe.problems)})`); }
         if (Object.values(probe.output).some((ok) => !ok)) { failures.push(`the Output panel did not show the logs (${JSON.stringify(probe.output)})`); }
         if (Object.values(probe.tabs).some((ok) => !ok)) { failures.push(`the editor tabs did not behave (${JSON.stringify(probe.tabs)})`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }

@@ -60,7 +60,7 @@ def _get_file_modified_metadata(file_path: str) -> dict[str, Any]:
     }
 
 
-def _normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
 
     for func in raw_functions or []:
@@ -109,7 +109,7 @@ def build_file_snapshot(file_path: str) -> dict[str, Any]:
     line_metrics = build_line_metrics(file_path, comment_data.get('commentLines', 0))
 
     status = lizard_data.get('status', 'error')
-    normalized_functions = _normalize_function_metrics(lizard_data.get('functions', []))
+    normalized_functions = normalize_function_metrics(lizard_data.get('functions', []))
     function_summary = summarize_function_metrics(normalized_functions)
     complexity_metrics = lizard_data.get('metrics', {}) if status == 'success' else {}
 

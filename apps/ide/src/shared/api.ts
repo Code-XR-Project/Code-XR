@@ -1,6 +1,7 @@
 import type { ColorTheme, SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
 import type { UserKeybinding } from './keybindings.ts';
 import type { OutputChannelId } from './output.ts';
+import type { FunctionMetricsSnapshot } from './problems.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -454,6 +455,13 @@ export interface CodeXRApi {
         /** New lines, in batches, or a channel cleared. */
         onAppended(listener: (event: OutputAppended) => void): Unsubscribe;
     };
+    /** #173: the per-function metrics behind the Problems panel (shared/problems.ts). */
+    readonly problems: {
+        /** The window's latest metrics, or null before an analysis of its folder. */
+        functionMetrics(): Promise<FunctionMetricsSnapshot | null>;
+        /** An analysis or a save measured the functions again (null: the folder changed). */
+        onMetricsChanged(listener: (snapshot: FunctionMetricsSnapshot | null) => void): Unsubscribe;
+    };
     /** #18, part 3: the user's keybinding rules (shared/keybindings.ts holds the format). */
     readonly keybindings: {
         get(): Promise<KeybindingsReport>;
@@ -514,6 +522,7 @@ export const IPC_CHANNELS = {
     settingsPreviewTheme: 'codexr:settings:preview-theme',
     outputLines: 'codexr:output:lines',
     outputClear: 'codexr:output:clear',
+    problemsFunctionMetrics: 'codexr:problems:function-metrics',
     keybindingsGet: 'codexr:keybindings:get',
     keybindingsUpdate: 'codexr:keybindings:update',
     keybindingsSetMenu: 'codexr:keybindings:set-menu',
@@ -564,6 +573,7 @@ export const IPC_EVENTS = {
     settingsChanged: 'codexr:settings:changed',
     keybindingsChanged: 'codexr:keybindings:changed',
     outputAppended: 'codexr:output:appended',
+    metricsChanged: 'codexr:problems:metrics-changed',
     ...AGENT_IPC_EVENTS,
 } as const;
 

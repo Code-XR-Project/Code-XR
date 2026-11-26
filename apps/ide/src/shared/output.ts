@@ -64,6 +64,14 @@ const SECRET_PATTERNS: readonly [RegExp, string][] = [
 ];
 
 /** The line with anything that looks like a secret replaced by `<redacted>`. */
+/**
+ * A core message as plain text: the core writes VS Code's icon syntax
+ * ("$(check) CodeXR re-analysis updated ..."), which the IDE does not draw.
+ */
+export function plainCoreText(message: string): string {
+    return message.replace(/\$\([a-z0-9-]+(?:~[a-z]+)?\)\s*/gi, '').trim();
+}
+
 export function redactSecrets(line: string): string {
     let result = line;
     for (const [pattern, replacement] of SECRET_PATTERNS) {
