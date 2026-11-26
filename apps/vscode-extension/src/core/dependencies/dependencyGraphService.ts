@@ -1,13 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import * as vscode from 'vscode';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { ExecutePython } from '../analysis/python/executePython';
 import { DependencyGraphDataset, DependencyRefreshRequest } from './dependencyGraphModels';
 import { JobRunner } from '../analysis/launch/jobRunner';
 import { runWithLaunchSignal } from '../analysis/launch/launchControl';
-import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
+import { hostPathsFromContext, privateStorageRoot, type ExtensionContextPaths } from '../host/hostPaths';
+import { getHost } from '../host/hostRegistry';
 
 /** A dependency analysis longer than this is killed and reported (DEPGRAPH-9). */
 export const DEPENDENCY_GRAPH_JOB_TIMEOUT_MS = 10 * 60 * 1000;
@@ -28,7 +28,7 @@ export class DependencyGraphService {
     private readonly fileScopeCache = new Map<string, DependencyGraphDataset>();
 
     public constructor(
-        private readonly context: vscode.ExtensionContext,
+        private readonly context: ExtensionContextPaths,
         private readonly sessionId: string,
         private readonly staticRoot: string,
     ) {
@@ -253,8 +253,8 @@ export class DependencyGraphService {
 
     private resolveProjectRoot(targetPath: string): string {
         const resolvedTarget = path.resolve(targetPath);
-        const workspace = vscode.workspace.workspaceFolders
-            ?.map((folder) => path.resolve(folder.uri.fsPath))
+        const workspace = getHost().workspaceFolders()
+            .map((folder) => path.resolve(folder))
             .filter((folderPath) => {
                 const relative = path.relative(folderPath, resolvedTarget);
                 return !relative.startsWith('..') && !path.isAbsolute(relative);

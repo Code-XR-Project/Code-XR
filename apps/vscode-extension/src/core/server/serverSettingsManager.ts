@@ -7,6 +7,7 @@ import {
     DEFAULT_REMOTE_ACCESS_SETTINGS,
     RemoteAccessSettings,
 } from '../remote-access/remoteAccessModel';
+import { getHost } from '../host/hostRegistry';
 
 const logger = CodeXRLogger.getLogger('SERVER_SETTINGS');
 
@@ -137,7 +138,7 @@ export class ServerSettingsManager {
 
         this.settings = this.withRuntimeNonce(this.deepMerge(this.settings, updates));
         await this.persistSettings();
-        void vscode.commands.executeCommand('codexr.servers.refresh');
+        getHost().signal({ kind: 'refresh', view: 'servers' });
     }
 
     /**
@@ -190,7 +191,7 @@ export class ServerSettingsManager {
         await this.ensureInitialized();
         this.settings = this.withRuntimeNonce({ ...DEFAULT_SERVER_SETTINGS });
         await this.persistSettings();
-        void vscode.commands.executeCommand('codexr.servers.refresh');
+        getHost().signal({ kind: 'refresh', view: 'servers' });
     }
 
     /**

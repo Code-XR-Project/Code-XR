@@ -326,3 +326,30 @@ test('prompt maps title, validate and keepOpen onto the VS Code input box, and s
     assert.equal(options.ignoreFocusOut, true);
     assert.equal(options.validateInput, validate);
 }));
+
+// #13 steps 6-7 end state: the core reaches the person and the editor only
+// through the host. What may still name vscode is type positions
+// (ExtensionContext, step 9) and workspace.fs (step 8).
+test('no file under src/core calls vscode.window, vscode.env, vscode.commands or the workspace folders directly', () => {
+    const fs = require('node:fs');
+    const root = path.join(__dirname, '..', '..', 'src', 'core');
+    const offenders = [];
+    let scanned = 0;
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+            } else if (entry.name.endsWith('.ts')) {
+                scanned += 1;
+                const source = fs.readFileSync(full, 'utf8');
+                if (/vscode\.(window|env|commands)\.|vscode\.workspace\.workspaceFolders/.test(source)) {
+                    offenders.push(path.relative(root, full));
+                }
+            }
+        }
+    };
+    walk(root);
+    assert.ok(scanned > 100, `canary: scanned ${scanned} files`);
+    assert.deepEqual(offenders, []);
+});
