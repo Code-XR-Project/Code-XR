@@ -180,6 +180,7 @@ const NOTIFYING_THROUGH_HOST = [
     'src/core/server/serverControl.ts',
     'src/core/server/httpsCustomServer.ts',
     'src/core/server/httpsDefaultServer.ts',
+    'src/core/python-env/venvManager.ts',
 ];
 
 test('modules moved to host notifications call no vscode.window message API', () => {
@@ -266,3 +267,36 @@ test('the re-analysis countdown uses a host status indicator, not vscode.window'
     assert.match(source, /getHost\(\)\.notifier\.createStatusIndicator\(\{ priority: 100 \}\)/, 'canary');
     assert.doesNotMatch(source, /vscode\.window\./);
 });
+
+// Inventory risk 8, second consent: deleting the Python environment.
+test('deleting the Python environment asks through the host; no answer deletes nothing', async () => {
+    const fake = createFakeVscode();
+    const context = fakeExtensionContext();
+    try {
+        await withFakeVscode(fake, async ({ requireOut }) => {
+            fake.hostContext = context;
+            const { VenvManager } = requireOut('core/python-env/venvManager.js');
+            await new VenvManager(context).deleteEnvironment();
+        });
+    } finally {
+        context.cleanup();
+    }
+    assert.deepEqual(fake.messages.map(({ kind, items }) => [kind, items]), [['warning', ['Delete Environment']]]);
+    assert.match(fake.messages[0].message, /^Are you sure you want to delete the Python virtual environment\?/);
+    assert.equal(fake.progressReports.length, 0, 'nothing was removed');
+});
+
+test('a failing signal command is logged, never left as an unhandled rejection', () => withHost({
+    fake: { overrides: { commands: { executeCommand: () => Promise.reject(new Error('no such command')) } } },
+}, async ({ host }) => {
+    const unhandled = [];
+    const onUnhandled = (reason) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+        host.signal({ kind: 'state', key: 'pythonEnv.uiLocked', value: true });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+    } finally {
+        process.off('unhandledRejection', onUnhandled);
+    }
+    assert.deepEqual(unhandled, []);
+}));

@@ -33,6 +33,8 @@ const MIGRATED = [
     'core/charts/getVisualizationConfiguration.ts',
     // step 6: consent and progress through the host, storage through GlobalStateContext
     'core/remote-access/cloudflaredBinaryManager.ts',
+    'core/python-env/venvManager.ts',
+    'core/python-env/pythonEnvUiState.ts',
 ];
 
 test('the modules migrated in #13 steps 2, 5 and 6 never reach vscode', () => {

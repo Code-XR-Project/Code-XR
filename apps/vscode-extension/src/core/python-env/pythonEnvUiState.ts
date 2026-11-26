@@ -1,7 +1,7 @@
-import * as vscode from 'vscode';
 import { getLogger } from '../../platform/logging/sink';
 import type { HostDisposable } from '../host/codeXRHost';
 import { HostEmitter } from '../host/hostEmitter';
+import { getHost } from '../host/hostRegistry';
 
 const logger = getLogger('PYTHON_ENV');
 
@@ -33,7 +33,7 @@ export class PythonEnvUiStateService {
     };
 
     private constructor() {
-        void this.syncContextKeys();
+        this.syncContextKeys();
     }
 
     public static getInstance(): PythonEnvUiStateService {
@@ -103,16 +103,18 @@ export class PythonEnvUiStateService {
             updatedAt: new Date().toISOString(),
         };
 
-        void this.syncContextKeys();
+        this.syncContextKeys();
         this.emitter.fire(this.getState());
     }
 
-    private async syncContextKeys(): Promise<void> {
+    /** Tells the host which Python-environment UI to lock (the extension: `setContext` keys `codeXR.pythonEnv.*`). */
+    private syncContextKeys(): void {
         try {
-            await vscode.commands.executeCommand('setContext', 'codeXR.pythonEnv.uiLocked', this.state.isUiRestricted);
-            await vscode.commands.executeCommand('setContext', 'codeXR.pythonEnv.retryAvailable', this.state.status === 'error');
+            const host = getHost();
+            host.signal({ kind: 'state', key: 'pythonEnv.uiLocked', value: this.state.isUiRestricted });
+            host.signal({ kind: 'state', key: 'pythonEnv.retryAvailable', value: this.state.status === 'error' });
         } catch (error) {
-            logger.warn('Failed to update VS Code context keys:', error);
+            logger.warn('Failed to update the host UI state:', error);
         }
     }
 }

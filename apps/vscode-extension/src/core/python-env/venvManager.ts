@@ -1,19 +1,20 @@
-import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import { PythonEnvStorage, PythonEnvMetadata } from './pythonEnvStorage';
 import { ExecutableCommand, PythonEnvUtils } from './pythonEnvUtils';
 import { PythonEnvUiStateService } from './pythonEnvUiState';
-import { CodeXRLogger } from '../../platform/logging/logger';
+import { getLogger } from '../../platform/logging/sink';
 import {
     CODEXR_PYTHON_PACKAGES,
     CodeXRPythonPackage,
     getPinnedPythonRequirement,
 } from './pythonPackageManifest';
 import type { HostProgress } from '../host/codeXRHost';
+import { getHost } from '../host/hostRegistry';
+import type { GlobalStorageContext } from '../host/hostPaths';
 
-const logger = CodeXRLogger.getLogger('PYTHON_ENV');
+const logger = getLogger('PYTHON_ENV');
 
 interface CommandExecutionResult {
     stdout: string;
@@ -52,7 +53,7 @@ export class VenvManager {
     private readonly storage: PythonEnvStorage;
     private readonly uiState = PythonEnvUiStateService.getInstance();
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: GlobalStorageContext) {
         this.storage = new PythonEnvStorage(context);
         this.logInfo('PYTHON_ENV: VenvManager initialized');
     }
@@ -104,8 +105,7 @@ export class VenvManager {
         this.uiState.beginInstallation('Checking Python installation...');
 
         try {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
+            await getHost().withProgress({
                 title: 'Creating Python Virtual Environment',
                 cancellable: false,
             }, async (progress) => {
@@ -136,7 +136,7 @@ export class VenvManager {
 
             this.logInfo('PYTHON_ENV: Virtual environment created successfully');
             this.uiState.setReady('Python virtual environment is ready.');
-            void vscode.window.showInformationMessage('Python virtual environment created successfully!');
+            void getHost().notifier.notify('info', 'Python virtual environment created successfully!');
         } catch (error) {
             const detail = this.getErrorDetails(error);
             if (this.isPermissionError(detail) && os.platform() === 'win32') {
@@ -254,10 +254,9 @@ export class VenvManager {
         this.logInfo('PYTHON_ENV: Deleting virtual environment...');
 
         try {
-            const result = await vscode.window.showWarningMessage(
+            const result = await getHost().notifier.confirm(
                 'Are you sure you want to delete the Python virtual environment? This action cannot be undone.',
-                { modal: true },
-                'Delete Environment',
+                { modal: true, actions: ['Delete Environment'] },
             );
 
             if (result !== 'Delete Environment') {
@@ -265,8 +264,7 @@ export class VenvManager {
                 return;
             }
 
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
+            await getHost().withProgress({
                 title: 'Deleting Python Virtual Environment',
                 cancellable: false,
             }, async (progress) => {
@@ -277,10 +275,10 @@ export class VenvManager {
 
             this.uiState.setIdle('Python virtual environment deleted.');
             this.logInfo('PYTHON_ENV: Environment deleted successfully');
-            void vscode.window.showInformationMessage('Python virtual environment deleted successfully!');
+            void getHost().notifier.notify('info', 'Python virtual environment deleted successfully!');
         } catch (error) {
             this.logError('PYTHON_ENV: Failed to delete environment:', error);
-            void vscode.window.showErrorMessage(`Failed to delete environment: ${this.getErrorDetails(error)}`);
+            void getHost().notifier.notify('error', `Failed to delete environment: ${this.getErrorDetails(error)}`);
         }
     }
 
@@ -291,8 +289,7 @@ export class VenvManager {
         this.logInfo(`PYTHON_ENV: Installing package: ${packageName}`);
 
         try {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
+            await getHost().withProgress({
                 title: `Installing ${packageName}`,
                 cancellable: false,
             }, async (progress) => {
@@ -309,10 +306,10 @@ export class VenvManager {
             });
 
             this.logInfo(`PYTHON_ENV: Package ${packageName} installed successfully`);
-            void vscode.window.showInformationMessage(`Package ${packageName} installed successfully!`);
+            void getHost().notifier.notify('info', `Package ${packageName} installed successfully!`);
         } catch (error) {
             this.logError(`PYTHON_ENV: Failed to install package ${packageName}:`, error);
-            void vscode.window.showErrorMessage(`Failed to install package ${packageName}: ${this.getErrorDetails(error)}`);
+            void getHost().notifier.notify('error', `Failed to install package ${packageName}: ${this.getErrorDetails(error)}`);
         }
     }
 
@@ -353,7 +350,7 @@ export class VenvManager {
             }
 
             this.logWarn('PYTHON_ENV: Debug installation failure triggered successfully:', details);
-            await vscode.window.showWarningMessage(
+            await getHost().notifier.notify('warning',
                 'CodeXR forced a Python environment installation failure for debugging. Use Reinitialize Python Environment to recover.',
             );
         } finally {
@@ -771,9 +768,9 @@ export class VenvManager {
     }
 
     private showWarningNotification(message: string, detail?: string): void {
-        void vscode.window.showWarningMessage(message, 'Show Details').then((choice) => {
+        void getHost().notifier.notify('warning', message, 'Show Details').then((choice) => {
             if (choice === 'Show Details' && detail) {
-                void vscode.window.showInformationMessage(detail, { modal: true });
+                void getHost().notifier.confirm(detail, { modal: true, severity: 'info', actions: [] });
             }
         });
     }
