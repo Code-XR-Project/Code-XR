@@ -224,7 +224,13 @@
       Parameter: 'Param',
       Count: 'Cnt',
       Maximum: 'Max',
-      Minimum: 'Min'
+      Minimum: 'Min',
+      Cognitive: 'Cog',
+      Halstead: 'Hal',
+      Difficulty: 'Diff',
+      Volume: 'Vol',
+      Maintainability: 'Maint',
+      Index: 'Idx'
     };
     var normalized = String(rawName || '')
       .replace(/_/g, ' ')

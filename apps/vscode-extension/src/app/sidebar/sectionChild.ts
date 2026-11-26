@@ -8,9 +8,10 @@ import type { CodeAnalysisTreeItem } from '../../features/analysis/views/analysi
 import type { PythonEnvModularTreeItem } from '../../features/python-env/views/pythonEnvItems';
 import type { VisualizationSettingsModularTreeItem } from '../../features/visualization-settings/views/visualizationSettingsSectionItems';
 import type { LearnMoreModularTreeItem } from '../../features/learn-more/views/learnMoreItems';
+import type { AiAgentsTreeItem } from '../../features/ai-agents/views/aiAgentsItems';
 
 /**
- * An item as a section provider produces and consumes it: one of the eight
+ * An item as a section provider produces and consumes it: one of the nine
  * section item classes, in sidebar order. ModularTreeDataProvider bridges
  * these to and from the ModularTreeItem the view renders.
  */
@@ -20,6 +21,7 @@ export type SectionChild =
     | BabiaExampleTreeItem
     | VisualizeDataModularTreeItem
     | CodeAnalysisTreeItem
+    | AiAgentsTreeItem
     | PythonEnvModularTreeItem
     | VisualizationSettingsModularTreeItem
     | LearnMoreModularTreeItem;

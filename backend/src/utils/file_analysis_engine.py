@@ -18,12 +18,18 @@ if str(TOOLS_DIR) not in sys.path:
 
 from babia_path_utils import build_tree_path, normalize_output_paths
 from class_counter_analyzer import analyze_classes
+from code_metrics_analyzer import analyze_file as analyze_file_functions
 from file_metric_summary import get_file_size
 from line_metric_utils import build_line_metrics
-from lizard_analyzer import analyze_file as analyze_with_lizard
 from metric_language_contract import get_metric_language
 from python_comment_analyzer import analyze_comments
-from xr_field_schema import build_complexity_band, safe_ratio, summarize_function_metrics
+from xr_field_schema import (
+    FILE_METRIC_FIELD_IDS,
+    FUNCTION_METRIC_FIELD_IDS,
+    build_complexity_band,
+    safe_ratio,
+    summarize_function_metrics,
+)
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -90,6 +96,8 @@ def normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict
                 'parameters': parameters,
                 'maxNestingDepth': max_nesting_depth,
                 'cyclomaticDensity': cyclomatic_density,
+                **{field_id: _safe_float(func.get(field_id), 0.0) if field_id != 'cognitiveComplexity'
+                   else _safe_int(func.get(field_id), 0) for field_id in FUNCTION_METRIC_FIELD_IDS},
             }
         )
 
@@ -103,15 +111,15 @@ def build_file_snapshot(file_path: str) -> dict[str, Any]:
     language = get_metric_language(file_path)
     file_name = os.path.basename(file_path)
 
-    lizard_data = analyze_with_lizard(file_path)
+    metrics_data = analyze_file_functions(file_path)
     comment_data = analyze_comments(file_path)
     class_data = analyze_classes(file_path)
     line_metrics = build_line_metrics(file_path, comment_data.get('commentLines', 0))
 
-    status = lizard_data.get('status', 'error')
-    normalized_functions = normalize_function_metrics(lizard_data.get('functions', []))
+    status = metrics_data.get('status', 'error')
+    normalized_functions = normalize_function_metrics(metrics_data.get('functions', []))
     function_summary = summarize_function_metrics(normalized_functions)
-    complexity_metrics = lizard_data.get('metrics', {}) if status == 'success' else {}
+    complexity_metrics = metrics_data.get('metrics', {}) if status == 'success' else {}
 
     average_complexity = _safe_float(complexity_metrics.get('averageComplexity'), 0.0)
     max_complexity = _safe_int(complexity_metrics.get('maxComplexity'), 0)
@@ -164,6 +172,7 @@ def build_file_snapshot(file_path: str) -> dict[str, Any]:
         'maxFunctionLines': function_summary['maxFunctionLines'],
         'averageFunctionNestingDepth': function_summary['averageFunctionNestingDepth'],
         'maxFunctionNestingDepth': function_summary['maxFunctionNestingDepth'],
+        **{field_id: function_summary[field_id] for field_id in FILE_METRIC_FIELD_IDS},
         'fileSizeBytes': get_file_size(file_path),
         'functions': normalized_functions,
     }
@@ -190,6 +199,7 @@ def build_file_payload(file_path: str, snapshot: dict[str, Any] | None = None) -
                 'parameters': function.get('parameters', 0),
                 'maxNestingDepth': function.get('maxNestingDepth', 0),
                 'cyclomaticDensity': function.get('cyclomaticDensity', 0.0),
+                **{field_id: function.get(field_id, 0) for field_id in FUNCTION_METRIC_FIELD_IDS},
                 'filePath': file_snapshot.get('filePath', file_path),
                 'fileName': file_name,
                 'treePath': build_tree_path(file_name, function.get('functionName')),
@@ -218,6 +228,7 @@ def build_file_payload(file_path: str, snapshot: dict[str, Any] | None = None) -
                 'maxFunctionLines': file_snapshot.get('maxFunctionLines', 0),
                 'averageFunctionNestingDepth': file_snapshot.get('averageFunctionNestingDepth', 0.0),
                 'maxFunctionNestingDepth': file_snapshot.get('maxFunctionNestingDepth', 0),
+                **{field_id: file_snapshot.get(field_id, 0) for field_id in FILE_METRIC_FIELD_IDS},
                 'fileSizeBytes': file_snapshot.get('fileSizeBytes', 0),
             }
         )

@@ -37,6 +37,11 @@ export const SupportedLanguages: LanguageInfo[] = [
     { name: "TTCN-3", extensions: [".ttcn", ".ttcn3"], iconId: "ttcn3" },
     { name: "Vue", extensions: [".vue"], iconId: "vue" },
     { name: "Zig", extensions: [".zig"], iconId: "zig" },
+    { name: "Rust", extensions: [".rs"], iconId: "rust" },
+    { name: "Dart", extensions: [".dart"], iconId: "dart" },
+    { name: "Shell", extensions: [".sh", ".bash"], iconId: "shell" },
+    { name: "PowerShell", extensions: [".ps1", ".psm1"], iconId: "powershell" },
+    { name: "R", extensions: [".r"], iconId: "r" },
     { name: "HTML", extensions: [".html", ".htm", ".xhtml"], iconId: "html" },
 ];
 

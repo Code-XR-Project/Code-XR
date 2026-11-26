@@ -26,13 +26,25 @@ test('webpack copies Python assets from <repo>/backend/src into dist/code_analys
     assert.equal(webpackConfigSource.includes('src/analysis/python'), false);
 });
 
-test('Python analysis uses the Lizard analyzer directly', () => {
-    const fileEngineSource = fs.readFileSync(
-        path.join(projectRoot, '..', '..', 'backend', 'src', 'utils', 'file_analysis_engine.py'),
-        'utf8',
-    );
-    assert.match(fileEngineSource, /from lizard_analyzer import analyze_file as analyze_with_lizard/);
-    assert.match(fileEngineSource, /lizard_data = analyze_with_lizard\(file_path\)/);
+test('Python analysis uses Code-XR\'s own metrics analyzer, not lizard', () => {
+    const backendSrc = path.join(projectRoot, '..', '..', 'backend', 'src');
+    const fileEngineSource = fs.readFileSync(path.join(backendSrc, 'utils', 'file_analysis_engine.py'), 'utf8');
+    assert.match(fileEngineSource, /from code_metrics_analyzer import analyze_file as analyze_file_functions/);
+    assert.match(fileEngineSource, /metrics_data = analyze_file_functions\(file_path\)/);
+
+    const importsLizard = [];
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+            } else if (entry.name.endsWith('.py') && /^\s*(import|from)\s+lizard\b/m.test(fs.readFileSync(full, 'utf8'))) {
+                importsLizard.push(path.relative(backendSrc, full));
+            }
+        }
+    };
+    walk(backendSrc);
+    assert.deepEqual(importsLizard, [], 'the shipped backend must not import lizard (epic #140)');
 });
 
 test('analysis configuration uses the active storage module and no legacy storage shims', () => {

@@ -78,6 +78,13 @@ const SECTION_ITEM_ADAPTERS: ReadonlyMap<string, SectionItemAdapter> = new Map<s
         constructorExtras: [],
         payloadKeys: ['originalAnalysisItem'],
     }],
+    ['aiAgents', {
+        load: () => require('../../features/ai-agents/views/aiAgentsItems').AiAgentsTreeItem,
+        itemTypeKeys: ['aiAgentsItemType'],
+        defaultItemType: 'coming-soon',
+        constructorExtras: [],
+        payloadKeys: [],
+    }],
     ['pythonEnv', {
         load: () => require('../../features/python-env/views/pythonEnvItems').PythonEnvModularTreeItem,
         itemTypeKeys: ['pythonEnvItemType'],

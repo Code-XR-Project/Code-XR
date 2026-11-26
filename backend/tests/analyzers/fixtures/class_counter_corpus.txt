@@ -907,3 +907,11 @@ pub fn helper(value: i32, offset: i32) i32 {
     }
     return value;
 }
+// epic #219 arms: Dart, PowerShell, R
+abstract class DartSample {}
+base mixin DartMixin on DartSample {}
+extension DartExtension on String {}
+CLASS PsUpperSample { }
+setClass("RS4Sample", representation(x = "numeric"))
+RefGen <- setRefClass("RRefSample", fields = list(x = "numeric"))
+RSixSample <- R6::R6Class("RSixSample")

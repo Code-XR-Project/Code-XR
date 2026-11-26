@@ -616,7 +616,7 @@ test('dependency server preserves cached datasets and no longer accepts granular
 
 test('python dependency packages are pinned centrally', () => {
   const manifest = read('src/core/python-env/pythonPackageManifest.ts');
-  assert.match(manifest, /lizard/);
+  assert.doesNotMatch(manifest, /lizard/);
   assert.match(manifest, /tree-sitter-language-pack/);
   assert.match(manifest, /version: '1\.8\.1'/);
 });

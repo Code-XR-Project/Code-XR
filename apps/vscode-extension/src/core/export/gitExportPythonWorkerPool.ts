@@ -4,7 +4,7 @@ import * as path from 'path';
 
 const WORKER_PROTOCOL_VERSION = 1;
 const MAX_TASKS_PER_WORKER = 500;
-// A cold interpreter importing lizard under antivirus on Windows can take
+// A cold interpreter importing the backend under antivirus on Windows can take
 // well over 10 s, and the Maximum profile starts up to 32 at once (EVO-17).
 const WORKER_READY_TIMEOUT_MS = 30_000;
 /**

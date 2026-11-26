@@ -97,7 +97,7 @@
  },
  ".js": {
   "file": "sample.js",
-  "classCount": 64,
+  "classCount": 65,
   "classes": [
    {
     "name": "N1x",
@@ -243,6 +243,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N7x",
@@ -423,7 +428,7 @@
  },
  ".ts": {
   "file": "sample.ts",
-  "classCount": 64,
+  "classCount": 65,
   "classes": [
    {
     "name": "N1x",
@@ -569,6 +574,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N7x",
@@ -749,7 +759,7 @@
  },
  ".jsx": {
   "file": "sample.jsx",
-  "classCount": 64,
+  "classCount": 65,
   "classes": [
    {
     "name": "N1x",
@@ -895,6 +905,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N7x",
@@ -1075,7 +1090,7 @@
  },
  ".tsx": {
   "file": "sample.tsx",
-  "classCount": 64,
+  "classCount": 65,
   "classes": [
    {
     "name": "N1x",
@@ -1221,6 +1236,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N7x",
@@ -1401,7 +1421,7 @@
  },
  ".java": {
   "file": "sample.java",
-  "classCount": 85,
+  "classCount": 86,
   "classes": [
    {
     "name": "N16x",
@@ -1774,6 +1794,11 @@
     "line": 177
    },
    {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
     "name": "N32x",
     "type": "public_abstract_class",
     "line": 45
@@ -1832,7 +1857,7 @@
  },
  ".scala": {
   "file": "sample.scala",
-  "classCount": 48,
+  "classCount": 49,
   "classes": [
    {
     "name": "N1x",
@@ -1958,6 +1983,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N39x",
@@ -2078,7 +2108,7 @@
  },
  ".sc": {
   "file": "sample.sc",
-  "classCount": 48,
+  "classCount": 49,
   "classes": [
    {
     "name": "N1x",
@@ -2204,6 +2234,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N39x",
@@ -3604,7 +3639,7 @@
  },
  ".cs": {
   "file": "sample.cs",
-  "classCount": 92,
+  "classCount": 93,
   "classes": [
    {
     "name": "N16x",
@@ -4047,6 +4082,11 @@
     "line": 177
    },
    {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
     "name": "N40x",
     "type": "sealed_class",
     "line": 54
@@ -4191,7 +4231,7 @@
  },
  ".php": {
   "file": "sample.php",
-  "classCount": 54,
+  "classCount": 55,
   "classes": [
    {
     "name": "N1x",
@@ -4317,6 +4357,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N33x",
@@ -4467,7 +4512,7 @@
  },
  ".phtml": {
   "file": "sample.phtml",
-  "classCount": 54,
+  "classCount": 55,
   "classes": [
    {
     "name": "N1x",
@@ -4593,6 +4638,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N33x",
@@ -4743,7 +4793,7 @@
  },
  ".php3": {
   "file": "sample.php3",
-  "classCount": 54,
+  "classCount": 55,
   "classes": [
    {
     "name": "N1x",
@@ -4869,6 +4919,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N33x",
@@ -5019,7 +5074,7 @@
  },
  ".php4": {
   "file": "sample.php4",
-  "classCount": 54,
+  "classCount": 55,
   "classes": [
    {
     "name": "N1x",
@@ -5145,6 +5200,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N33x",
@@ -5295,7 +5355,7 @@
  },
  ".php5": {
   "file": "sample.php5",
-  "classCount": 54,
+  "classCount": 55,
   "classes": [
    {
     "name": "N1x",
@@ -5421,6 +5481,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N33x",
@@ -5571,7 +5636,7 @@
  },
  ".phps": {
   "file": "sample.phps",
-  "classCount": 54,
+  "classCount": 55,
   "classes": [
    {
     "name": "N1x",
@@ -5697,6 +5762,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N33x",
@@ -5847,7 +5917,7 @@
  },
  ".swift": {
   "file": "sample.swift",
-  "classCount": 57,
+  "classCount": 58,
   "classes": [
    {
     "name": "N1x",
@@ -6050,6 +6120,11 @@
     "line": 120
    },
    {
+    "name": "DartExtension",
+    "type": "extension",
+    "line": 913
+   },
+   {
     "name": "N16x",
     "type": "public_class",
     "line": 29
@@ -6184,7 +6259,7 @@
  },
  ".rs": {
   "file": "sample.rs",
-  "classCount": 35,
+  "classCount": 28,
   "classes": [
    {
     "name": "N50x",
@@ -6205,6 +6280,11 @@
     "name": "N109x",
     "type": "struct",
     "line": 131
+   },
+   {
+    "name": "N116x",
+    "type": "struct",
+    "line": 138
    },
    {
     "name": "N157x",
@@ -6262,6 +6342,11 @@
     "line": 132
    },
    {
+    "name": "N117x",
+    "type": "enum",
+    "line": 139
+   },
+   {
     "name": "class",
     "type": "enum",
     "line": 150
@@ -6297,39 +6382,9 @@
     "line": 133
    },
    {
-    "name": "N112x",
-    "type": "impl",
-    "line": 134
-   },
-   {
-    "name": "T",
-    "type": "impl",
-    "line": 135
-   },
-   {
-    "name": "N113x",
-    "type": "impl_for",
-    "line": 135
-   },
-   {
-    "name": "N9x",
-    "type": "type_alias",
-    "line": 21
-   },
-   {
-    "name": "N46x",
-    "type": "type_alias",
-    "line": 60
-   },
-   {
-    "name": "N114x",
-    "type": "type_alias",
-    "line": 136
-   },
-   {
-    "name": "N152x",
-    "type": "type_alias",
-    "line": 180
+    "name": "N118x",
+    "type": "trait",
+    "line": 140
    },
    {
     "name": "N51x",
@@ -6345,27 +6400,12 @@
     "name": "N161x",
     "type": "union",
     "line": 190
-   },
-   {
-    "name": "N116x",
-    "type": "pub_struct",
-    "line": 138
-   },
-   {
-    "name": "N117x",
-    "type": "pub_enum",
-    "line": 139
-   },
-   {
-    "name": "N118x",
-    "type": "pub_trait",
-    "line": 140
    }
   ]
  },
  ".kt": {
   "file": "sample.kt",
-  "classCount": 52,
+  "classCount": 53,
   "classes": [
    {
     "name": "N1x",
@@ -6511,6 +6551,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N104x",
@@ -6631,7 +6676,7 @@
  },
  ".kts": {
   "file": "sample.kts",
-  "classCount": 52,
+  "classCount": 53,
   "classes": [
    {
     "name": "N1x",
@@ -6777,6 +6822,11 @@
     "name": "N149x",
     "type": "abstract_class",
     "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
    },
    {
     "name": "N104x",
@@ -8387,6 +8437,625 @@
     "line": 206
    }
   ]
+ },
+ ".dart": {
+  "file": "sample.dart",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N6x",
+    "type": "class",
+    "line": 18
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N31x",
+    "type": "class",
+    "line": 44
+   },
+   {
+    "name": "N33x",
+    "type": "class",
+    "line": 46
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N38x",
+    "type": "class",
+    "line": 52
+   },
+   {
+    "name": "N40x",
+    "type": "class",
+    "line": 54
+   },
+   {
+    "name": "N41x",
+    "type": "class",
+    "line": 55
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N83x",
+    "type": "class",
+    "line": 100
+   },
+   {
+    "name": "N84x",
+    "type": "class",
+    "line": 101
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N90x",
+    "type": "class",
+    "line": 109
+   },
+   {
+    "name": "N91x",
+    "type": "class",
+    "line": 110
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N105x",
+    "type": "class",
+    "line": 125
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N121x",
+    "type": "class",
+    "line": 144
+   },
+   {
+    "name": "N122x",
+    "type": "class",
+    "line": 145
+   },
+   {
+    "name": "N124x",
+    "type": "class",
+    "line": 147
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N149x",
+    "type": "class",
+    "line": 177
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "DartSample",
+    "type": "class",
+    "line": 911
+   },
+   {
+    "name": "DartMixin",
+    "type": "mixin",
+    "line": 912
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N100x",
+    "type": "extension",
+    "line": 120
+   },
+   {
+    "name": "DartExtension",
+    "type": "extension",
+    "line": 913
+   }
+  ]
+ },
+ ".ps1": {
+  "file": "sample.ps1",
+  "classCount": 32,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "PsUpperSample",
+    "type": "class",
+    "line": 914
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".psm1": {
+  "file": "sample.psm1",
+  "classCount": 32,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "PsUpperSample",
+    "type": "class",
+    "line": 914
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".r": {
+  "file": "sample.r",
+  "classCount": 3,
+  "classes": [
+   {
+    "name": "RS4Sample",
+    "type": "s4_class",
+    "line": 915
+   },
+   {
+    "name": "RRefSample",
+    "type": "reference_class",
+    "line": 916
+   },
+   {
+    "name": "RSixSample",
+    "type": "r6_class",
+    "line": 917
+   }
+  ]
+ },
+ ".sh": {
+  "file": "sample.sh",
+  "classCount": 0,
+  "classes": []
+ },
+ ".bash": {
+  "file": "sample.bash",
+  "classCount": 0,
+  "classes": []
  },
  ".xyz": {
   "file": "sample.xyz",

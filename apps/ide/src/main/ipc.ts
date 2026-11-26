@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
-import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, SCENE_ADDRESSES, type AnalysisKind, type AppInfo, type AutoStartMode, type SceneAddress } from '../shared/api.ts';
+import { ALLOWED_IPC_CHANNELS, AUTO_START_MODES, FILE_ANALYSIS_KINDS, IPC_CHANNELS, IPC_EVENTS, PROJECT_ANALYSIS_KINDS, SCENE_ADDRESSES, type FileAnalysisKind, type ProjectAnalysisKind, type AppInfo, type AutoStartMode, type SceneAddress } from '../shared/api.ts';
 import type { TerminalHost } from './terminal/terminalHost.ts';
 import type { AgentServices } from './agents/agentsRuntime.ts';
 import { registerAgentHandlers } from './agents/agentsIpc.ts';
@@ -155,11 +155,18 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     // #16: analyses, and the scene view beside the code.
     handle(IPC_CHANNELS.analysisAnalyseProject, (event, kind, options) => {
         const win = ownerOf(event);
-        if (!(ANALYSIS_KINDS as readonly unknown[]).includes(kind)) {
+        if (!(PROJECT_ANALYSIS_KINDS as readonly unknown[]).includes(kind)) {
             throw new Error(`Unknown analysis kind: ${String(kind)}`);
         }
         const auto = typeof options === 'object' && options !== null && (options as { auto?: unknown }).auto === true;
-        return core.analysis.analyseProject(win, currentWorkspaceInfo(event.sender)?.root, kind as AnalysisKind, { auto });
+        return core.analysis.analyseProject(win, currentWorkspaceInfo(event.sender)?.root, kind as ProjectAnalysisKind, { auto });
+    });
+    handle(IPC_CHANNELS.analysisAnalyseFile, (event, kind, relativePath) => {
+        const win = ownerOf(event);
+        if (!(FILE_ANALYSIS_KINDS as readonly unknown[]).includes(kind)) {
+            throw new Error(`Unknown analysis kind: ${String(kind)}`);
+        }
+        return core.analysis.analyseFile(win, currentWorkspaceInfo(event.sender)?.root, kind as FileAnalysisKind, relativePath);
     });
     handle(IPC_CHANNELS.analysisGetAutoStart, () => core.analysis.autoStart());
     handle(IPC_CHANNELS.analysisSetAutoStart, (_event, mode) => {

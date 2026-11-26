@@ -13,9 +13,10 @@ import { revealInScene } from '@codexr/core/server/analysis/sceneReveal';
 import { getActiveServerRegistry } from '@codexr/core/server/registry/activeServerRegistry';
 import { ServerControl } from '@codexr/core/server/serverControl';
 import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager';
-import { AUTO_START_MODES, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type SceneAddress, type SceneInfo, type SceneFilesEvent, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
+import { AUTO_START_MODES, FILE_ANALYSIS_KINDS, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type SceneAddress, type SceneInfo, type SceneFilesEvent, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
 import { channelLog } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
+import { resolveInWorkspace } from '../workspace/workspacePath.ts';
 import { readAnalysedFileCount, watchAnalysedFileCount } from './analysedFiles.ts';
 import { closeScene, showScene } from './sceneView.ts';
 import { sceneTargetToWorkspacePath } from './sceneEditorTarget.ts';
@@ -40,10 +41,19 @@ const log = channelLog('core');
 const AUTO_START_KEY = 'ide.analysis.autoStartOnOpen';
 const DEFAULT_AUTO_START: AutoStartMode = 'xr-deep';
 
+const NO_WORKSPACE: AnalysisStartResult = { ok: false, reason: 'no-workspace', message: 'Open a folder first.' };
+
+function isFileKind(kind: AnalysisKind): kind is FileAnalysisKind {
+    return (FILE_ANALYSIS_KINDS as readonly string[]).includes(kind);
+}
+
 /** The analysis a window is showing: its folder, and the core server that serves it. */
 interface WindowScene {
+    /** The window's open folder when the analysis ran. */
     readonly folder: string;
     readonly kind: AnalysisKind;
+    /** What was analysed: the folder itself, or one file of it. */
+    readonly target: string;
     readonly serverId: string;
     readonly url: string;
     /** The sharing state last sent to the window (#155), to send changes only. */
@@ -59,6 +69,7 @@ export class AnalysisService {
     private owner: BrowserWindow | null = null;
     private ownerFolder = '';
     private ownerKind: AnalysisKind = 'xr-deep';
+    private ownerTarget = '';
     /** #155: analysis launches and share requests never overlap (see `startShareOnce`). */
     private readonly launches = new SerialQueue();
     /** Per window (by webContents id): the scene it last opened. */
@@ -137,34 +148,59 @@ export class AnalysisService {
      * folder. It never asks first, whatever the project's size (#203): the
      * scene's header then says how many files the analysis took.
      */
-    async analyseProject(win: BrowserWindow, folder: string | undefined, kind: AnalysisKind, options: { auto?: boolean } = {}): Promise<AnalysisStartResult> {
-        if (!folder) {
-            return { ok: false, reason: 'no-workspace', message: 'Open a folder first.' };
-        }
-        const status = await this.python.status();
-        if (status.state !== 'ready') {
-            return { ok: false, reason: 'python-not-ready', message: 'Set up the Python environment first (Analysis view).' };
+    async analyseProject(win: BrowserWindow, folder: string | undefined, kind: ProjectAnalysisKind, options: { auto?: boolean } = {}): Promise<AnalysisStartResult> {
+        const refused = await this.refusal(folder);
+        if (refused || !folder) {
+            return refused ?? NO_WORKSPACE;
         }
         const running = this.scenes.get(win.webContents.id);
-        if (options.auto && running && running.folder === folder && getActiveServerRegistry().getServer(running.serverId)) {
-            this.owner = win;
-            this.ownerFolder = folder;
-            this.ownerKind = running.kind;
+        if (options.auto && running && running.target === folder && getActiveServerRegistry().getServer(running.serverId)) {
+            this.setOwner(win, folder, running.kind, folder);
             await this.open(running.url, running.serverId);
             return { ok: true };
         }
+        const mode = kind === 'livepanel-deep' ? 'LivePanel' : 'XR';
+        return this.launch(win, folder, kind, folder, (context) => AnalysisOrchestrator.orchestrateAnalysis(folder, mode, 'directory', context, true));
+    }
+
+    /**
+     * Analyses one file of the window's folder (#16), named by its workspace
+     * path: the same launches as the extension's explorer menu.
+     */
+    async analyseFile(win: BrowserWindow, folder: string | undefined, kind: FileAnalysisKind, relativePath: unknown): Promise<AnalysisStartResult> {
+        const refused = await this.refusal(folder);
+        if (refused || !folder) {
+            return refused ?? NO_WORKSPACE;
+        }
+        const file = resolveInWorkspace(folder, relativePath);
+        const mode = kind === 'livepanel-file' ? 'LivePanel' : 'XR';
+        return this.launch(win, folder, kind, file, (context) => AnalysisOrchestrator.orchestrateAnalysis(file, mode, 'file', context, false));
+    }
+
+    /** Why an analysis cannot start, or null: nothing is queued and nothing is downloaded from here. */
+    private async refusal(folder: string | undefined): Promise<AnalysisStartResult | null> {
+        if (!folder) {
+            return NO_WORKSPACE;
+        }
+        const status = await this.python.status();
+        return status.state === 'ready'
+            ? null
+            : { ok: false, reason: 'python-not-ready', message: 'Set up the Python environment first (Analysis view).' };
+    }
+
+    private setOwner(win: BrowserWindow, folder: string, kind: AnalysisKind, target: string): void {
+        this.owner = win;
+        this.ownerFolder = folder;
+        this.ownerKind = kind;
+        this.ownerTarget = target;
+    }
+
+    private async launch(win: BrowserWindow, folder: string, kind: AnalysisKind, target: string, run: (context: CoreContext) => Promise<unknown>): Promise<AnalysisStartResult> {
         try {
             await this.ready;
             await this.launches.run(async () => {
-                this.owner = win;
-                this.ownerFolder = folder;
-                this.ownerKind = kind;
-                const context = this.contextFor(folder);
-                switch (kind) {
-                    case 'xr-deep':
-                        await AnalysisOrchestrator.orchestrateAnalysis(folder, 'XR', 'directory', context, true);
-                        break;
-                }
+                this.setOwner(win, folder, kind, target);
+                await run(this.contextFor(folder));
             });
             return { ok: true };
         } catch (error) {
@@ -280,7 +316,8 @@ export class AnalysisService {
         if (!scene || !workspaceRoot) {
             return null;
         }
-        const relative = sceneTargetToWorkspacePath(workspaceRoot, scene.folder, target.path);
+        const analysedFolder = isFileKind(scene.kind) ? path.dirname(scene.target) : scene.target;
+        const relative = sceneTargetToWorkspacePath(workspaceRoot, analysedFolder, target.path);
         if (!relative) {
             log.warn(`Scene asked to open a path outside the folder: ${target.path}`);
             return null;
@@ -347,15 +384,17 @@ export class AnalysisService {
         previous?.unwatch();
         const server = getActiveServerRegistry().getServer(serverId);
         const share = toSceneShareState(server?.remoteAccess);
-        const files = await readAnalysedFileCount(server?.htmlFile);
+        // A single file's analysis records its functions, not files: its count is 1 and never changes.
+        const single = isFileKind(this.ownerKind);
+        const files = single ? 1 : await readAnalysedFileCount(server?.htmlFile);
         const contents = win.webContents;
-        const unwatch = watchAnalysedFileCount(server?.htmlFile, files, (count) => {
+        const unwatch = watchAnalysedFileCount(single ? undefined : server?.htmlFile, files, (count) => {
             if (!contents.isDestroyed()) {
                 contents.send(IPC_EVENTS.analysisSceneFilesChanged, { url: serverUrl, files: count } satisfies SceneFilesEvent);
             }
         });
         win.once('closed', unwatch);
-        this.scenes.set(win.webContents.id, { folder: this.ownerFolder, kind: this.ownerKind, serverId, url: serverUrl, share, unwatch });
+        this.scenes.set(win.webContents.id, { folder: this.ownerFolder, kind: this.ownerKind, target: this.ownerTarget, serverId, url: serverUrl, share, unwatch });
         if (previous && previous.serverId !== serverId) {
             // A new analysis replaces the window's scene; its old server (and tunnel) has nothing left to show.
             void this.stopTunnel(previous.serverId);
@@ -365,16 +404,16 @@ export class AnalysisService {
         }
         const scene: SceneInfo = {
             url: serverUrl,
-            title: sceneTitle(this.ownerFolder),
+            title: sceneTitle(this.ownerTarget, this.ownerKind.startsWith('livepanel') ? 'LivePanel' : 'XR'),
             kind: this.ownerKind,
-            target: targetName(this.ownerFolder),
-            targetPath: this.ownerFolder,
+            target: targetName(this.ownerTarget),
+            targetPath: this.ownerTarget,
             files,
             share,
         };
         win.webContents.send(IPC_EVENTS.analysisSceneOpened, scene);
         // #173: the Problems panel measures the functions of the folder the scene shows.
-        if (this.ownerFolder) {
+        if (this.ownerFolder && !isFileKind(this.ownerKind)) {
             this.hooks.sceneOpened?.(win.webContents, this.ownerFolder);
         }
         await showScene(win, serverUrl);

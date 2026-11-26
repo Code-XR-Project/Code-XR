@@ -8,6 +8,8 @@ import { PythonEnvSectionProvider } from '../../features/python-env/views/Python
 import { AnalysisSectionProvider } from '../../features/analysis/views/AnalysisSectionProvider';
 import { VisualizationSettingsSectionProvider } from '../../features/visualization-settings/views/VisualizationSettingsSectionProvider';
 import { LearnMoreSectionProvider } from '../../features/learn-more/views/LearnMoreSectionProvider';
+import { AiAgentsSectionProvider } from '../../features/ai-agents/views/AiAgentsSectionProvider';
+import { AI_AGENTS_TOOLTIP } from '../../features/ai-agents/views/aiAgentsItems';
 import type { PythonEnvUiStateService } from '../../core/python-env/pythonEnvUiState';
 import type { VenvManager } from '../../core/python-env/venvManager';
 import { PythonEnvItems } from '../../features/python-env/views/pythonEnvItems';
@@ -70,7 +72,7 @@ export function createStaticSectionHeader({
     );
 }
 
-/** The eight root sections, in sidebar order. */
+/** The nine root sections, in sidebar order. */
 export function createSectionDefinitions(
     context: vscode.ExtensionContext,
     deps: SectionDefinitionDependencies,
@@ -142,6 +144,20 @@ export function createSectionDefinitions(
                 contextValue: 'codeXR.analysis.section.main',
             }),
             createProvider: () => new AnalysisSectionProvider(context),
+        },
+        {
+            // Epic #189: a placeholder until the agent hub reaches the extension (1.3.0).
+            sectionName: 'aiAgents',
+            createHeader: () => createStaticSectionHeader({
+                label: 'AI AGENTS',
+                sectionType: 'aiAgents',
+                collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+                iconPath: new vscode.ThemeIcon('sparkle'),
+                tooltip: AI_AGENTS_TOOLTIP,
+                description: 'Coming soon',
+                contextValue: 'aiAgentsSection',
+            }),
+            createProvider: () => new AiAgentsSectionProvider(context),
         },
         {
             sectionName: 'pythonEnv',

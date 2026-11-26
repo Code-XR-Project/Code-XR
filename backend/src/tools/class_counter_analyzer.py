@@ -164,17 +164,37 @@ _GO_PATTERNS: list[tuple[str, str]] = [
 
 # Rust structs, enums, traits, impl blocks
 _RUST_PATTERNS: list[tuple[str, str]] = [
-    (r'^\s*struct\s+(\w+)', 'struct'),
-    (r'^\s*enum\s+(\w+)', 'enum'),
-    (r'^\s*trait\s+(\w+)', 'trait'),
-    (r'^\s*impl\s+(\w+)', 'impl'),
-    (r'^\s*impl\s+\w+\s+for\s+(\w+)', 'impl_for'),
-    (r'^\s*type\s+(\w+)\s*=', 'type_alias'),
-    (r'^\s*union\s+(\w+)', 'union'),
-    (r'^\s*pub\s+struct\s+(\w+)', 'pub_struct'),
-    (r'^\s*pub\s+enum\s+(\w+)', 'pub_enum'),
-    (r'^\s*pub\s+trait\s+(\w+)', 'pub_trait'),
+    # Type declarations only, with any visibility (`pub`, `pub(crate)`): an `impl` block adds
+    # methods to a type declared elsewhere, so counting it would count the type twice.
+    (r'^\s*(?:pub(?:\([^)]*\))?\s+)?struct\s+(\w+)', 'struct'),
+    (r'^\s*(?:pub(?:\([^)]*\))?\s+)?enum\s+(\w+)', 'enum'),
+    (r'^\s*(?:pub(?:\([^)]*\))?\s+)?(?:unsafe\s+)?trait\s+(\w+)', 'trait'),
+    (r'^\s*(?:pub(?:\([^)]*\))?\s+)?union\s+(\w+)', 'union'),
 ]
+
+# Dart classes (with Dart 3 modifiers), mixins, enums, named extensions
+_DART_PATTERNS: list[tuple[str, str]] = [
+    (r'^\s*(?:(?:abstract|base|final|interface|sealed|mixin)\s+)*class\s+(\w+)', 'class'),
+    (r'^\s*(?:base\s+)?mixin\s+(?!class\b)(\w+)', 'mixin'),
+    (r'^\s*enum\s+(\w+)', 'enum'),
+    (r'^\s*extension\s+(?!on\b)(\w+)', 'extension'),
+]
+
+# PowerShell 5+ classes and enums (keywords are case-insensitive)
+_POWERSHELL_PATTERNS: list[tuple[str, str]] = [
+    (r'^\s*class\s+(\w+)', 'class'),
+    (r'^\s*enum\s+(\w+)', 'enum'),
+]
+
+# R: S4, Reference and R6 class generators
+_R_PATTERNS: list[tuple[str, str]] = [
+    (r'^\s*setClass\s*\(\s*["\'](\w+)', 's4_class'),
+    (r'^\s*[\w.]+\s*(?:<-|=)\s*setRefClass\s*\(\s*["\']([\w.]+)', 'reference_class'),
+    (r'^\s*([\w.]+)\s*(?:<-|=)\s*(?:R6::)?R6Class\s*\(', 'r6_class'),
+]
+
+# Shell has no classes: the empty list keeps it a supported extension.
+_SHELL_PATTERNS: list[tuple[str, str]] = []
 
 # Kotlin classes, interfaces, objects, data classes
 _KOTLIN_PATTERNS: list[tuple[str, str]] = [
@@ -294,6 +314,10 @@ _CLASS_PATTERN_ARMS: list[tuple[list[str], list[tuple[str, str]], int]] = [
     (['.sol'], _SOLIDITY_PATTERNS, re.MULTILINE),
     (['.f', '.f90', '.f95', '.f03', '.f08'], _FORTRAN_PATTERNS, re.MULTILINE),
     (['.gd'], _GDSCRIPT_PATTERNS, re.MULTILINE),
+    (['.dart'], _DART_PATTERNS, re.MULTILINE),
+    (['.ps1', '.psm1'], _POWERSHELL_PATTERNS, re.MULTILINE | re.IGNORECASE),
+    (['.r'], _R_PATTERNS, re.MULTILINE),
+    (['.sh', '.bash'], _SHELL_PATTERNS, re.MULTILINE),
 ]
 
 CLASS_PATTERNS_BY_EXTENSION: dict[str, tuple[list[tuple[str, str]], int]] = {

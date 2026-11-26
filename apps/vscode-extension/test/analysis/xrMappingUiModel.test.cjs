@@ -27,7 +27,9 @@ const goldenPath = path.join(__dirname, 'xrMappingUiModel.golden.json');
 const FILE_FIELDS = {
     functionName: 'text', lineStart: 'numeric', lineEnd: 'numeric', lineCount: 'numeric', spanLines: 'numeric',
     complexity: 'numeric', complexityBand: 'text', parameters: 'numeric', maxNestingDepth: 'numeric',
-    cyclomaticDensity: 'numeric', filePath: 'text', fileName: 'text', treePath: 'text',
+    cyclomaticDensity: 'numeric', cognitiveComplexity: 'numeric', halsteadVolume: 'numeric',
+    halsteadDifficulty: 'numeric', halsteadEffort: 'numeric', halsteadBugs: 'numeric', maintainabilityIndex: 'numeric',
+    filePath: 'text', fileName: 'text', treePath: 'text',
 };
 const DIRECTORY_FIELDS = {
     fileName: 'text', filePath: 'text', relativePath: 'text', language: 'text', totalLines: 'numeric',
@@ -36,7 +38,9 @@ const DIRECTORY_FIELDS = {
     cyclomaticComplexityNumber: 'numeric', cyclomaticComplexityDensity: 'numeric', highComplexityFunctions: 'numeric',
     criticalComplexityFunctions: 'numeric', averageFunctionParameters: 'numeric', maxFunctionParameters: 'numeric',
     averageFunctionLines: 'numeric', maxFunctionLines: 'numeric', averageFunctionNestingDepth: 'numeric',
-    maxFunctionNestingDepth: 'numeric', fileSizeBytes: 'numeric',
+    maxFunctionNestingDepth: 'numeric', averageCognitiveComplexity: 'numeric', maxCognitiveComplexity: 'numeric',
+    averageMaintainabilityIndex: 'numeric', minMaintainabilityIndex: 'numeric', totalHalsteadVolume: 'numeric',
+    totalHalsteadBugs: 'numeric', fileSizeBytes: 'numeric',
 };
 
 function buildCases(chartTemplates) {
@@ -115,4 +119,57 @@ test('the XR mapping UI model of every chart and schema matches the committed go
     assert.ok(results.filter((entry) => entry.dimensions !== null).length >= 32);
     const golden = JSON.parse(fs.readFileSync(goldenPath, 'utf8'));
     assert.deepEqual(results, golden);
+});
+
+// Epic #219 (#223): the new metrics are offered on every numeric axis like any
+// other metric, and no axis that only takes numbers ever lists a text field.
+const NEW_FILE_METRICS = ['cognitiveComplexity', 'halsteadVolume', 'halsteadDifficulty', 'halsteadEffort', 'halsteadBugs', 'maintainabilityIndex'];
+const NEW_DIRECTORY_METRICS = ['averageCognitiveComplexity', 'maxCognitiveComplexity', 'averageMaintainabilityIndex', 'minMaintainabilityIndex', 'totalHalsteadVolume', 'totalHalsteadBugs'];
+
+function mappingModel(chartId, isDirectory, fieldTypeMap) {
+    const fake = createFakeVscode();
+    return withFakeVscode(fake, ({ requireOut }) => {
+        const { TemplateProcessor } = requireOut('core/charts/processing/templateProcessor.js');
+        const { chartTemplates } = requireOut('core/charts/templateCharts.js');
+        const result = TemplateProcessor.buildBabiaUiPlaceholders(chartId, 'chartEntity', [], 'Title', isDirectory, { fieldTypeMap });
+        const json = result.scriptHtml.replace(/^<script[^>]*>/, '').replace(/<\/script>$/, '');
+        return { model: json ? JSON.parse(json) : null, chartTemplates };
+    });
+}
+
+test('every numeric axis of every chart offers the new metrics, in both schemas', () => {
+    const { chartTemplates } = mappingModel('bars', false, FILE_FIELDS);
+    for (const [fields, metrics, isDirectory] of [[FILE_FIELDS, NEW_FILE_METRICS, false], [DIRECTORY_FIELDS, NEW_DIRECTORY_METRICS, true]]) {
+        const { model } = mappingModel(chartTemplates[0].id, isDirectory, fields);
+        for (const chart of chartTemplates) {
+            const dimensions = model.dimensionsByChart[chart.id];
+            assert.ok(dimensions, `${chart.id} is offered`);
+            for (const dimension of dimensions) {
+                if (dimension.dataType === 'numeric' || dimension.dataType === 'any') {
+                    for (const metric of metrics) {
+                        assert.ok(dimension.fields.includes(metric), `${chart.id}.${dimension.id} offers ${metric}`);
+                    }
+                }
+            }
+        }
+    }
+});
+
+test('a numeric axis never lists a text field, even when the schema has no numeric field', () => {
+    for (const [fields, isDirectory] of [[FILE_FIELDS, false], [DIRECTORY_FIELDS, true], [{ functionName: 'text', fileName: 'text' }, false]]) {
+        const { model, chartTemplates } = mappingModel('bars', isDirectory, fields);
+        const byChart = model ? model.dimensionsByChart : {};
+        for (const chart of chartTemplates) {
+            for (const dimension of byChart[chart.id] || []) {
+                if (dimension.dataType === 'numeric') {
+                    for (const field of dimension.fields) {
+                        assert.equal(fields[field], 'numeric', `${chart.id}.${dimension.id} lists ${field}`);
+                    }
+                }
+            }
+        }
+    }
+    // With text fields only, no chart can draw its numeric axis: none is offered, and no panel is built.
+    const { model } = mappingModel('bars', false, { functionName: 'text', fileName: 'text' });
+    assert.equal(model, null);
 });

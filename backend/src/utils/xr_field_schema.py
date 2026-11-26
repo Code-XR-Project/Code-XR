@@ -26,6 +26,58 @@ def _numeric_field(field_id: str, label: str, description: str) -> Dict[str, str
     }
 
 
+# Epic #219: metrics added on top of the original contract. They are only ever
+# ADDITIONAL keys: every older field keeps its id, type and meaning. One list
+# per level, so the engines and the schema cannot drift apart.
+FUNCTION_METRIC_FIELDS: List[Dict[str, str]] = [
+    _numeric_field(
+        "cognitiveComplexity", "Cognitive Complexity",
+        "How hard the function is to understand (SonarSource): +1 for each if, loop, switch or catch plus 1 "
+        "for each level it is nested, +1 per else and per run of && / ||. 0 means straight-line code.",
+    ),
+    _numeric_field(
+        "halsteadVolume", "Halstead Volume",
+        "Information content of the function in bits: length x log2(vocabulary) of its operators and operands.",
+    ),
+    _numeric_field(
+        "halsteadDifficulty", "Halstead Difficulty",
+        "How error-prone the function is to write or change: distinct operators / 2 x operand uses / distinct "
+        "operands.",
+    ),
+    _numeric_field(
+        "halsteadEffort", "Halstead Effort",
+        "Mental effort to write the function: Halstead difficulty x volume.",
+    ),
+    _numeric_field(
+        "halsteadBugs", "Halstead Estimated Bugs",
+        "Bugs the function is expected to contain, estimated as Halstead volume / 3000.",
+    ),
+    _numeric_field(
+        "maintainabilityIndex", "Maintainability Index",
+        "How easy the function is to maintain, 0-100 (Visual Studio scale): 20 or more is good, 10-19 moderate, "
+        "under 10 hard. Combines Halstead volume, cyclomatic complexity and lines of code.",
+    ),
+]
+
+FILE_METRIC_FIELDS: List[Dict[str, str]] = [
+    _numeric_field("averageCognitiveComplexity", "Average Cognitive Complexity",
+                   "Average cognitive complexity across functions."),
+    _numeric_field("maxCognitiveComplexity", "Max Cognitive Complexity",
+                   "Cognitive complexity of the hardest-to-understand function."),
+    _numeric_field("averageMaintainabilityIndex", "Average Maintainability Index",
+                   "Average maintainability index (0-100) across functions; 0 when the file has no functions."),
+    _numeric_field("minMaintainabilityIndex", "Min Maintainability Index",
+                   "Maintainability index of the least maintainable function; 0 when the file has no functions."),
+    _numeric_field("totalHalsteadVolume", "Total Halstead Volume",
+                   "Sum of the Halstead volume of every function."),
+    _numeric_field("totalHalsteadBugs", "Total Halstead Estimated Bugs",
+                   "Sum of the estimated bugs (Halstead volume / 3000) of every function."),
+]
+
+FUNCTION_METRIC_FIELD_IDS = [field["id"] for field in FUNCTION_METRIC_FIELDS]
+FILE_METRIC_FIELD_IDS = [field["id"] for field in FILE_METRIC_FIELDS]
+
+
 XR_FILE_FIELDS: List[Dict[str, str]] = [
     _text_field("functionName", "Function Name", "Display name of the function or method."),
     _numeric_field("lineStart", "Line Start", "First line of the function span."),
@@ -37,6 +89,7 @@ XR_FILE_FIELDS: List[Dict[str, str]] = [
     _numeric_field("parameters", "Parameters", "Number of parameters in the function signature."),
     _numeric_field("maxNestingDepth", "Max Nesting Depth", "Maximum nesting depth detected in the function."),
     _numeric_field("cyclomaticDensity", "Cyclomatic Density", "Complexity divided by function line count."),
+    *FUNCTION_METRIC_FIELDS,
     _text_field("filePath", "File Path", "Normalized file path for the analyzed file."),
     _text_field("fileName", "File Name", "Analyzed file name."),
     _text_field("treePath", "Tree Path", "Synthetic hierarchy used by BabiaXR boats."),
@@ -68,6 +121,7 @@ XR_DIRECTORY_FIELDS: List[Dict[str, str]] = [
     _numeric_field("maxFunctionLines", "Max Function Lines", "Maximum line count across functions."),
     _numeric_field("averageFunctionNestingDepth", "Average Function Nesting Depth", "Average nesting depth across functions."),
     _numeric_field("maxFunctionNestingDepth", "Max Function Nesting Depth", "Maximum nesting depth across functions."),
+    *FILE_METRIC_FIELDS,
     _numeric_field("fileSizeBytes", "File Size (Bytes)", "File size in bytes."),
 ]
 
@@ -128,12 +182,15 @@ def summarize_function_metrics(functions: Iterable[Dict[str, Any]]) -> Dict[str,
             "maxFunctionNestingDepth": 0,
             "highComplexityFunctions": 0,
             "criticalComplexityFunctions": 0,
+            **{field_id: 0 for field_id in FILE_METRIC_FIELD_IDS},
         }
 
     parameter_counts = [int(func.get("parameters", 0) or 0) for func in function_list]
     line_counts = [int(func.get("lineCount", 0) or 0) for func in function_list]
     nesting_depths = [int(func.get("maxNestingDepth", 0) or 0) for func in function_list]
     complexities = [float(func.get("complexity", 0) or 0) for func in function_list]
+    cognitive = [int(func.get("cognitiveComplexity", 0) or 0) for func in function_list]
+    maintainability = [float(func.get("maintainabilityIndex", 0) or 0) for func in function_list]
 
     return {
         "averageFunctionParameters": round(sum(parameter_counts) / len(parameter_counts), 2),
@@ -144,4 +201,10 @@ def summarize_function_metrics(functions: Iterable[Dict[str, Any]]) -> Dict[str,
         "maxFunctionNestingDepth": max(nesting_depths) if nesting_depths else 0,
         "highComplexityFunctions": sum(1 for complexity in complexities if complexity > 10),
         "criticalComplexityFunctions": sum(1 for complexity in complexities if complexity > 25),
+        "averageCognitiveComplexity": round(sum(cognitive) / len(cognitive), 2),
+        "maxCognitiveComplexity": max(cognitive),
+        "averageMaintainabilityIndex": round(sum(maintainability) / len(maintainability), 1),
+        "minMaintainabilityIndex": min(maintainability),
+        "totalHalsteadVolume": round(sum(float(func.get("halsteadVolume", 0) or 0) for func in function_list), 2),
+        "totalHalsteadBugs": round(sum(float(func.get("halsteadBugs", 0) or 0) for func in function_list), 4),
     }
