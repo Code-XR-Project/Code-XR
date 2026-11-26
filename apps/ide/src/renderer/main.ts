@@ -462,6 +462,13 @@ registerWorkbenchCommands(registry, {
     },
     openFolderSettingsFile: () => openFolderSettingsFile(),
     selectColorTheme,
+    formatDocument: () => {
+        void editors?.formatDocument().then((formatted) => {
+            if (!formatted) {
+                workbench.setStatus(`No formatter for ${editors?.statusState()?.languageName ?? 'this file'}.`);
+            }
+        });
+    },
     openKeybindings: () => {
         workbench.showView('keybindings');
         keybindingsView.focus();
