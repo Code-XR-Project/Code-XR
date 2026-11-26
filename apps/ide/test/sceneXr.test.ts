@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { allowXrPermission, isXrPermission, unsupportedXrMessage, XR_ARM_MS } from '../src/main/analysis/sceneXrPolicy.ts';
-import { qrDrawing } from '../src/renderer/sceneQr.ts';
+import { qrDrawing } from '@codexr/core/xr/headsetQr';
 
 const ORIGIN = 'http://localhost:3000';
 const NOW = 1_000_000;

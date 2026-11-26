@@ -1,7 +1,7 @@
 import type { CodeXRApi, SceneInfo } from '../shared/api.ts';
 import { el } from './dom.ts';
 import { ipcErrorMessage } from './sceneHeaderModel.ts';
-import { qrDrawing } from './sceneQr.ts';
+import { qrDrawing } from '@codexr/core/xr/headsetQr';
 
 /**
  * #19: the scene header's XR row. *Enter XR* starts an immersive session on

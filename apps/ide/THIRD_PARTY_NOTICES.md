@@ -62,4 +62,4 @@ THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 Usage in this package:
 
-- Bundled into the renderer by Vite: the QR code a standalone headset scans to open a shared scene (#19, `src/renderer/sceneQr.ts`). "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+- Bundled into the renderer by Vite, through the extension's shared core: the QR code a standalone headset scans to open a shared scene (#19, `apps/vscode-extension/src/core/xr/headsetQr.ts`). Declared as a dependency of the extension workspace, like the rest of the core's. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.

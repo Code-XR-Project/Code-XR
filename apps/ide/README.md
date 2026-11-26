@@ -121,7 +121,7 @@ The scene's header has an **XR** row with three buttons. They act on the window'
 
 - **Enter XR** starts an immersive WebXR session on a headset connected to this computer. The IDE first asks the scene's Chromium whether an `immersive-vr` session is supported. If it is, the IDE calls the scene's own `enterVR()` as the person's gesture. The XR permission, which the scene view otherwise never grants, is armed for 15 s and for that scene's loopback origin only (`main/analysis/sceneXrPolicy.ts`). If it is not supported, the row says why and what to do instead. A LivePanel has no XR mode, so the button is hidden there.
 - **Open in browser** hands the scene's local address to the system browser.
-- **On a headset** shows the address a standalone headset opens, with its QR code (`renderer/sceneQr.ts`, `qrcode-generator`). A headset needs an HTTPS address it can reach, so this is the scene's Cloudflare invitation link (#155). Until the scene is shared, the panel says to press **Share through Cloudflare**. The headset joins the same collaboration room as the IDE's scene, so the two stay in sync. It is let in with the pairing code the IDE shows.
+- **On a headset** shows the address a standalone headset opens, with its QR code (`@codexr/core/xr/headsetQr`, shared with the extension's *Open on a headset*; `qrcode-generator`). A headset needs an HTTPS address it can reach, so this is the scene's Cloudflare invitation link (#155). Until the scene is shared, the panel says to press **Share through Cloudflare**. The headset joins the same collaboration room as the IDE's scene, so the two stay in sync. It is let in with the pairing code the IDE shows.
 
 **Support matrix**
 
