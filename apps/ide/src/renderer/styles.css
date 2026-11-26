@@ -1347,3 +1347,31 @@ body {
 .chat-child-task { margin: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .chat-child-answer { font-size: 12px; overflow-wrap: anywhere; }
 .chat-child-answer > :last-child { margin-bottom: 0; }
+
+/* A12: MCP servers */
+.agents-mcp-target { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.agents-tool[hidden] { display: none; }
+.agents-mcp-tools { overflow-wrap: anywhere; }
+.agents-tool-filter { margin-bottom: 4px; }
+
+/* A13: usage and budget */
+.agents-usage-figures { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 4px 0; }
+.agents-usage-figures dt { color: var(--muted); }
+.agents-usage-figures dd { margin: 0; font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.agents-usage-group { margin: 4px 0; }
+.agents-usage-group > summary { cursor: pointer; padding: 2px 0; }
+.agents-usage-scroll { overflow-x: auto; max-width: 100%; }
+.agents-usage-table { width: 100%; border-collapse: collapse; }
+.agents-usage-table th, .agents-usage-table td { padding: 2px 4px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.agents-usage-table th[scope="row"] { font-weight: normal; white-space: normal; overflow-wrap: anywhere; }
+.agents-usage-table .is-number { text-align: right; font-variant-numeric: tabular-nums; }
+.agents-price-table td:first-child { min-width: 9em; }
+.agents-price-table input[type="number"] { width: 5.5em; }
+.agents-budget-note { margin: 0 0 4px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--line); }
+.agents-budget-note.is-warning { border-color: var(--warn); }
+.agents-budget-note.is-reached { border-color: var(--crit); }
+.agents-chat-total { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+.agents-chat-total:empty { display: none; }
+.agents-usage-list { list-style: none; margin: 2px 0 4px; padding: 0; display: grid; gap: 4px; }
+.agents-usage-list li { display: grid; min-width: 0; }
+.agents-usage-name { overflow-wrap: anywhere; }

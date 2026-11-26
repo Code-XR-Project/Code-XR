@@ -39,7 +39,8 @@ export type StopReason = 'end' | 'tool-calls' | 'max-tokens' | 'other';
 export type ChatEvent =
     | { readonly type: 'text'; readonly text: string }
     | { readonly type: 'tool-call'; readonly call: ToolCall }
-    | { readonly type: 'usage'; readonly inputTokens: number; readonly outputTokens: number }
+    /** `cost`: what the provider says it billed, in USD, when it says so (A13). */
+    | { readonly type: 'usage'; readonly inputTokens: number; readonly outputTokens: number; readonly cost?: number }
     | { readonly type: 'done'; readonly stopReason: StopReason };
 
 export interface ProviderAdapter {

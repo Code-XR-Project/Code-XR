@@ -39,6 +39,8 @@
 
 - **Open a file of the dependency graph in VS Code.** A file or symbol card in the XR dependency graph now has an *Open in editor* button, which opens that file in VS Code (at the symbol's line), the same as in the Code-XR IDE. The button only appears in a browser on your own machine. A guest who joined through a Cloudflare link or the local network does not see it, and the server refuses the request from them anyway. In the Code-XR IDE a row of the directory LivePanel also opens its file in the editor; in VS Code the row works as before.
 
+- **A new AI AGENTS section in the sidebar says what is coming.** It holds a single "coming soon" row: AI agents that chat about your code and its Code-XR analyses, with your own provider keys. It has no command and makes no network call.
+
 #### Fixed
 
 - **The progress of setting up the Python environment matches what it is doing.** The set-up reported its steps as running totals (20, 55, 70...) while VS Code adds each value to the bar, so the bar filled long before the end; deleting the environment and installing a package did the same. Each step now reports only how far it moved, and the packages and language parsers share the last part of the bar one by one.

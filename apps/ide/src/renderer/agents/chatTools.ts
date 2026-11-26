@@ -1,4 +1,5 @@
 import type { ApprovalDecision, ApprovalRequest, SubAgentView, ToolRunView } from '../../shared/agents.ts';
+import { formatUsage } from '../../shared/usageFormat.ts';
 import { el } from '../dom.ts';
 import { renderMarkdown } from './chatMarkdown.ts';
 
@@ -27,7 +28,7 @@ const CHILD_STATUS: Readonly<Record<SubAgentView['status'], string>> = { running
 
 /** A sub-agent inside its delegate_task line (A11): who, what it was asked, its own tools and its answer. */
 function renderChild(run: ToolRunView, child: SubAgentView, actions: ToolRunActions): HTMLElement {
-    const usage = child.usage ? ` · ${child.usage.inputTokens} in / ${child.usage.outputTokens} out tokens` : '';
+    const usage = child.usage ? ` · ${formatUsage(child.usage)}` : '';
     const head = el('div', { className: 'chat-child-head' }, [
         el('span', { className: `chat-tool-status is-${child.status === 'stopped' ? 'denied' : child.status === 'running' ? 'running' : child.status === 'done' ? 'done' : 'error'}`, text: CHILD_STATUS[child.status] }),
         el('span', { className: 'chat-child-agent', text: child.agent }),

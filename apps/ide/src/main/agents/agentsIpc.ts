@@ -12,7 +12,7 @@ type Handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: un
  * data. Chats belong to the folder open in the calling window.
  */
 export function registerAgentHandlers(handle: Handle, agents: AgentServices, analysisOutput: (contents: WebContents) => string | null): void {
-    const { providers, profiles, sessions, chat, tools } = agents;
+    const { providers, profiles, sessions, chat, tools, mcp, usage } = agents;
     const folderOf = (event: IpcMainInvokeEvent): string | null => currentWorkspaceInfo(event.sender)?.root ?? null;
 
     handle(AGENT_IPC_CHANNELS.agentsSecretStore, () => providers.secretStore());
@@ -44,6 +44,15 @@ export function registerAgentHandlers(handle: Handle, agents: AgentServices, ana
     handle(AGENT_IPC_CHANNELS.agentsApprove, (_event, requestId, decision) => chat.approve(requestId, decision));
     handle(AGENT_IPC_CHANNELS.agentsCancelRun, (_event, sessionId, runId) => chat.cancelRun(sessionId, runId));
     handle(AGENT_IPC_CHANNELS.agentsResolveReview, (_event, requestId, result) => chat.resolveReview(requestId, result));
+
+    handle(AGENT_IPC_CHANNELS.agentsListMcpServers, () => mcp.list());
+    handle(AGENT_IPC_CHANNELS.agentsSaveMcpServer, (_event, input, id) => mcp.save(input, id));
+    handle(AGENT_IPC_CHANNELS.agentsRemoveMcpServer, (_event, id) => mcp.remove(id));
+    handle(AGENT_IPC_CHANNELS.agentsRefreshMcpServer, (_event, id) => mcp.refresh(id));
+
+    handle(AGENT_IPC_CHANNELS.agentsUsage, () => usage.summary());
+    handle(AGENT_IPC_CHANNELS.agentsSavePrices, (_event, prices) => usage.savePrices(prices));
+    handle(AGENT_IPC_CHANNELS.agentsSaveBudget, (_event, budget) => usage.saveBudget(budget));
 }
 
 /** Streams chat events to the window that asked; a closed window just stops receiving them. */

@@ -21,7 +21,7 @@ import { folderArgument } from './workspace/workspacePath.ts';
 import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } from './workspace/workspaceWindows.ts';
 import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
-import { startAgents } from './agents/agentsRuntime.ts';
+import { startAgents, type AgentServices } from './agents/agentsRuntime.ts';
 import { setScenePreloadPath } from './analysis/sceneView.ts';
 import { appIconPath } from './appIcon.ts';
 import { createLspHost, type LspHost } from './lsp/lspHost.ts';
@@ -65,10 +65,13 @@ if (!isSmoke && !app.requestSingleInstanceLock()) {
 // #137: every pty dies with the app. `app.exit` (the smoke run) skips
 // will-quit, so that path kills them itself.
 let terminals: TerminalHost | null = null;
+// A12: MCP server processes likewise.
+let agentServices: AgentServices | null = null;
 // #21: so do the language servers.
 let languageServers: LspHost | null = null;
 app.on('will-quit', () => {
     void terminals?.killAll();
+    void agentServices?.mcp.closeAll();
     void languageServers?.stopAll();
 });
 
@@ -98,9 +101,10 @@ async function start(): Promise<void> {
     // #18, part 3: the user's keybindings, likewise in memory for the smoke run.
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
+    agentServices = startAgents({ isSmoke, commandRunner: terminalHost.commandRunner });
     const lsp = createLspHost();
     languageServers = lsp;
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, startAgents({ isSmoke, commandRunner: terminalHost.commandRunner }), lsp);
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp);
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);

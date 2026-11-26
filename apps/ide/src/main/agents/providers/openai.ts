@@ -56,15 +56,17 @@ export class OpenAiAdapter implements ProviderAdapter {
         // Tool calls arrive in fragments keyed by `index`; emit them once the answer ends.
         const calls = new Map<number, { id: string; name: string; arguments: string }>();
         let stopReason: StopReason = 'other';
-        let usage: { inputTokens: number; outputTokens: number } | undefined;
+        let usage: { inputTokens: number; outputTokens: number; cost?: number } | undefined;
         for await (const message of readSse(response.body, signal)) {
             if (message.data === '[DONE]') {
                 break;
             }
             const data = parseJson(message.data);
-            const reported = data['usage'] as { prompt_tokens?: number; completion_tokens?: number } | null | undefined;
+            const reported = data['usage'] as { prompt_tokens?: number; completion_tokens?: number; cost?: unknown } | null | undefined;
             if (reported) {
-                usage = { inputTokens: reported.prompt_tokens ?? 0, outputTokens: reported.completion_tokens ?? 0 };
+                // A13: OpenRouter (and compatible gateways) report what the request was billed, in USD.
+                const cost = typeof reported.cost === 'number' && Number.isFinite(reported.cost) && reported.cost >= 0 ? reported.cost : undefined;
+                usage = { inputTokens: reported.prompt_tokens ?? 0, outputTokens: reported.completion_tokens ?? 0, ...(cost !== undefined ? { cost } : {}) };
             }
             const choice = (data['choices'] as Array<Record<string, unknown>> | undefined)?.[0];
             if (!choice) {
