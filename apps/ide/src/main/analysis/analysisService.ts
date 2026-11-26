@@ -1,4 +1,4 @@
-import { BrowserWindow, clipboard, dialog, webContents, type WebContents } from 'electron';
+import { BrowserWindow, clipboard, webContents, type WebContents } from 'electron';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { AnalysisOrchestrator } from '@codexr/core/analysis/analysisOrchestrator';
@@ -15,7 +15,7 @@ import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager
 import { AUTO_START_MODES, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type SceneAddress, type SceneInfo, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
 import { log } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
-import { countFilesUpTo } from './projectSize.ts';
+import { readAnalysedFileCount } from './analysedFiles.ts';
 import { closeScene, showScene } from './sceneView.ts';
 import { sceneTitle, targetName } from './sceneUrl.ts';
 import { isQuickTunnelUrl, sameShareState, SerialQueue, startShareOnce, STOPPED, toSceneShareState } from './sceneShare.ts';
@@ -34,8 +34,6 @@ import { isQuickTunnelUrl, sameShareState, SerialQueue, startShareOnce, STOPPED,
 /** Where the IDE keeps the "analyse a folder when it opens" choice (#139). */
 const AUTO_START_KEY = 'ide.analysis.autoStartOnOpen';
 const DEFAULT_AUTO_START: AutoStartMode = 'xr-deep';
-/** Above this many files an analysis nobody clicked for asks first. */
-export const AUTO_START_FILE_LIMIT = 5000;
 
 /** The analysis a window is showing: its folder, and the core server that serves it. */
 interface WindowScene {
@@ -127,8 +125,8 @@ export class AnalysisService {
     /**
      * `auto` marks an analysis the person did not click for (#139, a folder
      * just opened). It reuses a scene that is still being served for the same
-     * folder, and asks before analysing a project of more than
-     * `AUTO_START_FILE_LIMIT` files.
+     * folder. It never asks first, whatever the project's size (#203): the
+     * scene's header then says how many files the analysis took.
      */
     async analyseProject(win: BrowserWindow, folder: string | undefined, kind: AnalysisKind, options: { auto?: boolean } = {}): Promise<AnalysisStartResult> {
         if (!folder) {
@@ -145,9 +143,6 @@ export class AnalysisService {
             this.ownerKind = running.kind;
             await this.open(running.url, running.serverId);
             return { ok: true };
-        }
-        if (options.auto && !(await this.confirmLargeProject(win, folder))) {
-            return { ok: false, reason: 'declined', message: 'The automatic analysis was skipped. Start it from the Analysis view.' };
         }
         try {
             await this.ready;
@@ -286,23 +281,6 @@ export class AnalysisService {
         contents.send(IPC_EVENTS.analysisSceneShareChanged, { url: scene.url, share } satisfies SceneShareEvent);
     }
 
-    private async confirmLargeProject(win: BrowserWindow, folder: string): Promise<boolean> {
-        const files = await countFilesUpTo(folder, AUTO_START_FILE_LIMIT);
-        if (files <= AUTO_START_FILE_LIMIT) {
-            return true;
-        }
-        const { response } = await dialog.showMessageBox(win, {
-            type: 'question',
-            buttons: ['Analyse', 'Not now'],
-            defaultId: 1,
-            cancelId: 1,
-            title: 'Analyse this project?',
-            message: `This folder has more than ${AUTO_START_FILE_LIMIT.toLocaleString('en')} files.`,
-            detail: 'Analysing it in XR can take a while. You can also start it later from the Analysis view, or turn the automatic analysis off there.',
-        });
-        return response === 0;
-    }
-
     /**
      * The core keeps each analysis's files in the workspace storage, which VS
      * Code gives per workspace. The IDE's is a folder per project under its
@@ -336,6 +314,7 @@ export class AnalysisService {
             kind: this.ownerKind,
             target: targetName(this.ownerFolder),
             targetPath: this.ownerFolder,
+            files: await readAnalysedFileCount(getActiveServerRegistry().getServer(serverId)?.htmlFile),
             share,
         };
         win.webContents.send(IPC_EVENTS.analysisSceneOpened, scene);

@@ -196,7 +196,7 @@ export type AutoStartMode = (typeof AUTO_START_MODES)[number];
 /** Why an analysis did not start; `message` is for display. */
 export type AnalysisStartResult =
     | { readonly ok: true }
-    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'declined' | 'failed'; readonly message: string };
+    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'failed'; readonly message: string };
 
 /**
  * Whether a scene is shared beyond this machine through a Cloudflare quick
@@ -231,6 +231,8 @@ export interface SceneInfo {
     readonly target: string;
     /** Its absolute path, for the header's tooltip only. */
     readonly targetPath: string;
+    /** #203: how many files the analysis took (its own records), when known. */
+    readonly files?: number | undefined;
     readonly share: SceneShareState;
 }
 
