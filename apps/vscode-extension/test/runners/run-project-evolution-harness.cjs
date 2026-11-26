@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { launchHarnessChromium } = require('../helpers/harnessBrowser.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const harnessPath = path.join(projectRoot, 'test', 'manual', 'project-evolution-playback-harness.html');
@@ -163,7 +164,7 @@ async function runPlaywrightIfAvailable(port) {
 
   // Close the browser even when an assertion fails: leaked pages keep the
   // process alive forever, turning a red run into a silent hang.
-  const browser = await chromium.launch();
+  const browser = await launchHarnessChromium(chromium);
   try {
     await runScenario(browser, port);
   } finally {

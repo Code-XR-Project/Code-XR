@@ -38,7 +38,9 @@ function collectTextFiles(root) {
                 // .claude/worktrees holds whole checkouts made by agent sessions
                 // (git-ignored): scanning them would police other branches.
                 const isAgentWorktrees = entry.name === 'worktrees' && path.basename(current) === '.claude';
-                if (!isAgentWorktrees && !['node_modules', '.git', 'artifacts', 'dist', 'out'].includes(entry.name)) {
+                // test/vendor holds third-party builds kept byte-identical to
+                // their release (the scene libraries the harnesses load).
+                if (!isAgentWorktrees && !['node_modules', '.git', 'artifacts', 'dist', 'out', 'vendor'].includes(entry.name)) {
                     stack.push(fullPath);
                 }
                 continue;

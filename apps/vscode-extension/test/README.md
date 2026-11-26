@@ -15,7 +15,8 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `test/logging`, `test/python_env`, `test/servers`, `test/startup`, `test/utils`, `test/visualization_settings`, `test/visualize_data`: focused suites per subsystem.
 - `test/manual`: the HTML pages the browser harnesses load, their data, and `buildAssembledRuntimes.cjs`.
 - `test/packaging`: what ships (VSIX layout, dist characterization, Marketplace listing, the menu surface).
-- `test/runners`: the runner scripts npm scripts point to (the unit runner, the HTML-analysis runner, the four browser harnesses).
+- `test/runners`: the runner scripts npm scripts point to (the unit runner, the HTML-analysis runner, the five browser harnesses).
+- `test/vendor`: third-party files kept byte-identical to their release, with their licences: `scene-libraries/` holds the A-Frame, BabiaXR, aframe-extras, environment, geometry-merger and html2canvas builds the scenes load from CDNs, so the browser harnesses run offline (`test/helpers/harnessBrowser.cjs` routes the CDN URLs to them).
 - `test/tooling`: the guardrail ratchet (`measureGuardrails.cjs`, `guardrail-baseline.json`), the lint/typecheck contract, the npm-script checks, the folder dependency-direction test (`dependencyDirection.test.cjs`, data in `folderDependencies.json`).
 - `test/views`: the sidebar tree: a golden snapshot of every item `ModularTreeDataProvider` builds and of the section-item bridge behind it (`CODEXR_WRITE_TREE_SNAPSHOT=1` regenerates it, for an intended change only).
 - `../../backend/tests` (outside this package): backend Python tests grouped by capability; `../../backend/scripts/run-python-tests.cjs` runs them (`npm run test:python`).
@@ -28,7 +29,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `npm run test:all`: run both the Node and Python suites.
 - `npm run test:analysis`: per-language end-to-end metrics over `backend/manual_test/` with the pinned lizard.
 - `npm run test:htmlanalysis`: the HTML/DOM analysis suite.
-- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`, `test:xr-chart-bounds-harness`: browser harnesses (Playwright's Chromium and live CDNs; local only). The mode and immersive harnesses serve the project over HTTP on 127.0.0.1 (`test/helpers/staticHttpServer.cjs`) instead of opening `file://`, so `fetch()` works in them.
+- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`, `test:xr-chart-bounds-harness`: browser harnesses (Playwright's Chromium; the CDN libraries are served from `test/vendor/scene-libraries/` and every other non-local request is aborted, so they run offline). `npm run test:harnesses` runs all five, as the CI `harnesses` job does. The mode and immersive harnesses serve the project over HTTP on 127.0.0.1 (`test/helpers/staticHttpServer.cjs`) instead of opening `file://`, so `fetch()` works in them.
 
 The full table, with when to run each, is in `.claude/docs/DEVELOPMENT.md`.
 

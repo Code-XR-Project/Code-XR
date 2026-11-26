@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { startStaticServer } = require('../helpers/staticHttpServer.cjs');
 const { buildAssembledRuntimes } = require('../manual/buildAssembledRuntimes.cjs');
+const { launchHarnessChromium } = require('../helpers/harnessBrowser.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const harnessPath = path.join(projectRoot, 'test', 'manual', 'xr-mode-cycle-harness.html');
@@ -37,7 +38,7 @@ async function runPlaywrightIfAvailable() {
 
   // Close the browser even when an assertion fails: leaked pages keep the
   // process alive forever, turning a red run into a silent hang.
-  const browser = await chromium.launch();
+  const browser = await launchHarnessChromium(chromium);
   try {
     await runScenario(browser);
   } finally {
