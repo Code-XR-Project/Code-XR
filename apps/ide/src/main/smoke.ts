@@ -1,5 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import { APP_ORIGIN, originOf } from './security.ts';
+import { IPC_EVENTS } from '../shared/api.ts';
 
 /**
  * `--codexr-smoke`: start the IDE hidden, probe the security baseline from
@@ -31,10 +32,28 @@ export interface SmokeProbe {
     readonly cspViolations: readonly string[];
 }
 
+/**
+ * #137: the terminal panel opened by the View menu's command (Ctrl+`), with the
+ * default profile, `echo codexr-smoke` typed into xterm.js, and its output
+ * read back from what xterm drew.
+ */
+export interface TerminalProbe {
+    readonly opened: boolean;
+    /** The tab's label: the default profile's name. */
+    readonly profile: string | null;
+    /** A drawn line that is exactly `codexr-smoke`: the command's output, not its echo. */
+    readonly echoed: boolean;
+    /** The last lines drawn, for the failure message. */
+    readonly screen: readonly string[];
+    readonly status: string;
+    readonly cspViolations: readonly string[];
+}
+
 export interface SmokeResult {
     readonly ok: boolean;
     readonly failures: readonly string[];
     readonly probe: SmokeProbe | null;
+    readonly terminal: TerminalProbe | null;
     readonly navigationBlocked: boolean;
     readonly platform: string;
 }
@@ -77,7 +96,7 @@ const RENDERER_PROBE = `(async () => {
     return {
         title,
         apiType: typeof window.codexr,
-        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands),
+        apiFrozen: Object.isFrozen(window.codexr) && Object.isFrozen(window.codexr.app) && Object.isFrozen(window.codexr.workspace) && Object.isFrozen(window.codexr.commands) && Object.isFrozen(window.codexr.terminal),
         apiKeys: Object.keys(window.codexr || {}),
         requireType: typeof window.require,
         processType: typeof window.process,
@@ -94,8 +113,38 @@ const RENDERER_PROBE = `(async () => {
     };
 })()`;
 
+// Runs after the main process sent the `terminal.toggle` command. Typing goes
+// through xterm's own input handler (an 'input' event on its textarea, as an
+// IME or a paste would), so the bytes take the real path: xterm -> preload ->
+// IPC -> pty -> shell -> IPC -> xterm.
+const TERMINAL_PROBE = `(async () => {
+    const cspViolations = [];
+    document.addEventListener('securitypolicyviolation', (e) => cspViolations.push(e.violatedDirective + ' ' + (e.blockedURI || 'inline') + ' at ' + (e.sourceFile || '?') + ':' + e.lineNumber));
+    const wait = async (test, ms) => {
+        const until = Date.now() + ms;
+        while (!test() && Date.now() < until) { await new Promise((r) => setTimeout(r, 50)); }
+        return test();
+    };
+    const lines = () => [...document.querySelectorAll('.terminal-host:not([hidden]) .xterm-rows > div')].map((row) => row.textContent.replace(/\\u00a0/g, ' ').trimEnd());
+    const textarea = () => document.querySelector('.terminal-host:not([hidden]) .xterm-helper-textarea');
+    const opened = !!(await wait(() => textarea() && document.querySelector('.terminal-tab[aria-selected="true"]'), 20000));
+    const profile = document.querySelector('.terminal-tab[aria-selected="true"] .tab-label')?.textContent ?? null;
+    let echoed = false;
+    if (opened) {
+        // Let the shell draw its prompt first (it may take a while on a cold Windows runner).
+        await wait(() => lines().some((line) => line.trim() !== ''), 15000);
+        const type = (data) => textarea().dispatchEvent(new InputEvent('input', { data, inputType: 'insertText', bubbles: true }));
+        textarea().focus();
+        type('echo codexr-smoke');
+        type('\\r');
+        echoed = await wait(() => lines().some((line) => line.trim() === 'codexr-smoke'), 20000);
+    }
+    const status = document.querySelector('.status-bar > span')?.textContent ?? '';
+    return { opened, profile, echoed, screen: lines().filter((line) => line.trim() !== '').slice(-8), status, cspViolations };
+})()`;
+
 /** Pure: turns what was observed into a verdict. */
-export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boolean, platform: string): SmokeResult {
+export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boolean, platform: string, terminal: TerminalProbe | null = null): SmokeResult {
     const failures: string[] = [];
     if (!probe) {
         failures.push('renderer probe did not run');
@@ -117,8 +166,18 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
+    if (!terminal) {
+        failures.push('terminal probe did not run');
+    } else {
+        if (!terminal.opened) {
+            failures.push(`the terminal panel did not open a terminal (status: "${terminal.status}")`);
+        } else if (!terminal.echoed) {
+            failures.push(`the terminal (${terminal.profile ?? '?'}) did not print the output of echo: ${JSON.stringify(terminal.screen)}`);
+        }
+        if (terminal.cspViolations.length > 0) { failures.push(`CSP violations in the terminal: ${terminal.cspViolations.join(', ')}`); }
+    }
     if (!navigationBlocked) { failures.push('navigation to an external URL was not blocked'); }
-    return { ok: failures.length === 0, failures, probe, navigationBlocked, platform };
+    return { ok: failures.length === 0, failures, probe, terminal, navigationBlocked, platform };
 }
 
 export async function runSmoke(win: BrowserWindow, expectedOrigins: ReadonlySet<string>): Promise<SmokeResult> {
@@ -130,11 +189,21 @@ export async function runSmoke(win: BrowserWindow, expectedOrigins: ReadonlySet<
         probe = null;
     }
 
+    // #137: open the terminal the way View > Terminal (Ctrl+`) does.
+    let terminal: TerminalProbe | null = null;
+    try {
+        contents.send(IPC_EVENTS.command, 'terminal.toggle');
+        terminal = (await contents.executeJavaScript(TERMINAL_PROBE)) as TerminalProbe;
+    } catch (error) {
+        process.stderr.write(`[smoke] terminal probe threw: ${String(error)}\n`);
+        terminal = null;
+    }
+
     // Try to leave the app from inside the page, then check where it is.
     await contents.executeJavaScript(`location.href = 'https://example.com/'; true`).catch(() => undefined);
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const origin = originOf(contents.getURL());
     const navigationBlocked = origin !== null && (expectedOrigins.has(origin) || origin === APP_ORIGIN);
 
-    return evaluateSmoke(probe, navigationBlocked, process.platform);
+    return evaluateSmoke(probe, navigationBlocked, process.platform, terminal);
 }

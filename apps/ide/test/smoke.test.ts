@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateSmoke, type SmokeProbe } from '../src/main/smoke.ts';
+import { evaluateSmoke, type SmokeProbe, type TerminalProbe } from '../src/main/smoke.ts';
 
 const healthy: SmokeProbe = {
     title: 'Code-XR',
@@ -21,9 +21,18 @@ const healthy: SmokeProbe = {
     cspViolations: [],
 };
 
+const terminal: TerminalProbe = {
+    opened: true,
+    profile: 'bash',
+    echoed: true,
+    screen: ['$ echo codexr-smoke', 'codexr-smoke', '$'],
+    status: 'Code-XR IDE 0.1.0',
+    cspViolations: [],
+};
+
 describe('evaluateSmoke', () => {
     it('passes a healthy probe', () => {
-        const result = evaluateSmoke(healthy, true, 'linux');
+        const result = evaluateSmoke(healthy, true, 'linux', terminal);
         assert.deepEqual(result.failures, []);
         assert.equal(result.ok, true);
     });
@@ -44,17 +53,32 @@ describe('evaluateSmoke', () => {
     ];
     for (const [name, change, message] of breakages) {
         it(`fails when ${name}`, () => {
-            const result = evaluateSmoke({ ...healthy, ...change }, true, 'linux');
+            const result = evaluateSmoke({ ...healthy, ...change }, true, 'linux', terminal);
             assert.equal(result.ok, false);
             assert.ok(result.failures.some((f) => message.test(f)), result.failures.join('; '));
         });
     }
 
     it('fails when navigation escaped the app', () => {
-        assert.equal(evaluateSmoke(healthy, false, 'win32').ok, false);
+        assert.equal(evaluateSmoke(healthy, false, 'win32', terminal).ok, false);
     });
 
     it('fails when the renderer never answered', () => {
-        assert.equal(evaluateSmoke(null, true, 'darwin').ok, false);
+        assert.equal(evaluateSmoke(null, true, 'darwin', terminal).ok, false);
     });
+
+    // #137
+    const terminalBreakages: Array<[string, Partial<TerminalProbe> | null, RegExp]> = [
+        ['the terminal probe never ran', null, /terminal probe did not run/],
+        ['no terminal opened', { opened: false, status: 'Could not start a terminal: boom' }, /did not open a terminal.*boom/],
+        ['echo printed nothing', { echoed: false }, /did not print the output of echo/],
+        ['the terminal violated the CSP', { cspViolations: ['script-src inline'] }, /CSP violations in the terminal/],
+    ];
+    for (const [name, change, message] of terminalBreakages) {
+        it(`fails when ${name}`, () => {
+            const result = evaluateSmoke(healthy, true, 'linux', change ? { ...terminal, ...change } : null);
+            assert.equal(result.ok, false);
+            assert.ok(result.failures.some((f) => message.test(f)), result.failures.join('; '));
+        });
+    }
 });
