@@ -46,6 +46,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceCurrent, (event) => currentWorkspaceInfo(event.sender));
     handle(IPC_CHANNELS.workspaceListDirectory, (event, path) => workspaceOf(event.sender).listDirectory(path));
     handle(IPC_CHANNELS.workspaceReadFile, (event, path) => workspaceOf(event.sender).readFile(path));
+    handle(IPC_CHANNELS.workspaceWriteFile, (event, path, text, expectedMtimeMs) =>
+        workspaceOf(event.sender).writeFile(path, text, expectedMtimeMs));
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

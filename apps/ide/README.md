@@ -2,7 +2,7 @@
 
 The standalone Code-XR IDE: a desktop environment built on **Electron + Monaco** where editing code, analysing it and exploring it in XR are one workflow. The platform decision is ADR 0001 ([`adr/0001-code-xr-ide-platform.md`](../../adr/0001-code-xr-ide-platform.md)); the work is tracked in epic #11.
 
-**Status:** story #12 (secure scaffold) is done; story #14 (open a project, edit with Monaco) is in progress. A folder opens from File > Open Folder… (Ctrl/Cmd+O), the explorer's button or `--folder=<path>` on the command line, and the explorer shows it as a lazily loaded tree (`.git` and `node_modules` hidden, root `.gitignore` matches dimmed). The editor, the Python environment (#15) and analyses (#16) come next.
+**Status:** story #12 (secure scaffold) is done; story #14 (open a project, edit with Monaco) is in progress. A folder opens from File > Open Folder… (Ctrl/Cmd+O), the explorer's button or `--folder=<path>` on the command line, and the explorer shows it as a lazily loaded tree (`.git` and `node_modules` hidden, root `.gitignore` matches dimmed). Files open in Monaco tabs (loaded on the first open, in its own chunk) with syntax highlighting, a dirty mark, File > Save (Ctrl/Cmd+S), Save All (Ctrl/Cmd+Alt+S) and Close Editor (Ctrl/Cmd+W); a save is refused if the file changed on disk since it was opened. Still to come in #14: reloading on external changes, new/rename/delete, recent projects and the prompt when closing with unsaved changes. Then the Python environment (#15) and analyses (#16).
 
 ## Commands
 
@@ -45,7 +45,7 @@ Following Electron's [security checklist](https://www.electronjs.org/docs/latest
 |---|---|---|
 | `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false` (also in workers and subframes), `webSecurity: true`, no insecure content, no `<webview>` | `src/main/security.ts` (`secureWebPreferences`) | `assertSecureWebPreferences` at window creation, against the preferences the window actually runs with: the IDE refuses to start otherwise. Unit tests flip each one. |
 | Every renderer sandboxed process-wide | `app.enableSandbox()` in `src/main/hardening.ts` | Smoke: `require` and `process` are unreachable from the page. |
-| Strict Content-Security-Policy: `default-src 'none'`, scripts and styles only from the app, no `eval`, no inline scripts | `buildContentSecurityPolicy` in `src/main/security.ts`, sent as a response header (app protocol in production, `webRequest` in development) | Unit tests; smoke checks that `eval` throws in the real page. |
+| Strict Content-Security-Policy: `default-src 'none'`, scripts only from the app, no `eval`, no inline scripts. Styles allow `'unsafe-inline'` because Monaco creates `<style>` elements at run time (as in VS Code); nothing else is relaxed, so CSS cannot load or send anything off the app | `buildContentSecurityPolicy` in `src/main/security.ts`, sent as a response header (app protocol in production, `webRequest` in development) | Unit tests; smoke checks that `eval` throws in the real page. |
 | Renderer served from `codexr://app/`, never `file://` | `src/main/appProtocol.ts`, `src/main/assetPath.ts` | Unit tests for path traversal (`..`, encoded `%2e%2e`, `%5c`, NUL). |
 | No navigation away from the app, no `window.open`, no `<webview>` | `src/main/hardening.ts` | Unit tests for the URL policy; smoke tries both from inside the page. |
 | No permission granted (camera, microphone, XR, notifications...) | `src/main/hardening.ts` | Each later story allow-lists only what it needs. |

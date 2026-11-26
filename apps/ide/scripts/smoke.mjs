@@ -32,7 +32,7 @@ child.on('exit', (code) => {
     }
     const result = JSON.parse(line.slice(PREFIX.length));
     if (result.ok && code === 0) {
-        console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it.`);
+        console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it, Monaco opened a file with no CSP violation.`);
         process.exit(0);
     }
     console.error(`[smoke] FAILED on ${result.platform}:\n - ${result.failures.join('\n - ')}`);

@@ -17,6 +17,8 @@ const healthy: SmokeProbe = {
     explorerItems: ['scripts', 'src', 'test', 'package.json'],
     readFileKind: 'text',
     traversalRefused: true,
+    editorOpened: true,
+    cspViolations: [],
 };
 
 describe('evaluateSmoke', () => {
@@ -37,6 +39,8 @@ describe('evaluateSmoke', () => {
         ['empty explorer', { explorerItems: [] }, /explorer/],
         ['unreadable file', { readFileKind: null }, /readFile failed/],
         ['traversal allowed', { traversalRefused: false }, /out of the folder/],
+        ['no editor', { editorOpened: false }, /Monaco/],
+        ['CSP violated', { cspViolations: ['style-src inline'] }, /CSP violations/],
     ];
     for (const [name, change, message] of breakages) {
         it(`fails when ${name}`, () => {
