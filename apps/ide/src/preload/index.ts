@@ -102,6 +102,7 @@ const api: CodeXRApi = Object.freeze({
         shareScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisShareScene),
         stopSharingScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisStopSharingScene),
         copySceneAddress: (which: SceneAddress) => ipcRenderer.invoke(IPC_CHANNELS.analysisCopySceneAddress, which),
+        revealInScene: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.analysisRevealInScene, path),
         onDidChangeSceneShare: (listener: (event: SceneShareEvent) => void) => subscribe(IPC_EVENTS.analysisSceneShareChanged, listener),
     }),
     workspace: Object.freeze({

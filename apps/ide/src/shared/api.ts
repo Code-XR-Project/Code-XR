@@ -361,6 +361,11 @@ export interface CodeXRApi {
         onDidOpenScene(listener: (scene: SceneInfo) => void): Unsubscribe;
         /** #16: the scene's analysis re-ran (a save) and its file count changed. */
         onDidChangeSceneFiles(listener: (event: SceneFilesEvent) => void): Unsubscribe;
+        /**
+         * #178: marks a file of the open folder (a workspace path) in this
+         * window's scene. Resolves false when no scene shows it.
+         */
+        revealInScene(path: string): Promise<boolean>;
         /** #16: the scene asked to open a file ("Open in editor", a LivePanel row). */
         onDidRequestOpenInEditor(listener: (event: SceneOpenInEditorEvent) => void): Unsubscribe;
         /**
@@ -571,6 +576,7 @@ export const IPC_CHANNELS = {
     analysisShareScene: 'codexr:analysis:share-scene',
     analysisStopSharingScene: 'codexr:analysis:stop-sharing-scene',
     analysisCopySceneAddress: 'codexr:analysis:copy-scene-address',
+    analysisRevealInScene: 'codexr:analysis:reveal-in-scene',
     terminalProfiles: 'codexr:terminal:profiles',
     terminalSetDefaultProfile: 'codexr:terminal:set-default-profile',
     terminalAddCustomProfile: 'codexr:terminal:add-custom-profile',

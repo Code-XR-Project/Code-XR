@@ -196,6 +196,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         }
         core.analysis.copySceneAddress(ownerOf(event), which as SceneAddress);
     });
+    // #178: a workspace path only, resolved inside the calling window's folder.
+    handle(IPC_CHANNELS.analysisRevealInScene, (event, path) => core.analysis.revealInScene(event.sender, workspaceOf(event.sender).displayPath(path, 'absolute')));
     // #137: the terminal. Profiles are addressed by id only; a terminal only by
     // the window that created it (TerminalService checks the owner).
     handle(IPC_CHANNELS.terminalProfiles, () => terminal.profiles());

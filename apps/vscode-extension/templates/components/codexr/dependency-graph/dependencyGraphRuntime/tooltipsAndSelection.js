@@ -356,6 +356,32 @@
       selectNode: function (id) {
         this.togglePinnedSelection({ type: 'node', id: id });
       },
+      // #178: "Reveal in XR scene" from the editor (analysis-table sceneReveal.js):
+      // pins the card of the file's node (never unpins it) and returns its
+      // entity for the marker, or null when the graph does not show the file.
+      // A file inside a folder drawn as one card reveals that card (the
+      // deepest folder that holds it).
+      revealFile: function (relativePath) {
+        var nodes = this.nodes || {};
+        var target = normalizeRelativePath(relativePath);
+        var id = null;
+        var folderDepth = -1;
+        Object.keys(nodes).forEach(function (key) {
+          var data = nodes[key]?.data;
+          if (!data || data.external) { return; }
+          var nodePath = normalizeRelativePath(data.relativePath);
+          if (data.kind === 'file' && nodePath === target) {
+            id = key;
+            folderDepth = Infinity;
+          } else if (data.kind === 'group' && nodePath && target.indexOf(nodePath + '/') === 0 && nodePath.length > folderDepth) {
+            id = key;
+            folderDepth = nodePath.length;
+          }
+        });
+        if (!id) { return null; }
+        if (!this.isPinned({ type: 'node', id: id })) { this.togglePinnedSelection({ type: 'node', id: id }); }
+        return nodes[id].el || null;
+      },
       getDebugSnapshot: function () {
         var visibleRecords = Object.values(this.edgeRecords || {}).filter(function (record) {
           return !record.remove && record.batch;

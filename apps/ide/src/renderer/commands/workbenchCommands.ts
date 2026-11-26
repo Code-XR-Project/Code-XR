@@ -55,6 +55,7 @@ export interface WorkbenchCommandTargets {
     keepEditor(): void;
     copyActivePath(kind: 'absolute' | 'relative'): void;
     revealActiveFile(): void;
+    revealActiveFileInScene(): void;
     hasEditors(): boolean;
 }
 
@@ -108,6 +109,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'view.showXrScene', category: 'View', title: 'Show XR Scene', run: () => targets.showView('xr') },
         { id: 'codexr.analyseProjectXrDeep', category: 'Code-XR', title: 'Analyse Project in XR (Deep)', enabled: targets.canAnalyse, run: targets.analyseProject },
         { id: 'codexr.setUpPython', category: 'Code-XR', title: 'Set Up or Repair the Python Environment', run: targets.setUpPython },
+        { id: 'codexr.revealInScene', category: 'Code-XR', title: 'Reveal Active File in XR Scene', enabled: () => targets.hasScene() && targets.hasActiveEditor(), run: targets.revealActiveFileInScene },
         { id: 'codexr.closeScene', category: 'Code-XR', title: 'Close the XR Scene', enabled: targets.hasScene, run: targets.closeScene },
     ];
 }
