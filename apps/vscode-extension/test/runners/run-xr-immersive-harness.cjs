@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { startStaticServer } = require('../helpers/staticHttpServer.cjs');
 const { buildAssembledRuntimes } = require('../manual/buildAssembledRuntimes.cjs');
+const { launchHarnessChromium } = require('../helpers/harnessBrowser.cjs');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const harnessPath = path.join(projectRoot, 'test', 'manual', 'xr-immersive-harness.html');
@@ -164,7 +165,7 @@ async function runPlaywrightIfAvailable() {
         return;
     }
 
-    const browser = await chromium.launch();
+    const browser = await launchHarnessChromium(chromium);
     try {
         await runScenario(browser);
     } finally {
@@ -175,7 +176,12 @@ async function runPlaywrightIfAvailable() {
 }
 
 async function runScenario(browser) {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    // Small on purpose: aframe-extras' movement-controls drops any frame
+    // longer than 200 ms (velocity reset, no movement). A software-rendered
+    // 1280x900 frame took ~217 ms here, so every locomotion assertion failed
+    // on a loaded machine or a CI runner; 640x480 renders in ~100 ms.
+    // Nothing below depends on the size: clicks go through the harness API.
+    const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
     page.on('pageerror', (error) => console.error('[page error]', error));
     await page.goto(await harnessUrl(), { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#scene', { timeout: 15000 });

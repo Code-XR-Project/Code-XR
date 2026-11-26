@@ -32,6 +32,7 @@
     "test:xr-mode-harness": "npm run test:xr-mode-harness --workspace=code-xr",
     "test:xr-immersive-harness": "npm run test:xr-immersive-harness --workspace=code-xr",
     "test:project-evolution-harness": "npm run test:project-evolution-harness --workspace=code-xr",
+    "test:harnesses": "npm run test:harnesses --workspace=code-xr",
     "report:manual-metrics": "npm run report:manual-metrics --workspace=code-xr",
     "guardrails:measure": "npm run guardrails:measure --workspace=code-xr",
     "guardrails:update": "npm run guardrails:update --workspace=code-xr",

@@ -10,8 +10,9 @@ name: CI
 # Python backend lives in backend/.
 #
 # Deliberately absent: secrets, third-party actions, coverage or telemetry
-# uploaders, and the browser harnesses (they need Playwright's Chromium and live
-# CDNs, so they stay a local, on-demand check).
+# uploaders. The browser harnesses run on Linux only (job `harnesses`): the
+# scene libraries they need are vendored under
+# apps/vscode-extension/test/vendor/scene-libraries, so they need no CDN.
 
 on:
   pull_request:
@@ -123,6 +124,33 @@ jobs:
 
       - name: HTML DOM analysis
         run: node apps/vscode-extension/test/runners/run-html-analysis-tests.cjs
+
+  harnesses:
+    name: browser harnesses (ubuntu-latest)
+    # Real A-Frame scenes in headless Chromium (S15, #87). The harnesses block
+    # every non-local request and serve the scene libraries from the vendored
+    # copies, so the only download here is Playwright's own Chromium.
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Harnesses
+        run: npm run test:harnesses
 
   package:
     name: package the VSIX
