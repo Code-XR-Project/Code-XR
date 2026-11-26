@@ -36,6 +36,7 @@ import {
     runWithLaunchSignal,
 } from '../launch/launchControl';
 import { getLogger } from '../../../platform/logging/sink';
+import { getHost } from '../../host/hostRegistry';
 
 const logger = getLogger('LAUNCH_PIPELINE');
 
@@ -220,7 +221,7 @@ async function handleLaunchFailure(
         session.endTime = new Date();
     }
 
-    void vscode.window.showErrorMessage(`Failed to start analysis: ${message}`);
+    void getHost().notifier.notify('error', `Failed to start analysis: ${message}`);
 
     if (config.rethrowErrors) {
         throw error instanceof LaunchAbortedError ? new Error(message) : error;

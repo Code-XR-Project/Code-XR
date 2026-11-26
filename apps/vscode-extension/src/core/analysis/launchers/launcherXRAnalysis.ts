@@ -20,6 +20,7 @@ import { executeLaunchPipeline } from './launchPipeline';
 import { ANALYSIS_STORAGE_FOLDERS } from '../launch/storageFolders';
 import { XRFieldSchemaService } from '../python/xrFieldSchemaService';
 import { getLogger } from '../../../platform/logging/sink';
+import { getHost } from '../../host/hostRegistry';
 
 const logger = getLogger('LAUNCHER_XR_ANALYSIS');
 
@@ -137,7 +138,7 @@ export class LauncherXRAnalysis {
         );
 
         if (!result.isValid) {
-            void vscode.window.showErrorMessage(result.error!);
+            void getHost().notifier.notify('error', result.error!);
             throw new Error(result.error!);
         }
 
@@ -166,7 +167,7 @@ export class LauncherXRAnalysis {
             startWatcher: () => startSessionWatcher(session, context),
 
             onSuccess: (port) => {
-                void vscode.window.showInformationMessage(
+                void getHost().notifier.notify('info',
                     `XR Analysis completed for file: ${session.targetName} - Server running on port ${port}`,
                 );
             },
@@ -193,7 +194,7 @@ export class LauncherXRAnalysis {
             startWatcher: () => startSessionWatcher(session, context),
 
             onSuccess: (port) => {
-                void vscode.window.showInformationMessage(
+                void getHost().notifier.notify('info',
                     `XR Directory Analysis completed for: ${session.targetName}${session.isDeep ? ' (Deep)' : ''} - Server running on port ${port}`,
                 );
             },

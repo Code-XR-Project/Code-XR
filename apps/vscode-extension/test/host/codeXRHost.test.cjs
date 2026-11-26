@@ -122,3 +122,70 @@ test('each signal fires the VS Code command the core fires today', () => withHos
         { id: 'codexr.server.configure', args: [] },
     ]);
 }));
+
+// #13 step 6: core modules reach the host through getHost(). In tests every
+// withFakeVscode scope provides one over the same fake (fakeVscode.cjs).
+
+test('the test fallback builds the host on first use; an earlier initializeHost wins; reset clears it', () => {
+    const registry = require(path.join(__dirname, '..', '..', 'out', 'core', 'host', 'hostRegistry.js'));
+    registry.resetHostForTests();
+    try {
+        let built = 0;
+        registry.setHostFallbackForTests(() => ({ name: `fallback-${++built}` }));
+        assert.equal(built, 0, 'nothing is built before getHost()');
+        assert.equal(registry.getHost().name, 'fallback-1');
+        assert.equal(registry.getHost().name, 'fallback-1', 'built once, then kept');
+
+        registry.resetHostForTests();
+        registry.setHostFallbackForTests(() => ({ name: 'fallback' }));
+        registry.initializeHost({ name: 'activated' });
+        assert.equal(registry.getHost().name, 'activated');
+
+        registry.resetHostForTests();
+        assert.throws(() => registry.getHost(), /not initialized/, 'reset also drops the fallback');
+    } finally {
+        registry.resetHostForTests();
+    }
+});
+
+test('inside withFakeVscode, a core notification lands in fake.messages, and the host does not outlive the scope', async () => {
+    const fake = createFakeVscode();
+    const context = fakeExtensionContext();
+    try {
+        await withFakeVscode(fake, async () => {
+            fake.hostContext = context;
+            // The scope's own instance (requireOut would load a fresh one without the fallback),
+            // the same one a core module gets from its import.
+            const { getHost } = require(path.join(__dirname, '..', '..', 'out', 'core', 'host', 'hostRegistry.js'));
+            assert.equal(getHost().paths.globalStorageDir, context.globalStorageUri.fsPath, 'built from fake.hostContext');
+            await getHost().notifier.notify('error', 'Failed to start analysis: boom');
+        });
+    } finally {
+        context.cleanup();
+    }
+    assert.deepEqual(fake.messages.map(({ kind, message }) => [kind, message]), [['error', 'Failed to start analysis: boom']]);
+
+    const registry = require(path.join(__dirname, '..', '..', 'out', 'core', 'host', 'hostRegistry.js'));
+    registry.resetHostForTests();
+    assert.throws(() => registry.getHost(), /not initialized/, 'outside a scope there is no host');
+});
+
+// The modules whose notifications already go through the host (step 6, smallest first).
+const NOTIFYING_THROUGH_HOST = [
+    'src/core/analysis/launchers/launchPipeline.ts',
+    'src/core/analysis/launchers/launcherXRAnalysis.ts',
+    'src/core/analysis/parsers/fileXRParser.ts',
+    'src/core/analysis/analysisOrchestrator.ts',
+    'src/core/analysis/watchers/fileWatcherOrchestrator.ts',
+    'src/core/server/serverControl.ts',
+    'src/core/server/httpsCustomServer.ts',
+];
+
+test('modules moved to host notifications call no vscode.window message API', () => {
+    const fs = require('node:fs');
+    for (const file of NOTIFYING_THROUGH_HOST) {
+        const source = fs.readFileSync(path.join(__dirname, '..', '..', file), 'utf8');
+        assert.match(source, /getHost\(\)\.notifier\.notify\(/, `${file}: canary, the host call is there`);
+        assert.doesNotMatch(source, /vscode\.window\.(show(Information|Warning|Error)Message|setStatusBarMessage)/, `${file} still calls vscode.window`);
+    }
+});

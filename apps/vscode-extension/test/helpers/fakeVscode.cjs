@@ -596,6 +596,47 @@ function evictLogSink() {
     delete require.cache[compiledLogSink];
 }
 
+const compiledHostRegistry = path.join(compiledRoot, 'core', 'host', 'hostRegistry.js');
+const compiledVSCodeHost = path.join(compiledRoot, 'app', 'host', 'vscodeHost.js');
+
+/**
+ * Gives the scope a CodeXRHost (#13): core classes that call `getHost()` get
+ * `createVSCodeHost` over this same fake, so their notifications land in
+ * `fake.messages` exactly as direct `vscode.window` calls did. Built on the
+ * first `getHost()`, from `fake.hostContext` when the suite set one (even
+ * inside the scope, before that first call), else from a throwaway
+ * `fakeExtensionContext()` removed when the scope ends. An explicit
+ * `initializeHost` (extension activation) still wins. Both modules are loaded
+ * fresh here and evicted with the scope, so no host survives it. A suite must
+ * not `requireOut('core/host/hostRegistry.js')`: that loads a second copy
+ * without the fallback, and core modules required after it would get that one.
+ */
+function installFallbackHost(fake, cachedBefore) {
+    let ownContext = null;
+    if (fs.existsSync(compiledHostRegistry) && fs.existsSync(compiledVSCodeHost)) {
+        for (const filename of [compiledHostRegistry, compiledVSCodeHost]) {
+            cachedBefore.delete(filename);
+            delete require.cache[filename];
+        }
+        const registry = require(compiledHostRegistry);
+        const { createVSCodeHost } = require(compiledVSCodeHost);
+        registry.setHostFallbackForTests(() => {
+            if (!fake.hostContext) {
+                ownContext = fakeExtensionContext();
+            }
+            return createVSCodeHost(fake.hostContext || ownContext);
+        });
+    }
+    return {
+        cleanup() {
+            if (ownContext && typeof ownContext.cleanup === 'function') {
+                ownContext.cleanup();
+            }
+            ownContext = null;
+        },
+    };
+}
+
 /**
  * Runs `callback({ requireOut, fake })` with `require('vscode')` resolving to
  * `fake.vscode`. The callback may be sync or async; either way `Module._load`
@@ -618,6 +659,7 @@ function withFakeVscode(fake, callback) {
             return;
         }
         restored = true;
+        host.cleanup();
         Module._load = originalLoad;
         for (const filename of Object.keys(require.cache)) {
             if (!cachedBefore.has(filename) && isCompiledModule(filename)) {
@@ -632,6 +674,8 @@ function withFakeVscode(fake, callback) {
         }
         return originalLoad.call(this, request, ...rest);
     };
+
+    const host = installFallbackHost(fake, cachedBefore);
 
     const api = {
         fake,
