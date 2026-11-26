@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneBounds, type SceneInfo, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -44,6 +44,11 @@ const api: CodeXRApi = Object.freeze({
         setSceneBounds: (bounds: SceneBounds | null) => ipcRenderer.invoke(IPC_CHANNELS.analysisSetSceneBounds, bounds),
         closeScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisCloseScene),
         onDidOpenScene: (listener: (scene: SceneInfo) => void) => subscribe(IPC_EVENTS.analysisSceneOpened, listener),
+        // #155: no server id crosses the bridge; main acts on the calling window's scene.
+        shareScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisShareScene),
+        stopSharingScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisStopSharingScene),
+        copySceneAddress: (which: SceneAddress) => ipcRenderer.invoke(IPC_CHANNELS.analysisCopySceneAddress, which),
+        onDidChangeSceneShare: (listener: (event: SceneShareEvent) => void) => subscribe(IPC_EVENTS.analysisSceneShareChanged, listener),
     }),
     workspace: Object.freeze({
         openFolder: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenFolder),

@@ -46,8 +46,13 @@ export function sanitizeBounds(value: unknown): SceneBounds | null {
     return { x: x!, y: y!, width: Math.min(width!, 16384), height: Math.min(height!, 16384) };
 }
 
+/** The analysed folder or file's own name (#155: the header's target). */
+export function targetName(target: string): string {
+    const parts = target.split(/[\\/]/).filter(Boolean);
+    return parts.at(-1) ?? target;
+}
+
 /** A short title for the scene's header: the analysed folder's name. */
 export function sceneTitle(folder: string): string {
-    const parts = folder.split(/[\\/]/).filter(Boolean);
-    return `XR · ${parts.at(-1) ?? folder}`;
+    return `XR · ${targetName(folder)}`;
 }
