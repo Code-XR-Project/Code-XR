@@ -135,6 +135,13 @@
   - A working copy on another drive (for example `D:\projects\app`) keeps the full relative path of each file in a historical comparison, an evolution frame and an export. Before, it collapsed to the file name, so `core/a.ts` and `ui/a.ts` collided and every file looked removed and added.
   - In a partial clone (`git clone --filter=blob:none`), CodeXR no longer makes Git download missing files from the remote one by one, and Git can no longer stop to ask for a password. A revision whose files are not on your computer is reported as such ("not on this computer (partial clone)") and left out. With recent Git versions such a file used to be skipped without a word, so the revision was analyzed as if the file did not exist.
   - The historical comparison panel (in the scene and in the LivePanel) says up front when the repository is a partial clone, so you know older revisions may be missing before you pick one.
+- **Smaller failures in the XR room no longer leave a chart, a mode or a folder in a bad state.** (#109)
+  - Hovering a slice of a pie or donut chart while it is rebuilt (a re-analysis, or a switch between pie and donut) no longer throws an error when the cursor moves away.
+  - A folder whose name contains `;` no longer breaks the chart title, and parts of a chart that are hidden no longer count towards its size on the table.
+  - If an evolution frame or a chart change fails half-way, the chart is shown and fitted to the table again instead of staying hidden.
+  - Returning to Normal analysis shows the chart even when its data could not be confirmed ready; the failure is logged instead of being lost.
+  - The dependency graph says "Busy, please wait..." when you press a control during a re-analysis, instead of ignoring the click with no feedback. When the dependency graph or the room connection cannot be set up, the browser console now says so once.
+  - Historical comparison files left behind by a crashed session are removed at the next start, and a closed session no longer leaves an empty folder behind.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30

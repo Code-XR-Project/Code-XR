@@ -205,6 +205,7 @@
   }
   function setStatus(message, error) {
     if (!refs.status) { return; }
+    state.busyStatusShown = message === BUSY_STATUS_MESSAGE;
     refs.status.setAttribute('value', message || '');
     refs.status.setAttribute('color', error ? '#fca5a5' : '#fde68a');
     refs.status.setAttribute('visible', !!message);
