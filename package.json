@@ -27,6 +27,7 @@
     "package:vsix": "npm run package:vsix --workspace=code-xr",
     "test:analysis": "npm run test:analysis --workspace=code-xr",
     "test:htmlanalysis": "npm run test:htmlanalysis --workspace=code-xr",
+    "test:core-smoke": "npm run test:core-smoke --workspace=code-xr",
     "test:xr-harness": "npm run test:xr-harness --workspace=code-xr",
     "test:xr-chart-bounds-harness": "npm run test:xr-chart-bounds-harness --workspace=code-xr",
     "test:xr-mode-harness": "npm run test:xr-mode-harness --workspace=code-xr",
