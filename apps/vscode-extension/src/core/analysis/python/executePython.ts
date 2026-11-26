@@ -85,6 +85,23 @@ export class ExecutePython {
         ]);
     }
 
+    /**
+     * The backend's `functions` mode (#173, #178): each analysable file's
+     * functions with their line range, complexity, lines of code and
+     * parameters. A folder is walked recursively; a file is reported relative
+     * to `projectRoot`. Rejects when the run fails.
+     */
+    public async executeFunctionMetrics(target: string, targetType: 'file' | 'directory', projectRoot: string): Promise<unknown> {
+        const args = ['--mode', 'functions', '--type', targetType, '--target', target];
+        args.push(...(targetType === 'directory' ? ['--deep'] : ['--project-root', projectRoot]));
+        const result: unknown = await this.executePythonScript('main.py', args);
+        const failure = scriptFailureOf(result);
+        if (failure) {
+            throw new Error(failure.error ?? 'The functions mode returned no result');
+        }
+        return result;
+    }
+
       public async executeDependencyAnalysis(
           targetPath: string,
           targetType: 'file' | 'directory',

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { registerAllCommands } from './app/commands/registerAllCommands';
+import { registerMetricsInEditor } from './features/metrics-in-editor/metricsInEditor';
 import { initializePythonEnvOnStartup } from './features/python-env/commands/pythonEnvCommandRegistrations';
 import { XRFieldSchemaService } from './core/analysis/python/xrFieldSchemaService';
 import { ModularTreeDataProvider } from './app/sidebar/ModularTreeDataProvider';
@@ -62,6 +63,8 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(modularTreeView);
         CommonCommands.setModularTreeProvider(modularTreeDataProvider);
         registerAllCommands(context, modularTreeDataProvider, undefined);
+        // #173/#178: the Code-XR IDE's metric checks and lenses, from the same core.
+        registerMetricsInEditor(context);
 
         const startupCoordinator = new StartupCoordinator(
             CodeXRLogger.getLogger('STARTUP_DEFERRED'),

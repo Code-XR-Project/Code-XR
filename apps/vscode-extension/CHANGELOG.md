@@ -4,7 +4,11 @@
 
 ### CodeXR 1.2.1: Internal Code Quality
 
-**This release adds no features.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way, with the same results. What changed is on the inside: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. If you upgrade, you should notice nothing, and that is the goal.
+**This release adds no features, with one exception.** Everything you could do in 1.2.0 you can do in 1.2.1, the same way, with the same results. What changed is on the inside: the code of the plugin itself was audited end to end and cleaned up so that the next versions can grow on solid ground. The one addition, below, brings the plugin level with the Code-XR IDE, which shares its code.
+
+#### Added
+
+- **Function metrics in the editor and in Problems.** After a folder or project analysis, every function over a limit shows up as a Code-XR warning in the Problems view ("'route' has a cyclomatic complexity of 18 (limit 10)."). Every measured function also gets a CodeLens with its complexity, lines of code and parameters, and the functions the XR scene draws as high or critical complexity are marked beside the code and in the overview ruler. Saving a file measures it again; while it has unsaved changes its lens says the numbers are out of date. The limits and the lenses are settings (`codeXR.problems.metrics.maxComplexity`, `maxFunctionLines`, `maxParameters`, `showInEditor`); a limit of 0 turns that check off. The same logic drives the Code-XR IDE's Problems panel. This is the release's one deliberate exception to "no features", decided by the maintainer on 2026-11-26 so that the plugin and the IDE keep the same Code-XR features.
 
 #### Internal improvements
 
