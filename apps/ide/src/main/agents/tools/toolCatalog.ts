@@ -2,13 +2,15 @@ import type { ToolInfo } from '../../../shared/agents.ts';
 import type { AgentTool } from './toolTypes.ts';
 import { ANALYSIS_TOOLS } from './analysisTools.ts';
 import { runCommandTool, type CommandRunner } from './commandTool.ts';
+import { delegateTaskTool } from './delegateTool.ts';
 import { EDIT_TOOLS } from './editTools.ts';
 import { WORKSPACE_TOOLS } from './workspaceTools.ts';
 
 /**
  * Every tool an agent can be given: the read-only workspace tools (A7),
  * the Code-XR analysis tools (A10), propose_edit (A8), run_command (A9)
- * when a command runner is given; MCP tools (A12) are added later.
+ * when a command runner is given, delegate_task (A11); MCP tools (A12)
+ * are added at run time.
  */
 export class ToolCatalog {
     private readonly tools = new Map<string, AgentTool>();
@@ -28,7 +30,7 @@ export class ToolCatalog {
 
     /** The catalogue of the running IDE: every built-in tool, with commands run by `runner`. */
     static standard(runner: CommandRunner | null): ToolCatalog {
-        return new ToolCatalog([...WORKSPACE_TOOLS, ...ANALYSIS_TOOLS, ...EDIT_TOOLS, ...(runner ? [runCommandTool(runner)] : [])]);
+        return new ToolCatalog([...WORKSPACE_TOOLS, ...ANALYSIS_TOOLS, ...EDIT_TOOLS, ...(runner ? [runCommandTool(runner)] : []), delegateTaskTool]);
     }
 
     get(name: string): AgentTool | undefined {

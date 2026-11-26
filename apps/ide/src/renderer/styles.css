@@ -1246,3 +1246,13 @@ body {
 .chat-tool { min-width: 0; overflow: hidden; }
 .agents-message-body > * { min-width: 0; max-width: 100%; }
 .chat-tool-action { flex: none; margin-left: auto; align-self: center; }
+
+/* A sub-agent inside its delegate_task line (A11): the run tree. */
+.chat-tool.has-child { border-left-color: var(--accent); }
+.chat-child { display: grid; gap: 4px; margin: 4px 0 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); min-width: 0; }
+.chat-child > * { min-width: 0; }
+.chat-child-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.chat-child-agent { font-weight: 600; }
+.chat-child-task { margin: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.chat-child-answer { font-size: 12px; overflow-wrap: anywhere; }
+.chat-child-answer > :last-child { margin-bottom: 0; }

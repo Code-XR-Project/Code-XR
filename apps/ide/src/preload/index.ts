@@ -52,6 +52,7 @@ const api: CodeXRApi = Object.freeze({
         tools: () => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsTools),
         approve: (requestId: string, decision: ApprovalDecision) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsApprove, requestId, decision),
         resolveReview: (requestId: string, result: EditReviewResult) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsResolveReview, requestId, result),
+        cancelRun: (sessionId: string, runId: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsCancelRun, sessionId, runId),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),
