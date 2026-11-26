@@ -1,12 +1,15 @@
-import type { AgentChatEvent, AgentProfile, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView } from '../../shared/agents.ts';
+import type { AgentChatEvent, AgentProfile, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView, ToolInfo } from '../../shared/agents.ts';
 import { el, icon } from '../dom.ts';
+import { createAttachmentBar, labelOf, type AttachmentSources } from './chatAttachments.ts';
 import { renderMarkdown } from './chatMarkdown.ts';
+import { renderApproval, renderToolRuns, upsertToolRun } from './chatTools.ts';
 import { createProvidersSection } from './providersSection.ts';
 
 /**
  * The Agents view of the side bar (epic #189). Two faces in one pane:
  * - home: the folder's chats (A5), the agents (A4) and the providers (A1);
- * - chat: one conversation streaming from the main process (A3).
+ * - chat: one conversation streaming from the main process (A3), with
+ *   attachments (A6) and the tools the agent runs, risky ones after approval (A7).
  * Everything goes through `window.codexr.agents`; no key or provider call
  * ever happens here.
  */
@@ -28,10 +31,11 @@ export interface AgentsView {
     newChat(): Promise<void>;
 }
 
-export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void }): AgentsView {
+export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void } & Omit<AttachmentSources, 'onStatus'>): AgentsView {
     let agents: readonly AgentProfile[] = [];
+    let toolCatalog: readonly ToolInfo[] | null = null;
     let providers: readonly ProviderView[] = [];
-    let open: { session: ChatSession; transcript: HTMLElement; streaming: HTMLElement | null; streamText: string; render(): void } | null = null;
+    let open: { session: ChatSession; transcript: HTMLElement; streaming: HTMLElement | null; streamTools: HTMLElement | null; streamText: string; render(): void } | null = null;
 
     const copy = (text: string): void => {
         navigator.clipboard.writeText(text).then(() => callbacks.onStatus('Copied to the clipboard.'), () => callbacks.onStatus('Could not copy.'));
@@ -220,6 +224,35 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         instructions.value = existing?.instructions ?? '';
         const temperature = el('input', { className: 'agents-input', attrs: { id: 'agent-temperature', type: 'number', min: '0', max: '2', step: '0.1', placeholder: 'Provider default' } });
         temperature.value = existing?.temperature !== undefined ? String(existing.temperature) : '';
+        const toolBoxes = el('fieldset', { className: 'agents-tools', attrs: { 'data-testid': 'agent-tools' } }, [el('legend', { text: 'Tools' })]);
+        const chosen = new Set(existing ? existing.tools : ['list_directory', 'read_file', 'find_files', 'search_text']);
+        const fillTools = (catalog: readonly ToolInfo[]): void => {
+            toolBoxes.append(...catalog.map((tool) => {
+                const box = el('input', { attrs: { type: 'checkbox', value: tool.name, 'data-tool': tool.name } });
+                box.checked = chosen.has(tool.name);
+                const always = (existing?.alwaysAllow ?? []).includes(tool.name);
+                const note = tool.risk === 'read' ? 'runs without asking' : always ? 'always allowed' : 'asks first';
+                return el('label', { className: 'agents-tool', attrs: { title: tool.description } }, [
+                    box,
+                    el('span', { className: 'agents-tool-main' }, [el('span', { text: tool.title }), el('span', { className: 'muted small', text: ` · ${note}` })]),
+                ]);
+            }));
+            if (existing?.alwaysAllow?.length) {
+                const reset = el('button', { className: 'link-button small', text: 'Ask again before every risky tool', attrs: { type: 'button' } });
+                reset.addEventListener('click', () => {
+                    resetAlways = true;
+                    reset.textContent = 'Will ask again after saving.';
+                    reset.disabled = true;
+                });
+                toolBoxes.append(reset);
+            }
+        };
+        let resetAlways = false;
+        if (toolCatalog) {
+            fillTools(toolCatalog);
+        } else {
+            api.tools().then((catalog) => { toolCatalog = catalog; fillTools(catalog); }, (failure: unknown) => toolBoxes.append(el('p', { className: 'error small', text: errorText(failure) })));
+        }
         const error = el('p', { className: 'error small', attrs: { hidden: '', role: 'alert' } });
         const save = el('button', { className: 'primary-button', text: existing ? 'Save' : 'Create', attrs: { type: 'submit' } });
         const cancel = el('button', { className: 'secondary-button', text: 'Cancel', attrs: { type: 'button' } });
@@ -231,6 +264,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             field('Model', 'agent-model', model, modelList, modelNote),
             field('Instructions', 'agent-instructions', instructions),
             field('Temperature', 'agent-temperature', temperature),
+            toolBoxes,
             error,
             el('div', { className: 'env-actions' }, [save, cancel]),
         ]);
@@ -249,7 +283,8 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
                 model: model.value.trim(),
                 instructions: instructions.value,
                 ...(temperatureValue !== undefined ? { temperature: temperatureValue } : {}),
-                tools: existing?.tools ?? [],
+                tools: [...toolBoxes.querySelectorAll<HTMLInputElement>('input[data-tool]')].filter((box) => box.checked).map((box) => box.value),
+                ...(existing?.alwaysAllow && !resetAlways ? { alwaysAllow: existing.alwaysAllow } : {}),
             }, existing?.id).then((saved) => {
                 close();
                 callbacks.onStatus(`Saved ${saved.name}.`);
@@ -299,11 +334,13 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         const input = el('textarea', { className: 'agents-input agents-chat-input', attrs: { rows: '3', placeholder: `Message ${agent?.name ?? 'the agent'} (Enter to send, Shift+Enter for a new line)`, 'aria-label': 'Message', 'data-testid': 'agents-chat-input' } });
         const send = el('button', { className: 'primary-button agents-inline-button', text: 'Send', attrs: { type: 'button', 'data-action': 'send' } });
         const meta = el('span', { className: 'muted small agents-chat-meta', text: agent ? agentSummary(agent) : 'Deleted agent' });
+        const attachments = createAttachmentBar(input, { listFiles: callbacks.listFiles, activeSelection: callbacks.activeSelection, onStatus: callbacks.onStatus });
 
         const state = {
             session: initial,
             transcript,
             streaming: null as HTMLElement | null,
+            streamTools: null as HTMLElement | null,
             streamText: '',
             render(): void {
                 transcript.replaceChildren(...state.session.messages.map((message) => renderMessage(message)));
@@ -331,13 +368,18 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             if (!text.trim()) {
                 return;
             }
+            const attached = attachments.items();
             input.value = '';
-            const userTurn: ChatMessageView = { role: 'user', content: text, at: new Date().toISOString() };
+            attachments.clear();
+            const userTurn: ChatMessageView = { role: 'user', content: text, at: new Date().toISOString(), ...(attached.length > 0 ? { attachments: attached.map(labelOf) } : {}) };
             state.session = { ...state.session, messages: [...state.session.messages, userTurn] };
             state.render();
             running(true);
-            api.send(state.session.id, text).catch((error: unknown) => {
+            api.send(state.session.id, text, attached).catch((error: unknown) => {
                 input.value = text;
+                for (const item of attached) {
+                    attachments.restore(item);
+                }
                 callbacks.onStatus(errorText(error));
                 state.session = { ...state.session, messages: state.session.messages.slice(0, -1) };
                 state.render();
@@ -354,6 +396,9 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         };
         send.addEventListener('click', submit);
         input.addEventListener('keydown', (event) => {
+            if (attachments.handleKey(event)) {
+                return;
+            }
             if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
                 event.preventDefault();
                 submit();
@@ -370,7 +415,11 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
                 iconButton('New chat with this agent', ICONS.plus, () => void startChat(state.session.agentId)),
             ]),
             transcript,
-            el('div', { className: 'agents-composer' }, [input, el('div', { className: 'agents-composer-row' }, [meta, send])]),
+            el('div', { className: 'agents-composer' }, [
+                attachments.chips,
+                el('div', { className: 'agents-composer-input' }, [attachments.popup, input]),
+                el('div', { className: 'agents-composer-row' }, [meta, el('span', { className: 'agents-composer-actions' }, [attachments.attachButton, send])]),
+            ]),
         );
         home.hidden = true;
         chatPane.hidden = false;
@@ -384,7 +433,13 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         const body = el('div', { className: 'agents-message-body' });
         if (isUser) {
             body.append(el('p', { className: 'chat-paragraph agents-user-text', text: message.content }));
+            if (message.attachments?.length) {
+                body.append(el('div', { className: 'chat-chips is-static', attrs: { 'aria-label': 'Attached' } }, message.attachments.map((label) => el('span', { className: 'chat-chip', attrs: { title: label } }, [el('span', { className: 'chat-chip-label', text: label })]))));
+            }
         } else {
+            if (message.toolRuns?.length) {
+                body.append(renderToolRuns(message.toolRuns));
+            }
             body.append(renderMarkdown(message.content, { copy }));
         }
         const notes: HTMLElement[] = [];
@@ -417,10 +472,12 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         }
         if (event.type === 'start') {
             state.streamText = '';
+            state.streamTools = el('div', { className: 'chat-tools', attrs: { 'aria-label': 'Tools used' } });
             state.streaming = el('div', { className: 'agents-message-body' });
             const article = el('article', { className: 'agents-message is-assistant is-streaming', attrs: { 'data-role': 'assistant' } }, [
                 el('div', { className: 'agents-message-head' }, [el('span', { className: 'agents-message-author', text: agentName({ role: 'assistant', content: '', at: '' }) }), el('span', { className: 'muted small', text: event.model })]),
                 ...(event.trimmed > 0 ? [el('p', { className: 'muted small', text: `The ${event.trimmed} oldest messages were left out to fit the model's context.` })] : []),
+                state.streamTools,
                 state.streaming,
             ]);
             state.transcript.append(article);
@@ -431,8 +488,16 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             if (nearBottom) {
                 state.transcript.scrollTop = state.transcript.scrollHeight;
             }
+        } else if (event.type === 'tool' && state.streamTools) {
+            upsertToolRun(state.streamTools, event.run);
+        } else if (event.type === 'approval' && state.streaming) {
+            const card = renderApproval(event.request, (decision) => api.approve(event.request.id, decision).catch((error: unknown) => callbacks.onStatus(errorText(error))));
+            state.streaming.parentElement?.append(card);
+            state.transcript.scrollTop = state.transcript.scrollHeight;
+            card.querySelector('button')?.focus();
         } else if (event.type === 'end') {
             state.streaming = null;
+            state.streamTools = null;
             state.session = { ...state.session, messages: [...state.session.messages, event.message] };
             state.render();
         }

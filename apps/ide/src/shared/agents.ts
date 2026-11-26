@@ -103,7 +103,47 @@ export const AGENT_IPC_CHANNELS = {
     agentsExportSession: 'codexr:agents:export-session',
     agentsSend: 'codexr:agents:send',
     agentsStop: 'codexr:agents:stop',
+    agentsTools: 'codexr:agents:tools',
+    agentsApprove: 'codexr:agents:approve',
 } as const;
+
+/** What a tool can do, which decides whether it asks first (A7). */
+export type ToolRisk = 'read' | 'write' | 'run' | 'network';
+
+export interface ToolInfo {
+    readonly name: string;
+    readonly title: string;
+    readonly description: string;
+    readonly risk: ToolRisk;
+}
+
+/** One tool call inside an answer, as the chat shows it. */
+export interface ToolRunView {
+    readonly id: string;
+    readonly name: string;
+    /** One line: what was asked ("read src/main.ts lines 1-80"). */
+    readonly summary: string;
+    readonly status: 'running' | 'done' | 'error' | 'denied';
+    /** The start of the result, for the collapsible block. */
+    readonly result?: string;
+}
+
+/** A risky tool call waiting for the person (A7). */
+export interface ApprovalRequest {
+    readonly id: string;
+    readonly sessionId: string;
+    readonly tool: string;
+    readonly title: string;
+    /** Exactly what will happen: the command, the file and its change… */
+    readonly detail: string;
+}
+
+export type ApprovalDecision = 'once' | 'always' | 'deny';
+
+/** Context attached to a message (A6). The main process reads files itself; only the selection's text crosses. */
+export type ChatAttachment =
+    | { readonly kind: 'file'; readonly path: string }
+    | { readonly kind: 'selection'; readonly path: string; readonly startLine: number; readonly endLine: number; readonly text: string };
 
 /** Main -> renderer events of the agent hub; api.ts merges them into IPC_EVENTS. */
 export const AGENT_IPC_EVENTS = {
@@ -120,8 +160,10 @@ export interface AgentProfile {
     readonly instructions: string;
     /** 0-2; absent uses the provider's default. */
     readonly temperature?: number;
-    /** Tool names this agent may use (A7); empty for now. */
+    /** Tool names this agent may use (A7). */
     readonly tools: readonly string[];
+    /** Risky tools the person allowed for this agent with "Always" (A7). */
+    readonly alwaysAllow?: readonly string[];
 }
 
 /** What the renderer sends to create (no id) or edit an agent. */
@@ -138,6 +180,12 @@ export interface ChatMessageView {
     readonly stopped?: boolean;
     readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
     readonly model?: string;
+    /** Labels of the context attached to a user turn ("src/main.ts", "app.ts:10-24"). */
+    readonly attachments?: readonly string[];
+    /** The attached context itself, sent to the model before `content` on every turn; not shown. */
+    readonly context?: string;
+    /** Tools the agent used while answering (A7). */
+    readonly toolRuns?: readonly ToolRunView[];
 }
 
 export interface ChatSessionSummary {
@@ -158,6 +206,8 @@ export interface ChatSession extends ChatSessionSummary {
 export type AgentChatEvent =
     | { readonly sessionId: string; readonly type: 'start'; readonly model: string; readonly trimmed: number }
     | { readonly sessionId: string; readonly type: 'delta'; readonly text: string }
+    | { readonly sessionId: string; readonly type: 'tool'; readonly run: ToolRunView }
+    | { readonly sessionId: string; readonly type: 'approval'; readonly request: ApprovalRequest }
     | { readonly sessionId: string; readonly type: 'end'; readonly message: ChatMessageView };
 
 /** What `window.codexr.agents` offers the renderer. */
@@ -184,8 +234,12 @@ export interface AgentsApi {
     /** The chat as Markdown, for saving or copying. */
     exportSession(id: string): Promise<string>;
     /** Sends a message; the answer streams through `onChat`. Resolves once the answer ends. */
-    send(sessionId: string, text: string): Promise<void>;
+    send(sessionId: string, text: string, attachments?: readonly ChatAttachment[]): Promise<void>;
     /** Stops the answer being streamed in this chat, if any. */
     stop(sessionId: string): Promise<void>;
     onChat(listener: (event: AgentChatEvent) => void): () => void;
+    /** Every tool an agent can be given (A7). */
+    tools(): Promise<readonly ToolInfo[]>;
+    /** Answers an approval card. */
+    approve(requestId: string, decision: ApprovalDecision): Promise<void>;
 }

@@ -532,7 +532,14 @@ void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
 // The AI agent hub: providers configured with the person's own keys.
-const agentsView = createAgentsView(workbench.agentsView, api.agents, { onStatus: (message) => workbench.setStatus(message) });
+const agentsView = createAgentsView(workbench.agentsView, api.agents, {
+    onStatus: (message) => workbench.setStatus(message),
+    listFiles: async () => (await api.workspace.listFiles()).files,
+    activeSelection: () => {
+        const selection = editors?.activeSelection();
+        return selection ? { kind: 'selection', ...selection } : null;
+    },
+});
 agentsView.refresh().catch((error: unknown) => workbench.setStatus(`Agents unavailable: ${String(error)}`));
 
 const pythonView = createPythonView(workbench.analysisView, api.python, {

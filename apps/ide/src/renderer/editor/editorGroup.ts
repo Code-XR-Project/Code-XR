@@ -95,6 +95,8 @@ export interface EditorGroup {
     replaceInOpenFiles(paths: readonly string[], replace: (text: string) => { text: string; count: number }): { handled: string[]; replacements: number };
     /** The active editor's selection when it is on one line, for the Search view's query. */
     selectedText(): string;
+    /** The active editor's selection on any number of lines, for an agent's context (epic #189, A6); null when empty. */
+    activeSelection(): { readonly path: string; readonly startLine: number; readonly endLine: number; readonly text: string } | null;
     /** #164: Monaco's own outline of the active file ("@" in quick open), where its language has symbols. */
     showSymbols(): void;
     /** #166: the status bar's choices, applied to the active file. */
@@ -694,6 +696,14 @@ export function createEditorGroup(
                 return '';
             }
             return model.getValueInRange(selection);
+        },
+        activeSelection() {
+            const selection = editor.getSelection();
+            const model = active?.model;
+            if (!active || !selection || !model || selection.isEmpty()) {
+                return null;
+            }
+            return { path: active.path, startLine: selection.startLineNumber, endLine: selection.endLineNumber, text: model.getValueInRange(selection) };
         },
         showSymbols() {
             if (!active) {
