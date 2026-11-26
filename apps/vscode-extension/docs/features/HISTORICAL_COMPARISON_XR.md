@@ -186,8 +186,16 @@ For a historical revision:
 
 - `cat-file` checks existence and size;
 - `ls-tree` enumerates a directory's files;
-- `show <sha>:<path>` retrieves content;
+- `show <sha>:<path>` retrieves the content of a single-file target; a
+  directory's files come through one `cat-file --batch` process per revision
+  (1.2.1, #106; it was one `show` per file);
 - files are written into the extension's private storage;
+- each blob is read from Git and written once per service, into
+  `snapshots/blob-store/<blob>`; every snapshot file is a hard link to it
+  (a copy where links are unavailable), so a file unchanged across movie
+  frames or comparison sides is not read or written again. Released
+  snapshots leave at most 100 MiB there; past that, new blobs go straight
+  into their snapshot;
 - nothing is ever written inside the repository or `.git`;
 - snapshots are deleted when the service shuts down.
 
