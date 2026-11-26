@@ -11,7 +11,8 @@ import { APP_ORIGIN, trustedOrigins } from './security.ts';
 import { log } from './log.ts';
 import { IPC_EVENTS } from '../shared/api.ts';
 import { folderArgument } from './workspace/workspacePath.ts';
-import { initRecentFolders, setWorkspace } from './workspace/workspaceWindows.ts';
+import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } from './workspace/workspaceWindows.ts';
+import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
@@ -70,12 +71,16 @@ async function start(): Promise<void> {
     const win = await openMainWindow();
     log.info(`Window loaded from ${win.webContents.getURL()}${isDevelopment ? ' (dev server)' : ''}.`);
 
-    const startupFolder = folderArgument(process.argv);
-    if (startupFolder) {
+    const startup = chooseStartupFolder(folderArgument(process.argv), recentFolderList(), isSmoke);
+    if (startup.kind !== 'none') {
         try {
-            win.webContents.send(IPC_EVENTS.workspaceChanged, await setWorkspace(win.webContents, startupFolder));
+            // #151: the last folder goes through the recent list, which drops it if it is gone.
+            const info = startup.kind === 'argument'
+                ? await setWorkspace(win.webContents, startup.folder)
+                : await openRecentFolder(win.webContents, startup.folder);
+            win.webContents.send(IPC_EVENTS.workspaceChanged, info);
         } catch (error) {
-            log.error(`Could not open ${startupFolder}.`, error);
+            log.warn(`Could not reopen ${startup.folder}: ${String(error)}`);
         }
     }
 
