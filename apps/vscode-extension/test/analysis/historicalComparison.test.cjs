@@ -759,8 +759,10 @@ test('XR historical runtime renders two contained charts and restores the single
     assert.match(runtime, /Working copy/);
     assert.match(runtime, /function buildComparisonBoatsTree/);
     assert.match(runtime, /safeNamespace \+ ':' \+ accumulated\.join\('\/'\)/);
-    assert.match(runtime, /inlineData: buildComparisonBoatsTree\(state\.payloads\.left/);
-    assert.match(runtime, /inlineData: buildComparisonBoatsTree\(state\.payloads\.right/);
+    // Each side's inline tree (namespaced per side) is asserted by running
+    // createComparisonChartSource below, for the first build and every switch.
+    assert.match(runtime, /inlineData = buildComparisonSideTree\('left'\)/);
+    assert.match(runtime, /inlineData = buildComparisonSideTree\('right'\)/);
     assert.match(runtime, /delete chartData\.from/);
     assert.match(runtime, /chartData\.field = 'uid'/);
     assert.doesNotMatch(runtime, /cloneNode\(true\)/);
@@ -864,7 +866,7 @@ test('XR historical runtime renders two contained charts and restores the single
     assert.match(runtime, /function isHierarchicalBoatsComponent\(componentName\)/);
     assert.match(runtime, /componentName === 'babia-boats'/);
     assert.match(runtime, /isHierarchicalBoatsComponent\(componentName\)/);
-    assert.match(runtime, /buildComparisonBoatsTree\(\s*state\.payloads\[liveSide\]/);
+    assert.match(runtime, /buildComparisonSideTree\(liveSide\)/);
     assert.match(runtime, /codexr-mapping-confirmed/);
     assert.match(runtime, /function getMappedMetricDeltas/);
     assert.match(runtime, /function suspendRaycastInteraction\(rootEntity\)/);
@@ -1072,6 +1074,13 @@ test('comparison clones take their orientation from the chart they carry, not fr
         'codexr-boats-layout-stability': 'enabled: true',
         rotation: '90 0 0',
         palette: 'ubuntu',
+        // Ownership markers of the scene chart (harness layout, or any scene
+        // whose chart is its own normal root): never the clone's (HIST-12).
+        'data-codexr-normal-root': 'true',
+        'data-codexr-analysis-root': 'true',
+        'data-codexr-analysis-mode': 'single',
+        'data-codexr-role': 'normal-chart',
+        class: 'babiaxraycasterclass',
     });
     const zone = { id: 'left', anchorX: -1.4, anchorZ: -18, width: 2.6, depth: 3.2 };
 
@@ -1084,7 +1093,12 @@ test('comparison clones take their orientation from the chart they carry, not fr
     assert.equal(clone.getAttribute('data-codexr-active-chart-id'), 'boats');
     assert.equal(clone.getAttribute('babia-boats').from, 'codexrComparisonLeft');
     assert.equal(clone.getAttribute('codexr-boats-layout-stability'), 'enabled: true');
-    assert.equal(clone.getAttribute('palette'), 'ubuntu', 'decoration still travels');
+    // Whitelist, not deny-list: nothing outside it travels, and in particular
+    // no data-codexr-* marker other than the ones derived for the clone.
+    assert.equal(clone.getAttribute('palette'), null, 'an unlisted attribute does not travel');
+    assert.equal(clone.getAttribute('class'), null);
+    const markers = clone.getAttributeNames().filter((name) => name.startsWith('data-codexr-'));
+    assert.deepEqual(markers, ['data-codexr-active-chart-id'], 'only the derived chart-id marker');
 
     // A circular chart is cloned standing, from the same profile.
     const pieOriginal = createComparisonFakeEntity({
@@ -1166,4 +1180,40 @@ test('a target reached through a symlink is still inside its repository', async 
     } finally {
         fs.rmSync(temporaryRoot, { recursive: true, force: true });
     }
+});
+
+// HIST-3: a chart switch asks each clone where its revision lives, so Bars ->
+// Boats gives each side an inline tree of ITS payload and Boats -> flat gives
+// it back its own producer, never the normal analysis' `tree` / `data`.
+test('each comparison clone declares its own revision as the source of every chart type', () => {
+    const runtime = loadHistoricalRuntime();
+    runtime.__testing.setPayloadsForTests({
+        left: [{ filePath: 'src/a.ts', totalLines: 10 }],
+        right: [{ filePath: 'src/a.ts', totalLines: 12 }, { filePath: 'src/b.ts', totalLines: 3 }],
+    });
+    const zone = { id: 'left', anchorX: -1.4, anchorZ: -18, width: 2.6, depth: 3.2 };
+    const original = createComparisonFakeEntity({ 'babia-bars': { from: 'data', x_axis: 'fileName' } });
+    const left = runtime.__testing.createChartFromTemplate(
+        original, 'codexrComparisonChartLeft', 'codexrComparisonDataLeft', zone, 'directory', { side: 'left' },
+    );
+    const right = runtime.__testing.createChartFromTemplate(
+        original, 'codexrComparisonChartRight', 'codexrComparisonDataRight', zone, 'directory', { side: 'right' },
+    );
+    assert.equal(typeof left.__codexrChartSource, 'function');
+
+    for (const chartId of ['bars', 'cyls', 'pie', 'bubbles']) {
+        assert.deepEqual({ ...left.__codexrChartSource(chartId) }, { from: 'codexrComparisonDataLeft' });
+        assert.deepEqual({ ...right.__codexrChartSource(chartId) }, { from: 'codexrComparisonDataRight' });
+    }
+    const leftBoats = left.__codexrChartSource('boats');
+    const rightBoats = right.__codexrChartSource('boats');
+    assert.equal(leftBoats.field, 'uid');
+    assert.equal(leftBoats.from, undefined, 'boats never reads a producer, least of all `tree`');
+    const uids = (nodes) => nodes.flatMap((node) => [node.uid, ...uids(node.children || [])]);
+    assert.deepEqual(uids(JSON.parse(leftBoats.data)), ['codexr-left:src', 'codexr-left:src/a.ts']);
+    assert.deepEqual(uids(JSON.parse(rightBoats.data)), ['codexr-right:src', 'codexr-right:src/a.ts', 'codexr-right:src/b.ts']);
+
+    // A clone built without a side (no comparison) declares nothing.
+    const plain = runtime.__testing.createChartFromTemplate(original, 'x', 'data', zone, 'directory');
+    assert.equal(plain.__codexrChartSource, undefined);
 });

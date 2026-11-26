@@ -28,26 +28,20 @@
       liveSide === 'left' ? 'codexrComparisonChartLeft' : 'codexrComparisonChartRight'
     );
     var componentName = getChartComponentName(chart);
+    // The side's producer is refreshed whatever chart is showing: a boats
+    // side reads an inline tree, but a later switch to a flat chart reads the
+    // producer, which must not still hold the previous revision (HIST-3).
+    var dataEntity = getDocument().getElementById(comparisonDataSourceId(liveSide));
+    if (!dataEntity && !isHierarchicalBoatsComponent(componentName)) {
+      throw new Error('The live comparison data source is unavailable.');
+    }
+    dataEntity?.setAttribute('babia-queryjson', 'url: ' + dataset.url + '?revision=' + result.revision);
     if (isHierarchicalBoatsComponent(componentName)) {
-      var config = getConfig();
-      var pathField = comparisonTreeField(config?.targetType);
       var chartData = Object.assign({}, chart.getAttribute(componentName) || {});
       delete chartData.from;
-      chartData.data = serializeInlineBabiaData(buildComparisonBoatsTree(
-        state.payloads[liveSide],
-        pathField,
-        liveSide === 'left' ? 'codexr-left' : 'codexr-right'
-      ));
+      chartData.data = serializeInlineBabiaData(buildComparisonSideTree(liveSide));
       chartData.field = 'uid';
       setDeclarativeBabiaComponent(chart, componentName, chartData);
-    } else {
-      var dataEntity = getDocument().getElementById(
-        liveSide === 'left' ? 'codexrComparisonDataLeft' : 'codexrComparisonDataRight'
-      );
-      if (!dataEntity) {
-        throw new Error('The live comparison data source is unavailable.');
-      }
-      dataEntity.setAttribute('babia-queryjson', 'url: ' + dataset.url + '?revision=' + result.revision);
     }
     setText(liveSide === 'left' ? refs.leftLabel : refs.rightLabel, buildSideNameplateText(dataset.source), 2.6, liveSide === 'left' ? '#67e8f9' : '#6ee7b7');
     updateMappingCompanion();
@@ -302,10 +296,18 @@
       buildComparisonBoatsTree: buildComparisonBoatsTree,
       serializeInlineBabiaData: serializeInlineBabiaData,
       selectHistoricalMode: selectHistoricalMode,
-      // The comparison clones borrow decoration from the scene chart, so what
-      // they must NOT borrow (orientation, a foreign chart component) is
-      // asserted by running the builder.
+      // The comparison clones take a whitelist from the scene chart, so what
+      // they must NOT take (orientation, a foreign chart component, the
+      // data-codexr-* ownership markers) is asserted by running the builder.
       createChartFromTemplate: createChartFromTemplate,
+      // Where each side reads from under every chart type (HIST-3).
+      createComparisonChartSource: createComparisonChartSource,
+      setPayloadsForTests: function (payloads) {
+        state.payloads = {
+          left: normalizePayload(payloads && payloads.left),
+          right: normalizePayload(payloads && payloads.right)
+        };
+      },
       // Each side reads its own row-budgeted slice (CHARTS-9).
       resolveComparisonSliceSource: resolveComparisonSliceSource,
       // The offline delta port is asserted by CALLING it over payload pairs,

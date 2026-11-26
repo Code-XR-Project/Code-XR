@@ -837,6 +837,53 @@ test('a flat chart keeps the producer it reads instead of falling back to the ma
     assert.equal(typeof runtime.prepareChartDataSlice, 'function', 'producers can warm their slice before building on it');
 });
 
+// HIST-3: a chart owned by another runtime (a historical comparison side)
+// declares its sources; a switch must follow them, not guess from `from`.
+test('a chart switch follows the sources the entity declares for each chart type (HIST-3)', () => {
+    const runtime = loadRuntime();
+    const inlineTree = JSON.stringify([{ name: 'src', uid: 'codexr-left:src', children: [] }]);
+    const chart = createChartEntityForSwitchTest({
+        'codexr-chart-containment': 'preset: table',
+        'babia-bars': { from: 'codexrComparisonDataLeft', x_axis: 'fileName', height: 'totalLines' },
+    });
+    const asked = [];
+    chart.__codexrChartSource = (chartId) => {
+        asked.push(chartId);
+        return chartId === 'boats' ? { data: inlineTree, field: 'uid' } : { from: 'codexrComparisonDataLeft' };
+    };
+
+    // Bars -> Boats: the side's own inline tree, never the normal `tree`.
+    assert.equal(runtime.__testing.applyChartTypeToEntity(chart, 'boats', {
+        area: 'functionCount', height: 'totalLines', color: 'complexity',
+    }), true);
+    const boats = chart.getAttribute('babia-boats');
+    assert.equal(boats.from, undefined);
+    assert.equal(boats.field, 'uid');
+    assert.deepEqual(JSON.parse(boats.data), JSON.parse(inlineTree));
+
+    // Boats -> flat: back on the side's own producer, never the normal `data`
+    // and with no inline rows left over.
+    assert.equal(runtime.__testing.applyChartTypeToEntity(chart, 'cyls', {
+        x_axis: 'fileName', height: 'totalLines', radius: 'complexity',
+    }), true);
+    const cyls = chart.getAttribute('babia-cyls');
+    assert.equal(cyls.from, 'codexrComparisonDataLeft');
+    assert.equal(cyls.data, undefined);
+    assert.deepEqual(asked, ['boats', 'cyls']);
+
+    // A provider that throws or answers nothing leaves the old behaviour.
+    const plain = createChartEntityForSwitchTest({ 'babia-bars': { from: 'data', x_axis: 'fileName' } });
+    plain.__codexrChartSource = () => { throw new Error('boom'); };
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+        runtime.__testing.applyChartTypeToEntity(plain, 'boats', { area: 'functionCount', height: 'totalLines' });
+    } finally {
+        console.warn = originalWarn;
+    }
+    assert.equal(plain.getAttribute('babia-boats').from, 'tree');
+});
+
 test('chart data slice de-duplicates composite keys without merging neighbouring labels', () => {
     const runtime = loadRuntime();
     const compute = runtime.__testing.computeChartDataSlice;
