@@ -28,6 +28,9 @@ export interface SmokeProbe {
     readonly traversalRefused: boolean;
     /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
     readonly editorOpened: boolean;
+    /** #138: file icons in the explorer and the tabs, and those that failed to load from the app. */
+    readonly fileIconsShown: number;
+    readonly fileIconsBroken: readonly string[];
     readonly cspViolations: readonly string[];
 }
 
@@ -73,6 +76,15 @@ const RENDERER_PROBE = `(async () => {
         await new Promise((r) => setTimeout(r, 50));
     }
     const editorOpened = !!editorReady();
+    // Each icon is a CSS background: load every distinct image they resolve to.
+    const iconSpans = [...document.querySelectorAll('[data-testid="explorer-tree"] .file-icon, .editor-tab .file-icon')];
+    const fileIconsShown = iconSpans.length;
+    const fileIconsBroken = [];
+    for (const css of new Set(iconSpans.map((span) => getComputedStyle(span).backgroundImage))) {
+        const url = css.startsWith('url("') ? css.slice(5, -2) : '';
+        const loaded = url && await new Promise((r) => { const img = new Image(); img.onload = () => r(img.naturalWidth > 0); img.onerror = () => r(false); img.src = url; });
+        if (!loaded) { fileIconsBroken.push(css); }
+    }
     await new Promise((r) => setTimeout(r, 500));
     return {
         title,
@@ -90,6 +102,8 @@ const RENDERER_PROBE = `(async () => {
         readFileKind,
         traversalRefused,
         editorOpened,
+        fileIconsShown,
+        fileIconsBroken,
         cspViolations,
     };
 })()`;
@@ -115,6 +129,8 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
         if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
+        if (probe.fileIconsShown === 0) { failures.push('the explorer and the tabs showed no file icon'); }
+        if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }
     if (!navigationBlocked) { failures.push('navigation to an external URL was not blocked'); }
