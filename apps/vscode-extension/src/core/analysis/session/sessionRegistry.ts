@@ -3,7 +3,6 @@
  * Only the essentials for creating and managing sessions
  */
 
-import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { generateNonce } from '../../../shared/nonceGenerator';
@@ -17,6 +16,7 @@ import {
 import { SHA256Generator } from '../utils/sha256Generator';
 import { getLogger } from '../../../platform/logging/sink';
 import { targetKey } from '../launch/targetKey';
+import { HostEmitter } from '../../host/hostEmitter';
 
 const logger = getLogger('UNIFIED_REGISTRY');
 
@@ -33,14 +33,17 @@ export type SessionCreationResult =
 export class UnifiedSessionRegistry {
     private static instance: UnifiedSessionRegistry;
     private sessions: Map<string, UnifiedAnalysisSession> = new Map();
-    private _onSessionChanged = new vscode.EventEmitter<UnifiedAnalysisSession>();
+    private _onSessionChanged = new HostEmitter<UnifiedAnalysisSession>((error) => {
+        logger.error('Session change listener failed:', error);
+    });
     public readonly onSessionChanged = this._onSessionChanged.event;
 
-    private constructor(_context: vscode.ExtensionContext) {
+    // The context is not read; it stays a parameter until step 9 of #13 hands the registry a CodeXRHost.
+    private constructor(_context: unknown) {
         logger.debug('Initializing session registry');
     }
 
-    static getInstance(context: vscode.ExtensionContext): UnifiedSessionRegistry {
+    static getInstance(context: unknown): UnifiedSessionRegistry {
         if (!UnifiedSessionRegistry.instance) {
             UnifiedSessionRegistry.instance = new UnifiedSessionRegistry(context);
         }

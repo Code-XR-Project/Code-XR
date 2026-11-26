@@ -59,6 +59,23 @@
   cursor: wait;
 }
 
+/* Secondary to Compare: shown only while a comparison runs (HIST-7). */
+.historical-cancel-btn {
+  padding: 9px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--codexr-viz-baseline);
+  background: var(--codexr-viz-surface);
+  color: var(--codexr-viz-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.historical-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .historical-status {
   display: block;
   font-size: 0.88rem;

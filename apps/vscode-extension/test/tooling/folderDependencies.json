@@ -53,10 +53,14 @@
       "shared"
     ],
     "core/charts": [
+      "core/host",
       "platform",
       "shared"
     ],
-    "core/collaboration": [],
+    "core/collaboration": [
+      "core/host",
+      "platform"
+    ],
     "core/dependencies": [
       "core/analysis",
       "core/host"
@@ -74,10 +78,12 @@
     ],
     "core/host": [],
     "core/python-env": [
+      "core/host",
       "platform"
     ],
     "core/remote-access": [
       "core/collaboration",
+      "core/host",
       "core/server",
       "platform"
     ],
@@ -86,6 +92,7 @@
       "core/collaboration",
       "core/dependencies",
       "core/history",
+      "core/host",
       "core/remote-access",
       "features/active-servers",
       "platform",
@@ -145,6 +152,6 @@
     "core/remote-access<->core/server": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (core/server -> core/remote-access), and RemoteAccessManager watches the running-server registry to stop a tunnel when its server goes and reads and turns off the cross-network setting through ServerSettingsManager (core/remote-access -> core/server). Breaking it needs that setting and the registry events behind an injected accessor (#13).",
     "core/server<->features/active-servers": "The one upward edge of docs/cleanup/src-layout.md §3.5 seen from both sides: core/server/multiServerLauncher.ts shows the post-launch toasts from features/active-servers/views/launchNotifications.ts (#42 item 5 / #39; listed in layerExceptions), while the ACTIVE SERVERS feature drives the registry, ServerControl and the server settings. Moving the toasts behind a callback the feature registers removes the pair."
   },
-  "vscodeFreeFloor": 118,
-  "vscodeFreeNote": "src files from which no import path reaches `vscode` (type imports included). 97 when #42 started; may only go up. Raise the floor when it does. #55 batch 0 lowered it 109 -> 106 only because three vscode-free re-export barrels were deleted (configuration/models, customComponents, refresh index.ts); no surviving file lost the property. #13 step 1 raised it 106 -> 116: 114 measured on v1.2.1 at 6f827a19 (docs/ide/vscode-api-inventory.md), plus the two vscode-free files of the new core/host seam. #13 step 2 raised it 116 -> 118 (core/host/hostPaths.ts and core/analysis/python/backendScriptPath.ts)."
+  "vscodeFreeFloor": 125,
+  "vscodeFreeNote": "src files from which no import path reaches `vscode` (type imports included). 97 when #42 started; may only go up. Raise the floor when it does. #55 batch 0 lowered it 109 -> 106 only because three vscode-free re-export barrels were deleted (configuration/models, customComponents, refresh index.ts); no surviving file lost the property. #13 step 1 raised it 106 -> 116: 114 measured on v1.2.1 at 6f827a19 (docs/ide/vscode-api-inventory.md), plus the two vscode-free files of the new core/host seam. #13 step 2 raised it 116 -> 118 (core/host/hostPaths.ts and core/analysis/python/backendScriptPath.ts). #13 step 2b raised it 118 -> 122 (settingsFile, generatedHttpsCertificateManager, pythonEnvStorage, themeUtils take structural FileLocation/GlobalStorageContext)."
 }

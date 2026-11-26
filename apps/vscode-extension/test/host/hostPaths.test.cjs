@@ -19,9 +19,19 @@ const {
     privateStorageRoot,
 } = require(out);
 
-test('core/host/hostPaths.ts and backendScriptPath.ts never reach vscode', () => {
+// The modules #13 step 2 moved off vscode: each must stay that way.
+const MIGRATED = [
+    'core/host/hostPaths.ts',
+    'core/analysis/python/backendScriptPath.ts',
+    'core/charts/settings/settingsFile.ts',
+    'core/server/generatedHttpsCertificateManager.ts',
+    'core/python-env/pythonEnvStorage.ts',
+    'core/analysis/utils/themeUtils.ts',
+];
+
+test('the modules migrated in #13 step 2 never reach vscode', () => {
     const free = new Set(measure().vscodeFree);
-    for (const file of ['core/host/hostPaths.ts', 'core/analysis/python/backendScriptPath.ts']) {
+    for (const file of MIGRATED) {
         assert.ok(free.has(file), `${file} reaches vscode`);
     }
 });

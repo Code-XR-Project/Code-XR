@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { getLogger } from '../../platform/logging/sink';
+import type { HostDisposable } from '../host/codeXRHost';
+import { HostEmitter } from '../host/hostEmitter';
 
 const logger = getLogger('PYTHON_ENV');
 
@@ -20,7 +22,9 @@ export interface PythonEnvUiState {
 export class PythonEnvUiStateService {
     private static instance: PythonEnvUiStateService | undefined;
 
-    private readonly emitter = new vscode.EventEmitter<PythonEnvUiState>();
+    private readonly emitter = new HostEmitter<PythonEnvUiState>((error) => {
+        logger.error('Python environment state listener failed:', error);
+    });
     private state: PythonEnvUiState = {
         status: 'idle',
         message: 'Python environment has not been configured yet.',
@@ -44,7 +48,7 @@ export class PythonEnvUiStateService {
         return { ...this.state };
     }
 
-    public onDidChangeState(listener: (state: PythonEnvUiState) => void): vscode.Disposable {
+    public onDidChangeState(listener: (state: PythonEnvUiState) => void): HostDisposable {
         return this.emitter.event(listener);
     }
 

@@ -144,5 +144,9 @@ branches, stashes and notes are not exported.
   history.
 - "Pushes" are represented by commits already present in the local repository.
 - GitHub, GitLab or other hosting provider APIs are not queried in this version.
+- In a partial clone, revisions whose files are not on this computer are left
+  out ("not on this computer (partial clone)"); nothing is downloaded. The
+  oldest Git tested is 2.43, as for
+  [Historical Comparison](HISTORICAL_COMPARISON_XR.md#limits-and-future-evolution).
 - Frames are precalculated before playback to avoid analysis work during the
   animation.
