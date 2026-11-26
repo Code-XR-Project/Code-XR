@@ -6,16 +6,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 21,
+          "lineStart": 9,
           "longName": "compute( const int * values , size_t count , int limit)",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 3
         },
         "helper@23": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 30,
+          "lineStart": 23,
           "longName": "helper( MetricPair pair , int offset)",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -27,16 +31,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 18,
+          "lineStart": 6,
           "longName": "MetricBox::compute( const std :: vector<int> & values , int limit)",
           "maxNestingDepth": 3,
+          "name": "MetricBox::compute",
           "parameters": 2
         },
         "MetricBox::helper@20": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 27,
+          "lineStart": 20,
           "longName": "MetricBox::helper( int value , int offset)",
           "maxNestingDepth": 2,
+          "name": "MetricBox::helper",
           "parameters": 2
         }
       },
@@ -48,16 +56,20 @@
           "complexity": 3,
           "lineCount": 19,
           "lineEnd": 22,
+          "lineStart": 4,
           "longName": "MetricBox::Compute( int [ ] values , int limit)",
           "maxNestingDepth": 3,
+          "name": "MetricBox::Compute",
           "parameters": 2
         },
         "MetricBox::Helper@24": {
           "complexity": 3,
           "lineCount": 11,
           "lineEnd": 34,
+          "lineStart": 24,
           "longName": "MetricBox::Helper( int value , int offset)",
           "maxNestingDepth": 2,
+          "name": "MetricBox::Helper",
           "parameters": 2
         }
       },
@@ -69,8 +81,10 @@
           "complexity": 4,
           "lineCount": 11,
           "lineEnd": 15,
+          "lineStart": 4,
           "longName": "DeepCompute values [ ] int , limit int , offset int",
           "maxNestingDepth": 3,
+          "name": "DeepCompute",
           "parameters": 3
         }
       },
@@ -82,8 +96,10 @@
           "complexity": 4,
           "lineCount": 7,
           "lineEnd": 9,
+          "lineStart": 3,
           "longName": "deep_compute( values , limit , offset )",
           "maxNestingDepth": 3,
+          "name": "deep_compute",
           "parameters": 3
         }
       },
@@ -95,8 +111,10 @@
           "complexity": 4,
           "lineCount": 11,
           "lineEnd": 12,
+          "lineStart": 2,
           "longName": "deepCompute ( values : number [ ] , limit : number , offset : number )",
           "maxNestingDepth": 3,
+          "name": "deepCompute",
           "parameters": 3
         }
       },
@@ -108,16 +126,20 @@
           "complexity": 3,
           "lineCount": 1,
           "lineEnd": 1,
+          "lineStart": 1,
           "longName": "compute( Values , Limit )",
           "maxNestingDepth": 0,
+          "name": "compute",
           "parameters": 2
         },
         "helper@1": {
           "complexity": 4,
           "lineCount": 1,
           "lineEnd": 1,
+          "lineStart": 1,
           "longName": "helper( Value , Offset )",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -129,16 +151,20 @@
           "complexity": 4,
           "lineCount": 14,
           "lineEnd": 17,
+          "lineStart": 4,
           "longName": "metrics_mod::compute( values , limit )",
           "maxNestingDepth": 2,
+          "name": "metrics_mod::compute",
           "parameters": 2
         },
         "metrics_mod::helper@19": {
           "complexity": 3,
           "lineCount": 12,
           "lineEnd": 30,
+          "lineStart": 19,
           "longName": "metrics_mod::helper( value , offset )",
           "maxNestingDepth": 2,
+          "name": "metrics_mod::helper",
           "parameters": 2
         }
       },
@@ -150,16 +176,20 @@
           "complexity": 5,
           "lineCount": 9,
           "lineEnd": 12,
+          "lineStart": 4,
           "longName": "compute( values : Array , limit : int , offset : int )",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 3
         },
         "helper@14": {
           "complexity": 3,
           "lineCount": 5,
           "lineEnd": 18,
+          "lineStart": 14,
           "longName": "helper( value : int , seed : int )",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -171,16 +201,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 20,
+          "lineStart": 8,
           "longName": "Compute values [ ] int , limit int",
           "maxNestingDepth": 3,
+          "name": "Compute",
           "parameters": 2
         },
         "Helper@22": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 29,
+          "lineStart": 22,
           "longName": "Helper value int , offset int",
           "maxNestingDepth": 2,
+          "name": "Helper",
           "parameters": 2
         }
       },
@@ -192,16 +226,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 15,
+          "lineStart": 3,
           "longName": "JavaMetrics::compute( int [ ] values , int limit)",
           "maxNestingDepth": 3,
+          "name": "JavaMetrics::compute",
           "parameters": 2
         },
         "JavaMetrics::helper@17": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 24,
+          "lineStart": 17,
           "longName": "JavaMetrics::helper( int value , int offset)",
           "maxNestingDepth": 2,
+          "name": "JavaMetrics::helper",
           "parameters": 2
         }
       },
@@ -213,16 +251,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 14,
+          "lineStart": 2,
           "longName": "compute ( values , limit )",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@16": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 23,
+          "lineStart": 16,
           "longName": "helper ( value , offset )",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -234,16 +276,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 15,
+          "lineStart": 3,
           "longName": "compute values : List < Int > , offset : Int",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@17": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 24,
+          "lineStart": 17,
           "longName": "helper value : Int , offset : Int",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -255,24 +301,30 @@
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 30,
+          "lineStart": 23,
           "longName": "MetricBox",
           "maxNestingDepth": 2,
+          "name": "MetricBox",
           "parameters": 2
         },
         "MetricBox@5": {
           "complexity": 1,
           "lineCount": 3,
           "lineEnd": 7,
+          "lineStart": 5,
           "longName": "MetricBox",
           "maxNestingDepth": 0,
+          "name": "MetricBox",
           "parameters": 1
         },
         "MetricBox@9": {
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 21,
+          "lineStart": 9,
           "longName": "MetricBox",
           "maxNestingDepth": 3,
+          "name": "MetricBox",
           "parameters": 2
         }
       },
@@ -284,16 +336,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 22,
+          "lineStart": 10,
           "longName": "compute:( NSArray < NSNumber * > * ) limit:( NSInteger )",
           "maxNestingDepth": 3,
+          "name": "compute: limit:",
           "parameters": 2
         },
         "helper: offset:@24": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 31,
+          "lineStart": 24,
           "longName": "helper:( NSInteger ) offset:( NSInteger )",
           "maxNestingDepth": 2,
+          "name": "helper: offset:",
           "parameters": 2
         }
       },
@@ -305,16 +361,20 @@
           "complexity": 4,
           "lineCount": 14,
           "lineEnd": 17,
+          "lineStart": 4,
           "longName": "MetricBox::compute",
           "maxNestingDepth": 2,
+          "name": "MetricBox::compute",
           "parameters": 2
         },
         "MetricBox::helper@19": {
           "complexity": 3,
           "lineCount": 9,
           "lineEnd": 27,
+          "lineStart": 19,
           "longName": "MetricBox::helper",
           "maxNestingDepth": 2,
+          "name": "MetricBox::helper",
           "parameters": 2
         }
       },
@@ -326,16 +386,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 16,
+          "lineStart": 4,
           "longName": "MetricBox::compute $values $values $limit $limit",
           "maxNestingDepth": 3,
+          "name": "MetricBox::compute",
           "parameters": 1
         },
         "MetricBox::helper@18": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 25,
+          "lineStart": 18,
           "longName": "MetricBox::helper $value $value $offset $offset",
           "maxNestingDepth": 2,
+          "name": "MetricBox::helper",
           "parameters": 1
         }
       },
@@ -347,48 +411,60 @@
           "complexity": 1,
           "lineCount": 3,
           "lineEnd": 5,
+          "lineStart": 3,
           "longName": "__init__( self , limit , factor )",
           "maxNestingDepth": 0,
+          "name": "__init__",
           "parameters": 3
         },
         "compute@7": {
           "complexity": 4,
           "lineCount": 9,
           "lineEnd": 15,
+          "lineStart": 7,
           "longName": "compute( self , values , offset = 0 )",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 3
         },
         "helper@18": {
           "complexity": 4,
           "lineCount": 6,
           "lineEnd": 23,
+          "lineStart": 18,
           "longName": "helper( items , seed )",
           "maxNestingDepth": 3,
+          "name": "helper",
           "parameters": 2
         },
         "main@47": {
           "complexity": 1,
           "lineCount": 9,
           "lineEnd": 56,
+          "lineStart": 47,
           "longName": "main( )",
           "maxNestingDepth": 0,
+          "name": "main",
           "parameters": 0
         },
         "test_helper@37": {
           "complexity": 1,
           "lineCount": 6,
           "lineEnd": 43,
+          "lineStart": 37,
           "longName": "test_helper( )",
           "maxNestingDepth": 0,
+          "name": "test_helper",
           "parameters": 0
         },
         "test_metric_box@26": {
           "complexity": 1,
           "lineCount": 8,
           "lineEnd": 33,
+          "lineStart": 26,
           "longName": "test_metric_box( )",
           "maxNestingDepth": 0,
+          "name": "test_metric_box",
           "parameters": 0
         }
       },
@@ -400,24 +476,30 @@
           "complexity": 3,
           "lineCount": 13,
           "lineEnd": 20,
+          "lineStart": 8,
           "longName": "compute values , offset = 0 )",
           "maxNestingDepth": 2,
+          "name": "compute",
           "parameters": 2
         },
         "helper@22": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 29,
+          "lineStart": 22,
           "longName": "helper value , seed )",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         },
         "initialize@3": {
           "complexity": 1,
           "lineCount": 4,
           "lineEnd": 6,
+          "lineStart": 3,
           "longName": "initialize limit , factor )",
           "maxNestingDepth": 0,
+          "name": "initialize",
           "parameters": 2
         }
       },
@@ -429,16 +511,20 @@
           "complexity": 3,
           "lineCount": 14,
           "lineEnd": 17,
+          "lineStart": 3,
           "longName": "compute values : List [ Int ] , limit : Int",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@17": {
           "complexity": 3,
           "lineCount": 9,
           "lineEnd": 25,
+          "lineStart": 17,
           "longName": "helper value : Int , offset : Int",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -450,16 +536,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 17,
+          "lineStart": 5,
           "longName": "compute uint256 [ ] memory values , uint256 limit",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@19": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 26,
+          "lineStart": 19,
           "longName": "helper uint256 value , uint256 offset",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -471,16 +561,20 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 15,
+          "lineStart": 3,
           "longName": "compute values : [ Int ] , limit : Int",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@17": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 24,
+          "lineStart": 17,
           "longName": "helper value : Int , offset : Int",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -492,16 +586,20 @@
           "complexity": 2,
           "lineCount": 5,
           "lineEnd": 18,
+          "lineStart": 14,
           "longName": "if( value>offset)",
           "maxNestingDepth": 1,
+          "name": "if",
           "parameters": 1
         },
         "if@4": {
           "complexity": 2,
           "lineCount": 6,
           "lineEnd": 9,
+          "lineStart": 4,
           "longName": "if( value>limit)",
           "maxNestingDepth": 1,
+          "name": "if",
           "parameters": 1
         }
       },
@@ -513,24 +611,30 @@
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 12,
+          "lineStart": 5,
           "longName": "(anonymous)",
           "maxNestingDepth": 2,
+          "name": "(anonymous)",
           "parameters": 1
         },
         "MetricPanel@15": {
           "complexity": 3,
           "lineCount": 9,
           "lineEnd": 23,
+          "lineStart": 15,
           "longName": "MetricPanel ( { values , limit } : { values : number [ ] ; limit : number } )",
           "maxNestingDepth": 2,
+          "name": "MetricPanel",
           "parameters": 2
         },
         "compute@4": {
           "complexity": 1,
           "lineCount": 4,
           "lineEnd": 15,
+          "lineStart": 4,
           "longName": "compute ( values : number [ ] , limit : number )",
           "maxNestingDepth": 0,
+          "name": "compute",
           "parameters": 2
         }
       },
@@ -542,16 +646,20 @@
           "complexity": 4,
           "lineCount": 14,
           "lineEnd": 18,
+          "lineStart": 4,
           "longName": "compute ( values : number [ ] , limit : number )",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@18": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 25,
+          "lineStart": 18,
           "longName": "helper ( pair : MetricPair , offset : number )",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -563,16 +671,20 @@
           "complexity": 4,
           "lineCount": 12,
           "lineEnd": 19,
+          "lineStart": 7,
           "longName": "compute ( values : number [ ] , limit : number )",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@19": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 26,
+          "lineStart": 19,
           "longName": "helper ( value : number , offset : number )",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
         }
       },
@@ -584,17 +696,46 @@
           "complexity": 4,
           "lineCount": 13,
           "lineEnd": 16,
+          "lineStart": 4,
           "longName": "compute values : [ ] const i32 , limit : i32",
           "maxNestingDepth": 3,
+          "name": "compute",
           "parameters": 2
         },
         "helper@18": {
           "complexity": 3,
           "lineCount": 8,
           "lineEnd": 25,
+          "lineStart": 18,
           "longName": "helper value : i32 , offset : i32",
           "maxNestingDepth": 2,
+          "name": "helper",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/c_header.h": {
+      "functions": {
+        "clamp@11": {
+          "complexity": 3,
+          "lineCount": 6,
+          "lineEnd": 16,
+          "lineStart": 11,
+          "longName": "clamp( int value , int low , int high)",
+          "maxNestingDepth": 1,
+          "name": "clamp",
+          "parameters": 3
+        },
+        "count_set@18": {
+          "complexity": 2,
+          "lineCount": 8,
+          "lineEnd": 25,
+          "lineStart": 18,
+          "longName": "count_set( unsigned long bits)",
+          "maxNestingDepth": 1,
+          "name": "count_set",
+          "parameters": 1
         }
       },
       "status": "success"
@@ -605,25 +746,151 @@
           "complexity": 4,
           "lineCount": 10,
           "lineEnd": 10,
+          "lineStart": 1,
           "longName": "deep( int a , int b)",
           "maxNestingDepth": 2,
+          "name": "deep",
           "parameters": 2
         },
         "flat@12": {
           "complexity": 6,
           "lineCount": 8,
           "lineEnd": 19,
+          "lineStart": 12,
           "longName": "flat( int a , int b)",
           "maxNestingDepth": 3,
+          "name": "flat",
           "parameters": 2
         },
         "pick@21": {
           "complexity": 3,
           "lineCount": 7,
           "lineEnd": 27,
+          "lineStart": 21,
           "longName": "pick( int a)",
           "maxNestingDepth": 1,
+          "name": "pick",
           "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/cpp_hard.cpp": {
+      "functions": {
+        "geo::Circle::Circle@22": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 22,
+          "lineStart": 22,
+          "longName": "geo::Circle::Circle( double r)",
+          "maxNestingDepth": 0,
+          "name": "geo::Circle::Circle",
+          "parameters": 1
+        },
+        "geo::Circle::area@23": {
+          "complexity": 2,
+          "lineCount": 3,
+          "lineEnd": 25,
+          "lineStart": 23,
+          "longName": "geo::Circle::area() const",
+          "maxNestingDepth": 1,
+          "name": "geo::Circle::area",
+          "parameters": 0
+        },
+        "geo::Point::Point@9": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 9,
+          "lineStart": 9,
+          "longName": "geo::Point::Point( T x , T y)",
+          "maxNestingDepth": 0,
+          "name": "geo::Point::Point",
+          "parameters": 2
+        },
+        "geo::Point::operator +@10": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 10,
+          "lineStart": 10,
+          "longName": "geo::Point::operator +( const Point & other) const",
+          "maxNestingDepth": 0,
+          "name": "geo::Point::operator +",
+          "parameters": 1
+        },
+        "geo::Point::operator ==@11": {
+          "complexity": 2,
+          "lineCount": 1,
+          "lineEnd": 11,
+          "lineStart": 11,
+          "longName": "geo::Point::operator ==( const Point & other) const",
+          "maxNestingDepth": 1,
+          "name": "geo::Point::operator ==",
+          "parameters": 1
+        },
+        "geo::count_positive@30": {
+          "complexity": 5,
+          "lineCount": 12,
+          "lineEnd": 41,
+          "lineStart": 30,
+          "longName": "geo::count_positive( const std :: vector<int> & values)",
+          "maxNestingDepth": 2,
+          "name": "geo::count_positive",
+          "parameters": 1
+        },
+        "geo_main@45": {
+          "complexity": 5,
+          "lineCount": 14,
+          "lineEnd": 58,
+          "lineStart": 45,
+          "longName": "geo_main( int argc , char ** argv)",
+          "maxNestingDepth": 3,
+          "name": "geo_main",
+          "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/cpp_header.hpp": {
+      "functions": {
+        "util::Text::Text@8": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 8,
+          "lineStart": 8,
+          "longName": "util::Text::Text( std :: string value)",
+          "maxNestingDepth": 0,
+          "name": "util::Text::Text",
+          "parameters": 1
+        },
+        "util::Text::empty@10": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 10,
+          "lineStart": 10,
+          "longName": "util::Text::empty() const",
+          "maxNestingDepth": 0,
+          "name": "util::Text::empty",
+          "parameters": 0
+        },
+        "util::Text::trimmed@12": {
+          "complexity": 3,
+          "lineCount": 7,
+          "lineEnd": 18,
+          "lineStart": 12,
+          "longName": "util::Text::trimmed() const",
+          "maxNestingDepth": 2,
+          "name": "util::Text::trimmed",
+          "parameters": 0
+        },
+        "util::max_of@25": {
+          "complexity": 2,
+          "lineCount": 3,
+          "lineEnd": 27,
+          "lineStart": 25,
+          "longName": "util::max_of( T a , T b)",
+          "maxNestingDepth": 1,
+          "name": "util::max_of",
+          "parameters": 2
         }
       },
       "status": "success"
@@ -634,9 +901,96 @@
           "complexity": 3,
           "lineCount": 6,
           "lineEnd": 6,
+          "lineStart": 1,
           "longName": "area( int width , int height)",
           "maxNestingDepth": 2,
+          "name": "area",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/cpp_source.cc": {
+      "functions": {
+        "Registry::add@20": {
+          "complexity": 5,
+          "lineCount": 11,
+          "lineEnd": 30,
+          "lineStart": 20,
+          "longName": "Registry::add( const std :: string & key , int value)",
+          "maxNestingDepth": 4,
+          "name": "Registry::add",
+          "parameters": 2
+        },
+        "Registry::lookup@12": {
+          "complexity": 2,
+          "lineCount": 7,
+          "lineEnd": 18,
+          "lineStart": 12,
+          "longName": "Registry::lookup( const std :: string & key) const",
+          "maxNestingDepth": 1,
+          "name": "Registry::lookup",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/cpp_source.cxx": {
+      "functions": {
+        "Matrix::at@7": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 7,
+          "lineStart": 7,
+          "longName": "Matrix::at( int r , int c) const",
+          "maxNestingDepth": 0,
+          "name": "Matrix::at",
+          "parameters": 2
+        },
+        "trace@10": {
+          "complexity": 3,
+          "lineCount": 6,
+          "lineEnd": 15,
+          "lineStart": 10,
+          "longName": "trace( const Matrix & m)",
+          "maxNestingDepth": 2,
+          "name": "trace",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/csharp_hard.cs": {
+      "functions": {
+        "Account::CountLarge@36": {
+          "complexity": 2,
+          "lineCount": 9,
+          "lineEnd": 44,
+          "lineStart": 36,
+          "longName": "Hard::Account::CountLarge(int[]values)",
+          "maxNestingDepth": 2,
+          "name": "Account::CountLarge",
+          "parameters": 1
+        },
+        "Account::Withdraw@26": {
+          "complexity": 3,
+          "lineCount": 9,
+          "lineEnd": 34,
+          "lineStart": 26,
+          "longName": "Hard::Account::Withdraw(decimal amount)",
+          "maxNestingDepth": 2,
+          "name": "Account::Withdraw",
+          "parameters": 1
+        },
+        "Account::if@17": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 17,
+          "lineStart": 17,
+          "longName": "Hard::Account::if( value<0)",
+          "maxNestingDepth": 0,
+          "name": "Account::if",
+          "parameters": 1
         }
       },
       "status": "success"
@@ -647,9 +1001,36 @@
           "complexity": 2,
           "lineCount": 7,
           "lineEnd": 14,
+          "lineStart": 8,
           "longName": "Account::Withdraw( int amount)",
           "maxNestingDepth": 1,
+          "name": "Account::Withdraw",
           "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/erlang_header.hrl": {
+      "functions": {
+        "clamp@1": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 1,
+          "lineStart": 1,
+          "longName": "clamp( V )",
+          "maxNestingDepth": 0,
+          "name": "clamp",
+          "parameters": 1
+        },
+        "dist@1": {
+          "complexity": 2,
+          "lineCount": 1,
+          "lineEnd": 1,
+          "lineStart": 1,
+          "longName": "dist( #point { x = X1 , y = Y1 } , #point { x = X2 , y = Y2 } )",
+          "maxNestingDepth": 1,
+          "name": "dist",
+          "parameters": 4
         }
       },
       "status": "success"
@@ -660,8 +1041,79 @@
           "complexity": 3,
           "lineCount": 1,
           "lineEnd": 1,
+          "lineStart": 1,
           "longName": "flip( Flag )",
           "maxNestingDepth": 1,
+          "name": "flip",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/fortran_f03.f03": {
+      "functions": {
+        "shapes::area@9": {
+          "complexity": 2,
+          "lineCount": 8,
+          "lineEnd": 16,
+          "lineStart": 9,
+          "longName": "shapes::area( self )",
+          "maxNestingDepth": 1,
+          "name": "shapes::area",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/fortran_f95.f95": {
+      "functions": {},
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/fortran_fixed.f": {
+      "functions": {
+        "ISIGN2@15": {
+          "complexity": 3,
+          "lineCount": 6,
+          "lineEnd": 20,
+          "lineStart": 15,
+          "longName": "ISIGN2( X )",
+          "maxNestingDepth": 0,
+          "name": "ISIGN2",
+          "parameters": 1
+        },
+        "SCALE@2": {
+          "complexity": 4,
+          "lineCount": 12,
+          "lineEnd": 13,
+          "lineStart": 2,
+          "longName": "SCALE( N , A , FACTOR )",
+          "maxNestingDepth": 0,
+          "name": "SCALE",
+          "parameters": 3
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/fortran_modern.f08": {
+      "functions": {
+        "stats::classify@14": {
+          "complexity": 5,
+          "lineCount": 12,
+          "lineEnd": 25,
+          "lineStart": 14,
+          "longName": "stats::classify( x , label )",
+          "maxNestingDepth": 4,
+          "name": "stats::classify",
+          "parameters": 2
+        },
+        "stats::mean@4": {
+          "complexity": 2,
+          "lineCount": 9,
+          "lineEnd": 12,
+          "lineStart": 4,
+          "longName": "stats::mean( values )",
+          "maxNestingDepth": 1,
+          "name": "stats::mean",
           "parameters": 1
         }
       },
@@ -673,9 +1125,166 @@
           "complexity": 3,
           "lineCount": 5,
           "lineEnd": 5,
+          "lineStart": 1,
           "longName": "pick( a , b )",
           "maxNestingDepth": 1,
+          "name": "pick",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/gdscript_hard.gd": {
+      "functions": {
+        "_process@24": {
+          "complexity": 3,
+          "lineCount": 4,
+          "lineEnd": 27,
+          "lineStart": 24,
+          "longName": "_process( delta )",
+          "maxNestingDepth": 2,
+          "name": "_process",
+          "parameters": 1
+        },
+        "state_name@15": {
+          "complexity": 1,
+          "lineCount": 8,
+          "lineEnd": 22,
+          "lineStart": 15,
+          "longName": "state_name( state : int )",
+          "maxNestingDepth": 0,
+          "name": "state_name",
+          "parameters": 1
+        },
+        "take_damage@7": {
+          "complexity": 5,
+          "lineCount": 7,
+          "lineEnd": 13,
+          "lineStart": 7,
+          "longName": "take_damage( amount : int , critical := false )",
+          "maxNestingDepth": 3,
+          "name": "take_damage",
+          "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/go_hard.go": {
+      "functions": {
+        "Add@9": {
+          "complexity": 2,
+          "lineCount": 7,
+          "lineEnd": 15,
+          "lineStart": 9,
+          "longName": "(s*Store)Add v int",
+          "maxNestingDepth": 1,
+          "name": "Add",
+          "parameters": 1
+        },
+        "Apply@43": {
+          "complexity": 4,
+          "lineCount": 13,
+          "lineEnd": 55,
+          "lineStart": 43,
+          "longName": "Apply values [ ] int , fn func int int",
+          "maxNestingDepth": 3,
+          "name": "Apply",
+          "parameters": 2
+        },
+        "Sum@17": {
+          "complexity": 2,
+          "lineCount": 6,
+          "lineEnd": 22,
+          "lineStart": 17,
+          "longName": "(s Store)Sum",
+          "maxNestingDepth": 1,
+          "name": "Sum",
+          "parameters": 1
+        },
+        "Worker@24": {
+          "complexity": 7,
+          "lineCount": 18,
+          "lineEnd": 41,
+          "lineStart": 24,
+          "longName": "Worker jobs < - chan int , done chan struct { }",
+          "maxNestingDepth": 5,
+          "name": "Worker",
+          "parameters": 1
+        },
+        "unknown@45": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 45,
+          "lineStart": 45,
+          "longName": " n int",
+          "maxNestingDepth": 0,
+          "name": "unknown",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/java_hard.java": {
+      "functions": {
+        "(anonymous)::run@31": {
+          "complexity": 4,
+          "lineCount": 7,
+          "lineEnd": 37,
+          "lineStart": 31,
+          "longName": "Hard::Hard::task.run()",
+          "maxNestingDepth": 3,
+          "name": "(anonymous)::run",
+          "parameters": 0
+        },
+        "Hard::Hard@7": {
+          "complexity": 1,
+          "lineCount": 2,
+          "lineEnd": 8,
+          "lineStart": 7,
+          "longName": "Hard::Hard()",
+          "maxNestingDepth": 0,
+          "name": "Hard::Hard",
+          "parameters": 0
+        },
+        "Hard::label@20": {
+          "complexity": 4,
+          "lineCount": 7,
+          "lineEnd": 26,
+          "lineStart": 20,
+          "longName": "Hard::label( int code)",
+          "maxNestingDepth": 2,
+          "name": "Hard::label",
+          "parameters": 1
+        },
+        "Hard::map@10": {
+          "complexity": 2,
+          "lineCount": 9,
+          "lineEnd": 18,
+          "lineStart": 10,
+          "longName": "Hard::map( Function<T,R> fn)",
+          "maxNestingDepth": 1,
+          "name": "Hard::map",
+          "parameters": 1
+        },
+        "Hard::search@41": {
+          "complexity": 7,
+          "lineCount": 19,
+          "lineEnd": 59,
+          "lineStart": 41,
+          "longName": "Hard::search( int [ ] values , int target)",
+          "maxNestingDepth": 2,
+          "name": "Hard::search",
+          "parameters": 2
+        },
+        "Hard::task@28": {
+          "complexity": 1,
+          "lineCount": 6,
+          "lineEnd": 39,
+          "lineStart": 28,
+          "longName": "Hard::task()",
+          "maxNestingDepth": 0,
+          "name": "Hard::task",
+          "parameters": 0
         }
       },
       "status": "success"
@@ -686,8 +1295,10 @@
           "complexity": 5,
           "lineCount": 9,
           "lineEnd": 10,
+          "lineStart": 2,
           "longName": "Nesting::three( boolean a , boolean b)",
           "maxNestingDepth": 4,
+          "name": "Nesting::three",
           "parameters": 2
         }
       },
@@ -699,17 +1310,171 @@
           "complexity": 3,
           "lineCount": 6,
           "lineEnd": 10,
+          "lineStart": 5,
           "longName": "chain ( obj )",
           "maxNestingDepth": 2,
+          "name": "chain",
           "parameters": 1
         },
         "orDefault@1": {
           "complexity": 3,
           "lineCount": 3,
           "lineEnd": 3,
+          "lineStart": 1,
           "longName": "orDefault ( value , fallback )",
           "maxNestingDepth": 2,
+          "name": "orDefault",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/js_common.cjs": {
+      "functions": {
+        "dispatch@19": {
+          "complexity": 2,
+          "lineCount": 7,
+          "lineEnd": 25,
+          "lineStart": 19,
+          "longName": "dispatch ( name , arg )",
+          "maxNestingDepth": 1,
+          "name": "dispatch",
+          "parameters": 2
+        },
+        "start@4": {
+          "complexity": 3,
+          "lineCount": 3,
+          "lineEnd": 6,
+          "lineStart": 4,
+          "longName": "start ( config )",
+          "maxNestingDepth": 2,
+          "name": "start",
+          "parameters": 1
+        },
+        "stop@7": {
+          "complexity": 3,
+          "lineCount": 10,
+          "lineEnd": 16,
+          "lineStart": 7,
+          "longName": "stop ( reason )",
+          "maxNestingDepth": 1,
+          "name": "stop",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/js_module.mjs": {
+      "functions": {
+        "(anonymous)@3": {
+          "complexity": 1,
+          "lineCount": 2,
+          "lineEnd": 4,
+          "lineStart": 3,
+          "longName": "(anonymous) ( \\ w + )",
+          "maxNestingDepth": 0,
+          "name": "(anonymous)",
+          "parameters": 1
+        },
+        "(anonymous)@4": {
+          "complexity": 3,
+          "lineCount": 1,
+          "lineEnd": 4,
+          "lineStart": 4,
+          "longName": "(anonymous)",
+          "maxNestingDepth": 2,
+          "name": "(anonymous)",
+          "parameters": 1
+        },
+        "list.forEach@20": {
+          "complexity": 2,
+          "lineCount": 3,
+          "lineEnd": 22,
+          "lineStart": 20,
+          "longName": "list.forEach ( function ( item )",
+          "maxNestingDepth": 1,
+          "name": "list.forEach",
+          "parameters": 1
+        },
+        "push@11": {
+          "complexity": 3,
+          "lineCount": 4,
+          "lineEnd": 14,
+          "lineStart": 11,
+          "longName": "push ( item )",
+          "maxNestingDepth": 2,
+          "name": "push",
+          "parameters": 1
+        },
+        "render@4": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 4,
+          "lineStart": 4,
+          "longName": "render",
+          "maxNestingDepth": 0,
+          "name": "render",
+          "parameters": 0
+        },
+        "retry@27": {
+          "complexity": 4,
+          "lineCount": 9,
+          "lineEnd": 35,
+          "lineStart": 27,
+          "longName": "retry",
+          "maxNestingDepth": 2,
+          "name": "retry",
+          "parameters": 0
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/kotlin_hard.kt": {
+      "functions": {
+        "(anonymous)@10": {
+          "complexity": 7,
+          "lineCount": 10,
+          "lineEnd": 20,
+          "lineStart": 10,
+          "longName": "(anonymous)",
+          "maxNestingDepth": 1,
+          "name": "(anonymous)",
+          "parameters": 1
+        },
+        "firstOrNull@37": {
+          "complexity": 3,
+          "lineCount": 4,
+          "lineEnd": 40,
+          "lineStart": 37,
+          "longName": "firstOrNull items : List < T > , predicate : T -> Boolean",
+          "maxNestingDepth": 2,
+          "name": "firstOrNull",
+          "parameters": 2
+        },
+        "walk@22": {
+          "complexity": 4,
+          "lineCount": 13,
+          "lineEnd": 34,
+          "lineStart": 22,
+          "longName": "walk limit : Int",
+          "maxNestingDepth": 2,
+          "name": "walk",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/kotlin_script.kts": {
+      "functions": {
+        "total@3": {
+          "complexity": 3,
+          "lineCount": 7,
+          "lineEnd": 9,
+          "lineStart": 3,
+          "longName": "total items : List < Int >",
+          "maxNestingDepth": 2,
+          "name": "total",
+          "parameters": 1
         }
       },
       "status": "success"
@@ -720,9 +1485,126 @@
           "complexity": 3,
           "lineCount": 7,
           "lineEnd": 7,
+          "lineStart": 1,
           "longName": "describe code : Int",
           "maxNestingDepth": 0,
+          "name": "describe",
           "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/lua_hard.lua": {
+      "functions": {
+        "Stack.new@4": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 6,
+          "lineStart": 4,
+          "longName": "Stack.new )",
+          "maxNestingDepth": 0,
+          "name": "Stack.new",
+          "parameters": 0
+        },
+        "Stack@15": {
+          "complexity": 3,
+          "lineCount": 9,
+          "lineEnd": 23,
+          "lineStart": 15,
+          "longName": "Stack",
+          "maxNestingDepth": 1,
+          "name": "Stack",
+          "parameters": 0
+        },
+        "Stack@8": {
+          "complexity": 2,
+          "lineCount": 6,
+          "lineEnd": 13,
+          "lineStart": 8,
+          "longName": "Stack",
+          "maxNestingDepth": 1,
+          "name": "Stack",
+          "parameters": 1
+        },
+        "square@37": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 37,
+          "lineStart": 37,
+          "longName": "square x )",
+          "maxNestingDepth": 0,
+          "name": "square",
+          "parameters": 1
+        },
+        "sum@25": {
+          "complexity": 4,
+          "lineCount": 11,
+          "lineEnd": 35,
+          "lineStart": 25,
+          "longName": "sum list )",
+          "maxNestingDepth": 1,
+          "name": "sum",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/objc_hard.mm": {
+      "functions": {
+        "for@11": {
+          "complexity": 3,
+          "lineCount": 5,
+          "lineEnd": 15,
+          "lineStart": 11,
+          "longName": "for( NSInteger i = 0 ; i<times;i++)",
+          "maxNestingDepth": 2,
+          "name": "for",
+          "parameters": 1
+        },
+        "helper@29": {
+          "complexity": 2,
+          "lineCount": 4,
+          "lineEnd": 32,
+          "lineStart": 29,
+          "longName": "helper(int x)",
+          "maxNestingDepth": 1,
+          "name": "helper",
+          "parameters": 0
+        },
+        "if@21": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 23,
+          "lineStart": 21,
+          "longName": "if(!instance)",
+          "maxNestingDepth": 0,
+          "name": "if",
+          "parameters": 0
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/perl_module.pm": {
+      "functions": {
+        "Hard::add@11": {
+          "complexity": 3,
+          "lineCount": 6,
+          "lineEnd": 16,
+          "lineStart": 11,
+          "longName": "Hard::add",
+          "maxNestingDepth": 1,
+          "name": "Hard::add",
+          "parameters": 2
+        },
+        "Hard::summary@18": {
+          "complexity": 6,
+          "lineCount": 9,
+          "lineEnd": 26,
+          "lineStart": 18,
+          "longName": "Hard::summary",
+          "maxNestingDepth": 3,
+          "name": "Hard::summary",
+          "parameters": 0
         }
       },
       "status": "success"
@@ -733,9 +1615,111 @@
           "complexity": 5,
           "lineCount": 4,
           "lineEnd": 4,
+          "lineStart": 1,
           "longName": "sign",
           "maxNestingDepth": 1,
+          "name": "sign",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/php_class.php": {
+      "functions": {
+        "Invoice::__construct@8": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 8,
+          "lineStart": 8,
+          "longName": "Invoice::__construct $currency $currency",
+          "maxNestingDepth": 0,
+          "name": "Invoice::__construct",
+          "parameters": 1
+        },
+        "Invoice::add@10": {
+          "complexity": 3,
+          "lineCount": 8,
+          "lineEnd": 17,
+          "lineStart": 10,
+          "longName": "Invoice::add $item $item $price $price $qty $qty",
+          "maxNestingDepth": 2,
+          "name": "Invoice::add",
+          "parameters": 1
+        },
+        "Invoice::label@28": {
+          "complexity": 3,
+          "lineCount": 8,
+          "lineEnd": 35,
+          "lineStart": 28,
+          "longName": "Invoice::label $code $code",
+          "maxNestingDepth": 1,
+          "name": "Invoice::label",
+          "parameters": 1
+        },
+        "Invoice::parse@37": {
+          "complexity": 7,
+          "lineCount": 9,
+          "lineEnd": 45,
+          "lineStart": 37,
+          "longName": "Invoice::parse $raw $raw",
+          "maxNestingDepth": 3,
+          "name": "Invoice::parse",
+          "parameters": 1
+        },
+        "Invoice::total@19": {
+          "complexity": 2,
+          "lineCount": 8,
+          "lineEnd": 26,
+          "lineStart": 19,
+          "longName": "Invoice::total",
+          "maxNestingDepth": 1,
+          "name": "Invoice::total",
+          "parameters": 0
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/php_legacy.php5": {
+      "functions": {
+        "legacy_sum@2": {
+          "complexity": 3,
+          "lineCount": 12,
+          "lineEnd": 13,
+          "lineStart": 2,
+          "longName": "legacy_sum( $ values)",
+          "maxNestingDepth": 2,
+          "name": "legacy_sum",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/php_old.php3": {
+      "functions": {
+        "old_max@2": {
+          "complexity": 2,
+          "lineCount": 7,
+          "lineEnd": 8,
+          "lineStart": 2,
+          "longName": "old_max( $ a , $ b)",
+          "maxNestingDepth": 1,
+          "name": "old_max",
+          "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/php_old.php4": {
+      "functions": {
+        "Counter::increment@6": {
+          "complexity": 2,
+          "lineCount": 7,
+          "lineEnd": 12,
+          "lineStart": 6,
+          "longName": "Counter::increment( $ step)",
+          "maxNestingDepth": 1,
+          "name": "Counter::increment",
+          "parameters": 1
         }
       },
       "status": "success"
@@ -746,8 +1730,10 @@
           "complexity": 5,
           "lineCount": 6,
           "lineEnd": 7,
+          "lineStart": 2,
           "longName": "combine $first $first $second $second",
           "maxNestingDepth": 3,
+          "name": "combine",
           "parameters": 1
         }
       },
@@ -759,8 +1745,105 @@
           "complexity": 3,
           "lineCount": 6,
           "lineEnd": 7,
+          "lineStart": 2,
           "longName": "render( $ items , $ title)",
           "maxNestingDepth": 2,
+          "name": "render",
+          "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/py_hard.py": {
+      "functions": {
+        "__init__@23": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 25,
+          "lineStart": 23,
+          "longName": "__init__( self , text : str , * , strict : bool = False )",
+          "maxNestingDepth": 0,
+          "name": "__init__",
+          "parameters": 3
+        },
+        "gather@48": {
+          "complexity": 3,
+          "lineCount": 8,
+          "lineEnd": 55,
+          "lineStart": 48,
+          "longName": "gather( items )",
+          "maxNestingDepth": 1,
+          "name": "gather",
+          "parameters": 1
+        },
+        "kind@36": {
+          "complexity": 2,
+          "lineCount": 10,
+          "lineEnd": 45,
+          "lineStart": 36,
+          "longName": "kind( self , value )",
+          "maxNestingDepth": 5,
+          "name": "kind",
+          "parameters": 2
+        },
+        "lock@58": {
+          "complexity": 1,
+          "lineCount": 2,
+          "lineEnd": 59,
+          "lineStart": 58,
+          "longName": "lock( )",
+          "maxNestingDepth": 0,
+          "name": "lock",
+          "parameters": 0
+        },
+        "retry.decorator@6": {
+          "complexity": 1,
+          "lineCount": 4,
+          "lineEnd": 16,
+          "lineStart": 6,
+          "longName": "retry.decorator( fn )",
+          "maxNestingDepth": 1,
+          "name": "retry.decorator",
+          "parameters": 1
+        },
+        "retry.retry.decorator.wrapper@8": {
+          "complexity": 4,
+          "lineCount": 8,
+          "lineEnd": 15,
+          "lineStart": 8,
+          "longName": "retry.retry.decorator.wrapper( * args , ** kwargs )",
+          "maxNestingDepth": 3,
+          "name": "retry.retry.decorator.wrapper",
+          "parameters": 2
+        },
+        "retry@5": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 17,
+          "lineStart": 5,
+          "longName": "retry( times )",
+          "maxNestingDepth": 1,
+          "name": "retry",
+          "parameters": 1
+        },
+        "size@28": {
+          "complexity": 2,
+          "lineCount": 2,
+          "lineEnd": 29,
+          "lineStart": 28,
+          "longName": "size( self )",
+          "maxNestingDepth": 1,
+          "name": "size",
+          "parameters": 1
+        },
+        "tokens@31": {
+          "complexity": 4,
+          "lineCount": 4,
+          "lineEnd": 34,
+          "lineStart": 31,
+          "longName": "tokens( self , / , keep_blank = False )",
+          "maxNestingDepth": 2,
+          "name": "tokens",
           "parameters": 2
         }
       },
@@ -772,16 +1855,20 @@
           "complexity": 3,
           "lineCount": 14,
           "lineEnd": 14,
+          "lineStart": 1,
           "longName": "cleanup( handle , mode )",
           "maxNestingDepth": 4,
+          "name": "cleanup",
           "parameters": 2
         },
         "nested@17": {
           "complexity": 4,
           "lineCount": 6,
           "lineEnd": 22,
+          "lineStart": 17,
           "longName": "nested( items )",
           "maxNestingDepth": 3,
+          "name": "nested",
           "parameters": 1
         }
       },
@@ -795,14 +1882,81 @@
       "functions": {},
       "status": "success"
     },
+    "tests/metrics_differential/corpus/ruby_hard.rb": {
+      "functions": {
+        "find@11": {
+          "complexity": 4,
+          "lineCount": 7,
+          "lineEnd": 17,
+          "lineStart": 11,
+          "longName": "find name )",
+          "maxNestingDepth": 3,
+          "name": "find",
+          "parameters": 1
+        },
+        "initialize@3": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 5,
+          "lineStart": 3,
+          "longName": "initialize items = [ ] )",
+          "maxNestingDepth": 0,
+          "name": "initialize",
+          "parameters": 1
+        },
+        "label@19": {
+          "complexity": 3,
+          "lineCount": 6,
+          "lineEnd": 24,
+          "lineStart": 19,
+          "longName": "label count )",
+          "maxNestingDepth": 1,
+          "name": "label",
+          "parameters": 1
+        },
+        "restock@27": {
+          "complexity": 3,
+          "lineCount": 10,
+          "lineEnd": 36,
+          "lineStart": 27,
+          "longName": "restock amount )",
+          "maxNestingDepth": 0,
+          "name": "restock",
+          "parameters": 1
+        },
+        "self.build@38": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 40,
+          "lineStart": 38,
+          "longName": "self.build * names )",
+          "maxNestingDepth": 0,
+          "name": "self.build",
+          "parameters": 1
+        },
+        "total@7": {
+          "complexity": 2,
+          "lineCount": 3,
+          "lineEnd": 9,
+          "lineStart": 7,
+          "longName": "total",
+          "maxNestingDepth": 1,
+          "name": "total",
+          "parameters": 0
+        }
+      },
+      "status": "success"
+    },
     "tests/metrics_differential/corpus/ruby_unless.rb": {
       "functions": {
         "check@1": {
           "complexity": 2,
           "lineCount": 6,
           "lineEnd": 6,
+          "lineStart": 1,
           "longName": "check value )",
           "maxNestingDepth": 1,
+          "name": "check",
           "parameters": 1
         }
       },
@@ -812,8 +1966,218 @@
       "functions": {},
       "status": "success"
     },
+    "tests/metrics_differential/corpus/scala_hard.scala": {
+      "functions": {
+        "area@8": {
+          "complexity": 5,
+          "lineCount": 6,
+          "lineEnd": 14,
+          "lineStart": 8,
+          "longName": "area s : Shape",
+          "maxNestingDepth": 4,
+          "name": "area",
+          "parameters": 1
+        },
+        "total@14": {
+          "complexity": 4,
+          "lineCount": 10,
+          "lineEnd": 24,
+          "lineStart": 14,
+          "longName": "total shapes : List [ Shape ]",
+          "maxNestingDepth": 3,
+          "name": "total",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
     "tests/metrics_differential/corpus/scala_script.sc": {
       "functions": {},
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/solidity_hard.sol": {
+      "functions": {
+        "deposit@17": {
+          "complexity": 2,
+          "lineCount": 4,
+          "lineEnd": 20,
+          "lineStart": 17,
+          "longName": "deposit",
+          "maxNestingDepth": 1,
+          "name": "deposit",
+          "parameters": 0
+        },
+        "withdraw@22": {
+          "complexity": 3,
+          "lineCount": 9,
+          "lineEnd": 30,
+          "lineStart": 22,
+          "longName": "withdraw uint256 amount",
+          "maxNestingDepth": 1,
+          "name": "withdraw",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/swift_hard.swift": {
+      "functions": {
+        "describe@18": {
+          "complexity": 4,
+          "lineCount": 11,
+          "lineEnd": 28,
+          "lineStart": 18,
+          "longName": "describe owner : String?",
+          "maxNestingDepth": 3,
+          "name": "describe",
+          "parameters": 1
+        },
+        "process@31": {
+          "complexity": 3,
+          "lineCount": 9,
+          "lineEnd": 39,
+          "lineStart": 31,
+          "longName": "process _ values : [ Int ] , transform : Int -> Int",
+          "maxNestingDepth": 2,
+          "name": "process",
+          "parameters": 2
+        },
+        "set@4": {
+          "complexity": 1,
+          "lineCount": 4,
+          "lineEnd": 8,
+          "lineStart": 4,
+          "longName": "set",
+          "maxNestingDepth": 0,
+          "name": "set",
+          "parameters": 0
+        },
+        "withdraw@10": {
+          "complexity": 2,
+          "lineCount": 7,
+          "lineEnd": 16,
+          "lineStart": 10,
+          "longName": "withdraw _ amount : Int",
+          "maxNestingDepth": 0,
+          "name": "withdraw",
+          "parameters": 1
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/ts_hard.ts": {
+      "functions": {
+        "(anonymous)@23": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 23,
+          "lineStart": 23,
+          "longName": "(anonymous)",
+          "maxNestingDepth": 0,
+          "name": "(anonymous)",
+          "parameters": 1
+        },
+        "(anonymous)@54": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 54,
+          "lineStart": 54,
+          "longName": "(anonymous)",
+          "maxNestingDepth": 0,
+          "name": "(anonymous)",
+          "parameters": 1
+        },
+        ">@2": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 2,
+          "lineStart": 2,
+          "longName": ">",
+          "maxNestingDepth": 0,
+          "name": ">",
+          "parameters": 0
+        },
+        ">@40": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 40,
+          "lineStart": 40,
+          "longName": ">",
+          "maxNestingDepth": 0,
+          "name": ">",
+          "parameters": 0
+        },
+        "add@17": {
+          "complexity": 1,
+          "lineCount": 5,
+          "lineEnd": 22,
+          "lineStart": 17,
+          "longName": "add ( item : T )",
+          "maxNestingDepth": 0,
+          "name": "add",
+          "parameters": 1
+        },
+        "classify@56": {
+          "complexity": 5,
+          "lineCount": 11,
+          "lineEnd": 66,
+          "lineStart": 56,
+          "longName": "classify ( code : number )",
+          "maxNestingDepth": 3,
+          "name": "classify",
+          "parameters": 1
+        },
+        "find@26": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 26,
+          "lineStart": 26,
+          "longName": "find",
+          "maxNestingDepth": 0,
+          "name": "find",
+          "parameters": 0
+        },
+        "map@22": {
+          "complexity": 1,
+          "lineCount": 4,
+          "lineEnd": 26,
+          "lineStart": 22,
+          "longName": "map ( fn : Mapper < T > )",
+          "maxNestingDepth": 0,
+          "name": "map",
+          "parameters": 1
+        },
+        "onError?@6": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 6,
+          "lineStart": 6,
+          "longName": "onError?",
+          "maxNestingDepth": 0,
+          "name": "onError?",
+          "parameters": 0
+        },
+        "onEvent@5": {
+          "complexity": 1,
+          "lineCount": 1,
+          "lineEnd": 5,
+          "lineStart": 5,
+          "longName": "onEvent",
+          "maxNestingDepth": 0,
+          "name": "onEvent",
+          "parameters": 0
+        },
+        "void@11": {
+          "complexity": 2,
+          "lineCount": 5,
+          "lineEnd": 15,
+          "lineStart": 11,
+          "longName": "void",
+          "maxNestingDepth": 1,
+          "name": "void",
+          "parameters": 0
+        }
+      },
       "status": "success"
     },
     "tests/metrics_differential/corpus/ttcn_else.ttcn": {
@@ -822,9 +2186,46 @@
           "complexity": 3,
           "lineCount": 7,
           "lineEnd": 8,
+          "lineStart": 2,
           "longName": "pick( integer a , integer b) return integer",
           "maxNestingDepth": 1,
+          "name": "pick",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/ttcn_module.ttcn3": {
+      "functions": {
+        "for@15": {
+          "complexity": 2,
+          "lineCount": 5,
+          "lineEnd": 19,
+          "lineStart": 15,
+          "longName": "for( var integer i := 0 ; i<p_count;i:=i+1)",
+          "maxNestingDepth": 1,
+          "name": "for",
+          "parameters": 1
+        },
+        "if@5": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 7,
+          "lineStart": 5,
+          "longName": "if( p_value<0)",
+          "maxNestingDepth": 0,
+          "name": "if",
+          "parameters": 1
+        },
+        "if@7": {
+          "complexity": 1,
+          "lineCount": 3,
+          "lineEnd": 9,
+          "lineStart": 7,
+          "longName": "if(p_value> 10)",
+          "maxNestingDepth": 0,
+          "name": "if",
+          "parameters": 1
         }
       },
       "status": "success"
@@ -835,25 +2236,66 @@
           "complexity": 2,
           "lineCount": 7,
           "lineEnd": 20,
+          "lineStart": 13,
           "longName": "get area ( )",
           "maxNestingDepth": 1,
+          "name": "get area",
           "parameters": 0
         },
         "grow@20": {
           "complexity": 1,
           "lineCount": 4,
           "lineEnd": 23,
+          "lineStart": 20,
           "longName": "grow ( step : number )",
           "maxNestingDepth": 0,
+          "name": "grow",
           "parameters": 1
         },
         "label@1": {
           "complexity": 4,
           "lineCount": 8,
           "lineEnd": 10,
+          "lineStart": 1,
           "longName": "label ( name? : string , fallback : string = \"none\" ) ( input : T )",
           "maxNestingDepth": 3,
+          "name": "label",
           "parameters": 2
+        }
+      },
+      "status": "success"
+    },
+    "tests/metrics_differential/corpus/zig_hard.zig": {
+      "functions": {
+        "first@23": {
+          "complexity": 3,
+          "lineCount": 8,
+          "lineEnd": 30,
+          "lineStart": 23,
+          "longName": "first items : [ ] const ? u32",
+          "maxNestingDepth": 1,
+          "name": "first",
+          "parameters": 1
+        },
+        "kind@15": {
+          "complexity": 4,
+          "lineCount": 7,
+          "lineEnd": 21,
+          "lineStart": 15,
+          "longName": "kind value : i32",
+          "maxNestingDepth": 0,
+          "name": "kind",
+          "parameters": 1
+        },
+        "parse@3": {
+          "complexity": 4,
+          "lineCount": 11,
+          "lineEnd": 13,
+          "lineStart": 3,
+          "longName": "parse text : [ ] const u8",
+          "maxNestingDepth": 2,
+          "name": "parse",
+          "parameters": 1
         }
       },
       "status": "success"
@@ -864,8 +2306,10 @@
           "complexity": 4,
           "lineCount": 7,
           "lineEnd": 7,
+          "lineStart": 1,
           "longName": "classify x : u32",
           "maxNestingDepth": 0,
+          "name": "classify",
           "parameters": 1
         }
       },

@@ -1,0 +1,22 @@
+module Hard {
+  type integer Level (0 .. 10);
+
+  function f_clamp(integer p_value) return integer {
+    if (p_value < 0) {
+      return 0;
+    } else if (p_value > 10) {
+      return 10;
+    }
+    return p_value;
+  }
+
+  function f_sum(integer p_count) return integer {
+    var integer v_total := 0;
+    for (var integer i := 0; i < p_count; i := i + 1) {
+      if (i mod 2 == 0 and i > 0) {
+        v_total := v_total + i;
+      }
+    }
+    return v_total;
+  }
+}

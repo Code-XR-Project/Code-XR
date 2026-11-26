@@ -12,14 +12,17 @@ time and keeps working after the dependency is gone. The records compared are
 the ones ``backend/src/tools/lizard_analyzer.py`` emits, i.e. after Code-XR's
 own parameter-count fallbacks, because that is what reaches the JSON.
 
-Functions are matched by ``name@lineStart``. A divergence entry is one of:
+Functions are paired by ``name@lineStart``, then by start line alone, then by
+name alone (see ``_pair``), so a function Lizard names or places differently is
+still compared field by field. ``longName`` is compared ignoring whitespace.
+A divergence entry is one of:
 
 * ``{"file", "function": "name@line", "field", "lizard", "ours", "reason", "spec"}``
-  for one value of one function;
+  for one value of one function (``name@line`` is Lizard's key);
 * ``{"file", "function": "name@line", "field": "presence", "lizard": bool, "ours": bool, ...}``
-  for a function only one side reports;
+  for a function only one side reports (the key of the side that has it);
 * ``{"file", "function": "*", "field", "reason", "spec"}`` for one field of every
-  function of a file (cosmetic ``longName`` spacing, for instance).
+  function. ``file`` may be a glob (``manual_test/*.go``) for a language-wide rule.
 
 ``compare`` returns the mismatches no entry covers and the entries that no
 mismatch needed. Both must be empty: an unlisted mismatch is a regression, and a
@@ -28,7 +31,9 @@ listed one that no longer happens is a stale claim.
 
 from __future__ import annotations
 
+import fnmatch
 import json
+import re
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -38,7 +43,10 @@ CORPUS_DIRS = (BACKEND_ROOT / 'manual_test', HERE / 'corpus')
 GOLDEN_PATH = HERE / 'lizard_golden.json'
 DIVERGENCES_PATH = HERE / 'divergences.json'
 
-FIELDS = ('longName', 'lineEnd', 'lineCount', 'complexity', 'parameters', 'maxNestingDepth')
+FIELDS = ('name', 'lineStart', 'longName', 'lineEnd', 'lineCount', 'complexity', 'parameters', 'maxNestingDepth')
+# longName is signature text: only its non-blank characters are compared, so
+# Lizard's token spacing ('f( int a , int b)') equals ours ('f(int a, int b)').
+WHITESPACE_INSENSITIVE = ('longName',)
 PRESENCE = 'presence'
 
 
@@ -62,6 +70,39 @@ def normalize(result: dict[str, Any]) -> dict[str, Any]:
     return {'status': result.get('status'), 'functions': functions}
 
 
+def _same(field: str, a: Any, b: Any) -> bool:
+    if field in WHITESPACE_INSENSITIVE and isinstance(a, str) and isinstance(b, str):
+        return re.sub(r'\s+', '', a) == re.sub(r'\s+', '', b)
+    return a == b
+
+
+def _pair(lizard_functions: dict[str, Any], our_functions: dict[str, Any]) -> list[tuple[str | None, str | None]]:
+    """Match functions: same name@line first, then the same start line, then the same name.
+
+    The fallbacks turn "Lizard names it differently" or "Lizard puts it on
+    another line" into one field mismatch instead of a missing + an extra
+    function, so every other field is still compared.
+    """
+    pairs: list[tuple[str | None, str | None]] = []
+    left = sorted(set(lizard_functions) - set(our_functions))
+    right = sorted(set(our_functions) - set(lizard_functions))
+    pairs.extend((key, key) for key in sorted(set(lizard_functions) & set(our_functions)))
+    for attribute in ('lineStart', 'name'):
+        def value(functions, key):
+            return functions[key].get(attribute)
+        for key in list(left):
+            wanted = value(lizard_functions, key)
+            same_left = [k for k in left if value(lizard_functions, k) == wanted]
+            same_right = [k for k in right if value(our_functions, k) == wanted]
+            if len(same_left) == 1 and len(same_right) == 1:
+                pairs.append((key, same_right[0]))
+                left.remove(key)
+                right.remove(same_right[0])
+    pairs.extend((key, None) for key in left)
+    pairs.extend((None, key) for key in right)
+    return pairs
+
+
 def _mismatches(file: str, lizard: dict[str, Any], ours: dict[str, Any]) -> list[dict[str, Any]]:
     found: list[dict[str, Any]] = []
     if lizard.get('status') != ours.get('status'):
@@ -69,21 +110,22 @@ def _mismatches(file: str, lizard: dict[str, Any], ours: dict[str, Any]) -> list
                       'lizard': lizard.get('status'), 'ours': ours.get('status')})
     lizard_functions = lizard.get('functions', {})
     our_functions = ours.get('functions', {})
-    for key in sorted(set(lizard_functions) | set(our_functions)):
-        if key not in our_functions or key not in lizard_functions:
+    for lizard_key, our_key in _pair(lizard_functions, our_functions):
+        if lizard_key is None or our_key is None:
+            key = lizard_key or our_key
             found.append({'file': file, 'function': key, 'field': PRESENCE,
-                          'lizard': key in lizard_functions, 'ours': key in our_functions})
+                          'lizard': lizard_key is not None, 'ours': our_key is not None})
             continue
         for field in FIELDS:
-            if lizard_functions[key].get(field) != our_functions[key].get(field):
-                found.append({'file': file, 'function': key, 'field': field,
-                              'lizard': lizard_functions[key].get(field),
-                              'ours': our_functions[key].get(field)})
+            a = lizard_functions[lizard_key].get(field)
+            b = our_functions[our_key].get(field)
+            if not _same(field, a, b):
+                found.append({'file': file, 'function': lizard_key, 'field': field, 'lizard': a, 'ours': b})
     return found
 
 
 def _covers(entry: dict[str, Any], mismatch: dict[str, Any]) -> bool:
-    if entry['file'] != mismatch['file'] or entry['field'] != mismatch['field']:
+    if not fnmatch.fnmatchcase(mismatch['file'], entry['file']) or entry['field'] != mismatch['field']:
         return False
     if entry['function'] == '*':
         return mismatch['function'] != '' and mismatch['field'] != PRESENCE

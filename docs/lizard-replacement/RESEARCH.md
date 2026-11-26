@@ -90,6 +90,14 @@ Confirmed **wrong** (each reproduced with 1.17.31):
 | C8 | Kotlin | (withdrawn after re-checking: `when` arms are counted, `else ->` is not — correct) | — |
 | C9 | Ruby, Lua | Lua inherits Ruby's set (`&&`, `||`, `rescue`, `ensure`, `when` in Lua) — harmless, those tokens never occur; Ruby misses `unless` | −1 per `unless` in Ruby |
 | C10 | Zig | the `else =>` prong is counted like a case | +1 per `switch` with `else` |
+| C11 | C# | `foreach` is not in the condition set (found by the differential run on `manual_test/csharp_metrics.cs`) | −1 per `foreach` |
+
+C12–C18 were found later by the differential run on the hard-case corpus
+(`backend/tests/metrics_differential/corpus/`); [`SPEC.md`](SPEC.md) section 5 lists them with every
+other divergence: Lua `#` drops the rest of the line (C12), Swift `??` not counted (C13), Fortran
+`select case`/`case default` counted (C14), GDScript `match` branches not counted (C15), C#
+switch-expression arms not counted (C16), a PHP `match` counted once (C17), Scala `case _` counted
+(C18). C4 also applies to PHP nullable types.
 
 ## 5. Is the rest right?
 
@@ -139,7 +147,7 @@ lists them; Lizard silently falls back to its C reader or finds nothing):
 
 - The **definition** Lizard uses for CCN is standard and worth keeping exactly, so existing numbers
   stay comparable and most of them do not move.
-- The **implementation** has nine confirmed per-language CCN errors, a nesting-depth metric that is
+- The **implementation** has seventeen confirmed per-language CCN errors (C1–C18 without C8), a nesting-depth metric that is
   wrong in every language, four extension families that are silently mis-parsed, and broken names or
   parameter counts for TypeScript generics, accessors and PHP.
 - None of this needs a schema change: every fix changes a **value**, never a key.
@@ -150,10 +158,10 @@ Keep (the differential tests demand an exact match with Lizard): function list, 
 NLOC, parameters, and CCN for every construct Lizard handles right — which is most of them.
 
 Change on purpose (each one an entry in the divergence list of the differential tests, with the
-reason): C1–C10 (except the withdrawn C8), nesting depth everywhere (real block nesting; `&&`/`||`/`?` do not nest), the
+reason): C1–C18 (except the withdrawn C8), nesting depth everywhere (real block nesting; `&&`/`||`/`?` do not nest), the
 extension gaps, TypeScript generic names, accessors, PHP parameters.
 
-### Parser choice (open decision)
+### Parser choice (decided: option 1)
 
 `tree-sitter-language-pack` 1.8.1 is already installed, but it **downloads each grammar from
 github.com on first use** (verified: it fails with no network), and Code-XR's rule is no network
@@ -161,7 +169,7 @@ without consent. Lizard works offline. Options:
 
 1. **Own pure-Python lexical analyzer** (Lizard's architecture, rewritten with correct per-language
    rules and a real block stack for nesting). Offline, no native code, same on Linux/Windows/macOS,
-   easy to match Lizard where it is right. *Recommended.*
+   easy to match Lizard where it is right. *Chosen on 2026-11-26; specified in [`SPEC.md`](SPEC.md).*
 2. Tree-sitter for everything — most accurate, but metrics stop working offline or until the grammar
    is fetched, and 23 grammars must all exist (TTCN-3 has none in the pack).
 3. Hybrid: tree-sitter when the grammar is already cached, the lexical analyzer otherwise — two
