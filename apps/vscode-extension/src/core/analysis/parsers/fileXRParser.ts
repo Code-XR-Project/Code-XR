@@ -31,6 +31,7 @@ import { copyGuideScreenRuntimeToOutput, copyGuidePageToOutput, GUIDE_SCREEN_RUN
 import { copyLogoRuntimeToOutput, LOGO_RUNTIME_OUTPUT_NAME } from '../scene-assets/logoComponentAsset';
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
+import { getHost } from '../../host/hostRegistry';
 
 const logger = getLogger('FILE_XR_PARSER');
 
@@ -208,7 +209,7 @@ export class FileXRParser {
                 loadedFiles,
             };
         } catch (error) {
-            void vscode.window.showErrorMessage(
+            void getHost().notifier.notify('error',
                 `XR Analysis Configuration Error: ${error instanceof Error ? error.message : String(error)}`,
             );
             throw error;
@@ -227,9 +228,9 @@ export class FileXRParser {
         const summaryMessage = `${chartType} chart with ${mappingsCount}/${dimensionsCount} dimensions mapped (${requiredDimensionsCount} required)`;
 
         if (validationResult.isValid) {
-            void vscode.window.showInformationMessage(`XR config ready: ${summaryMessage}`);
+            void getHost().notifier.notify('info', `XR config ready: ${summaryMessage}`);
         } else {
-            void vscode.window.showWarningMessage(`XR config needs attention: ${summaryMessage}`);
+            void getHost().notifier.notify('warning', `XR config needs attention: ${summaryMessage}`);
         }
 
         logger.debug('Current XR file configuration', {

@@ -28,10 +28,12 @@ export function signalToCommand(signal: HostSignal): { command: string; args: un
 }
 
 export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
+    // Looked up on each call, not captured here: a test may replace a
+    // `vscode.window` member after the host exists, and the call must reach it.
     const show = {
-        info: vscode.window.showInformationMessage,
-        warning: vscode.window.showWarningMessage,
-        error: vscode.window.showErrorMessage,
+        info: (message: string, ...actions: string[]) => vscode.window.showInformationMessage(message, ...actions),
+        warning: (message: string, ...actions: string[]) => vscode.window.showWarningMessage(message, ...actions),
+        error: (message: string, ...actions: string[]) => vscode.window.showErrorMessage(message, ...actions),
     } as const;
 
     return {
