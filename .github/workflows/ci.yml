@@ -37,6 +37,9 @@ env:
   npm_config_fund: 'false'
   npm_config_update_notifier: 'false'
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  # The Electron binary (~100 MB) is only needed by the IDE smoke job, which
+  # turns this back off. Type checking and unit tests use the package's types.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
 jobs:
   gate:
@@ -64,7 +67,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      # typecheck + lint + compile-tests + unit suites. Needs no webpack build.
+      # Extension: typecheck + lint + compile-tests + unit suites (no webpack
+      # build). IDE: typecheck + lint + unit tests.
       - name: Gate
         run: npm test
 
@@ -124,6 +128,48 @@ jobs:
 
       - name: HTML DOM analysis
         run: node apps/vscode-extension/test/runners/run-html-analysis-tests.cjs
+
+  ide-smoke:
+    name: IDE smoke (${{ matrix.os }})
+    # Builds the Code-XR IDE and launches it hidden with --codexr-smoke: the
+    # real window must open and, from inside the page, prove that the renderer
+    # is sandboxed (no require/process), the CSP blocks eval, navigation and
+    # window.open are blocked, and the preload API answers over IPC (#12).
+    runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor,
+      # which Chromium's sandbox needs. Re-allow them on the runner instead of
+      # launching Electron with --no-sandbox, so the smoke run keeps the real
+      # sandbox.
+      - name: Allow the Chromium sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Smoke (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run ide:smoke
+
+      - name: Smoke
+        if: runner.os != 'Linux'
+        run: npm run ide:smoke
 
   harnesses:
     name: browser harnesses (ubuntu-latest)

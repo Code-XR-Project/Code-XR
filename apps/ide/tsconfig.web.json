@@ -1,0 +1,9 @@
+{
+  "//": "Renderer: DOM types only. No Node types, so a Node API used here fails the type check.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["src/renderer/**/*.ts", "src/shared/**/*.ts"]
+}

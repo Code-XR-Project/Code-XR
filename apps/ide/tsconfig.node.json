@@ -1,0 +1,9 @@
+{
+  "//": "Main process, preload, shared contract and the unit tests: Node + Electron types, no DOM.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts", "test/**/*.ts"]
+}
