@@ -17,6 +17,7 @@ aborts every other external request, so a harness never touches the network.
 | `aframe-extras-7.5.4.min.js` | `aframe-extras@7.5.4` `dist/` | `cdn.jsdelivr.net/gh/{c-frame,donmccurdy}/aframe-extras@...7.5.4/...` | MIT |
 | `aframe-environment-component-1.5.0.min.js` | `aframe-environment-component@1.5.0` `dist/` | `unpkg.com/aframe-environment-component@1.5.0/...` | MIT |
 | `aframe-geometry-merger-component-2.0.1.min.js` | `aframe-geometry-merger-component@2.0.1` `dist/` | `unpkg.com/aframe-geometry-merger-component@2.0.1/...` | MIT |
+| `fonts/Roboto-msdf.json`, `fonts/Roboto-msdf.png` | A-Frame's hosted default text font (not on npm) | `cdn.aframe.io/fonts/Roboto-msdf.{json,png}` (used by the IDE scene view; the harnesses still abort it) | Roboto: Apache-2.0; A-Frame: MIT |
 | `html2canvas-1.4.1.min.js` | `html2canvas@1.4.1` `dist/` | `cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/...` | MIT |
 
 The license texts are in `licenses/`. To bump a version, take the file from

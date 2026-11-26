@@ -5,7 +5,7 @@ import type { SceneBounds } from '../../shared/api.ts';
 import { allowSceneOrigin } from '../hardening.ts';
 import { log } from '../log.ts';
 import { localSceneOrigin } from './sceneUrl.ts';
-import { isLoopbackUrl, vendoredLibraryFor } from './sceneLibraries.ts';
+import { contentTypeOf, isLoopbackUrl, vendoredLibraryFor } from './sceneLibraries.ts';
 
 /**
  * The analysis scene beside the code (#16): a `WebContentsView` laid over the
@@ -43,7 +43,7 @@ function lockedSession(): Session {
                 return new Response(null, { status: 403 });
             }
             const body = await fs.readFile(path.join(librariesDir, file));
-            return new Response(body, { headers: { 'content-type': 'application/javascript; charset=utf-8' } });
+            return new Response(body, { headers: { 'content-type': contentTypeOf(file) } });
         });
         sceneSession.webRequest.onBeforeRequest((details, callback) => {
             const allowed = details.url.startsWith('https:') || isLoopbackUrl(details.url) || /^(?:data|blob|about):/.test(details.url);

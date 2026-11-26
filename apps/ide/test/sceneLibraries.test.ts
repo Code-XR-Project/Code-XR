@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isLoopbackUrl, SCENE_LIBRARIES, vendoredLibraryFor } from '../src/main/analysis/sceneLibraries.ts';
+import { contentTypeOf, isLoopbackUrl, SCENE_LIBRARIES, vendoredLibraryFor } from '../src/main/analysis/sceneLibraries.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const vendor = path.join(here, '..', '..', 'vscode-extension', 'test', 'vendor', 'scene-libraries');
@@ -34,6 +34,14 @@ describe('scene libraries', () => {
         for (const url of urls) {
             assert.ok(vendoredLibraryFor(url), `no vendored copy for ${url}`);
         }
+    });
+
+    it('serves A-Frame\'s default font, so scene text renders offline', () => {
+        assert.equal(vendoredLibraryFor('https://cdn.aframe.io/fonts/Roboto-msdf.json'), 'fonts/Roboto-msdf.json');
+        assert.equal(vendoredLibraryFor('https://cdn.aframe.io/fonts/Roboto-msdf.png'), 'fonts/Roboto-msdf.png');
+        assert.equal(contentTypeOf('fonts/Roboto-msdf.png'), 'image/png');
+        assert.equal(contentTypeOf('fonts/Roboto-msdf.json'), 'application/json; charset=utf-8');
+        assert.equal(contentTypeOf('aframe-1.7.1.min.js'), 'application/javascript; charset=utf-8');
     });
 
     it('does not answer look-alike hosts', () => {

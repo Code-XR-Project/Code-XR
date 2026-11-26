@@ -1,0 +1,10 @@
+Roboto-msdf.json / Roboto-msdf.png
+
+A multi-channel signed distance field (MSDF) atlas of the Roboto typeface,
+as hosted by the A-Frame project at https://cdn.aframe.io/fonts/ and used as
+the default font of A-Frame's `text` component.
+
+- The Roboto typeface is (c) Google and is licensed under the Apache License,
+  Version 2.0: https://www.apache.org/licenses/LICENSE-2.0
+- A-Frame (which publishes the atlas) is licensed under the MIT License; see
+  aframe-1.7.1.LICENSE in this folder.

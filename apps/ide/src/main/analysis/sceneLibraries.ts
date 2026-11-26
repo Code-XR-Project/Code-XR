@@ -20,7 +20,22 @@ export const SCENE_LIBRARIES: ReadonlyArray<readonly [RegExp, string]> = [
     [/^https:\/\/unpkg\.com\/aframe-environment-component@1\.5\.0\//, 'aframe-environment-component-1.5.0.min.js'],
     [/^https:\/\/unpkg\.com\/aframe-geometry-merger-component@2\.0\.1\//, 'aframe-geometry-merger-component-2.0.1.min.js'],
     [/^https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/html2canvas\/1\.4\.1\/html2canvas(?:\.min)?\.js(?:\?|$)/, 'html2canvas-1.4.1.min.js'],
+    // A-Frame's default text font (its `text` component fetches it at run time).
+    [/^https:\/\/cdn\.aframe\.io\/fonts\/Roboto-msdf\.json(?:\?|$)/, 'fonts/Roboto-msdf.json'],
+    [/^https:\/\/cdn\.aframe\.io\/fonts\/Roboto-msdf\.png(?:\?|$)/, 'fonts/Roboto-msdf.png'],
 ];
+
+const CONTENT_TYPES: Readonly<Record<string, string>> = {
+    '.js': 'application/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+};
+
+/** The content type a vendored file is served with. */
+export function contentTypeOf(file: string): string {
+    const dot = file.lastIndexOf('.');
+    return CONTENT_TYPES[dot >= 0 ? file.slice(dot) : ''] ?? 'application/octet-stream';
+}
 
 /** The vendored file name for a CDN URL, or null when the URL is not one of the pinned libraries. */
 export function vendoredLibraryFor(url: string): string | null {

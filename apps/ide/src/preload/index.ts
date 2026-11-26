@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type CodeXRApi, type HostNotification, type AnalysisKind, type IdeCommand, type PythonEnvStatus, type SceneBounds, type SceneInfo, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type PythonEnvStatus, type SceneBounds, type SceneInfo, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -70,6 +70,19 @@ const api: CodeXRApi = Object.freeze({
                 ipcRenderer.removeListener(IPC_EVENTS.workspaceChanged, wrapped);
             };
         },
+    }),
+    // #137: only profile ids cross this bridge, never an executable path or a pty handle.
+    terminal: Object.freeze({
+        profiles: () => ipcRenderer.invoke(IPC_CHANNELS.terminalProfiles),
+        setDefaultProfile: (profileId: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalSetDefaultProfile, profileId),
+        addCustomProfile: (args: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalAddCustomProfile, args),
+        removeCustomProfile: (profileId: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalRemoveCustomProfile, profileId),
+        create: (profileId: string | null, cols: number, rows: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalCreate, profileId, cols, rows),
+        input: (id: number, data: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalInput, id, data),
+        resize: (id: number, cols: number, rows: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalResize, id, cols, rows),
+        kill: (id: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalKill, id),
+        onData: (listener: (event: TerminalDataEvent) => void) => subscribe(IPC_EVENTS.terminalData, listener),
+        onExit: (listener: (event: TerminalExitEvent) => void) => subscribe(IPC_EVENTS.terminalExit, listener),
     }),
     commands: Object.freeze({
         onCommand: (listener: (command: IdeCommand) => void) => {
