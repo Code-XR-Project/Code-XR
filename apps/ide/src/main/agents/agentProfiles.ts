@@ -4,23 +4,26 @@ import type { JsonKeyValueStore } from '../core/jsonStore.ts';
 
 const STORE_KEY = 'agents.profiles';
 
+/** The read-only workspace tools (A7) every starter gets; risky tools are opt-in. */
+export const READ_TOOLS: readonly string[] = ['list_directory', 'read_file', 'find_files', 'search_text'];
+
 /** The starters every installation begins with (A4); all editable. */
 export const STARTER_AGENTS: readonly Omit<AgentProfile, 'id' | 'providerId' | 'model'>[] = [
     {
         name: 'Assistant',
         instructions: 'You are a helpful assistant inside the Code-XR IDE. Answer concisely and use Markdown code blocks for code.',
-        tools: [],
+        tools: [...READ_TOOLS],
     },
     {
         name: 'Code reviewer',
         instructions: 'You review code. Point out bugs, security issues and unclear code first, then smaller improvements. Quote the lines you mean and propose concrete fixes.',
         temperature: 0.2,
-        tools: [],
+        tools: [...READ_TOOLS],
     },
     {
         name: 'Architect',
         instructions: 'You are a software architect. Reason about module boundaries, dependencies, coupling and how a codebase evolves. Give trade-offs, not only recommendations.',
-        tools: [],
+        tools: [...READ_TOOLS],
     },
 ];
 
@@ -115,12 +118,17 @@ export function parseProfile(input: unknown): AgentProfileInput {
     if (!Array.isArray(tools) || tools.some((tool) => typeof tool !== 'string')) {
         throw new Error('Invalid tools.');
     }
+    const alwaysAllow = record['alwaysAllow'] ?? [];
+    if (!Array.isArray(alwaysAllow) || alwaysAllow.some((tool) => typeof tool !== 'string')) {
+        throw new Error('Invalid always-allowed tools.');
+    }
     return {
         name: text('name', 60, true),
         providerId: text('providerId', 100),
         model: text('model', 200),
         instructions: text('instructions', 20_000),
         ...(typeof temperature === 'number' ? { temperature } : {}),
-        tools: tools as string[],
+        tools: [...new Set(tools as string[])],
+        ...(alwaysAllow.length > 0 ? { alwaysAllow: [...new Set(alwaysAllow as string[])] } : {}),
     };
 }

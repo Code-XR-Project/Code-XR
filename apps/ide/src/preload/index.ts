@@ -3,7 +3,7 @@ import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.
 import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
-import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ProviderInput } from '../shared/agents.ts';
+import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type ChatAttachment, type ProviderInput } from '../shared/agents.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -45,9 +45,11 @@ const api: CodeXRApi = Object.freeze({
         renameSession: (id: string, title: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsRenameSession, id, title),
         deleteSession: (id: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsDeleteSession, id),
         exportSession: (id: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsExportSession, id),
-        send: (sessionId: string, text: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSend, sessionId, text),
+        send: (sessionId: string, text: string, attachments?: readonly ChatAttachment[]) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSend, sessionId, text, attachments ?? []),
         stop: (sessionId: string) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsStop, sessionId),
         onChat: (listener: (event: AgentChatEvent) => void) => subscribe(AGENT_IPC_EVENTS.agentsChat, listener),
+        tools: () => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsTools),
+        approve: (requestId: string, decision: ApprovalDecision) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsApprove, requestId, decision),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),

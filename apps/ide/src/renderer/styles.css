@@ -1079,3 +1079,43 @@ body {
 .chat-code-action:hover { background: var(--hover); color: var(--fg); }
 .chat-code pre { margin: 0; padding: 8px; overflow: auto; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 12px; line-height: 1.45; }
 .side-pane[data-view='agents']:has(> .agents-chat:not([hidden])) { height: 100%; }
+
+/* Attachments in the composer (A6): chips, and the "@" file list above the message box. */
+.agents-composer-input { position: relative; display: grid; }
+.agents-composer-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.chat-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.chat-chips[hidden] { display: none; }
+.chat-chips.is-static { margin-top: 6px; }
+.chat-chip { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; padding: 1px 2px 1px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--editor); font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; }
+.chat-chips.is-static .chat-chip { padding-right: 6px; }
+.chat-chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-chip-remove { padding: 0 4px; border: 0; border-radius: 2px; background: none; color: var(--muted); font: inherit; line-height: 1.4; cursor: pointer; }
+.chat-chip-remove:hover { background: var(--hover); color: var(--fg); }
+.chat-mention { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 5; margin: 0; padding: 4px 0; list-style: none; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); box-shadow: 0 4px 12px rgb(0 0 0 / 0.35); }
+.chat-mention[hidden] { display: none; }
+.chat-mention-row { padding: 3px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; cursor: pointer; }
+.chat-mention-row[aria-selected='true'], .chat-mention-row:hover { background: var(--hover); color: var(--fg); }
+
+/* Tools the agent used (A7), and the approval card a risky tool waits on. */
+.chat-tools { display: grid; gap: 2px; margin: 0 0 6px; }
+.chat-tools:empty { display: none; }
+.chat-tool { border-left: 2px solid var(--line); padding-left: 6px; font-size: 12px; }
+.chat-tool-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; cursor: pointer; list-style: none; }
+.chat-tool-head::-webkit-details-marker { display: none; }
+.chat-tool-status { flex: none; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.chat-tool-status.is-done { color: var(--accent); }
+.chat-tool-status.is-error, .chat-tool-status.is-denied { color: var(--crit); }
+.chat-tool-status.is-running { color: var(--warn); }
+.chat-tool-name { flex: none; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; }
+.chat-tool-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.chat-tool-result, .chat-approval-detail { margin: 4px 0 2px; padding: 6px 8px; max-height: 200px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--editor); font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-approval { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--warn); border-radius: 6px; background: var(--panel); }
+.chat-approval-title { margin: 0; font-weight: 600; }
+.chat-approval .env-actions { flex-wrap: wrap; }
+
+/* Which tools an agent may use (agent form). */
+.agents-tools { display: grid; gap: 4px; margin: 0; padding: 6px 8px 8px; border: 1px solid var(--line); border-radius: 4px; min-width: 0; }
+.agents-tools legend { padding: 0 4px; font-size: 12px; color: var(--muted); }
+.agents-tool { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; cursor: pointer; }
+.agents-tool input { margin: 2px 0 0; flex: none; }
+.agents-tool-main { min-width: 0; }
