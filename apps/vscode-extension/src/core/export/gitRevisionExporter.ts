@@ -12,6 +12,7 @@ import { GitTimelineBlobAnalyzer } from './gitTimelineBlobAnalyzer';
 import { VenvManager } from '../python-env/venvManager';
 import { resolveBackendScriptPath } from '../analysis/python/backendScriptPath';
 import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
+import type { HostCancellation, HostProgress } from '../host/codeXRHost';
 
 /**
  * VS Code-side wrapper for the export-time Git analysis. It resolves the
@@ -63,7 +64,7 @@ export async function exportGitRevisionData(
     session: ExportableSession,
     destinationPath: string,
     request: GitRevisionExportRequest,
-    ui: { progress: vscode.Progress<{ message?: string; increment?: number }>; token: vscode.CancellationToken },
+    ui: { progress: HostProgress; token: HostCancellation },
 ): Promise<GitExportOutcome> {
     const storageRoot = privateStorageRoot(hostPathsFromContext(context));
     const snapshotRoot = path.join(storageRoot, 'export-git', session.id, 'snapshots');

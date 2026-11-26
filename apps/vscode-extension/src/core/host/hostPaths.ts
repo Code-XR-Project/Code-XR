@@ -6,7 +6,7 @@
  * still receives an `ExtensionContext` can hand its paths to an already
  * migrated helper without importing `vscode`.
  */
-import type { HostMode, HostPaths } from './codeXRHost';
+import type { HostKeyValueStore, HostMode, HostPaths } from './codeXRHost';
 
 /**
  * The numeric values of `vscode.ExtensionMode`. They are frozen public API
@@ -30,6 +30,15 @@ export interface ExtensionContextPaths {
 
 /** What a module that only keeps per-user files needs from the context. */
 export type GlobalStorageContext = Pick<ExtensionContextPaths, 'globalStorageUri'>;
+
+/**
+ * What settings-style modules read from an `ExtensionContext`: the per-user
+ * storage folder and the key-value store. A real context fits as it is, and so
+ * does a `CodeXRHost`-backed object in the IDE.
+ */
+export type GlobalStateContext = GlobalStorageContext & {
+    readonly globalState: HostKeyValueStore;
+};
 
 export function hostModeFromExtensionMode(mode: number): HostMode {
     switch (mode) {

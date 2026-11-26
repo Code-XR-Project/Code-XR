@@ -83,6 +83,8 @@ export class HistoricalComparisonService {
     private refreshJobId: string | null = null;
     /** Set when the live link gave up after repeated failures (HIST-1); a new comparison clears it. */
     private liveRefreshSuspended = false;
+    /** `historical-comparisons/<session>`: removed on dispose once its snapshots are gone (HIST-8). */
+    private readonly sessionStorageRoot: string;
 
     public constructor(
         private readonly context: vscode.ExtensionContext,
@@ -92,12 +94,12 @@ export class HistoricalComparisonService {
     ) {
         const session = this.getSession();
         const storageRoot = privateStorageRoot(hostPathsFromContext(context));
-        const snapshotRoot = path.join(
+        this.sessionStorageRoot = path.join(
             storageRoot,
             'historical-comparisons',
             sessionId,
-            'snapshots',
         );
+        const snapshotRoot = path.join(this.sessionStorageRoot, 'snapshots');
         this.gitService = new GitRepositoryService(session.targetPath, snapshotRoot);
         this.analysis = new GitAnalysisSessionContext(session, this.gitService, staticRoot, sourceCatalog, context, {
             cacheVersion: ANALYZER_CACHE_VERSION,
@@ -238,6 +240,14 @@ export class HistoricalComparisonService {
     public async dispose(): Promise<void> {
         await this.jobs.cancelAndWait('disposed');
         await this.analysis.dispose();
+        // The snapshots folder is gone; the empty session folder used to
+        // outlive the session (HIST-8). rmdir, not rm: anything still in it
+        // is left for startup cleanup rather than deleted blindly.
+        try {
+            await fs.promises.rmdir(this.sessionStorageRoot);
+        } catch {
+            // Missing or not empty: nothing to do.
+        }
     }
 
     private async executeComparison(

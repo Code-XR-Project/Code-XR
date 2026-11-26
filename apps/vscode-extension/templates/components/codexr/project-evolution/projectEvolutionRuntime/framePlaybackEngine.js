@@ -41,22 +41,34 @@
       return false;
     }
     beginEvolutionDataTransition('project-evolution-chart-selection');
-    if (!chartChanged && !configureEvolutionChart(pipeline.chart, pipeline.chartId)) {
-      cancelEvolutionDataTransition('project-evolution-chart-selection-cancelled');
-      return false;
+    // EVO-16: a throw between begin and finish (Babia, the mapping step, the
+    // containment) must not leave the chart hidden and uncontained.
+    var transitionSettled = false;
+    try {
+      if (!chartChanged && !configureEvolutionChart(pipeline.chart, pipeline.chartId)) {
+        transitionSettled = true;
+        cancelEvolutionDataTransition('project-evolution-chart-selection-cancelled');
+        return false;
+      }
+      await nextRenderFrame();
+      await waitForEvolutionChartAnimation(
+        pipeline.chart,
+        pipeline.componentName,
+        state.dataRefreshGeneration,
+        viewGeneration
+      );
+      if (!isEvolutionViewCurrent(viewGeneration)) {
+        transitionSettled = true;
+        cancelEvolutionDataTransition('project-evolution-chart-selection-cancelled');
+        return false;
+      }
+      transitionSettled = true;
+      finishEvolutionDataTransition('project-evolution-chart-selection');
+    } finally {
+      if (!transitionSettled) {
+        cancelEvolutionDataTransition('project-evolution-chart-selection-failed');
+      }
     }
-    await nextRenderFrame();
-    await waitForEvolutionChartAnimation(
-      pipeline.chart,
-      pipeline.componentName,
-      state.dataRefreshGeneration,
-      viewGeneration
-    );
-    if (!isEvolutionViewCurrent(viewGeneration)) {
-      cancelEvolutionDataTransition('project-evolution-chart-selection-cancelled');
-      return false;
-    }
-    finishEvolutionDataTransition('project-evolution-chart-selection');
     await waitForEvolutionContainmentStable(viewGeneration);
     return isEvolutionViewCurrent(viewGeneration);
   }
@@ -92,42 +104,55 @@
         pipeline.componentName
       );
     beginEvolutionDataTransition('project-evolution-frame');
-    var refreshGeneration = pipeline.dataSourceCreated
-      ? beginInitialEvolutionDataLoad(frameUrl)
-      : refreshEvolutionDataSource(frameUrl);
-    if (!refreshGeneration) {
-      cancelEvolutionDataTransition('project-evolution-frame-cancelled');
-      return false;
-    }
-    var refreshed = await waitForEvolutionDataRefresh(
-      refreshGeneration,
-      previousData,
-      viewGeneration,
-      8000,
-      pipeline.dataSourceCreated
-    );
-    if (!refreshed || !isEvolutionViewCurrent(viewGeneration)) {
-      cancelEvolutionDataTransition('project-evolution-frame-refresh-failed');
-      if (isEvolutionViewCurrent(viewGeneration)) {
-        setStatus('Project evolution data could not be refreshed.', 'error');
+    var transitionSettled = false;
+    var cancelTransition = function (reason) {
+      transitionSettled = true;
+      cancelEvolutionDataTransition(reason);
+    };
+    try {
+      var refreshGeneration = pipeline.dataSourceCreated
+        ? beginInitialEvolutionDataLoad(frameUrl)
+        : refreshEvolutionDataSource(frameUrl);
+      if (!refreshGeneration) {
+        cancelTransition('project-evolution-frame-cancelled');
+        return false;
       }
-      return false;
-    }
-    var animated = await waitForEvolutionChartAnimation(
-      pipeline.chart,
-      pipeline.componentName,
-      refreshGeneration,
-      viewGeneration,
-      previousTransition
-    );
-    if (!animated || !isEvolutionViewCurrent(viewGeneration)) {
-      cancelEvolutionDataTransition('project-evolution-frame-animation-cancelled');
-      if (isEvolutionViewCurrent(viewGeneration)) {
-        setStatus('Project evolution chart did not consume the new frame.', 'error');
+      var refreshed = await waitForEvolutionDataRefresh(
+        refreshGeneration,
+        previousData,
+        viewGeneration,
+        8000,
+        pipeline.dataSourceCreated
+      );
+      if (!refreshed || !isEvolutionViewCurrent(viewGeneration)) {
+        cancelTransition('project-evolution-frame-refresh-failed');
+        if (isEvolutionViewCurrent(viewGeneration)) {
+          setStatus('Project evolution data could not be refreshed.', 'error');
+        }
+        return false;
       }
-      return false;
+      var animated = await waitForEvolutionChartAnimation(
+        pipeline.chart,
+        pipeline.componentName,
+        refreshGeneration,
+        viewGeneration,
+        previousTransition
+      );
+      if (!animated || !isEvolutionViewCurrent(viewGeneration)) {
+        cancelTransition('project-evolution-frame-animation-cancelled');
+        if (isEvolutionViewCurrent(viewGeneration)) {
+          setStatus('Project evolution chart did not consume the new frame.', 'error');
+        }
+        return false;
+      }
+      transitionSettled = true;
+      finishEvolutionDataTransition('project-evolution-frame');
+    } finally {
+      // EVO-16: same guarantee as the chart selection above.
+      if (!transitionSettled) {
+        cancelEvolutionDataTransition('project-evolution-frame-failed');
+      }
     }
-    finishEvolutionDataTransition('project-evolution-frame');
     await waitForEvolutionContainmentStable(viewGeneration);
     if (!isEvolutionViewCurrent(viewGeneration)) {
       return false;

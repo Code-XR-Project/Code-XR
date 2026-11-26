@@ -383,7 +383,7 @@ test('resolveLauncher dispatches every supported kind and refuses the rest by na
 test('cleanup sweeps every folder the launchers write, plus the legacy root', async () => {
     await withOut(async ({ requireOut }) => {
         const { ANALYSIS_STORAGE_FOLDERS, getSweptStorageFolders } = requireOut('core/analysis/launch/storageFolders.js');
-        assert.deepEqual(getSweptStorageFolders(), ['fileAnalysis', 'directoryAnalysis', 'visualizeDOMAnalysis', 'analysis']);
+        assert.deepEqual(getSweptStorageFolders(), ['fileAnalysis', 'directoryAnalysis', 'visualizeDOMAnalysis', 'analysis', 'historical-comparisons']);
 
         // Every folder name a launcher passes to the pipeline is swept.
         const launcherSources = ['launcherXRAnalysis.ts', 'launcherLivePanel.ts', 'launcherVisualizeDOM.ts']

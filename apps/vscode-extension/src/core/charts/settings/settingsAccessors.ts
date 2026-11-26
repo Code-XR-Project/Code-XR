@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import type { GlobalStateContext } from '../../host/hostPaths';
 import * as fs from 'fs';
 import { DEFAULT_VISUALIZATION_SETTINGS } from './settingsModel';
 import {
@@ -16,13 +16,13 @@ const logger = getLogger('SETTINGS_ACCESSORS');
  */
 
 // Module-level cache for context
-let extensionContext: vscode.ExtensionContext | null = null;
+let extensionContext: GlobalStateContext | null = null;
 
 /**
  * Initialize the settings accessors with extension context
  * Must be called during extension activation
  */
-export function initializeSettingsAccessors(context: vscode.ExtensionContext): void {
+export function initializeSettingsAccessors(context: GlobalStateContext): void {
     extensionContext = context;
     logger.debug('VISUALIZATION-SETTINGS: Settings accessors initialized');
 }

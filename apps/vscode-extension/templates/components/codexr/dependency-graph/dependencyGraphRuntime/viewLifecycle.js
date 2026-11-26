@@ -410,8 +410,16 @@
     if (!state.unregisterMode && root.CodeXRAnalysisModeRuntime?.registerModeOption) {
       registerDependencyModeOption();
     }
-    if ((!refs.controls || !state.unregisterMode || !state.unregisterLifecycle) && attempt < 30) {
-      setTimeout(function () { mount(attempt + 1); }, 100);
+    if (!refs.controls || !state.unregisterMode || !state.unregisterLifecycle) {
+      if (attempt < 30) {
+        setTimeout(function () { mount(attempt + 1); }, 100);
+      } else {
+        // LIFECYCLE-11: say once why the mode never appeared, instead of
+        // stopping silently after the 3 s of retries.
+        root.console?.warn?.('[CodeXR][DependencyGraph] Gave up mounting after 3 s: '
+          + [!refs.controls && 'controls panel', !state.unregisterMode && 'mode option', !state.unregisterLifecycle && 'mode lifecycle']
+            .filter(Boolean).join(', ') + ' not available.');
+      }
     }
   }
   function autoInit() {

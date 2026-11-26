@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import type { GlobalStateContext } from '../../host/hostPaths';
 import * as fs from 'fs';
 import { VisualizationSettings, DEFAULT_VISUALIZATION_SETTINGS } from './settingsModel';
 import {
@@ -16,9 +16,9 @@ const logger = getLogger('SETTINGS_STORAGE');
  * Manages persistent storage and retrieval of visualization configuration using file system
  */
 export class VisualizationSettingsStorage {
-    private context: vscode.ExtensionContext;
+    private context: GlobalStateContext;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: GlobalStateContext) {
         this.context = context;
         logger.debug('VISUALIZATION-SETTINGS: Storage manager initialized with file-based storage');
     }

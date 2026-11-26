@@ -442,15 +442,28 @@
 
     var nodes = [];
     object3D.updateMatrixWorld(true);
-    object3D.traverse(function (node) {
-      if (!node || node.visible === false || !node.geometry) {
+    // A hidden node hides its whole subtree (CHARTS-18): a hidden legend
+    // group or a parked clone must not stretch the bounds through visible
+    // children. The measured root itself is exempt: containment measures a
+    // chart while it is still hidden, before revealing it.
+    var visit = function (node, isRoot) {
+      if (!node) {
         return;
       }
-      if (shouldIgnoreNode && shouldIgnoreNode(node)) {
+      if (node.visible === false && !isRoot) {
         return;
       }
-      nodes.push(node);
-    });
+      if (node.visible !== false && node.geometry && !(shouldIgnoreNode && shouldIgnoreNode(node))) {
+        nodes.push(node);
+      }
+      var children = node.children;
+      if (children && children.length) {
+        for (var i = 0; i < children.length; i += 1) {
+          visit(children[i], false);
+        }
+      }
+    };
+    visit(object3D, true);
 
     return buildBoundsFromNodes(three, nodes);
   }
