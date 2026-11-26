@@ -56,14 +56,14 @@
       "src/features/active-servers/views/handleServerActions.ts",
       "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
     ],
-    "functions.over80Lines": 34,
+    "functions.over80Lines": 33,
     "complexity.over10": 50,
     "complexity.over15": 8,
     "complexity.over20": 0,
     "complexity.over30": 0,
     "reachability.unreachable": [],
     "templates.consoleLog": 31,
-    "eslint.maxWarnings": 154,
+    "eslint.maxWarnings": 153,
     "commands.internalByKind": {
       "legacy-alias": 2,
       "programmatic": 2,
@@ -71,9 +71,9 @@
     }
   },
   "informational": {
-    "src.files": 296,
-    "src.lines": 50017,
-    "src.functions": 3417,
+    "src.files": 298,
+    "src.lines": 50386,
+    "src.functions": 3455,
     "src.unreachableLines": 0,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
@@ -266,7 +266,7 @@
       },
       {
         "file": "src/core/history/gitRepositoryService.ts",
-        "lines": 639
+        "lines": 710
       },
       {
         "file": "src/core/remote-access/remoteSessionAuthority.ts",

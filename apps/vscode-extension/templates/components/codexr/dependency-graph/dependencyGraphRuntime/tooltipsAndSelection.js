@@ -100,7 +100,8 @@
           : edgeDetailModel(record.data, this.nodes);
         var anchor = this.selectionAnchor(selection, record);
         var canNavigate = selection.type === 'node'
-          && (record.data.kind === 'group' || record.data.kind === 'file' || record.data.syntheticExternal);
+          && (record.data.kind === 'group' || record.data.kind === 'file' || record.data.syntheticExternal)
+          && record.data.syntheticKind !== 'budget-rest';
         if (card.action?.parentNode) { card.action.parentNode.removeChild(card.action); }
         card.action = null;
         if (card.closeButton?.parentNode) { card.closeButton.parentNode.removeChild(card.closeButton); }

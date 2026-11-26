@@ -109,6 +109,17 @@
   - A range now works with any branch, tag or commit the picker offers, in either order. Before, a tag older than the newest 240 commits failed with "project-evolution-range-not-found". Two ends on diverging branches start from their common ancestor.
   - Tags that point at a file or a folder instead of a commit are no longer offered: they could not be used.
   - Export: the Git timeline is the history of the checked-out branch, and the prompt says so. "Only the latest N commits" exports exactly N; before, N was silently cut to 1000, and a very large history could fail with "git timeline could not be listed".
+- **The dependency graph shows correct numbers and stays usable on large projects.**
+  - Folder cards describe the folder: fan-in and fan-out count the distinct boxes its drawn edges reach, and "In cycles" counts its files that sit in a dependency cycle. Before, every file's numbers were added up, so a 7-file folder could read "Cycle 416" and a fan-out in the thousands. Cards also show how many files the folder holds. A file card's "Cycle" is now labelled "Cycle size".
+  - A call that names no project file (`this(`, `constructor(`, `super(`, `String(`, a local helper, a `def f(` definition) is no longer reported as an external package, and neither is the word after "with" in a comment or in Python's `with open(...)`. On the extension's own source the external packages went from about 2,450 to 30, which are now real ones (`vscode`, `fs`, `ws`...).
+  - `import './util'` resolves to the `util` next to the importing file, not to the first `util` anywhere in the project, and Python `from .models import X` resolves inside its package. `import type { T } from './t'` no longer creates a package called "type", and `import React from 'react'` counts `react` once.
+  - The same project gives the same graph on every run. Before, which file an ambiguous name resolved to depended on Python's hash seed, so edges could jump between files after a save with no code change.
+  - Two files whose names differ only in case (`Util.ts`, `util.ts`) are two nodes.
+  - The table no longer comes up empty after drilling into a file and back, on a reload, on another headset or for a participant who joined later: the room always carries the dataset that matches the folder or file being shown.
+  - A view larger than 600 nodes or 2,000 relations keeps the best-connected ones, folds the rest into one "N more" node and says so on the panel. Before, showing external packages could put thousands of entities on the table with no warning.
+  - The `force-3d` layout now spreads nodes over the whole table and keeps connected nodes close. Before, every node past the 16th sat on the same circle.
+  - Opening the graph no longer leaks a background thread each time, and a layout failure is reported on the panel instead of freezing the table.
+  - Re-opening a file after editing it shows its current symbols, not the ones from before the edit.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
 
 ## [1.2.0] - 2026-07-30
