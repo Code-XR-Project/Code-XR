@@ -103,6 +103,9 @@ const api: CodeXRApi = Object.freeze({
         shareScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisShareScene),
         stopSharingScene: () => ipcRenderer.invoke(IPC_CHANNELS.analysisStopSharingScene),
         copySceneAddress: (which: SceneAddress) => ipcRenderer.invoke(IPC_CHANNELS.analysisCopySceneAddress, which),
+        enterXr: () => ipcRenderer.invoke(IPC_CHANNELS.analysisEnterXr),
+        openSceneInBrowser: () => ipcRenderer.invoke(IPC_CHANNELS.analysisOpenSceneInBrowser),
+        headsetLink: () => ipcRenderer.invoke(IPC_CHANNELS.analysisHeadsetLink),
         onDidChangeSceneShare: (listener: (event: SceneShareEvent) => void) => subscribe(IPC_EVENTS.analysisSceneShareChanged, listener),
     }),
     workspace: Object.freeze({

@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as fs from 'fs';
-import { fileToServerMap } from '../fileToServerMap';
+import { fileToServerMap, type ServerInfo } from '../fileToServerMap';
+import { getActiveServerRegistry } from '../registry/activeServerRegistry';
 import { DEFAULT_COLLABORATION_PROFILE } from '../../collaboration/collaborationProfile';
 import {
     CollaborationConfiguration,
@@ -72,18 +73,32 @@ export class CollaborationSessionApi {
 
     /** The room every scene served by this port collaborates in. */
     public getCollaborationRoomId(): string {
+        return `codexr-session:${this.activeServerId(this.sessionMapping())}`;
+    }
+
+    private sessionMapping(): ServerInfo | null {
         const fileUri = fileToServerMap.findFileByPort(this.deps.port);
-        const mapping = fileUri ? fileToServerMap.getServerInfo(fileUri) : null;
-        const activeServerId = mapping?.activeServerId || `port-${this.deps.port}`;
-        return `codexr-session:${activeServerId}`;
+        return fileUri ? fileToServerMap.getServerInfo(fileUri) : null;
+    }
+
+    /**
+     * The server's id in the active-server registry, which names its room.
+     * The session's mapping is only written once the launch returns, and a
+     * scene opened in a panel (the IDE's, VS Code's lateral panel) asks for
+     * its room before that: the registry, filled before the page opens,
+     * answers then, so every client of one server joins the same room.
+     */
+    private activeServerId(mapping: ServerInfo | null): string {
+        return mapping?.activeServerId
+            || getActiveServerRegistry().getServerByPort(this.deps.port)?.id
+            || `port-${this.deps.port}`;
     }
 
     private async buildCollaborationSessionDescriptor(
         req: http.IncomingMessage,
     ): Promise<Record<string, unknown>> {
-        const fileUri = fileToServerMap.findFileByPort(this.deps.port);
-        const mapping = fileUri ? fileToServerMap.getServerInfo(fileUri) : null;
-        const activeServerId = mapping?.activeServerId || `port-${this.deps.port}`;
+        const mapping = this.sessionMapping();
+        const activeServerId = this.activeServerId(mapping);
         const collaborationConfiguration = CollaborationProfileManager.getInstance()?.getConfiguration()
             ?? this.getDefaultCollaborationConfiguration();
         const session = this.deps.authority.resolveCookie(req.headers.cookie);

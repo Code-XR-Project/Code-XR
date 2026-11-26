@@ -1,5 +1,6 @@
 import type { CodeXRApi, SceneAddress, SceneInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
+import { createSceneXrControls } from './sceneXrControls.ts';
 import { analysedFilesLabel, analysisKindLabel, displayAddress, INITIAL_SHARE_VIEW, ipcErrorMessage, reduceShare, shareControls, type ShareAction, type ShareView } from './sceneHeaderModel.ts';
 
 /**
@@ -46,6 +47,8 @@ export function createScenePanel(
     ]);
     const error = el('div', { className: 'scene-share-error', attrs: { role: 'status', 'data-testid': 'scene-share-error' } });
 
+    // `report` is declared below; the controls only call it after a click or a scene change.
+    const xr = createSceneXrControls(api, { onError: (message) => callbacks.onError(message), relayout: () => report() });
     const header = el('header', { className: 'scene-header', attrs: { 'data-testid': 'scene-header' } }, [
         el('div', { className: 'scene-header-row' }, [kind, title, files, close]),
         el('div', { className: 'scene-header-row' }, [
@@ -53,6 +56,8 @@ export function createScenePanel(
         ]),
         publicRow,
         error,
+        xr.row,
+        xr.headset,
     ]);
     const slot = el('div', { className: 'scene-slot', attrs: { 'data-testid': 'scene-slot' } });
     area.replaceChildren(header, slot);
@@ -88,6 +93,9 @@ export function createScenePanel(
         error.hidden = controls.error === null;
         error.textContent = controls.error ?? '';
         error.title = controls.error ?? '';
+        if (action.type === 'update' || action.type === 'reset') {
+            xr.shareChanged();
+        }
     }
     dispatch({ type: 'reset', share: { status: 'stopped' } });
 
@@ -167,6 +175,7 @@ export function createScenePanel(
             localAddress.textContent = address;
             localAddress.title = address;
             dispatch({ type: 'reset', share: scene.share });
+            xr.show(scene);
             callbacks.setVisible(true);
             report();
         },

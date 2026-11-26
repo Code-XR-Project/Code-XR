@@ -115,6 +115,25 @@ The renderer only reports the slot's bounds (`analysis.setSceneBounds`, sanitise
 
 Keys are Electron accelerators, case-insensitive; `CmdOrCtrl` is Cmd on macOS and Ctrl elsewhere, which is what the recorder writes, so one file serves every OS. An added key is taken from any command that had it, and a later rule wins. The format, its validation and the resolution are one pure module (`shared/keybindings.ts`) used by both processes: the main process (`main/settings/keybindingsService.ts`) only writes rules that pass, and the renderer's command registry applies them. Commands the application menu owns keep working from the terminal and the scene: the renderer tells the main process each one's first single-stroke key and the menu is rebuilt with it (a chord cannot be a menu accelerator, so the workbench listens for those). While a key is being recorded the menu's keys are suspended, so pressing `Ctrl+S` to bind it does not also save. Rules for a command that is not registered yet are kept, so a command added later (an AI agent's) finds its keys waiting. The file is read again when the view opens.
 
+### Entering XR (#19)
+
+The scene's header has an **XR** row with three buttons. They act on the window's own scene, never on an address the page sends.
+
+- **Enter XR** starts an immersive WebXR session on a headset connected to this computer. The IDE first asks the scene's Chromium whether an `immersive-vr` session is supported. If it is, the IDE calls the scene's own `enterVR()` as the person's gesture. The XR permission, which the scene view otherwise never grants, is armed for 15 s and for that scene's loopback origin only (`main/analysis/sceneXrPolicy.ts`). If it is not supported, the row says why and what to do instead. A LivePanel has no XR mode, so the button is hidden there.
+- **Open in browser** hands the scene's local address to the system browser.
+- **On a headset** shows the address a standalone headset opens, with its QR code (`renderer/sceneQr.ts`, `qrcode-generator`). A headset needs an HTTPS address it can reach, so this is the scene's Cloudflare invitation link (#155). Until the scene is shared, the panel says to press **Share through Cloudflare**. The headset joins the same collaboration room as the IDE's scene, so the two stay in sync. It is let in with the pairing code the IDE shows.
+
+**Support matrix**
+
+| Setup | Enter XR in the IDE | What works |
+|---|---|---|
+| Windows, PC VR headset (SteamVR, Meta Link, WMR) with its OpenXR runtime running | Tried if Electron's Chromium reports `immersive-vr`; not yet verified on hardware | Open in browser: Chrome and Edge support WebXR on `localhost` with an OpenXR runtime |
+| macOS | Not supported: no WebXR headset support in Chromium | On a headset (standalone) |
+| Linux | Not supported: no headset support in Chromium (checked: `isSessionSupported('immersive-vr')` is false on Electron 45) | On a headset (standalone) |
+| Standalone headset (Quest browser and similar) | Not applicable | On a headset: scan the QR code or type the invitation link, enter the pairing code, then press the scene's VR button. Verified: the IDE's scene and a second browser client join the same room and receive each other's updates; not yet tried on a real headset |
+
+The core fix that makes this work: a scene opened at the same moment as its server (the IDE's scene view, VS Code's side panel) used to ask for its room before the launch had written the session mapping. It joined `codexr-session:port-<port>`, while every later client joined `codexr-session:<server id>`. `CollaborationSessionApi` now falls back to the active-server registry, which is filled before the page opens.
+
 ## Security baseline
 
 Following Electron's [security checklist](https://www.electronjs.org/docs/latest/tutorial/security). Each rule lives in one place and is enforced by a test, a startup assertion or the smoke run:
@@ -126,7 +145,7 @@ Following Electron's [security checklist](https://www.electronjs.org/docs/latest
 | Strict Content-Security-Policy: `default-src 'none'`, scripts only from the app, no `eval`, no inline scripts. Styles allow `'unsafe-inline'` because Monaco creates `<style>` elements at run time (as in VS Code); nothing else is relaxed, so CSS cannot load or send anything off the app | `buildContentSecurityPolicy` in `src/main/security.ts`, sent as a response header (app protocol in production, `webRequest` in development) | Unit tests; smoke checks that `eval` throws in the real page. |
 | Renderer served from `codexr://app/`, never `file://` | `src/main/appProtocol.ts`, `src/main/assetPath.ts` | Unit tests for path traversal (`..`, encoded `%2e%2e`, `%5c`, NUL). |
 | No navigation away from the app, no `window.open`, no `<webview>` | `src/main/hardening.ts` | Unit tests for the URL policy; smoke tries both from inside the page. |
-| No permission granted (camera, microphone, XR, notifications...) | `src/main/hardening.ts` | Each later story allow-lists only what it needs. |
+| No permission granted (camera, microphone, XR, notifications...) | `src/main/hardening.ts` | Each later story allow-lists only what it needs. The one exception so far: the scene view grants XR for 15 s after **Enter XR**, to that scene only (`sceneXrPolicy.ts`, unit-tested). |
 | The renderer reaches files only inside the open folder, by workspace-relative path | `src/main/workspace/` (`parseWorkspacePath`, `Workspace`), one folder per window | Unit tests for `..`, absolute paths, drive letters, `\\`, NUL and symlinks that lead out; smoke reads a file and tries `../`. |
 | IPC only on allow-listed channels, only from trusted frames | `IPC_CHANNELS` in `src/shared/api.ts`, `src/main/ipc.ts` | Unit tests; startup check that every channel has a handler. |
 | Typed, frozen preload API, the only path from renderer to Node | `src/preload/index.ts`, `CodeXRApi` in `src/shared/api.ts` | Lint forbids `electron`, `node:*` and main/preload imports in the renderer; smoke checks the API is frozen and answers. |

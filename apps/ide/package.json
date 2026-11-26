@@ -30,6 +30,7 @@
     "@xterm/xterm": "6.0.0",
     "monaco-editor": "0.57.0",
     "node-pty": "1.2.0-beta.18",
+    "qrcode-generator": "2.0.4",
     "typescript-language-server": "6.1.0",
     "vscode-jsonrpc": "9.0.3",
     "vscode-languageserver-types": "3.18.4"

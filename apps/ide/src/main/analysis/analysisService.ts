@@ -12,15 +12,16 @@ import { RemoteAccessManager } from '@codexr/core/remote-access/remoteAccessMana
 import { getActiveServerRegistry } from '@codexr/core/server/registry/activeServerRegistry';
 import { ServerControl } from '@codexr/core/server/serverControl';
 import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager';
-import { AUTO_START_MODES, FILE_ANALYSIS_KINDS, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type SceneAddress, type SceneInfo, type SceneFilesEvent, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
+import { AUTO_START_MODES, FILE_ANALYSIS_KINDS, IPC_EVENTS, type AnalysisKind, type AnalysisStartResult, type AutoStartMode, type EnterXrResult, type FileAnalysisKind, type ProjectAnalysisKind, type SceneAddress, type SceneInfo, type SceneFilesEvent, type SceneShareEvent, type SceneShareState } from '../../shared/api.ts';
 import { channelLog } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { resolveInWorkspace } from '../workspace/workspacePath.ts';
 import { readAnalysedFileCount, watchAnalysedFileCount } from './analysedFiles.ts';
-import { closeScene, showScene } from './sceneView.ts';
+import { closeScene, enterSceneXr, sceneSupportsImmersiveXr, showScene } from './sceneView.ts';
+import { unsupportedXrMessage } from './sceneXrPolicy.ts';
 import { sceneTargetToWorkspacePath } from './sceneEditorTarget.ts';
 import type { SceneEditorTarget } from '../../shared/sceneBridge.ts';
-import { sceneTitle, targetName } from './sceneUrl.ts';
+import { localSceneOrigin, sceneTitle, targetName } from './sceneUrl.ts';
 import { isQuickTunnelUrl, sameShareState, SerialQueue, startShareOnce, STOPPED, toSceneShareState } from './sceneShare.ts';
 
 const log = channelLog('core');
@@ -293,6 +294,44 @@ export class AnalysisService {
             throw new Error('This scene is not shared.');
         }
         clipboard.writeText(invitation);
+    }
+
+    /**
+     * #19: enters the window's scene in XR on a headset tethered to this
+     * computer. Without one (Chromium sees no XR runtime), says what to do
+     * instead rather than failing silently.
+     */
+    async enterXr(win: BrowserWindow): Promise<EnterXrResult> {
+        const scene = this.liveScene(win);
+        if (scene.kind.startsWith('livepanel')) {
+            return { ok: false, reason: 'failed', message: 'A LivePanel is a 2D page: analyse in XR to enter a scene.' };
+        }
+        if (!await sceneSupportsImmersiveXr(win)) {
+            return { ok: false, reason: 'unsupported', message: unsupportedXrMessage(process.platform) };
+        }
+        try {
+            await enterSceneXr(win);
+            return { ok: true };
+        } catch (error) {
+            log.error('Entering XR failed', error);
+            return { ok: false, reason: 'failed', message: error instanceof Error ? error.message : String(error) };
+        }
+    }
+
+    /** #19: the scene's local address in the system browser (only ever a local Code-XR server). */
+    async openSceneInBrowser(win: BrowserWindow, openExternal: (url: string) => Promise<void>): Promise<void> {
+        const scene = this.liveScene(win);
+        if (!localSceneOrigin(scene.url)) {
+            throw new Error('This scene is not served locally.');
+        }
+        await openExternal(scene.url);
+    }
+
+    /** #19: the invitation link a standalone headset opens, or null while the scene is not shared. */
+    headsetLink(win: BrowserWindow): string | null {
+        const scene = this.liveScene(win);
+        const invitation = getActiveServerRegistry().getServer(scene.serverId)?.remoteAccess?.invitationUrl;
+        return isQuickTunnelUrl(invitation) ? invitation : null;
     }
 
     /**
