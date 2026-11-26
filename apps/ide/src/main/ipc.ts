@@ -9,6 +9,8 @@ import { setSceneBounds } from './analysis/sceneView.ts';
 import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
 import type { SettingsService } from './settings/settingsService.ts';
+import type { KeybindingsService } from './settings/keybindingsService.ts';
+import { setMenuAccelerators } from './menu.ts';
 import { cancelSearch, replaceInFiles, startSearch } from './workspace/searchService.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -18,7 +20,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -90,6 +92,18 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         return report;
     });
     handle(IPC_CHANNELS.settingsFolderFile, (event) => settings.ensureFolderFile(workspaceOf(event.sender)));
+    // #18, part 3: the user's keybindings are one file for every window, so every window hears a change.
+    handle(IPC_CHANNELS.keybindingsGet, () => keybindings.snapshot());
+    handle(IPC_CHANNELS.keybindingsUpdate, async (_event, entries) => {
+        const report = await keybindings.update(entries);
+        for (const win of BrowserWindow.getAllWindows()) {
+            if (!win.webContents.isDestroyed()) {
+                win.webContents.send(IPC_EVENTS.keybindingsChanged, report);
+            }
+        }
+        return report;
+    });
+    handle(IPC_CHANNELS.keybindingsSetMenu, (_event, accelerators) => setMenuAccelerators(accelerators));
     // #167: the path is checked against the folder before anything reaches the clipboard.
     handle(IPC_CHANNELS.workspaceCopyPath, (event, path, kind) => {
         clipboard.writeText(workspaceOf(event.sender).displayPath(path, kind));

@@ -1,5 +1,6 @@
 import type { CommandRegistry } from './commandRegistry.ts';
 import { createKeyDispatcher, parseChord, type KeyPlatform, type StrokeBinding } from './keybindings.ts';
+import { menuAccelerator } from '../../shared/keybindings.ts';
 
 /**
  * The workbench's own key handler (#18). It listens in the capture phase on
@@ -14,6 +15,11 @@ import { createKeyDispatcher, parseChord, type KeyPlatform, type StrokeBinding }
  * stroke runs the command and is swallowed. A chord does not start from the
  * terminal, where `Ctrl+K` belongs to the shell. The logic is
  * `createKeyDispatcher` (keybindings.ts, unit-tested).
+ *
+ * User keys (#18, part 3) come from `registry.keybindings`. For a command the
+ * menu owns, the menu listens for its first single-stroke key
+ * (`menuAccelerator`, the same rule `main.ts` sends to the menu) and this
+ * handler for the rest.
  */
 export function installKeybindings(registry: CommandRegistry, platform: KeyPlatform, target: Window = window): () => void {
     const dispatcher = createKeyDispatcher();
@@ -21,16 +27,22 @@ export function installKeybindings(registry: CommandRegistry, platform: KeyPlatf
     // and go (the AI agents register theirs later), so nothing goes stale.
     function bindings(): readonly StrokeBinding[] {
         return registry.list().flatMap((command) => {
-            const keys = [
-                ...(command.keybinding && command.keybindingSource !== 'menu' ? [command.keybinding] : []),
-                ...(command.secondaryKeybindings ?? []),
-            ];
+            let keys = registry.keybindings(command.id);
+            if (command.keybindingSource === 'menu') {
+                const owned = menuAccelerator(keys);
+                const index = owned === undefined ? -1 : keys.indexOf(owned);
+                keys = index < 0 ? keys : [...keys.slice(0, index), ...keys.slice(index + 1)];
+            }
             return keys.map((key) => ({ id: command.id, strokes: parseChord(key, platform) }));
         });
     }
 
     const onKeyDown = (event: KeyboardEvent): void => {
         if (event.repeat || event.isComposing) {
+            return;
+        }
+        // #18, part 3: the Keyboard Shortcuts view is recording a key; it is not a command.
+        if (event.target instanceof Element && event.target.closest('[data-keybinding-recorder]') !== null) {
             return;
         }
         const inTerminal = event.target instanceof Element && event.target.closest('.xterm') !== null;

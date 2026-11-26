@@ -23,6 +23,8 @@ export interface SettingsViewHooks {
     onError(message: string): void;
     /** Opens `.codexr/settings.json` in the editor. */
     openFolderFile(): void;
+    /** Opens the Keyboard Shortcuts view (#18, part 3). */
+    openKeybindings(): void;
 }
 
 export function createSettingsView(container: HTMLElement, api: CodeXRApi['settings'], hooks: SettingsViewHooks): SettingsView {
@@ -46,6 +48,8 @@ export function createSettingsView(container: HTMLElement, api: CodeXRApi['setti
     const folderTab = scopeButton('folder', 'Folder');
     const openFile = el('button', { className: 'link-button settings-open-file', text: 'Edit .codexr/settings.json', attrs: { type: 'button', 'data-testid': 'settings-open-file' } });
     openFile.addEventListener('click', () => hooks.openFolderFile());
+    const keybindings = el('button', { className: 'link-button', text: 'Keyboard Shortcuts', attrs: { type: 'button', 'data-testid': 'settings-open-keybindings' } });
+    keybindings.addEventListener('click', () => hooks.openKeybindings());
     const errors = el('div', { className: 'settings-errors', attrs: { role: 'status' } });
     const list = el('div', { className: 'settings-list', attrs: { 'data-testid': 'settings-list' } });
     const scopeNote = el('p', { className: 'muted small settings-scope-note' });
@@ -57,6 +61,7 @@ export function createSettingsView(container: HTMLElement, api: CodeXRApi['setti
             el('div', { className: 'settings-scopes', attrs: { role: 'tablist', 'aria-label': 'Settings scope' } }, [userTab, folderTab]),
             scopeNote,
             openFile,
+            keybindings,
         ]),
         errors,
         list,

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { SettingScope, SettingValue } from '../shared/settings.ts';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import type { UserKeybinding } from '../shared/keybindings.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneInfo, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -107,6 +108,12 @@ const api: CodeXRApi = Object.freeze({
         update: (scope: SettingScope, key: string, value: SettingValue | null) => ipcRenderer.invoke(IPC_CHANNELS.settingsUpdate, scope, key, value),
         folderFile: () => ipcRenderer.invoke(IPC_CHANNELS.settingsFolderFile),
         onDidChange: (listener: (report: SettingsReport) => void) => subscribe(IPC_EVENTS.settingsChanged, listener),
+    }),
+    keybindings: Object.freeze({
+        get: () => ipcRenderer.invoke(IPC_CHANNELS.keybindingsGet),
+        update: (entries: readonly UserKeybinding[]) => ipcRenderer.invoke(IPC_CHANNELS.keybindingsUpdate, entries),
+        setMenuAccelerators: (accelerators: Readonly<Record<string, string | null>>) => ipcRenderer.invoke(IPC_CHANNELS.keybindingsSetMenu, accelerators),
+        onDidChange: (listener: (report: KeybindingsReport) => void) => subscribe(IPC_EVENTS.keybindingsChanged, listener),
     }),
     commands: Object.freeze({
         onCommand: (listener: (command: IdeCommand) => void) => {

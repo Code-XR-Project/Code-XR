@@ -1,4 +1,5 @@
 import type { SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
+import type { UserKeybinding } from './keybindings.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -131,6 +132,8 @@ export const IDE_COMMANDS = [
     'view.toggleSideBar', 'view.togglePanel', 'view.toggleMaximizedPanel', 'view.toggleZenMode', 'view.resetLayout',
     // #18: settings (File > Preferences > Settings, Ctrl/Cmd+,).
     'workbench.openSettings',
+    // #18, part 3: File > Preferences > Keyboard Shortcuts (its Ctrl/Cmd+K S chord is the workbench's).
+    'workbench.openKeybindings',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
@@ -432,6 +435,26 @@ export interface CodeXRApi {
         /** The settings changed (in this window, or the user's in another one). */
         onDidChange(listener: (report: SettingsReport) => void): Unsubscribe;
     };
+    /** #18, part 3: the user's keybinding rules (shared/keybindings.ts holds the format). */
+    readonly keybindings: {
+        get(): Promise<KeybindingsReport>;
+        /** Replaces the rules; rejects a malformed one. Every window hears the change. */
+        update(entries: readonly UserKeybinding[]): Promise<KeybindingsReport>;
+        /**
+         * The application menu's accelerators, by command ID (null: none), as
+         * the renderer resolved them; the main process rebuilds the menu.
+         */
+        setMenuAccelerators(accelerators: Readonly<Record<string, string | null>>): Promise<void>;
+        onDidChange(listener: (report: KeybindingsReport) => void): Unsubscribe;
+    };
+}
+
+/** The user's keybinding rules, where they live and why some could not be read. */
+export interface KeybindingsReport {
+    readonly entries: readonly UserKeybinding[];
+    readonly errors: readonly string[];
+    /** The file's absolute path, to show (null in the smoke run, which keeps them in memory). */
+    readonly file: string | null;
 }
 
 /** The settings in force, both files, and why a file could not be read. */
@@ -462,6 +485,9 @@ export const IPC_CHANNELS = {
     settingsGet: 'codexr:settings:get',
     settingsUpdate: 'codexr:settings:update',
     settingsFolderFile: 'codexr:settings:folder-file',
+    keybindingsGet: 'codexr:keybindings:get',
+    keybindingsUpdate: 'codexr:keybindings:update',
+    keybindingsSetMenu: 'codexr:keybindings:set-menu',
     workspaceTrash: 'codexr:workspace:trash',
     workspaceRecentFolders: 'codexr:workspace:recent-folders',
     workspaceOpenRecent: 'codexr:workspace:open-recent',
@@ -505,6 +531,7 @@ export const IPC_EVENTS = {
     terminalData: 'codexr:terminal:data',
     terminalExit: 'codexr:terminal:exit',
     settingsChanged: 'codexr:settings:changed',
+    keybindingsChanged: 'codexr:keybindings:changed',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

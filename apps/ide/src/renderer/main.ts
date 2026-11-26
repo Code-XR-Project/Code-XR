@@ -20,8 +20,10 @@ import { eolChoices, indentationChoices, languageChoices, type Choice } from './
 import { parseSession, serializeSession, sessionKey } from './editor/tabsModel.ts';
 import { showContextMenu, type ContextMenuItem } from './contextMenu.ts';
 import { createSettingsView } from './settings/settingsView.ts';
+import { createKeybindingsView } from './settings/keybindingsView.ts';
+import { menuAccelerators } from './settings/keybindingsModel.ts';
 import { settingOf } from '../shared/settings.ts';
-import type { IdeCommand, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
+import type { IdeCommand, KeybindingsReport, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
 if (!root) {
@@ -170,7 +172,7 @@ async function revealInExplorer(path: string): Promise<void> {
 }
 function showTabMenu(path: string, x: number, y: number): void {
     const key = (id: string): string => {
-        const binding = registry.get(id)?.keybinding;
+        const binding = registry.keybindings(id)[0];
         return binding ? formatKeybinding(binding, platform) : '';
     };
     const items: ContextMenuItem[] = [
@@ -287,6 +289,7 @@ function openFolderSettingsFile(): void {
 const settingsView = createSettingsView(workbench.settingsView, api.settings, {
     onError: (message) => notifications.notify('error', message),
     openFolderFile: openFolderSettingsFile,
+    openKeybindings: () => registry.execute('workbench.openKeybindings'),
 });
 api.settings.onDidChange(applySettings);
 
@@ -301,7 +304,7 @@ void loadSettings();
 // #18: every action is a command in one registry: the palette lists them,
 // the menu's accelerators and the workbench's own keys run them.
 let platform: string = navigator.userAgent.includes('Macintosh') ? 'darwin' : 'linux';
-const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`));
+const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`), platform);
 // #164: the workspace's files, listed by the main process each time quick
 // open opens (a stale list is shown meanwhile), and the recently opened ones.
 const quickOpenFiles = createQuickOpenFiles(() => api.workspace.listFiles(), () => quickInput.refresh());
@@ -317,6 +320,7 @@ const quickInput = createQuickInput(document.body, {
         isEnabled: (id) => registry.isEnabled(id),
         recent: registry.recent(),
         formatKey: (binding) => formatKeybinding(binding, platform),
+        keybindingOf: (id) => registry.keybindings(id)[0],
         lineCount: editors?.activeLineCount() ?? null,
         hasFolder: folderIsOpen,
         files: quickOpenFiles.files(),
@@ -417,6 +421,12 @@ registerWorkbenchCommands(registry, {
         settingsView.focus();
     },
     openFolderSettingsFile: () => openFolderSettingsFile(),
+    openKeybindings: () => {
+        workbench.showView('keybindings');
+        keybindingsView.focus();
+        // A hand edit of keybindings.json shows up when the view opens.
+        void loadKeybindings();
+    },
     closeEditors: (kind) => editors?.closeGroup(kind),
     cycleEditor: (delta) => editors?.cycle(delta),
     keepEditor: () => editors?.keepActive(),
@@ -428,6 +438,31 @@ api.commands.onCommand((command: IdeCommand) => {
     registry.execute(command);
 });
 void appInfo.then((info) => { platform = info.platform; }, () => undefined).finally(() => installKeybindings(registry, platform));
+
+// #18, part 3: the user's keybindings. The main process stores the rules;
+// the registry applies them, and the menu is told which keys it now owns.
+function pushMenuAccelerators(suspended = false): void {
+    api.keybindings.setMenuAccelerators(menuAccelerators(registry, suspended)).catch((error: unknown) => workbench.setStatus(`Could not update the menu keys: ${String(error)}`));
+}
+function applyKeybindings(report: KeybindingsReport): void {
+    registry.setUserKeybindings(report.entries);
+    pushMenuAccelerators();
+    keybindingsView.show(report);
+}
+function loadKeybindings(): Promise<void> {
+    return api.keybindings.get().then(applyKeybindings, (error: unknown) => workbench.setStatus(`Could not read the keybindings: ${String(error)}`));
+}
+const keybindingsView = createKeybindingsView(workbench.keybindingsView, api.keybindings, registry, platform, {
+    onError: (message) => notifications.notify('error', message),
+    openSettings: () => {
+        workbench.showView('settings');
+        settingsView.focus();
+    },
+    onRecording: (recording) => pushMenuAccelerators(recording),
+    formatKey: (key) => formatKeybinding(key, platform),
+});
+api.keybindings.onDidChange(applyKeybindings);
+void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
 const pythonView = createPythonView(workbench.analysisView, api.python, {

@@ -57,8 +57,12 @@ export function parseKeybinding(binding: string, platform: KeyPlatform): ParsedK
             default: throw new Error(`Unknown modifier "${part}" in keybinding "${binding}".`);
         }
     }
-    return { ctrl, meta, alt, shift, key: key.toUpperCase() };
+    const upper = key.toUpperCase();
+    return { ctrl, meta, alt, shift, key: KEY_ALIASES[upper] ?? upper };
 }
+
+/** Other names Electron accepts for the same key (#18, part 3: user keybindings may use either). */
+const KEY_ALIASES: Record<string, string> = { ESC: 'ESCAPE', RETURN: 'ENTER', PLUS: '+' };
 
 /** The key a KeyboardEvent stands for, independent of Shift and the layout's shifted symbol. */
 function eventKey(event: KeyEventLike): string {
@@ -78,6 +82,11 @@ function eventKey(event: KeyEventLike): string {
         case 'BracketRight': return ']';
         case 'Semicolon': return ';';
         case 'Quote': return "'";
+        case 'Space': return 'SPACE';
+        case 'ArrowUp': return 'UP';
+        case 'ArrowDown': return 'DOWN';
+        case 'ArrowLeft': return 'LEFT';
+        case 'ArrowRight': return 'RIGHT';
         default: break;
     }
     return event.key.toUpperCase();
@@ -98,7 +107,51 @@ const KEY_LABELS: Record<string, string> = {
     TAB: 'Tab',
     ENTER: 'Enter',
     SPACE: 'Space',
+    UP: 'Up',
+    DOWN: 'Down',
+    LEFT: 'Left',
+    RIGHT: 'Right',
+    BACKSPACE: 'Backspace',
+    DELETE: 'Delete',
+    INSERT: 'Insert',
+    HOME: 'Home',
+    END: 'End',
 };
+
+/**
+ * The accelerator a key press stands for, to record a new keybinding
+ * (#18, part 3): `CmdOrCtrl+Shift+K` for Ctrl+Shift+K on Windows and Linux
+ * and Cmd+Shift+K on macOS, so the file means the same key on every OS.
+ * Null for a modifier alone or a key an accelerator cannot name.
+ */
+export function strokeFromEvent(event: KeyEventLike, platform: KeyPlatform): string | null {
+    if (isModifierKey(event)) {
+        return null;
+    }
+    const key = eventKey(event);
+    const label = KEY_LABELS[key];
+    let name: string;
+    if (key.length === 1 && key > ' ' && key <= '~') {
+        name = key;
+    } else if (/^F([1-9]|1[0-9]|2[0-4])$/.test(key)) {
+        name = key;
+    } else if (key === 'ESCAPE') {
+        name = 'Escape';
+    } else if (label !== undefined) {
+        name = label;
+    } else {
+        return null;
+    }
+    const isMac = platform === 'darwin';
+    const parts: string[] = [];
+    if (isMac ? event.metaKey : event.ctrlKey) { parts.push('CmdOrCtrl'); }
+    if (isMac && event.ctrlKey) { parts.push('Ctrl'); }
+    if (!isMac && event.metaKey) { parts.push('Super'); }
+    if (event.altKey) { parts.push('Alt'); }
+    if (event.shiftKey) { parts.push('Shift'); }
+    parts.push(name);
+    return parts.join('+');
+}
 
 /** A keybinding's strokes: one, or two for a chord ("CmdOrCtrl+K Z"). */
 export function parseChord(binding: string, platform: KeyPlatform): readonly ParsedKeybinding[] {

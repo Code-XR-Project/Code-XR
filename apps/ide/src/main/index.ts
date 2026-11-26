@@ -4,6 +4,8 @@ import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
 import { registerIpcHandlers } from './ipc.ts';
 import { fileStorage, memoryStorage, SettingsService } from './settings/settingsService.ts';
+import { KeybindingsService } from './settings/keybindingsService.ts';
+import { KEYBINDINGS_FILE_NAME } from '../shared/keybindings.ts';
 import { startCore, type CoreServices } from './core/coreRuntime.ts';
 import { installApplicationMenu, setAboutDependencies } from './menu.ts';
 import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
@@ -73,7 +75,10 @@ async function start(): Promise<void> {
     });
     // #18: the user's settings; the smoke run keeps its own in memory.
     const settings = new SettingsService(isSmoke ? memoryStorage() : fileStorage(path.join(app.getPath('userData'), 'settings.json')));
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings);
+    // #18, part 3: the user's keybindings, likewise in memory for the smoke run.
+    const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
+    const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings);
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))

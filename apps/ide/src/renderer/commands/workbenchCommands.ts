@@ -1,11 +1,14 @@
 import type { CommandDefinition, CommandRegistry } from './commandRegistry.ts';
 import type { CloseKind } from '../editor/tabsModel.ts';
+import { MENU_KEYBINDINGS } from '../../shared/keybindings.ts';
+
+export { MENU_KEYBINDINGS };
 
 /**
  * The IDE's built-in commands (#18). Each feature hands in what it can do and
- * this module gives it a name, a category and a key. Keys marked `menu` must
- * match the accelerators in `src/main/menu.ts` (the menu owns them); the
- * unit test checks that the two lists agree.
+ * this module gives it a name, a category and a key. Keys marked `menu` come
+ * from `MENU_KEYBINDINGS` (shared/keybindings.ts), the same table
+ * `src/main/menu.ts` reads, so the two cannot disagree.
  */
 
 export interface WorkbenchCommandTargets {
@@ -30,6 +33,7 @@ export interface WorkbenchCommandTargets {
     showView(view: 'explorer' | 'search' | 'analysis' | 'xr' | 'settings'): void;
     openSettings(): void;
     openFolderSettingsFile(): void;
+    openKeybindings(): void;
     showSearch(): void;
     analyseProject(): void;
     canAnalyse(): boolean;
@@ -49,24 +53,6 @@ export interface WorkbenchCommandTargets {
     revealActiveFile(): void;
     hasEditors(): boolean;
 }
-
-/** The menu's accelerators, by command ID: the single place both sides are checked against. */
-export const MENU_KEYBINDINGS: Readonly<Record<string, string>> = {
-    'workbench.commandPalette': 'CmdOrCtrl+Shift+P',
-    'editor.goToLine': 'Ctrl+G',
-    'workbench.quickOpen': 'CmdOrCtrl+P',
-    'editor.goToSymbol': 'CmdOrCtrl+Shift+O',
-    'workspace.openFolder': 'CmdOrCtrl+O',
-    'file.newFile': 'CmdOrCtrl+N',
-    'file.save': 'CmdOrCtrl+S',
-    'file.saveAll': 'CmdOrCtrl+Alt+S',
-    'editor.close': 'CmdOrCtrl+W',
-    'terminal.toggle': 'Ctrl+`',
-    'terminal.new': 'Ctrl+Shift+`',
-    'view.toggleSideBar': 'CmdOrCtrl+B',
-    'view.togglePanel': 'CmdOrCtrl+J',
-    'workbench.openSettings': 'CmdOrCtrl+,',
-};
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
     const menu = (id: string): Pick<CommandDefinition, 'keybinding' | 'keybindingSource'> => {
@@ -108,6 +94,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'view.toggleZenMode', category: 'View', title: 'Toggle Zen Mode', keybinding: 'CmdOrCtrl+K Z', run: targets.toggleZenMode },
         { id: 'view.resetLayout', category: 'View', title: 'Reset Layout', run: targets.resetLayout },
         { id: 'workbench.openSettings', category: 'Preferences', title: 'Open Settings', ...menu('workbench.openSettings'), run: targets.openSettings },
+        { id: 'workbench.openKeybindings', category: 'Preferences', title: 'Open Keyboard Shortcuts', keybinding: 'CmdOrCtrl+K S', run: targets.openKeybindings },
         { id: 'workbench.openFolderSettingsFile', category: 'Preferences', title: 'Open Folder Settings (JSON)', enabled: targets.hasFolder, run: targets.openFolderSettingsFile },
         { id: 'view.showAnalysis', category: 'View', title: 'Show Analysis', run: () => targets.showView('analysis') },
         { id: 'view.showXrScene', category: 'View', title: 'Show XR Scene', run: () => targets.showView('xr') },
