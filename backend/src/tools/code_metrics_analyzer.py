@@ -2,7 +2,9 @@
 """Per-function code metrics for one file, computed by Code-XR's own analyzer.
 
 Drop-in replacement for ``lizard_analyzer.analyze_file`` (epic #140): same
-envelope (``file``/``functions``/``metrics``/``status``), same record keys.
+envelope (``file``/``functions``/``metrics``/``status``), same record keys,
+plus the epic #219 fields (cognitive complexity, Halstead, maintainability
+index) as additional keys.
 """
 
 from __future__ import annotations
@@ -20,7 +22,13 @@ for _extra in (TOOLS_DIR, UTILS_DIR):
     if str(_extra) not in sys.path:
         sys.path.insert(0, str(_extra))
 
-from code_metrics import FIXED_FORM_EXTENSIONS, LANGUAGES, analyze_source, language_for_extension  # noqa: E402
+from code_metrics import (  # noqa: E402
+    FIXED_FORM_EXTENSIONS,
+    LANGUAGES,
+    analyze_source,
+    language_for_extension,
+    maintainability_index,
+)
 
 _VUE_SCRIPT = re.compile(r'<script(?P<attrs>[^>]*)>(?P<body>.*?)</script>', re.IGNORECASE | re.DOTALL)
 
@@ -118,6 +126,13 @@ def analyze_file(file_path: str) -> dict[str, Any]:
             'parameters': parameters,
             'maxNestingDepth': raw['max_nesting_depth'],
             'cyclomaticDensity': round(complexity / max(line_count, 1), 3),
+            # Epic #219: additional fields; the keys above are unchanged.
+            'cognitiveComplexity': raw['cognitive_complexity'],
+            'halsteadVolume': raw['halstead'].get('volume', 0.0),
+            'halsteadDifficulty': raw['halstead'].get('difficulty', 0.0),
+            'halsteadEffort': raw['halstead'].get('effort', 0.0),
+            'halsteadBugs': raw['halstead'].get('bugs', 0.0),
+            'maintainabilityIndex': maintainability_index(raw['halstead'].get('volume', 0.0), complexity, line_count),
         })
 
     return {

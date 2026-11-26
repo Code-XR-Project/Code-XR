@@ -19,11 +19,21 @@ class Function:
     max_nesting: int = 0
     lines: set[int] = field(default_factory=set)
     parameter_count: int | None = None   # set when params are not a token list (Perl, Obj-C)
+    # Every token the function owns, once, with its cognitive nesting level
+    # (the input of the cognitive-complexity and Halstead metrics).
+    tokens: list[tuple[Token, int]] = field(default_factory=list)
+    _owned: set[int] = field(default_factory=set, repr=False)
+    cognitive_complexity: int = 0
+    halstead: dict = field(default_factory=dict)
 
-    def own(self, token: Token) -> None:
+    def own(self, token: Token, level: int = 0) -> None:
         self.lines.update(range(token.line, token.end_line + 1))
         if token.end_line > self.end_line:
             self.end_line = token.end_line
+        key = id(token)
+        if key not in self._owned:
+            self._owned.add(key)
+            self.tokens.append((token, level))
 
     def note_depth(self, depth: int) -> None:
         if depth > self.max_nesting:
@@ -40,6 +50,8 @@ class Function:
             'cyclomatic_complexity': self.complexity,
             'parameter_count': count,
             'max_nesting_depth': self.max_nesting,
+            'cognitive_complexity': self.cognitive_complexity,
+            'halstead': dict(self.halstead),
         }
 
 

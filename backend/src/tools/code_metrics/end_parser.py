@@ -30,6 +30,7 @@ class EBlock:
     depth: int
     func: Function | None = None
     loop_header: bool = False       # Lua/Ruby `while ... do`: the `do` belongs to the loop
+    cdepth: int = 0                 # cognitive nesting inside (`begin` bodies do not nest)
 
 
 class EndParser:
@@ -49,6 +50,9 @@ class EndParser:
     def depth(self) -> int:
         return self.stack[-1].depth if self.stack else 0
 
+    def cdepth(self) -> int:
+        return self.stack[-1].cdepth if self.stack else 0
+
     def text(self, index: int) -> str:
         return self.t[index].text if 0 <= index < len(self.t) else ''
 
@@ -66,12 +70,12 @@ class EndParser:
             func = self.current_func()
             text = token.text
             if func is not None:
-                func.own(token)
+                func.own(token, self.cdepth())
                 if is_decision(self.lang, self.t, index):
                     func.complexity += 1
             if token.kind == 'op':
                 if text == '{':
-                    self.stack.append(EBlock('{', self.depth()))
+                    self.stack.append(EBlock('{', self.depth(), cdepth=self.cdepth()))
                 elif text == '}':
                     self._pop('{')
                 continue
@@ -100,7 +104,9 @@ class EndParser:
 
     def _open(self, keyword: str, control: bool, func: Function | None = None, loop: bool = False) -> None:
         depth = 0 if func is not None else self.depth() + (1 if control else 0)
-        self.stack.append(EBlock(keyword, depth, func, loop))
+        nests = control and keyword not in ('begin',)
+        cdepth = 0 if func is not None else self.cdepth() + (1 if nests else 0)
+        self.stack.append(EBlock(keyword, depth, func, loop, cdepth))
         owner = self.current_func()
         if control and owner is not None:
             owner.note_depth(depth)

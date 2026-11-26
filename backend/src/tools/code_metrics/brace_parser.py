@@ -43,6 +43,7 @@ class Block:
     opens: list = field(default_factory=list)
     arm_separators: frozenset = frozenset()
     expr_line: int = 0             # exprfunc: line of the `=`/`=>`
+    cdepth: int = 0                # cognitive nesting inside (try/finally bodies do not nest)
 
 
 @dataclass
@@ -59,6 +60,7 @@ class Virtual:
     level: int
     depth: int
     started_line: int = 0
+    cdepth: int = 0
 
 
 NOT_A_NAME = frozenset({
@@ -125,6 +127,13 @@ class BraceParser:
                 return virtual.depth
         return self.block.depth
 
+    def context_cdepth(self) -> int:
+        top = len(self.blocks) - 1
+        for virtual in reversed(self.virtuals):
+            if virtual.block_index == top:
+                return virtual.cdepth
+        return self.block.cdepth
+
     def scope_path(self) -> list[str]:
         names = [self.package] if self.package else []
         for block in self.blocks:
@@ -145,7 +154,7 @@ class BraceParser:
             func = self.current_function()
             text = token.text
             if func is not None:
-                func.own(token)
+                func.own(token, self.context_cdepth())
                 if is_decision(self.lang, tokens, index):
                     func.complexity += 1
                 if (text in self.block.arm_separators and self.level == 0
@@ -265,7 +274,8 @@ class BraceParser:
                 return
         self.pending = None
         depth = self.context_depth() + 1
-        self.virtuals.append(Virtual(len(self.blocks) - 1, self.level, depth, self.t[index].line))
+        self.virtuals.append(Virtual(len(self.blocks) - 1, self.level, depth, self.t[index].line,
+                                     self.context_cdepth() + 1))
         func = self.current_function()
         if func is not None:
             func.note_depth(depth)
@@ -346,12 +356,14 @@ class BraceParser:
     # -- braces -------------------------------------------------------------
     def _open_brace(self, index: int) -> None:
         depth = self.context_depth()
+        cdepth = self.context_cdepth()
         func = self.current_function()
         if self._pending_here():
             pending = self.pending
             self.pending = None
             kind = 'arms' if pending.keyword in self.lang.arm_keywords else 'ctrl'
-            block = Block(kind, depth + 1)
+            nests = pending.keyword not in self.lang.try_keywords
+            block = Block(kind, depth + 1, cdepth=cdepth + (1 if nests else 0))
             if kind == 'arms':
                 block.arm_separators = self.lang.arm_separators
             if self.level == 0:
@@ -365,7 +377,7 @@ class BraceParser:
         if self.level == 0:
             self.header.clear()
         if result is None:
-            self.blocks.append(Block('block', depth))
+            self.blocks.append(Block('block', depth, cdepth=cdepth))
             return
         kind, payload = result
         if kind == 'scope':

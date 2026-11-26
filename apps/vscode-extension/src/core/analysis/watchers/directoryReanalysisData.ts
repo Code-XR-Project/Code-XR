@@ -288,6 +288,12 @@ export function createEmptyFileEntry(filePath: string, rootPath?: string): Analy
         maxFunctionLines: 0,
         averageFunctionNestingDepth: 0,
         maxFunctionNestingDepth: 0,
+        averageCognitiveComplexity: 0,
+        maxCognitiveComplexity: 0,
+        averageMaintainabilityIndex: 0,
+        minMaintainabilityIndex: 0,
+        totalHalsteadVolume: 0,
+        totalHalsteadBugs: 0,
         fileSizeBytes: 0,
         file_path: publicFilePath,
     };

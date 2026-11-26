@@ -10,6 +10,8 @@ for extra_path in [PYTHON_ROOT, PYTHON_ROOT / 'utils', PYTHON_ROOT / 'livePanels
     if str(extra_path) not in sys.path:
         sys.path.insert(0, str(extra_path))
 
+from xr_field_schema import FILE_METRIC_FIELD_IDS, FUNCTION_METRIC_FIELD_IDS  # noqa: E402
+
 MAIN_MODULE_PATH = PYTHON_ROOT / 'main.py'
 XR_DIRECTORY_MODULE_PATH = PYTHON_ROOT / 'XR' / 'xr_directory_analysis_coordinator.py'
 FILE_COORDINATOR_PATH = PYTHON_ROOT / 'livePanels' / 'livePanel_file_analysis_coordinator.py'
@@ -46,14 +48,30 @@ class XRSchemaContractTests(unittest.TestCase):
         self.assertEqual(file_schema['schemaVersion'], 1)
         self.assertEqual(file_schema['analysisMode'], 'xr')
         self.assertEqual(file_schema['targetType'], 'file')
-        self.assertEqual(len(file_schema['fields']), 13)
-        self.assertEqual(sum(1 for field in file_schema['fields'] if field['valueType'] == 'numeric'), 8)
+        # 13 original fields + 6 per-function metrics of epic #219 (all numeric).
+        self.assertEqual(len(file_schema['fields']), 19)
+        self.assertEqual(sum(1 for field in file_schema['fields'] if field['valueType'] == 'numeric'), 14)
 
         self.assertEqual(directory_schema['schemaVersion'], 1)
         self.assertEqual(directory_schema['analysisMode'], 'xr')
         self.assertEqual(directory_schema['targetType'], 'directory')
-        self.assertEqual(len(directory_schema['fields']), 25)
-        self.assertEqual(sum(1 for field in directory_schema['fields'] if field['valueType'] == 'numeric'), 21)
+        # 25 original fields + 6 file aggregates of epic #219 (all numeric).
+        self.assertEqual(len(directory_schema['fields']), 31)
+        self.assertEqual(sum(1 for field in directory_schema['fields'] if field['valueType'] == 'numeric'), 27)
+
+    def test_new_metric_fields_are_appended_without_touching_the_old_ones(self):
+        file_ids = [field['id'] for field in execute_schema_request('file')['fields']]
+        directory_ids = [field['id'] for field in execute_schema_request('directory')['fields']]
+        self.assertEqual(
+            [field_id for field_id in file_ids if field_id not in FUNCTION_METRIC_FIELD_IDS],
+            ['functionName', 'lineStart', 'lineEnd', 'lineCount', 'spanLines', 'complexity', 'complexityBand',
+             'parameters', 'maxNestingDepth', 'cyclomaticDensity', 'filePath', 'fileName', 'treePath'],
+        )
+        self.assertEqual(len([i for i in directory_ids if i not in FILE_METRIC_FIELD_IDS]), 25)
+        for field_id in FUNCTION_METRIC_FIELD_IDS:
+            self.assertIn(field_id, file_ids)
+        for field_id in FILE_METRIC_FIELD_IDS:
+            self.assertIn(field_id, directory_ids)
 
     def test_file_livepanel_and_xr_payloads_match(self):
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as handle:
@@ -77,6 +95,12 @@ class XRSchemaContractTests(unittest.TestCase):
             self.assertIn('treePath', livepanel_payload[0])
             self.assertIn('modifiedAtMs', livepanel_payload[0])
             self.assertIn('modifiedAtIso', livepanel_payload[0])
+            # Every field the schema offers to a chart axis is in the data row.
+            for field in execute_schema_request('file')['fields']:
+                self.assertIn(field['id'], livepanel_payload[0])
+            self.assertEqual(livepanel_payload[0]['cognitiveComplexity'], 3)     # if +1, nested for +2
+            self.assertGreater(livepanel_payload[0]['halsteadVolume'], 0)
+            self.assertTrue(0 < livepanel_payload[0]['maintainabilityIndex'] <= 100)
         finally:
             Path(file_path).unlink(missing_ok=True)
 
@@ -92,6 +116,10 @@ class XRSchemaContractTests(unittest.TestCase):
             self.assertIn('averageFunctionParameters', payload[0])
             self.assertIn('modifiedAtMs', payload[0])
             self.assertIn('modifiedAtIso', payload[0])
+            for field in execute_schema_request('directory')['fields']:
+                self.assertIn(field['id'], payload[0])
+            self.assertEqual(payload[0]['maxCognitiveComplexity'], 0)
+            self.assertGreater(payload[0]['totalHalsteadVolume'], 0)
 
 
 if __name__ == '__main__':

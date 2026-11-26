@@ -45,6 +45,7 @@ class Language:
     objc_methods: bool = False
     csharp_accessors: bool = False
     zig_captures: bool = False
+    try_keywords: frozenset = frozenset({'try', 'finally'})   # bodies that are not nesting (cognitive)
     # Indentation family -------------------------------------------------
     match_arm_keyword: str = ''
     extra: dict = field(default_factory=dict)
@@ -114,6 +115,7 @@ LANGUAGES: dict[str, Language] = {
                     cond_keywords=frozenset({'if', 'for', 'while', 'switch', 'guard', 'catch'}),
                     coalesce_ops=frozenset({'??'}), function_keywords=frozenset({'func', 'init', 'deinit',
                                                                                   'subscript'}),
+                    try_keywords=frozenset({'do'}),
                     scope_keywords=frozenset({'class', 'struct', 'enum', 'protocol', 'extension', 'actor'})),
     'Solidity': _brace('Solidity', lexer=LexerConfig(), decisions=frozenset({'if', 'for', 'while', 'catch'}),
                        function_keywords=frozenset({'function', 'modifier', 'constructor', 'fallback', 'receive'}),

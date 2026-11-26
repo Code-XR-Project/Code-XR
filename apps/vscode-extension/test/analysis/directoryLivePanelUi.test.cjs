@@ -345,7 +345,8 @@ function describeFileTables() {
             fileSizeBytes: 1536000, totalLines: 12345, functionCount: 4, cyclomaticComplexityNumber: 12.345,
             maxComplexity: 31, commentRatio: 0.256, averageFunctionParameters: 2.345, maxFunctionParameters: 6,
             averageFunctionNestingDepth: 1.005, maxFunctionNestingDepth: 3, highComplexityFunctions: 2,
-            criticalComplexityFunctions: 1,
+            criticalComplexityFunctions: 1, averageCognitiveComplexity: 7.24, maxCognitiveComplexity: 15,
+            minMaintainabilityIndex: 8.44, totalHalsteadBugs: 1.2345,
         },
         { fileName: 'bare<x>.ts', filePath: '/p/bare.ts', cyclomaticComplexityNumber: 0.5 },
     ]);
@@ -445,6 +446,26 @@ const FILE_TABLES_CHARACTERIZATION = {
                 "criticalComplexityFunctions | Critical CCN Fns | center | desc | true | true",
                 "1 => 1",
                 "0 => 0",
+            ],
+            [
+                "averageCognitiveComplexity | Avg Cognitive | center | desc | true | true",
+                "7.24 => 7.2",
+                "0 => 0.0",
+            ],
+            [
+                "maxCognitiveComplexity | Max Cognitive | center | desc | true | true",
+                "15 => 15",
+                "0 => 0",
+            ],
+            [
+                "minMaintainabilityIndex | Min Maint. | right | asc | true | true",
+                "8.44 => 8.4",
+                "null => -",
+            ],
+            [
+                "totalHalsteadBugs | Est. bugs | right | desc | true | true",
+                "1.2345 => 1.23",
+                "0 => 0.00",
             ],
         ],
     },

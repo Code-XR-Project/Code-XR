@@ -78,7 +78,7 @@ def parse_erlang(lang, tokens: list[Token]) -> list[Function]:
         brackets = 0
         clauses = 0
         for pos, token in enumerate(form):
-            func.own(token)
+            func.own(token, sum(1 for b in stack if b[0] in NESTING))
             text = token.text
             if token.kind == 'op':
                 if text in '([{':

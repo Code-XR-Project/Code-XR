@@ -30,6 +30,7 @@ class IBlock:
     depth: int
     func: Function | None = None
     docstring_pending: bool = False
+    cdepth: int = 0                 # cognitive nesting inside (try/finally bodies do not nest)
 
 
 def _logical_lines(tokens: list[Token]) -> list[list[Token]]:
@@ -109,6 +110,7 @@ def parse_indent(lang: Language, tokens: list[Token]) -> list[Function]:
             break
 
         parent_depth = stack[-1].depth if stack else 0
+        parent_cdepth = stack[-1].cdepth if stack else 0
         func = current_func()
         keyword, kw_pos = _first_keyword(line)
         colon = _block_colon(line)
@@ -145,7 +147,7 @@ def parse_indent(lang: Language, tokens: list[Token]) -> list[Function]:
             functions.append(new)
             if outer is not None:
                 for token in line:
-                    outer.own(token)       # the nested `def` statement is a line of the outer body too
+                    outer.own(token, parent_cdepth)   # the nested `def` statement is a line of the outer body too
             for token in line[kw_pos + 1:]:
                 new.own(token)
                 if is_decision(lang, tokens, index_of[id(token)]):
@@ -162,20 +164,22 @@ def parse_indent(lang: Language, tokens: list[Token]) -> list[Function]:
                 continue          # a docstring is documentation, not code (PEP 257)
         if func is not None:
             for token in line:
-                func.own(token)
+                func.own(token, parent_cdepth)
                 if is_decision(lang, tokens, index_of[id(token)]):
                     func.complexity += 1
 
         if colon is None:
             continue
+        cdepth = parent_cdepth
         if keyword in SCOPE_KEYWORDS:
             depth = 0
         elif keyword in CONTROL:
             depth = parent_depth + 1
+            cdepth = parent_cdepth + (0 if keyword in lang.try_keywords else 1)
         else:
             depth = parent_depth
         if func is not None:
             func.note_depth(depth)
         if colon == len(line) - 1:
-            stack.append(IBlock(indent, None, keyword, depth))
+            stack.append(IBlock(indent, None, keyword, depth, cdepth=cdepth))
     return sorted(functions, key=lambda f: (f.start_line, f.name))

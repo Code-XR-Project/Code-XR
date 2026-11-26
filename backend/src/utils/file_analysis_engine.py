@@ -23,7 +23,13 @@ from file_metric_summary import get_file_size
 from line_metric_utils import build_line_metrics
 from metric_language_contract import get_metric_language
 from python_comment_analyzer import analyze_comments
-from xr_field_schema import build_complexity_band, safe_ratio, summarize_function_metrics
+from xr_field_schema import (
+    FILE_METRIC_FIELD_IDS,
+    FUNCTION_METRIC_FIELD_IDS,
+    build_complexity_band,
+    safe_ratio,
+    summarize_function_metrics,
+)
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -90,6 +96,8 @@ def normalize_function_metrics(raw_functions: list[dict[str, Any]]) -> list[dict
                 'parameters': parameters,
                 'maxNestingDepth': max_nesting_depth,
                 'cyclomaticDensity': cyclomatic_density,
+                **{field_id: _safe_float(func.get(field_id), 0.0) if field_id != 'cognitiveComplexity'
+                   else _safe_int(func.get(field_id), 0) for field_id in FUNCTION_METRIC_FIELD_IDS},
             }
         )
 
@@ -164,6 +172,7 @@ def build_file_snapshot(file_path: str) -> dict[str, Any]:
         'maxFunctionLines': function_summary['maxFunctionLines'],
         'averageFunctionNestingDepth': function_summary['averageFunctionNestingDepth'],
         'maxFunctionNestingDepth': function_summary['maxFunctionNestingDepth'],
+        **{field_id: function_summary[field_id] for field_id in FILE_METRIC_FIELD_IDS},
         'fileSizeBytes': get_file_size(file_path),
         'functions': normalized_functions,
     }
@@ -190,6 +199,7 @@ def build_file_payload(file_path: str, snapshot: dict[str, Any] | None = None) -
                 'parameters': function.get('parameters', 0),
                 'maxNestingDepth': function.get('maxNestingDepth', 0),
                 'cyclomaticDensity': function.get('cyclomaticDensity', 0.0),
+                **{field_id: function.get(field_id, 0) for field_id in FUNCTION_METRIC_FIELD_IDS},
                 'filePath': file_snapshot.get('filePath', file_path),
                 'fileName': file_name,
                 'treePath': build_tree_path(file_name, function.get('functionName')),
@@ -218,6 +228,7 @@ def build_file_payload(file_path: str, snapshot: dict[str, Any] | None = None) -
                 'maxFunctionLines': file_snapshot.get('maxFunctionLines', 0),
                 'averageFunctionNestingDepth': file_snapshot.get('averageFunctionNestingDepth', 0.0),
                 'maxFunctionNestingDepth': file_snapshot.get('maxFunctionNestingDepth', 0),
+                **{field_id: file_snapshot.get(field_id, 0) for field_id in FILE_METRIC_FIELD_IDS},
                 'fileSizeBytes': file_snapshot.get('fileSizeBytes', 0),
             }
         )

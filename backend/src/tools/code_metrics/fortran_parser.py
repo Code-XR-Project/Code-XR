@@ -100,7 +100,7 @@ def parse_fortran(lang, tokens: list[Token]) -> list[Function]:
         func = current_func()
         if func is not None and not in_interface:
             for token in statement:
-                func.own(token)
+                func.own(token, depth())
 
         head = words[0]
         # labelled DO loop terminated by this label (F77 `do 10 i = ...` / `10 continue`)
