@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { analysisKindLabel, displayAddress, INITIAL_SHARE_VIEW, ipcErrorMessage, reduceShare, shareControls, type ShareAction, type ShareView } from '../src/renderer/sceneHeaderModel.ts';
+import { analysedFilesLabel, analysisKindLabel, displayAddress, INITIAL_SHARE_VIEW, ipcErrorMessage, reduceShare, shareControls, type ShareAction, type ShareView } from '../src/renderer/sceneHeaderModel.ts';
 
 const PUBLIC = 'https://calm-river-42.trycloudflare.com';
 
@@ -84,3 +84,15 @@ describe('reduceShare / shareControls', () => {
         assert.equal(shareControls(run({ type: 'update', share: { status: 'shared' } })).stopVisible, false);
     });
 });
+
+describe('analysedFilesLabel (#203)', () => {
+    it('counts the files the analysis took, and says nothing while unknown', () => {
+        assert.equal(analysedFilesLabel(870), '870 files');
+        assert.equal(analysedFilesLabel(1), '1 file');
+        assert.equal(analysedFilesLabel(0), '0 files');
+        assert.equal(analysedFilesLabel(12345), '12,345 files');
+        assert.equal(analysedFilesLabel(undefined), '');
+        assert.equal(analysedFilesLabel(-1), '');
+    });
+});
+

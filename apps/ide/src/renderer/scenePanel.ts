@@ -1,6 +1,6 @@
 import type { CodeXRApi, SceneAddress, SceneInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
-import { analysisKindLabel, displayAddress, INITIAL_SHARE_VIEW, ipcErrorMessage, reduceShare, shareControls, type ShareAction, type ShareView } from './sceneHeaderModel.ts';
+import { analysedFilesLabel, analysisKindLabel, displayAddress, INITIAL_SHARE_VIEW, ipcErrorMessage, reduceShare, shareControls, type ShareAction, type ShareView } from './sceneHeaderModel.ts';
 
 /**
  * The analysis scene beside the code (#16). The scene itself is drawn by the
@@ -31,6 +31,7 @@ export function createScenePanel(
 ): ScenePanel {
     const kind = el('span', { className: 'scene-kind', attrs: { 'data-testid': 'scene-kind' } });
     const title = el('span', { className: 'scene-title', attrs: { 'data-testid': 'scene-title' } });
+    const files = el('span', { className: 'scene-files', attrs: { 'data-testid': 'scene-files' } });
     const close = el('button', { className: 'icon-button', text: '×', attrs: { type: 'button', title: 'Close the scene', 'aria-label': 'Close the scene' } });
 
     const localAddress = el('span', { className: 'scene-address', attrs: { 'data-testid': 'scene-local-address' } });
@@ -46,7 +47,7 @@ export function createScenePanel(
     const error = el('div', { className: 'scene-share-error', attrs: { role: 'status', 'data-testid': 'scene-share-error' } });
 
     const header = el('header', { className: 'scene-header', attrs: { 'data-testid': 'scene-header' } }, [
-        el('div', { className: 'scene-header-row' }, [kind, title, close]),
+        el('div', { className: 'scene-header-row' }, [kind, title, files, close]),
         el('div', { className: 'scene-header-row' }, [
             el('span', { className: 'scene-address-label', text: 'Local' }), localAddress, copyLocal, share, stop,
         ]),
@@ -152,6 +153,8 @@ export function createScenePanel(
             kind.textContent = analysisKindLabel(scene.kind);
             title.textContent = scene.target;
             title.title = scene.targetPath;
+            files.textContent = analysedFilesLabel(scene.files);
+            files.hidden = files.textContent === '';
             const address = displayAddress(scene.url);
             localAddress.textContent = address;
             localAddress.title = address;
