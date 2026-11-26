@@ -1252,3 +1252,9 @@ body {
 .chat-child-task { margin: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .chat-child-answer { font-size: 12px; overflow-wrap: anywhere; }
 .chat-child-answer > :last-child { margin-bottom: 0; }
+
+/* A12: MCP servers */
+.agents-mcp-target { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.agents-tool[hidden] { display: none; }
+.agents-mcp-tools { overflow-wrap: anywhere; }
+.agents-tool-filter { margin-bottom: 4px; }

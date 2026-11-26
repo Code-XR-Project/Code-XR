@@ -107,6 +107,10 @@ export const AGENT_IPC_CHANNELS = {
     agentsApprove: 'codexr:agents:approve',
     agentsResolveReview: 'codexr:agents:resolve-review',
     agentsCancelRun: 'codexr:agents:cancel-run',
+    agentsListMcpServers: 'codexr:agents:list-mcp-servers',
+    agentsSaveMcpServer: 'codexr:agents:save-mcp-server',
+    agentsRemoveMcpServer: 'codexr:agents:remove-mcp-server',
+    agentsRefreshMcpServer: 'codexr:agents:refresh-mcp-server',
 } as const;
 
 /** What a tool can do, which decides whether it asks first (A7). */
@@ -117,6 +121,42 @@ export interface ToolInfo {
     readonly title: string;
     readonly description: string;
     readonly risk: ToolRisk;
+}
+
+/** How the IDE talks to an MCP server (A12): a local process, or a URL. */
+export type McpTransport = 'stdio' | 'http';
+
+/** What the MCP server form sends. */
+export interface McpServerInput {
+    readonly name: string;
+    readonly transport: McpTransport;
+    /** stdio: the executable, e.g. "npx". */
+    readonly command?: string;
+    /** stdio: its arguments, one per entry. */
+    readonly args?: readonly string[];
+    /** http: the Streamable HTTP endpoint. */
+    readonly url?: string;
+    /** http: a bearer token, kept in the OS secret store; absent keeps the stored one, '' removes it. */
+    readonly token?: string;
+    readonly enabled: boolean;
+}
+
+export type McpServerStatus = 'stopped' | 'connecting' | 'ready' | 'error';
+
+/** An MCP server as the settings show it; never carries the token. */
+export interface McpServerView {
+    readonly id: string;
+    readonly name: string;
+    readonly transport: McpTransport;
+    readonly command: string;
+    readonly args: readonly string[];
+    readonly url: string;
+    readonly hasToken: boolean;
+    readonly enabled: boolean;
+    readonly status: McpServerStatus;
+    readonly error?: string;
+    /** The tools as last listed, under the names agents see (mcp__server__tool). */
+    readonly tools: readonly ToolInfo[];
 }
 
 /** One tool call inside an answer, as the chat shows it. */
@@ -295,4 +335,11 @@ export interface AgentsApi {
     resolveReview(requestId: string, result: EditReviewResult): Promise<void>;
     /** Cancels one sub-agent (A11) without stopping the rest of the answer. */
     cancelRun(sessionId: string, runId: string): Promise<void>;
+    /** MCP servers (A12). */
+    listMcpServers(): Promise<readonly McpServerView[]>;
+    /** Adds (no `id`) or edits a server and connects to it to list its tools; a new or changed command asks the person first. */
+    saveMcpServer(input: McpServerInput, id?: string): Promise<McpServerView>;
+    removeMcpServer(id: string): Promise<void>;
+    /** Reconnects and lists the server's tools again. */
+    refreshMcpServer(id: string): Promise<McpServerView>;
 }

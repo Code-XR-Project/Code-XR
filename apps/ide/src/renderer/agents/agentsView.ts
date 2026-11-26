@@ -3,6 +3,7 @@ import { el, icon } from '../dom.ts';
 import { createAttachmentBar, labelOf, type AttachmentSources } from './chatAttachments.ts';
 import { renderMarkdown } from './chatMarkdown.ts';
 import { renderApproval, renderToolRuns, upsertToolRun } from './chatTools.ts';
+import { createMcpSection } from './mcpSection.ts';
 import { createProvidersSection } from './providersSection.ts';
 
 /**
@@ -61,6 +62,8 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
 
     // ---- Home --------------------------------------------------------------
     const providersSection = createProvidersSection(api, { onStatus: callbacks.onStatus, onChanged: () => void refresh() });
+    // A12: a server's tools change the catalogue the agent form offers.
+    const mcpSection = createMcpSection(api, { onStatus: callbacks.onStatus, onChanged: () => { toolCatalog = null; } });
     const agentSelect = el('select', { className: 'agents-input', attrs: { 'aria-label': 'Agent for a new chat', 'data-testid': 'agents-new-chat-agent' } });
     const newChatButton = el('button', { className: 'primary-button agents-inline-button', text: 'New chat', attrs: { type: 'button', 'data-action': 'new-chat' } });
     newChatButton.addEventListener('click', () => void startChat(agentSelect.value));
@@ -86,6 +89,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
             newAgentButton,
         ]),
         providersSection.element,
+        mcpSection.element,
     ]);
     const chatPane = el('div', { className: 'agents-chat', attrs: { hidden: '', 'data-testid': 'agents-chat' } });
     container.replaceChildren(home, chatPane);
@@ -101,7 +105,7 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
     };
 
     async function refresh(): Promise<void> {
-        const [nextProviders, nextAgents, sessions] = await Promise.all([api.listProviders(), api.listAgents(), api.listSessions(), providersSection.refresh()]);
+        const [nextProviders, nextAgents, sessions] = await Promise.all([api.listProviders(), api.listAgents(), api.listSessions(), providersSection.refresh(), mcpSection.refresh()]);
         providers = nextProviders;
         agents = nextAgents;
         const previous = agentSelect.value;
@@ -238,13 +242,24 @@ export function createAgentsView(container: HTMLElement, api: AgentsApi, callbac
         const toolBoxes = el('fieldset', { className: 'agents-tools', attrs: { 'data-testid': 'agent-tools' } }, [el('legend', { text: 'Tools' })]);
         const chosen = new Set(existing?.tools ?? []);
         const fillTools = (catalog: readonly ToolInfo[]): void => {
+            // A12: MCP servers can bring dozens of tools; a filter keeps the list usable.
+            if (catalog.length > 12) {
+                const filter = el('input', { className: 'agents-input agents-tool-filter', attrs: { type: 'search', placeholder: 'Filter tools', 'aria-label': 'Filter tools', 'data-testid': 'agent-tool-filter' } });
+                filter.addEventListener('input', () => {
+                    const needle = filter.value.trim().toLowerCase();
+                    for (const label of toolBoxes.querySelectorAll<HTMLElement>('.agents-tool')) {
+                        label.hidden = needle !== '' && !(label.dataset['filterText'] ?? '').includes(needle);
+                    }
+                });
+                toolBoxes.append(filter);
+            }
             toolBoxes.append(...catalog.map((tool) => {
                 const box = el('input', { attrs: { type: 'checkbox', value: tool.name, 'data-tool': tool.name } });
                 // A new agent starts with every read-only tool, like the starters; delegating (A11) is opt-in.
                 box.checked = existing ? chosen.has(tool.name) : tool.risk === 'read' && tool.name !== 'delegate_task';
                 const always = (existing?.alwaysAllow ?? []).includes(tool.name);
                 const note = tool.risk === 'read' ? 'runs without asking' : always ? 'always allowed' : 'asks first';
-                return el('label', { className: 'agents-tool', attrs: { title: tool.description } }, [
+                return el('label', { className: 'agents-tool', attrs: { title: tool.description, 'data-filter-text': `${tool.name} ${tool.title}`.toLowerCase() } }, [
                     box,
                     el('span', { className: 'agents-tool-main' }, [el('span', { text: tool.title }), el('span', { className: 'muted small', text: ` · ${note}` })]),
                 ]);
