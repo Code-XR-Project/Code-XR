@@ -20,6 +20,7 @@ import { formatKeybinding } from './commands/keybindings.ts';
 import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
 import { createQuickOpenFiles } from './quickOpenFiles.ts';
 import { createSearchView } from './search/searchView.ts';
+import { createScmView } from './git/scmView.ts';
 import { createQuickInput } from './commands/quickInput.ts';
 import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
@@ -242,6 +243,7 @@ function folderOpened(root: string): void {
     folderIsOpen = true;
     quickOpenFiles.reset();
     searchView.reset();
+    scmView.reset();
     scenePanel.close();
     runView.setHasFolder(true);
     runView.folderOpened(root);
@@ -254,6 +256,7 @@ api.workspace.onDidChange((workspace) => {
         folderIsOpen = false;
         quickOpenFiles.reset();
         searchView.reset();
+        scmView.reset();
         scenePanel.close();
         runView.setHasFolder(false);
     }
@@ -282,6 +285,24 @@ const searchView = createSearchView(workbench.searchView, api.workspace, {
         notifications.notify('info', message);
     },
 });
+
+// #17: Source Control, in its own side-bar view, and the branch in the status bar.
+const scmView = createScmView(workbench.scmView, api.git, {
+    branchStatus: workbench.branchStatus,
+    activityItem: document.querySelector<HTMLElement>('.activity-item[data-view="scm"]'),
+    editorArea: workbench.editorArea,
+    openFile: (path) => void editorGroup().then((group) => group.open(path)),
+    readFile: async (path) => {
+        const content = await api.workspace.readFile(path).catch(() => null);
+        return content?.kind === 'text' ? content.text : null;
+    },
+    openQuickInput: (provider) => quickInput.open('', provider),
+    isVisible: () => workbench.isViewVisible('scm'),
+    showView: () => workbench.showView('scm'),
+    notify: (severity, message) => notifications.notify(severity, message),
+    onDidChangeFiles: (listener) => void api.workspace.onDidChangeFiles(listener),
+});
+void scmView.refresh();
 
 // #18: settings, user and folder. The main process stores and validates
 // them; the renderer shows them and applies the ones in force.

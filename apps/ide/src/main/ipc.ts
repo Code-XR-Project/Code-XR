@@ -4,6 +4,7 @@ import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, I
 import type { TerminalHost } from './terminal/terminalHost.ts';
 import type { AgentServices } from './agents/agentsRuntime.ts';
 import { registerAgentHandlers } from './agents/agentsIpc.ts';
+import { registerGitHandlers } from './git/gitIpc.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -201,6 +202,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
 
     // The AI agent hub (agents/agentsIpc.ts).
     registerAgentHandlers(handle, agents, (contents) => core.analysis.outputDirectory(contents));
+    // #17: Source Control (git/gitIpc.ts).
+    registerGitHandlers(handle);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.
