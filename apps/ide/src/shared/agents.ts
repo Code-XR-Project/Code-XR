@@ -92,7 +92,73 @@ export const AGENT_IPC_CHANNELS = {
     agentsSaveProvider: 'codexr:agents:save-provider',
     agentsRemoveProvider: 'codexr:agents:remove-provider',
     agentsTestProvider: 'codexr:agents:test-provider',
+    agentsListAgents: 'codexr:agents:list-agents',
+    agentsSaveAgent: 'codexr:agents:save-agent',
+    agentsRemoveAgent: 'codexr:agents:remove-agent',
+    agentsListSessions: 'codexr:agents:list-sessions',
+    agentsGetSession: 'codexr:agents:get-session',
+    agentsCreateSession: 'codexr:agents:create-session',
+    agentsRenameSession: 'codexr:agents:rename-session',
+    agentsDeleteSession: 'codexr:agents:delete-session',
+    agentsExportSession: 'codexr:agents:export-session',
+    agentsSend: 'codexr:agents:send',
+    agentsStop: 'codexr:agents:stop',
 } as const;
+
+/** Main -> renderer events of the agent hub; api.ts merges them into IPC_EVENTS. */
+export const AGENT_IPC_EVENTS = {
+    agentsChat: 'codexr:agents:chat',
+} as const;
+
+/** A named agent (A4): which provider and model, how it behaves. No secrets. */
+export interface AgentProfile {
+    readonly id: string;
+    readonly name: string;
+    /** A configured provider's id; empty when the agent still needs one. */
+    readonly providerId: string;
+    readonly model: string;
+    readonly instructions: string;
+    /** 0-2; absent uses the provider's default. */
+    readonly temperature?: number;
+    /** Tool names this agent may use (A7); empty for now. */
+    readonly tools: readonly string[];
+}
+
+/** What the renderer sends to create (no id) or edit an agent. */
+export type AgentProfileInput = Omit<AgentProfile, 'id'>;
+
+/** One message of a chat, as stored and shown. */
+export interface ChatMessageView {
+    readonly role: 'user' | 'assistant';
+    readonly content: string;
+    /** ISO time. */
+    readonly at: string;
+    /** Set on an assistant turn that failed or was stopped. */
+    readonly error?: string;
+    readonly stopped?: boolean;
+    readonly usage?: { readonly inputTokens: number; readonly outputTokens: number };
+    readonly model?: string;
+}
+
+export interface ChatSessionSummary {
+    readonly id: string;
+    readonly title: string;
+    readonly agentId: string;
+    readonly updatedAt: string;
+    readonly messageCount: number;
+}
+
+export interface ChatSession extends ChatSessionSummary {
+    readonly messages: readonly ChatMessageView[];
+    /** True while an answer is streaming. */
+    readonly running: boolean;
+}
+
+/** Streaming progress of one answer, pushed to the window that asked. */
+export type AgentChatEvent =
+    | { readonly sessionId: string; readonly type: 'start'; readonly model: string; readonly trimmed: number }
+    | { readonly sessionId: string; readonly type: 'delta'; readonly text: string }
+    | { readonly sessionId: string; readonly type: 'end'; readonly message: ChatMessageView };
 
 /** What `window.codexr.agents` offers the renderer. */
 export interface AgentsApi {
@@ -105,4 +171,21 @@ export interface AgentsApi {
     removeProvider(id: string): Promise<void>;
     /** Lists the provider's models with the stored key, or says why it cannot. */
     testProvider(id: string): Promise<ConnectionTestResult>;
+    /** Agent profiles (A4); built-in starters are created on first use. */
+    listAgents(): Promise<readonly AgentProfile[]>;
+    saveAgent(input: AgentProfileInput, id?: string): Promise<AgentProfile>;
+    removeAgent(id: string): Promise<void>;
+    /** Chats of the folder open in this window (A5), newest first. */
+    listSessions(): Promise<readonly ChatSessionSummary[]>;
+    getSession(id: string): Promise<ChatSession>;
+    createSession(agentId: string): Promise<ChatSession>;
+    renameSession(id: string, title: string): Promise<ChatSessionSummary>;
+    deleteSession(id: string): Promise<void>;
+    /** The chat as Markdown, for saving or copying. */
+    exportSession(id: string): Promise<string>;
+    /** Sends a message; the answer streams through `onChat`. Resolves once the answer ends. */
+    send(sessionId: string, text: string): Promise<void>;
+    /** Stops the answer being streamed in this chat, if any. */
+    stop(sessionId: string): Promise<void>;
+    onChat(listener: (event: AgentChatEvent) => void): () => void;
 }

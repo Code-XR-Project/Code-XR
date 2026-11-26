@@ -1,182 +1,465 @@
-import { PROVIDER_DESCRIPTORS, PROVIDER_KINDS, type AgentsApi, type KeyStorage, type ProviderKind, type ProviderView, type SecretStoreStatus } from '../../shared/agents.ts';
-import { el } from '../dom.ts';
+import type { AgentChatEvent, AgentProfile, AgentsApi, ChatMessageView, ChatSession, ChatSessionSummary, ModelInfo, ProviderView } from '../../shared/agents.ts';
+import { el, icon } from '../dom.ts';
+import { renderMarkdown } from './chatMarkdown.ts';
+import { createProvidersSection } from './providersSection.ts';
 
 /**
- * The Agents view of the side bar (AI agent hub, story A1): the providers the
- * person connected with their own API keys. A key typed here goes straight to
- * the main process, which encrypts it with the OS secret store; this view
- * never gets it back, only whether one is set and its last four characters.
- * Chats and agent profiles join this view in later stories.
+ * The Agents view of the side bar (epic #189). Two faces in one pane:
+ * - home: the folder's chats (A5), the agents (A4) and the providers (A1);
+ * - chat: one conversation streaming from the main process (A3).
+ * Everything goes through `window.codexr.agents`; no key or provider call
+ * ever happens here.
  */
 
-const STORAGE_LABEL: Record<KeyStorage, string> = {
-    'os-encrypted': 'Key in the system keychain',
-    'session-only': 'Key kept until the IDE closes',
-    none: 'No key',
-};
+const ICONS = {
+    back: 'M15 5l-7 7 7 7',
+    plus: 'M12 5v14M5 12h14',
+    trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+    edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+    copy: 'M8 8h11v12H8zM5 16V4h11',
+    download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+} as const;
 
 export interface AgentsView {
     refresh(): Promise<void>;
-    /** Opens the add-provider form (the "Agents: Add AI Provider" command). */
+    /** "Agents: Add AI Provider". */
     addProvider(): void;
+    /** "Agents: New Chat": opens a chat with the first agent that has a provider. */
+    newChat(): Promise<void>;
 }
 
 export function createAgentsView(container: HTMLElement, api: AgentsApi, callbacks: { onStatus(message: string): void }): AgentsView {
-    const storeNote = el('p', { className: 'agents-store-note muted small', attrs: { hidden: '', 'data-testid': 'agents-store-note' } });
-    const list = el('ul', { className: 'agents-provider-list', attrs: { 'data-testid': 'agents-providers' } });
-    const empty = el('p', { className: 'muted side-note', text: 'No provider yet. Add one with your own API key: calls go straight from this computer to the provider.' });
-    const addButton = el('button', { className: 'primary-button', text: 'Add provider', attrs: { type: 'button', 'data-action': 'add-provider' } });
-    const formSlot = el('div');
+    let agents: readonly AgentProfile[] = [];
+    let providers: readonly ProviderView[] = [];
+    let open: { session: ChatSession; transcript: HTMLElement; streaming: HTMLElement | null; streamText: string; render(): void } | null = null;
 
-    container.replaceChildren(
+    const copy = (text: string): void => {
+        navigator.clipboard.writeText(text).then(() => callbacks.onStatus('Copied to the clipboard.'), () => callbacks.onStatus('Could not copy.'));
+    };
+    const iconButton = (label: string, path: string, onClick: () => void): HTMLButtonElement => {
+        const button = el('button', { className: 'icon-button', attrs: { type: 'button', title: label, 'aria-label': label } }, [icon(path)]);
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            onClick();
+        });
+        return button;
+    };
+    const errorText = (error: unknown): string => (error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+
+    // ---- Home --------------------------------------------------------------
+    const providersSection = createProvidersSection(api, { onStatus: callbacks.onStatus, onChanged: () => void refresh() });
+    const agentSelect = el('select', { className: 'agents-input', attrs: { 'aria-label': 'Agent for a new chat', 'data-testid': 'agents-new-chat-agent' } });
+    const newChatButton = el('button', { className: 'primary-button agents-inline-button', text: 'New chat', attrs: { type: 'button', 'data-action': 'new-chat' } });
+    newChatButton.addEventListener('click', () => void startChat(agentSelect.value));
+    const sessionList = el('ul', { className: 'agents-list', attrs: { 'data-testid': 'agents-sessions' } });
+    const sessionEmpty = el('p', { className: 'muted side-note', text: 'No chats in this folder yet.' });
+    const agentList = el('ul', { className: 'agents-list', attrs: { 'data-testid': 'agents-profiles' } });
+    const agentFormSlot = el('div');
+    const newAgentButton = el('button', { className: 'secondary-button agents-block-button', text: 'New agent', attrs: { type: 'button', 'data-action': 'new-agent' } });
+    newAgentButton.addEventListener('click', () => openAgentForm(null));
+
+    const home = el('div', { className: 'agents-home' }, [
         el('h2', { className: 'side-bar-title', text: 'Agents' }),
-        el('section', { className: 'agents-section', attrs: { 'aria-labelledby': 'agents-providers-heading' } }, [
-            el('h3', { className: 'side-bar-subtitle', text: 'AI providers', attrs: { id: 'agents-providers-heading' } }),
-            storeNote,
-            list,
-            empty,
-            formSlot,
-            addButton,
+        el('section', { className: 'agents-section', attrs: { 'aria-labelledby': 'agents-chats-heading' } }, [
+            el('h3', { className: 'side-bar-subtitle', text: 'Chats', attrs: { id: 'agents-chats-heading' } }),
+            el('div', { className: 'agents-new-chat' }, [agentSelect, newChatButton]),
+            sessionList,
+            sessionEmpty,
         ]),
-    );
+        el('section', { className: 'agents-section', attrs: { 'aria-labelledby': 'agents-agents-heading' } }, [
+            el('h3', { className: 'side-bar-subtitle', text: 'Agents', attrs: { id: 'agents-agents-heading' } }),
+            agentList,
+            agentFormSlot,
+            newAgentButton,
+        ]),
+        providersSection.element,
+    ]);
+    const chatPane = el('div', { className: 'agents-chat', attrs: { hidden: '', 'data-testid': 'agents-chat' } });
+    container.replaceChildren(home, chatPane);
 
-    let store: SecretStoreStatus | null = null;
-    addButton.addEventListener('click', () => openForm(null));
+    const providerOf = (agent: AgentProfile): ProviderView | undefined => providers.find((provider) => provider.id === agent.providerId);
+    const ready = (agent: AgentProfile): boolean => providerOf(agent) !== undefined && agent.model !== '';
+    const agentSummary = (agent: AgentProfile): string => {
+        const provider = providerOf(agent);
+        if (!provider) {
+            return 'Needs a provider';
+        }
+        return agent.model ? `${provider.label} · ${agent.model}` : `${provider.label} · needs a model`;
+    };
 
     async function refresh(): Promise<void> {
-        const [status, providers] = await Promise.all([api.secretStore(), api.listProviders()]);
-        store = status;
-        storeNote.hidden = status.available;
-        storeNote.textContent = `No system keychain is available (${status.backend}). Keys you enter are kept in memory until the IDE closes and are never written to disk. Install and unlock a keyring (GNOME Keyring or KWallet) to keep them.`;
-        list.replaceChildren(...providers.map(renderProvider));
-        empty.hidden = providers.length > 0;
+        const [nextProviders, nextAgents, sessions] = await Promise.all([api.listProviders(), api.listAgents(), api.listSessions(), providersSection.refresh()]);
+        providers = nextProviders;
+        agents = nextAgents;
+        const previous = agentSelect.value;
+        agentSelect.replaceChildren(...agents.map((agent) => el('option', { text: ready(agent) ? agent.name : `${agent.name} (not set up)`, attrs: { value: agent.id } })));
+        agentSelect.value = agents.some((agent) => agent.id === previous) ? previous : agents.find(ready)?.id ?? agents[0]?.id ?? '';
+        newChatButton.disabled = agents.length === 0;
+        renderSessions(sessions);
+        renderAgents();
     }
 
-    function renderProvider(provider: ProviderView): HTMLElement {
-        const descriptor = PROVIDER_DESCRIPTORS[provider.kind];
-        const result = el('p', { className: 'agents-test-result small', attrs: { hidden: '', role: 'status' } });
-        const keyText = provider.hasKey
-            ? `${STORAGE_LABEL[provider.keyStorage]}${provider.keyHint ? ` (…${provider.keyHint})` : ''}`
-            : descriptor.requiresKey ? 'No key: add one to use it' : 'No key needed';
-        const action = (label: string, onClick: () => void): HTMLButtonElement => {
-            const button = el('button', { className: 'secondary-button', text: label, attrs: { type: 'button', 'data-action': label.toLowerCase() } });
-            button.addEventListener('click', onClick);
-            return button;
+    function renderSessions(sessions: readonly ChatSessionSummary[]): void {
+        sessionEmpty.hidden = sessions.length > 0;
+        sessionList.replaceChildren(...sessions.map((session) => {
+            const agent = agents.find((candidate) => candidate.id === session.agentId);
+            const row = el('li', { className: 'agents-row', attrs: { tabindex: '0', role: 'button', 'data-session-id': session.id, title: session.title } }, [
+                el('span', { className: 'agents-row-main' }, [
+                    el('span', { className: 'agents-row-title', text: session.title }),
+                    el('span', { className: 'agents-row-sub muted', text: `${agent?.name ?? 'Deleted agent'} · ${formatWhen(session.updatedAt)}` }),
+                ]),
+                el('span', { className: 'agents-row-actions' }, [
+                    iconButton('Rename chat', ICONS.edit, () => renameInline(row, session)),
+                    iconButton('Delete chat', ICONS.trash, () => {
+                        if (window.confirm(`Delete the chat "${session.title}"?`)) {
+                            api.deleteSession(session.id).then(() => refresh(), (error: unknown) => callbacks.onStatus(errorText(error)));
+                        }
+                    }),
+                ]),
+            ]);
+            const openIt = (): void => void openChat(session.id);
+            row.addEventListener('click', openIt);
+            row.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openIt();
+                }
+            });
+            return row;
+        }));
+    }
+
+    /** Rename in place (Electron has no window.prompt): Enter saves, Escape cancels. */
+    function renameInline(row: HTMLElement, session: ChatSessionSummary): void {
+        const titleNode = row.querySelector('.agents-row-title');
+        if (!titleNode) {
+            return;
+        }
+        const input = el('input', { className: 'tree-input', attrs: { type: 'text', maxlength: '100', 'aria-label': 'Chat title' } });
+        input.value = session.title;
+        let done = false;
+        const finish = (save: boolean): void => {
+            if (done) {
+                return;
+            }
+            done = true;
+            if (save && input.value.trim() && input.value.trim() !== session.title) {
+                api.renameSession(session.id, input.value).then(() => refresh(), (error: unknown) => callbacks.onStatus(errorText(error)));
+            } else {
+                void refresh();
+            }
         };
-        const test = action('Test', () => {
-            test.disabled = true;
-            result.hidden = false;
-            result.dataset['state'] = 'pending';
-            result.textContent = 'Connecting…';
-            api.testProvider(provider.id).then((outcome) => {
-                result.dataset['state'] = outcome.ok ? 'ok' : 'error';
-                result.textContent = outcome.ok
-                    ? `Connected: ${outcome.models.length} model${outcome.models.length === 1 ? '' : 's'} available.`
-                    : outcome.error;
-            }, (error: unknown) => {
-                result.dataset['state'] = 'error';
-                result.textContent = String(error);
-            }).finally(() => { test.disabled = false; });
+        input.addEventListener('click', (event) => event.stopPropagation());
+        input.addEventListener('keydown', (event) => {
+            event.stopPropagation();
+            if (event.key === 'Enter') {
+                finish(true);
+            } else if (event.key === 'Escape') {
+                finish(false);
+            }
         });
-        const item = el('li', { className: 'agents-provider', attrs: { 'data-kind': provider.kind, 'data-provider-id': provider.id } }, [
-            el('div', { className: 'agents-provider-head' }, [
-                el('span', { className: 'agents-provider-name', text: provider.label }),
-                el('span', { className: 'env-badge', text: descriptor.label }),
+        input.addEventListener('blur', () => finish(true));
+        titleNode.replaceWith(input);
+        input.select();
+    }
+
+    function renderAgents(): void {
+        agentList.replaceChildren(...agents.map((agent) => el('li', { className: 'agents-row is-static', attrs: { 'data-agent-id': agent.id } }, [
+            el('span', { className: 'agents-row-main' }, [
+                el('span', { className: 'agents-row-title', text: agent.name }),
+                el('span', { className: ready(agent) ? 'agents-row-sub muted' : 'agents-row-sub agents-warn', text: agentSummary(agent) }),
             ]),
-            el('p', { className: 'agents-provider-key muted small', text: keyText }),
-            ...(descriptor.editableBaseUrl ? [el('p', { className: 'agents-provider-url muted small', text: provider.baseUrl })] : []),
-            el('div', { className: 'env-actions' }, [
-                test,
-                action('Edit', () => openForm(provider)),
-                action('Remove', () => {
-                    if (!window.confirm(`Remove ${provider.label} and delete its API key from this computer?`)) {
-                        return;
+            el('span', { className: 'agents-row-actions is-visible' }, [
+                iconButton(`Edit ${agent.name}`, ICONS.edit, () => openAgentForm(agent)),
+                iconButton(`Duplicate ${agent.name}`, ICONS.copy, () => {
+                    const { id: _id, ...rest } = agent;
+                    api.saveAgent({ ...rest, name: `${agent.name} copy`.slice(0, 60) }).then(() => refresh(), (error: unknown) => callbacks.onStatus(errorText(error)));
+                }),
+                iconButton(`Delete ${agent.name}`, ICONS.trash, () => {
+                    if (window.confirm(`Delete the agent "${agent.name}"? Its chats stay, but cannot continue.`)) {
+                        api.removeAgent(agent.id).then(() => refresh(), (error: unknown) => callbacks.onStatus(errorText(error)));
                     }
-                    api.removeProvider(provider.id).then(() => {
-                        callbacks.onStatus(`Removed ${provider.label}.`);
-                        return refresh();
-                    }, (error: unknown) => callbacks.onStatus(String(error)));
                 }),
             ]),
-            result,
-        ]);
-        return item;
+        ])));
     }
 
-    /** The add/edit form, shown in place above the Add button. */
-    function openForm(existing: ProviderView | null): void {
-        addButton.hidden = true;
-        const kindSelect = el('select', { className: 'agents-input', attrs: { id: 'agents-kind', 'data-testid': 'agents-kind' } },
-            PROVIDER_KINDS.map((kind) => el('option', { text: PROVIDER_DESCRIPTORS[kind].label, attrs: { value: kind } })));
-        kindSelect.value = existing?.kind ?? 'anthropic';
-        kindSelect.disabled = existing !== null;
-        const label = el('input', { className: 'agents-input', attrs: { id: 'agents-label', type: 'text', maxlength: '60', autocomplete: 'off', spellcheck: 'false' } });
-        label.value = existing?.label ?? '';
-        const baseUrl = el('input', { className: 'agents-input', attrs: { id: 'agents-url', type: 'url', autocomplete: 'off', spellcheck: 'false' } });
-        const key = el('input', { className: 'agents-input', attrs: { id: 'agents-key', type: 'password', autocomplete: 'off', spellcheck: 'false', 'data-testid': 'agents-key' } });
-        const keyHelp = el('p', { className: 'muted small agents-help' });
-        const urlRow = el('div', { className: 'agents-field' }, [el('label', { text: 'Endpoint', attrs: { for: 'agents-url' } }), baseUrl]);
-        const error = el('p', { className: 'error small', attrs: { hidden: '', role: 'alert' } });
-        const save = el('button', { className: 'primary-button', text: existing ? 'Save' : 'Add', attrs: { type: 'submit' } });
-        const cancel = el('button', { className: 'secondary-button', text: 'Cancel', attrs: { type: 'button' } });
-
-        const sync = (): void => {
-            const descriptor = PROVIDER_DESCRIPTORS[kindSelect.value as ProviderKind];
-            label.placeholder = descriptor.label;
-            urlRow.hidden = !descriptor.editableBaseUrl;
-            baseUrl.placeholder = descriptor.defaultBaseUrl;
-            if (!baseUrl.value || !existing) {
-                baseUrl.value = existing?.baseUrl ?? descriptor.defaultBaseUrl;
+    /** The agent form (A4): provider, model (listed from the provider), instructions, temperature. */
+    function openAgentForm(existing: AgentProfile | null): void {
+        newAgentButton.hidden = true;
+        const name = el('input', { className: 'agents-input', attrs: { id: 'agent-name', type: 'text', maxlength: '60', autocomplete: 'off' } });
+        name.value = existing?.name ?? '';
+        const provider = el('select', { className: 'agents-input', attrs: { id: 'agent-provider', 'data-testid': 'agent-provider' } }, [
+            el('option', { text: providers.length ? 'Choose a provider' : 'Add a provider below first', attrs: { value: '' } }),
+            ...providers.map((candidate) => el('option', { text: candidate.label, attrs: { value: candidate.id } })),
+        ]);
+        provider.value = existing?.providerId || providers[0]?.id || '';
+        const model = el('input', { className: 'agents-input', attrs: { id: 'agent-model', type: 'text', list: 'agent-models', autocomplete: 'off', spellcheck: 'false', placeholder: 'Model id', 'data-testid': 'agent-model' } });
+        model.value = existing?.model ?? '';
+        const modelList = el('datalist', { attrs: { id: 'agent-models' } });
+        const modelNote = el('p', { className: 'muted small agents-help' });
+        const loadModels = (): void => {
+            modelList.replaceChildren();
+            modelNote.textContent = '';
+            if (!provider.value) {
+                return;
             }
-            key.placeholder = existing?.hasKey ? 'Leave empty to keep the current key' : descriptor.requiresKey ? 'Paste your API key' : 'Optional';
-            keyHelp.textContent = descriptor.keyHelp + (store && !store.available ? '. Kept in memory only: no keychain available.' : '. Encrypted with the system keychain.');
+            modelNote.textContent = 'Loading models…';
+            api.testProvider(provider.value).then((result) => {
+                if (result.ok) {
+                    modelList.replaceChildren(...result.models.map((entry: ModelInfo) => el('option', { attrs: { value: entry.id, label: entry.label } })));
+                    modelNote.textContent = `${result.models.length} models available; type to filter.`;
+                } else {
+                    modelNote.textContent = `Could not list models: ${result.error}`;
+                }
+            }, (error: unknown) => { modelNote.textContent = errorText(error); });
         };
-        kindSelect.addEventListener('change', sync);
-        sync();
-
-        const form = el('form', { className: 'agents-form', attrs: { 'aria-label': existing ? `Edit ${existing.label}` : 'Add a provider' } }, [
-            el('div', { className: 'agents-field' }, [el('label', { text: 'Provider', attrs: { for: 'agents-kind' } }), kindSelect]),
-            el('div', { className: 'agents-field' }, [el('label', { text: 'Name', attrs: { for: 'agents-label' } }), label]),
-            urlRow,
-            el('div', { className: 'agents-field' }, [el('label', { text: 'API key', attrs: { for: 'agents-key' } }), key, keyHelp]),
+        provider.addEventListener('change', loadModels);
+        loadModels();
+        const instructions = el('textarea', { className: 'agents-input agents-textarea', attrs: { id: 'agent-instructions', rows: '5', spellcheck: 'true' } });
+        instructions.value = existing?.instructions ?? '';
+        const temperature = el('input', { className: 'agents-input', attrs: { id: 'agent-temperature', type: 'number', min: '0', max: '2', step: '0.1', placeholder: 'Provider default' } });
+        temperature.value = existing?.temperature !== undefined ? String(existing.temperature) : '';
+        const error = el('p', { className: 'error small', attrs: { hidden: '', role: 'alert' } });
+        const save = el('button', { className: 'primary-button', text: existing ? 'Save' : 'Create', attrs: { type: 'submit' } });
+        const cancel = el('button', { className: 'secondary-button', text: 'Cancel', attrs: { type: 'button' } });
+        const field = (label: string, id: string, ...controls: Node[]): HTMLElement =>
+            el('div', { className: 'agents-field' }, [el('label', { text: label, attrs: { for: id } }), ...controls]);
+        const form = el('form', { className: 'agents-form', attrs: { 'aria-label': existing ? `Edit ${existing.name}` : 'New agent' } }, [
+            field('Name', 'agent-name', name),
+            field('Provider', 'agent-provider', provider),
+            field('Model', 'agent-model', model, modelList, modelNote),
+            field('Instructions', 'agent-instructions', instructions),
+            field('Temperature', 'agent-temperature', temperature),
             error,
             el('div', { className: 'env-actions' }, [save, cancel]),
         ]);
         const close = (): void => {
-            key.value = '';
-            formSlot.replaceChildren();
-            addButton.hidden = false;
+            agentFormSlot.replaceChildren();
+            newAgentButton.hidden = false;
         };
         cancel.addEventListener('click', close);
         form.addEventListener('submit', (event) => {
             event.preventDefault();
-            const kind = kindSelect.value as ProviderKind;
-            const descriptor = PROVIDER_DESCRIPTORS[kind];
-            const typedKey = key.value.trim();
-            if (descriptor.requiresKey && !typedKey && !existing?.hasKey) {
-                error.hidden = false;
-                error.textContent = `${descriptor.label} needs an API key.`;
-                key.focus();
-                return;
-            }
             save.disabled = true;
-            api.saveProvider({
-                kind,
-                label: label.value,
-                ...(descriptor.editableBaseUrl ? { baseUrl: baseUrl.value } : {}),
-                ...(typedKey || !existing ? { apiKey: typedKey } : {}),
+            const temperatureValue = temperature.value.trim() === '' ? undefined : Number(temperature.value);
+            api.saveAgent({
+                name: name.value,
+                providerId: provider.value,
+                model: model.value.trim(),
+                instructions: instructions.value,
+                ...(temperatureValue !== undefined ? { temperature: temperatureValue } : {}),
+                tools: existing?.tools ?? [],
             }, existing?.id).then((saved) => {
                 close();
-                callbacks.onStatus(`Saved ${saved.label}.`);
+                callbacks.onStatus(`Saved ${saved.name}.`);
                 return refresh();
             }, (failure: unknown) => {
                 error.hidden = false;
-                error.textContent = failure instanceof Error ? failure.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(failure);
+                error.textContent = errorText(failure);
             }).finally(() => { save.disabled = false; });
         });
-        formSlot.replaceChildren(form);
-        (existing ? key : kindSelect).focus();
+        agentFormSlot.replaceChildren(form);
+        name.focus();
     }
 
-    return { refresh, addProvider: () => openForm(null) };
+    // ---- Chat --------------------------------------------------------------
+    async function startChat(agentId: string): Promise<void> {
+        if (!agentId) {
+            return;
+        }
+        try {
+            const session = await api.createSession(agentId);
+            showChat(session);
+        } catch (error) {
+            callbacks.onStatus(errorText(error));
+        }
+    }
+
+    async function openChat(id: string): Promise<void> {
+        try {
+            showChat(await api.getSession(id));
+        } catch (error) {
+            callbacks.onStatus(errorText(error));
+            void refresh();
+        }
+    }
+
+    function showHome(): void {
+        open = null;
+        chatPane.hidden = true;
+        home.hidden = false;
+        void refresh();
+    }
+
+    function showChat(initial: ChatSession): void {
+        const agent = agents.find((candidate) => candidate.id === initial.agentId);
+        const title = el('span', { className: 'agents-chat-title', text: initial.title });
+        const transcript = el('div', { className: 'agents-transcript', attrs: { role: 'log', 'aria-live': 'polite', 'aria-label': 'Conversation', 'data-testid': 'agents-transcript' } });
+        const input = el('textarea', { className: 'agents-input agents-chat-input', attrs: { rows: '3', placeholder: `Message ${agent?.name ?? 'the agent'} (Enter to send, Shift+Enter for a new line)`, 'aria-label': 'Message', 'data-testid': 'agents-chat-input' } });
+        const send = el('button', { className: 'primary-button agents-inline-button', text: 'Send', attrs: { type: 'button', 'data-action': 'send' } });
+        const meta = el('span', { className: 'muted small agents-chat-meta', text: agent ? agentSummary(agent) : 'Deleted agent' });
+
+        const state = {
+            session: initial,
+            transcript,
+            streaming: null as HTMLElement | null,
+            streamText: '',
+            render(): void {
+                transcript.replaceChildren(...state.session.messages.map((message) => renderMessage(message)));
+                if (state.session.messages.length === 0) {
+                    transcript.append(el('p', { className: 'muted agents-chat-empty', text: agent && !ready(agent)
+                        ? `${agent.name} is not set up yet: ${agentSummary(agent).toLowerCase()}. Edit it from the Agents list.`
+                        : 'Ask anything about your code. Answers stream here; this chat is saved with the folder.' }));
+                }
+                transcript.scrollTop = transcript.scrollHeight;
+            },
+        };
+        open = state;
+
+        const running = (busy: boolean): void => {
+            send.textContent = busy ? 'Stop' : 'Send';
+            send.dataset['action'] = busy ? 'stop' : 'send';
+            chatPane.setAttribute('aria-busy', String(busy));
+        };
+        const submit = (): void => {
+            if (send.dataset['action'] === 'stop') {
+                void api.stop(state.session.id);
+                return;
+            }
+            const text = input.value;
+            if (!text.trim()) {
+                return;
+            }
+            input.value = '';
+            const userTurn: ChatMessageView = { role: 'user', content: text, at: new Date().toISOString() };
+            state.session = { ...state.session, messages: [...state.session.messages, userTurn] };
+            state.render();
+            running(true);
+            api.send(state.session.id, text).catch((error: unknown) => {
+                input.value = text;
+                callbacks.onStatus(errorText(error));
+                state.session = { ...state.session, messages: state.session.messages.slice(0, -1) };
+                state.render();
+            }).finally(() => {
+                running(false);
+                void api.getSession(state.session.id).then((fresh) => {
+                    if (open === state) {
+                        state.session = fresh;
+                        title.textContent = fresh.title;
+                    }
+                }, () => undefined);
+                input.focus();
+            });
+        };
+        send.addEventListener('click', submit);
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+                event.preventDefault();
+                submit();
+            }
+        });
+
+        chatPane.replaceChildren(
+            el('div', { className: 'agents-chat-header' }, [
+                iconButton('Back to chats', ICONS.back, showHome),
+                title,
+                iconButton('Copy chat as Markdown', ICONS.download, () => {
+                    api.exportSession(state.session.id).then(copy, (error: unknown) => callbacks.onStatus(errorText(error)));
+                }),
+                iconButton('New chat with this agent', ICONS.plus, () => void startChat(state.session.agentId)),
+            ]),
+            transcript,
+            el('div', { className: 'agents-composer' }, [input, el('div', { className: 'agents-composer-row' }, [meta, send])]),
+        );
+        home.hidden = true;
+        chatPane.hidden = false;
+        state.render();
+        running(initial.running);
+        input.focus();
+    }
+
+    function renderMessage(message: ChatMessageView): HTMLElement {
+        const isUser = message.role === 'user';
+        const body = el('div', { className: 'agents-message-body' });
+        if (isUser) {
+            body.append(el('p', { className: 'chat-paragraph agents-user-text', text: message.content }));
+        } else {
+            body.append(renderMarkdown(message.content, { copy }));
+        }
+        const notes: HTMLElement[] = [];
+        if (message.stopped) {
+            notes.push(el('p', { className: 'muted small', text: 'Stopped.' }));
+        }
+        if (message.error) {
+            notes.push(el('p', { className: 'error small agents-message-error', text: message.error, attrs: { role: 'alert' } }));
+        }
+        const footer = !isUser && message.usage
+            ? [el('p', { className: 'muted small agents-usage', text: `${message.model ?? ''} · ${message.usage.inputTokens} in / ${message.usage.outputTokens} out tokens` })]
+            : [];
+        const actions = isUser || !message.content ? [] : [iconButton('Copy answer', ICONS.copy, () => copy(message.content))];
+        return el('article', { className: `agents-message ${isUser ? 'is-user' : 'is-assistant'}`, attrs: { 'data-role': message.role } }, [
+            el('div', { className: 'agents-message-head' }, [el('span', { className: 'agents-message-author', text: isUser ? 'You' : agentName(message) }), ...actions]),
+            body,
+            ...notes,
+            ...footer,
+        ]);
+    }
+
+    function agentName(_message: ChatMessageView): string {
+        return agents.find((agent) => agent.id === open?.session.agentId)?.name ?? 'Agent';
+    }
+
+    api.onChat((event: AgentChatEvent) => {
+        const state = open;
+        if (!state || event.sessionId !== state.session.id) {
+            return;
+        }
+        if (event.type === 'start') {
+            state.streamText = '';
+            state.streaming = el('div', { className: 'agents-message-body' });
+            const article = el('article', { className: 'agents-message is-assistant is-streaming', attrs: { 'data-role': 'assistant' } }, [
+                el('div', { className: 'agents-message-head' }, [el('span', { className: 'agents-message-author', text: agentName({ role: 'assistant', content: '', at: '' }) }), el('span', { className: 'muted small', text: event.model })]),
+                ...(event.trimmed > 0 ? [el('p', { className: 'muted small', text: `The ${event.trimmed} oldest messages were left out to fit the model's context.` })] : []),
+                state.streaming,
+            ]);
+            state.transcript.append(article);
+        } else if (event.type === 'delta' && state.streaming) {
+            state.streamText += event.text;
+            const nearBottom = state.transcript.scrollHeight - state.transcript.scrollTop - state.transcript.clientHeight < 60;
+            state.streaming.replaceChildren(renderMarkdown(state.streamText, { copy }));
+            if (nearBottom) {
+                state.transcript.scrollTop = state.transcript.scrollHeight;
+            }
+        } else if (event.type === 'end') {
+            state.streaming = null;
+            state.session = { ...state.session, messages: [...state.session.messages, event.message] };
+            state.render();
+        }
+    });
+
+    return {
+        refresh,
+        addProvider: () => {
+            showHome();
+            providersSection.addProvider();
+        },
+        async newChat(): Promise<void> {
+            if (agents.length === 0) {
+                await refresh();
+            }
+            const agent = agents.find(ready) ?? agents[0];
+            if (agent) {
+                await startChat(agent.id);
+            }
+        },
+    };
+}
+
+function formatWhen(iso: string): string {
+    const date = new Date(iso);
+    const today = new Date();
+    return date.toDateString() === today.toDateString()
+        ? date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+        : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }

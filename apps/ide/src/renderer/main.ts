@@ -423,7 +423,7 @@ const editorStatus = createEditorStatus(workbench.editorStatus, {
     pickEndOfLine,
     pickLanguage,
 });
-registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider() });
+registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
     goToLine: () => quickInput.open(LINE_PREFIX),
