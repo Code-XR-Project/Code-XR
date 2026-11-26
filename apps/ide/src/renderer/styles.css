@@ -378,6 +378,8 @@ body {
 .env-location { margin: 0; overflow-wrap: anywhere; }
 .env-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .env-actions .primary-button { margin: 0; width: auto; }
+.checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer; }
+.checkbox-row input { margin: 0; accent-color: var(--accent, #3794ff); }
 
 /* Status bar items */
 .status-right { display: flex; align-items: center; gap: 12px; min-width: 0; }

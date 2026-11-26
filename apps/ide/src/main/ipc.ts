@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
-import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AppInfo } from '../shared/api.ts';
+import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, AUTO_START_MODES, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AppInfo, type AutoStartMode } from '../shared/api.ts';
 import type { TerminalHost } from './terminal/terminalHost.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
@@ -74,12 +74,20 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());
 
     // #16: analyses, and the scene view beside the code.
-    handle(IPC_CHANNELS.analysisAnalyseProject, (event, kind) => {
+    handle(IPC_CHANNELS.analysisAnalyseProject, (event, kind, options) => {
         const win = ownerOf(event);
         if (!(ANALYSIS_KINDS as readonly unknown[]).includes(kind)) {
             throw new Error(`Unknown analysis kind: ${String(kind)}`);
         }
-        return core.analysis.analyseProject(win, currentWorkspaceInfo(event.sender)?.root, kind as AnalysisKind);
+        const auto = typeof options === 'object' && options !== null && (options as { auto?: unknown }).auto === true;
+        return core.analysis.analyseProject(win, currentWorkspaceInfo(event.sender)?.root, kind as AnalysisKind, { auto });
+    });
+    handle(IPC_CHANNELS.analysisGetAutoStart, () => core.analysis.autoStart());
+    handle(IPC_CHANNELS.analysisSetAutoStart, (_event, mode) => {
+        if (!(AUTO_START_MODES as readonly unknown[]).includes(mode)) {
+            throw new Error(`Unknown auto-start mode: ${String(mode)}`);
+        }
+        return core.analysis.setAutoStart(mode as AutoStartMode);
     });
     handle(IPC_CHANNELS.analysisSetSceneBounds, (event, bounds) => setSceneBounds(ownerOf(event), sanitizeBounds(bounds)));
     handle(IPC_CHANNELS.analysisCloseScene, (event) => closeScene(ownerOf(event)));

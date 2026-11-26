@@ -66,7 +66,10 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
     onOpenFile: (path) => void editorGroup().then((group) => group.open(path)),
     onError: (message) => workbench.setStatus(message),
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
-    onOpened: () => editors?.reset(),
+    onOpened: (workspace) => {
+        editors?.reset();
+        folderOpened(workspace.root);
+    },
     onExpandedChange: () => updateWatched(),
     onCreated: (path, kind) => { if (kind === 'file') { void editorGroup().then((group) => group.open(path)); } },
     onRenamed: (from, to) => void editors?.entryMoved(from, to),
@@ -83,13 +86,28 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
     void explorer.show(workspace);
 }
 
+/** #139: the main process stops the old folder's scene; the panel follows, and the new folder may be analysed. */
+function folderOpened(root: string): void {
+    scenePanel.close();
+    runView.setHasFolder(true);
+    runView.folderOpened(root);
+}
+
 api.workspace.onDidChange((workspace) => {
-    runView.setHasFolder(workspace !== null);
+    if (workspace) {
+        folderOpened(workspace.root);
+    } else {
+        scenePanel.close();
+        runView.setHasFolder(false);
+    }
     showWorkspace(workspace);
 });
 api.workspace.current().then(
     (workspace) => {
         runView.setHasFolder(workspace !== null);
+        if (workspace) {
+            runView.folderOpened(workspace.root);
+        }
         return explorer.show(workspace);
     },
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),

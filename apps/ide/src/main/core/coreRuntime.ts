@@ -8,6 +8,7 @@ import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { AnalysisService } from '../analysis/analysisService.ts';
 import { setSceneLibrariesDir } from '../analysis/sceneView.ts';
+import { setFolderChangeListener } from '../workspace/workspaceWindows.ts';
 import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 
 /**
@@ -52,6 +53,8 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
     // The vendored copies of the scene's CDN libraries (analysis/sceneLibraries.ts); #20 packages them.
     setSceneLibrariesDir(path.join(installRoot, 'test', 'vendor', 'scene-libraries'));
     const analysis = new AnalysisService(python, subscriptions);
+    // #139: a window that opens another folder stops serving the old one's scene.
+    setFolderChangeListener((contents, root) => void analysis.folderChanged(contents, root));
     app.once('will-quit', () => {
         for (const disposable of subscriptions.splice(0)) {
             disposable.dispose();
