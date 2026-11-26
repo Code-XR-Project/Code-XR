@@ -1,5 +1,5 @@
 import { MODIFIED_ON_DISK, type CodeXRApi, type FileContent } from '../../shared/api.ts';
-import { el, icon } from '../dom.ts';
+import { el, fileIcon, icon } from '../dom.ts';
 import { followSystemTheme, monaco } from './monaco.ts';
 
 /**
@@ -140,7 +140,7 @@ export function createEditorGroup(
         const tab = el('div', {
             className: 'editor-tab',
             attrs: { role: 'tab', 'aria-selected': 'false', tabindex: '-1', title: content.path, 'data-path': content.path },
-        }, [el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
+        }, [fileIcon(name, 'file'), el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
         const uri = monaco.Uri.from({ scheme: 'codexr-file', path: `/${content.path}` });
         const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(content.text, undefined, uri);
         const file: OpenFile = { path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs, diskState: 'same', viewState: null };
