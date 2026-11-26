@@ -1,5 +1,6 @@
 import * as http from 'http';
 import * as vscode from 'vscode';
+import type { HostDisposable } from '../host/codeXRHost';
 import { sseManager } from './sse/SSEManager';
 import { fileToServerMap } from './fileToServerMap';
 import { NetworkUtils } from './networkUtils';
@@ -59,7 +60,7 @@ export class HttpServer {
     private upgradeAttached = false;
     private broadcastSignalingServer: ScreenBroadcastSignalingServer | null = null;
     private collaborationRoomServer: CollaborationRoomServer | null = null;
-    private collaborationProfileSubscription: vscode.Disposable | null = null;
+    private collaborationProfileSubscription: HostDisposable | null = null;
     private readonly remoteSessionAuthority = new RemoteSessionAuthority();
     private remotePublicUrl: string | null = null;
     private readonly analysisHost: AnalysisFeatureHost;
