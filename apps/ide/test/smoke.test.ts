@@ -29,6 +29,7 @@ const healthy: SmokeProbe = {
     settings: { listed: true, applied: true, reset: true },
     keybindings: { opened: true, recorded: true, works: true, reset: true },
     theme: { previewed: true, reverted: true, stored: true },
+    output: { shown: true, hasLines: true, switched: true, closed: true },
     cspViolations: [],
 };
 

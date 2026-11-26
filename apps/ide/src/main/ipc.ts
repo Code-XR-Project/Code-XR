@@ -10,6 +10,7 @@ import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
 import type { SettingsService } from './settings/settingsService.ts';
 import type { KeybindingsService } from './settings/keybindingsService.ts';
+import type { OutputService } from './output/outputService.ts';
 import { setMenuAccelerators } from './menu.ts';
 import { applyColorTheme, previewColorTheme } from './settings/theme.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';
@@ -22,7 +23,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -100,6 +101,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.settingsPreviewTheme, (_event, theme) => previewColorTheme(theme));
     handle(IPC_CHANNELS.settingsFolderFile, (event) => settings.ensureFolderFile(workspaceOf(event.sender)));
     // #18, part 3: the user's keybindings are one file for every window, so every window hears a change.
+    // #174: the Output panel.
+    handle(IPC_CHANNELS.outputLines, (_event, channel) => output.lines(channel));
+    handle(IPC_CHANNELS.outputClear, (_event, channel) => output.clear(channel));
     handle(IPC_CHANNELS.keybindingsGet, () => keybindings.snapshot());
     handle(IPC_CHANNELS.keybindingsUpdate, async (_event, entries) => {
         const report = await keybindings.update(entries);

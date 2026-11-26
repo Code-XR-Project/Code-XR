@@ -5,7 +5,8 @@
     "lib": ["ES2023"],
     "types": ["node"],
     "paths": {
-      "@codexr/core/*": ["./.core-types/core/*"]
+      "@codexr/core/*": ["./.core-types/core/*"],
+      "@codexr/logging/*": ["./.core-types/platform/logging/*"]
     }
   },
   "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts", "test/**/*.ts"]
