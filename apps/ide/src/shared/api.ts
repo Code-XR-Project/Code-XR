@@ -113,10 +113,14 @@ export interface HostNotification {
 export const ANALYSIS_KINDS = ['xr-deep'] as const;
 export type AnalysisKind = (typeof ANALYSIS_KINDS)[number];
 
+/** What runs when a folder opens (#139): nothing, or the whole project in XR (deep). */
+export const AUTO_START_MODES = ['off', 'xr-deep'] as const;
+export type AutoStartMode = (typeof AUTO_START_MODES)[number];
+
 /** Why an analysis did not start; `message` is for display. */
 export type AnalysisStartResult =
     | { readonly ok: true }
-    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'failed'; readonly message: string };
+    | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'declined' | 'failed'; readonly message: string };
 
 /** An analysis scene served by Code-XR's local server, shown beside the code. */
 export interface SceneInfo {
@@ -203,7 +207,10 @@ export interface CodeXRApi {
          * folder is open or the Python environment is not ready: nothing is
          * ever downloaded from here.
          */
-        analyseProject(kind: AnalysisKind): Promise<AnalysisStartResult>;
+        analyseProject(kind: AnalysisKind, options?: { readonly auto?: boolean }): Promise<AnalysisStartResult>;
+        /** What runs when a folder opens (#139); `xr-deep` unless the person turned it off. */
+        autoStart(): Promise<AutoStartMode>;
+        setAutoStart(mode: AutoStartMode): Promise<AutoStartMode>;
         /** Where to draw the scene; null hides it (the slot is not visible). */
         setSceneBounds(bounds: SceneBounds | null): Promise<void>;
         /** Closes the scene (its server keeps running, as in the extension). */
@@ -305,6 +312,8 @@ export const IPC_CHANNELS = {
     analysisAnalyseProject: 'codexr:analysis:analyse-project',
     analysisSetSceneBounds: 'codexr:analysis:set-scene-bounds',
     analysisCloseScene: 'codexr:analysis:close-scene',
+    analysisGetAutoStart: 'codexr:analysis:get-auto-start',
+    analysisSetAutoStart: 'codexr:analysis:set-auto-start',
     terminalProfiles: 'codexr:terminal:profiles',
     terminalSetDefaultProfile: 'codexr:terminal:set-default-profile',
     terminalAddCustomProfile: 'codexr:terminal:add-custom-profile',
