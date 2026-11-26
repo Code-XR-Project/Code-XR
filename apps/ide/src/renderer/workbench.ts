@@ -5,7 +5,7 @@ import { el, icon } from './dom.ts';
  * The workbench shell: activity bar, side bar, editor area and status bar.
  * The side bar hosts the explorer (#14, explorer.ts); the editor area is the
  * welcome view until Monaco arrives (#14), then analysis views (#16), the
- * terminal (#17) and the command palette (#18) take their slots. Built with DOM APIs
+ * terminal (#137, the bottom panel) and the command palette (#18) take their slots. Built with DOM APIs
  * only, never innerHTML, so nothing here can turn text into markup.
  */
 
@@ -38,6 +38,8 @@ export interface Workbench {
     showError(message: string): void;
     /** Left status-bar text, for short messages ("Opened …"). */
     setStatus(message: string): void;
+    /** The bottom panel under the editor area (#137: the terminal, terminal/terminalPanel.ts). */
+    readonly panel: HTMLElement;
 }
 
 export function renderWorkbench(root: HTMLElement): Workbench {
@@ -95,7 +97,10 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     pythonItem.addEventListener('click', () => showView('analysis'));
     const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [pythonItem, statusRight])]);
 
-    root.replaceChildren(el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, statusBar]));
+    // #137: the bottom panel (hidden until the terminal opens).
+    const panel = el('section', { className: 'panel', attrs: { hidden: '' } });
+
+    root.replaceChildren(el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, panel, statusBar]));
 
     return {
         sideBar,
@@ -108,6 +113,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
             pythonItem.dataset['state'] = state;
         },
         editorArea,
+        panel,
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },

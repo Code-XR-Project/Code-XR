@@ -66,7 +66,11 @@ export interface SaveResult {
  * menu and its accelerators (#14). A closed list, so the renderer can ignore
  * anything else.
  */
-export const IDE_COMMANDS = ['workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
+export const IDE_COMMANDS = [
+    'workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close',
+    // #137: the terminal panel (View menu, Ctrl+` and Ctrl+Shift+`).
+    'terminal.toggle', 'terminal.new', 'terminal.closePanel',
+] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
 /**
