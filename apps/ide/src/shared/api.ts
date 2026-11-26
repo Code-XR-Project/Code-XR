@@ -122,10 +122,46 @@ export type AnalysisStartResult =
     | { readonly ok: true }
     | { readonly ok: false; readonly reason: 'no-workspace' | 'python-not-ready' | 'declined' | 'failed'; readonly message: string };
 
+/**
+ * Whether a scene is shared beyond this machine through a Cloudflare quick
+ * tunnel (#155), as the scene's header shows it.
+ * - `stopped`: only reachable on this machine.
+ * - `starting`: cloudflared is starting (or being downloaded, after consent).
+ * - `shared`: reachable at `publicUrl`; guests join through an invitation link
+ *   and a pairing code the IDE shows.
+ * - `error`: the last attempt failed or the tunnel closed; `error` says why.
+ */
+export type SceneShareStatus = 'stopped' | 'starting' | 'shared' | 'error';
+
+export interface SceneShareState {
+    readonly status: SceneShareStatus;
+    /** `https://<name>.trycloudflare.com`, only while shared. */
+    readonly publicUrl?: string | undefined;
+    readonly error?: string | undefined;
+}
+
+/** What the scene's header can copy (#155); the main process copies from its own state, never text from the page. */
+export const SCENE_ADDRESSES = ['local', 'invitation'] as const;
+export type SceneAddress = (typeof SCENE_ADDRESSES)[number];
+
 /** An analysis scene served by Code-XR's local server, shown beside the code. */
 export interface SceneInfo {
+    /** The local address the scene is served at (`http://127.0.0.1:<port>/`). */
     readonly url: string;
     readonly title: string;
+    /** #155: what ran, for the header. */
+    readonly kind: AnalysisKind;
+    /** The analysed folder or file's own name. */
+    readonly target: string;
+    /** Its absolute path, for the header's tooltip only. */
+    readonly targetPath: string;
+    readonly share: SceneShareState;
+}
+
+/** A change of the sharing state of the calling window's scene (#155). `url` names the scene it belongs to. */
+export interface SceneShareEvent {
+    readonly url: string;
+    readonly share: SceneShareState;
 }
 
 /** Where the scene is drawn, in CSS pixels of the window's content. */
@@ -217,6 +253,19 @@ export interface CodeXRApi {
         closeScene(): Promise<void>;
         /** A scene is ready to show; the renderer opens its slot and reports bounds. */
         onDidOpenScene(listener: (scene: SceneInfo) => void): Unsubscribe;
+        /**
+         * Shares this window's scene through a Cloudflare quick tunnel (#155).
+         * Downloading cloudflared, the first time, asks in a native dialog in
+         * the main process. Resolves with the new state (`stopped` when the
+         * download was declined); rejects when there is no scene or the tunnel
+         * failed.
+         */
+        shareScene(): Promise<SceneShareState>;
+        /** Stops sharing this window's scene and revokes its remote sessions. */
+        stopSharingScene(): Promise<SceneShareState>;
+        /** Copies the window's scene address (local, or the tunnel's invitation link) to the clipboard. */
+        copySceneAddress(which: SceneAddress): Promise<void>;
+        onDidChangeSceneShare(listener: (event: SceneShareEvent) => void): Unsubscribe;
     };
     readonly workspace: {
         /** Shows the folder picker; resolves with the new workspace, or null when cancelled. */
@@ -314,6 +363,9 @@ export const IPC_CHANNELS = {
     analysisCloseScene: 'codexr:analysis:close-scene',
     analysisGetAutoStart: 'codexr:analysis:get-auto-start',
     analysisSetAutoStart: 'codexr:analysis:set-auto-start',
+    analysisShareScene: 'codexr:analysis:share-scene',
+    analysisStopSharingScene: 'codexr:analysis:stop-sharing-scene',
+    analysisCopySceneAddress: 'codexr:analysis:copy-scene-address',
     terminalProfiles: 'codexr:terminal:profiles',
     terminalSetDefaultProfile: 'codexr:terminal:set-default-profile',
     terminalAddCustomProfile: 'codexr:terminal:add-custom-profile',
@@ -336,6 +388,7 @@ export const IPC_EVENTS = {
     pythonStatusChanged: 'codexr:python:status-changed',
     hostNotification: 'codexr:host:notification',
     analysisSceneOpened: 'codexr:analysis:scene-opened',
+    analysisSceneShareChanged: 'codexr:analysis:scene-share-changed',
     terminalData: 'codexr:terminal:data',
     terminalExit: 'codexr:terminal:exit',
 } as const;

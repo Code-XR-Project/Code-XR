@@ -414,17 +414,43 @@ body {
   border-left: 1px solid var(--line);
 }
 .scene-area[hidden] { display: none; }
+/* The scene's header (#155): what ran and on what, where it is served, and
+   the Cloudflare tunnel. Every row shrinks with ellipsis, never overflows. */
 .scene-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  height: 35px;
-  padding: 0 8px 0 12px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 6px 12px;
   font-size: 12px;
   border-bottom: 1px solid var(--line);
 }
-.scene-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-header-row { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 24px; }
+.scene-header-row[hidden], .scene-share-error[hidden], .scene-share[hidden] { display: none; }
+.scene-kind {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.scene-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.scene-address-label { flex: none; width: 64px; color: var(--muted); }
+.scene-address {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  user-select: text;
+}
+.scene-copy { flex: none; }
+.scene-copy.is-copied { color: var(--accent); }
+.scene-share { flex: none; margin-left: auto; padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.scene-share-error { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--crit); }
 .scene-slot { flex: 1; min-height: 0; }
 @media (max-width: 720px) {
   .workbench.has-scene {
