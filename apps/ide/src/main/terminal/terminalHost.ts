@@ -10,6 +10,7 @@ import { log } from '../log.ts';
 import { currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
 import { memoryStore, ProfileRegistry } from './profileRegistry.ts';
 import { splitArgs } from './shellProfiles.ts';
+import { ptyCommandRunner, type CommandRunner } from '../agents/tools/commandTool.ts';
 import { TerminalService, type PtyProcess, type SpawnOptions } from './terminalService.ts';
 
 /**
@@ -28,6 +29,8 @@ export interface TerminalHost {
     resize(contents: WebContents, id: unknown, cols: unknown, rows: unknown): void;
     kill(contents: WebContents, id: unknown): void;
     killAll(): Promise<void>;
+    /** Runs agents' commands (epic #189, A9) with the default profile's shell. */
+    readonly commandRunner: CommandRunner;
 }
 
 type NodePtyModule = typeof NodePty;
@@ -105,7 +108,10 @@ export function createTerminalHost(options: { readonly isSmoke: boolean }): Term
         contents.on('did-navigate', () => service.killOwnedBy(id));
     };
 
+    const commandRunner = ptyCommandRunner(spawnPty, async () => (await registry.resolve(null)).path, process.env);
+
     return {
+        commandRunner,
         profiles: () => registry.list(),
         setDefaultProfile: (id) => registry.setDefault(id),
         removeCustomProfile: (id) => registry.removeCustom(id),
@@ -151,6 +157,9 @@ export function createTerminalHost(options: { readonly isSmoke: boolean }): Term
         input: (contents, id, data) => service.input(contents, id, data),
         resize: (contents, id, cols, rows) => service.resize(contents, id, cols, rows),
         kill: (contents, id) => service.kill(contents, id),
-        killAll: () => service.killAll(),
+        killAll: () => {
+            commandRunner.killAll();
+            return service.killAll();
+        },
     };
 }

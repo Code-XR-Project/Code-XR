@@ -15,6 +15,8 @@ import { WORKSPACE_TOOLS } from '../src/main/agents/tools/workspaceTools.ts';
 import type { AgentTool, ToolWorkspace } from '../src/main/agents/tools/toolTypes.ts';
 import { buildAttachmentContext } from '../src/main/agents/attachments.ts';
 import { applyReplacements, proposeEditTool } from '../src/main/agents/tools/editTools.ts';
+import { capOutput, plainOutput, ptyCommandRunner, runCommandTool, shellInvocation } from '../src/main/agents/tools/commandTool.ts';
+import type { PtyProcess } from '../src/main/terminal/terminalService.ts';
 import { applyHunks, diffLines, matchLineEndings } from '../src/shared/lineDiff.ts';
 import type { FetchLike } from '../src/main/agents/providers/types.ts';
 import { parseInline, parseMarkdown } from '../src/renderer/agents/markdownModel.ts';
@@ -37,6 +39,7 @@ function sse(chunks: readonly string[]): Response {
 /** An in-memory folder: `ignored.txt` exists but is git-ignored, like quick open would skip it. */
 function fakeWorkspace(files: Readonly<Record<string, string>>): ToolWorkspace {
     return {
+        root: '/fake/project',
         listDirectory: (relative) => {
             const inside = Object.keys(files).filter((file) => relative === '' || file.startsWith(`${String(relative)}/`));
             return relative !== '' && inside.length === 0
@@ -348,6 +351,86 @@ describe('propose_edit (A8)', () => {
         const run = (await chat.get(null, session.id)).messages[1]?.toolRuns?.[0];
         assert.deepEqual([run?.name, run?.status], ['propose_edit', 'done']);
         assert.match(run?.result ?? '', /Applied and saved/);
+    });
+});
+
+describe('run_command (A9)', () => {
+    /** A pty that prints `script` and exits with `code`, or never exits (code null) until killed. */
+    function fakeSpawn(script: readonly string[], code: number | null, seen: Array<{ file: string; args: readonly string[]; cwd: string }>) {
+        return (file: string, args: readonly string[], options: { cwd: string }): PtyProcess => {
+            seen.push({ file, args, cwd: options.cwd });
+            let onData: (data: string) => void = () => undefined;
+            let onExit: (event: { exitCode: number }) => void = () => undefined;
+            setTimeout(() => {
+                for (const chunk of script) {
+                    onData(chunk);
+                }
+                if (code !== null) {
+                    onExit({ exitCode: code });
+                }
+            }, 5);
+            return {
+                pid: 1,
+                onData: (listener) => { onData = listener; },
+                onExit: (listener) => { onExit = listener; },
+                write: () => undefined,
+                resize: () => undefined,
+                kill: () => setTimeout(() => onExit({ exitCode: 143 }), 1),
+            };
+        };
+    }
+    const context = (signal = new AbortController().signal, progress?: (text: string) => void) => ({
+        workspace: fakeWorkspace({}),
+        signal,
+        reviewEdit: () => Promise.reject(new Error('unused')),
+        ...(progress ? { progress } : {}),
+    });
+
+    it('picks the right flag for each shell', () => {
+        assert.deepEqual(shellInvocation('/bin/bash', 'ls'), ['-c', 'ls']);
+        assert.deepEqual(shellInvocation('C:\\Program Files\\PowerShell\\7\\pwsh.exe', 'ls'), ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', 'ls']);
+        assert.deepEqual(shellInvocation('C:\\Windows\\System32\\cmd.exe', 'dir'), ['/d', '/s', '/c', 'dir']);
+    });
+    it('strips colours and redraws, and keeps both ends of long output', () => {
+        assert.equal(plainOutput('\u001b[32mok\u001b[0m\r\n10%\r50%\r100%\n'), 'ok\n100%\n');
+        const capped = capOutput(`${'a'.repeat(100)}${'b'.repeat(100)}`, 50);
+        assert.ok(capped.startsWith('a'.repeat(15)) && capped.endsWith('b'.repeat(35)) && capped.includes('left out'));
+    });
+    it('runs in the project folder and reports exit code and output, streaming progress', async () => {
+        const seen: Array<{ file: string; args: readonly string[]; cwd: string }> = [];
+        const runner = ptyCommandRunner(fakeSpawn(['\u001b[1mbuilding\u001b[0m\r\n', 'done\r\n'], 2, seen), () => Promise.resolve('/bin/bash'), {});
+        const progress: string[] = [];
+        const text = await runCommandTool(runner).run({ command: 'npm run build' }, context(undefined, (chunk) => progress.push(chunk)));
+        assert.deepEqual(seen[0], { file: '/bin/bash', args: ['-c', 'npm run build'], cwd: '/fake/project' });
+        assert.equal(text, '$ npm run build\nExit code 2.\nbuilding\ndone');
+        assert.ok(progress.length > 0);
+    });
+    it('kills a command on timeout and on Stop', async () => {
+        const runner = ptyCommandRunner(fakeSpawn(['waiting'], null, []), () => Promise.resolve('/bin/sh'), {});
+        const timed = await runner.run('sleep 99', '/p', { timeoutMs: 20, signal: new AbortController().signal, onOutput: () => undefined });
+        assert.deepEqual([timed.timedOut, timed.exitCode], [true, null]);
+        const controller = new AbortController();
+        const stopping = runCommandTool(runner).run({ command: 'sleep 99' }, context(controller.signal));
+        setTimeout(() => controller.abort(), 20);
+        assert.match(await stopping, /Stopped by the person/);
+    });
+    it('asks before running, through AgentChat', async () => {
+        let calls = 0;
+        const runner = ptyCommandRunner(fakeSpawn(['hi\n'], 0, []), () => Promise.resolve('/bin/sh'), {});
+        const { chat, agent } = await setup(() => {
+            calls += 1;
+            return Promise.resolve(calls === 1 ? toolCallChunk('r1', 'run_command', '{"command":"echo hi"}') : sse(['data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\n']));
+        }, [runCommandTool(runner)]);
+        const session = await chat.create(null, agent.id);
+        const approvals: string[] = [];
+        await chat.send(null, session.id, 'say hi', [], windowOf([], fakeWorkspace({}), (event) => {
+            if (event.type === 'approval') {
+                approvals.push(event.request.detail);
+                chat.approve(event.request.id, 'once');
+            }
+        }));
+        assert.deepEqual(approvals, ['$ echo hi\n\nin the project folder']);
+        assert.match((await chat.get(null, session.id)).messages[1]?.toolRuns?.[0]?.result ?? '', /Exit code 0/);
     });
 });
 

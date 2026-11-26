@@ -327,9 +327,17 @@ export class AgentChat {
             if (tool.reviewsItself) {
                 report({ id: call.id, name: tool.name, summary, status: 'running', result: 'Waiting for your review…' });
             }
+            let lastProgress = 0;
             const text = await tool.run(args, {
                 workspace: window.workspace,
                 signal,
+                progress: (output) => {
+                    const now = Date.now();
+                    if (now - lastProgress >= 200) {
+                        lastProgress = now;
+                        report({ id: call.id, name: tool.name, summary, status: 'running', result: output });
+                    }
+                },
                 reviewEdit: (request) => new Promise((resolve) => {
                     const id = randomUUID();
                     this.reviews.set(id, { sessionId, resolve });
