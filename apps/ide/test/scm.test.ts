@@ -311,14 +311,15 @@ describe('GitService against a real repository', () => {
     });
 
     it('treats glob characters in a path as a name, not a pattern', async () => {
+        // `[t]` is a glob that also matches star.ts, and unlike `*` it is a legal file name on Windows.
         write('star.ts', 'x\n');
-        write('s*.ts', 'y\n');
-        await service.stage(['s*.ts']);
+        write('s[t]ar.ts', 'y\n');
+        await service.stage(['s[t]ar.ts']);
         const status = await service.status();
-        assert.deepEqual(status.staged.map((change) => change.path), ['s*.ts']);
+        assert.deepEqual(status.staged.map((change) => change.path), ['s[t]ar.ts']);
         assert.deepEqual(status.untracked.map((change) => change.path), ['star.ts']);
-        await service.unstage(['s*.ts']);
-        fs.rmSync(path.join(repo, 's*.ts'));
+        await service.unstage(['s[t]ar.ts']);
+        fs.rmSync(path.join(repo, 's[t]ar.ts'));
         fs.rmSync(path.join(repo, 'star.ts'));
     });
 
