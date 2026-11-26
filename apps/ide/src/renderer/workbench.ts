@@ -1,9 +1,11 @@
 import type { AppInfo } from '../shared/api.ts';
+import { el, icon } from './dom.ts';
 
 /**
  * The workbench shell: activity bar, side bar, editor area and status bar.
- * Each region is an empty slot for a later story (Monaco in #14, analysis
- * views in #16, terminal in #17, command palette in #18). Built with DOM APIs
+ * The side bar hosts the explorer (#14, explorer.ts); the editor area is the
+ * welcome view until Monaco arrives (#14), then analysis views (#16), the
+ * terminal (#17) and the command palette (#18) take their slots. Built with DOM APIs
  * only, never innerHTML, so nothing here can turn text into markup.
  */
 
@@ -19,34 +21,16 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
 ];
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function el<K extends keyof HTMLElementTagNameMap>(
-    tag: K,
-    props: { className?: string; text?: string; attrs?: Record<string, string> } = {},
-    children: Node[] = [],
-): HTMLElementTagNameMap[K] {
-    const node = document.createElement(tag);
-    if (props.className) { node.className = props.className; }
-    if (props.text !== undefined) { node.textContent = props.text; }
-    for (const [key, value] of Object.entries(props.attrs ?? {})) {
-        node.setAttribute(key, value);
-    }
-    node.append(...children);
-    return node;
+export interface Workbench {
+    /** The side bar's content slot, owned by the explorer. */
+    readonly sideBar: HTMLElement;
+    showInfo(info: AppInfo): void;
+    showError(message: string): void;
+    /** Left status-bar text, for short messages ("Opened …"). */
+    setStatus(message: string): void;
 }
 
-function icon(pathData: string): SVGSVGElement {
-    const svg = document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('aria-hidden', 'true');
-    const p = document.createElementNS(SVG_NS, 'path');
-    p.setAttribute('d', pathData);
-    svg.append(p);
-    return svg;
-}
-
-export function renderWorkbench(root: HTMLElement): { showInfo(info: AppInfo): void; showError(message: string): void } {
+export function renderWorkbench(root: HTMLElement): Workbench {
     const activityBar = el('nav', { className: 'activity-bar', attrs: { 'aria-label': 'Views' } },
         ACTIVITY.map((item, index) => {
             const button = el('button', {
@@ -56,11 +40,7 @@ export function renderWorkbench(root: HTMLElement): { showInfo(info: AppInfo): v
             return button;
         }));
 
-    const sideBar = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer' } }, [
-        el('h2', { className: 'side-bar-title', text: 'Explorer' }),
-        el('p', { className: 'muted', text: 'No folder opened.' }),
-        el('p', { className: 'muted small', text: 'Opening a project arrives with the editor.' }),
-    ]);
+    const sideBar = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } });
 
     const infoList = el('dl', { className: 'info-list' });
     const status = el('p', { className: 'muted', text: 'Connecting to the main process…' });
@@ -85,6 +65,10 @@ export function renderWorkbench(root: HTMLElement): { showInfo(info: AppInfo): v
     root.replaceChildren(el('div', { className: 'workbench' }, [activityBar, sideBar, editorArea, statusBar]));
 
     return {
+        sideBar,
+        setStatus(message: string): void {
+            statusLeft.textContent = message;
+        },
         showInfo(info: AppInfo): void {
             const rows: Array<[string, string]> = [
                 ['Version', info.version],

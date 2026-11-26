@@ -2,7 +2,7 @@
 
 The standalone Code-XR IDE: a desktop environment built on **Electron + Monaco** where editing code, analysing it and exploring it in XR are one workflow. The platform decision is ADR 0001 ([`adr/0001-code-xr-ide-platform.md`](../../adr/0001-code-xr-ide-platform.md)); the work is tracked in epic #11.
 
-**Status:** story #12 (secure scaffold). The window opens on Windows, macOS and Linux with an empty workbench (activity bar, side bar, editor area, status bar). Editing (#14), the Python environment (#15) and analyses (#16) come next.
+**Status:** story #12 (secure scaffold) is done; story #14 (open a project, edit with Monaco) is in progress. A folder opens from File > Open Folder… (Ctrl/Cmd+O), the explorer's button or `--folder=<path>` on the command line, and the explorer shows it as a lazily loaded tree (`.git` and `node_modules` hidden, root `.gitignore` matches dimmed). The editor, the Python environment (#15) and analyses (#16) come next.
 
 ## Commands
 
@@ -49,6 +49,7 @@ Following Electron's [security checklist](https://www.electronjs.org/docs/latest
 | Renderer served from `codexr://app/`, never `file://` | `src/main/appProtocol.ts`, `src/main/assetPath.ts` | Unit tests for path traversal (`..`, encoded `%2e%2e`, `%5c`, NUL). |
 | No navigation away from the app, no `window.open`, no `<webview>` | `src/main/hardening.ts` | Unit tests for the URL policy; smoke tries both from inside the page. |
 | No permission granted (camera, microphone, XR, notifications...) | `src/main/hardening.ts` | Each later story allow-lists only what it needs. |
+| The renderer reaches files only inside the open folder, by workspace-relative path | `src/main/workspace/` (`parseWorkspacePath`, `Workspace`), one folder per window | Unit tests for `..`, absolute paths, drive letters, `\\`, NUL and symlinks that lead out; smoke reads a file and tries `../`. |
 | IPC only on allow-listed channels, only from trusted frames | `IPC_CHANNELS` in `src/shared/api.ts`, `src/main/ipc.ts` | Unit tests; startup check that every channel has a handler. |
 | Typed, frozen preload API, the only path from renderer to Node | `src/preload/index.ts`, `CodeXRApi` in `src/shared/api.ts` | Lint forbids `electron`, `node:*` and main/preload imports in the renderer; smoke checks the API is frozen and answers. |
 | The dev server URL is ignored in a packaged build | `src/main/index.ts` (`app.isPackaged`) | Code review. |

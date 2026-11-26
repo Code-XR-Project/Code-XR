@@ -14,6 +14,9 @@ const healthy: SmokeProbe = {
     welcomeRendered: true,
     infoName: 'Code-XR IDE',
     infoError: null,
+    explorerItems: ['scripts', 'src', 'test', 'package.json'],
+    readFileKind: 'text',
+    traversalRefused: true,
 };
 
 describe('evaluateSmoke', () => {
@@ -31,6 +34,9 @@ describe('evaluateSmoke', () => {
         ['window.open allowed', { windowOpenBlocked: false }, /window\.open/],
         ['IPC broken', { infoName: null, infoError: 'Error: Refused.' }, /Refused/],
         ['blank page', { welcomeRendered: false }, /welcome/],
+        ['empty explorer', { explorerItems: [] }, /explorer/],
+        ['unreadable file', { readFileKind: null }, /readFile failed/],
+        ['traversal allowed', { traversalRefused: false }, /out of the folder/],
     ];
     for (const [name, change, message] of breakages) {
         it(`fails when ${name}`, () => {

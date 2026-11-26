@@ -1,14 +1,32 @@
-import { app, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
+import { openFolderFromMenu } from './workspace/workspaceWindows.ts';
+import { log } from './log.ts';
 
 /**
- * The application menu. Only standard roles for now: File, Edit and View get
- * their real commands with the editor (#14) and the command palette (#18).
+ * The application menu. File > Open Folder… arrived with #14; Edit and View
+ * keep the standard roles until the command palette (#18).
  */
 export function installApplicationMenu(isDevelopment: boolean): void {
     const isMac = process.platform === 'darwin';
     const template: MenuItemConstructorOptions[] = [
         ...(isMac ? [{ role: 'appMenu' } as MenuItemConstructorOptions] : []),
-        { label: 'File', submenu: [isMac ? { role: 'close' } : { role: 'quit' }] },
+        {
+            label: 'File',
+            submenu: [
+                {
+                    label: 'Open Folder…',
+                    accelerator: 'CmdOrCtrl+O',
+                    click: (_item, win) => {
+                        const target = win instanceof BrowserWindow ? win : BrowserWindow.getFocusedWindow();
+                        if (target) {
+                            openFolderFromMenu(target).catch((error: unknown) => log.error('Open Folder failed.', error));
+                        }
+                    },
+                },
+                { type: 'separator' },
+                isMac ? { role: 'close' } : { role: 'quit' },
+            ],
+        },
         { role: 'editMenu' },
         {
             label: 'View',
