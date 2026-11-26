@@ -1,5 +1,6 @@
 import type { AppInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
+import { PROBLEM_ICONS } from './problems/problemsView.ts';
 import { createLayout, type LayoutStorage, type WorkbenchLayout } from './layout/layout.ts';
 
 /**
@@ -55,6 +56,10 @@ export interface Workbench {
     showError(message: string): void;
     /** Left status-bar text, for short messages ("Opened …"). */
     setStatus(message: string): void;
+    /** #173: the errors and warnings in the Problems panel, at the left of the status bar. */
+    setProblemCounts(errors: number, warnings: number): void;
+    /** #173: clicking the problem counts. */
+    onProblemsClick(listener: () => void): void;
     /** The column beside the editors where an analysis scene is shown (#16), hidden until one opens. */
     readonly sceneArea: HTMLElement;
     /** Shows or hides the scene column. */
@@ -130,13 +135,22 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
 
     const editorArea = el('main', { className: 'editor-area' }, [welcome]);
 
-    const statusLeft = el('span', { text: 'Code-XR' });
+    const statusLeft = el('span', { className: 'status-message', text: 'Code-XR' });
+    // #173: the problem counts; icons are the Problems panel's (renderer/problems/problemsView.ts).
+    const errorCount = el('span', { text: '0' });
+    const warningCount = el('span', { text: '0' });
+    const problemsItem = el('button', {
+        className: 'status-item status-problems',
+        attrs: { type: 'button', title: 'No Problems', 'aria-label': 'No Problems', 'data-testid': 'problems-status' },
+    }, [icon(PROBLEM_ICONS.error), errorCount, icon(PROBLEM_ICONS.warning), warningCount]);
+    let problemsListener: (() => void) | null = null;
+    problemsItem.addEventListener('click', () => problemsListener?.());
     const statusRight = el('span', { text: '' });
     const pythonItem = el('button', { className: 'status-item', attrs: { type: 'button', 'data-testid': 'python-status', hidden: '' } });
     pythonItem.addEventListener('click', () => showView('analysis'));
     // #166: the active editor's position, indentation, encoding, line endings and language.
     const editorStatus = el('span', { className: 'status-editor', attrs: { 'data-testid': 'editor-status' } });
-    const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
+    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [problemsItem, statusLeft]), el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
 
     const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
     // #137: the bottom panel (hidden until the terminal opens).
@@ -172,6 +186,16 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         layout,
         setStatus(message: string): void {
             statusLeft.textContent = message;
+        },
+        setProblemCounts(errors: number, warnings: number): void {
+            errorCount.textContent = String(errors);
+            warningCount.textContent = String(warnings);
+            const label = errors + warnings === 0 ? 'No Problems' : `Errors: ${errors}, Warnings: ${warnings}`;
+            problemsItem.title = label;
+            problemsItem.setAttribute('aria-label', label);
+        },
+        onProblemsClick(listener: () => void): void {
+            problemsListener = listener;
         },
         showInfo(info: AppInfo): void {
             const rows: Array<[string, string]> = [

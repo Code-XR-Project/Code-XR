@@ -15,7 +15,7 @@ The Python backend is a frequent source of confusion:
 
 `backend/src/main.py` — argparse CLI, JSON output on stdout.
 
-- `--mode {livePanel, xr, schema, dependencies}`
+- `--mode {livePanel, xr, schema, dependencies, functions}` (`functions`, added for the Code-XR IDE's Problems panel #173, returns each analysable file's functions with line range, CCN, NLOC and parameter count, from `utils/function_metrics.py`; with `--type file`, `--project-root` makes the path relative; the extension does not use it)
 - `--type {file, directory}` (the unused `project` alias and the unread `--output` flag were removed in 1.2.1; `--target`, `--files`, `--deep`, `--cache`, `--dependency-refresh`, `--project-root` remain)
 - Three more scripts are spawned directly by TypeScript: `html/html_dom_parser.py` (DOM mode), `summaryFiles/file_reanalysis_coordinator.py` (watcher re-analysis; the folder was misspelled `sumaryFiles/` until 1.2.1) and `export/git_export_analysis_worker.py` (Git export worker pool).
 
