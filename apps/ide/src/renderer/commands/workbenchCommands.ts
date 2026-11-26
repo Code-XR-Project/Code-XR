@@ -26,7 +26,8 @@ export interface WorkbenchCommandTargets {
     toggleTerminal(): void;
     newTerminal(): void;
     closeTerminalPanel(): void;
-    showView(view: 'explorer' | 'analysis' | 'xr'): void;
+    showView(view: 'explorer' | 'search' | 'analysis' | 'xr'): void;
+    showSearch(): void;
     analyseProject(): void;
     canAnalyse(): boolean;
     setUpPython(): void;
@@ -72,6 +73,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'terminal.new', category: 'Terminal', title: 'Create New Terminal', ...menu('terminal.new'), run: targets.newTerminal },
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },
         { id: 'view.showExplorer', category: 'View', title: 'Show Explorer', keybinding: 'CmdOrCtrl+Shift+E', run: () => targets.showView('explorer') },
+        { id: 'search.show', category: 'View', title: 'Search in Files', keybinding: 'CmdOrCtrl+Shift+F', enabled: targets.hasFolder, run: targets.showSearch },
         { id: 'view.showAnalysis', category: 'View', title: 'Show Analysis', run: () => targets.showView('analysis') },
         { id: 'view.showXrScene', category: 'View', title: 'Show XR Scene', run: () => targets.showView('xr') },
         { id: 'codexr.analyseProjectXrDeep', category: 'Code-XR', title: 'Analyse Project in XR (Deep)', enabled: targets.canAnalyse, run: targets.analyseProject },

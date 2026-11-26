@@ -54,6 +54,15 @@ export interface EditorGroup {
     activeLineCount(): number | null;
     /** Moves the cursor of the active file to `line` (and `column`), centred, and focuses the editor. */
     goToLine(line: number, column?: number): void;
+    /** #165: opens `path` and selects `length` characters from `line`:`column` (a search match). */
+    openAt(path: string, line: number, column: number, length: number): Promise<void>;
+    /**
+     * #165: replaces in the open files among `paths`, as one undoable edit each
+     * (the tab becomes unsaved); returns the paths it handled and the count.
+     */
+    replaceInOpenFiles(paths: readonly string[], replace: (text: string) => { text: string; count: number }): { handled: string[]; replacements: number };
+    /** The active editor's selection when it is on one line, for the Search view's query. */
+    selectedText(): string;
     /** #164: Monaco's own outline of the active file ("@" in quick open), where its language has symbols. */
     showSymbols(): void;
     /** #166: the status bar's choices, applied to the active file. */
@@ -94,6 +103,9 @@ export function createEditorGroup(
         minimap: { enabled: true },
         scrollBeyondLastLine: false,
         renderWhitespace: 'selection',
+        // The default colour provider turns any "#165" (an issue number in a comment) into a
+        // colour swatch; CSS, SCSS and LESS keep their own colour decorators.
+        defaultColorDecorators: 'never',
         model: null,
     });
 
@@ -332,6 +344,43 @@ export function createEditorGroup(
     return {
         activeLineCount: () => (active ? active.model.getLineCount() : null),
         statusState,
+        async openAt(path, line, column, length) {
+            await this.open(path);
+            if (active?.path !== path) {
+                return;
+            }
+            const model = active.model;
+            const lineNumber = Math.min(Math.max(1, line), model.getLineCount());
+            const selection = new monaco.Selection(lineNumber, column, lineNumber, Math.min(column + length, model.getLineMaxColumn(lineNumber)));
+            editor.setSelection(selection);
+            editor.revealRangeInCenterIfOutsideViewport(selection);
+            editor.focus();
+        },
+        replaceInOpenFiles(paths, replace) {
+            const handled: string[] = [];
+            let replacements = 0;
+            for (const path of paths) {
+                const file = files.get(path);
+                if (!file) {
+                    continue;
+                }
+                handled.push(path);
+                const result = replace(file.model.getValue());
+                if (result.count > 0) {
+                    file.model.pushEditOperations([], [{ range: file.model.getFullModelRange(), text: result.text }], () => null);
+                    replacements += result.count;
+                }
+            }
+            return { handled, replacements };
+        },
+        selectedText() {
+            const selection = editor.getSelection();
+            const model = active?.model;
+            if (!selection || !model || selection.isEmpty() || selection.startLineNumber !== selection.endLineNumber) {
+                return '';
+            }
+            return model.getValueInRange(selection);
+        },
         showSymbols() {
             if (!active) {
                 return;

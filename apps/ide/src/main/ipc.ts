@@ -8,6 +8,7 @@ import { log } from './log.ts';
 import { setSceneBounds } from './analysis/sceneView.ts';
 import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
+import { cancelSearch, replaceInFiles, startSearch } from './workspace/searchService.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -51,6 +52,13 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceCurrent, (event) => currentWorkspaceInfo(event.sender));
     handle(IPC_CHANNELS.workspaceListDirectory, (event, path) => workspaceOf(event.sender).listDirectory(path));
     handle(IPC_CHANNELS.workspaceListFiles, (event) => workspaceOf(event.sender).listFiles());
+    // #165: search runs in the background; its results arrive as events.
+    handle(IPC_CHANNELS.workspaceSearch, (event, searchId, query) => {
+        void startSearch(event.sender, workspaceOf(event.sender), searchId, query);
+    });
+    handle(IPC_CHANNELS.workspaceCancelSearch, (event, searchId) => cancelSearch(event.sender, searchId));
+    handle(IPC_CHANNELS.workspaceReplaceInFiles, (event, query, replacement, paths) =>
+        replaceInFiles(workspaceOf(event.sender), query, replacement, paths));
     handle(IPC_CHANNELS.workspaceReadFile, (event, path) => workspaceOf(event.sender).readFile(path));
     handle(IPC_CHANNELS.workspaceWriteFile, (event, path, text, expectedMtimeMs) =>
         workspaceOf(event.sender).writeFile(path, text, expectedMtimeMs));

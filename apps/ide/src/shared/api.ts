@@ -37,6 +37,52 @@ export interface WorkspaceInfo {
  * One child of a folder in the explorer. `path` is relative to the workspace
  * root, `/`-separated on every OS; `''` is the root itself.
  */
+/** #165: a search across the workspace, as the Search view sends it. */
+export interface SearchQuery {
+    readonly pattern: string;
+    readonly isRegex: boolean;
+    readonly matchCase: boolean;
+    readonly wholeWord: boolean;
+    /** Comma-separated globs ("src, *.ts"); empty for every file. */
+    readonly include: string;
+    readonly exclude: string;
+}
+
+/** One match: 1-based line and column, and the line's text around it for display. */
+export interface SearchMatch {
+    readonly line: number;
+    readonly column: number;
+    readonly length: number;
+    readonly preview: string;
+    /** Where the match starts inside `preview`. */
+    readonly previewStart: number;
+}
+
+/** A file with matches, sent as soon as it is read. `total` counts matches beyond the listed ones. */
+export interface SearchFileEvent {
+    readonly searchId: number;
+    readonly path: string;
+    readonly matches: readonly SearchMatch[];
+    readonly total: number;
+}
+
+export interface SearchDoneEvent {
+    readonly searchId: number;
+    readonly files: number;
+    readonly matches: number;
+    /** The search stopped at its match limit. */
+    readonly limitHit: boolean;
+    readonly cancelled: boolean;
+    /** The query could not run (invalid regular expression...). */
+    readonly error?: string;
+}
+
+export interface ReplaceResult {
+    readonly files: number;
+    readonly replacements: number;
+    readonly failed: readonly { readonly path: string; readonly message: string }[];
+}
+
 /** #164: the workspace's files for quick open; `truncated` when the walk stopped at its limit. */
 export interface WorkspaceFileList {
     readonly files: readonly string[];
@@ -298,6 +344,16 @@ export interface CodeXRApi {
         listDirectory(path: string): Promise<readonly DirEntry[]>;
         /** #164: every file of the workspace for quick open (gitignored ones left out), up to a limit. */
         listFiles(): Promise<WorkspaceFileList>;
+        /**
+         * #165: starts a search (a previous one of this window is cancelled);
+         * results come as `onSearchResult` events tagged with `searchId`, then `onSearchDone`.
+         */
+        search(searchId: number, query: SearchQuery): Promise<void>;
+        cancelSearch(searchId: number): Promise<void>;
+        onSearchResult(listener: (event: SearchFileEvent) => void): Unsubscribe;
+        onSearchDone(listener: (event: SearchDoneEvent) => void): Unsubscribe;
+        /** Replaces every match of `query` in `paths` on disk (files open in an editor are replaced there instead). */
+        replaceInFiles(query: SearchQuery, replacement: string, paths: readonly string[]): Promise<ReplaceResult>;
         readFile(path: string): Promise<FileContent>;
         /**
          * Writes an existing workspace file. With `expectedMtimeMs` the write is
@@ -371,6 +427,9 @@ export const IPC_CHANNELS = {
     workspaceCurrent: 'codexr:workspace:current',
     workspaceListDirectory: 'codexr:workspace:list-directory',
     workspaceListFiles: 'codexr:workspace:list-files',
+    workspaceSearch: 'codexr:workspace:search',
+    workspaceCancelSearch: 'codexr:workspace:cancel-search',
+    workspaceReplaceInFiles: 'codexr:workspace:replace-in-files',
     workspaceReadFile: 'codexr:workspace:read-file',
     workspaceWriteFile: 'codexr:workspace:write-file',
     workspaceSetWatched: 'codexr:workspace:set-watched',
@@ -410,6 +469,8 @@ export const IPC_EVENTS = {
     workspaceChanged: 'codexr:workspace:changed',
     command: 'codexr:command',
     workspaceFilesChanged: 'codexr:workspace:files-changed',
+    workspaceSearchResult: 'codexr:workspace:search-result',
+    workspaceSearchDone: 'codexr:workspace:search-done',
     pythonStatusChanged: 'codexr:python:status-changed',
     hostNotification: 'codexr:host:notification',
     progress: 'codexr:progress',

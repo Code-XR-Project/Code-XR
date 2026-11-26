@@ -36,6 +36,8 @@ export interface SmokeProbe {
     readonly palette: { readonly opened: boolean; readonly hasSave: boolean; readonly lineOffered: boolean; readonly focusReturned: boolean };
     /** #164: quick open found src/main/index.ts by a fuzzy name, listed by the main process. */
     readonly quickOpenFound: boolean;
+    /** #165: Ctrl/Cmd+Shift+F opened the Search view and "renderWorkbench" found src/renderer/workbench.ts. */
+    readonly searchFound: boolean;
     /** #166: the status bar shows the cursor position and the language of the open file. */
     readonly editorStatus: string;
     readonly cspViolations: readonly string[];
@@ -110,6 +112,23 @@ const RENDERER_PROBE = `(async () => {
         const loaded = url && await new Promise((r) => { const img = new Image(); img.onload = () => r(img.naturalWidth > 0); img.onerror = () => r(false); img.src = url; });
         if (!loaded) { fileIconsBroken.push(css); }
     }
+    // #165: the Search view, opened by its key (the workbench's handler) and run with Enter.
+    let searchFound = false;
+    const isMacProbe = navigator.userAgent.includes('Macintosh');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F', code: 'KeyF', shiftKey: true, ctrlKey: !isMacProbe, metaKey: isMacProbe, bubbles: true, cancelable: true }));
+    const searchField = document.querySelector('[data-testid="search-query"]');
+    if (searchField && !document.querySelector('[data-testid="search-view"]')?.hidden) {
+        searchField.value = 'renderWorkbench';
+        searchField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+        const searchUntil = Date.now() + 15000;
+        const hit = () => !!document.querySelector('[data-testid="search-results"] [data-path="src/renderer/workbench.ts"]');
+        while (!hit() && Date.now() < searchUntil) {
+            await new Promise((r) => setTimeout(r, 50));
+        }
+        searchFound = hit();
+    }
+    document.querySelector('[data-testid="explorer-tree"] [data-path="package.json"]')?.click();
+    await new Promise((r) => setTimeout(r, 200));
     // #166: the active editor's items in the status bar (drawn on the next frame).
     await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 50)));
     const editorStatus = document.querySelector('[data-testid="editor-status"]')?.hidden === false
@@ -165,6 +184,7 @@ const RENDERER_PROBE = `(async () => {
         fileIconsBroken,
         palette,
         quickOpenFound,
+        searchFound,
         editorStatus,
         cspViolations,
     };
@@ -225,6 +245,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }
         if (!probe.palette.opened || !probe.palette.hasSave) { failures.push(`F1 did not open the command palette with the commands (${JSON.stringify(probe.palette)})`); }
         if (!probe.palette.lineOffered || !probe.palette.focusReturned) { failures.push(`go to line or closing the palette failed (${JSON.stringify(probe.palette)})`); }
+        if (!probe.searchFound) { failures.push('the Search view did not find renderWorkbench in src/renderer/workbench.ts'); }
         if (!probe.quickOpenFound) { failures.push('quick open did not find src/main/index.ts'); }
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }

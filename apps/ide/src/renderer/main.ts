@@ -11,6 +11,7 @@ import { installKeybindings } from './commands/keybindingService.ts';
 import { formatKeybinding } from './commands/keybindings.ts';
 import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
 import { createQuickOpenFiles } from './quickOpenFiles.ts';
+import { createSearchView } from './search/searchView.ts';
 import { createQuickInput } from './commands/quickInput.ts';
 import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
@@ -114,6 +115,7 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
 function folderOpened(root: string): void {
     folderIsOpen = true;
     quickOpenFiles.reset();
+    searchView.reset();
     scenePanel.close();
     runView.setHasFolder(true);
     runView.folderOpened(root);
@@ -125,6 +127,7 @@ api.workspace.onDidChange((workspace) => {
     } else {
         folderIsOpen = false;
         quickOpenFiles.reset();
+        searchView.reset();
         scenePanel.close();
         runView.setHasFolder(false);
     }
@@ -141,6 +144,17 @@ api.workspace.current().then(
     },
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),
 );
+
+// #165: search across the workspace, in its own side-bar view.
+const searchView = createSearchView(workbench.searchView, api.workspace, {
+    openMatch: (path, match) => void editorGroup().then((group) => group.openAt(path, match.line, match.column, match.length)),
+    replaceInOpenFiles: (paths, replace) => editors?.replaceInOpenFiles(paths, replace) ?? { handled: [], replacements: 0 },
+    confirm: (message) => window.confirm(message),
+    onStatus: (message) => {
+        workbench.setStatus(message);
+        notifications.notify('info', message);
+    },
+});
 
 // #137: the terminal panel; xterm.js loads with the first terminal.
 const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
@@ -243,6 +257,10 @@ registerWorkbenchCommands(registry, {
     newTerminal: () => void terminal.newTerminal(),
     closeTerminalPanel: () => terminal.hide(),
     showView: (view) => workbench.showView(view),
+    showSearch: () => {
+        workbench.showView('search');
+        searchView.focus(editors?.selectedText());
+    },
     analyseProject: () => void runView.analyse(),
     canAnalyse: () => runView.canAnalyse(),
     setUpPython: () => void api.python.setUp(),
