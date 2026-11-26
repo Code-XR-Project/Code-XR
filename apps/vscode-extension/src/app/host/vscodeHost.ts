@@ -27,6 +27,25 @@ export function signalToCommand(signal: HostSignal): { command: string; args: un
     }
 }
 
+/** `HostNotifier.confirm`: the VS Code message of the requested severity, modal unless told otherwise. */
+async function showModalMessage(
+    message: string,
+    options: Parameters<CodeXRHost['notifier']['confirm']>[1],
+): Promise<string | undefined> {
+    const messageOptions: vscode.MessageOptions = { modal: options.modal ?? true };
+    if (options.detail !== undefined) {
+        messageOptions.detail = options.detail;
+    }
+    switch (options.severity ?? 'warning') {
+        case 'info':
+            return vscode.window.showInformationMessage(message, messageOptions, ...options.actions);
+        case 'error':
+            return vscode.window.showErrorMessage(message, messageOptions, ...options.actions);
+        default:
+            return vscode.window.showWarningMessage(message, messageOptions, ...options.actions);
+    }
+}
+
 export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
     // Looked up on each call, not captured here: a test may replace a
     // `vscode.window` member after the host exists, and the call must reach it.
@@ -43,13 +62,7 @@ export function createVSCodeHost(context: vscode.ExtensionContext): CodeXRHost {
             async notify(severity, message, ...actions) {
                 return show[severity](message, ...actions);
             },
-            async confirm(message, options) {
-                const messageOptions: vscode.MessageOptions = { modal: options.modal ?? true };
-                if (options.detail !== undefined) {
-                    messageOptions.detail = options.detail;
-                }
-                return vscode.window.showWarningMessage(message, messageOptions, ...options.actions);
-            },
+            confirm: showModalMessage,
             status(message, timeoutMs) {
                 return timeoutMs === undefined
                     ? vscode.window.setStatusBarMessage(message)
