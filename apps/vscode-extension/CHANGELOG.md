@@ -136,6 +136,7 @@
   - In a partial clone (`git clone --filter=blob:none`), CodeXR no longer makes Git download missing files from the remote one by one, and Git can no longer stop to ask for a password. A revision whose files are not on your computer is reported as such ("not on this computer (partial clone)") and left out. With recent Git versions such a file used to be skipped without a word, so the revision was analyzed as if the file did not exist.
   - The historical comparison panel (in the scene and in the LivePanel) says up front when the repository is a partial clone, so you know older revisions may be missing before you pick one.
 - A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
+- **Code-XR no longer picks a port a local dev server is already using, even in the rare fallback path.** When the usual port search fails, CodeXR scans ports one by one; that scan only checked the "all interfaces" address, which on macOS and Windows can look free while another app (a Vite or Next dev server on `localhost:3000`, for example) owns it, so the browser opened that app instead of the scene. The scan now checks the same three addresses as the main search (all interfaces, `127.0.0.1` and `::1`), and so does the HTTPS server's own port check.
 
 ## [1.2.0] - 2026-07-30
 
