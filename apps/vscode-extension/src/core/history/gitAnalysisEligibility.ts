@@ -9,6 +9,7 @@ import {
     GitTimelineBlobIndex,
     IndexedGitRevision,
 } from './gitTimelineBlobIndex';
+import { PARTIAL_CLONE_MISSING_MESSAGE } from './gitOfflineEnvironment';
 
 export interface GitPayloadValidation {
     usable: boolean;
@@ -115,7 +116,9 @@ function classifyIndexedRevision(revision: IndexedGitRevision): CachedCommitElig
             code: limitExceeded ? 'limit-exceeded' : 'analysis-failed',
             reason: limitExceeded
                 ? 'The revision exceeds the configured analysis limits.'
-                : `The Git revision could not be inspected: ${revision.failureReason}`,
+                : revision.failureReason === PARTIAL_CLONE_MISSING_MESSAGE
+                    ? PARTIAL_CLONE_MISSING_MESSAGE
+                    : `The Git revision could not be inspected: ${revision.failureReason}`,
         };
     }
     if (revision.files.length < 1) {
