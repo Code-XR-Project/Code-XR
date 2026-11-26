@@ -72,13 +72,18 @@ export interface HostNotifier {
      * A question a person must answer (download consent, deleting an
      * environment). Project rule: no network access or download without
      * explicit consent, so no host and no test double may answer this on the
-     * person's behalf by default.
+     * person's behalf by default. `severity` sets the dialog's icon only
+     * (default `warning`); with no `actions` it is a blocking message that
+     * the person dismisses, such as instructions.
      */
-    confirm(message: string, options: { modal?: boolean; detail?: string; actions: readonly string[] }): Promise<string | undefined>;
+    confirm(
+        message: string,
+        options: { modal?: boolean; detail?: string; severity?: HostSeverity; actions: readonly string[] },
+    ): Promise<string | undefined>;
     /** Transient status-line text. */
     status(message: string, timeoutMs?: number): HostDisposable;
-    /** A long-lived status-line item. */
-    createStatusIndicator(): HostStatusIndicator;
+    /** A long-lived status-line item; a higher `priority` sits further toward the start of the line. */
+    createStatusIndicator(options?: { priority?: number }): HostStatusIndicator;
 }
 
 /** UI updates the core asks for, by meaning rather than by VS Code command id. */

@@ -31,9 +31,11 @@ const MIGRATED = [
     'core/charts/settings/settingsStorage.ts',
     'core/charts/settings/settingsAccessors.ts',
     'core/charts/getVisualizationConfiguration.ts',
+    // step 6: consent and progress through the host, storage through GlobalStateContext
+    'core/remote-access/cloudflaredBinaryManager.ts',
 ];
 
-test('the modules migrated in #13 steps 2 and 5 never reach vscode', () => {
+test('the modules migrated in #13 steps 2, 5 and 6 never reach vscode', () => {
     const free = new Set(measure().vscodeFree);
     for (const file of MIGRATED) {
         assert.ok(free.has(file), `${file} reaches vscode`);

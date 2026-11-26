@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
 import { NetworkUtils } from './networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
 import { isCertificateRejectedByClient } from './httpsTlsOptions';
 import { getLogger } from '../../platform/logging/sink';
+import { getHost } from '../host/hostRegistry';
 
 const logger = getLogger('SERVER');
 
@@ -121,20 +121,22 @@ export class HttpsDefaultServer extends HttpsServerBase<HttpsDefaultServerConfig
         logger.debug('3. Then use VR headset to access the same URL');
         logger.debug('=====================================');
 
-        void vscode.window.showInformationMessage(
+        const host = getHost();
+        void host.notifier.notify(
+            'info',
             `HTTPS server ready. VR/Mobile: ${primaryUrl}`,
             'Copy VR URL',
             'Copy Local URL',
             'Show Instructions',
         ).then((selection) => {
             if (selection === 'Copy VR URL') {
-                void vscode.env.clipboard.writeText(primaryUrl);
-                void vscode.window.showInformationMessage('VR/Mobile URL copied to clipboard.');
+                void host.clipboardWrite(primaryUrl);
+                void host.notifier.notify('info', 'VR/Mobile URL copied to clipboard.');
             } else if (selection === 'Copy Local URL') {
-                void vscode.env.clipboard.writeText(fallbackUrl);
-                void vscode.window.showInformationMessage('Local URL copied to clipboard.');
+                void host.clipboardWrite(fallbackUrl);
+                void host.notifier.notify('info', 'Local URL copied to clipboard.');
             } else if (selection === 'Show Instructions') {
-                void vscode.window.showInformationMessage(message, { modal: true });
+                void host.notifier.confirm(message, { modal: true, severity: 'info', actions: [] });
             }
         });
     }

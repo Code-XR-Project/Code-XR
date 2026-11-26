@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as https from 'https';
 import * as path from 'path';
 import { spawn } from 'child_process';
-import * as vscode from 'vscode';
+import type { GlobalStateContext } from '../host/hostPaths';
+import { getHost } from '../host/hostRegistry';
 
 interface CloudflaredAsset {
     url: string;
@@ -41,7 +42,7 @@ const CLOUDFLARED_CONSENT_KEY = 'codexr.cloudflaredDownloadConsented';
 export class CloudflaredBinaryManager {
     private readonly binaryDirectory: string;
 
-    constructor(private readonly context: vscode.ExtensionContext) {
+    constructor(private readonly context: GlobalStateContext) {
         this.binaryDirectory = path.join(context.globalStorageUri.fsPath, 'remote-access', CLOUDFLARED_VERSION);
     }
 
@@ -70,10 +71,9 @@ export class CloudflaredBinaryManager {
         // proceed directly with just the progress notification. Declining
         // never seals the marker, so the question comes back next time.
         if (!this.context.globalState.get<boolean>(CLOUDFLARED_CONSENT_KEY)) {
-            const answer = await vscode.window.showInformationMessage(
+            const answer = await getHost().notifier.confirm(
                 `CodeXR needs cloudflared ${CLOUDFLARED_VERSION} (${asset.sizeLabel}) to create the temporary link. It is downloaded once from GitHub/Cloudflare, verified with SHA-256 and stored in global storage. License: Apache-2.0.`,
-                { modal: true },
-                'Download cloudflared',
+                { modal: true, severity: 'info', actions: ['Download cloudflared'] },
             );
             if (answer !== 'Download cloudflared') {
                 return null;
@@ -140,8 +140,7 @@ export class CloudflaredBinaryManager {
         const temporaryPath = `${destination}.download`;
         await fs.promises.rm(temporaryPath, { force: true });
         try {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
+            await getHost().withProgress({
                 title: `Downloading cloudflared ${CLOUDFLARED_VERSION}`,
                 cancellable: false,
             }, async (progress) => {

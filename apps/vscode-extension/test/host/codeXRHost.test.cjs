@@ -179,13 +179,90 @@ const NOTIFYING_THROUGH_HOST = [
     'src/core/analysis/watchers/fileWatcherOrchestrator.ts',
     'src/core/server/serverControl.ts',
     'src/core/server/httpsCustomServer.ts',
+    'src/core/server/httpsDefaultServer.ts',
 ];
 
 test('modules moved to host notifications call no vscode.window message API', () => {
     const fs = require('node:fs');
     for (const file of NOTIFYING_THROUGH_HOST) {
         const source = fs.readFileSync(path.join(__dirname, '..', '..', file), 'utf8');
-        assert.match(source, /getHost\(\)\.notifier\.notify\(/, `${file}: canary, the host call is there`);
+        assert.match(source, /getHost\(\)/, `${file}: canary, the host is used`);
+        assert.match(source, /notifier\.(notify|confirm)\(/, `${file}: canary, the host notifier is called`);
         assert.doesNotMatch(source, /vscode\.window\.(show(Information|Warning|Error)Message|setStatusBarMessage)/, `${file} still calls vscode.window`);
     }
+});
+
+// Inventory risk 8: the cloudflared download consent now goes through
+// host.notifier.confirm. It must stay a modal question nobody answers by
+// default, and declining must neither download nor remember anything.
+test('cloudflared consent: a modal info question through the host; declining downloads nothing and stores nothing', async (t) => {
+    // The platforms with a pinned automatic download (ASSETS in cloudflaredBinaryManager.ts);
+    // elsewhere (macOS: Homebrew) there is no consent to ask.
+    if (!['win32-x64', 'linux-x64', 'linux-arm64'].includes(`${process.platform}-${process.arch}`)) {
+        t.skip(`no automatic cloudflared download on ${process.platform}-${process.arch}`);
+        return;
+    }
+    const fake = createFakeVscode();
+    const context = fakeExtensionContext();
+    const savedPath = process.env.PATH;
+    process.env.PATH = '';
+    try {
+        await withFakeVscode(fake, async ({ requireOut }) => {
+            fake.hostContext = context;
+            const { CloudflaredBinaryManager } = requireOut('core/remote-access/cloudflaredBinaryManager.js');
+            const manager = new CloudflaredBinaryManager(context);
+            assert.equal(await manager.resolveBinary(true), null, 'no answer means no binary');
+        });
+    } finally {
+        process.env.PATH = savedPath;
+        context.cleanup();
+    }
+    assert.equal(fake.messages.length, 1);
+    assert.equal(fake.messages[0].kind, 'info');
+    assert.match(fake.messages[0].message, /^CodeXR needs cloudflared /);
+    assert.deepEqual(fake.messages[0].items, ['Download cloudflared']);
+    assert.equal(fake.progressReports.length, 0, 'nothing was downloaded');
+    assert.deepEqual(context.globalState.keys(), [], 'declining is not remembered');
+});
+
+test('confirm takes a severity for its icon; with no actions it is a modal message to dismiss', () => withHost({}, async ({ host, fake }) => {
+    await host.notifier.confirm('How to accept the certificate', { modal: true, severity: 'info', actions: [] });
+    await host.notifier.confirm('Broken', { severity: 'error', actions: ['Retry'] });
+    assert.deepEqual(fake.messages, [
+        { kind: 'info', message: 'How to accept the certificate', items: [] },
+        { kind: 'error', message: 'Broken', items: ['Retry'] },
+    ]);
+}));
+
+test('createStatusIndicator is a left status-bar item, keeping the priority it is given', () => {
+    const created = [];
+    const item = { text: '', tooltip: undefined, show() {}, hide() {}, dispose() {} };
+    return withHost({
+        fake: {
+            overrides: {
+                window: {
+                    createStatusBarItem: (...args) => {
+                        created.push(args);
+                        return item;
+                    },
+                },
+            },
+        },
+    }, ({ host, fake }) => {
+        const indicator = host.notifier.createStatusIndicator({ priority: 100 });
+        host.notifier.createStatusIndicator();
+        indicator.text = '$(clock) Analyzing a.ts in 3s';
+        indicator.tooltip = 'Waiting';
+        const left = fake.vscode.StatusBarAlignment.Left;
+        assert.deepEqual(created, [[left, 100], [left]]);
+        assert.equal(item.text, '$(clock) Analyzing a.ts in 3s');
+        assert.equal(item.tooltip, 'Waiting');
+    });
+});
+
+test('the re-analysis countdown uses a host status indicator, not vscode.window', () => {
+    const fs = require('node:fs');
+    const source = fs.readFileSync(path.join(__dirname, '..', '..', 'src/core/analysis/watchers/debounceManager.ts'), 'utf8');
+    assert.match(source, /getHost\(\)\.notifier\.createStatusIndicator\(\{ priority: 100 \}\)/, 'canary');
+    assert.doesNotMatch(source, /vscode\.window\./);
 });
