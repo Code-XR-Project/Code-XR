@@ -70,6 +70,9 @@ test('a blob listed with no size is missing (partial clone): an error, not a sil
     assert.match(result.error, /^git-object-missing:/);
     assert.deepEqual(written, []);
     assert.equal(calls.some((call) => call[1] === 'show'), false, 'nothing is copied before the plan is complete');
+    // Git 2.5x prints BAD instead of - for the size of a missing blob.
+    const recent = await materialize('.', [blob('src/a.py'), blob('src/old.py', 'BAD')]);
+    assert.match(recent.result.error, /^git-object-missing:/);
 });
 
 test('repository root: copies analysable blobs, warns about submodules and oversized files', async () => {
