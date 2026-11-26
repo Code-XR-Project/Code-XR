@@ -40,6 +40,12 @@ export interface EditorGroup {
     openPaths(): string[];
     /** The watcher reported `paths`; open files among them are re-read. */
     onDiskChanged(paths: readonly string[]): Promise<void>;
+    /**
+     * An entry was renamed (`to`) or trashed (`to` null) from the explorer.
+     * Clean tabs at or below it follow it (or close); unsaved tabs stay open
+     * and are marked deleted on disk, so no typing is lost.
+     */
+    entryMoved(from: string, to: string | null): Promise<void>;
 }
 
 export function createEditorGroup(
@@ -306,6 +312,30 @@ export function createEditorGroup(
         },
         dirtyPaths: () => [...files.values()].filter(isDirty).map((file) => file.path),
         openPaths: () => [...files.keys()],
+        async entryMoved(from: string, to: string | null): Promise<void> {
+            const affected = [...files.values()].filter((file) => file.path === from || file.path.startsWith(`${from}/`));
+            const reopen: string[] = [];
+            let activePath: string | null = null;
+            for (const file of affected) {
+                if (isDirty(file)) {
+                    file.diskState = 'deleted';
+                    refreshTab(file);
+                    continue;
+                }
+                if (to !== null) {
+                    const moved = to + file.path.slice(from.length);
+                    reopen.push(moved);
+                    if (file === active) { activePath = moved; }
+                }
+                close_(file);
+            }
+            for (const path of reopen) {
+                await this.open(path);
+            }
+            if (activePath) {
+                await this.open(activePath);
+            }
+        },
         async onDiskChanged(paths: readonly string[]): Promise<void> {
             const changed = new Set(paths);
             await Promise.all([...files.values()].filter((file) => changed.has(file.path)).map(followDisk));

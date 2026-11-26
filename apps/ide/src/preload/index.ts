@@ -35,6 +35,12 @@ const api: CodeXRApi = Object.freeze({
             };
         },
         reportUnsaved: (count: number) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReportUnsaved, count),
+        createEntry: (parent: string, name: string, kind: 'file' | 'directory') =>
+            ipcRenderer.invoke(IPC_CHANNELS.workspaceCreateEntry, parent, name, kind),
+        rename: (path: string, newName: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRename, path, newName),
+        trash: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrash, path),
+        recentFolders: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceRecentFolders),
+        openRecent: (folder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenRecent, folder),
         onDidChange: (listener: (workspace: WorkspaceInfo | null) => void) => {
             const wrapped = (_event: IpcRendererEvent, workspace: WorkspaceInfo | null): void => listener(workspace);
             ipcRenderer.on(IPC_EVENTS.workspaceChanged, wrapped);

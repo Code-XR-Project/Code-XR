@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { childPath, folderArgument, isInside, parseWorkspacePath, resolveInWorkspace } from '../src/main/workspace/workspacePath.ts';
+import { childPath, folderArgument, isInside, parentPath, parseWorkspacePath, resolveInWorkspace, validateEntryName } from '../src/main/workspace/workspacePath.ts';
 
 describe('parseWorkspacePath', () => {
     it('accepts the root and plain relative paths', () => {
@@ -63,5 +63,27 @@ describe('childPath and folderArgument', () => {
         assert.equal(folderArgument(['electron', '.', '--folder=/a', '--folder=/b']), '/b');
         assert.equal(folderArgument(['electron', '.']), undefined);
         assert.equal(folderArgument(['--folder=']), undefined);
+    });
+});
+
+describe('validateEntryName', () => {
+    for (const name of ['main.ts', 'README', '.env', 'a b', 'ñandú.txt', 'x'.repeat(255)]) {
+        it(`accepts ${JSON.stringify(name.length > 20 ? `${name.slice(0, 8)}...` : name)}`, () => {
+            assert.equal(validateEntryName(name), name);
+        });
+    }
+    for (const name of ['', '   ', '.', '..', 'a/b', 'a\\b', 'a:b', 'what?', 'star*', 'pipe|', '<x>', 'quote"', 'tab\t', 'dot.', 'space ', 'CON', 'nul.txt', 'com1', 'LPT9.log', 'x'.repeat(256), 3]) {
+        it(`refuses ${JSON.stringify(typeof name === 'string' && name.length > 20 ? `${name.slice(0, 8)}...` : name)}`, () => {
+            assert.throws(() => validateEntryName(name));
+        });
+    }
+});
+
+describe('parentPath', () => {
+    it('drops the last segment', () => {
+        assert.equal(parentPath('src/main/ipc.ts'), 'src/main');
+        assert.equal(parentPath('README.md'), '');
+        assert.equal(parentPath(''), '');
+        assert.throws(() => parentPath('../x'));
     });
 });

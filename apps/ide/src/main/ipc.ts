@@ -1,9 +1,9 @@
-import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { app, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { ALLOWED_IPC_CHANNELS, IPC_CHANNELS, IPC_EVENTS, type AppInfo } from '../shared/api.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
-import { currentWorkspaceInfo, pickAndOpenFolder, workspaceOf } from './workspace/workspaceWindows.ts';
+import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf } from './workspace/workspaceWindows.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -58,6 +58,11 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         });
     });
     handle(IPC_CHANNELS.workspaceReportUnsaved, (event, count) => reportUnsaved(event.sender, count));
+    handle(IPC_CHANNELS.workspaceCreateEntry, (event, parent, name, kind) => workspaceOf(event.sender).createEntry(parent, name, kind));
+    handle(IPC_CHANNELS.workspaceRename, (event, path, newName) => workspaceOf(event.sender).rename(path, newName));
+    handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
+    handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
+    handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

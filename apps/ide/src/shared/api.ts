@@ -66,7 +66,7 @@ export interface SaveResult {
  * menu and its accelerators (#14). A closed list, so the renderer can ignore
  * anything else.
  */
-export const IDE_COMMANDS = ['workspace.openFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
+export const IDE_COMMANDS = ['workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
 /** Unsubscribes a listener registered with an `on…` member. */
@@ -103,7 +103,20 @@ export interface CodeXRApi {
         onDidChangeFiles(listener: (paths: readonly string[]) => void): Unsubscribe;
         /** How many open files have unsaved changes; closing the window asks first while it is above 0. */
         reportUnsaved(count: number): Promise<void>;
-        /** Fires when the workspace changes from outside the renderer (`--folder=` at startup). */
+        /**
+         * Creates an empty file or a folder named `name` inside the folder
+         * `parent` and resolves with its workspace path. Never overwrites.
+         */
+        createEntry(parent: string, name: string, kind: 'file' | 'directory'): Promise<string>;
+        /** Renames an entry within its folder; resolves with the new workspace path. */
+        rename(path: string, newName: string): Promise<string>;
+        /** Moves an entry to the operating system's trash (never deletes outright). */
+        trash(path: string): Promise<void>;
+        /** Recently opened folders, most recent first (absolute paths, for display and `openRecent`). */
+        recentFolders(): Promise<readonly string[]>;
+        /** Opens a folder from `recentFolders()`; any other path is refused. */
+        openRecent(folder: string): Promise<WorkspaceInfo>;
+        /** Fires when the workspace changes from outside the renderer (`--folder=` at startup, File > Open Recent). */
         onDidChange(listener: (workspace: WorkspaceInfo | null) => void): Unsubscribe;
     };
     readonly commands: {
@@ -125,6 +138,11 @@ export const IPC_CHANNELS = {
     workspaceWriteFile: 'codexr:workspace:write-file',
     workspaceSetWatched: 'codexr:workspace:set-watched',
     workspaceReportUnsaved: 'codexr:workspace:report-unsaved',
+    workspaceCreateEntry: 'codexr:workspace:create-entry',
+    workspaceRename: 'codexr:workspace:rename',
+    workspaceTrash: 'codexr:workspace:trash',
+    workspaceRecentFolders: 'codexr:workspace:recent-folders',
+    workspaceOpenRecent: 'codexr:workspace:open-recent',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

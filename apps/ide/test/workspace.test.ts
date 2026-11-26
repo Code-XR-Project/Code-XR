@@ -166,6 +166,65 @@ describe('Workspace', () => {
         }
     });
 
+    it('creates files and folders without ever overwriting', async () => {
+        const workspace = await Workspace.open(root);
+        assert.equal(await workspace.createEntry('src', 'created.ts', 'file'), 'src/created.ts');
+        assert.equal(fs.readFileSync(path.join(root, 'src', 'created.ts'), 'utf8'), '');
+        assert.equal(await workspace.createEntry('', 'newdir', 'directory'), 'newdir');
+        assert.ok(fs.statSync(path.join(root, 'newdir')).isDirectory());
+        await assert.rejects(() => workspace.createEntry('', 'README.md', 'file'), /already exists/);
+        await assert.rejects(() => workspace.createEntry('', 'src', 'directory'), /already exists/);
+        assert.equal(fs.readFileSync(path.join(root, 'README.md'), 'utf8'), '# hi\n');
+        await assert.rejects(() => workspace.createEntry('', 'node_modules', 'directory'), /hidden by the explorer/);
+        await assert.rejects(() => workspace.createEntry('', 'a/b', 'file'), /valid name/);
+        await assert.rejects(() => workspace.createEntry('README.md', 'x', 'file'), /Not a folder/);
+        await assert.rejects(() => workspace.createEntry('../secret', 'x', 'file'));
+        await assert.rejects(() => workspace.createEntry('', 'x', 'symlink'), /kind/);
+        assert.ok(!fs.existsSync(path.join(outside, 'x')));
+    });
+
+    it('renames within the folder, refusing a taken name, the root and outside paths', async () => {
+        const workspace = await Workspace.open(root);
+        write('ren/one.txt', '1');
+        write('ren/two.txt', '2');
+        assert.equal(await workspace.rename('ren/one.txt', 'uno.txt'), 'ren/uno.txt');
+        assert.equal(fs.readFileSync(path.join(root, 'ren', 'uno.txt'), 'utf8'), '1');
+        await assert.rejects(() => workspace.rename('ren/uno.txt', 'two.txt'), /already exists/);
+        assert.equal(fs.readFileSync(path.join(root, 'ren', 'two.txt'), 'utf8'), '2');
+        assert.equal(await workspace.rename('ren/uno.txt', 'UNO.txt'), 'ren/UNO.txt');
+        assert.deepEqual(fs.readdirSync(path.join(root, 'ren')).sort(), ['UNO.txt', 'two.txt']);
+        assert.equal(await workspace.rename('ren', 'renamed'), 'renamed');
+        await assert.rejects(() => workspace.rename('', 'x'), /cannot be renamed/);
+        await assert.rejects(() => workspace.rename('../secret', 'x'));
+        await assert.rejects(() => workspace.rename('missing.txt', 'x.txt'));
+        await assert.rejects(() => workspace.rename('renamed/two.txt', 'CON'), /reserved/);
+    });
+
+    it('trashes through the injected function only, never the root or outside', async () => {
+        const workspace = await Workspace.open(root);
+        write('bin/old.txt', 'x');
+        const trashed: string[] = [];
+        const trashItem = async (absolute: string): Promise<void> => { trashed.push(absolute); };
+        await workspace.trash('bin/old.txt', trashItem);
+        assert.deepEqual(trashed, [path.join(fs.realpathSync(root), 'bin', 'old.txt')]);
+        await assert.rejects(() => workspace.trash('', trashItem), /cannot be renamed or deleted/);
+        await assert.rejects(() => workspace.trash('../secret/key.txt', trashItem));
+        await assert.rejects(() => workspace.trash('bin/missing.txt', trashItem));
+        assert.equal(trashed.length, 1);
+    });
+
+    it('trashes a symlink as a link, never its target', async (t) => {
+        const workspace = await Workspace.open(root);
+        if (!trySymlink(path.join(outside, 'key.txt'), 'trash-link.txt', 'file')) {
+            t.skip('symlinks are not available here');
+            return;
+        }
+        const trashed: string[] = [];
+        await workspace.trash('trash-link.txt', async (absolute) => { trashed.push(absolute); });
+        assert.deepEqual(trashed, [path.join(fs.realpathSync(root), 'trash-link.txt')]);
+        removeLink('trash-link.txt');
+    });
+
     it('refuses to open a file as a folder', async () => {
         await assert.rejects(() => Workspace.open(path.join(root, 'README.md')), /Not a folder/);
     });

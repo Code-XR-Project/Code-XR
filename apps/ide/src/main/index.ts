@@ -10,7 +10,7 @@ import { APP_ORIGIN, trustedOrigins } from './security.ts';
 import { log } from './log.ts';
 import { IPC_EVENTS } from '../shared/api.ts';
 import { folderArgument } from './workspace/workspacePath.ts';
-import { setWorkspace } from './workspace/workspaceWindows.ts';
+import { initRecentFolders, setWorkspace } from './workspace/workspaceWindows.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -53,6 +53,10 @@ async function start(): Promise<void> {
     }
     registerIpcHandlers(origins, isDevelopment);
     installApplicationMenu(isDevelopment);
+    if (!isSmoke) {
+        await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))
+            .catch((error: unknown) => log.warn(`Recent folders unavailable: ${String(error)}`));
+    }
 
     const win = await openMainWindow();
     log.info(`Window loaded from ${win.webContents.getURL()}${isDevelopment ? ' (dev server)' : ''}.`);

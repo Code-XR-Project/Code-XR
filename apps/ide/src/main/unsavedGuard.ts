@@ -25,6 +25,11 @@ export function reportUnsaved(contents: WebContents, count: unknown): void {
     }
 }
 
+/** How many unsaved editors the window last reported. */
+export function unsavedCount(contents: WebContents): number {
+    return unsaved.get(contents.id) ?? 0;
+}
+
 export function guardWindowClose(win: BrowserWindow): void {
     const id = win.webContents.id;
     win.on('close', (event) => {

@@ -63,6 +63,9 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
     onOpened: () => editors?.reset(),
     onExpandedChange: () => updateWatched(),
+    onCreated: (path, kind) => { if (kind === 'file') { void editorGroup().then((group) => group.open(path)); } },
+    onRenamed: (from, to) => void editors?.entryMoved(from, to),
+    onTrashed: (path) => void editors?.entryMoved(path, null),
 });
 
 api.workspace.onDidChangeFiles((paths) => {
@@ -86,5 +89,7 @@ const commands: Record<IdeCommand, () => void> = {
     'file.save': () => void editors?.save(),
     'file.saveAll': () => void editors?.saveAll(),
     'editor.close': () => editors?.closeActive(),
+    'file.newFile': () => void explorer.newFile(),
+    'file.newFolder': () => void explorer.newFolder(),
 };
 api.commands.onCommand((command) => commands[command]());
