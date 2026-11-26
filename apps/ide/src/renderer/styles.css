@@ -691,6 +691,10 @@ body {
 /* A narrow panel drops the source picker, then the severity toggles (the status bar keeps the counts); the filter stays, Ctrl+Shift+M focuses it. */
 @container panel (max-width: 760px) { .problems-origin { display: none; } }
 @container panel (max-width: 600px) { .problems-toggles { display: none; } }
+/* #178: the complexity strip beside a function the scene draws as high or critical. */
+.monaco-editor .metric-heat { width: 3px !important; margin-left: 3px; }
+.monaco-editor .metric-heat.is-high { background: var(--warn); }
+.monaco-editor .metric-heat.is-critical { background: var(--crit); }
 /* #174: the Output view. */
 .output-channel {
   margin-left: auto;

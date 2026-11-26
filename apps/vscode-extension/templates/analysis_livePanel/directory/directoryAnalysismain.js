@@ -547,6 +547,11 @@ function openFileAnalysis(filePath) {
     return;
   }
   try {
+    // The Code-XR IDE (#16) shows the panel beside its editor: the row opens there.
+    if (window.CodeXRHostBridge && typeof window.CodeXRHostBridge.openInEditor === 'function') {
+      window.CodeXRHostBridge.openInEditor({ path: filePath });
+      return;
+    }
     if (vsCodeApi) {
       vsCodeApi.postMessage({ command: 'openFileAnalysis', filePath: filePath });
     }

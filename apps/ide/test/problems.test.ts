@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { filterProblems, groupProblems, mergeFileMetrics, metricProblems, parseFunctionMetrics, problemCounts, PROBLEM_SEVERITIES, type Problem } from '../src/shared/problems.ts';
+import { complexityBand, filterProblems, metricLensTitle, groupProblems, mergeFileMetrics, metricProblems, parseFunctionMetrics, problemCounts, PROBLEM_SEVERITIES, type Problem } from '../src/shared/problems.ts';
 
 const backendAnswer = [
     {
@@ -88,3 +88,17 @@ describe('the problem list (#173)', () => {
         assert.deepEqual(filterProblems(problems, { ...everything, origin: 'metrics' }).map((p) => p.path), ['a.py']);
     });
 });
+
+describe('metrics in the editor (#178)', () => {
+    const fn = { name: 'run', lineStart: 3, lineEnd: 40, lineCount: 35, complexity: 23, parameters: 1 };
+
+    it('writes one lens per function, marking each value over its limit', () => {
+        assert.deepEqual(metricLensTitle(fn, { complexity: 15, lines: 50, parameters: 5 }), { title: '$(warning) CCN 23 > 15 · NLOC 35 · 1 param', over: true });
+        assert.deepEqual(metricLensTitle({ ...fn, parameters: 3 }, { complexity: 0, lines: 0, parameters: 0 }), { title: 'CCN 23 · NLOC 35 · 3 params', over: false });
+    });
+
+    it('colours by the scene bands, not by the Problems limit', () => {
+        assert.deepEqual([1, 10, 11, 25, 26].map(complexityBand), ['normal', 'normal', 'high', 'high', 'critical']);
+    });
+});
+

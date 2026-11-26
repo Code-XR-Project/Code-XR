@@ -85,11 +85,15 @@ function editorGroup(): Promise<EditorGroup> {
             revealInExplorer: (path) => void revealInExplorer(path),
             showTabMenu: (path, x, y) => showTabMenu(path, x, y),
             onMarkersChange: () => problemsView.setEditorProblems(editors?.editorProblems() ?? []),
+            showFunctionProblems: (path, name) => problemsView.filterTo(`'${name}' ${path}`),
         });
         if (settingsReport) {
             editors.applySettings(settingsReport.effective);
         }
         editors.setMetricProblems(currentMetricProblems);
+        if (metricThresholds) {
+            editors.setFunctionMetrics(metricSnapshot?.files ?? [], metricThresholds, metricsInEditor);
+        }
         return editors;
     });
     return editorsLoading;
@@ -292,6 +296,7 @@ function applySettings(report: SettingsReport): void {
         lines: settingOf<number>(report, 'problems.metrics.maxFunctionLines'),
         parameters: settingOf<number>(report, 'problems.metrics.maxParameters'),
     };
+    metricsInEditor = settingOf<boolean>(report, 'problems.metrics.showInEditor');
     refreshMetricProblems();
 }
 function loadSettings(): Promise<void> {
@@ -322,11 +327,15 @@ workbench.onProblemsClick(() => (panelHost.isShowing('problems') ? panelHost.hid
 let metricSnapshot: FunctionMetricsSnapshot | null = null;
 let metricThresholds: MetricThresholds | null = null;
 let currentMetricProblems: Problem[] = [];
+let metricsInEditor = true;
 /** The thresholds or the measured functions changed: the list and the squiggles follow, with no new run. */
 function refreshMetricProblems(): void {
     currentMetricProblems = metricSnapshot && metricThresholds ? metricProblems(metricSnapshot.files, metricThresholds) : [];
     problemsView.setMetricProblems(currentMetricProblems, metricSnapshot !== null);
     editors?.setMetricProblems(currentMetricProblems);
+    if (metricThresholds) {
+        editors?.setFunctionMetrics(metricSnapshot?.files ?? [], metricThresholds, metricsInEditor);
+    }
 }
 function receiveMetrics(snapshot: FunctionMetricsSnapshot | null): void {
     metricSnapshot = snapshot;
@@ -617,6 +626,11 @@ const scenePanel = createScenePanel(workbench.sceneArea, api.analysis, {
     onError: (message) => workbench.setStatus(message),
 });
 api.analysis.onDidOpenScene((scene) => scenePanel.show(scene));
+// #16: "Open in editor" on a dependency-graph node, a LivePanel row. The
+// path was resolved and checked against the open folder by the main process.
+api.analysis.onDidRequestOpenInEditor(({ path, line }) => {
+    void editorGroup().then((group) => line === undefined ? group.open(path) : group.openAt(path, line, 1, 0));
+});
 api.python.onDidChangeStatus((status) => {
     pythonView.show(status);
     notifyPython(status);

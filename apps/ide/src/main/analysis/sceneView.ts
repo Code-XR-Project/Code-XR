@@ -1,4 +1,4 @@
-import { WebContentsView, net, session, type BrowserWindow, type Session } from 'electron';
+import { BrowserWindow, WebContentsView, net, session, type Session, type WebContents } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { SceneBounds } from '../../shared/api.ts';
@@ -13,14 +13,22 @@ import { contentTypeOf, isLoopbackUrl, vendoredLibraryFor } from './sceneLibrari
  *
  * It is a separate page, not an <iframe> in the app's renderer, so the app's
  * CSP stays `frame-src 'none'` and the scene, which is served over the
- * network, can never reach `window.codexr`: no preload, sandboxed, context
- * isolation, and its own in-memory session (`codexr-scene`) that grants no
- * permission. It may navigate only within the local server it was opened on.
+ * network, can never reach `window.codexr`: sandboxed, context isolation,
+ * and its own in-memory session (`codexr-scene`) that grants no permission.
+ * Its only preload (src/scenePreload) exposes one call, `CodeXRHostBridge.
+ * openInEditor`, which the main process checks against the open folder. It
+ * may navigate only within the local server it was opened on.
  */
 
 const SCENE_PARTITION = 'codexr-scene';
 let sceneSession: Session | null = null;
 let librariesDir = '';
+let preloadPath = '';
+
+/** Where the scene preload was built (out/scenePreload/index.cjs); set once at start-up. */
+export function setScenePreloadPath(file: string): void {
+    preloadPath = file;
+}
 
 /** Where the vendored scene libraries are (see sceneLibraries.ts); set once at start-up. */
 export function setSceneLibrariesDir(dir: string): void {
@@ -78,6 +86,7 @@ export async function showScene(win: BrowserWindow, url: string): Promise<void> 
             nodeIntegration: false,
             webSecurity: true,
             session: lockedSession(),
+            ...(preloadPath ? { preload: preloadPath } : {}),
         },
     });
     allowSceneOrigin(view.webContents, origin);
@@ -117,4 +126,14 @@ export function closeScene(win: BrowserWindow): void {
 /** The URL the window's scene shows, for the smoke run and tests. */
 export function sceneUrlOf(win: BrowserWindow): string | null {
     return views.get(win.id)?.webContents.getURL() ?? null;
+}
+
+/** The window whose scene view `contents` is, or null: anything else that sends is not a scene. */
+export function windowOfScene(contents: WebContents): BrowserWindow | null {
+    for (const [windowId, view] of views) {
+        if (view.webContents === contents) {
+            return BrowserWindow.fromId(windowId);
+        }
+    }
+    return null;
 }

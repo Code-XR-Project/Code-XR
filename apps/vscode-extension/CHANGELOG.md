@@ -33,6 +33,8 @@
 - **"CodeXR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
 - **Diagnostics now go to the "CodeXR" output channel instead of the developer console.** Open *View → Output* and pick **CodeXR** to read them. Warnings and errors are always written there; step-by-step detail (which includes file paths) is written only when `codeXR.debug.verboseLogs` is on, as that setting already promised. Messages logged while the extension is still starting are no longer lost: they appear in the channel as soon as it opens. The generated XR and DOM scenes and the directory LivePanel page also stop printing their routine loading and live-reload messages to the browser console; their warnings and errors are still printed there.
 
+- **Nothing changes in VS Code, but the dependency graph and the directory LivePanel can now hand a file to an embedding editor.** When the page runs inside the Code-XR IDE, a file or symbol card of the dependency graph offers *Open in editor* and a LivePanel row opens its file there. In VS Code and in a browser both behave exactly as before.
+
 #### Fixed
 
 - **The progress of setting up the Python environment matches what it is doing.** The set-up reported its steps as running totals (20, 55, 70...) while VS Code adds each value to the bar, so the bar filled long before the end; deleting the environment and installing a package did the same. Each step now reports only how far it moved, and the packages and language parsers share the last part of the bar one by one.

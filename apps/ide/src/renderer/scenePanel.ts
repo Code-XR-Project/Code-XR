@@ -135,6 +135,14 @@ export function createScenePanel(
         }
     });
 
+    // #16: a save re-runs the analysis; the header follows the new count.
+    api.onDidChangeSceneFiles((event) => {
+        if (current && event.url === current.url) {
+            files.textContent = analysedFilesLabel(event.files);
+            files.hidden = files.textContent === '';
+        }
+    });
+
     function hide(): void {
         open = false;
         current = null;
