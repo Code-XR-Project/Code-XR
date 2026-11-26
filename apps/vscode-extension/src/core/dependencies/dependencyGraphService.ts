@@ -7,6 +7,7 @@ import { ExecutePython } from '../analysis/python/executePython';
 import { DependencyGraphDataset, DependencyRefreshRequest } from './dependencyGraphModels';
 import { JobRunner } from '../analysis/launch/jobRunner';
 import { runWithLaunchSignal } from '../analysis/launch/launchControl';
+import { hostPathsFromContext, privateStorageRoot } from '../host/hostPaths';
 
 /** A dependency analysis longer than this is killed and reported (DEPGRAPH-9). */
 export const DEPENDENCY_GRAPH_JOB_TIMEOUT_MS = 10 * 60 * 1000;
@@ -31,9 +32,9 @@ export class DependencyGraphService {
         private readonly sessionId: string,
         private readonly staticRoot: string,
     ) {
-        const privateStorageRoot = context.storageUri?.fsPath || context.globalStorageUri.fsPath;
+        const storageRoot = privateStorageRoot(hostPathsFromContext(context));
         this.extractionCachePath = path.join(
-            privateStorageRoot,
+            storageRoot,
             'dependency-graphs',
             sessionId,
             'extraction-cache.json',
