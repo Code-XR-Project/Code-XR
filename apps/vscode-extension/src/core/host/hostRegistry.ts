@@ -8,6 +8,7 @@
 import type { CodeXRHost } from './codeXRHost';
 
 let currentHost: CodeXRHost | null = null;
+let fallbackForTests: (() => CodeXRHost) | null = null;
 
 /** Stores the host. Must be called once at start-up; later calls are ignored. */
 export function initializeHost(host: CodeXRHost): void {
@@ -18,6 +19,9 @@ export function initializeHost(host: CodeXRHost): void {
 
 /** The host stored by `initializeHost`. Throws if called before it. */
 export function getHost(): CodeXRHost {
+    if (!currentHost && fallbackForTests) {
+        currentHost = fallbackForTests();
+    }
     if (!currentHost) {
         throw new Error('Code-XR host not initialized. Call initializeHost(host) at start-up first.');
     }
@@ -35,4 +39,18 @@ export function hasHost(): boolean {
  */
 export function resetHostForTests(): void {
     currentHost = null;
+    fallbackForTests = null;
+}
+
+/**
+ * For tests only: a factory `getHost()` uses when nothing called
+ * `initializeHost` first, built on first use and kept. An explicit
+ * `initializeHost` still wins if it comes before that first use.
+ * `test/helpers/fakeVscode.cjs` sets it inside every `withFakeVscode` scope
+ * (on a module instance evicted when the scope ends), so a suite exercising a
+ * core class that calls `getHost()` gets a VS Code host over the same fake.
+ * The extension never sets it: in production a missing host still throws.
+ */
+export function setHostFallbackForTests(factory: (() => CodeXRHost) | null): void {
+    fallbackForTests = factory;
 }

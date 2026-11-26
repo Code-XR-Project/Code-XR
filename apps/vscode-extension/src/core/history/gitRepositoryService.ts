@@ -8,6 +8,12 @@ import {
     MAX_SNAPSHOT_BYTES,
     planDirectorySnapshot,
 } from './gitSnapshotPlan';
+import {
+    GitBlobSource,
+    GitSnapshotBlobStore,
+    openBatchBlobSource,
+    writeSnapshotFiles,
+} from './gitSnapshotWriter';
 import { currentLaunchSignal } from '../analysis/launch/launchControl';
 import { streamGitLines } from './gitLineStream';
 import {
@@ -62,11 +68,15 @@ export interface MaterializedGitTarget {
 
 export class GitRepositoryService {
     private readonly sourceById = new Map<string, ComparisonSource>();
+    /** Blobs already copied for this service, linked into later snapshots (#106). */
+    private readonly blobStore: GitSnapshotBlobStore;
 
     public constructor(
         private readonly targetPath: string,
         private readonly snapshotRoot: string,
-    ) {}
+    ) {
+        this.blobStore = new GitSnapshotBlobStore(path.join(snapshotRoot, 'blob-store'));
+    }
 
     public async listReferences(): Promise<HistoricalComparisonReferences> {
         const repositoryRoot = await this.resolveRepositoryRoot();
@@ -400,8 +410,15 @@ export class GitRepositoryService {
         const rawTree = await this.runGitBuffer(repositoryRoot, [
             ...treeArguments,
         ]);
-        const { repositoryPaths, warnings } = planDirectorySnapshot(rawTree, targetRelativePath, recursive);
-        await this.copyPlannedFiles(repositoryRoot, commitSha, sourceDirectory, repositoryPaths);
+        const { files, warnings } = planDirectorySnapshot(rawTree, targetRelativePath, recursive);
+        await writeSnapshotFiles({
+            files,
+            sourceDirectory,
+            store: this.blobStore,
+            openSource: () => this.openBlobSource(repositoryRoot),
+            assertInside: (root, candidate) => this.assertInside(root, candidate),
+            signal: currentLaunchSignal(),
+        });
 
         return {
             targetPath: isRepositoryRoot
@@ -413,30 +430,10 @@ export class GitRepositoryService {
     }
 
 
-    /**
-     * Write each planned blob under `sourceDirectory` at its repository path.
-     * The plan only holds paths shouldMaterializeDirectoryFile accepted, so
-     * none is empty or escapes the target; assertInside still guards the
-     * destination.
-     */
-    private async copyPlannedFiles(
-        repositoryRoot: string,
-        commitSha: string,
-        sourceDirectory: string,
-        repositoryPaths: string[],
-    ): Promise<void> {
-        for (const repositoryPath of repositoryPaths) {
-            const destination = path.join(sourceDirectory, ...repositoryPath.split('/'));
-            this.assertInside(sourceDirectory, destination);
-            const content = await this.runGitBuffer(
-                repositoryRoot,
-                ['show', `${commitSha}:${repositoryPath}`],
-            );
-            await fs.promises.mkdir(path.dirname(destination), { recursive: true });
-            await fs.promises.writeFile(destination, content);
-        }
+    /** One `cat-file --batch` per revision copy; a seam for the characterization tests. */
+    private openBlobSource(repositoryRoot: string): GitBlobSource {
+        return openBatchBlobSource(repositoryRoot);
     }
-
 
     private buildWorkingCopySource(
         headName: string | null,

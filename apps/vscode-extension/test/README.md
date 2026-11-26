@@ -12,7 +12,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `test/commands`: command registration contract tests (the real `registerAllCommands` under the fake vscode, tied to package.json).
 - `test/directory_analysis`: directory watcher and reanalysis data tests.
 - `test/host`: the `CodeXRHost` seam of the core (#13): `core/host` stays vscode-free, and the VS Code adapter (`app/host/vscodeHost.ts`) forwards each member to the call the core makes today.
-- `test/helpers`: shared helpers (`sourceText.cjs`, `fakeVscode.cjs`, `runtimeAssembly.cjs`, `logCapture.cjs`) and their own tests.
+- `test/helpers`: shared helpers (`sourceText.cjs`, `fakeVscode.cjs`, `runtimeAssembly.cjs`, `logCapture.cjs`) and their own tests. Every `withFakeVscode` scope also provides a `CodeXRHost` over the same fake (#13): a core module calling `getHost()` gets `createVSCodeHost`, built on first use from `fake.hostContext` or a throwaway context, so its notifications still land in `fake.messages`. Do not `requireOut('core/host/hostRegistry.js')` inside a scope: it loads a copy without that host.
 - `test/logging`, `test/python_env`, `test/servers`, `test/startup`, `test/utils`, `test/visualization_settings`, `test/visualize_data`: focused suites per subsystem.
 - `test/manual`: the HTML pages the browser harnesses load, their data, and `buildAssembledRuntimes.cjs`.
 - `test/packaging`: what ships (VSIX layout, dist characterization, Marketplace listing, the menu surface).
@@ -30,7 +30,7 @@ Every `*.test.cjs` below `test/` is collected by `npm run test:unit`, except und
 - `npm run test:all`: run both the Node and Python suites.
 - `npm run test:analysis`: per-language end-to-end metrics over `backend/manual_test/` with the pinned lizard.
 - `npm run test:htmlanalysis`: the HTML/DOM analysis suite.
-- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`, `test:xr-chart-bounds-harness`: browser harnesses (Playwright's Chromium; the CDN libraries are served from `test/vendor/scene-libraries/` and every other non-local request is aborted, so they run offline). `npm run test:harnesses` runs all five, as the CI `harnesses` job does. The mode and immersive harnesses serve the project over HTTP on 127.0.0.1 (`test/helpers/staticHttpServer.cjs`) instead of opening `file://`, so `fetch()` works in them.
+- `npm run test:xr-harness`, `test:xr-mode-harness`, `test:xr-immersive-harness`, `test:project-evolution-harness`, `test:xr-chart-bounds-harness`, `test:xr-panel-placement-harness`: browser harnesses (Playwright's Chromium; the CDN libraries are served from `test/vendor/scene-libraries/` and every other non-local request is aborted, so they run offline). `npm run test:harnesses` runs all six, as the CI `harnesses` job does. The mode and immersive harnesses serve the project over HTTP on 127.0.0.1 (`test/helpers/staticHttpServer.cjs`) instead of opening `file://`, so `fetch()` works in them.
 
 The full table, with when to run each, is in `.claude/docs/DEVELOPMENT.md`.
 

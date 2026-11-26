@@ -467,6 +467,36 @@ test('one placement registry: added and brought screens land on a free spot (PAN
     assert.match(overlay, /'data-codexr-panel-obstacle': 'project-evolution-overlay'/);
 });
 
+test('placement never stacks screens in view nor leaves the room (#103, PANELS-3/9)', () => {
+    // A screen in front of (or behind) another in the view direction is
+    // blocked even when the boxes do not intersect.
+    assert.match(runtimeSource, /function hidesAnotherPanel\(box, viewer\)/);
+    assert.match(runtimeSource, /!violatesCollision\(points\) && !\(viewer && hidesAnotherPanel\(points\.box, viewer\)\)/);
+    assert.equal((runtimeSource.match(/obstacle\.occluder = true;/g) || []).length, 2, 'screens and tagged panels occlude; the table does not');
+    // Placement passes the viewer and tests the pose the screen will take.
+    assert.match(runtimeSource, /findFreePlacement\(\s*desiredWorldPosition,\s*computeFaceUserQuaternion\(desiredWorldPosition, cameraWorldPosition\),\s*cameraWorldPosition,\s*\)/);
+    // Every spot tried is clamped into the room; nothing free keeps the
+    // clamped target, never the raw one.
+    assert.match(runtimeSource, /function clampIntoRoom\(position, orientation\)/);
+    assert.match(runtimeSource, /const start = inRoom\(targetWorldPosition\);/);
+    assert.match(runtimeSource, /const candidate = inRoom\(start\.clone\(\)/);
+    assert.doesNotMatch(runtimeSource, /Nothing free keeps the target, so/);
+    // The non-screen panels go through the shared registry.
+    const overlay = readProjectFile('templates', 'components', 'codexr', 'project-evolution', 'projectEvolutionRuntime', 'overlayAndPanel.js');
+    assert.match(overlay, /CodeXRCommonRuntime\?\.resolvePanelPlacement/);
+    assert.match(overlay, /resolve\(overlay, OVERLAY_PREFERRED_POSITION, \{ size: OVERLAY_SIZE, viewer: viewer, preferUp: true \}\)/);
+    assert.doesNotMatch(overlay, /position: '0 3\.35 -18'/);
+    const controller = readProjectFile('templates', 'components', 'codexr', 'xr-chart-mapping-ui', 'xrChartMappingUiRuntime', 'placementGeometry.js');
+    assert.match(controller, /CodeXRCommonRuntime\.resolvePanelPlacement/);
+    assert.match(controller, /resolve\(refs\.panel, targetPosition, \{ avoidTable: false \}\)/);
+    // The browser harness drives each case in the real room.
+    const runner = readProjectFile('test', 'runners', 'run-xr-panel-placement-harness.cjs');
+    assert.match(runner, /async function bringDefaultThenGuide/);
+    assert.match(runner, /async function bringNextToWall/);
+    assert.match(runner, /async function sharedPanelPlacement/);
+    assert.match(readProjectFile('package.json'), /"test:harnesses": "[^"]*npm run test:xr-panel-placement-harness"/);
+});
+
 test('added screens use the scene screen config and their display name (PANELS-8)', () => {
     const source = readProjectFile('templates', 'components', 'codexr', 'virtual-screen', 'codexrMultiScreenManagerRuntime.js');
     let definition = null;

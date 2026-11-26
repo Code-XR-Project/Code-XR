@@ -8,6 +8,7 @@ import { sseManager } from './sse/SSEManager';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { handleError, ErrorDomain, ErrorSeverity } from '../../platform/ui/errorHandler';
 import { getLogger } from '../../platform/logging/sink';
+import { getHost } from '../host/hostRegistry';
 
 const logger = getLogger('ACTIVE_SERVERS');
 
@@ -45,7 +46,7 @@ export class ServerControl {
         
         if (!server) {
             logger.error(`Server ${serverId} not found in registry`);
-            void vscode.window.showErrorMessage(`Server not found: ${serverId}`);
+            void getHost().notifier.notify('error', `Server not found: ${serverId}`);
             return false;
         }
 
@@ -104,7 +105,7 @@ export class ServerControl {
 
             logger.debug(() => `Stopped server ${serverId} (${server.url}), clean: ${cleanShutdown}`);
             if (cleanShutdown && !options.silent) {
-                void vscode.window.showInformationMessage(`Server stopped: ${server.url}`);
+                void getHost().notifier.notify('info', `Server stopped: ${server.url}`);
             }
 
             return cleanShutdown;
@@ -149,7 +150,7 @@ export class ServerControl {
                     logger.error(`Forced shutdown failed for ${serverId}:`, forceError);
                 }
             }
-            void vscode.window.showWarningMessage(
+            void getHost().notifier.notify('warning',
                 `Server removed from the list, but its runtime did not shut down cleanly: ${reason}`,
             );
             return false;

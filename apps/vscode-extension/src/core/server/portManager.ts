@@ -11,16 +11,22 @@ export class PortManager {
     private static readonly DEFAULT_START_PORT = 3000;
     private static readonly DEFAULT_END_PORT = 8080;
     private static readonly MAX_RETRIES = 50;
+    /** Addresses that listen on every interface, loopback included. */
+    private static readonly WILDCARD_HOSTS = new Set(['0.0.0.0', '::']);
+    /** The addresses a host-less or wildcard probe checks (LAUNCHER-13, #111). */
+    public static readonly PROBED_HOSTS: readonly string[] = ['0.0.0.0', '127.0.0.1', '::1'];
 
     /**
      * Check if a specific port is available
      * @param port - The port number to check
-     * @param host - The host to bind to. Without one, the port must be free on
-     *   the wildcard address and on loopback (see isPortFreeEverywhere).
+     * @param host - The host to bind to. Without one, or with a wildcard
+     *   address (`0.0.0.0`, `::`), the port must be free on the wildcard
+     *   address and on loopback (see isPortFreeEverywhere): a server on the
+     *   wildcard answers "localhost" too, so loopback is where it collides.
      * @returns Promise<boolean> - True if port is available, false otherwise
      */
     public static async isPortAvailable(port: number, host?: string): Promise<boolean> {
-        if (host === undefined) {
+        if (host === undefined || PortManager.WILDCARD_HOSTS.has(host)) {
             return PortManager.isPortFreeEverywhere(port);
         }
         return new Promise((resolve) => {
@@ -53,7 +59,7 @@ export class PortManager {
      * "localhost" then reaches that other app instead of Code-XR.
      */
     public static async isPortFreeEverywhere(port: number): Promise<boolean> {
-        for (const host of ['0.0.0.0', '127.0.0.1', '::1']) {
+        for (const host of PortManager.PROBED_HOSTS) {
             const free = await PortManager.isPortAvailableOnHost(port, host);
             if (!free) {
                 return false;
@@ -126,32 +132,42 @@ export class PortManager {
         } catch (error) {
             logger.error(`get-port failed, using manual sequential detection:`, error);
             
-            // Fallback to manual sequential implementation  
-            logger.debug(() => `Manual port scanning from ${startPort} to ${endPort}`);
-            let currentPort = startPort;
-            let attempts = 0;
-            const maxAttempts = Math.min(endPort - startPort + 1, PortManager.MAX_RETRIES);
+            return PortManager.scanSequentially(startPort, endPort, host);
+        }
+    }
 
-            while (attempts < maxAttempts) {
-                if (currentPort > endPort) {
-                    break;
-                }
+    /**
+     * The fallback when get-port fails: the first port from `startPort` that
+     * isPortAvailable accepts, trying at most MAX_RETRIES ports. With the
+     * default wildcard host that is the same three-address check as the main
+     * probe (#111); it used to bind 0.0.0.0 alone, which succeeds on macOS and
+     * Windows while a dev server owns 127.0.0.1 on the same port.
+     */
+    public static async scanSequentially(startPort: number, endPort: number, host?: string): Promise<number> {
+        logger.debug(() => `Manual port scanning from ${startPort} to ${endPort}`);
+        let currentPort = startPort;
+        let attempts = 0;
+        const maxAttempts = Math.min(endPort - startPort + 1, PortManager.MAX_RETRIES);
 
-                logger.debug(() => `Testing port ${currentPort} availability on ${host}`);
-                if (await PortManager.isPortAvailable(currentPort, host)) {
-                    logger.debug(() => `Port ${currentPort} is available and ready for use`);
-                    return currentPort;
-                } else {
-                    logger.debug(() => `Port ${currentPort} is occupied, trying next port ${currentPort + 1}`);
-                }
-
-                currentPort++;
-                attempts++;
+        while (attempts < maxAttempts) {
+            if (currentPort > endPort) {
+                break;
             }
 
-            throw new Error(
-                `SERVER: No available port found in range ${startPort}-${endPort} after checking ${attempts} ports sequentially`
-            );
+            logger.debug(() => `Testing port ${currentPort} availability on ${host ?? 'all local addresses'}`);
+            if (await PortManager.isPortAvailable(currentPort, host)) {
+                logger.debug(() => `Port ${currentPort} is available and ready for use`);
+                return currentPort;
+            } else {
+                logger.debug(() => `Port ${currentPort} is occupied, trying next port ${currentPort + 1}`);
+            }
+
+            currentPort++;
+            attempts++;
         }
+
+        throw new Error(
+            `SERVER: No available port found in range ${startPort}-${endPort} after checking ${attempts} ports sequentially`
+        );
     }
 }

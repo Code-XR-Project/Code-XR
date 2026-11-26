@@ -1,10 +1,10 @@
 import * as fs from 'fs';
-import * as vscode from 'vscode';
 import { NetworkUtils } from './networkUtils';
 import { HttpServer } from './httpServer';
 import { HttpsServerBase, HttpsServerBaseConfig } from './httpsServerBase';
 import { isCertificateRejectedByClient } from './httpsTlsOptions';
 import { getLogger } from '../../platform/logging/sink';
+import { getHost } from '../host/hostRegistry';
 
 const logger = getLogger('SERVER');
 
@@ -53,12 +53,12 @@ export class HttpsCustomServer extends HttpsServerBase<HttpsCustomServerConfig> 
                 logger.debug(() => `HTTPS server listening on port ${port}`);
                 if (this.usingFallbackCerts) {
                     logger.warn('Using generated local certificates instead of custom certificates');
-                    void vscode.window.showWarningMessage(
+                    void getHost().notifier.notify('warning',
                         'HTTPS server started with generated local certificates because the custom certificate pair was missing or invalid.',
                         'Configure Certificates',
                     ).then((action) => {
                         if (action === 'Configure Certificates') {
-                            void vscode.commands.executeCommand('codexr.server.configure');
+                            getHost().signal({ kind: 'openServerSettings' });
                         }
                     });
                 } else {

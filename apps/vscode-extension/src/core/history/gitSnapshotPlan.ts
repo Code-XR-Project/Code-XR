@@ -13,6 +13,13 @@ export const MAX_SNAPSHOT_FILES = 5000;
 export const MAX_SNAPSHOT_BYTES = 100 * 1024 * 1024;
 export const MAX_SINGLE_FILE_BYTES = 8 * 1024 * 1024;
 
+/** One blob a snapshot copies: where it goes, which object, how big. */
+export interface PlannedSnapshotFile {
+    repositoryPath: string;
+    blobSha: string;
+    size: number;
+}
+
 /** A repository path relative to the analyzed target (POSIX). */
 export function relativeToTarget(targetRelativePath: string, repositoryPath: string): string {
     return targetRelativePath === '.'
@@ -42,12 +49,12 @@ function planTreeEntry(
     entry: string,
     targetRelativePath: string,
     recursive: boolean,
-): { repositoryPath: string; size: number } | { warning: string } | null {
+): PlannedSnapshotFile | { warning: string } | null {
     const match = entry.match(/^(\d+)\s+(\w+)\s+([0-9a-f]{40})\s+(\S+)\t(.+)$/);
     if (!match) {
         return null;
     }
-    const [, mode, type, , rawSize, repositoryPath] = match;
+    const [, mode, type, blobSha, rawSize, repositoryPath] = match;
     const relativePath = relativeToTarget(targetRelativePath, repositoryPath);
     if (!recursive && relativePath.includes('/')) {
         // A shallow analysis reads only the target's own files (HIST-5).
@@ -69,7 +76,7 @@ function planTreeEntry(
     if (!Number.isFinite(size) || size > MAX_SINGLE_FILE_BYTES) {
         return { warning: `Skipped oversized file: ${repositoryPath}` };
     }
-    return { repositoryPath, size };
+    return { repositoryPath, blobSha, size };
 }
 
 /**
@@ -81,10 +88,10 @@ export function planDirectorySnapshot(
     rawTree: Buffer,
     targetRelativePath: string,
     recursive = true,
-): { repositoryPaths: string[]; warnings: string[] } {
+): { repositoryPaths: string[]; files: PlannedSnapshotFile[]; warnings: string[] } {
     let totalBytes = 0;
     const warnings: string[] = [];
-    const repositoryPaths: string[] = [];
+    const files: PlannedSnapshotFile[] = [];
     for (const entry of rawTree.toString('utf8').split('\0').filter(Boolean)) {
         const planned = planTreeEntry(entry, targetRelativePath, recursive);
         if (!planned) {
@@ -94,14 +101,14 @@ export function planDirectorySnapshot(
             warnings.push(planned.warning);
             continue;
         }
-        if (repositoryPaths.length >= MAX_SNAPSHOT_FILES) {
+        if (files.length >= MAX_SNAPSHOT_FILES) {
             throw new Error('comparison-snapshot-file-limit');
         }
         totalBytes += planned.size;
         if (totalBytes > MAX_SNAPSHOT_BYTES) {
             throw new Error('comparison-snapshot-size-limit');
         }
-        repositoryPaths.push(planned.repositoryPath);
+        files.push(planned);
     }
-    return { repositoryPaths, warnings };
+    return { repositoryPaths: files.map((file) => file.repositoryPath), files, warnings };
 }

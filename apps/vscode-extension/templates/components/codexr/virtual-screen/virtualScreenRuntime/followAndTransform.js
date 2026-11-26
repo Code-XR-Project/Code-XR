@@ -86,7 +86,10 @@
         const orientation = new global.THREE.Quaternion();
         el.object3D.getWorldPosition(center);
         el.object3D.getWorldQuaternion(orientation);
-        obstacles.push(orientedBox(center, orientation, width / 2, height / 2, 0.15));
+        const obstacle = orientedBox(center, orientation, width / 2, height / 2, 0.15);
+        // Screens hide each other when stacked in view (PANELS-3).
+        obstacle.occluder = true;
+        obstacles.push(obstacle);
       });
       collectPanelObstacles(obstacles);
       refs.obstacleCache = obstacles;
@@ -600,6 +603,7 @@
         ? findFreePlacement(
           desiredWorldPosition,
           computeFaceUserQuaternion(desiredWorldPosition, cameraWorldPosition),
+          cameraWorldPosition,
         )
         : constrainPosition(desiredWorldPosition);
       const targetWorldQuaternion = computeFaceUserQuaternion(targetWorldPosition, cameraWorldPosition);
