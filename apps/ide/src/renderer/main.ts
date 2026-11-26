@@ -19,7 +19,9 @@ import { createEditorStatus } from './editor/editorStatus.ts';
 import { eolChoices, indentationChoices, languageChoices, type Choice } from './editor/editorStatusModel.ts';
 import { parseSession, serializeSession, sessionKey } from './editor/tabsModel.ts';
 import { showContextMenu, type ContextMenuItem } from './contextMenu.ts';
-import type { IdeCommand, PythonEnvStatus, WatchedEntry } from '../shared/api.ts';
+import { createSettingsView } from './settings/settingsView.ts';
+import { settingOf } from '../shared/settings.ts';
+import type { IdeCommand, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
 if (!root) {
@@ -72,6 +74,9 @@ function editorGroup(): Promise<EditorGroup> {
             revealInExplorer: (path) => void revealInExplorer(path),
             showTabMenu: (path, x, y) => showTabMenu(path, x, y),
         });
+        if (settingsReport) {
+            editors.applySettings(settingsReport.effective);
+        }
         return editors;
     });
     return editorsLoading;
@@ -130,6 +135,8 @@ function switchTabsFolder(root: string | null): void {
     saveSession();
     sessionRoot = null;
     editors?.reset();
+    // #18: the new folder brings its own settings.
+    void Promise.resolve().then(loadSettings);
     if (root === null) {
         return;
     }
@@ -200,6 +207,10 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
 });
 
 api.workspace.onDidChangeFiles((paths) => {
+    // #18: the folder's settings file saved in the editor (or changed on disk) takes effect.
+    if (paths.includes('.codexr/settings.json')) {
+        void loadSettings();
+    }
     void explorer.refresh(paths);
     void editors?.onDiskChanged(paths);
 });
@@ -255,12 +266,37 @@ const searchView = createSearchView(workbench.searchView, api.workspace, {
     },
 });
 
+// #18: settings, user and folder. The main process stores and validates
+// them; the renderer shows them and applies the ones in force.
+let settingsReport: SettingsReport | null = null;
+function applySettings(report: SettingsReport): void {
+    settingsReport = report;
+    settingsView.show(report);
+    editors?.applySettings(report.effective);
+    terminal.setFontSize(settingOf<number>(report, 'terminal.integrated.fontSize'));
+}
+function loadSettings(): Promise<void> {
+    return api.settings.get().then(applySettings, (error: unknown) => workbench.setStatus(`Could not read the settings: ${String(error)}`));
+}
+function openFolderSettingsFile(): void {
+    api.settings.folderFile().then(
+        (path) => void editorGroup().then((group) => group.open(path)),
+        (error: unknown) => workbench.setStatus(`Could not open the folder settings: ${String(error)}`),
+    );
+}
+const settingsView = createSettingsView(workbench.settingsView, api.settings, {
+    onError: (message) => notifications.notify('error', message),
+    openFolderFile: openFolderSettingsFile,
+});
+api.settings.onDidChange(applySettings);
+
 // #137: the terminal panel; xterm.js loads with the first terminal.
 const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
     toggleMaximized: () => workbench.layout.togglePanelMaximized(),
 });
 workbench.layout.onDidChange(() => terminal.setMaximized(workbench.layout.panelMaximized));
+void loadSettings();
 
 // #18: every action is a command in one registry: the palette lists them,
 // the menu's accelerators and the workbench's own keys run them.
@@ -376,6 +412,11 @@ registerWorkbenchCommands(registry, {
     hasPanel: () => terminal.visible,
     toggleZenMode: () => workbench.layout.toggleZen(),
     resetLayout: () => workbench.layout.reset(),
+    openSettings: () => {
+        workbench.showView('settings');
+        settingsView.focus();
+    },
+    openFolderSettingsFile: () => openFolderSettingsFile(),
     closeEditors: (kind) => editors?.closeGroup(kind),
     cycleEditor: (delta) => editors?.cycle(delta),
     keepEditor: () => editors?.keepActive(),

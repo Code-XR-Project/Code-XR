@@ -26,6 +26,7 @@ const healthy: SmokeProbe = {
     editorStatus: 'Ln 1, Col 1 | Spaces: 2 | UTF-8 | LF | JSON',
     layout: { zen: true, resized: true, saved: true, sideBarToggled: true },
     tabs: { previewReplaced: true, kept: true, cycled: true, sessionSaved: true, closedAll: true },
+    settings: { listed: true, applied: true, reset: true },
     cspViolations: [],
 };
 

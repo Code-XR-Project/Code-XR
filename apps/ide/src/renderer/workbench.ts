@@ -14,6 +14,7 @@ interface ActivityItem {
     readonly id: string;
     readonly label: string;
     readonly icon: string; // SVG path data, 24x24 viewBox
+    readonly bottom?: boolean;
 }
 
 const ACTIVITY: readonly ActivityItem[] = [
@@ -22,9 +23,11 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'search', label: 'Search', icon: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21' },
     { id: 'analysis', label: 'Analysis', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
+    // #18: the Settings view, at the foot of the activity bar as in VS Code.
+    { id: 'settings', label: 'Settings', icon: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', bottom: true },
 ];
 
-export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr';
+export type ViewId = 'explorer' | 'search' | 'analysis' | 'xr' | 'settings';
 
 export interface Workbench {
     /** The explorer's pane of the side bar. */
@@ -33,6 +36,8 @@ export interface Workbench {
     readonly searchView: HTMLElement;
     /** The Analysis view's pane of the side bar (#15: the Python environment). */
     readonly analysisView: HTMLElement;
+    /** The Settings view's pane of the side bar (#18, settings/settingsView.ts). */
+    readonly settingsView: HTMLElement;
     /** Shows a view in the side bar, as clicking its activity item does. */
     showView(id: ViewId): void;
     /** The status-bar item of the Python environment; clicking it opens the Analysis view. */
@@ -60,7 +65,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const activityBar = el('nav', { className: 'activity-bar', attrs: { 'aria-label': 'Views' } },
         ACTIVITY.map((item, index) => {
             const button = el('button', {
-                className: index === 0 ? 'activity-item is-active' : 'activity-item',
+                className: ['activity-item', index === 0 ? 'is-active' : '', item.bottom ? 'is-bottom' : ''].filter(Boolean).join(' '),
                 attrs: { type: 'button', title: item.label, 'aria-label': item.label, 'aria-pressed': String(index === 0), 'data-view': item.id },
             }, [icon(item.icon)]);
             // #169: clicking the active view's item hides the side bar, as in VS Code; any click shows it again.
@@ -82,8 +87,9 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
         el('p', { className: 'muted side-note', text: 'Run an analysis from the Analysis view: its XR scene opens beside the code.' }),
     ]);
-    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView]);
+    const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
+    const panes = new Map<ViewId, HTMLElement>([['explorer', sideBar], ['search', searchView], ['analysis', analysisView], ['xr', xrView], ['settings', settingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [sideBar, searchView, analysisView, xrView, settingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -135,6 +141,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         sideBar,
         searchView,
         analysisView,
+        settingsView,
         showView: (id: ViewId) => showView(id),
         setPythonStatus(text: string, tooltip: string, state: string): void {
             pythonItem.hidden = false;

@@ -32,6 +32,8 @@ export interface TerminalPanel {
     newTerminal(profileId?: string | null): Promise<void>;
     /** Shows the panel as maximised or not (#169); the layout owns the state. */
     setMaximized(maximized: boolean): void;
+    /** #18: the terminals' font size, for the open ones and the next. */
+    setFontSize(size: number): void;
 }
 
 export interface TerminalPanelHooks {
@@ -51,6 +53,7 @@ interface TerminalTab {
 
 export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal'], platform: Promise<string>, hooks: TerminalPanelHooks): TerminalPanel {
     let activeId: number | null = null;
+    let fontSize = 13;
     let loadingView: Promise<typeof XtermModule> | null = null;
     let profiles: TerminalProfileList = { profiles: [], defaultProfileId: null };
     const tabs = new Map<number, TerminalTab>();
@@ -188,6 +191,7 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
         let profileName = 'Terminal';
         const view = createXtermView(host, {
             platform: os,
+            fontSize,
             onInput: (data) => {
                 if (id !== null && !tabs.get(id)?.exited) {
                     void api.input(id, data).catch(() => undefined);
@@ -361,6 +365,16 @@ export function createTerminalPanel(panel: HTMLElement, api: CodeXRApi['terminal
         show: () => show(),
         hide,
         newTerminal,
+        setFontSize(size: number): void {
+            if (size === fontSize) {
+                return;
+            }
+            fontSize = size;
+            for (const entry of tabs.values()) {
+                entry.view.setFontSize(size);
+            }
+            scheduleFit();
+        },
         setMaximized(maximized: boolean): void {
             maximizeButton.setAttribute('aria-pressed', String(maximized));
             const label = maximized ? 'Restore Panel Size' : 'Maximize Panel Size';

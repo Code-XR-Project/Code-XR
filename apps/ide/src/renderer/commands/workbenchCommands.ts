@@ -27,7 +27,9 @@ export interface WorkbenchCommandTargets {
     toggleTerminal(): void;
     newTerminal(): void;
     closeTerminalPanel(): void;
-    showView(view: 'explorer' | 'search' | 'analysis' | 'xr'): void;
+    showView(view: 'explorer' | 'search' | 'analysis' | 'xr' | 'settings'): void;
+    openSettings(): void;
+    openFolderSettingsFile(): void;
     showSearch(): void;
     analyseProject(): void;
     canAnalyse(): boolean;
@@ -63,6 +65,7 @@ export const MENU_KEYBINDINGS: Readonly<Record<string, string>> = {
     'terminal.new': 'Ctrl+Shift+`',
     'view.toggleSideBar': 'CmdOrCtrl+B',
     'view.togglePanel': 'CmdOrCtrl+J',
+    'workbench.openSettings': 'CmdOrCtrl+,',
 };
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
@@ -104,6 +107,8 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'view.toggleMaximizedPanel', category: 'View', title: 'Toggle Maximized Panel', enabled: targets.hasPanel, run: targets.toggleMaximizedPanel },
         { id: 'view.toggleZenMode', category: 'View', title: 'Toggle Zen Mode', keybinding: 'CmdOrCtrl+K Z', run: targets.toggleZenMode },
         { id: 'view.resetLayout', category: 'View', title: 'Reset Layout', run: targets.resetLayout },
+        { id: 'workbench.openSettings', category: 'Preferences', title: 'Open Settings', ...menu('workbench.openSettings'), run: targets.openSettings },
+        { id: 'workbench.openFolderSettingsFile', category: 'Preferences', title: 'Open Folder Settings (JSON)', enabled: targets.hasFolder, run: targets.openFolderSettingsFile },
         { id: 'view.showAnalysis', category: 'View', title: 'Show Analysis', run: () => targets.showView('analysis') },
         { id: 'view.showXrScene', category: 'View', title: 'Show XR Scene', run: () => targets.showView('xr') },
         { id: 'codexr.analyseProjectXrDeep', category: 'Code-XR', title: 'Analyse Project in XR (Deep)', enabled: targets.canAnalyse, run: targets.analyseProject },

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
 import { registerIpcHandlers } from './ipc.ts';
+import { fileStorage, memoryStorage, SettingsService } from './settings/settingsService.ts';
 import { startCore, type CoreServices } from './core/coreRuntime.ts';
 import { installApplicationMenu, setAboutDependencies } from './menu.ts';
 import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
@@ -70,7 +71,9 @@ async function start(): Promise<void> {
         },
         repair: () => void installDependencies(core),
     });
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost);
+    // #18: the user's settings; the smoke run keeps its own in memory.
+    const settings = new SettingsService(isSmoke ? memoryStorage() : fileStorage(path.join(app.getPath('userData'), 'settings.json')));
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings);
     installApplicationMenu(isDevelopment);
     if (!isSmoke) {
         await initRecentFolders(path.join(app.getPath('userData'), 'recent-folders.json'), (list) => installApplicationMenu(isDevelopment, list))

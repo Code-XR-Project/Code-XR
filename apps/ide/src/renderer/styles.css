@@ -873,3 +873,55 @@ body {
 .editor-tab.is-dragging { opacity: 0.5; }
 .editor-tab.is-drop-before { box-shadow: inset 2px 0 0 var(--accent); }
 .editor-tab.is-drop-after { box-shadow: inset -2px 0 0 var(--accent); }
+
+/* Settings (#18): filter, User / Folder tabs, one row per setting. */
+.activity-item.is-bottom { margin-top: auto; }
+.settings-head { display: flex; flex-direction: column; gap: 6px; margin: 0 12px 8px; }
+.settings-filter { flex: none; width: 100%; box-sizing: border-box; }
+.settings-scopes { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.settings-scope {
+  padding: 4px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.settings-scope:hover:not(:disabled) { color: var(--fg); }
+.settings-scope.is-active { color: var(--fg); border-bottom-color: var(--accent); }
+.settings-scope:disabled { opacity: 0.5; cursor: default; }
+.settings-scope-note { margin: 0; }
+.link-button { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
+.link-button:hover { text-decoration: underline; }
+.link-button[hidden] { display: none; }
+.settings-errors { margin: 0 12px; }
+.settings-error { margin: 0 0 6px; color: var(--crit); }
+.settings-group .side-bar-subtitle { margin: 12px 12px 4px; }
+.settings-row { display: grid; gap: 4px; margin: 0 4px 0 8px; padding: 8px 8px 8px 6px; border-left: 2px solid transparent; }
+.settings-row.is-modified { border-left-color: var(--accent); }
+.settings-row:focus-within { background: var(--hover); }
+.settings-row-head { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+.settings-title { flex: 1; min-width: 0; font-weight: 600; }
+.settings-category { color: var(--muted); font-weight: 400; }
+.settings-description, .settings-note, .settings-key { margin: 0; }
+.settings-note { color: var(--accent); }
+.settings-key { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; overflow-wrap: anywhere; }
+.settings-reset[hidden] { display: none; }
+.settings-control { display: flex; }
+.settings-input, .settings-select {
+  width: 100%;
+  max-width: 320px;
+  height: 26px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+}
+.settings-input[type='number'] { max-width: 100px; }
+.settings-input:focus, .settings-select:focus { border-color: var(--accent); outline: none; }
+.settings-input[aria-invalid='true'] { border-color: var(--crit); }
+.settings-control input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }

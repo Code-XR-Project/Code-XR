@@ -2,6 +2,7 @@ import { MODIFIED_ON_DISK, type CodeXRApi, type FileContent } from '../../shared
 import { el, fileIcon, icon } from '../dom.ts';
 import { followSystemTheme, monaco } from './monaco.ts';
 import { languageName, type EditorStatusState, type EndOfLine, type Indentation, type LanguageInfo } from './editorStatusModel.ts';
+import { settingOf, type SettingValues } from '../../shared/settings.ts';
 import { closeTargets, cycleTab, discardQuestion, moveTab, type CloseKind, type TabSession } from './tabsModel.ts';
 
 /**
@@ -98,6 +99,8 @@ export interface EditorGroup {
     session(): TabSession;
     /** #167: reopens a saved session's tabs (files that are gone are skipped). */
     restore(session: TabSession): Promise<void>;
+    /** #18: applies the editor settings in force. */
+    applySettings(settings: SettingValues): void;
 }
 
 export function createEditorGroup(
@@ -620,6 +623,26 @@ export function createEditorGroup(
             if (file) {
                 activate(file);
             }
+        },
+        applySettings(settings: SettingValues): void {
+            const snapshot = { effective: settings };
+            const lineHeight = settingOf<number>(snapshot, 'editor.lineHeight');
+            editor.updateOptions({
+                fontSize: settingOf<number>(snapshot, 'editor.fontSize'),
+                fontFamily: settingOf<string>(snapshot, 'editor.fontFamily'),
+                lineHeight,
+                tabSize: settingOf<number>(snapshot, 'editor.tabSize'),
+                insertSpaces: settingOf<boolean>(snapshot, 'editor.insertSpaces'),
+                detectIndentation: settingOf<boolean>(snapshot, 'editor.detectIndentation'),
+                wordWrap: settingOf<'off' | 'on' | 'bounded'>(snapshot, 'editor.wordWrap'),
+                lineNumbers: settingOf<'on' | 'off' | 'relative'>(snapshot, 'editor.lineNumbers'),
+                renderWhitespace: settingOf<'none' | 'boundary' | 'selection' | 'trailing' | 'all'>(snapshot, 'editor.renderWhitespace'),
+                minimap: { enabled: settingOf<boolean>(snapshot, 'editor.minimap.enabled') },
+                stickyScroll: { enabled: settingOf<boolean>(snapshot, 'editor.stickyScroll.enabled') },
+                bracketPairColorization: { enabled: settingOf<boolean>(snapshot, 'editor.bracketPairColorization.enabled') },
+                cursorBlinking: settingOf<'blink' | 'smooth' | 'phase' | 'expand' | 'solid'>(snapshot, 'editor.cursorBlinking'),
+                smoothScrolling: settingOf<boolean>(snapshot, 'editor.smoothScrolling'),
+            });
         },
         keepActive(): void {
             if (active) {
