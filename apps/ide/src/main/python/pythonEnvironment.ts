@@ -1,11 +1,10 @@
-import { dialog, type BrowserWindow } from 'electron';
 import { VenvManager } from '@codexr/core/python-env/venvManager';
 import { CODEXR_PYTHON_PACKAGES } from '@codexr/core/python-env/pythonPackageManifest';
 import { PythonEnvUtils } from '@codexr/core/python-env/pythonEnvUtils';
 import { PythonEnvStorage } from '@codexr/core/python-env/pythonEnvStorage';
 import type { PythonEnvStatus, PythonPackageInfo } from '../../shared/api.ts';
 import { log } from '../log.ts';
-import { describePythonEnv, setUpConsent, type PythonFacts } from './pythonStatus.ts';
+import { describePythonEnv, setUpDisclosure, type PythonFacts } from './pythonStatus.ts';
 
 const PACKAGES: readonly PythonPackageInfo[] = CODEXR_PYTHON_PACKAGES.map((pkg) => ({ name: pkg.distribution, version: pkg.version, purpose: pkg.purpose }));
 
@@ -13,9 +12,11 @@ const PACKAGES: readonly PythonPackageInfo[] = CODEXR_PYTHON_PACKAGES.map((pkg) 
  * The Python environment of the IDE (#15), run by the core's `VenvManager`
  * (the same code the extension uses) in the IDE's user-data folder.
  *
- * Checking runs Python only. Anything that downloads (set up, repair) starts
- * from a person's click and then asks once more in a native dialog that lists
- * exactly what will be fetched; the renderer cannot skip that question.
+ * Checking runs Python only. Setting up and repairing download the pinned
+ * packages and the language parsers. Adrián decided that the IDE installs its
+ * own dependencies with no question (#154): `ensureReady` runs at start-up,
+ * the Analysis view's buttons run `setUp` directly, and every set-up writes
+ * exactly what it fetches to the log. The VS Code extension still asks.
  */
 export class PythonEnvironmentService {
     private readonly venv: VenvManager;
@@ -46,7 +47,21 @@ export class PythonEnvironmentService {
         return this.publish(describePythonEnv(await this.facts()));
     }
 
-    async setUp(owner: BrowserWindow | null): Promise<PythonEnvStatus> {
+    /**
+     * At start-up (#154): sets the environment up, or repairs it, when it is
+     * missing or incomplete. Does nothing when it is ready or when no Python
+     * is installed (the renderer then explains what to install).
+     */
+    async ensureReady(): Promise<PythonEnvStatus> {
+        const status = await this.status();
+        if (status.state === 'not-installed' || status.state === 'broken') {
+            log.info('Python environment missing or incomplete: setting it up.');
+            return this.setUp();
+        }
+        return status;
+    }
+
+    async setUp(): Promise<PythonEnvStatus> {
         if (this.busy) {
             return this.last ?? this.status();
         }
@@ -55,22 +70,8 @@ export class PythonEnvironmentService {
             return before;
         }
         const python = await this.venv.findSystemPython();
-        const consent = setUpConsent(before, python ? PythonEnvUtils.formatCommand(python.command) : 'the system Python');
-        const options = {
-            type: 'question' as const,
-            title: 'Python environment',
-            message: consent.message,
-            detail: consent.detail,
-            buttons: [before.state === 'broken' ? 'Download and Repair' : 'Download and Set Up', 'Cancel'],
-            defaultId: 1,
-            cancelId: 1,
-            noLink: true,
-        };
-        const { response } = owner ? await dialog.showMessageBox(owner, options) : await dialog.showMessageBox(options);
-        if (response !== 0) {
-            log.info('Python environment set-up declined.');
-            return before;
-        }
+        const disclosure = setUpDisclosure(before, python ? PythonEnvUtils.formatCommand(python.command) : 'the system Python');
+        log.info(`${disclosure.message}\n${disclosure.detail}`);
 
         this.busy = { message: 'Starting…', percent: 0 };
         this.lastError = null;

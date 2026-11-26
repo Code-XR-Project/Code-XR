@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type PythonEnvStatus, type SceneBounds, type SceneInfo, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AutoStartMode, type CodeXRApi, type HostNotification, type IdeCommand, type ProgressEvent, type PythonEnvStatus, type SceneBounds, type SceneInfo, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
 
@@ -28,6 +28,7 @@ const api: CodeXRApi = Object.freeze({
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),
         onNotification: (listener: (notification: HostNotification) => void) => subscribe(IPC_EVENTS.hostNotification, listener),
+        onProgress: (listener: (progress: ProgressEvent) => void) => subscribe(IPC_EVENTS.progress, listener),
     }),
     python: Object.freeze({
         status: () => ipcRenderer.invoke(IPC_CHANNELS.pythonStatus),

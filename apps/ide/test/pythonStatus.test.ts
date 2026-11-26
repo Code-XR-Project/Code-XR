@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { describePythonEnv, installHelp, setUpConsent, type PythonFacts } from '../src/main/python/pythonStatus.ts';
+import { describePythonEnv, installHelp, setUpDisclosure, type PythonFacts } from '../src/main/python/pythonStatus.ts';
 
 const facts = (over: Partial<PythonFacts> = {}): PythonFacts => ({
     busy: null,
@@ -65,17 +65,17 @@ describe('installHelp', () => {
     });
 });
 
-describe('setUpConsent', () => {
+describe('setUpDisclosure', () => {
     it('lists every package with its version, the source and the location', () => {
         const status = describePythonEnv(facts());
-        const consent = setUpConsent(status, 'python3');
-        assert.match(consent.message, /^Set up/);
+        const consent = setUpDisclosure(status, 'python3');
+        assert.match(consent.message, /^Setting up/);
         assert.match(consent.detail, /pypi\.org/);
         assert.match(consent.detail, /lizard 1\.17\.31: code complexity analysis/);
         assert.ok(consent.detail.includes(status.venvPath));
         assert.match(consent.detail, /Nothing is installed system-wide/);
         assert.match(consent.detail, /github\.com/, "the parser download is disclosed too");
         assert.match(consent.detail, /never download/, "and analyses download nothing afterwards");
-        assert.match(setUpConsent(describePythonEnv(facts({ venvRecorded: true })), 'python3').message, /^Repair/);
+        assert.match(setUpDisclosure(describePythonEnv(facts({ venvRecorded: true })), 'python3').message, /^Repairing/);
     });
 });

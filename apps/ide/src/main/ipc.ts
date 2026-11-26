@@ -68,9 +68,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
     handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));
 
-    // #15: the Python environment. Set-up asks in a native dialog before any download.
+    // #15: the Python environment. #154: set-up asks nothing; the IDE installs its own dependencies.
     handle(IPC_CHANNELS.pythonStatus, () => core.python.status());
-    handle(IPC_CHANNELS.pythonSetUp, (event) => core.python.setUp(BrowserWindow.fromWebContents(event.sender)));
+    handle(IPC_CHANNELS.pythonSetUp, () => core.python.setUp());
     handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());
 
     // #16: analyses, and the scene view beside the code.

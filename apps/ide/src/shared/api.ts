@@ -109,6 +109,16 @@ export interface HostNotification {
     readonly message: string;
 }
 
+/** A long task of the core or the main process (#153), shown as a progress notification. */
+export interface ProgressEvent {
+    readonly id: number;
+    readonly title: string;
+    readonly message?: string | undefined;
+    /** 0-100, absent while unknown. */
+    readonly percent?: number | undefined;
+    readonly done: boolean;
+}
+
 /** The analyses the IDE can start (#16). More kinds join as they are wired. */
 export const ANALYSIS_KINDS = ['xr-deep'] as const;
 export type AnalysisKind = (typeof ANALYSIS_KINDS)[number];
@@ -187,13 +197,15 @@ export interface CodeXRApi {
         getInfo(): Promise<AppInfo>;
         /** Messages from the core (environment set up, a server stopped ...). */
         onNotification(listener: (notification: HostNotification) => void): Unsubscribe;
+        /** Progress of long tasks (#153): the Python set-up steps, the language parsers... */
+        onProgress(listener: (progress: ProgressEvent) => void): Unsubscribe;
     };
     readonly python: {
         /** Checks the environment again (runs Python, never downloads). */
         status(): Promise<PythonEnvStatus>;
         /**
-         * Sets up or repairs the environment. The main process first asks in a
-         * native dialog that lists what will be downloaded; resolves with the
+         * Sets up or repairs the environment (#154: the IDE installs its own
+         * dependencies, with no question; the README lists what is fetched); resolves with the
          * new status, unchanged when the person declines.
          */
         setUp(): Promise<PythonEnvStatus>;
@@ -335,6 +347,7 @@ export const IPC_EVENTS = {
     workspaceFilesChanged: 'codexr:workspace:files-changed',
     pythonStatusChanged: 'codexr:python:status-changed',
     hostNotification: 'codexr:host:notification',
+    progress: 'codexr:progress',
     analysisSceneOpened: 'codexr:analysis:scene-opened',
     terminalData: 'codexr:terminal:data',
     terminalExit: 'codexr:terminal:exit',

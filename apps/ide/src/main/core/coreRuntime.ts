@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { initializeHost } from '@codexr/core/host/hostRegistry';
-import { IPC_EVENTS, type HostNotification } from '../../shared/api.ts';
+import { IPC_EVENTS, type HostNotification, type ProgressEvent } from '../../shared/api.ts';
 import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { AnalysisService } from '../analysis/analysisService.ts';
@@ -43,6 +43,7 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
         events: {
             notify: (severity, message) => broadcast(IPC_EVENTS.hostNotification, { severity, message } satisfies HostNotification),
             progress: (update) => {
+                broadcast(IPC_EVENTS.progress, update satisfies ProgressEvent);
                 if (!update.done) {
                     python?.reportProgress(update.message ?? update.title, update.percent);
                 }
