@@ -13,7 +13,15 @@ const STATUS_LABEL: Readonly<Record<ToolRunView['status'], string>> = {
     denied: 'Denied',
 };
 
-export function renderToolRun(run: ToolRunView): HTMLElement {
+/** What a tool line can do beyond showing itself. */
+export interface ToolRunActions {
+    /** A10: shows the XR scene the analysis tools read from. */
+    showScene?(): void;
+}
+
+const ANALYSIS_TOOL = /^get_(metrics|hotspots|dependencies|evolution)$/;
+
+export function renderToolRun(run: ToolRunView, actions: ToolRunActions = {}): HTMLElement {
     const head = el('summary', { className: 'chat-tool-head' }, [
         el('span', { className: `chat-tool-status is-${run.status}`, text: STATUS_LABEL[run.status], attrs: { 'aria-label': `Status: ${STATUS_LABEL[run.status]}` } }),
         el('code', { className: 'chat-tool-name', text: run.name }),
@@ -23,12 +31,20 @@ export function renderToolRun(run: ToolRunView): HTMLElement {
     if (run.result) {
         details.append(el('pre', { className: 'chat-tool-result', text: run.result }));
     }
+    if (actions.showScene && run.status === 'done' && ANALYSIS_TOOL.test(run.name)) {
+        const show = el('button', { className: 'link-button small chat-tool-action', text: 'Open in XR', attrs: { type: 'button', title: 'Show the XR scene these numbers come from' } });
+        show.addEventListener('click', (event) => {
+            event.preventDefault();
+            actions.showScene?.();
+        });
+        head.append(show);
+    }
     return details;
 }
 
 /** Puts `run` in `list`, replacing the earlier state of the same call. */
-export function upsertToolRun(list: HTMLElement, run: ToolRunView): void {
-    const next = renderToolRun(run);
+export function upsertToolRun(list: HTMLElement, run: ToolRunView, actions: ToolRunActions = {}): void {
+    const next = renderToolRun(run, actions);
     const existing = [...list.children].find((child) => (child as HTMLElement).dataset['toolRun'] === run.id);
     if (existing) {
         next.toggleAttribute('open', existing.hasAttribute('open'));
@@ -38,10 +54,10 @@ export function upsertToolRun(list: HTMLElement, run: ToolRunView): void {
     }
 }
 
-export function renderToolRuns(runs: readonly ToolRunView[]): HTMLElement {
+export function renderToolRuns(runs: readonly ToolRunView[], actions: ToolRunActions = {}): HTMLElement {
     const list = el('div', { className: 'chat-tools', attrs: { 'aria-label': 'Tools used' } });
     for (const run of runs) {
-        list.append(renderToolRun(run));
+        list.append(renderToolRun(run, actions));
     }
     return list;
 }

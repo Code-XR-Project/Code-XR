@@ -8,6 +8,7 @@ import { ChatSessions } from './chatSessions.ts';
 import { electronCipher } from './electronCipher.ts';
 import { KeyVault } from './keyVault.ts';
 import { ProviderRegistry } from './providerRegistry.ts';
+import type { CommandRunner } from './tools/commandTool.ts';
 import { ToolCatalog } from './tools/toolCatalog.ts';
 
 export interface AgentServices {
@@ -23,7 +24,7 @@ export interface AgentServices {
  * provider is only called when the person tests it or chats with it. The
  * smoke run uses a throwaway folder so it never reads or writes real keys.
  */
-export function startAgents(options: { readonly isSmoke: boolean }): AgentServices {
+export function startAgents(options: { readonly isSmoke: boolean; readonly commandRunner: CommandRunner | null }): AgentServices {
     const dir = options.isSmoke
         ? path.join(os.tmpdir(), `codexr-ide-smoke-agents-${process.pid}`)
         : path.join(app.getPath('userData'), 'agents');
@@ -32,6 +33,6 @@ export function startAgents(options: { readonly isSmoke: boolean }): AgentServic
     const providers = new ProviderRegistry(store, vault);
     const profiles = new AgentProfiles(new JsonKeyValueStore(path.join(dir, 'agents.json')));
     const sessions = new ChatSessions(path.join(dir, 'sessions'));
-    const tools = new ToolCatalog();
+    const tools = ToolCatalog.standard(options.commandRunner);
     return { providers, profiles, sessions, tools, chat: new AgentChat(providers, profiles, sessions, tools) };
 }

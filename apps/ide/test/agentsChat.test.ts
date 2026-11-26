@@ -12,9 +12,12 @@ import { ChatSessions, sessionToMarkdown, titleFrom } from '../src/main/agents/c
 import { AgentChat, fitHistory, type ChatWindow } from '../src/main/agents/agentChat.ts';
 import { ToolCatalog } from '../src/main/agents/tools/toolCatalog.ts';
 import { WORKSPACE_TOOLS } from '../src/main/agents/tools/workspaceTools.ts';
+import { ANALYSIS_TOOLS, dependenciesReport, evolutionReport, hotspotsReport, metricsReport } from '../src/main/agents/tools/analysisTools.ts';
 import type { AgentTool, ToolWorkspace } from '../src/main/agents/tools/toolTypes.ts';
 import { buildAttachmentContext } from '../src/main/agents/attachments.ts';
 import { applyReplacements, proposeEditTool } from '../src/main/agents/tools/editTools.ts';
+import { capOutput, plainOutput, ptyCommandRunner, runCommandTool, shellInvocation } from '../src/main/agents/tools/commandTool.ts';
+import type { PtyProcess } from '../src/main/terminal/terminalService.ts';
 import { applyHunks, diffLines, matchLineEndings } from '../src/shared/lineDiff.ts';
 import type { FetchLike } from '../src/main/agents/providers/types.ts';
 import { parseInline, parseMarkdown } from '../src/renderer/agents/markdownModel.ts';
@@ -37,6 +40,7 @@ function sse(chunks: readonly string[]): Response {
 /** An in-memory folder: `ignored.txt` exists but is git-ignored, like quick open would skip it. */
 function fakeWorkspace(files: Readonly<Record<string, string>>): ToolWorkspace {
     return {
+        root: '/fake/project',
         listDirectory: (relative) => {
             const inside = Object.keys(files).filter((file) => relative === '' || file.startsWith(`${String(relative)}/`));
             return relative !== '' && inside.length === 0
@@ -85,7 +89,7 @@ async function setup(fetchImpl: FetchLike, extraTools: readonly AgentTool[] = []
     const providers = new ProviderRegistry(new JsonKeyValueStore(path.join(dir, 'providers.json')), new KeyVault(path.join(dir, 'keys.json'), cipher), fetchImpl);
     const profiles = new AgentProfiles(new JsonKeyValueStore(path.join(dir, 'agents.json')));
     const sessions = new ChatSessions(path.join(dir, 'sessions'));
-    const tools = new ToolCatalog([...WORKSPACE_TOOLS, ...extraTools]);
+    const tools = new ToolCatalog([...WORKSPACE_TOOLS, ...ANALYSIS_TOOLS, ...extraTools]);
     const chat = new AgentChat(providers, profiles, sessions, tools);
     const provider = await providers.save({ kind: 'openai', apiKey: 'sk-test-0123456789' });
     const [assistant] = await profiles.list();
@@ -169,7 +173,7 @@ describe('AgentChat', () => {
         assert.deepEqual(stored.messages[1]?.usage, { inputTokens: 9, outputTokens: 2 });
         assert.equal(body['model'], 'gpt-test');
         assert.deepEqual((body['messages'] as unknown[])[0], { role: 'system', content: agent.instructions });
-        assert.deepEqual((body['tools'] as Array<{ function: { name: string } }>).map((tool) => tool.function.name), ['list_directory', 'read_file', 'find_files', 'search_text']);
+        assert.deepEqual((body['tools'] as Array<{ function: { name: string } }>).map((tool) => tool.function.name), ['list_directory', 'read_file', 'find_files', 'search_text', 'get_metrics', 'get_hotspots', 'get_dependencies', 'get_evolution']);
         assert.equal((await sessions.list('/w'))[0]?.messageCount, 2);
     });
 
@@ -348,6 +352,140 @@ describe('propose_edit (A8)', () => {
         const run = (await chat.get(null, session.id)).messages[1]?.toolRuns?.[0];
         assert.deepEqual([run?.name, run?.status], ['propose_edit', 'done']);
         assert.match(run?.result ?? '', /Applied and saved/);
+    });
+});
+
+describe('run_command (A9)', () => {
+    /** A pty that prints `script` and exits with `code`, or never exits (code null) until killed. */
+    function fakeSpawn(script: readonly string[], code: number | null, seen: Array<{ file: string; args: readonly string[]; cwd: string }>) {
+        return (file: string, args: readonly string[], options: { cwd: string }): PtyProcess => {
+            seen.push({ file, args, cwd: options.cwd });
+            let onData: (data: string) => void = () => undefined;
+            let onExit: (event: { exitCode: number }) => void = () => undefined;
+            setTimeout(() => {
+                for (const chunk of script) {
+                    onData(chunk);
+                }
+                if (code !== null) {
+                    onExit({ exitCode: code });
+                }
+            }, 5);
+            return {
+                pid: 1,
+                onData: (listener) => { onData = listener; },
+                onExit: (listener) => { onExit = listener; },
+                write: () => undefined,
+                resize: () => undefined,
+                kill: () => setTimeout(() => onExit({ exitCode: 143 }), 1),
+            };
+        };
+    }
+    const context = (signal = new AbortController().signal, progress?: (text: string) => void) => ({
+        workspace: fakeWorkspace({}),
+        signal,
+        reviewEdit: () => Promise.reject(new Error('unused')),
+        ...(progress ? { progress } : {}),
+    });
+
+    it('picks the right flag for each shell', () => {
+        assert.deepEqual(shellInvocation('/bin/bash', 'ls'), ['-c', 'ls']);
+        assert.deepEqual(shellInvocation('C:\\Program Files\\PowerShell\\7\\pwsh.exe', 'ls'), ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', 'ls']);
+        assert.deepEqual(shellInvocation('C:\\Windows\\System32\\cmd.exe', 'dir'), ['/d', '/s', '/c', 'dir']);
+    });
+    it('strips colours and redraws, and keeps both ends of long output', () => {
+        assert.equal(plainOutput('\u001b[32mok\u001b[0m\r\n10%\r50%\r100%\n'), 'ok\n100%\n');
+        const capped = capOutput(`${'a'.repeat(100)}${'b'.repeat(100)}`, 50);
+        assert.ok(capped.startsWith('a'.repeat(15)) && capped.endsWith('b'.repeat(35)) && capped.includes('left out'));
+    });
+    it('runs in the project folder and reports exit code and output, streaming progress', async () => {
+        const seen: Array<{ file: string; args: readonly string[]; cwd: string }> = [];
+        const runner = ptyCommandRunner(fakeSpawn(['\u001b[1mbuilding\u001b[0m\r\n', 'done\r\n'], 2, seen), () => Promise.resolve('/bin/bash'), {});
+        const progress: string[] = [];
+        const text = await runCommandTool(runner).run({ command: 'npm run build' }, context(undefined, (chunk) => progress.push(chunk)));
+        assert.deepEqual(seen[0], { file: '/bin/bash', args: ['-c', 'npm run build'], cwd: '/fake/project' });
+        assert.equal(text, '$ npm run build\nExit code 2.\nbuilding\ndone');
+        assert.ok(progress.length > 0);
+    });
+    it('kills a command on timeout and on Stop', async () => {
+        const runner = ptyCommandRunner(fakeSpawn(['waiting'], null, []), () => Promise.resolve('/bin/sh'), {});
+        const timed = await runner.run('sleep 99', '/p', { timeoutMs: 20, signal: new AbortController().signal, onOutput: () => undefined });
+        assert.deepEqual([timed.timedOut, timed.exitCode], [true, null]);
+        const controller = new AbortController();
+        const stopping = runCommandTool(runner).run({ command: 'sleep 99' }, context(controller.signal));
+        setTimeout(() => controller.abort(), 20);
+        assert.match(await stopping, /Stopped by the person/);
+    });
+    it('asks before running, through AgentChat', async () => {
+        let calls = 0;
+        const runner = ptyCommandRunner(fakeSpawn(['hi\n'], 0, []), () => Promise.resolve('/bin/sh'), {});
+        const { chat, agent } = await setup(() => {
+            calls += 1;
+            return Promise.resolve(calls === 1 ? toolCallChunk('r1', 'run_command', '{"command":"echo hi"}') : sse(['data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\n']));
+        }, [runCommandTool(runner)]);
+        const session = await chat.create(null, agent.id);
+        const approvals: string[] = [];
+        await chat.send(null, session.id, 'say hi', [], windowOf([], fakeWorkspace({}), (event) => {
+            if (event.type === 'approval') {
+                approvals.push(event.request.detail);
+                chat.approve(event.request.id, 'once');
+            }
+        }));
+        assert.deepEqual(approvals, ['$ echo hi\n\nin the project folder']);
+        assert.match((await chat.get(null, session.id)).messages[1]?.toolRuns?.[0]?.result ?? '', /Exit code 0/);
+    });
+});
+
+describe('Code-XR analysis tools (A10)', () => {
+    const records = [
+        { relativePath: 'src/a.ts', language: 'TypeScript', codeLines: 100, maxComplexity: 12, functionCount: 5, cyclomaticComplexityNumber: 3 },
+        { relativePath: 'src/b.ts', language: 'TypeScript', codeLines: 40, maxComplexity: 3, functionCount: 2, cyclomaticComplexityNumber: 1 },
+        { relativePath: 'test/a.test.ts', language: 'TypeScript', codeLines: 60, maxComplexity: 1, functionCount: 4, cyclomaticComplexityNumber: 1 },
+    ];
+    const graph = {
+        nodes: [
+            { id: 'n1', relativePath: 'src/a.ts', metrics: { fanIn: 1, fanOut: 1, degree: 2, cycleSize: 0 } },
+            { id: 'n2', relativePath: 'src/b.ts', metrics: { fanIn: 1, fanOut: 0, degree: 1, cycleSize: 0 } },
+            { id: 'n3', relativePath: 'test/a.test.ts', metrics: { fanIn: 0, fanOut: 1, degree: 1, cycleSize: 0 } },
+        ],
+        edges: [{ source: 'n1', target: 'n2', kind: 'import' }, { source: 'n3', target: 'n1', kind: 'import' }],
+    };
+
+    it('reports one file, a folder summary and hot spots', () => {
+        assert.match(metricsReport(records, 'src/a.ts'), /^src\/a\.ts \(TypeScript\): codeLines=100, functionCount=5, maxComplexity=12/);
+        const folder = metricsReport(records, 'src');
+        assert.match(folder, /src: 2 analysed files/);
+        assert.match(folder, /total codeLines: 140/);
+        assert.match(folder, /max maxComplexity: 12/);
+        assert.throws(() => metricsReport(records, 'nope'), /no file at or under "nope"/);
+        const hot = hotspotsReport(records, 'maxComplexity', 2, undefined);
+        assert.match(hot, /1\. src\/a\.ts: maxComplexity=12[\s\S]*2\. src\/b\.ts: maxComplexity=3/);
+        assert.throws(() => hotspotsReport(records, 'bogus', 5, undefined), /Known metrics: codeLines, maxComplexity/);
+    });
+    it('reads the dependency graph and the evolution frames', () => {
+        const forA = dependenciesReport(graph, 'src/a.ts', 10);
+        assert.match(forA, /Depends on \(1\):\n- src\/b\.ts \(import\)\nUsed by \(1\):\n- test\/a\.test\.ts \(import\)/);
+        assert.match(dependenciesReport(graph, undefined, 10), /3 nodes, 2 edges\.[\s\S]*src\/a\.ts: fanIn=1, fanOut=1[\s\S]*No dependency cycles/);
+        const evolution = evolutionReport([
+            { frame: { date: '2026-01-01', label: 'v1' }, records: records.slice(0, 1) },
+            { frame: { date: '2026-06-01', label: 'v2' }, records },
+        ], 'src', 'codeLines');
+        assert.match(evolution, /2 snapshots[\s\S]*2026-01-01 v1: codeLines=100\n- 2026-06-01 v2: codeLines=140 over 2 files/);
+    });
+    it('reads the files of the window\'s analysis, and explains when there is none', async () => {
+        const root = fs.mkdtempSync(path.join(base, 'scene-'));
+        fs.writeFileSync(path.join(root, 'data.json'), JSON.stringify(records));
+        fs.mkdirSync(path.join(root, 'evolution', 'revision-2'), { recursive: true });
+        fs.writeFileSync(path.join(root, 'evolution', 'revision-2', 'manifest.json'), JSON.stringify({ frames: [{ label: 'old', url: '/evolution/revision-2/data1.json' }, { label: 'new', url: '/evolution/revision-2/data2.json' }] }));
+        fs.writeFileSync(path.join(root, 'evolution', 'revision-2', 'data1.json'), JSON.stringify(records.slice(1)));
+        fs.writeFileSync(path.join(root, 'evolution', 'revision-2', 'data2.json'), JSON.stringify(records));
+        const tool = (name: string) => ANALYSIS_TOOLS.find((candidate) => candidate.name === name)!;
+        const context = (output: string | null) => ({ workspace: fakeWorkspace({}), signal: new AbortController().signal, reviewEdit: () => Promise.reject(new Error('unused')), analysisOutput: () => output });
+        assert.match(await tool('get_hotspots').run({ limit: 1 }, context(root)), /1\. src\/a\.ts: maxComplexity=12/);
+        assert.match(await tool('get_evolution').run({}, context(root)), /- old: files=2[\s\S]*- new: files=3/);
+        await assert.rejects(tool('get_dependencies').run({}, context(root)), /Dependency graph mode/);
+        await assert.rejects(tool('get_metrics').run({}, context(null)), /No Code-XR analysis is open/);
+        fs.writeFileSync(path.join(root, 'dependency-graph.json'), JSON.stringify(graph));
+        assert.match(await tool('get_dependencies').run({ path: 'src/b.ts' }, context(root)), /Used by \(1\):\n- src\/a\.ts/);
     });
 });
 

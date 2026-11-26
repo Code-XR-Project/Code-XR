@@ -11,7 +11,7 @@ type Handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: un
  * validated by the services: the renderer is not trusted to send well-formed
  * data. Chats belong to the folder open in the calling window.
  */
-export function registerAgentHandlers(handle: Handle, agents: AgentServices): void {
+export function registerAgentHandlers(handle: Handle, agents: AgentServices, analysisOutput: (contents: WebContents) => string | null): void {
     const { providers, profiles, sessions, chat, tools } = agents;
     const folderOf = (event: IpcMainInvokeEvent): string | null => currentWorkspaceInfo(event.sender)?.root ?? null;
 
@@ -36,6 +36,7 @@ export function registerAgentHandlers(handle: Handle, agents: AgentServices): vo
     handle(AGENT_IPC_CHANNELS.agentsExportSession, (event, id) => chat.export(folderOf(event), id));
     handle(AGENT_IPC_CHANNELS.agentsSend, (event, id, text, attachments) => chat.send(folderOf(event), id, text, attachments, {
         workspace: workspaceOrNull(event.sender),
+        analysisOutput: () => analysisOutput(event.sender),
         emit: sender(event.sender),
     }));
     handle(AGENT_IPC_CHANNELS.agentsStop, (_event, id) => chat.stop(id));

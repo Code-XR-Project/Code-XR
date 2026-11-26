@@ -85,7 +85,7 @@ async function start(): Promise<void> {
     // #18, part 3: the user's keybindings, likewise in memory for the smoke run.
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, startAgents({ isSmoke }));
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, startAgents({ isSmoke, commandRunner: terminalHost.commandRunner }));
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);
