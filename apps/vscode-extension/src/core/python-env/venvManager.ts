@@ -11,6 +11,7 @@ import {
     CodeXRPythonPackage,
     getPinnedPythonRequirement,
 } from './pythonPackageManifest';
+import type { HostProgress } from '../host/codeXRHost';
 
 const logger = CodeXRLogger.getLogger('PYTHON_ENV');
 
@@ -158,7 +159,7 @@ export class VenvManager {
     private async createVenvWithRetry(
         pythonCommand: ExecutableCommand,
         venvPath: string,
-        progress: vscode.Progress<{ increment?: number; message?: string }>,
+        progress: HostProgress,
     ): Promise<void> {
         const targetState = this.getExistingPathState(venvPath);
 
@@ -611,7 +612,7 @@ export class VenvManager {
     /**
      * Ensure pip exists and is runnable inside the virtual environment.
      */
-    private async ensurePipInVenv(progress?: vscode.Progress<{ increment?: number; message?: string }>): Promise<void> {
+    private async ensurePipInVenv(progress?: HostProgress): Promise<void> {
         const venvPath = this.storage.getVenvPath();
 
         if (await this.isVenvPipAvailable()) {
@@ -636,7 +637,7 @@ export class VenvManager {
     /**
      * Try to upgrade pip inside the venv without ever touching the global Python installation.
      */
-    private async upgradePipInVenv(progress?: vscode.Progress<{ increment?: number; message?: string }>): Promise<void> {
+    private async upgradePipInVenv(progress?: HostProgress): Promise<void> {
         try {
             if (progress) {
                 this.reportInstallProgress(progress, undefined, 'Upgrading pip inside the CodeXR virtual environment...');
@@ -662,7 +663,7 @@ export class VenvManager {
     /**
      * Install base packages in the virtual environment.
      */
-    private async installBasePackages(progress?: vscode.Progress<{ increment?: number; message?: string }>): Promise<void> {
+    private async installBasePackages(progress?: HostProgress): Promise<void> {
         try {
             for (const pkg of PythonEnvUtils.REQUIRED_BASE_PACKAGES) {
                 if (progress) {
@@ -712,7 +713,7 @@ export class VenvManager {
 
     private async installRequiredPackage(
         pkg: CodeXRPythonPackage,
-        progress?: vscode.Progress<{ increment?: number; message?: string }>,
+        progress?: HostProgress,
     ): Promise<void> {
         if (await this.verifyPackage(pkg)) {
             return;
@@ -761,7 +762,7 @@ export class VenvManager {
     }
 
     private reportInstallProgress(
-        progress: vscode.Progress<{ increment?: number; message?: string }>,
+        progress: HostProgress,
         increment: number | undefined,
         message: string,
     ): void {

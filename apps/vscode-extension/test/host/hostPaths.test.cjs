@@ -27,9 +27,13 @@ const MIGRATED = [
     'core/server/generatedHttpsCertificateManager.ts',
     'core/python-env/pythonEnvStorage.ts',
     'core/analysis/utils/themeUtils.ts',
+    // step 5: the visualization settings read globalState through GlobalStateContext
+    'core/charts/settings/settingsStorage.ts',
+    'core/charts/settings/settingsAccessors.ts',
+    'core/charts/getVisualizationConfiguration.ts',
 ];
 
-test('the modules migrated in #13 step 2 never reach vscode', () => {
+test('the modules migrated in #13 steps 2 and 5 never reach vscode', () => {
     const free = new Set(measure().vscodeFree);
     for (const file of MIGRATED) {
         assert.ok(free.has(file), `${file} reaches vscode`);
