@@ -30,6 +30,7 @@ export interface WorkbenchCommandTargets {
     toggleTerminal(): void;
     newTerminal(): void;
     closeTerminalPanel(): void;
+    showOutput(): void;
     showView(view: 'explorer' | 'search' | 'analysis' | 'xr' | 'settings'): void;
     openSettings(): void;
     openFolderSettingsFile(): void;
@@ -89,6 +90,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'terminal.toggle', category: 'View', title: 'Toggle Terminal', ...menu('terminal.toggle'), run: targets.toggleTerminal },
         { id: 'terminal.new', category: 'Terminal', title: 'Create New Terminal', ...menu('terminal.new'), run: targets.newTerminal },
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },
+        { id: 'workbench.output.show', category: 'View', title: 'Show Output', keybinding: 'CmdOrCtrl+Shift+U', run: targets.showOutput },
         { id: 'view.showExplorer', category: 'View', title: 'Show Explorer', keybinding: 'CmdOrCtrl+Shift+E', run: () => targets.showView('explorer') },
         { id: 'search.show', category: 'View', title: 'Search in Files', keybinding: 'CmdOrCtrl+Shift+F', enabled: targets.hasFolder, run: targets.showSearch },
         { id: 'view.toggleSideBar', category: 'View', title: 'Toggle Side Bar Visibility', ...menu('view.toggleSideBar'), run: targets.toggleSideBar },
