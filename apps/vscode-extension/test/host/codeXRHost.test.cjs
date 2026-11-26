@@ -195,9 +195,11 @@ test('modules moved to host notifications call no vscode.window message API', ()
 // Inventory risk 8: the cloudflared download consent now goes through
 // host.notifier.confirm. It must stay a modal question nobody answers by
 // default, and declining must neither download nor remember anything.
-test('cloudflared consent: a modal info question through the host; declining downloads nothing and stores nothing', async () => {
-    const supported = ['linux-x64', 'linux-arm64', 'darwin-x64', 'darwin-arm64', 'win32-x64'].includes(`${process.platform}-${process.arch}`);
-    if (!supported) {
+test('cloudflared consent: a modal info question through the host; declining downloads nothing and stores nothing', async (t) => {
+    // The platforms with a pinned automatic download (ASSETS in cloudflaredBinaryManager.ts);
+    // elsewhere (macOS: Homebrew) there is no consent to ask.
+    if (!['win32-x64', 'linux-x64', 'linux-arm64'].includes(`${process.platform}-${process.arch}`)) {
+        t.skip(`no automatic cloudflared download on ${process.platform}-${process.arch}`);
         return;
     }
     const fake = createFakeVscode();
