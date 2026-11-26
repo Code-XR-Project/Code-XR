@@ -42,7 +42,7 @@ function hostPaths(extensionPath, extensionMode) {
 
 function withHelper(callback) {
     return withFakeVscode(createFakeVscode(), ({ requireOut }) =>
-        callback(requireOut('core/analysis/python/backendScriptPath.js')));
+        callback(requireOut('core/host/backendScriptPath.js')));
 }
 
 test('the shipped dist copy wins in every mode', () => {

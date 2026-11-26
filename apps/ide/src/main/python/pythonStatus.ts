@@ -87,7 +87,7 @@ export function setUpConsent(status: PythonEnvStatus, launcher: string): { messa
             ...lines,
             '• pip, setuptools and wheel, inside the environment only',
             '',
-            'Later, the first time a dependency graph analyses a language, tree-sitter-language-pack fetches that language\'s parser from github.com. Without it, the analysis falls back to pattern matching.',
+            'It also downloads the language parsers the dependency graph uses, from github.com (tree-sitter-language-pack releases), into the same environment. Analyses never download anything afterwards; a parser that cannot be fetched makes that language fall back to pattern matching.',
             '',
             'Nothing is installed system-wide. You can remove the environment later from the Analysis view.',
         ].join('\n'),

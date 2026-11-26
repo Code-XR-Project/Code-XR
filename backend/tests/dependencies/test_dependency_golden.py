@@ -457,8 +457,22 @@ def fake_structured_parser():
         imports = [types.SimpleNamespace(source=source)] if config.imports else []
         return types.SimpleNamespace(imports=imports)
 
+    class PackConfig:
+        def __init__(self, cache_dir=None):
+            self.cache_dir = cache_dir
+
+    def downloaded_languages():
+        # Every grammar the engine can ask for counts as downloaded by the set-up
+        # (tree_sitter_parsers.py): the engine only calls process() for those.
+        from metric_language_contract import get_metric_language_names
+        from tree_sitter_parsers import grammar_for
+        return sorted({grammar_for(name) for name in get_metric_language_names()})
+
     module = types.ModuleType('tree_sitter_language_pack')
     module.ProcessConfig = ProcessConfig
+    module.PackConfig = PackConfig
+    module.configure = lambda config: None
+    module.downloaded_languages = downloaded_languages
     module.process = process
     return module
 

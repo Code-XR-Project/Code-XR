@@ -74,7 +74,8 @@ describe('setUpConsent', () => {
         assert.match(consent.detail, /lizard 1\.17\.31: code complexity analysis/);
         assert.ok(consent.detail.includes(status.venvPath));
         assert.match(consent.detail, /Nothing is installed system-wide/);
-        assert.match(consent.detail, /github\.com/, "the later parser download is disclosed too");
+        assert.match(consent.detail, /github\.com/, "the parser download is disclosed too");
+        assert.match(consent.detail, /never download/, "and analyses download nothing afterwards");
         assert.match(setUpConsent(describePythonEnv(facts({ venvRecorded: true })), 'python3').message, /^Repair/);
     });
 });

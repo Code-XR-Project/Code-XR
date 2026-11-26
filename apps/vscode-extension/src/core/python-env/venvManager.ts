@@ -10,6 +10,8 @@ import {
     CodeXRPythonPackage,
     getPinnedPythonRequirement,
 } from './pythonPackageManifest';
+import { PARSER_DOWNLOAD_TIMEOUT_MS, parseParserDownload } from './parserDownload';
+import { resolveBackendScriptPath } from '../host/backendScriptPath';
 import type { HostProgress } from '../host/codeXRHost';
 import { getHost } from '../host/hostRegistry';
 import type { GlobalStorageContext } from '../host/hostPaths';
@@ -487,7 +489,11 @@ export class VenvManager {
     /**
      * Execute a command and return the result.
      */
-    private async executeCommand(command: ExecutableCommand, cwd?: string): Promise<CommandExecutionResult> {
+    private async executeCommand(
+        command: ExecutableCommand,
+        cwd?: string,
+        timeoutMs = 60000,
+    ): Promise<CommandExecutionResult> {
         return new Promise((resolve, reject) => {
             const displayCommand = PythonEnvUtils.formatCommand(command);
             this.logInfo(`PYTHON_ENV: Executing command: ${displayCommand}`);
@@ -510,8 +516,8 @@ export class VenvManager {
 
                 settled = true;
                 child.kill();
-                reject(this.createCommandError(command, 'timeout', stdoutChunks, stderrChunks, new Error('Process timed out after 60000ms')));
-            }, 60000);
+                reject(this.createCommandError(command, 'timeout', stdoutChunks, stderrChunks, new Error(`Process timed out after ${timeoutMs}ms`)));
+            }, timeoutMs);
 
             child.stdout?.on('data', (chunk: Buffer | string) => {
                 stdoutChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
@@ -691,6 +697,7 @@ export class VenvManager {
             for (const pkg of CODEXR_PYTHON_PACKAGES) {
                 await this.installRequiredPackage(pkg, progress);
             }
+            await this.downloadLanguageParsers(progress);
             await this.updateDependenciesList();
 
             this.logInfo('PYTHON_ENV: Base packages installed successfully');
@@ -707,7 +714,50 @@ export class VenvManager {
                 await this.installRequiredPackage(pkg);
             }
         }
+        await this.downloadLanguageParsers();
         await this.updateDependenciesList();
+    }
+
+    /**
+     * Downloads the tree-sitter parsers the dependency graph uses, into the venv.
+     *
+     * tree-sitter-language-pack 1.x fetches parsers from GitHub on first use; the
+     * set-up the person agreed to fetches them here instead, so an analysis never
+     * downloads anything. Parsers already in the venv are not fetched again (the
+     * script makes no network call then). A parser that cannot be fetched is
+     * logged, never fatal: that language falls back to pattern matching.
+     */
+    private async downloadLanguageParsers(progress?: HostProgress): Promise<void> {
+        const script = resolveBackendScriptPath(getHost().paths, 'tools/download_parsers.py');
+        if (!fs.existsSync(script)) {
+            this.logWarn(`PYTHON_ENV: Parser download script not found at ${script}`);
+            return;
+        }
+        if (progress) {
+            this.reportInstallProgress(progress, 5, 'Downloading language parsers...');
+        }
+        try {
+            const venvPath = this.storage.getVenvPath();
+            const result = await this.executeCommand(
+                PythonEnvUtils.getVenvPythonCommand(venvPath, [script]),
+                undefined,
+                PARSER_DOWNLOAD_TIMEOUT_MS,
+            );
+            const summary = parseParserDownload(result.stdout);
+            if (!summary) {
+                this.logWarn('PYTHON_ENV: Unexpected output from the parser download', result.output);
+            } else if (summary.missing.length > 0) {
+                this.logWarn(
+                    `PYTHON_ENV: ${summary.missing.length} language parser(s) could not be downloaded; `
+                    + `those languages use pattern matching: ${summary.missing.join(', ')}`,
+                    summary.error ?? '',
+                );
+            } else {
+                this.logInfo(`PYTHON_ENV: Language parsers ready (${summary.requested.length} requested)`);
+            }
+        } catch (error) {
+            this.logWarn('PYTHON_ENV: Language parser download failed:', error);
+        }
     }
 
     private async verifyRequiredPackages(): Promise<boolean> {
