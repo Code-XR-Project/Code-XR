@@ -1,7 +1,7 @@
 import type { ColorTheme, SettingScope, SettingsSnapshot, SettingValue } from './settings.ts';
 import type { UserKeybinding } from './keybindings.ts';
 import type { OutputChannelId } from './output.ts';
-import type { FunctionMetricsSnapshot } from './problems.ts';
+import type { FileFunctionMetrics, FunctionMetricsSnapshot } from './problems.ts';
 /**
  * The contract between the renderer and the rest of the IDE.
  *
@@ -480,6 +480,12 @@ export interface CodeXRApi {
     readonly problems: {
         /** The window's latest metrics, or null before an analysis of its folder. */
         functionMetrics(): Promise<FunctionMetricsSnapshot | null>;
+        /**
+         * #172: the functions of one file of the folder, for its outline: the
+         * window's metrics when an analysis measured it, otherwise measured
+         * now (null when the backend cannot read it or Python is not set up).
+         */
+        fileFunctions(path: string): Promise<FileFunctionMetrics | null>;
         /** An analysis or a save measured the functions again (null: the folder changed). */
         onMetricsChanged(listener: (snapshot: FunctionMetricsSnapshot | null) => void): Unsubscribe;
     };
@@ -544,6 +550,7 @@ export const IPC_CHANNELS = {
     outputLines: 'codexr:output:lines',
     outputClear: 'codexr:output:clear',
     problemsFunctionMetrics: 'codexr:problems:function-metrics',
+    problemsFileFunctions: 'codexr:problems:file-functions',
     keybindingsGet: 'codexr:keybindings:get',
     keybindingsUpdate: 'codexr:keybindings:update',
     keybindingsSetMenu: 'codexr:keybindings:set-menu',

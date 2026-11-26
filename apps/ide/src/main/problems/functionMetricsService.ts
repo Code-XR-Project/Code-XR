@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron';
 import { FunctionMetricsTracker } from '@codexr/core/metrics/functionMetricsTracker';
-import type { FunctionMetricsSnapshot } from '@codexr/core/metrics/functionMetrics';
+import { parseFunctionMetrics, type FileFunctionMetrics, type FunctionMetricsSnapshot } from '@codexr/core/metrics/functionMetrics';
 import { IPC_EVENTS } from '../../shared/api.ts';
 import { channelLog } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
@@ -30,6 +30,27 @@ export class FunctionMetricsService {
     /** An analysis of `root` opened its scene in this window: measure every function under it. */
     analyse(contents: WebContents, root: string): void {
         this.trackerOf(contents).analyse(root);
+    }
+
+    /**
+     * #172: one file's functions for its outline: the window's metrics when
+     * they cover it, else a run of the backend on that file alone (it does not
+     * join the metrics, so the Problems panel still shows only analysed folders).
+     * Null when the file cannot be measured (Python not set up, an unreadable file).
+     */
+    async fileFunctions(contents: WebContents, root: string, relativePath: string, absolutePath: string): Promise<FileFunctionMetrics | null> {
+        const snapshot = this.snapshot(contents);
+        const known = snapshot?.root === root ? snapshot.files.find((file) => file.path === relativePath) : undefined;
+        if (known) {
+            return known;
+        }
+        try {
+            const [file] = parseFunctionMetrics(await this.python.functionMetrics(absolutePath, 'file', root));
+            return file ? { path: relativePath, functions: file.functions } : null;
+        } catch (error) {
+            log.info(`Outline: could not measure ${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
+            return null;
+        }
     }
 
     /** Whether the window's metrics include this file (a change on disk then re-measures it). */

@@ -17,6 +17,7 @@
   --warn: #d29922;
   --status: #0b3a5c;
   --status-fg: #e6f3fc;
+  --symbol: #b180d7;
   font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, sans-serif;
   font-size: 13px;
 }
@@ -35,6 +36,7 @@
     --warn: #9a6700;
     --status: #0073bd;
     --status-fg: #ffffff;
+    --symbol: #6f42c1;
   }
 }
 
@@ -178,6 +180,84 @@ body {
 .recent-item:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 .recent-name, .recent-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recent-name { color: var(--accent); }
+/* #172: the explorer pane is the file tree over the Outline section; each scrolls on its own. */
+.side-pane.explorer-pane { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.side-pane.explorer-pane[hidden] { display: none; }
+.explorer-section { flex: 1 1 auto; min-height: 80px; overflow: auto; }
+.outline-section { flex: 0 1 40%; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.outline-section.is-collapsed { flex: none; }
+.outline-header { display: flex; align-items: center; justify-content: space-between; min-width: 0; }
+.outline-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.outline-toggle:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.outline-toggle[aria-expanded='true'] > .tree-chevron { transform: rotate(90deg); }
+.outline-body { flex: 1; min-height: 0; overflow: auto; padding-bottom: 8px; }
+.outline-body[hidden] { display: none; }
+.outline-note { margin: 4px 12px 8px; }
+.outline-row.is-active { background: var(--hover); }
+.outline-row.is-active > .tree-label { color: var(--accent); }
+.symbol-kind {
+  flex: none;
+  width: 14px;
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.symbol-kind.tone-warn { color: var(--warn); }
+.symbol-kind.tone-accent { color: var(--accent); }
+.symbol-kind.tone-violet { color: var(--symbol); }
+.symbol-kind.tone-muted { color: var(--muted); }
+/* #172: the breadcrumbs above the editor. */
+.editor-breadcrumbs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 22px;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  background: var(--editor);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.editor-breadcrumbs[hidden] { display: none; }
+.crumb {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.crumb:hover, .crumb:focus-visible { color: var(--fg); background: var(--hover); outline: none; }
+.crumb:last-child { color: var(--fg); }
+.crumb-separator { flex: none; width: 12px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .explorer-body { padding: 0 0 8px; }
 .explorer-body > p { margin: 0 12px 12px; }
 .primary-button {
@@ -1005,6 +1085,8 @@ body {
 /* Context menus (#167, contextMenu.ts): the terminal menu's look, at the pointer. */
 .context-menu {
   position: fixed;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
   z-index: 70;
   min-width: 220px;
   max-width: 360px;

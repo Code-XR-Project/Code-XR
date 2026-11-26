@@ -141,6 +141,11 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
 
     // #15: the Python environment. #154: set-up asks nothing; the IDE installs its own dependencies.
     handle(IPC_CHANNELS.problemsFunctionMetrics, (event) => core.metrics.snapshot(event.sender));
+    // #172: the outline of a file no analysis measured asks the backend for that file alone.
+    handle(IPC_CHANNELS.problemsFileFunctions, (event, path) => {
+        const workspace = workspaceOf(event.sender);
+        return core.metrics.fileFunctions(event.sender, workspace.root, String(path), workspace.displayPath(path, 'absolute'));
+    });
     handle(IPC_CHANNELS.pythonStatus, () => core.python.status());
     handle(IPC_CHANNELS.pythonSetUp, () => core.python.setUp());
     handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());

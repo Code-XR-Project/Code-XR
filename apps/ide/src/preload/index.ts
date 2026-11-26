@@ -160,6 +160,7 @@ const api: CodeXRApi = Object.freeze({
     }),
     problems: Object.freeze({
         functionMetrics: () => ipcRenderer.invoke(IPC_CHANNELS.problemsFunctionMetrics),
+        fileFunctions: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.problemsFileFunctions, path),
         onMetricsChanged: (listener: (snapshot: FunctionMetricsSnapshot | null) => void) => subscribe(IPC_EVENTS.metricsChanged, listener),
     }),
     keybindings: Object.freeze({
