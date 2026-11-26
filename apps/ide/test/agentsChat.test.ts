@@ -14,6 +14,8 @@ import { ToolCatalog } from '../src/main/agents/tools/toolCatalog.ts';
 import { WORKSPACE_TOOLS } from '../src/main/agents/tools/workspaceTools.ts';
 import type { AgentTool, ToolWorkspace } from '../src/main/agents/tools/toolTypes.ts';
 import { buildAttachmentContext } from '../src/main/agents/attachments.ts';
+import { applyReplacements, proposeEditTool } from '../src/main/agents/tools/editTools.ts';
+import { applyHunks, diffLines, matchLineEndings } from '../src/shared/lineDiff.ts';
 import type { FetchLike } from '../src/main/agents/providers/types.ts';
 import { parseInline, parseMarkdown } from '../src/renderer/agents/markdownModel.ts';
 
@@ -35,10 +37,15 @@ function sse(chunks: readonly string[]): Response {
 /** An in-memory folder: `ignored.txt` exists but is git-ignored, like quick open would skip it. */
 function fakeWorkspace(files: Readonly<Record<string, string>>): ToolWorkspace {
     return {
-        listDirectory: (relative) => Promise.resolve(Object.keys(files).filter((file) => relative === '' || file.startsWith(`${String(relative)}/`)).map((file) => ({ name: file, path: file, kind: 'file' as const, ignored: false }))),
+        listDirectory: (relative) => {
+            const inside = Object.keys(files).filter((file) => relative === '' || file.startsWith(`${String(relative)}/`));
+            return relative !== '' && inside.length === 0
+                ? Promise.reject(new Error('ENOENT: no such file or directory'))
+                : Promise.resolve(inside.map((file) => ({ name: file, path: file, kind: 'file' as const, ignored: false })));
+        },
         readFile: (relative) => {
             const text = files[String(relative)];
-            return text === undefined ? Promise.reject(new Error('ENOENT')) : Promise.resolve({ kind: 'text' as const, path: String(relative), text, mtimeMs: 0 });
+            return text === undefined ? Promise.reject(new Error('ENOENT: no such file or directory')) : Promise.resolve({ kind: 'text' as const, path: String(relative), text, mtimeMs: 0 });
         },
         listFiles: () => Promise.resolve({ files: Object.keys(files).filter((file) => file !== 'ignored.txt'), truncated: false }),
         search: () => Promise.resolve({ files: 0, matches: 0, limitHit: false, cancelled: false }),
@@ -273,6 +280,74 @@ describe('AgentChat tools (A7)', () => {
         const session = await chat.create(null, agent.id);
         await chat.send(null, session.id, 'rm -rf', [], quiet);
         assert.equal((await chat.get(null, session.id)).messages[1]?.toolRuns?.[0]?.status, 'error');
+    });
+});
+
+describe('line diff (A8)', () => {
+    it('finds the hunks and applies any subset of them', () => {
+        const original = 'a\nb\nc\nd\ne';
+        const proposed = 'a\nB\nc\nd\ne\nf';
+        const hunks = diffLines(original, proposed);
+        assert.deepEqual(hunks, [
+            { originalStart: 1, originalCount: 1, modifiedStart: 1, lines: ['B'] },
+            { originalStart: 5, originalCount: 0, modifiedStart: 5, lines: ['f'] },
+        ]);
+        assert.equal(applyHunks(original, hunks, new Set([0, 1])), proposed);
+        assert.equal(applyHunks(original, hunks, new Set()), original);
+        assert.equal(applyHunks(original, hunks, new Set([1])), 'a\nb\nc\nd\ne\nf');
+        assert.deepEqual(diffLines('same', 'same'), []);
+        assert.equal(matchLineEndings('x\r\ny', 'p\nq'), 'p\r\nq');
+    });
+    it('replaces exactly once or explains why not', () => {
+        assert.equal(applyReplacements('let a = 1;\nlet b = 2;', [{ find: 'b = 2', replace: 'b = 3' }]), 'let a = 1;\nlet b = 3;');
+        assert.throws(() => applyReplacements('x x', [{ find: 'x', replace: 'y' }]), /more than once/);
+        assert.throws(() => applyReplacements('x', [{ find: 'z', replace: 'y' }]), /not in the file/);
+    });
+});
+
+describe('propose_edit (A8)', () => {
+    const files = { 'src/a.ts': 'const a = 1;\r\nconst b = 2;\r\n' };
+    const contextWith = (outcome: 'applied' | 'rejected', seen: unknown[]) => ({
+        workspace: fakeWorkspace(files),
+        signal: new AbortController().signal,
+        reviewEdit: (request: unknown) => { seen.push(request); return Promise.resolve({ outcome, accepted: 1, total: 1 }); },
+    });
+    it('sends the proposed file (with the file\'s line endings) to review and reports the outcome', async () => {
+        const seen: Array<Record<string, unknown>> = [];
+        const text = await proposeEditTool.run({ path: 'src/a.ts', summary: 'bump b', edits: [{ find: 'const b = 2;', replace: 'const b = 3;' }] }, contextWith('applied', seen));
+        assert.match(text, /Applied and saved: src\/a\.ts/);
+        assert.equal(seen[0]?.['proposed'], 'const a = 1;\r\nconst b = 3;\r\n');
+        assert.equal(seen[0]?.['isNew'], false);
+        assert.match(await proposeEditTool.run({ path: 'src/a.ts', summary: 'x', content: 'other' }, contextWith('rejected', [])), /rejected/);
+    });
+    it('proposes a new file only inside an existing folder, and refuses ambiguous arguments', async () => {
+        const seen: Array<Record<string, unknown>> = [];
+        await proposeEditTool.run({ path: 'src/new.ts', summary: 'add', content: 'export {};' }, contextWith('applied', seen));
+        assert.equal(seen[0]?.['isNew'], true);
+        await assert.rejects(proposeEditTool.run({ path: 'nope/new.ts', summary: 'add', content: 'x' }, contextWith('applied', [])), /does not exist/);
+        await assert.rejects(proposeEditTool.run({ path: 'src/a.ts', summary: 'x' }, contextWith('applied', [])), /either "edits" or "content"/);
+        assert.match(await proposeEditTool.run({ path: 'src/a.ts', summary: 'x', content: files['src/a.ts'] }, contextWith('applied', [])), /No change/);
+    });
+    it('runs through AgentChat without an approval card and waits for the review', async () => {
+        let calls = 0;
+        const { chat, agent } = await setup(() => {
+            calls += 1;
+            return Promise.resolve(calls === 1
+                ? toolCallChunk('e1', 'propose_edit', JSON.stringify({ path: 'src/a.ts', summary: 'bump', edits: [{ find: '2', replace: '3' }] }))
+                : sse(['data: {"choices":[{"delta":{"content":"done"},"finish_reason":"stop"}]}\n\n']));
+        }, [proposeEditTool]);
+        const session = await chat.create(null, agent.id);
+        const events: AgentChatEvent[] = [];
+        await chat.send(null, session.id, 'bump b', [], windowOf(events, fakeWorkspace(files), (event) => {
+            if (event.type === 'review') {
+                chat.resolveReview(event.request.id, { outcome: 'applied', accepted: 1, total: 1 });
+            }
+        }));
+        assert.equal(events.some((event) => event.type === 'approval'), false);
+        assert.equal(events.filter((event) => event.type === 'review').length, 1);
+        const run = (await chat.get(null, session.id)).messages[1]?.toolRuns?.[0];
+        assert.deepEqual([run?.name, run?.status], ['propose_edit', 'done']);
+        assert.match(run?.result ?? '', /Applied and saved/);
     });
 });
 

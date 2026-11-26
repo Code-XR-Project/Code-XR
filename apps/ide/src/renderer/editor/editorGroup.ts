@@ -3,6 +3,7 @@ import { el, fileIcon, icon } from '../dom.ts';
 import { followSystemTheme, monaco } from './monaco.ts';
 import { languageName, type EditorStatusState, type EndOfLine, type Indentation, type LanguageInfo } from './editorStatusModel.ts';
 import { settingOf, type SettingValues } from '../../shared/settings.ts';
+import type { Problem, ProblemSeverity } from '../../shared/problems.ts';
 import { closeTargets, cycleTab, discardQuestion, moveTab, type CloseKind, type TabSession } from './tabsModel.ts';
 import { EDITORCONFIG_NAME, editorConfigFolders, parseEditorConfig, resolveEditorConfig, type EditorConfigFile, type EditorConfigProperties } from './editorConfig.ts';
 import { FORMAT_TIMEOUT_MS, indentationOf, saveRules, whitespaceEdits, type AutoSave, type FileSettings, type SaveReason } from './saveTransforms.ts';
@@ -64,6 +65,18 @@ export interface OpenOptions {
     readonly preview?: boolean;
 }
 
+/** #173: Monaco's resources for workspace files, and the owner of the Code-XR metric markers. */
+const FILE_SCHEME = 'codexr-file';
+const METRIC_OWNER = 'codexr-metrics';
+const MARKER_SEVERITY: Record<ProblemSeverity, monaco.MarkerSeverity> = {
+    error: monaco.MarkerSeverity.Error,
+    warning: monaco.MarkerSeverity.Warning,
+    info: monaco.MarkerSeverity.Info,
+};
+function markerSeverity(severity: monaco.MarkerSeverity): ProblemSeverity {
+    return severity >= monaco.MarkerSeverity.Error ? 'error' : severity >= monaco.MarkerSeverity.Warning ? 'warning' : 'info';
+}
+
 export interface EditorGroup {
     open(path: string, options?: OpenOptions): Promise<void>;
     save(): Promise<void>;
@@ -97,6 +110,12 @@ export interface EditorGroup {
     selectedText(): string;
     /** The active editor's selection on any number of lines, for an agent's context (epic #189, A6); null when empty. */
     activeSelection(): { readonly path: string; readonly startLine: number; readonly endLine: number; readonly text: string } | null;
+    /**
+     * Epic #189 (A8): writes an agent's accepted change into an open file as
+     * one undoable edit and saves it through the normal path. Refuses when
+     * the editor's text is not the one the agent saw (unsaved edits).
+     */
+    applyAgentEdit(path: string, expected: string, text: string): Promise<'saved' | 'not-open' | 'unsaved-changes' | 'save-failed'>;
     /** #164: Monaco's own outline of the active file ("@" in quick open), where its language has symbols. */
     showSymbols(): void;
     /** #166: the status bar's choices, applied to the active file. */
@@ -121,6 +140,10 @@ export interface EditorGroup {
     applySettings(settings: SettingValues): void;
     /** #170: formats the active file with its language's formatter; false when it has none. */
     formatDocument(): Promise<boolean>;
+    /** #173: what the languages report on the open files (Monaco's markers), the metric ones left out. */
+    editorProblems(): Problem[];
+    /** #173: the Code-XR metric problems, drawn as squiggles in the open files and in the ones opened later. */
+    setMetricProblems(problems: readonly Problem[]): void;
 }
 
 export function createEditorGroup(
@@ -142,6 +165,8 @@ export function createEditorGroup(
         revealInExplorer?(path: string): void;
         /** #167: shows the tab context menu (the workbench owns menus and keybinding labels). */
         showTabMenu?(path: string, x: number, y: number): void;
+        /** #173: a language's markers changed on an open file. */
+        onMarkersChange?(): void;
     },
 ): EditorGroup {
     const tabs = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
@@ -166,6 +191,30 @@ export function createEditorGroup(
 
     const files = new Map<string, OpenFile>();
     let active: OpenFile | null = null;
+
+    // #173: the metric problems by file; squiggles on the open ones, under their own marker owner.
+    let metricProblems = new Map<string, Problem[]>();
+    function applyMetricMarkers(file: OpenFile): void {
+        const model = file.model;
+        monaco.editor.setModelMarkers(model, METRIC_OWNER, (metricProblems.get(file.path) ?? []).map((problem) => {
+            const line = Math.min(Math.max(1, problem.startLine), model.getLineCount());
+            return {
+                severity: MARKER_SEVERITY[problem.severity],
+                message: problem.message,
+                source: problem.source,
+                ...(problem.code ? { code: problem.code } : {}),
+                startLineNumber: line,
+                startColumn: model.getLineFirstNonWhitespaceColumn(line) || 1,
+                endLineNumber: line,
+                endColumn: model.getLineMaxColumn(line),
+            };
+        }));
+    }
+    monaco.editor.onDidChangeMarkers((resources) => {
+        if (resources.some((uri) => uri.scheme === FILE_SCHEME)) {
+            callbacks.onMarkersChange?.();
+        }
+    });
     /** The files in tab order: the strip's DOM order. */
     const ordered = (): OpenFile[] => [...tabs.children].flatMap((tab) => {
         const file = files.get((tab as HTMLElement).dataset['path'] ?? '');
@@ -284,7 +333,7 @@ export function createEditorGroup(
             className: 'editor-tab',
             attrs: { role: 'tab', 'aria-selected': 'false', tabindex: '-1', title: content.path, 'data-path': content.path, draggable: 'true' },
         }, [fileIcon(name, 'file'), el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
-        const uri = monaco.Uri.from({ scheme: 'codexr-file', path: `/${content.path}` });
+        const uri = monaco.Uri.from({ scheme: FILE_SCHEME, path: `/${content.path}` });
         const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel(content.text, undefined, uri);
         const file: OpenFile = {
             path: content.path, model, tab, dirtyMark, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs,
@@ -293,6 +342,7 @@ export function createEditorGroup(
         };
         setPreview(file, preview);
         void applyEditorConfig(file);
+        applyMetricMarkers(file);
         model.onDidChangeContent(() => {
             refreshTab(file);
             scheduleAutoSave(file);
@@ -403,6 +453,7 @@ export function createEditorGroup(
             clearTimeout(file.autoSaveTimer);
             files.delete(file.path);
             file.tab.remove();
+            monaco.editor.setModelMarkers(file.model, METRIC_OWNER, []);
             file.model.dispose();
         }
         if (active && closing.has(active)) {
@@ -697,7 +748,18 @@ export function createEditorGroup(
             }
             return model.getValueInRange(selection);
         },
-        activeSelection() {
+        async applyAgentEdit(path, expected, text) {
+            const file = files.get(path);
+            if (!file) {
+                return 'not-open';
+            }
+            if (fileText(file) !== expected) {
+                return 'unsaved-changes';
+            }
+            file.model.pushEditOperations([], [{ range: file.model.getFullModelRange(), text }], () => null);
+            return (await saveFile(file, 'explicit')) ? 'saved' : 'save-failed';
+        },
+                activeSelection() {
             const selection = editor.getSelection();
             const model = active?.model;
             if (!active || !selection || !model || selection.isEmpty()) {
@@ -832,6 +894,40 @@ export function createEditorGroup(
                 return true;
             }
         },
+        editorProblems(): Problem[] {
+            return monaco.editor.getModelMarkers({}).flatMap((marker) => {
+                if (marker.owner === METRIC_OWNER || marker.resource.scheme !== FILE_SCHEME || marker.severity < monaco.MarkerSeverity.Info) {
+                    return [];
+                }
+                const code = typeof marker.code === 'string' ? marker.code : marker.code?.value;
+                return [{
+                    path: marker.resource.path.replace(/^\//, ''),
+                    severity: markerSeverity(marker.severity),
+                    message: marker.message,
+                    source: marker.source ?? marker.owner,
+                    origin: 'editor' as const,
+                    ...(code ? { code } : {}),
+                    startLine: marker.startLineNumber,
+                    startColumn: marker.startColumn,
+                    endLine: marker.endLineNumber,
+                    endColumn: marker.endColumn,
+                }];
+            });
+        },
+        setMetricProblems(problems: readonly Problem[]): void {
+            const next = new Map<string, Problem[]>();
+            for (const problem of problems) {
+                next.set(problem.path, [...(next.get(problem.path) ?? []), problem]);
+            }
+            const touched = new Set([...metricProblems.keys(), ...next.keys()]);
+            metricProblems = next;
+            for (const path of touched) {
+                const file = files.get(path);
+                if (file) {
+                    applyMetricMarkers(file);
+                }
+            }
+        },
         keepActive(): void {
             if (active) {
                 setPreview(active, false);
@@ -892,6 +988,7 @@ export function createEditorGroup(
         reset(): void {
             for (const file of ordered()) {
                 file.tab.remove();
+                monaco.editor.setModelMarkers(file.model, METRIC_OWNER, []);
                 file.model.dispose();
             }
             files.clear();

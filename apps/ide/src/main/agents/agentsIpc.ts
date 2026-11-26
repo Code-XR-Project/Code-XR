@@ -41,6 +41,7 @@ export function registerAgentHandlers(handle: Handle, agents: AgentServices): vo
     handle(AGENT_IPC_CHANNELS.agentsStop, (_event, id) => chat.stop(id));
     handle(AGENT_IPC_CHANNELS.agentsTools, () => tools.list());
     handle(AGENT_IPC_CHANNELS.agentsApprove, (_event, requestId, decision) => chat.approve(requestId, decision));
+    handle(AGENT_IPC_CHANNELS.agentsResolveReview, (_event, requestId, result) => chat.resolveReview(requestId, result));
 }
 
 /** Streams chat events to the window that asked; a closed window just stops receiving them. */

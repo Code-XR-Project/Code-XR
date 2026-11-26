@@ -410,6 +410,12 @@ body {
 
 /* Status bar items */
 .status-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
+/* #173: the problem counts, then the messages. */
+.status-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.status-message { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-problems { flex: none; display: inline-flex; align-items: center; gap: 3px; margin-left: -6px; }
+.status-problems svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.status-problems svg + span { margin-right: 5px; }
 .status-item {
   padding: 0 6px;
   height: 20px;
@@ -503,6 +509,8 @@ body {
   height: var(--panel-size, 260px);
 }
 .panel[hidden] { display: none; }
+/* The panel's width follows the layout (an open scene halves it), so its header adapts to the panel, not the window. */
+.panel { container: panel / inline-size; }
 .workbench.panel-maximized .panel { height: auto; }
 .panel-header {
   flex: none;
@@ -514,6 +522,7 @@ body {
   background: var(--chrome);
   border-bottom: 1px solid var(--line);
   min-width: 0;
+  overflow: hidden;
 }
 .panel-views { flex: none; display: flex; align-items: stretch; gap: 14px; height: 100%; }
 .panel-title {
@@ -592,9 +601,100 @@ body {
 .terminal-body { flex: 1; min-height: 0; position: relative; padding: 4px 0 0 12px; }
 .terminal-host { position: absolute; inset: 4px 0 0 12px; }
 .terminal-body[hidden], .output-body[hidden] { display: none; }
+/* #173: the Problems view. */
+.problems-center { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* margin, not justify-content: a squeezed row then overflows to the right (clipped), never over the tabs. */
+.problems-center > :first-child { margin-left: auto; }
+.problems-filter {
+  flex: 0 1 220px;
+  width: 220px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+.problems-filter:focus { outline: 1px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.problems-toggles { flex: none; display: flex; gap: 2px; }
+.problems-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.problems-toggle:hover { background: var(--hover); color: var(--fg); }
+.problems-toggle[aria-pressed='true'] { color: var(--fg); background: var(--hover); }
+.problems-toggle[aria-pressed='false'] svg { opacity: 0.45; }
+.problems-toggle:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.problems-toggle svg, .problems-severity { flex: none; width: 14px; height: 14px; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.problems-toggle.is-error svg, .problems-row.is-error .problems-severity { stroke: var(--crit); }
+.problems-toggle.is-warning svg, .problems-row.is-warning .problems-severity { stroke: var(--warn); }
+.problems-toggle.is-info svg, .problems-row.is-info .problems-severity { stroke: var(--accent); }
+.problems-origin {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 140px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+.problems-body { flex: 1; min-height: 0; overflow: auto; padding: 4px 0; scrollbar-width: thin; }
+.problems-body[hidden] { display: none; }
+.problems-message { margin: 6px 12px; }
+.problems-message[hidden] { display: none; }
+.problems-list { display: flex; flex-direction: column; }
+.problems-file, .problems-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 0;
+}
+.problems-file:hover, .problems-row:hover { background: var(--hover); }
+.problems-file:focus, .problems-row:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+.problems-chevron { width: 14px; height: 14px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; transform: rotate(90deg); color: var(--muted); }
+.problems-file.is-collapsed .problems-chevron { transform: none; }
+.problems-file-name { flex-shrink: 0; }
+.problems-file-folder { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.problems-count {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--hover);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.problems-row { padding-left: 34px; font-size: 12px; }
+.problems-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.problems-source, .problems-where { flex-shrink: 0; font-size: 12px; }
+/* A narrow panel drops the source picker, then the severity toggles (the status bar keeps the counts); the filter stays, Ctrl+Shift+M focuses it. */
+@container panel (max-width: 760px) { .problems-origin { display: none; } }
+@container panel (max-width: 600px) { .problems-toggles { display: none; } }
 /* #174: the Output view. */
 .output-channel {
   margin-left: auto;
+  min-width: 0;
   height: 22px;
   max-width: 220px;
   padding: 0 4px;
@@ -1121,3 +1221,19 @@ body {
 .agents-tool { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; cursor: pointer; }
 .agents-tool input { margin: 2px 0 0; flex: none; }
 .agents-tool-main { min-width: 0; }
+
+/* Review of an agent's proposed change (A8): a layer over the editor cell of the workbench grid. */
+.edit-review { grid-area: editor; z-index: 40; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--editor); border-top: 2px solid var(--warn); }
+.edit-review-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.edit-review-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
+.edit-review-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); }
+.edit-review-path { font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.edit-review-summary { flex-basis: 100%; }
+.edit-review > .error { margin: 0; padding: 6px 12px; }
+.edit-review-body { flex: 1; display: grid; grid-template-columns: minmax(160px, 220px) 1fr; min-height: 0; }
+.edit-review-hunks { margin: 0; padding: 6px 0; overflow: auto; list-style: none; border-right: 1px solid var(--line); background: var(--panel); }
+.edit-review-hunk { display: flex; align-items: center; gap: 6px; padding: 2px 10px; }
+.edit-review-hunk input { margin: 0; flex: none; }
+.edit-review-hunk-label { padding: 2px 0; border: 0; background: none; color: var(--fg); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.edit-review-hunk-label:hover { color: var(--accent); }
+.edit-review-diff { min-width: 0; min-height: 0; }

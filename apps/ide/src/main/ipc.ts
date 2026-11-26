@@ -69,8 +69,13 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceReplaceInFiles, (event, query, replacement, paths) =>
         replaceInFiles(workspaceOf(event.sender), query, replacement, paths));
     handle(IPC_CHANNELS.workspaceReadFile, (event, path) => workspaceOf(event.sender).readFile(path));
-    handle(IPC_CHANNELS.workspaceWriteFile, (event, path, text, expectedMtimeMs) =>
-        workspaceOf(event.sender).writeFile(path, text, expectedMtimeMs));
+    handle(IPC_CHANNELS.workspaceWriteFile, async (event, path, text, expectedMtimeMs) => {
+        const workspace = workspaceOf(event.sender);
+        const result = await workspace.writeFile(path, text, expectedMtimeMs);
+        // #173: a saved file is measured again for the Problems panel (when an analysis measured its folder).
+        core.metrics.fileSaved(event.sender, workspace.root, String(path), workspace.displayPath(path, 'absolute'));
+        return result;
+    });
     handle(IPC_CHANNELS.workspaceSetWatched, (event, entries) => {
         const sender = event.sender;
         workspaceOf(sender).setWatched(entries, (paths) => {
@@ -127,6 +132,7 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));
 
     // #15: the Python environment. #154: set-up asks nothing; the IDE installs its own dependencies.
+    handle(IPC_CHANNELS.problemsFunctionMetrics, (event) => core.metrics.snapshot(event.sender));
     handle(IPC_CHANNELS.pythonStatus, () => core.python.status());
     handle(IPC_CHANNELS.pythonSetUp, () => core.python.setUp());
     handle(IPC_CHANNELS.pythonRemove, () => core.python.remove());

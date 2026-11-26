@@ -2,7 +2,7 @@ import { el, icon } from '../dom.ts';
 
 /**
  * The bottom panel (#174): one frame under the editors holding several views
- * (Terminal, Output; Problems with #173), VS Code's way. Its header has the
+ * (Problems #173, Output, Terminal), VS Code's way. Its header has the
  * views' tabs on the left, the active view's own controls after them, and
  * the panel's maximise and close buttons at the end. The layout (#169) owns
  * its size; a view owns its body.

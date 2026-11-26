@@ -121,6 +121,47 @@ export class PythonEnvironmentService {
         });
     }
 
+    /**
+     * #173: per-function metrics from the backend's functions mode, for a
+     * folder (every analysable file under it) or one file of it. Runs the
+     * venv's Python only; resolves with the parsed JSON, or rejects.
+     * `signal` stops a run a newer one replaced.
+     */
+    async functionMetrics(target: string, kind: 'directory' | 'file', root: string, signal?: AbortSignal): Promise<unknown> {
+        if (this.busy || !this.venv.getEnvironmentStatus().isValid) {
+            throw new Error('The Python environment is not ready.');
+        }
+        const script = resolveBackendScriptPath(getHost().paths, 'main.py');
+        const args = [script, '--mode', 'functions', '--type', kind, '--target', target];
+        args.push(...(kind === 'directory' ? ['--deep'] : ['--project-root', root]));
+        const command = PythonEnvUtils.getVenvPythonCommand(this.venvFolder, args);
+        return new Promise((resolve, reject) => {
+            execFile(command.executable, command.args, {
+                timeout: kind === 'directory' ? 10 * 60_000 : 60_000,
+                maxBuffer: 64 * 1024 * 1024,
+                windowsHide: true,
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
+                ...(signal ? { signal } : {}),
+            }, (error, stdout) => {
+                const json = /=== JSON_START ===\r?\n([\s\S]*)\r?\n=== JSON_END ===/.exec(stdout)?.[1];
+                if (error && !json) {
+                    reject(error);
+                    return;
+                }
+                try {
+                    const payload: unknown = JSON.parse(json ?? 'null');
+                    if (payload && typeof payload === 'object' && !Array.isArray(payload) && (payload as { error?: unknown }).error) {
+                        reject(new Error(String((payload as { message?: unknown }).message ?? 'The analysis failed.')));
+                        return;
+                    }
+                    resolve(payload);
+                } catch {
+                    reject(new Error('The backend answered with no metrics.'));
+                }
+            });
+        });
+    }
+
     async remove(): Promise<PythonEnvStatus> {
         if (this.busy) {
             return this.last ?? this.status();

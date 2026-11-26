@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { channelForScope, isOutputChannel, MAX_LINE_LENGTH, OUTPUT_CHANNELS, OutputBuffer, outputLines, redactSecrets } from '../src/shared/output.ts';
+import { channelForScope, isOutputChannel, MAX_LINE_LENGTH, OUTPUT_CHANNELS, OutputBuffer, outputLines, plainCoreText, redactSecrets } from '../src/shared/output.ts';
 
 describe('output channels (#174)', () => {
     it('lists four channels and recognises them', () => {
@@ -69,5 +69,13 @@ describe('output lines and buffer (#174)', () => {
         assert.equal(buffer.size, 3);
         buffer.clear();
         assert.equal(buffer.size, 0);
+    });
+});
+
+describe('core messages in the IDE (#173)', () => {
+    it('drops the VS Code icon syntax and keeps the words', () => {
+        assert.equal(plainCoreText('$(check) CodeXR re-analysis updated 1 file(s)'), 'CodeXR re-analysis updated 1 file(s)');
+        assert.equal(plainCoreText('$(sync~spin) Analysing $(file-code) a.py'), 'Analysing a.py');
+        assert.equal(plainCoreText('Costs $5 (one run)'), 'Costs $5 (one run)');
     });
 });

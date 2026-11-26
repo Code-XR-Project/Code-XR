@@ -9,7 +9,10 @@ import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
 import { createPanelHost } from './panel/panelHost.ts';
 import { createAgentsView } from './agents/agentsView.ts';
+import { createEditReviewer } from './agents/editReview.ts';
 import { registerAgentCommands } from './agents/agentCommands.ts';
+import { createProblemsView } from './problems/problemsView.ts';
+import { metricProblems, type FunctionMetricsSnapshot, type MetricThresholds, type Problem } from '../shared/problems.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
@@ -81,10 +84,12 @@ function editorGroup(): Promise<EditorGroup> {
             copyPath: (path, kind) => copyPath(path, kind),
             revealInExplorer: (path) => void revealInExplorer(path),
             showTabMenu: (path, x, y) => showTabMenu(path, x, y),
+            onMarkersChange: () => problemsView.setEditorProblems(editors?.editorProblems() ?? []),
         });
         if (settingsReport) {
             editors.applySettings(settingsReport.effective);
         }
+        editors.setMetricProblems(currentMetricProblems);
         return editors;
     });
     return editorsLoading;
@@ -282,6 +287,12 @@ function applySettings(report: SettingsReport): void {
     settingsView.show(report);
     editors?.applySettings(report.effective);
     terminal.setFontSize(settingOf<number>(report, 'terminal.integrated.fontSize'));
+    metricThresholds = {
+        complexity: settingOf<number>(report, 'problems.metrics.maxComplexity'),
+        lines: settingOf<number>(report, 'problems.metrics.maxFunctionLines'),
+        parameters: settingOf<number>(report, 'problems.metrics.maxParameters'),
+    };
+    refreshMetricProblems();
 }
 function loadSettings(): Promise<void> {
     return api.settings.get().then(applySettings, (error: unknown) => workbench.setStatus(`Could not read the settings: ${String(error)}`));
@@ -302,10 +313,32 @@ api.settings.onDidChange(applySettings);
 // #174: the bottom panel and its views. #137: the terminal; xterm.js loads with the first terminal.
 const panelHost = createPanelHost(workbench.panel, { toggleMaximized: () => workbench.layout.togglePanelMaximized() });
 workbench.layout.onDidChange(() => panelHost.setMaximized(workbench.layout.panelMaximized));
+// #173: the Problems view: the languages' markers and the Code-XR metric checks of the last analysis.
+const problemsView = createProblemsView(panelHost, {
+    open: (problem) => void editorGroup().then((group) => group.openAt(problem.path, problem.startLine, problem.startColumn, 0)),
+    onCounts: (counts) => workbench.setProblemCounts(counts.error, counts.warning),
+});
+workbench.onProblemsClick(() => (panelHost.isShowing('problems') ? panelHost.hide() : problemsView.show()));
+let metricSnapshot: FunctionMetricsSnapshot | null = null;
+let metricThresholds: MetricThresholds | null = null;
+let currentMetricProblems: Problem[] = [];
+/** The thresholds or the measured functions changed: the list and the squiggles follow, with no new run. */
+function refreshMetricProblems(): void {
+    currentMetricProblems = metricSnapshot && metricThresholds ? metricProblems(metricSnapshot.files, metricThresholds) : [];
+    problemsView.setMetricProblems(currentMetricProblems, metricSnapshot !== null);
+    editors?.setMetricProblems(currentMetricProblems);
+}
+function receiveMetrics(snapshot: FunctionMetricsSnapshot | null): void {
+    metricSnapshot = snapshot;
+    refreshMetricProblems();
+}
+api.problems.onMetricsChanged(receiveMetrics);
+api.problems.functionMetrics().then((snapshot) => { if (snapshot) { receiveMetrics(snapshot); } }, () => undefined);
+// The tabs follow VS Code's order: Problems, Output, Terminal.
+const output = createOutputView(panelHost, api.output, { onError: (message) => workbench.setStatus(message) });
 const terminal = createTerminalPanel(panelHost, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
 });
-const output = createOutputView(panelHost, api.output, { onError: (message) => workbench.setStatus(message) });
 /** A notification's "Show Output" button, on the channel that explains it. */
 const showOutputAction = (channel: OutputChannelId): NotificationAction => ({ label: 'Show Output', run: () => output.show(channel) });
 void loadSettings();
@@ -447,6 +480,7 @@ registerWorkbenchCommands(registry, {
     newTerminal: () => void terminal.newTerminal(),
     closeTerminalPanel: () => terminal.hide(),
     showOutput: () => output.show(),
+    showProblems: () => problemsView.focusFilter(),
     showView: (view) => workbench.showView(view),
     showSearch: () => {
         workbench.showView('search');
@@ -532,8 +566,20 @@ void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
 // The AI agent hub: providers configured with the person's own keys.
+const reviewEdit = createEditReviewer(workbench.editorArea.parentElement ?? document.body, {
+    applyInEditor: async (path, expected, text) => {
+        if (!editors?.openPaths().includes(path)) {
+            return 'not-open';
+        }
+        return editors.applyAgentEdit(path, expected, text);
+    },
+    writeFile: (path, text, expectedMtimeMs) => api.workspace.writeFile(path, text, expectedMtimeMs),
+    createFile: (parent, name) => api.workspace.createEntry(parent, name, 'file'),
+    onStatus: (message) => workbench.setStatus(message),
+});
 const agentsView = createAgentsView(workbench.agentsView, api.agents, {
     onStatus: (message) => workbench.setStatus(message),
+    reviewEdit,
     listFiles: async () => (await api.workspace.listFiles()).files,
     activeSelection: () => {
         const selection = editors?.activeSelection();

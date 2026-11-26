@@ -65,6 +65,7 @@ select = [
 "tests/dependencies/test_dependency_analysis.py" = ["E402"]
 "tests/html_dom/test_html_dom_protocol.py" = ["E402"]
 "tests/xr_file_analysis/test_empty_file_handling.py" = ["E402"]
+"tests/ide_problems/test_function_metrics.py" = ["E402"]
 "tests/xr_schema/test_xr_schema.py" = ["E402"]
 # FA100: these two keep their `typing` generics. xr_field_schema.py is the XR
 # field-schema contract (cleanup skill, section 4: off-limits), and a test pins
