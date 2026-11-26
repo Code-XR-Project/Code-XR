@@ -236,6 +236,15 @@ body {
 }
 
 .welcome { max-width: 520px; width: 100%; }
+.welcome-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 0 12px -8px;
+  background: var(--fg);
+  -webkit-mask: var(--logo-url) center / contain no-repeat;
+  mask: var(--logo-url) center / contain no-repeat;
+}
 
 /* Editor group (#14): tabs over one Monaco editor. */
 .editor-area.has-editors {

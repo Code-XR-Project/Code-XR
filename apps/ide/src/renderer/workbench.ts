@@ -2,6 +2,8 @@ import type { AppInfo } from '../shared/api.ts';
 import { el, icon } from './dom.ts';
 import { PROBLEM_ICONS } from './problems/problemsView.ts';
 import { createLayout, type LayoutStorage, type WorkbenchLayout } from './layout/layout.ts';
+// The extension's own logo, bundled by Vite rather than copied into the IDE.
+import codeXrLogoUrl from '../../../vscode-extension/resources/icon.svg?url';
 
 /**
  * The workbench shell: activity bar, side bar, editor area and status bar.
@@ -131,7 +133,11 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const infoList = el('dl', { className: 'info-list' });
     const status = el('p', { className: 'muted', text: 'Connecting to the main process…' });
 
+    // The logo is drawn as a mask in the text colour: the SVG is black, which would vanish on the dark theme.
+    const logo = el('span', { className: 'welcome-logo', attrs: { 'aria-hidden': 'true', 'data-testid': 'welcome-logo' } });
+    logo.style.setProperty('--logo-url', `url("${codeXrLogoUrl}")`);
     const welcome = el('section', { className: 'welcome', attrs: { 'data-testid': 'welcome', 'data-ready': 'false' } }, [
+        logo,
         el('h1', { className: 'welcome-title' }, [
             document.createTextNode('Code-'),
             el('span', { className: 'accent', text: 'XR' }),

@@ -23,6 +23,7 @@ import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
 import { startAgents } from './agents/agentsRuntime.ts';
 import { setScenePreloadPath } from './analysis/sceneView.ts';
+import { appIconPath } from './appIcon.ts';
 import { createLspHost, type LspHost } from './lsp/lspHost.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
@@ -82,6 +83,8 @@ async function start(): Promise<void> {
     const terminalHost = createTerminalHost({ isSmoke });
     terminals = terminalHost;
     setScenePreloadPath(SCENE_PRELOAD_PATH);
+    // macOS shows the dock icon, not the window's: the Code-XR logo there too.
+    app.dock?.setIcon(appIconPath());
     const core = startCore({ isSmoke });
     setAboutDependencies({
         async describe() {
