@@ -10,6 +10,7 @@ import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
 import { formatKeybinding } from './commands/keybindings.ts';
 import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
+import { createQuickOpenFiles } from './quickOpenFiles.ts';
 import { createQuickInput } from './commands/quickInput.ts';
 import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
@@ -25,6 +26,8 @@ if (!root) {
 const api = window.codexr;
 /** Whether this window has a folder open (#18: commands that need one are hidden without it). */
 let folderIsOpen = false;
+/** The active editor's file, for quick open's recent list (#164). */
+let activeFile: string | null = null;
 const workbench = renderWorkbench(root);
 // #153: VS Code-style notifications, kept clear of the scene view (a native view drawn over the page).
 const notifications = createNotificationCenter(document.body);
@@ -44,7 +47,11 @@ function editorGroup(): Promise<EditorGroup> {
     editorsLoading ??= import('./editor/editorGroup.ts').then(({ createEditorGroup }) => {
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
-            onActiveChange: (path) => { document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR'; },
+            onActiveChange: (path) => {
+                document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
+                activeFile = path;
+                if (path) { quickOpenFiles.opened(path); }
+            },
             onUnsavedChange: (count) => void api.workspace.reportUnsaved(count),
             onOpenFilesChange: () => updateWatched(),
             onStatusState: (state) => editorStatus.show(state),
@@ -106,6 +113,7 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
 /** #139: the main process stops the old folder's scene; the panel follows, and the new folder may be analysed. */
 function folderOpened(root: string): void {
     folderIsOpen = true;
+    quickOpenFiles.reset();
     scenePanel.close();
     runView.setHasFolder(true);
     runView.folderOpened(root);
@@ -116,6 +124,7 @@ api.workspace.onDidChange((workspace) => {
         folderOpened(workspace.root);
     } else {
         folderIsOpen = false;
+        quickOpenFiles.reset();
         scenePanel.close();
         runView.setHasFolder(false);
     }
@@ -142,19 +151,38 @@ const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then
 // the menu's accelerators and the workbench's own keys run them.
 let platform: string = navigator.userAgent.includes('Macintosh') ? 'darwin' : 'linux';
 const registry = createCommandRegistry((id, error) => notifications.notify('error', `Command "${id}" failed: ${String(error)}`));
+// #164: the workspace's files, listed by the main process each time quick
+// open opens (a stale list is shown meanwhile), and the recently opened ones.
+const quickOpenFiles = createQuickOpenFiles(() => api.workspace.listFiles(), () => quickInput.refresh());
 const quickInput = createQuickInput(document.body, {
-    view: (value) => paletteView(value, {
+    label: 'Search files by name (> for commands, : for a line, @ for symbols)',
+    view: (value) => {
+        if (folderIsOpen && quickOpenFiles.files() === null) {
+            // Typing a file name after opening the box as the palette: list the files now.
+            quickOpenFiles.reload();
+        }
+        return paletteView(value, {
         commands: registry.list(),
         isEnabled: (id) => registry.isEnabled(id),
         recent: registry.recent(),
         formatKey: (binding) => formatKeybinding(binding, platform),
         lineCount: editors?.activeLineCount() ?? null,
-    }),
+        hasFolder: folderIsOpen,
+        files: quickOpenFiles.files(),
+        filesTruncated: quickOpenFiles.truncated(),
+        recentFiles: quickOpenFiles.recent(),
+        activeFile,
+        });
+    },
     accept: (action) => {
         if (action.kind === 'command') {
             registry.execute(action.id);
         } else if (action.kind === 'line') {
             editors?.goToLine(action.line, action.column);
+        } else if (action.kind === 'file') {
+            void editorGroup().then((group) => group.open(action.path));
+        } else if (action.kind === 'symbols') {
+            editors?.showSymbols();
         }
     },
     rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
@@ -195,6 +223,11 @@ const editorStatus = createEditorStatus(workbench.editorStatus, {
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
     goToLine: () => quickInput.open(LINE_PREFIX),
+    quickOpen: () => {
+        quickOpenFiles.reload();
+        quickInput.open('');
+    },
+    goToSymbol: () => editors?.showSymbols(),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
     changeIndentation: pickIndentation,
     changeEndOfLine: pickEndOfLine,

@@ -54,6 +54,8 @@ export interface EditorGroup {
     activeLineCount(): number | null;
     /** Moves the cursor of the active file to `line` (and `column`), centred, and focuses the editor. */
     goToLine(line: number, column?: number): void;
+    /** #164: Monaco's own outline of the active file ("@" in quick open), where its language has symbols. */
+    showSymbols(): void;
     /** #166: the status bar's choices, applied to the active file. */
     setIndentation(indentation: Indentation): void;
     /** Changes the line endings as one undoable edit (the tab becomes dirty). */
@@ -330,6 +332,13 @@ export function createEditorGroup(
     return {
         activeLineCount: () => (active ? active.model.getLineCount() : null),
         statusState,
+        showSymbols() {
+            if (!active) {
+                return;
+            }
+            editor.focus();
+            void editor.getAction('editor.action.quickOutline')?.run();
+        },
         setIndentation(indentation) {
             active?.model.updateOptions({ insertSpaces: indentation.insertSpaces, tabSize: indentation.tabSize, indentSize: indentation.tabSize });
             editor.focus();

@@ -21,6 +21,7 @@ const healthy: SmokeProbe = {
     fileIconsShown: 9,
     fileIconsBroken: [],
     palette: { opened: true, hasSave: true, lineOffered: true, focusReturned: true },
+    quickOpenFound: true,
     editorStatus: 'Ln 1, Col 1 | Spaces: 2 | UTF-8 | LF | JSON',
     cspViolations: [],
 };

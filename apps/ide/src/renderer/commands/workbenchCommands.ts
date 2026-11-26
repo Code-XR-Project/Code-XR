@@ -10,6 +10,8 @@ import type { CommandDefinition, CommandRegistry } from './commandRegistry.ts';
 export interface WorkbenchCommandTargets {
     openCommandPalette(): void;
     goToLine(): void;
+    quickOpen(): void;
+    goToSymbol(): void;
     hasActiveEditor(): boolean;
     changeIndentation(): void;
     changeEndOfLine(): void;
@@ -36,6 +38,8 @@ export interface WorkbenchCommandTargets {
 export const MENU_KEYBINDINGS: Readonly<Record<string, string>> = {
     'workbench.commandPalette': 'CmdOrCtrl+Shift+P',
     'editor.goToLine': 'Ctrl+G',
+    'workbench.quickOpen': 'CmdOrCtrl+P',
+    'editor.goToSymbol': 'CmdOrCtrl+Shift+O',
     'workspace.openFolder': 'CmdOrCtrl+O',
     'file.newFile': 'CmdOrCtrl+N',
     'file.save': 'CmdOrCtrl+S',
@@ -52,6 +56,8 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
     };
     return [
         { id: 'workbench.commandPalette', category: 'View', title: 'Command Palette…', ...menu('workbench.commandPalette'), secondaryKeybindings: ['F1'], recordRecent: false, run: targets.openCommandPalette },
+        { id: 'workbench.quickOpen', category: 'Go', title: 'Go to File…', ...menu('workbench.quickOpen'), recordRecent: false, run: targets.quickOpen },
+        { id: 'editor.goToSymbol', category: 'Go', title: 'Go to Symbol in Editor…', ...menu('editor.goToSymbol'), enabled: targets.hasActiveEditor, run: targets.goToSymbol },
         { id: 'editor.goToLine', category: 'Go', title: 'Go to Line/Column…', ...menu('editor.goToLine'), enabled: targets.hasActiveEditor, run: targets.goToLine },
         { id: 'editor.changeIndentation', category: 'Editor', title: 'Indent Using…', enabled: targets.hasActiveEditor, run: targets.changeIndentation },
         { id: 'editor.changeEndOfLine', category: 'Editor', title: 'Change End of Line Sequence', enabled: targets.hasActiveEditor, run: targets.changeEndOfLine },

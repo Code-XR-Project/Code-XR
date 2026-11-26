@@ -4,6 +4,7 @@ import { MODIFIED_ON_DISK, type DirEntry, type FileContent, type SaveResult, typ
 import { EXCLUDED_NAMES, isIgnored, parseGitignore, type IgnoreRule } from './ignoreRules.ts';
 import { childPath, isInside, parentPath, parseWorkspacePath, resolveInWorkspace, validateEntryName } from './workspacePath.ts';
 import { foldersToWatch, WorkspaceWatcher } from './watcher.ts';
+import { listWorkspaceFiles, type FileIndex } from './fileIndex.ts';
 
 /** Files above this are not sent to the editor (Monaco slows down well before). */
 export const MAX_EDITOR_FILE_BYTES = 5 * 1024 * 1024;
@@ -61,6 +62,11 @@ export class Workspace {
             entries.push({ name: dirent.name, path: entryPath, kind, ignored: isIgnored(entryPath, kind === 'directory', this.rules) });
         }
         return entries.sort((a, b) => (a.kind === b.kind ? collator.compare(a.name, b.name) : a.kind === 'directory' ? -1 : 1));
+    }
+
+    /** #164: every file for quick open, from the real root so a symlinked root lists like the explorer. */
+    listFiles(): Promise<FileIndex> {
+        return listWorkspaceFiles(this.realRoot, this.rules);
     }
 
     async readFile(relativePath: unknown): Promise<FileContent> {

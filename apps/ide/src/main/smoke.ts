@@ -34,6 +34,8 @@ export interface SmokeProbe {
     readonly fileIconsBroken: readonly string[];
     /** #18: F1 from the editor opened the palette with the commands, ":3" offered line 3, Escape gave the focus back. */
     readonly palette: { readonly opened: boolean; readonly hasSave: boolean; readonly lineOffered: boolean; readonly focusReturned: boolean };
+    /** #164: quick open found src/main/index.ts by a fuzzy name, listed by the main process. */
+    readonly quickOpenFound: boolean;
     /** #166: the status bar shows the cursor position and the language of the open file. */
     readonly editorStatus: string;
     readonly cspViolations: readonly string[];
@@ -115,6 +117,7 @@ const RENDERER_PROBE = `(async () => {
         : '';
     // #18: the command palette, opened with F1 from inside Monaco (the workbench's capture-phase key).
     const palette = { opened: false, hasSave: false, lineOffered: false, focusReturned: false };
+    let quickOpenFound = false;
     const focusedEditor = document.querySelector('.monaco-editor textarea');
     if (focusedEditor) {
         focusedEditor.focus();
@@ -128,6 +131,15 @@ const RENDERER_PROBE = `(async () => {
             field.value = ':3';
             field.dispatchEvent(new Event('input'));
             palette.lineOffered = labels().includes('Go to line 3');
+            field.value = 'mainindex';
+            field.dispatchEvent(new Event('input'));
+            const quickOpenUntil = Date.now() + 10000;
+            const found = () => [...document.querySelectorAll('[data-testid="quick-input-list"] .quick-input-row')]
+                .some((row) => row.getAttribute('data-id') === 'src/main/index.ts');
+            while (!found() && Date.now() < quickOpenUntil) {
+                await new Promise((r) => setTimeout(r, 50));
+            }
+            quickOpenFound = found();
             field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
         }
         palette.focusReturned = !!layer && layer.hidden && !!document.activeElement?.closest('.monaco-editor');
@@ -152,6 +164,7 @@ const RENDERER_PROBE = `(async () => {
         fileIconsShown,
         fileIconsBroken,
         palette,
+        quickOpenFound,
         editorStatus,
         cspViolations,
     };
@@ -212,6 +225,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }
         if (!probe.palette.opened || !probe.palette.hasSave) { failures.push(`F1 did not open the command palette with the commands (${JSON.stringify(probe.palette)})`); }
         if (!probe.palette.lineOffered || !probe.palette.focusReturned) { failures.push(`go to line or closing the palette failed (${JSON.stringify(probe.palette)})`); }
+        if (!probe.quickOpenFound) { failures.push('quick open did not find src/main/index.ts'); }
         if (!/^Ln \d+, Col \d+ \| .+ \| UTF-8 \| (LF|CRLF) \| JSON$/.test(probe.editorStatus)) { failures.push(`the status bar did not show the editor's position and language (got "${probe.editorStatus}")`); }
         if (probe.cspViolations.length > 0) { failures.push(`CSP violations: ${probe.cspViolations.join(', ')}`); }
     }

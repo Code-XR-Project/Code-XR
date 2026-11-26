@@ -33,7 +33,7 @@ child.on('exit', (code) => {
     }
     const result = JSON.parse(line.slice(PREFIX.length));
     if (result.ok && code === 0) {
-        console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it, Monaco opened a file, F1 opened the command palette, the status bar showed the editor position, file icons loaded from the app, no CSP violation, the terminal (${result.terminal?.profile}) ran echo and drew its output.`);
+        console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it, Monaco opened a file, F1 opened the command palette, quick open found a file, the status bar showed the editor position, file icons loaded from the app, no CSP violation, the terminal (${result.terminal?.profile}) ran echo and drew its output.`);
         process.exit(0);
     }
     const reasons = [...result.failures];

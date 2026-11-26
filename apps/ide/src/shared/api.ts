@@ -37,6 +37,12 @@ export interface WorkspaceInfo {
  * One child of a folder in the explorer. `path` is relative to the workspace
  * root, `/`-separated on every OS; `''` is the root itself.
  */
+/** #164: the workspace's files for quick open; `truncated` when the walk stopped at its limit. */
+export interface WorkspaceFileList {
+    readonly files: readonly string[];
+    readonly truncated: boolean;
+}
+
 export interface DirEntry {
     readonly name: string;
     readonly path: string;
@@ -72,6 +78,8 @@ export const IDE_COMMANDS = [
     'terminal.toggle', 'terminal.new', 'terminal.closePanel',
     // #18: the command palette (View menu, Ctrl/Cmd+Shift+P) and go to line (Go menu, Ctrl+G).
     'workbench.commandPalette', 'editor.goToLine',
+    // #164: quick open (Go > Go to File..., Ctrl/Cmd+P) and the active editor's symbols (Ctrl/Cmd+Shift+O).
+    'workbench.quickOpen', 'editor.goToSymbol',
 ] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
@@ -288,6 +296,8 @@ export interface CodeXRApi {
         current(): Promise<WorkspaceInfo | null>;
         /** The children of a workspace folder, folders first, then by name. */
         listDirectory(path: string): Promise<readonly DirEntry[]>;
+        /** #164: every file of the workspace for quick open (gitignored ones left out), up to a limit. */
+        listFiles(): Promise<WorkspaceFileList>;
         readFile(path: string): Promise<FileContent>;
         /**
          * Writes an existing workspace file. With `expectedMtimeMs` the write is
@@ -360,6 +370,7 @@ export const IPC_CHANNELS = {
     workspaceOpenFolder: 'codexr:workspace:open-folder',
     workspaceCurrent: 'codexr:workspace:current',
     workspaceListDirectory: 'codexr:workspace:list-directory',
+    workspaceListFiles: 'codexr:workspace:list-files',
     workspaceReadFile: 'codexr:workspace:read-file',
     workspaceWriteFile: 'codexr:workspace:write-file',
     workspaceSetWatched: 'codexr:workspace:set-watched',

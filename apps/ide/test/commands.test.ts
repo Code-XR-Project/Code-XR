@@ -179,7 +179,7 @@ describe('palette model', () => {
 
     it('shows the prefixes as hints when the field has none', () => {
         const view = paletteView('', context());
-        assert.deepEqual(view.entries.map((entry) => entry.fill), ['>', ':']);
+        assert.deepEqual(view.entries.map((entry) => entry.fill), ['>', ':', '@']);
         assert.ok(view.entries.every((entry) => !entry.runnable));
     });
 });

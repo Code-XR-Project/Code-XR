@@ -98,6 +98,8 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
         {
             label: 'Go',
             submenu: [
+                { label: 'Go to File…', accelerator: 'CmdOrCtrl+P', click: (_item, win) => sendCommand(win, 'workbench.quickOpen') },
+                { label: 'Go to Symbol in Editor…', accelerator: 'CmdOrCtrl+Shift+O', click: (_item, win) => sendCommand(win, 'editor.goToSymbol') },
                 { label: 'Go to Line/Column…', accelerator: 'Ctrl+G', click: (_item, win) => sendCommand(win, 'editor.goToLine') },
             ],
         },

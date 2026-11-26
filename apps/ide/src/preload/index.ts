@@ -54,6 +54,7 @@ const api: CodeXRApi = Object.freeze({
         openFolder: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenFolder),
         current: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceCurrent),
         listDirectory: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceListDirectory, path),
+        listFiles: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceListFiles),
         readFile: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadFile, path),
         writeFile: (path: string, text: string, expectedMtimeMs?: number) =>
             ipcRenderer.invoke(IPC_CHANNELS.workspaceWriteFile, path, text, expectedMtimeMs),

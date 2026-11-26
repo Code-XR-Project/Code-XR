@@ -1,4 +1,4 @@
-import { el } from '../dom.ts';
+import { el, fileIcon } from '../dom.ts';
 import { highlightRuns } from './fuzzy.ts';
 import type { PaletteAction, PaletteEntry, PaletteView } from './paletteModel.ts';
 
@@ -28,6 +28,8 @@ export interface QuickInput {
     open(value: string, provider?: QuickInputProvider): void;
     close(): void;
     readonly isOpen: () => boolean;
+    /** Redraws with the same text (the data behind it arrived, e.g. the file list). */
+    refresh(): void;
 }
 
 export interface QuickInputOptions extends QuickInputProvider {
@@ -67,6 +69,13 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
 
     function render(): void {
         view = provider.view(input.value);
+        if (view.immediate) {
+            const action = view.immediate;
+            const accepting = provider;
+            close();
+            accepting.accept(action);
+            return;
+        }
         active = view.entries.findIndex((entry) => entry.runnable);
         if (active < 0) { active = 0; }
         const rows = view.entries.slice(0, MAX_ROWS).map((entry, index) => row(entry, index));
@@ -81,7 +90,7 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
             highlightRuns(entry.label, entry.highlights).map((run) => (run.matched
                 ? el('mark', { text: run.text })
                 : document.createTextNode(run.text))));
-        const children: Node[] = [label];
+        const children: Node[] = entry.fileIcon !== undefined ? [fileIcon(entry.fileIcon, 'file'), label] : [label];
         if (entry.description) {
             children.push(el('span', { className: 'quick-input-description muted', text: entry.description }));
         }
@@ -214,5 +223,19 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
         }
     }
 
-    return { open, close, isOpen: () => !layer.hidden };
+    function refresh(): void {
+        if (layer.hidden) {
+            return;
+        }
+        const selected = view?.entries[active]?.id;
+        render();
+        // Keep the row the person was on, if it is still listed.
+        const index = view?.entries.findIndex((entry) => entry.id === selected) ?? -1;
+        if (index >= 0) {
+            active = index;
+            markActive();
+        }
+    }
+
+    return { open, close, isOpen: () => !layer.hidden, refresh };
 }
