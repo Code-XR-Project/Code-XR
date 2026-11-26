@@ -63,9 +63,14 @@ describe('WorkspaceWatcher', () => {
         try {
             watcher.setFolders(['', 'src']);
             assert.deepEqual(watcher.watchedFolders, ['', 'src']);
+            // macOS backs fs.watch with FSEvents, whose stream starts
+            // asynchronously: a write in the same tick as the watch can land
+            // before the stream does and never be reported (seen on CI, macos-latest).
+            // Let the watchers settle first, as any real edit would.
+            await new Promise((resolve) => setTimeout(resolve, 300));
             fs.writeFileSync(path.join(root, 'src', 'main.ts'), 'export const x = 1;\n');
             fs.writeFileSync(path.join(root, 'src', 'new.ts'), '');
-            const seen = await rec.until((s) => s.has('src/main.ts') && s.has('src/new.ts'));
+            const seen = await rec.until((s) => s.has('src/main.ts') && s.has('src/new.ts'), 5000);
             assert.ok(seen.has('src'), [...seen].join(', '));
             assert.ok(seen.has('src/main.ts'));
             assert.ok(seen.has('src/new.ts'));
