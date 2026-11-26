@@ -5,7 +5,8 @@ import { IDE_ROOT } from './viteConfigs.mjs';
 import { electronBinary, launchFlags } from './electronBinary.mjs';
 
 const PREFIX = 'CODEXR_SMOKE_RESULT ';
-const TIMEOUT_MS = 60_000;
+// The terminal step waits for a shell to start, which a cold Windows runner can take a while to do.
+const TIMEOUT_MS = 120_000;
 
 const child = spawn(electronBinary(), [...launchFlags(), IDE_ROOT, '--codexr-smoke', `--folder=${IDE_ROOT}`], {
     stdio: ['ignore', 'pipe', 'inherit'],
@@ -32,7 +33,7 @@ child.on('exit', (code) => {
     }
     const result = JSON.parse(line.slice(PREFIX.length));
     if (result.ok && code === 0) {
-        console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it, Monaco opened a file, file icons loaded from the app, no CSP violation.`);
+        console.log(`[smoke] OK on ${result.platform}: window opened, renderer sandboxed, CSP and navigation guards active, IPC answered, explorer listed the folder and refused to leave it, Monaco opened a file, file icons loaded from the app, no CSP violation, the terminal (${result.terminal?.profile}) ran echo and drew its output.`);
         process.exit(0);
     }
     console.error(`[smoke] FAILED on ${result.platform}:\n - ${result.failures.join('\n - ')}`);

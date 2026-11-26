@@ -66,7 +66,11 @@ export interface SaveResult {
  * menu and its accelerators (#14). A closed list, so the renderer can ignore
  * anything else.
  */
-export const IDE_COMMANDS = ['workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close'] as const;
+export const IDE_COMMANDS = [
+    'workspace.openFolder', 'file.newFile', 'file.newFolder', 'file.save', 'file.saveAll', 'editor.close',
+    // #137: the terminal panel (View menu, Ctrl+` and Ctrl+Shift+`).
+    'terminal.toggle', 'terminal.new', 'terminal.closePanel',
+] as const;
 export type IdeCommand = (typeof IDE_COMMANDS)[number];
 
 /**
@@ -126,6 +130,45 @@ export interface SceneBounds {
     readonly y: number;
     readonly width: number;
     readonly height: number;
+}
+
+/**
+ * A shell the terminal panel can start (#137). Profiles are detected by the
+ * main process per OS, or saved by the person through a native file dialog;
+ * the renderer only ever names one by `id`, so it cannot start any other
+ * executable. `path` and `args` are for display.
+ */
+export interface TerminalProfile {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+    readonly args: readonly string[];
+    readonly source: 'detected' | 'custom';
+}
+
+export interface TerminalProfileList {
+    /** Detected profiles in preference order (Git Bash first on Windows, `$SHELL` first elsewhere), then custom ones. */
+    readonly profiles: readonly TerminalProfile[];
+    /** What a new terminal runs: the saved choice when it still exists, otherwise the first detected profile. */
+    readonly defaultProfileId: string | null;
+}
+
+/** A terminal the main process started. `id` addresses it in every later call and event. */
+export interface TerminalCreated {
+    readonly id: number;
+    readonly profile: TerminalProfile;
+    /** Where the shell started: the open folder, or the home folder when none is open. */
+    readonly cwd: string;
+}
+
+export interface TerminalDataEvent {
+    readonly id: number;
+    readonly data: string;
+}
+
+export interface TerminalExitEvent {
+    readonly id: number;
+    readonly exitCode: number;
 }
 
 /** Unsubscribes a listener registered with an `on…` member. */
@@ -207,6 +250,31 @@ export interface CodeXRApi {
         /** Fires when the workspace changes from outside the renderer (`--folder=` at startup, File > Open Recent). */
         onDidChange(listener: (workspace: WorkspaceInfo | null) => void): Unsubscribe;
     };
+    /**
+     * The integrated terminal (#137). The pty lives in the main process; the
+     * renderer sends keystrokes and sizes and receives output, for terminals
+     * of its own window only.
+     */
+    readonly terminal: {
+        profiles(): Promise<TerminalProfileList>;
+        /** Saves the default for new terminals (a listed profile id); survives restarts. */
+        setDefaultProfile(profileId: string): Promise<TerminalProfileList>;
+        /**
+         * Adds a custom profile. The executable is picked in a native file
+         * dialog and the command line is confirmed in a native message box,
+         * both in the main process; `args` is only a proposal shown there.
+         * Resolves with the list, unchanged when the person cancels.
+         */
+        addCustomProfile(args: string): Promise<TerminalProfileList>;
+        removeCustomProfile(profileId: string): Promise<TerminalProfileList>;
+        /** Starts a terminal from a listed profile (null: the default) in the open folder. */
+        create(profileId: string | null, cols: number, rows: number): Promise<TerminalCreated>;
+        input(id: number, data: string): Promise<void>;
+        resize(id: number, cols: number, rows: number): Promise<void>;
+        kill(id: number): Promise<void>;
+        onData(listener: (event: TerminalDataEvent) => void): Unsubscribe;
+        onExit(listener: (event: TerminalExitEvent) => void): Unsubscribe;
+    };
     readonly commands: {
         /** Menu commands for the renderer to run (Open Folder…, Save, Save All, Close Editor). */
         onCommand(listener: (command: IdeCommand) => void): Unsubscribe;
@@ -237,6 +305,14 @@ export const IPC_CHANNELS = {
     analysisAnalyseProject: 'codexr:analysis:analyse-project',
     analysisSetSceneBounds: 'codexr:analysis:set-scene-bounds',
     analysisCloseScene: 'codexr:analysis:close-scene',
+    terminalProfiles: 'codexr:terminal:profiles',
+    terminalSetDefaultProfile: 'codexr:terminal:set-default-profile',
+    terminalAddCustomProfile: 'codexr:terminal:add-custom-profile',
+    terminalRemoveCustomProfile: 'codexr:terminal:remove-custom-profile',
+    terminalCreate: 'codexr:terminal:create',
+    terminalInput: 'codexr:terminal:input',
+    terminalResize: 'codexr:terminal:resize',
+    terminalKill: 'codexr:terminal:kill',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -251,6 +327,8 @@ export const IPC_EVENTS = {
     pythonStatusChanged: 'codexr:python:status-changed',
     hostNotification: 'codexr:host:notification',
     analysisSceneOpened: 'codexr:analysis:scene-opened',
+    terminalData: 'codexr:terminal:data',
+    terminalExit: 'codexr:terminal:exit',
 } as const;
 
 /** The error message a refused `writeFile` carries when the file changed on disk. */

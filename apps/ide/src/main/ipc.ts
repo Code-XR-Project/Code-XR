@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { CoreServices } from './core/coreRuntime.ts';
 import { ALLOWED_IPC_CHANNELS, ANALYSIS_KINDS, IPC_CHANNELS, IPC_EVENTS, type AnalysisKind, type AppInfo } from '../shared/api.ts';
+import type { TerminalHost } from './terminal/terminalHost.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -15,7 +16,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -82,6 +83,16 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     });
     handle(IPC_CHANNELS.analysisSetSceneBounds, (event, bounds) => setSceneBounds(ownerOf(event), sanitizeBounds(bounds)));
     handle(IPC_CHANNELS.analysisCloseScene, (event) => closeScene(ownerOf(event)));
+    // #137: the terminal. Profiles are addressed by id only; a terminal only by
+    // the window that created it (TerminalService checks the owner).
+    handle(IPC_CHANNELS.terminalProfiles, () => terminal.profiles());
+    handle(IPC_CHANNELS.terminalSetDefaultProfile, (_event, id) => terminal.setDefaultProfile(id));
+    handle(IPC_CHANNELS.terminalAddCustomProfile, (event, args) => terminal.addCustomProfile(event.sender, args));
+    handle(IPC_CHANNELS.terminalRemoveCustomProfile, (_event, id) => terminal.removeCustomProfile(id));
+    handle(IPC_CHANNELS.terminalCreate, (event, profileId, cols, rows) => terminal.create(event.sender, profileId, cols, rows));
+    handle(IPC_CHANNELS.terminalInput, (event, id, data) => terminal.input(event.sender, id, data));
+    handle(IPC_CHANNELS.terminalResize, (event, id, cols, rows) => terminal.resize(event.sender, id, cols, rows));
+    handle(IPC_CHANNELS.terminalKill, (event, id) => terminal.kill(event.sender, id));
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

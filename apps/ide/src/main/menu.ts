@@ -38,6 +38,11 @@ export function installApplicationMenu(isDevelopment: boolean, recentFolders: re
                 ...(isDevelopment
                     ? ([{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }] as MenuItemConstructorOptions[])
                     : []),
+                // #137: the renderer owns the panel; Ctrl+` on every OS, as in VS Code.
+                { label: 'Terminal', accelerator: 'Ctrl+`', click: (_item, win) => sendCommand(win, 'terminal.toggle') },
+                { label: 'New Terminal', accelerator: 'Ctrl+Shift+`', click: (_item, win) => sendCommand(win, 'terminal.new') },
+                { label: 'Close Terminal Panel', click: (_item, win) => sendCommand(win, 'terminal.closePanel') },
+                { type: 'separator' },
                 { role: 'resetZoom' },
                 { role: 'zoomIn' },
                 { role: 'zoomOut' },

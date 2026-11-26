@@ -3,6 +3,7 @@ import { createExplorer } from './explorer.ts';
 import { createPythonView, pythonStatusText } from './pythonView.ts';
 import { createAnalysisRunView } from './analysisRunView.ts';
 import { createScenePanel } from './scenePanel.ts';
+import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import type { IdeCommand, WatchedEntry } from '../shared/api.ts';
 
@@ -13,7 +14,8 @@ if (!root) {
 
 const api = window.codexr;
 const workbench = renderWorkbench(root);
-api.app.getInfo().then(
+const appInfo = api.app.getInfo();
+appInfo.then(
     (info) => workbench.showInfo(info),
     (error: unknown) => workbench.showError(`Could not reach the main process: ${String(error)}`),
 );
@@ -93,6 +95,11 @@ api.workspace.current().then(
     (error: unknown) => workbench.showError(`Could not read the open folder: ${String(error)}`),
 );
 
+// #137: the terminal panel; xterm.js loads with the first terminal.
+const terminal = createTerminalPanel(workbench.panel, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
+    onError: (message) => workbench.setStatus(message),
+});
+
 const commands: Record<IdeCommand, () => void> = {
     'workspace.openFolder': () => explorer.openFolder(),
     'file.save': () => void editors?.save(),
@@ -100,6 +107,9 @@ const commands: Record<IdeCommand, () => void> = {
     'editor.close': () => editors?.closeActive(),
     'file.newFile': () => void explorer.newFile(),
     'file.newFolder': () => void explorer.newFolder(),
+    'terminal.toggle': () => terminal.toggle(),
+    'terminal.new': () => void terminal.newTerminal(),
+    'terminal.closePanel': () => terminal.hide(),
 };
 api.commands.onCommand((command) => commands[command]());
 

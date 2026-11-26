@@ -5,7 +5,7 @@ import { el, icon } from './dom.ts';
  * The workbench shell: activity bar, side bar, editor area and status bar.
  * The side bar hosts the explorer (#14, explorer.ts); the editor area is the
  * welcome view until Monaco arrives (#14), then analysis views (#16), the
- * terminal (#17) and the command palette (#18) take their slots. Built with DOM APIs
+ * terminal (#137, the bottom panel) and the command palette (#18) take their slots. Built with DOM APIs
  * only, never innerHTML, so nothing here can turn text into markup.
  */
 
@@ -42,6 +42,8 @@ export interface Workbench {
     readonly sceneArea: HTMLElement;
     /** Shows or hides the scene column. */
     setSceneVisible(visible: boolean): void;
+    /** The bottom panel under the editor area (#137: the terminal, terminal/terminalPanel.ts). */
+    readonly panel: HTMLElement;
 }
 
 export function renderWorkbench(root: HTMLElement): Workbench {
@@ -100,7 +102,10 @@ export function renderWorkbench(root: HTMLElement): Workbench {
     const statusBar = el('footer', { className: 'status-bar' }, [statusLeft, el('span', { className: 'status-right' }, [pythonItem, statusRight])]);
 
     const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
-    const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, sceneArea, statusBar]);
+    // #137: the bottom panel (hidden until the terminal opens).
+    const panel = el('section', { className: 'panel', attrs: { hidden: '' } });
+
+    const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, panel, sceneArea, statusBar]);
     root.replaceChildren(shell);
 
     return {
@@ -119,6 +124,7 @@ export function renderWorkbench(root: HTMLElement): Workbench {
             sceneArea.hidden = !visible;
             shell.classList.toggle('has-scene', visible);
         },
+        panel,
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },
