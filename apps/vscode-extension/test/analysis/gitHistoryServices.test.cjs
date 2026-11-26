@@ -1476,7 +1476,10 @@ test('EVO-2 (#104): a tag and its commit picked together are analysed once and b
             assert.equal(analyzer.calls.filter((call) => call.id.endsWith(sha8)).length, 1, 'one analysis per commit');
             assert.equal(materialized.filter((sha) => sha === fixture.shas.c2).length, 1, 'one snapshot per commit');
             const snapshots = path.join(context.storageUri?.fsPath || context.globalStorageUri.fsPath, 'project-evolution', session.id, 'snapshots');
-            assert.deepEqual(fs.existsSync(snapshots) ? fs.readdirSync(snapshots) : [], [], 'the snapshot is released once both frames have it');
+            // blob-store/ (#106) holds the deduplicated blob copies the
+            // snapshots link to; it lives until the service is disposed.
+            const left = fs.existsSync(snapshots) ? fs.readdirSync(snapshots).filter((name) => name !== 'blob-store') : [];
+            assert.deepEqual(left, [], 'the snapshot is released once both frames have it');
 
             // Still offered by both pickers afterwards.
             const after = await evolution.getReferences();
