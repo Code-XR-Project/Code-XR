@@ -1,4 +1,4 @@
-import type { AnalysisStartResult, AutoStartMode, CodeXRApi, PythonEnvStatus } from '../shared/api.ts';
+import type { AnalysisKind, AnalysisStartResult, AutoStartMode, CodeXRApi, FileAnalysisKind, ProjectAnalysisKind, PythonEnvStatus } from '../shared/api.ts';
 import { el } from './dom.ts';
 
 /**
@@ -16,9 +16,25 @@ export interface AnalysisRunView {
     /** A folder has just opened in this window. */
     folderOpened(root: string): void;
     /** #18: the palette's "Analyse Project in XR"; false when it cannot start now. */
-    analyse(): boolean;
+    analyse(kind?: ProjectAnalysisKind): boolean;
+    /** #16: one file of the folder (explorer, tab menu, palette); false when it cannot start now. */
+    analyseFile(kind: FileAnalysisKind, path: string): boolean;
     readonly canAnalyse: () => boolean;
 }
+
+/** What to analyse: the whole folder, or one of its files (`path`, a workspace path). */
+interface AnalysisRequest {
+    readonly kind: AnalysisKind;
+    readonly path?: string;
+}
+
+/** How each analysis is named while it runs, and once its view is ready. */
+const DESCRIPTIONS: Readonly<Record<AnalysisKind, { readonly how: string; readonly ready: string }>> = {
+    'xr-deep': { how: 'in XR (deep)', ready: 'The XR (deep) scene' },
+    'livepanel-deep': { how: 'as a LivePanel (deep)', ready: 'The LivePanel (deep)' },
+    'xr-file': { how: 'in XR', ready: 'The XR scene' },
+    'livepanel-file': { how: 'as a LivePanel', ready: 'The LivePanel' },
+};
 
 export function createAnalysisRunView(
     container: HTMLElement,
@@ -31,14 +47,15 @@ export function createAnalysisRunView(
     },
 ): AnalysisRunView {
     const run = el('button', { className: 'primary-button', text: 'Analyse project in XR (deep)', attrs: { type: 'button', 'data-testid': 'analyse-project-xr-deep' } });
+    const runLivePanel = el('button', { className: 'secondary-button', text: 'Analyse project as LivePanel (deep)', attrs: { type: 'button', 'data-testid': 'analyse-project-livepanel-deep' } });
     const note = el('p', { className: 'muted small', attrs: { 'data-testid': 'analysis-note' } });
     const auto = el('input', { attrs: { type: 'checkbox', id: 'analysis-auto-start', 'data-testid': 'analysis-auto-start' } });
     const autoLabel = el('label', { className: 'checkbox-row small', attrs: { for: 'analysis-auto-start' } }, [auto, el('span', { text: 'Analyse in XR when a folder opens' })]);
     container.append(el('section', { className: 'env-section', attrs: { 'aria-labelledby': 'analysis-run-heading' } }, [
         el('h3', { className: 'side-bar-subtitle', text: 'Analyse', attrs: { id: 'analysis-run-heading' } }),
         el('div', { className: 'env-body' }, [
-            el('p', { className: 'small', text: 'Every file of the open folder, with its subfolders, as an XR scene beside the code.' }),
-            el('div', { className: 'env-actions' }, [run]),
+            el('p', { className: 'small', text: 'Every file of the open folder, with its subfolders, as an XR scene or a 2D LivePanel beside the code. A single file is analysed from its menu in the explorer.' }),
+            el('div', { className: 'env-actions' }, [run, runLivePanel]),
             autoLabel,
             note,
         ]),
@@ -54,21 +71,26 @@ export function createAnalysisRunView(
     let autoRoot: string | null = null;
     const update = (): void => {
         run.disabled = running || !pythonReady || !hasFolder;
+        runLivePanel.disabled = run.disabled;
         note.textContent = running ? 'Analysing… the scene opens when it is ready.'
             : !hasFolder ? 'Open a folder to analyse it.'
             : !pythonReady ? 'Set up the Python environment above first.'
             : '';
     };
 
-    function start(automatic: boolean): void {
+    function start(automatic: boolean, request: AnalysisRequest = { kind: 'xr-deep' }): void {
         running = true;
         update();
-        const title = automatic ? 'Analysing the opened project in XR (deep)…' : 'Analysing the project in XR (deep)…';
+        const { how, ready } = DESCRIPTIONS[request.kind];
+        const title = automatic ? `Analysing the opened project ${how}…` : `Analysing ${request.path ?? 'the project'} ${how}…`;
         callbacks.onStatus(title);
         callbacks.onStarted?.(title);
-        api.analyseProject('xr-deep', { auto: automatic }).then((result: AnalysisStartResult) => {
+        const started = request.path === undefined
+            ? api.analyseProject(request.kind as ProjectAnalysisKind, { auto: automatic })
+            : api.analyseFile(request.kind as FileAnalysisKind, request.path);
+        started.then((result: AnalysisStartResult) => {
             callbacks.onStatus(result.ok ? 'Analysis ready.' : result.message);
-            callbacks.onFinished?.(result.ok, result.ok ? 'The XR (deep) scene is ready beside the code.' : result.message);
+            callbacks.onFinished?.(result.ok, result.ok ? `${ready} is ready beside the code.` : result.message);
         }, (error: unknown) => {
             callbacks.onStatus(`The analysis failed: ${String(error)}`);
             callbacks.onFinished?.(false, `The analysis failed: ${String(error)}`);
@@ -99,6 +121,7 @@ export function createAnalysisRunView(
     }
 
     run.addEventListener('click', () => start(false));
+    runLivePanel.addEventListener('click', () => start(false, { kind: 'livepanel-deep' }));
     auto.addEventListener('change', () => {
         const mode: AutoStartMode = auto.checked ? 'xr-deep' : 'off';
         api.setAutoStart(mode).then((saved) => {
@@ -119,11 +142,18 @@ export function createAnalysisRunView(
     const canAnalyse = (): boolean => !running && pythonReady && hasFolder;
     return {
         canAnalyse,
-        analyse(): boolean {
+        analyse(kind: ProjectAnalysisKind = 'xr-deep'): boolean {
             if (!canAnalyse()) {
                 return false;
             }
-            start(false);
+            start(false, { kind });
+            return true;
+        },
+        analyseFile(kind: FileAnalysisKind, path: string): boolean {
+            if (!canAnalyse()) {
+                return false;
+            }
+            start(false, { kind, path });
             return true;
         },
         setPython(status: PythonEnvStatus): void {

@@ -60,6 +60,8 @@ export function createExplorer(
         onRenamed?(from: string, to: string): void;
         /** An entry (and everything below it) was moved to the trash from the explorer. */
         onTrashed?(path: string): void;
+        /** #16: a right click on a file (the menu with its analyses). */
+        onFileContextMenu?(path: string, x: number, y: number): void;
         /** A recent folder was opened from the empty explorer. */
         confirmOpenRecent?(): boolean;
     },
@@ -308,6 +310,14 @@ export function createExplorer(
             const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
             const node = row ? nodes.get(row) : undefined;
             if (node && node.entry.kind === 'file') { callbacks.onOpenFile(node.entry.path, false); }
+        });
+        root.addEventListener('contextmenu', (event) => {
+            const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
+            const node = row ? nodes.get(row) : undefined;
+            if (node?.entry.kind === 'file' && callbacks.onFileContextMenu) {
+                event.preventDefault();
+                callbacks.onFileContextMenu(node.entry.path, event.clientX, event.clientY);
+            }
         });
         root.addEventListener('keydown', onKeyDown);
         tree = root;

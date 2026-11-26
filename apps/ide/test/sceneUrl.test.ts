@@ -45,6 +45,9 @@ describe('sceneTitle', () => {
         assert.equal(sceneTitle('/home/a/Code-XR'), 'XR · Code-XR');
         assert.equal(sceneTitle('C:\\Users\\a\\Code-XR\\'), 'XR · Code-XR');
     });
+    it('says when the scene is a LivePanel, and names a single file', () => {
+        assert.equal(sceneTitle('/home/a/Code-XR/src/main.py', 'LivePanel'), 'LivePanel · main.py');
+    });
 });
 
 describe('targetName', () => {

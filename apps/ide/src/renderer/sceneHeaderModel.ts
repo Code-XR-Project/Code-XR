@@ -8,6 +8,9 @@ import type { AnalysisKind, SceneShareState, SceneShareStatus } from '../shared/
 
 const KIND_LABELS: Readonly<Record<AnalysisKind, string>> = {
     'xr-deep': 'XR · deep',
+    'livepanel-deep': 'LivePanel · deep',
+    'xr-file': 'XR · file',
+    'livepanel-file': 'LivePanel · file',
 };
 
 export function analysisKindLabel(kind: AnalysisKind): string {

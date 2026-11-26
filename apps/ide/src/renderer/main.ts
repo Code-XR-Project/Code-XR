@@ -236,6 +236,31 @@ function showTabMenu(path: string, x: number, y: number): void {
         { separator: true },
         { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
         { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
+        { separator: true },
+        ...fileAnalysisItems(path, 'tab-menu'),
+    ];
+    showContextMenu(items, x, y, {
+        label: `Actions for ${path}`,
+        rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
+    });
+}
+
+/** #16: the analyses of one file, as the extension's explorer menu offers them. */
+function fileAnalysisItems(path: string, prefix: string): ContextMenuItem[] {
+    const enabled = runView.canAnalyse();
+    return [
+        { label: 'Analyse File in XR', enabled, run: () => void runView.analyseFile('xr-file', path), testId: `${prefix}-analyse-xr` },
+        { label: 'Analyse File as LivePanel', enabled, run: () => void runView.analyseFile('livepanel-file', path), testId: `${prefix}-analyse-livepanel` },
+    ];
+}
+
+function showExplorerFileMenu(path: string, x: number, y: number): void {
+    const items: ContextMenuItem[] = [
+        { label: 'Open', run: () => void editorGroup().then((group) => group.open(path)), testId: 'explorer-menu-open' },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'explorer-menu-copy-path' },
+        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'explorer-menu-copy-relative-path' },
+        { separator: true },
+        ...fileAnalysisItems(path, 'explorer-menu'),
     ];
     showContextMenu(items, x, y, {
         label: `Actions for ${path}`,
@@ -255,6 +280,7 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
     onCreated: (path, kind) => { if (kind === 'file') { void editorGroup().then((group) => group.open(path)); } },
     onRenamed: (from, to) => void editors?.entryMoved(from, to),
     onTrashed: (path) => void editors?.entryMoved(path, null),
+    onFileContextMenu: showExplorerFileMenu,
 });
 
 api.workspace.onDidChangeFiles((paths) => {
@@ -552,8 +578,10 @@ registerWorkbenchCommands(registry, {
         workbench.showView('search');
         searchView.focus(editors?.selectedText());
     },
-    analyseProject: () => void runView.analyse(),
+    analyseProject: (kind) => void runView.analyse(kind),
     canAnalyse: () => runView.canAnalyse(),
+    analyseActiveFile: (kind) => { if (activeFile) { runView.analyseFile(kind, activeFile); } },
+    canAnalyseActiveFile: () => activeFile !== null && runView.canAnalyse(),
     setUpPython: () => void api.python.setUp(),
     closeScene: () => {
         scenePanel.close();

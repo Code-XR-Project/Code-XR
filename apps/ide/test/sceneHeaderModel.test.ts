@@ -11,6 +11,9 @@ function run(...actions: ShareAction[]): ShareView {
 describe('scene header labels', () => {
     it('names the analysis kind', () => {
         assert.equal(analysisKindLabel('xr-deep'), 'XR · deep');
+        assert.equal(analysisKindLabel('livepanel-deep'), 'LivePanel · deep');
+        assert.equal(analysisKindLabel('xr-file'), 'XR · file');
+        assert.equal(analysisKindLabel('livepanel-file'), 'LivePanel · file');
     });
 
     it('shows a root URL as its origin', () => {
