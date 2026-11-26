@@ -105,6 +105,7 @@ export const AGENT_IPC_CHANNELS = {
     agentsStop: 'codexr:agents:stop',
     agentsTools: 'codexr:agents:tools',
     agentsApprove: 'codexr:agents:approve',
+    agentsResolveReview: 'codexr:agents:resolve-review',
 } as const;
 
 /** What a tool can do, which decides whether it asks first (A7). */
@@ -139,6 +140,34 @@ export interface ApprovalRequest {
 }
 
 export type ApprovalDecision = 'once' | 'always' | 'deny';
+
+/**
+ * A file change an agent proposes (A8). The window shows it as a diff and
+ * writes what the person accepts through its normal save path; the main
+ * process never writes it.
+ */
+export interface EditReviewRequest {
+    readonly id: string;
+    readonly sessionId: string;
+    readonly path: string;
+    /** The file as the agent read it ('' for a new file). */
+    readonly original: string;
+    /** Its modification time then, so a file changed meanwhile is not overwritten. */
+    readonly originalMtimeMs: number | null;
+    readonly proposed: string;
+    readonly isNew: boolean;
+    /** The agent's one-line reason. */
+    readonly summary: string;
+}
+
+export interface EditReviewResult {
+    readonly outcome: 'applied' | 'rejected' | 'failed';
+    /** Hunks accepted out of the total. */
+    readonly accepted: number;
+    readonly total: number;
+    /** Why it failed, or the person's note. */
+    readonly message?: string;
+}
 
 /** Context attached to a message (A6). The main process reads files itself; only the selection's text crosses. */
 export type ChatAttachment =
@@ -208,6 +237,7 @@ export type AgentChatEvent =
     | { readonly sessionId: string; readonly type: 'delta'; readonly text: string }
     | { readonly sessionId: string; readonly type: 'tool'; readonly run: ToolRunView }
     | { readonly sessionId: string; readonly type: 'approval'; readonly request: ApprovalRequest }
+    | { readonly sessionId: string; readonly type: 'review'; readonly request: EditReviewRequest }
     | { readonly sessionId: string; readonly type: 'end'; readonly message: ChatMessageView };
 
 /** What `window.codexr.agents` offers the renderer. */
@@ -242,4 +272,6 @@ export interface AgentsApi {
     tools(): Promise<readonly ToolInfo[]>;
     /** Answers an approval card. */
     approve(requestId: string, decision: ApprovalDecision): Promise<void>;
+    /** Reports what the person did with a proposed edit (A8). */
+    resolveReview(requestId: string, result: EditReviewResult): Promise<void>;
 }

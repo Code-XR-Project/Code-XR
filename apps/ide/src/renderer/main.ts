@@ -9,6 +9,7 @@ import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
 import { createPanelHost } from './panel/panelHost.ts';
 import { createAgentsView } from './agents/agentsView.ts';
+import { createEditReviewer } from './agents/editReview.ts';
 import { registerAgentCommands } from './agents/agentCommands.ts';
 import type { EditorGroup } from './editor/editorGroup.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
@@ -532,8 +533,20 @@ void loadKeybindings();
 
 // #15: the Python environment, in the Analysis view and the status bar.
 // The AI agent hub: providers configured with the person's own keys.
+const reviewEdit = createEditReviewer(workbench.editorArea.parentElement ?? document.body, {
+    applyInEditor: async (path, expected, text) => {
+        if (!editors?.openPaths().includes(path)) {
+            return 'not-open';
+        }
+        return editors.applyAgentEdit(path, expected, text);
+    },
+    writeFile: (path, text, expectedMtimeMs) => api.workspace.writeFile(path, text, expectedMtimeMs),
+    createFile: (parent, name) => api.workspace.createEntry(parent, name, 'file'),
+    onStatus: (message) => workbench.setStatus(message),
+});
 const agentsView = createAgentsView(workbench.agentsView, api.agents, {
     onStatus: (message) => workbench.setStatus(message),
+    reviewEdit,
     listFiles: async () => (await api.workspace.listFiles()).files,
     activeSelection: () => {
         const selection = editors?.activeSelection();

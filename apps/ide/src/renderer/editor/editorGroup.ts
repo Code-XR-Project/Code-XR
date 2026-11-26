@@ -97,6 +97,12 @@ export interface EditorGroup {
     selectedText(): string;
     /** The active editor's selection on any number of lines, for an agent's context (epic #189, A6); null when empty. */
     activeSelection(): { readonly path: string; readonly startLine: number; readonly endLine: number; readonly text: string } | null;
+    /**
+     * Epic #189 (A8): writes an agent's accepted change into an open file as
+     * one undoable edit and saves it through the normal path. Refuses when
+     * the editor's text is not the one the agent saw (unsaved edits).
+     */
+    applyAgentEdit(path: string, expected: string, text: string): Promise<'saved' | 'not-open' | 'unsaved-changes' | 'save-failed'>;
     /** #164: Monaco's own outline of the active file ("@" in quick open), where its language has symbols. */
     showSymbols(): void;
     /** #166: the status bar's choices, applied to the active file. */
@@ -697,7 +703,18 @@ export function createEditorGroup(
             }
             return model.getValueInRange(selection);
         },
-        activeSelection() {
+        async applyAgentEdit(path, expected, text) {
+            const file = files.get(path);
+            if (!file) {
+                return 'not-open';
+            }
+            if (fileText(file) !== expected) {
+                return 'unsaved-changes';
+            }
+            file.model.pushEditOperations([], [{ range: file.model.getFullModelRange(), text }], () => null);
+            return (await saveFile(file, 'explicit')) ? 'saved' : 'save-failed';
+        },
+                activeSelection() {
             const selection = editor.getSelection();
             const model = active?.model;
             if (!active || !selection || !model || selection.isEmpty()) {

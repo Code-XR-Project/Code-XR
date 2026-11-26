@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { AgentChatEvent, AgentProfile, ApprovalDecision, ChatAttachment, ChatMessageView, ChatSession, ToolRunView } from '../../shared/agents.ts';
+import type { AgentChatEvent, AgentProfile, ApprovalDecision, ChatAttachment, ChatMessageView, ChatSession, EditReviewResult, ToolRunView } from '../../shared/agents.ts';
 import type { AgentProfiles } from './agentProfiles.ts';
 import { buildAttachmentContext } from './attachments.ts';
 import { sessionToMarkdown, summaryOf, titleFrom, type ChatSessions, type StoredSession } from './chatSessions.ts';
@@ -46,6 +46,11 @@ export interface ChatWindow {
     emit(event: AgentChatEvent): void;
 }
 
+interface PendingReview {
+    readonly sessionId: string;
+    resolve(result: EditReviewResult): void;
+}
+
 interface PendingApproval {
     readonly sessionId: string;
     resolve(decision: ApprovalDecision): void;
@@ -65,6 +70,7 @@ export class AgentChat {
     private readonly tools: ToolCatalog;
     private readonly running = new Map<string, AbortController>();
     private readonly approvals = new Map<string, PendingApproval>();
+    private readonly reviews = new Map<string, PendingReview>();
 
     constructor(providers: ProviderRegistry, profiles: AgentProfiles, sessions: ChatSessions, tools: ToolCatalog) {
         this.providers = providers;
@@ -107,6 +113,31 @@ export class AgentChat {
                 this.approvals.delete(requestId);
                 pending.resolve('deny');
             }
+        }
+        for (const [requestId, pending] of this.reviews) {
+            if (pending.sessionId === id) {
+                this.reviews.delete(requestId);
+                pending.resolve({ outcome: 'rejected', accepted: 0, total: 0, message: 'The person stopped the answer.' });
+            }
+        }
+    }
+
+    /** Reports what the person did with a proposed edit; an unknown id is ignored. */
+    resolveReview(requestId: unknown, raw: unknown): void {
+        if (typeof requestId !== 'string' || !raw || typeof raw !== 'object') {
+            throw new Error('Invalid review result.');
+        }
+        const record = raw as Record<string, unknown>;
+        const outcome = record['outcome'];
+        if (outcome !== 'applied' && outcome !== 'rejected' && outcome !== 'failed') {
+            throw new Error('Invalid review result.');
+        }
+        const count = (key: string): number => (typeof record[key] === 'number' && Number.isFinite(record[key]) ? Math.max(0, Math.trunc(record[key])) : 0);
+        const message = typeof record['message'] === 'string' ? record['message'].slice(0, 2000) : undefined;
+        const pending = this.reviews.get(requestId);
+        if (pending) {
+            this.reviews.delete(requestId);
+            pending.resolve({ outcome, accepted: count('accepted'), total: count('total'), ...(message ? { message } : {}) });
         }
     }
 
@@ -279,7 +310,7 @@ export class AgentChat {
             // The run below reports the bad arguments.
         }
         let updatedAgent: AgentProfile | undefined;
-        if (tool.risk !== 'read' && !(agent.alwaysAllow ?? []).includes(tool.name)) {
+        if (tool.risk !== 'read' && !tool.reviewsItself && !(agent.alwaysAllow ?? []).includes(tool.name)) {
             report({ id: call.id, name: tool.name, summary, status: 'running', result: 'Waiting for your approval…' });
             const decision = await this.ask(sessionId, tool, detail, window);
             if (decision === 'deny' || signal.aborted) {
@@ -293,7 +324,18 @@ export class AgentChat {
         }
         report({ id: call.id, name: tool.name, summary, status: 'running' });
         try {
-            const text = await tool.run(args, { workspace: window.workspace, signal });
+            if (tool.reviewsItself) {
+                report({ id: call.id, name: tool.name, summary, status: 'running', result: 'Waiting for your review…' });
+            }
+            const text = await tool.run(args, {
+                workspace: window.workspace,
+                signal,
+                reviewEdit: (request) => new Promise((resolve) => {
+                    const id = randomUUID();
+                    this.reviews.set(id, { sessionId, resolve });
+                    window.emit({ sessionId, type: 'review', request: { ...request, id, sessionId } });
+                }),
+            });
             report({ id: call.id, name: tool.name, summary, status: 'done', result: clip(text, RESULT_PREVIEW_CHARS) });
             return { text, isError: false, ...(updatedAgent ? { agent: updatedAgent } : {}) };
         } catch (error) {

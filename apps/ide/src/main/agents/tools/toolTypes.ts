@@ -1,5 +1,5 @@
 import type { DirEntry, FileContent, SearchMatch, SearchQuery } from '../../../shared/api.ts';
-import type { ToolInfo } from '../../../shared/agents.ts';
+import type { EditReviewRequest, EditReviewResult, ToolInfo } from '../../../shared/agents.ts';
 import type { CompiledQuery } from '../../../shared/searchText.ts';
 import type { FileIndex } from '../../workspace/fileIndex.ts';
 import type { SearchStats } from '../../workspace/textSearch.ts';
@@ -19,6 +19,8 @@ export interface ToolContext {
     /** The folder open in the window, or null: workspace tools then explain that one is needed. */
     readonly workspace: ToolWorkspace | null;
     readonly signal: AbortSignal;
+    /** Shows a proposed file change to the person and resolves with what they did (A8). */
+    reviewEdit(request: Omit<EditReviewRequest, 'id' | 'sessionId'>): Promise<EditReviewResult>;
 }
 
 /** What a tool shows before it runs (risky tools) and in the chat. */
@@ -31,6 +33,8 @@ export interface ToolPreview {
 export interface AgentTool extends ToolInfo {
     /** JSON Schema of the arguments, as the providers want it. */
     readonly parameters: Readonly<Record<string, unknown>>;
+    /** The tool shows its own review (a diff) instead of the approval card. */
+    readonly reviewsItself?: boolean;
     preview(args: Record<string, unknown>): ToolPreview;
     /** The result as text for the model; throws a readable Error on failure. */
     run(args: Record<string, unknown>, context: ToolContext): Promise<string>;

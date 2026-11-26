@@ -1,15 +1,17 @@
 import type { ToolInfo } from '../../../shared/agents.ts';
 import type { AgentTool } from './toolTypes.ts';
+import { EDIT_TOOLS } from './editTools.ts';
 import { WORKSPACE_TOOLS } from './workspaceTools.ts';
 
 /**
- * Every tool an agent can be given. Later stories add the risky ones
- * (propose_edit A8, run_command A9, Code-XR analyses A10, MCP A12).
+ * Every tool an agent can be given: the read-only workspace tools (A7),
+ * propose_edit (A8); later stories add run_command (A9), the Code-XR
+ * analyses (A10) and MCP tools (A12).
  */
 export class ToolCatalog {
     private readonly tools = new Map<string, AgentTool>();
 
-    constructor(tools: readonly AgentTool[] = WORKSPACE_TOOLS) {
+    constructor(tools: readonly AgentTool[] = [...WORKSPACE_TOOLS, ...EDIT_TOOLS]) {
         for (const tool of tools) {
             this.add(tool);
         }
