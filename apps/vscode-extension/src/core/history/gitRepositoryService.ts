@@ -10,6 +10,7 @@ import {
 } from './gitSnapshotPlan';
 import { currentLaunchSignal } from '../analysis/launch/launchControl';
 import { streamGitLines } from './gitLineStream';
+import { PARTIAL_CLONE_MISSING_MESSAGE, gitOfflineEnvironment, isPartialCloneMissingObject } from './gitOfflineEnvironment';
 import type {
     ComparisonSource,
     GitReferenceType,
@@ -36,6 +37,9 @@ function describeGitFailure(error: unknown): Error {
         return new Error(`git-command-timeout: a git command took more than ${GIT_COMMAND_TIMEOUT_MS / 1000} s`);
     }
     const message = error instanceof Error ? error.message : String(error);
+    if (isPartialCloneMissingObject(`${message}\n${String((error as { stderr?: unknown })?.stderr ?? '')}`)) {
+        return new Error(PARTIAL_CLONE_MISSING_MESSAGE);
+    }
     return new Error(`git-command-failed: ${message}`);
 }
 
@@ -573,6 +577,7 @@ export class GitRepositoryService {
                 windowsHide: true,
                 maxBuffer: 16 * 1024 * 1024,
                 encoding: 'utf8',
+                env: gitOfflineEnvironment(),
                 timeout: GIT_COMMAND_TIMEOUT_MS,
                 signal: currentLaunchSignal(),
             });
@@ -602,6 +607,7 @@ export class GitRepositoryService {
                     windowsHide: true,
                     maxBuffer: MAX_SNAPSHOT_BYTES + (16 * 1024 * 1024),
                     encoding: 'buffer',
+                    env: gitOfflineEnvironment(),
                     timeout: GIT_COMMAND_TIMEOUT_MS,
                     signal: currentLaunchSignal(),
                 },

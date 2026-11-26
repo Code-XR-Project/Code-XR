@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import types
@@ -100,6 +102,47 @@ class GitExportAnalysisWorkerTests(unittest.TestCase):
                     sys.modules.pop(name, None)
                 else:
                     sys.modules[name] = module
+
+    def test_a_non_ascii_path_survives_a_non_utf8_stdin(self):
+        # S14 (EVO-9): on Windows Python decodes a piped stdin with the ANSI
+        # code page; `C:\\Users\\Adrián\\...` arrived as mojibake and every job
+        # failed with worker-input-missing. cp1252 emulates that here, and the
+        # command is sent unescaped, as raw UTF-8, the worst case.
+        runner = (
+            "import runpy, sys, types\n"
+            "class F:\n"
+            "    name='sample'; start_line=1; end_line=2; nloc=2\n"
+            "    cyclomatic_complexity=1; parameter_count=0; max_nesting_depth=0\n"
+            "class A:\n"
+            "    def __init__(self, p): self.file_path=p; self.nloc=2; self.function_list=[F()]\n"
+            "lizard = types.ModuleType('lizard')\n"
+            "lizard.analyze_file = A\n"
+            "lizard.FileAnalyzer = lambda *a, **k: A\n"
+            "lizard.get_extensions = lambda *_: []\n"
+            "sys.modules['lizard'] = lizard\n"
+            "runpy.run_path(sys.argv[1], run_name='__main__')\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / "Adrián" / "código"
+            folder.mkdir(parents=True)
+            source = folder / "sample.py"
+            source.write_text("def sample():\n    return 1\n", encoding="utf-8")
+            output = folder / "out.json"
+            command = json.dumps({
+                "type": "analyze", "id": "job-á", "inputPath": str(source),
+                "outputPath": str(output), "targetType": "directory",
+            }, ensure_ascii=False)
+            env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+            completed = subprocess.run(
+                [sys.executable, "-c", runner, str(WORKER_PATH)],
+                input=(command + "\n" + json.dumps({"type": "shutdown"}) + "\n").encode("utf-8"),
+                capture_output=True, env=env, timeout=60,
+            )
+            messages = [json.loads(line) for line in completed.stdout.decode("ascii").splitlines() if line.strip()]
+            self.assertEqual(["ready", "complete", "stopped"], [message["type"] for message in messages],
+                             completed.stderr.decode("utf-8", "replace"))
+            self.assertEqual("job-á", messages[1]["id"])
+            self.assertTrue(output.is_file())
 
 
 if __name__ == "__main__":

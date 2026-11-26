@@ -1,4 +1,5 @@
 import * as childProcess from 'child_process';
+import { gitOfflineEnvironment } from './gitOfflineEnvironment';
 import * as readline from 'readline';
 
 /**
@@ -32,6 +33,7 @@ export function streamGitLines(
         const child = childProcess.spawn('git', ['-C', cwd, ...args], {
             windowsHide: true,
             stdio: ['ignore', 'pipe', 'pipe'],
+            env: gitOfflineEnvironment(),
         });
         const timer = setTimeout(() => {
             child.kill();

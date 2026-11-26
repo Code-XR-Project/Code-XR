@@ -62,16 +62,20 @@ def analyze(command):
         )
         os.replace(temporary, destination)
     finally:
+        # Not `unlink(missing_ok=True)`: that needs Python 3.8 (EVO-9).
         try:
-            temporary.unlink(missing_ok=True)
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
         except OSError:
             pass
 
 
 def main():
     emit({"type": "ready", "protocol": PROTOCOL_VERSION, "pid": os.getpid()})
-    for raw_line in sys.stdin:
-        line = raw_line.strip()
+    # Bytes decoded as UTF-8, whatever the platform's stdin encoding (EVO-9).
+    for raw_bytes in sys.stdin.buffer:
+        line = raw_bytes.decode("utf-8", errors="replace").strip()
         if not line:
             continue
         command = None

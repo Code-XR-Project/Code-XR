@@ -730,7 +730,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
         'src/core/history/gitAnalysisShared.ts',
     ]);
     assert.match(portablePaths, /toPortableRelativePath\(analyzedTargetPath, sourcePath\)/, 'canary: the service still routes paths through the shared helper');
-    assert.match(portablePaths, /if \(!path\.isAbsolute\(candidate\)\)/);
+    assert.match(portablePaths, /if \(!isAbsoluteOnAnyPlatform\(candidate\)\)/);
     assert.ok(portablePaths.includes(".replace(/\\\\/g, '/')"));
     assert.match(runtime, /play: play/);
     assert.match(runtime, /seek: seek/);

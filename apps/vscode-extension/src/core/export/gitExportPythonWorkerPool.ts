@@ -12,6 +12,18 @@ const WORKER_READY_TIMEOUT_MS = 30_000;
  * the worker is killed and the job retried once on a fresh worker, then
  * recorded as failed, instead of waiting forever (EVO-17).
  */
+
+/**
+ * JSON with every non-ASCII character escaped as \\uXXXX: the line reads the
+ * same in any stdin encoding, whatever the worker's Python defaults to (EVO-9).
+ */
+export function asciiJson(value: unknown): string {
+    return JSON.stringify(value).replace(
+        /[\u007f-\uffff]/g,
+        (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+    );
+}
+
 export const WORKER_JOB_TIMEOUT_MS = 120_000;
 
 export interface WorkerPoolCancelSignal {
@@ -78,6 +90,10 @@ class PersistentPythonWorker {
                 cwd: path.dirname(workerScriptPath),
                 windowsHide: true,
                 stdio: ['pipe', 'pipe', 'pipe'],
+                // On Windows Python decodes a piped stdin with the ANSI code
+                // page, so `C:\\Users\\Adrián\\…` reached the worker as
+                // mojibake and every job failed (EVO-9).
+                env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
             },
         );
         this.child.stdout.setEncoding('utf8');
@@ -158,7 +174,7 @@ class PersistentPythonWorker {
                     reject(reason);
                 },
             };
-            this.child.stdin.write(`${JSON.stringify({
+            this.child.stdin.write(`${asciiJson({
                 type: 'analyze',
                 id: job.id,
                 inputPath: job.inputPath,
