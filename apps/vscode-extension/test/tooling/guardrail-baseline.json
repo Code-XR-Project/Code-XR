@@ -56,7 +56,7 @@
       "src/features/active-servers/views/handleServerActions.ts",
       "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
     ],
-    "functions.over80Lines": 33,
+    "functions.over80Lines": 32,
     "complexity.over10": 49,
     "complexity.over15": 8,
     "complexity.over20": 0,
@@ -71,9 +71,9 @@
     }
   },
   "informational": {
-    "src.files": 303,
-    "src.lines": 51047,
-    "src.functions": 3509,
+    "src.files": 309,
+    "src.lines": 51857,
+    "src.functions": 3557,
     "src.unreachableLines": 0,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
@@ -240,21 +240,21 @@
       },
       {
         "ccn": 15,
-        "lines": 157,
-        "function": "launchServer",
-        "file": "src/core/server/multiServerLauncher.ts"
+        "lines": 79,
+        "function": "handleApiRequest",
+        "file": "src/core/server/httpServer.ts"
       },
       {
         "ccn": 15,
-        "lines": 113,
-        "function": "launchServerByType",
-        "file": "src/core/server/serverFactory.ts"
+        "lines": 157,
+        "function": "launchServer",
+        "file": "src/core/server/multiServerLauncher.ts"
       }
     ],
     "size.largest10": [
       {
         "file": "src/core/python-env/venvManager.ts",
-        "lines": 851
+        "lines": 849
       },
       {
         "file": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts",
@@ -266,7 +266,7 @@
       },
       {
         "file": "src/core/history/gitRepositoryService.ts",
-        "lines": 682
+        "lines": 679
       },
       {
         "file": "src/core/remote-access/remoteSessionAuthority.ts",
@@ -278,11 +278,11 @@
       },
       {
         "file": "src/core/server/httpServer.ts",
-        "lines": 596
+        "lines": 605
       },
       {
         "file": "src/core/analysis/python/executePython.ts",
-        "lines": 589
+        "lines": 588
       },
       {
         "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
@@ -290,7 +290,7 @@
       },
       {
         "file": "src/core/remote-access/remoteAccessManager.ts",
-        "lines": 567
+        "lines": 569
       }
     ]
   },
