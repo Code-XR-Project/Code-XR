@@ -4,5 +4,6 @@ import { nodeTargetConfig, rendererConfig } from './viteConfigs.mjs';
 
 await build(nodeTargetConfig('main'));
 await build(nodeTargetConfig('preload'));
+await build(nodeTargetConfig('scenePreload'));
 await build(rendererConfig());
 console.log('[code-xr-ide] built into apps/ide/out/');

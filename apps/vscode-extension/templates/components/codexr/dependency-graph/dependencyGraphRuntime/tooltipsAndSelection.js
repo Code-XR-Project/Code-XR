@@ -86,6 +86,7 @@
         var card = this.legendCards[key];
         if (!card) { return; }
         if (card.action?.parentNode) { card.action.parentNode.removeChild(card.action); }
+        if (card.editorAction?.parentNode) { card.editorAction.parentNode.removeChild(card.editorAction); }
         if (card.closeButton?.parentNode) { card.closeButton.parentNode.removeChild(card.closeButton); }
         root.CodeXRCommonRuntime?.hideTooltip?.(card);
         if (card.connectorRoot?.parentNode) { card.connectorRoot.parentNode.removeChild(card.connectorRoot); }
@@ -102,14 +103,27 @@
         var canNavigate = selection.type === 'node'
           && (record.data.kind === 'group' || record.data.kind === 'file' || record.data.syntheticExternal)
           && record.data.syntheticKind !== 'budget-rest';
+        // A host that embeds the scene beside an editor (the Code-XR IDE,
+        // #16) exposes CodeXRHostBridge: a file or symbol then also opens in
+        // that editor. Without the bridge (a browser) nothing changes.
+        var hostBridge = root.CodeXRHostBridge;
+        var editorTarget = selection.type === 'node'
+          && typeof hostBridge?.openInEditor === 'function'
+          && !record.data.external && !record.data.syntheticExternal && !record.data.syntheticKind
+          && (record.data.kind === 'file' || record.data.kind === 'symbol')
+          && record.data.relativePath
+          ? { path: String(record.data.relativePath), line: Number(record.data.lineStart) > 0 ? Number(record.data.lineStart) : undefined }
+          : null;
         if (card.action?.parentNode) { card.action.parentNode.removeChild(card.action); }
         card.action = null;
+        if (card.editorAction?.parentNode) { card.editorAction.parentNode.removeChild(card.editorAction); }
+        card.editorAction = null;
         if (card.closeButton?.parentNode) { card.closeButton.parentNode.removeChild(card.closeButton); }
         card.closeButton = null;
         root.CodeXRCommonRuntime.updateTooltip(card, detail, slotPosition, {
           width: LEGEND_SLOT.cardWidth,
           columns: 2,
-          footerReserve: canNavigate ? .3 : 0,
+          footerReserve: canNavigate || editorTarget ? .3 : 0,
           titleLength: 28,
           connectorTarget: this.anchorInBoardSpace(anchor),
           connectorColor: detail.accentColor || '#38bdf8'
@@ -122,8 +136,8 @@
             : data.kind === 'file' ? 'Open file' : 'Open';
           card.action = button(
             actionLabel,
-            '0 ' + (-(card.height / 2) + .17) + ' 0.02',
-            data.syntheticExternal ? 1.9 : 1.5,
+            (editorTarget ? '-0.6 ' : '0 ') + (-(card.height / 2) + .17) + ' 0.02',
+            editorTarget ? 1.1 : data.syntheticExternal ? 1.9 : 1.5,
             function (event) {
               event.stopPropagation?.();
               if (data.syntheticExternal) { publishState({ showExternal: true }); }
@@ -133,6 +147,20 @@
             data.syntheticExternal ? '#c2410c' : '#7c3aed'
           );
           card.root.appendChild(card.action);
+        }
+        if (editorTarget) {
+          card.editorAction = button(
+            'Open in editor',
+            (canNavigate ? '0.6 ' : '0 ') + (-(card.height / 2) + .17) + ' 0.02',
+            canNavigate ? 1.1 : 1.5,
+            function (event) {
+              event.stopPropagation?.();
+              hostBridge.openInEditor(editorTarget);
+            },
+            '#0f766e'
+          );
+          card.editorAction.setAttribute('data-codexr-role', 'legend-open-in-editor');
+          card.root.appendChild(card.editorAction);
         }
         if (this.isPinned(selection)) {
           // A pinned card closes on its own (PANELS-7): before, the only

@@ -7,7 +7,8 @@ import { registerAgentHandlers } from './agents/agentsIpc.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
-import { setSceneBounds } from './analysis/sceneView.ts';
+import { setSceneBounds, windowOfScene } from './analysis/sceneView.ts';
+import { SCENE_OPEN_IN_EDITOR_CHANNEL, toSceneEditorTarget } from '../shared/sceneBridge.ts';
 import { sanitizeBounds } from './analysis/sceneUrl.ts';
 import { currentWorkspaceInfo, openRecentFolder, pickAndOpenFolder, recentFolderList, workspaceOf, workspaceOrNull } from './workspace/workspaceWindows.ts';
 import type { SettingsService } from './settings/settingsService.ts';
@@ -145,6 +146,23 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
             throw new Error(`Unknown auto-start mode: ${String(mode)}`);
         }
         return core.analysis.setAutoStart(mode as AutoStartMode);
+    });
+    // #16: the one message an analysis page may send, from the scene view's
+    // own preload. It is not a `window.codexr` channel: the sender must be a
+    // scene view's main frame, and the main process resolves and checks the
+    // path before the window's renderer opens anything.
+    ipcMain.on(SCENE_OPEN_IN_EDITOR_CHANNEL, (event, value) => {
+        const win = windowOfScene(event.sender);
+        const target = toSceneEditorTarget(value);
+        if (!win || win.isDestroyed() || !target || event.senderFrame !== event.sender.mainFrame) {
+            return;
+        }
+        const request = core.analysis.openFromScene(win, currentWorkspaceInfo(win.webContents)?.root, target);
+        if (request) {
+            win.webContents.send(IPC_EVENTS.analysisOpenInEditor, request);
+            win.focus();
+            win.webContents.focus();
+        }
     });
     handle(IPC_CHANNELS.analysisSetSceneBounds, (event, bounds) => setSceneBounds(ownerOf(event), sanitizeBounds(bounds)));
     handle(IPC_CHANNELS.analysisCloseScene, (event) => core.analysis.closeScene(ownerOf(event)));

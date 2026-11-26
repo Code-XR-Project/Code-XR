@@ -22,11 +22,14 @@ import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } f
 import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
 import { startAgents } from './agents/agentsRuntime.ts';
+import { setScenePreloadPath } from './analysis/sceneView.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
 const OUT_DIR = path.resolve(__dirname, '..');
 const PRELOAD_PATH = path.join(OUT_DIR, 'preload', 'index.cjs');
+/** #16: the scene view's own preload (only `CodeXRHostBridge.openInEditor`). */
+const SCENE_PRELOAD_PATH = path.join(OUT_DIR, 'scenePreload', 'index.cjs');
 const RENDERER_DIR = path.join(OUT_DIR, 'renderer');
 
 // The dev server is honoured only from an unpackaged build, so an installed
@@ -72,6 +75,7 @@ async function start(): Promise<void> {
     }
     const terminalHost = createTerminalHost({ isSmoke });
     terminals = terminalHost;
+    setScenePreloadPath(SCENE_PRELOAD_PATH);
     const core = startCore({ isSmoke });
     setAboutDependencies({
         async describe() {

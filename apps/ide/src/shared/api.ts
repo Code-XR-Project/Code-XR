@@ -245,6 +245,20 @@ export interface SceneShareEvent {
     readonly share: SceneShareState;
 }
 
+/** #16: the analysis behind the scene `url` was re-run and now takes `files` files. */
+export interface SceneFilesEvent {
+    readonly url: string;
+    readonly files: number;
+}
+
+/** #16: the scene asked to open a file of the open folder in the editor. */
+export interface SceneOpenInEditorEvent {
+    /** Workspace-relative, already checked by the main process. */
+    readonly path: string;
+    /** 1-based. */
+    readonly line?: number | undefined;
+}
+
 /** Where the scene is drawn, in CSS pixels of the window's content. */
 export interface SceneBounds {
     readonly x: number;
@@ -338,6 +352,10 @@ export interface CodeXRApi {
         closeScene(): Promise<void>;
         /** A scene is ready to show; the renderer opens its slot and reports bounds. */
         onDidOpenScene(listener: (scene: SceneInfo) => void): Unsubscribe;
+        /** #16: the scene's analysis re-ran (a save) and its file count changed. */
+        onDidChangeSceneFiles(listener: (event: SceneFilesEvent) => void): Unsubscribe;
+        /** #16: the scene asked to open a file ("Open in editor", a LivePanel row). */
+        onDidRequestOpenInEditor(listener: (event: SceneOpenInEditorEvent) => void): Unsubscribe;
         /**
          * Shares this window's scene through a Cloudflare quick tunnel (#155).
          * Downloading cloudflared, the first time, asks in a native dialog in
@@ -559,6 +577,8 @@ export const IPC_EVENTS = {
     progress: 'codexr:progress',
     analysisSceneOpened: 'codexr:analysis:scene-opened',
     analysisSceneShareChanged: 'codexr:analysis:scene-share-changed',
+    analysisSceneFilesChanged: 'codexr:analysis:scene-files-changed',
+    analysisOpenInEditor: 'codexr:analysis:open-in-editor',
     terminalData: 'codexr:terminal:data',
     terminalExit: 'codexr:terminal:exit',
     settingsChanged: 'codexr:settings:changed',
