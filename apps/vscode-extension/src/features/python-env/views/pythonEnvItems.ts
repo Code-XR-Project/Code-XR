@@ -84,7 +84,7 @@ export class PythonEnvItems {
                     undefined,
                     new vscode.ThemeIcon('info'),
                     uiState.detail ?? uiState.message,
-                    'CodeXR is preparing the Python environment',
+                    'Code-XR is preparing the Python environment',
                     'pythonEnv.installingInfo',
                 ),
             ];
@@ -111,7 +111,7 @@ export class PythonEnvItems {
                         title: 'Retry Python environment installation',
                     },
                     new vscode.ThemeIcon('refresh'),
-                    'Retry the CodeXR virtual environment installation',
+                    'Retry the Code-XR virtual environment installation',
                     'Retry setup',
                     'pythonEnv.retry',
                 ),
@@ -124,7 +124,7 @@ export class PythonEnvItems {
                         title: 'Show Python environment status',
                     },
                     new vscode.ThemeIcon('info'),
-                    'Open detailed information about the CodeXR virtual environment',
+                    'Open detailed information about the Code-XR virtual environment',
                     'View details',
                     'pythonEnv.status',
                 ),
@@ -139,7 +139,7 @@ export class PythonEnvItems {
                     'warning',
                     undefined,
                     new vscode.ThemeIcon('warning'),
-                    'Create the CodeXR virtual environment to enable code analysis.',
+                    'Create the Code-XR virtual environment to enable code analysis.',
                     'Environment missing',
                     'pythonEnv.notExists',
                 ),
@@ -152,7 +152,7 @@ export class PythonEnvItems {
                         title: 'Create Python environment',
                     },
                     new vscode.ThemeIcon('add'),
-                    'Create the CodeXR virtual environment in global storage',
+                    'Create the Code-XR virtual environment in global storage',
                     'Create environment',
                     'pythonEnv.create',
                 ),
@@ -167,7 +167,7 @@ export class PythonEnvItems {
                     'warning',
                     undefined,
                     new vscode.ThemeIcon('warning'),
-                    'Reinitialize the CodeXR virtual environment to repair it.',
+                    'Reinitialize the Code-XR virtual environment to repair it.',
                     'Needs attention',
                     'pythonEnv.invalid',
                 ),
@@ -194,7 +194,7 @@ export class PythonEnvItems {
                 'status',
                 undefined,
                 new vscode.ThemeIcon('check', new vscode.ThemeColor('terminal.ansiGreen')),
-                'The CodeXR Python environment is ready to use.',
+                'The Code-XR Python environment is ready to use.',
                 'Ready',
                 'pythonEnv.ready',
             ),
@@ -220,7 +220,7 @@ export class PythonEnvItems {
                     title: 'Verify installation',
                 },
                 new vscode.ThemeIcon('check'),
-                'Run a health check for the CodeXR virtual environment and refresh the installed packages snapshot',
+                'Run a health check for the Code-XR virtual environment and refresh the installed packages snapshot',
                 'Health check',
                 'pythonEnv.verifyInstallation',
             ),
@@ -265,7 +265,7 @@ export class PythonEnvItems {
     ): string {
         switch (uiState.status) {
             case 'installing':
-                return 'Setting up CodeXR virtual environment';
+                return 'Setting up Code-XR virtual environment';
             case 'error':
                 return 'Retry required';
             case 'ready':

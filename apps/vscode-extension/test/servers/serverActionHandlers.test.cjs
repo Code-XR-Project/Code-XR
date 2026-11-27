@@ -584,7 +584,7 @@ test('server actions: the clipboard strings and stopAll, stated outright', () =>
     const toasts = stopAll.ui.filter((entry) => entry.kind !== 'warning' || !entry.message.startsWith('Stop all'));
     assert.deepEqual(toasts.map((entry) => entry.message), [
         'Stopped 2 server(s)',
-        'Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the CodeXR output.',
+        'Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the Code-XR output.',
         'Error stopping servers: stopAllServers exploded',
     ]);
     // The tree is refreshed after a "partial" stop too, never after a throw.

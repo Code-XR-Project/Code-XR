@@ -628,7 +628,7 @@ export class ActiveAnalysesCommands {
         const gitOutcome = await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
-                title: 'CodeXR: analyzing the complete Git timeline for the export…',
+                title: 'Code-XR: analyzing the complete Git timeline for the export…',
                 cancellable: true,
             },
             (progress, token) => exportGitRevisionData(
@@ -690,7 +690,7 @@ export class ActiveAnalysesCommands {
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
-                    title: 'CodeXR: preparing export (analyzing dependencies)…',
+                    title: 'Code-XR: preparing export (analyzing dependencies)…',
                 },
                 () => analysisRefreshCoordinator.forceRefreshModeAndWait(
                     sessionId,

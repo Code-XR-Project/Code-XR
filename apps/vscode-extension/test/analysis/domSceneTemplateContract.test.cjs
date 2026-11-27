@@ -166,7 +166,7 @@ async function runDomPipeline() {
     }
 }
 
-test('the DOM scene template loads a fixed, ordered list of CodeXR runtimes, then the scene script, and no other local script', () => {
+test('the DOM scene template loads a fixed, ordered list of Code-XR runtimes, then the scene script, and no other local script', () => {
     const loaded = localScriptNames(readSource(DOM_SCENE_TEMPLATE));
 
     assert.deepEqual(

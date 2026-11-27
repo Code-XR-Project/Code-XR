@@ -93,7 +93,7 @@ test('analysis settings no longer expose the XR mapping UI toggle', () => {
 
     const removedMarkers = [
         ['toggle', 'Babia', 'Ui', 'XR'].join(''),
-        ['CodeXR Mapping UI', '(XR)'].join(' '),
+        ['Code-XR Mapping UI', '(XR)'].join(' '),
         ['Babia', 'Ui', 'Setting'].join(''),
         ['Babia', 'Ui', 'Commands'].join(''),
         ['babia', 'ui'].join('_'),

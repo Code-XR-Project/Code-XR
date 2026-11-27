@@ -231,7 +231,7 @@ export class ModularTreeDataProvider implements vscode.TreeDataProvider<ModularT
                     : 'Disabled while Python environment setup is running';
                 header.tooltip = uiState.detail
                     ? `${header.label}\n\n${uiState.detail}`
-                    : `${header.label} is temporarily unavailable while CodeXR prepares the Python environment.`;
+                    : `${header.label} is temporarily unavailable while Code-XR prepares the Python environment.`;
                 header.iconPath = new vscode.ThemeIcon(
                     uiState.status === 'error' ? 'lock' : 'loading~spin',
                 );

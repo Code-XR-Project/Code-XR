@@ -73,7 +73,7 @@ export async function exportGitRevisionData(
         await gitService.dispose();
         return {
             cancelled: false,
-            failureReason: 'The CodeXR Python environment is unavailable.',
+            failureReason: 'The Code-XR Python environment is unavailable.',
         };
     }
     const workerFile = path.join('export', 'git_export_analysis_worker.py');

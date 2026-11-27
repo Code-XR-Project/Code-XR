@@ -32,7 +32,7 @@ function buildRepository() {
     fs.mkdirSync(path.join(repositoryPath, 'src'), { recursive: true });
     runGit(repositoryPath, ['init', '--initial-branch=main']);
     runGit(repositoryPath, ['config', 'user.email', 'test@example.com']);
-    runGit(repositoryPath, ['config', 'user.name', 'CodeXR Test']);
+    runGit(repositoryPath, ['config', 'user.name', 'Code-XR Test']);
     for (let index = 1; index <= 3; index += 1) {
         fs.writeFileSync(path.join(repositoryPath, 'src', 'a.py'), `x = ${index}\n`, 'utf8');
         runGit(repositoryPath, ['add', '.']);

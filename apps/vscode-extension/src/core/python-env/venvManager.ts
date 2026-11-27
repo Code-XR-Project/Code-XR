@@ -86,7 +86,7 @@ export class VenvManager {
 
             if (isPermissionError && os.platform() === 'win32') {
                 this.uiState.setError(
-                    'Windows blocked the CodeXR virtual environment installation.',
+                    'Windows blocked the Code-XR virtual environment installation.',
                     this.getWindowsPermissionHelpMessage(detail),
                 );
             } else {
@@ -123,7 +123,7 @@ export class VenvManager {
                 progress.to(55, 'Bootstrapping pip inside the virtual environment...');
                 await this.ensurePipInVenv(progress);
 
-                progress.to(70, 'Updating pip inside the CodeXR virtual environment...');
+                progress.to(70, 'Updating pip inside the Code-XR virtual environment...');
                 await this.upgradePipInVenv(progress);
 
                 progress.to(80, 'Installing required packages...');
@@ -144,7 +144,7 @@ export class VenvManager {
             const detail = this.getErrorDetails(error);
             if (this.isPermissionError(detail) && os.platform() === 'win32') {
                 this.uiState.setError(
-                    'Windows blocked the CodeXR virtual environment installation.',
+                    'Windows blocked the Code-XR virtual environment installation.',
                     this.getWindowsPermissionHelpMessage(detail),
                 );
             } else {
@@ -299,7 +299,7 @@ export class VenvManager {
                 progress.report({ message: 'Checking virtual environment pip...' });
                 await this.ensurePipInVenv();
 
-                progress.report({ increment: 35, message: `Installing ${packageName} inside the CodeXR virtual environment...` });
+                progress.report({ increment: 35, message: `Installing ${packageName} inside the Code-XR virtual environment...` });
                 await this.runVenvPip(['install', packageName]);
 
                 progress.report({ increment: 45, message: 'Updating dependencies list...' });
@@ -341,11 +341,11 @@ export class VenvManager {
 
         this.logWarn('PYTHON_ENV: Forcing a debug installation failure');
         await this.storage.deleteEnvironment();
-        fs.writeFileSync(venvPath, 'CodeXR debug installation blocker', 'utf8');
+        fs.writeFileSync(venvPath, 'Code-XR debug installation blocker', 'utf8');
 
         try {
             await this.createEnvironment();
-            throw new Error('CodeXR debug failure mode did not fail as expected.');
+            throw new Error('Code-XR debug failure mode did not fail as expected.');
         } catch (error) {
             const details = this.getErrorDetails(error);
             if (details.includes('did not fail as expected')) {
@@ -354,7 +354,7 @@ export class VenvManager {
 
             this.logWarn('PYTHON_ENV: Debug installation failure triggered successfully:', details);
             await getHost().notifier.notify('warning',
-                'CodeXR forced a Python environment installation failure for debugging. Use Reinitialize Python Environment to recover.',
+                'Code-XR forced a Python environment installation failure for debugging. Use Reinitialize Python Environment to recover.',
             );
         } finally {
             this.removePathIfExists(venvPath);
@@ -364,20 +364,20 @@ export class VenvManager {
     private async collectEnvironmentSnapshot(): Promise<EnvironmentVerificationResult> {
         const venvPath = this.storage.getVenvPath();
         if (!PythonEnvUtils.isValidVenv(venvPath)) {
-            throw new Error('CodeXR could not find a valid Python virtual environment to verify.');
+            throw new Error('Code-XR could not find a valid Python virtual environment to verify.');
         }
 
         const pythonPath = PythonEnvUtils.getVenvPythonPath(venvPath);
         if (!fs.existsSync(pythonPath)) {
-            throw new Error('CodeXR could not find the Python executable inside its virtual environment.');
+            throw new Error('Code-XR could not find the Python executable inside its virtual environment.');
         }
 
         if (!(await this.isVenvPipAvailable())) {
-            throw new Error('CodeXR could not execute pip inside its virtual environment. Reinitialize the environment.');
+            throw new Error('Code-XR could not execute pip inside its virtual environment. Reinitialize the environment.');
         }
 
         if (!(await this.verifyRequiredPackages())) {
-            throw new Error('CodeXR could not verify its Python analysis dependencies. Reinitialize the environment.');
+            throw new Error('Code-XR could not verify its Python analysis dependencies. Reinitialize the environment.');
         }
 
         const dependencies = await this.getInstalledDependencies();
@@ -623,14 +623,14 @@ export class VenvManager {
 
         this.logWarn('PYTHON_ENV: pip is not available in the virtual environment, trying ensurepip...');
         if (progress) {
-            progress.message('Bootstrapping pip inside the CodeXR virtual environment...');
+            progress.message('Bootstrapping pip inside the Code-XR virtual environment...');
         }
 
         await this.executeCommand(PythonEnvUtils.getEnsurePipCommand(venvPath));
 
         if (!(await this.isVenvPipAvailable())) {
             throw new Error(
-                `CodeXR could not bootstrap pip inside its virtual environment at "${venvPath}". ` +
+                `Code-XR could not bootstrap pip inside its virtual environment at "${venvPath}". ` +
                 `Your global Python installation was not modified.`,
             );
         }
@@ -642,7 +642,7 @@ export class VenvManager {
     private async upgradePipInVenv(progress?: InstallProgress): Promise<void> {
         try {
             if (progress) {
-                progress.message('Upgrading pip inside the CodeXR virtual environment...');
+                progress.message('Upgrading pip inside the Code-XR virtual environment...');
             }
             this.logInfo('PYTHON_ENV: Upgrading pip inside the virtual environment...');
             await this.runVenvPip(['install', '--upgrade', 'pip']);
@@ -650,13 +650,13 @@ export class VenvManager {
             const pipStillAvailable = await this.isVenvPipAvailable();
             if (!pipStillAvailable) {
                 throw new Error(
-                    'CodeXR could not upgrade pip and the virtual environment pip is no longer usable. ' +
+                    'Code-XR could not upgrade pip and the virtual environment pip is no longer usable. ' +
                     `The global Python installation was not modified.\n\n${this.getErrorDetails(error)}`,
                 );
             }
 
             const warningMessage =
-                'CodeXR could not upgrade pip inside its virtual environment. ' +
+                'Code-XR could not upgrade pip inside its virtual environment. ' +
                 'Continuing with the current virtual-environment pip. Your global Python installation was not modified.';
             this.showWarningNotification(warningMessage, this.getErrorDetails(error));
         }
@@ -767,7 +767,7 @@ export class VenvManager {
         report?.(`Installing ${pkg.distribution} for ${pkg.purpose}...`);
         await this.runVenvPip(['install', getPinnedPythonRequirement(pkg)]);
         if (!(await this.verifyPackage(pkg))) {
-            throw new Error(`CodeXR installed ${pkg.distribution} but could not verify it afterwards.`);
+            throw new Error(`Code-XR installed ${pkg.distribution} but could not verify it afterwards.`);
         }
     }
 
@@ -823,13 +823,13 @@ export class VenvManager {
         const venvPath = this.storage.getVenvPath();
 
         return [
-            'CodeXR only modifies its own virtual environment and does not change your global Python installation.',
+            'Code-XR only modifies its own virtual environment and does not change your global Python installation.',
             'Windows may be locking files in the venv directory.',
             `Venv path: ${venvPath}`,
             '',
             'Try this:',
-            '1. Close any running CodeXR setup and retry from the Python Environment section.',
-            '2. Exclude the CodeXR globalStorage folder from antivirus scans if needed.',
+            '1. Close any running Code-XR setup and retry from the Python Environment section.',
+            '2. Exclude the Code-XR globalStorage folder from antivirus scans if needed.',
             '3. If the folder is stuck, delete the venv directory manually and retry.',
             '',
             detail,

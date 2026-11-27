@@ -19,11 +19,11 @@ export interface SingleFileRuntimeAsset {
 }
 
 export const SINGLE_FILE_RUNTIME_ASSETS = {
-    avatar: { outputName: 'codexrAvatarRuntime.js', folder: ['codexr', 'avatar'], label: 'CodeXR avatar runtime' },
-    codexrDebug: { outputName: 'codexrDebugRuntime.js', folder: ['codexr', 'debug'], label: 'CodeXR debug runtime' },
-    common: { outputName: 'codexrCommonRuntime.js', folder: ['common'], label: 'CodeXR common runtime' },
+    avatar: { outputName: 'codexrAvatarRuntime.js', folder: ['codexr', 'avatar'], label: 'Code-XR avatar runtime' },
+    codexrDebug: { outputName: 'codexrDebugRuntime.js', folder: ['codexr', 'debug'], label: 'Code-XR debug runtime' },
+    common: { outputName: 'codexrCommonRuntime.js', folder: ['common'], label: 'Code-XR common runtime' },
     gitRefPicker: {
-        outputName: 'codexrGitRefPickerRuntime.js', folder: ['common'], label: 'CodeXR Git ref picker runtime',
+        outputName: 'codexrGitRefPickerRuntime.js', folder: ['common'], label: 'Code-XR Git ref picker runtime',
     },
     dependencyVisualBudget: {
         outputName: 'dependencyVisualBudgetRuntime.js',
@@ -31,13 +31,13 @@ export const SINGLE_FILE_RUNTIME_ASSETS = {
         label: 'Dependency visual budget runtime',
     },
     immersiveRig: {
-        outputName: 'codexrImmersiveRigRuntime.js', folder: ['codexr', 'immersive-rig'], label: 'CodeXR immersive-rig runtime',
+        outputName: 'codexrImmersiveRigRuntime.js', folder: ['codexr', 'immersive-rig'], label: 'Code-XR immersive-rig runtime',
     },
     pointerPolicy: {
-        outputName: 'codexrPointerPolicyRuntime.js', folder: ['codexr', 'pointer-policy'], label: 'CodeXR pointer-policy runtime',
+        outputName: 'codexrPointerPolicyRuntime.js', folder: ['codexr', 'pointer-policy'], label: 'Code-XR pointer-policy runtime',
     },
     /** The room also needs its textures/ folder: see codexrRoomComponentAsset.ts. */
-    room: { outputName: 'codexrRoomRuntime.js', folder: ['codexr', 'xr-room'], label: 'CodeXR room runtime' },
+    room: { outputName: 'codexrRoomRuntime.js', folder: ['codexr', 'xr-room'], label: 'Code-XR room runtime' },
     renderBudget: { outputName: 'renderBudgetRuntime.js', folder: ['codexr', 'render-budget'], label: 'Render budget runtime' },
 } as const satisfies Record<string, SingleFileRuntimeAsset>;
 

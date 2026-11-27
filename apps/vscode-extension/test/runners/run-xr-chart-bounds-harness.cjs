@@ -20,7 +20,13 @@ const { launchHarnessChromium } = require('../helpers/harnessBrowser.cjs');
 const projectRoot = path.resolve(__dirname, '..', '..');
 const CHART_TYPES = (process.env.CODEXR_CHART_BOUNDS_TYPES || 'bars,barsmap,cyls,cylsmap,pie,donut,bubbles,boats').split(',');
 const ROW_COUNTS = (process.env.CODEXR_CHART_BOUNDS_ROWS || '3,30,300').split(',').map(Number);
-const SETTLE_TIMEOUT_MS = 25000;
+// A 300-slice pie on a shared CI runner (software WebGL) has twice needed
+// more than 25 s for its fit controller to stand down, while reporting the
+// chart on the table and the reason 'ok' throughout. The loop leaves as soon
+// as the chart settles, so the larger budget for big datasets costs a passing
+// run nothing; CODEXR_CHART_BOUNDS_SETTLE_MS overrides it.
+const settleTimeoutFor = (rowCount) => Number(process.env.CODEXR_CHART_BOUNDS_SETTLE_MS)
+    || (rowCount >= 300 ? 60000 : 25000);
 // The physical tabletop (codexr-analysis-table) and how far a mesh may poke
 // past it (float noise, sub-centimetre bevels).
 const TABLE = { width: 6.514, depth: 4.118 };
@@ -163,6 +169,10 @@ function probeChart(table) {
         width: meshes ? box.max.x - box.min.x : 0,
         stabilized: !!(status && status.stabilized),
         reason: status && status.reason,
+        // Why a chart reporting 'ok' is still not settled, for the failure message.
+        phase: status && status.details ? status.details.phase : null,
+        settled: containment.settled === true,
+        controllerActive: !!(containment.pidController && containment.pidController.active),
     };
 }
 
@@ -186,7 +196,8 @@ async function checkScene(browser, chartId, rowCount, workRoot) {
         const started = Date.now();
         let probe = null;
         const sources = new Set();
-        while (Date.now() - started < SETTLE_TIMEOUT_MS) {
+        const settleTimeout = settleTimeoutFor(rowCount);
+        while (Date.now() - started < settleTimeout) {
             probe = await page.evaluate(probeChart, TABLE);
             if (probe && probe.from) {
                 sources.add(probe.from);
@@ -198,7 +209,8 @@ async function checkScene(browser, chartId, rowCount, workRoot) {
         }
         const label = `${chartId} with ${rowCount} files`;
         assert.ok(probe && probe.meshes > 0, `${label}: nothing rendered`);
-        assert.ok(probe.stabilized, `${label}: never stabilized (last reason ${probe.reason})`);
+        assert.ok(probe.stabilized, `${label}: never stabilized in ${settleTimeout} ms (last reason ${probe.reason}, phase ${probe.phase}, `
+            + `settled ${probe.settled}, fit controller active ${probe.controllerActive})`);
         assert.ok(probe.offTableX <= TOLERANCE_M && probe.offTableZ <= TOLERANCE_M,
             `${label}: ends off the table by x=${probe.offTableX.toFixed(3)} m, z=${probe.offTableZ.toFixed(3)} m`);
         if (budgeted) {

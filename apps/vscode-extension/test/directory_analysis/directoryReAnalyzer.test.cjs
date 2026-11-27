@@ -96,7 +96,7 @@ test('XR: remove, update and add in one change set, in that order', async () => 
     ]);
     assert.deepEqual(outcome.events, [{ sessionId: 's1', targetPath: outcome.events[0].targetPath }]);
     // the count is the length of the change set, not of what actually changed
-    assert.deepEqual(outcome.statusMessages, [['$(check) CodeXR re-analysis updated 5 file(s)', 2000]]);
+    assert.deepEqual(outcome.statusMessages, [['$(check) Code-XR re-analysis updated 5 file(s)', 2000]]);
     assert.deepEqual(outcome.leftovers, []);
 });
 

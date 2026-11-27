@@ -163,7 +163,7 @@ export function renderPairingPage(invitationToken: string): string {
 
     const body = `<div class="card">
 <h1>Join the XR session</h1>
-<p class="lede">Connect to a CodeXR workspace shared across networks.</p>
+<p class="lede">Connect to a Code-XR workspace shared across networks.</p>
 <section id="identity-step">
 <p class="section-label">Step 1 · How you appear</p>
 <fieldset>
@@ -172,7 +172,7 @@ export function renderPairingPage(invitationToken: string): string {
 </fieldset>
 <label class="field" for="name">Display name</label>
 <input id="name" maxlength="32" disabled>
-<p id="identity-hint" class="hint">CodeXR reserved this anonymous alias for you.</p>
+<p id="identity-hint" class="hint">Code-XR reserved this anonymous alias for you.</p>
 <p class="hint">Then ask the host for the temporary six-digit code.</p>
 </section>
 <button id="request">Request access</button>
@@ -186,7 +186,7 @@ export function renderPairingPage(invitationToken: string): string {
 const invitationToken=${tokenLiteral};let requestId='',identityToken='',anonymousAlias='';
 const status=document.querySelector('#status'),code=document.querySelector('#code'),confirmButton=document.querySelector('#confirm'),nameInput=document.querySelector('#name'),requestButton=document.querySelector('#request');
 function selectedMode(){return document.querySelector('input[name="identity"]:checked').value}
-function updateIdentityMode(){const custom=selectedMode()==='custom';nameInput.disabled=!custom;nameInput.value=custom?'':anonymousAlias;document.querySelector('#identity-hint').textContent=custom?'Use between 2 and 32 characters.':'CodeXR reserved this anonymous alias for you.'}
+function updateIdentityMode(){const custom=selectedMode()==='custom';nameInput.disabled=!custom;nameInput.value=custom?'':anonymousAlias;document.querySelector('#identity-hint').textContent=custom?'Use between 2 and 32 characters.':'Code-XR reserved this anonymous alias for you.'}
 document.querySelectorAll('input[name="identity"]').forEach(input=>input.onchange=updateIdentityMode);
 async function prepareIdentity(){requestButton.disabled=true;status.textContent='Preparing identity...';try{const response=await fetch('/api/remote/identity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({invitationToken})});if(!response.ok)throw new Error();const data=await response.json();identityToken=data.identityToken;anonymousAlias=data.anonymousAlias;nameInput.value=anonymousAlias;requestButton.disabled=false;status.textContent='';}catch{status.className='error';status.textContent='This invitation is not valid or is no longer available.'}}
 document.querySelector('#request').onclick=async()=>{status.textContent='Requesting access...';try{
@@ -204,7 +204,7 @@ location.replace(data.browserUrl);
 prepareIdentity();
 `;
 
-    return shell('Join CodeXR', body, script);
+    return shell('Join Code-XR', body, script);
 }
 
 /**
@@ -218,7 +218,7 @@ export function renderInvitationErrorPage(title: string, message: string): strin
 </div>
 <p class="footnote">Invitation links are temporary by design</p>`;
 
-    return shell('CodeXR · invitation unavailable', body);
+    return shell('Code-XR · invitation unavailable', body);
 }
 
 function escapeHtml(value: string): string {

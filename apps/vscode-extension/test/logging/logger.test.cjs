@@ -32,9 +32,9 @@ function withLogger(options, scenario) {
     return fake;
 }
 
-const channelLines = (fake) => (fake.channels.get('CodeXR') ? fake.channels.get('CodeXR').lines : []);
+const channelLines = (fake) => (fake.channels.get('Code-XR') ? fake.channels.get('Code-XR').lines : []);
 
-test('the logger writes to one "CodeXR" output channel and hands it to the extension for disposal', () => {
+test('the logger writes to one "Code-XR" output channel and hands it to the extension for disposal', () => {
     const fake = withLogger({ extensionMode: ExtensionMode.Production }, ({ CodeXRLogger, context }) => {
         CodeXRLogger.initialize(context);
         CodeXRLogger.initialize(context);
@@ -42,7 +42,7 @@ test('the logger writes to one "CodeXR" output channel and hands it to the exten
         assert.equal(context.subscriptions.length, 2, 'the channel and ONE configuration listener - a second initialize adds neither');
     });
 
-    assert.deepEqual([...fake.channels.keys()], ['CodeXR']);
+    assert.deepEqual([...fake.channels.keys()], ['Code-XR']);
 });
 
 test('every line is "[ISO timestamp] [LEVEL] [SCOPE] message"', () => {
@@ -239,7 +239,7 @@ test('disposing the extension detaches the channel: later lines are buffered, no
     });
 
     assert.deepEqual(channelLines(fake).map((line) => LINE.exec(line)[4]), ['while attached']);
-    assert.equal(fake.channels.get('CodeXR').disposed, true);
+    assert.equal(fake.channels.get('Code-XR').disposed, true);
 });
 
 function muteConsole() {

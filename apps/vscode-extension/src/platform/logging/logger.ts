@@ -31,7 +31,7 @@ export class CodeXRLogger {
         this.updateLoggingMode(context);
 
         if (!this.outputChannel) {
-            const outputChannel = vscode.window.createOutputChannel('CodeXR');
+            const outputChannel = vscode.window.createOutputChannel('Code-XR');
             this.outputChannel = outputChannel;
             // Disposed with the extension. The sink lets go of the channel
             // first, so later lines go back to the buffer (and warnings and

@@ -179,7 +179,7 @@ export const DEFAULT_CONFIGURATION_FILE: AnalysisConfigurationFile = {
     metadata: {
         version: '1.0.0',
         lastModified: Date.now(),
-        createdBy: 'CodeXR New Code Analysis'
+        createdBy: 'Code-XR New Code Analysis'
     },
     configuration: DEFAULT_ANALYSIS_CONFIGURATION
 };

@@ -1,7 +1,7 @@
 // == analysisModeRuntime.js | transitionsAndViews (assembled per manifest.json; see COMPONENTS.md) ==
   function changeAnalysis(mode, context) {
     if (!VALID_MODES.has(mode)) {
-      return Promise.reject(new Error('Unsupported CodeXR analysis mode: ' + mode));
+      return Promise.reject(new Error('Unsupported Code-XR analysis mode: ' + mode));
     }
     // Same-mode dedupe: entering the mode that is already fully active only
     // re-applies the controller/panel routing — it must NOT queue another

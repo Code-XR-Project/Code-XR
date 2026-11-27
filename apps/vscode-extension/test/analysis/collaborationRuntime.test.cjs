@@ -400,7 +400,7 @@ const OFFLINE_MANIFEST = {
         dependencyGraph: true,
         dependencyGraphReason: '',
         historicalComparison: true,
-        historicalComparisonReason: 'Replay only: new comparisons need the live CodeXR session.',
+        historicalComparisonReason: 'Replay only: new comparisons need the live Code-XR session.',
         projectEvolution: false,
         projectEvolutionReason: 'No evolution movie was generated before export.',
     },
@@ -464,7 +464,7 @@ test('offline export: manifest capabilities stand in for the session, entities i
     assert.equal(client.getOfflineExportManifest().kind, 'codexr-export');
 });
 
-test('offline export marker loads the manifest without probing a CodeXR endpoint', async () => {
+test('offline export marker loads the manifest without probing a Code-XR endpoint', async () => {
     const { fakeWindow, sockets, requests } = buildOfflineFakeWindow({
         sessionOk: false,
         manifest: OFFLINE_MANIFEST,

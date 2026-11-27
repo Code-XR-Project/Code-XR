@@ -72,7 +72,7 @@ export class CloudflaredBinaryManager {
         // never seals the marker, so the question comes back next time.
         if (!this.context.globalState.get<boolean>(CLOUDFLARED_CONSENT_KEY)) {
             const answer = await getHost().notifier.confirm(
-                `CodeXR needs cloudflared ${CLOUDFLARED_VERSION} (${asset.sizeLabel}) to create the temporary link. It is downloaded once from GitHub/Cloudflare, verified with SHA-256 and stored in global storage. License: Apache-2.0.`,
+                `Code-XR needs cloudflared ${CLOUDFLARED_VERSION} (${asset.sizeLabel}) to create the temporary link. It is downloaded once from GitHub/Cloudflare, verified with SHA-256 and stored in global storage. License: Apache-2.0.`,
                 { modal: true, severity: 'info', actions: ['Download cloudflared'] },
             );
             if (answer !== 'Download cloudflared') {

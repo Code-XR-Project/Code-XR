@@ -290,7 +290,7 @@ test('a chart type switch is validated and reverted when the new chart is invali
     assert.match(runtimeSource, /function scheduleChartSwitchValidation\(config, chartId, previousChartId\)/);
     assert.match(runtimeSource, /scheduleChartSwitchValidation\(config, chartId, previousChartId\)/);
     assert.match(runtimeSource, /if \(!result \|\| result\.state !== 'invalid'\) \{\s*return;\s*\}/);
-    assert.match(runtimeSource, /CodeXR restored the previous chart\./);
+    assert.match(runtimeSource, /Code-XR restored the previous chart\./);
 });
 
 test('switching chart type unsubscribes the previous chart from its data producer', () => {
@@ -415,7 +415,7 @@ test('mapping UI exposes the Analysis Controller facade while preserving legacy 
     assert.match(runtimeSource, /renderRows\(config\);\s*\/\/ No re-fit request here/);
     // Panel title resolved from one place (generic-then-overwritten flickered).
     assert.match(runtimeSource, /function getMappingPanelTitle\(\)/);
-    assert.doesNotMatch(runtimeSource, /setAttribute\('value', 'CodeXR Field Mapping'\)/);
+    assert.doesNotMatch(runtimeSource, /setAttribute\('value', 'Code-XR Field Mapping'\)/);
     // Zombie modeMemory API removed (no callers existed).
     assert.doesNotMatch(runtimeSource, /getModeMemory|saveModeMemory/);
     assert.match(runtimeSource, /controllerView: state\.activeControllerView/);
@@ -1221,8 +1221,8 @@ test('mapping UI emits confirmed mappings for local and collaborative updates', 
 test('mapping UI runtime keeps the user-facing rollback message centered on Babia chart failures', () => {
     assert.match(runtimeSource, /function buildFriendlyInvalidMappingMessage\(config, dimensionId, fieldName, reason, includeRestoreLine\)/);
     assert.match(runtimeSource, /caused an invalid chart for/);
-    assert.match(runtimeSource, /CodeXR restored the last valid mapping to keep the visualization stable\./);
-    assert.match(runtimeSource, /CodeXR blocked this option because Babia failed the last time it was used\./);
+    assert.match(runtimeSource, /Code-XR restored the last valid mapping to keep the visualization stable\./);
+    assert.match(runtimeSource, /Code-XR blocked this option because Babia failed the last time it was used\./);
     assert.match(runtimeSource, /Try another field for this axis\./);
     assert.match(runtimeSource, /setStatusMessage\(friendlyMessage, 'error', 4800\);/);
     assert.match(runtimeSource, /setStatusMessage\(invalidOptionReason, 'error', 3600\);/);

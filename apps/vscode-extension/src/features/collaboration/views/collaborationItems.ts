@@ -38,7 +38,7 @@ export class CollaborationItemFactory {
                 'Paste invitation link',
                 { command: 'codeXR.collaboration.joinRemote', title: 'Join Remote Session' },
                 new vscode.ThemeIcon('link-external'),
-                'Uses the profile configured in this CodeXR installation.',
+                'Uses the profile configured in this Code-XR installation.',
             ),
             new CollaborationTreeItem(
                 'Name',
@@ -69,7 +69,7 @@ export class CollaborationItemFactory {
                 },
                 new vscode.ThemeIcon(configuration.avatarModelAvailable ? 'package' : 'circle-slash'),
                 configuration.avatarModelAvailable
-                    ? 'Ships with CodeXR — nothing to download. Click for credits and license.'
+                    ? 'Ships with Code-XR — nothing to download. Click for credits and license.'
                     : 'Missing from this installation; the procedural avatar is used instead.',
             ),
         ];

@@ -44,7 +44,7 @@ function buildFixtureRepository() {
     fs.mkdirSync(repositoryPath, { recursive: true });
     runGit(repositoryPath, ['init', '--initial-branch=main']);
     runGit(repositoryPath, ['config', 'user.email', 'test@example.com']);
-    runGit(repositoryPath, ['config', 'user.name', 'CodeXR Test']);
+    runGit(repositoryPath, ['config', 'user.name', 'Code-XR Test']);
     for (let index = 1; index <= 3; index += 1) {
         fs.writeFileSync(path.join(repositoryPath, 'module.py'), `def f():\n    return ${index}\n`, 'utf8');
         runGit(repositoryPath, ['add', '.']);
@@ -61,7 +61,7 @@ function buildInitiallyEmptyRepository() {
     fs.mkdirSync(repositoryPath, { recursive: true });
     runGit(repositoryPath, ['init', '--initial-branch=main']);
     runGit(repositoryPath, ['config', 'user.email', 'test@example.com']);
-    runGit(repositoryPath, ['config', 'user.name', 'CodeXR Test']);
+    runGit(repositoryPath, ['config', 'user.name', 'Code-XR Test']);
     fs.writeFileSync(path.join(repositoryPath, 'notes.txt'), 'nothing analyzable\n', 'utf8');
     runGit(repositoryPath, ['add', '.']);
     runGit(repositoryPath, ['commit', '-m', 'unsupported only']);
@@ -80,7 +80,7 @@ function buildNestedOnlyRepository() {
     fs.mkdirSync(path.join(repositoryPath, 'node_modules'), { recursive: true });
     runGit(repositoryPath, ['init', '--initial-branch=main']);
     runGit(repositoryPath, ['config', 'user.email', 'test@example.com']);
-    runGit(repositoryPath, ['config', 'user.name', 'CodeXR Test']);
+    runGit(repositoryPath, ['config', 'user.name', 'Code-XR Test']);
     fs.writeFileSync(path.join(repositoryPath, 'notes.txt'), 'root metadata\n', 'utf8');
     fs.writeFileSync(path.join(repositoryPath, 'nested', 'module.py'), 'def nested():\n    return 1\n', 'utf8');
     fs.writeFileSync(path.join(repositoryPath, 'node_modules', 'ignored.js'), 'function ignored() {}\n', 'utf8');
@@ -132,7 +132,7 @@ function buildRepeatedBlobRepository() {
     fs.mkdirSync(repositoryPath, { recursive: true });
     runGit(repositoryPath, ['init', '--initial-branch=main']);
     runGit(repositoryPath, ['config', 'user.email', 'test@example.com']);
-    runGit(repositoryPath, ['config', 'user.name', 'CodeXR Test']);
+    runGit(repositoryPath, ['config', 'user.name', 'Code-XR Test']);
     fs.writeFileSync(path.join(repositoryPath, 'stable.py'), 'def stable():\n    return 1\n', 'utf8');
     fs.writeFileSync(path.join(repositoryPath, 'stable.js'), 'def stable():\n    return 1\n', 'utf8');
     fs.writeFileSync(

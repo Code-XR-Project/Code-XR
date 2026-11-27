@@ -250,7 +250,7 @@
     // An exported copy has no server to analyze with: say so instead of
     // entering the send-retry loop below, which would spin forever.
     if (client()?.isOfflineExport?.()) {
-      setStatus('This exported analysis is read-only: re-analysis needs the live CodeXR session.', true);
+      setStatus('This exported analysis is read-only: re-analysis needs the live Code-XR session.', true);
       return;
     }
     var connection = client();
@@ -288,8 +288,8 @@
       if (attempts >= START_SEND_MAX_ATTEMPTS) {
         root.console?.warn?.('[CodeXR][DependencyGraph] collaboration socket stayed down; giving up on dependency-graph-start.');
         setTransitionLocked(false);
-        setStatus('CodeXR is not connected to VS Code. Try again once it reconnects.', true);
-        reportOnSelector('CodeXR is not connected to VS Code. Try again once it reconnects.', true);
+        setStatus('Code-XR is not connected to VS Code. Try again once it reconnects.', true);
+        reportOnSelector('Code-XR is not connected to VS Code. Try again once it reconnects.', true);
         return;
       }
       root.console?.warn?.('[CodeXR][DependencyGraph] collaboration socket not ready; retrying dependency-graph-start...');
@@ -300,7 +300,7 @@
   async function reanalyze() {
     if (state.availability !== 'enabled' || state.transitionLocked) { return; }
     if (client()?.isOfflineExport?.()) {
-      setStatus('This exported analysis is read-only: re-analysis needs the live CodeXR session.', true);
+      setStatus('This exported analysis is read-only: re-analysis needs the live Code-XR session.', true);
       return;
     }
     setTransitionLocked(true, 'Re-analyzing dependencies...');

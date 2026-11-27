@@ -132,7 +132,7 @@ export class AnalysisConfigurationStorage {
                 metadata: {
                     version: '1.0.0',
                     lastModified: Date.now(),
-                    createdBy: 'CodeXR New Code Analysis'
+                    createdBy: 'Code-XR New Code Analysis'
                 },
                 configuration: configuration
             };

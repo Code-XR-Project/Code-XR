@@ -914,7 +914,7 @@ test('mapping panel supports per-context companion child sections', () => {
     // Title comes from a single resolver (companion title or the generic one),
     // written once instead of generic-then-overwritten.
     assert.match(mappingRuntime, /function getMappingPanelTitle\(\)/);
-    assert.match(mappingRuntime, /getActiveMappingCompanion\(\)\?\.title \|\| 'CodeXR Field Mapping'/);
+    assert.match(mappingRuntime, /getActiveMappingCompanion\(\)\?\.title \|\| 'Code-XR Field Mapping'/);
     // Context switches swap the companion in/out.
     assert.match(mappingRuntime, /applyMappingRuntimeState\(config, profile[\s\S]*?syncMappingCompanion\(\)/);
     // Non-mapping views hide companions and disable their interactions, and

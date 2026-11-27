@@ -212,7 +212,7 @@ export class PythonEnvCommands {
         try {
             const verification = await this.venvManager.verifyEnvironmentInstallation();
             void vscode.window.showInformationMessage(
-                `CodeXR verified the Python environment successfully. ${verification.packageCount} package(s) recorded.`,
+                `Code-XR verified the Python environment successfully. ${verification.packageCount} package(s) recorded.`,
                 { modal: false },
             );
         } catch (error) {
@@ -226,7 +226,7 @@ export class PythonEnvCommands {
 
         try {
             const result = await vscode.window.showWarningMessage(
-                'This will delete the current CodeXR Python environment and intentionally force the next installation to fail. Continue?',
+                'This will delete the current Code-XR Python environment and intentionally force the next installation to fail. Continue?',
                 { modal: true },
                 'Force Failure',
                 'Cancel',
@@ -244,7 +244,7 @@ export class PythonEnvCommands {
     }
 
     private showDetailedStatus(status: ReturnType<VenvManager['getEnvironmentStatus']>): void {
-        const outputChannel = vscode.window.createOutputChannel('CodeXR Python Environment Details');
+        const outputChannel = vscode.window.createOutputChannel('Code-XR Python Environment Details');
 
         outputChannel.clear();
         outputChannel.appendLine('=== Python Virtual Environment Details ===\n');

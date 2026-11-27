@@ -50,11 +50,11 @@ function createRunLastRegistrations(context: vscode.ExtensionContext): Extension
             const targetCommandId = ANALYSIS_ACTION_BY_KIND.get(targetKind as any)
                 || ANALYSIS_ACTION_BY_KIND.get(DEFAULT_LAST_ANALYSIS_KIND);
             if (!targetCommandId) {
-                throw new Error('No CodeXR analysis command is available to run.');
+                throw new Error('No Code-XR analysis command is available to run.');
             }
             await vscode.commands.executeCommand(targetCommandId, ...args);
         },
-        errorMessage: 'Failed to run last CodeXR analysis',
+        errorMessage: 'Failed to run last Code-XR analysis',
     }));
 }
 

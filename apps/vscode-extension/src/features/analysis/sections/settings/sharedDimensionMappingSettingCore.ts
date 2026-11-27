@@ -116,7 +116,7 @@ export class SharedDimensionMappingSettingCore {
             true,
         );
         if (!availableFields) {
-            void vscode.window.showWarningMessage('Python Environment Not Ready. CodeXR could not load the XR field schema yet.');
+            void vscode.window.showWarningMessage('Python Environment Not Ready. Code-XR could not load the XR field schema yet.');
             return;
         }
 
@@ -294,7 +294,7 @@ export class SharedDimensionMappingSettingCore {
             'subsection',
             undefined,
             new vscode.ThemeIcon('warning', new vscode.ThemeColor('charts.yellow')),
-            'CodeXR could not load the XR field schema yet. Wait for the Python environment to finish initializing and reopen this setting.',
+            'Code-XR could not load the XR field schema yet. Wait for the Python environment to finish initializing and reopen this setting.',
             'XR field schema unavailable',
             this.adapter.schemaUnavailableContextValue,
         );

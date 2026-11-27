@@ -15,10 +15,10 @@
     {
       id: 'overview',
       tab: 'Start',
-      title: 'Welcome to CodeXR',
+      title: 'Welcome to Code-XR',
       color: '#22d3ee',
       lines: [
-        'CodeXR turns your source code metrics into an XR scene.',
+        'Code-XR turns your source code metrics into an XR scene.',
         'The pedestal table is the stage for every analysis mode.',
         'The floating controller panel drives mappings and filters.',
         'Press Analyses on the controller panel to switch analyses.',

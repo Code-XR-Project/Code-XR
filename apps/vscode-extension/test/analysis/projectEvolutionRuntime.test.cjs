@@ -373,7 +373,7 @@ test('offline export never sends playback or lifecycle messages to a server', ()
     // into plain notices instead of dead requests (Clear would even wipe the
     // exported replay through its local fallback).
     assert.match(runtimeSource, /play, pause and seek work here/);
-    assert.match(runtimeSource, /a new movie needs the live CodeXR session/);
+    assert.match(runtimeSource, /a new movie needs the live Code-XR session/);
     assert.match(runtimeSource, /replay-only: it cannot be cleared or regenerated here/);
     const clearGuard = runtimeSource.indexOf('replay-only: it cannot be cleared or regenerated here');
     const clearSend = runtimeSource.indexOf("'project-evolution-clear'");

@@ -282,7 +282,7 @@ test('writeExportReadme documents serving and the replay-only limits', async () 
     assert.match(readme, /python -m http\.server/);
     assert.match(readme, /file:\/\//);
     assert.match(readme, /replay of the comparison computed before export/);
-    assert.match(readme, /Live source re-analysis and collaboration require CodeXR/);
+    assert.match(readme, /Live source re-analysis and collaboration require Code-XR/);
 });
 
 test('the manifest normalizes an unknown or excluded active view to Single', async () => {

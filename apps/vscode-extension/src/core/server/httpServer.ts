@@ -435,7 +435,7 @@ export class HttpServer {
             sendJsonResponse(res, 200, {
                 status: 'healthy',
                 timestamp: new Date().toISOString(),
-                server: 'CodeXR HTTP Server'
+                server: 'Code-XR HTTP Server'
             });
             return;
         }
@@ -472,7 +472,7 @@ export class HttpServer {
         switch (apiPath) {
             case '/status':
                 sendJsonResponse(res, 200, {
-                    server: 'CodeXR HTTP Server',
+                    server: 'Code-XR HTTP Server',
                     mode: 'HTTP',
                     port: this.config.port,
                     uptime: process.uptime(),

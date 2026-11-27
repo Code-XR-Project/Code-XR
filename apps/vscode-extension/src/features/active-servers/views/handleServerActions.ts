@@ -194,7 +194,7 @@ export class ServerActionHandlers {
                 ['Avatar', avatar?.label || participant.avatarId],
             ],
             [
-                ['Client', participant.clientKind === 'codexr' ? 'CodeXR' : 'Browser'],
+                ['Client', participant.clientKind === 'codexr' ? 'Code-XR' : 'Browser'],
                 ['Connection', participant.connectionScope === 'remote' ? 'Remote (cross-network)' : 'Local network'],
                 ['IP address', participant.remoteAddress],
                 ['Connected', connectedFor],
@@ -455,7 +455,7 @@ export class ServerActionHandlers {
                 } else {
                     logger.error(`Stopped ${stopped} of ${requested} servers`);
                     void vscode.window.showWarningMessage(
-                        `Stopped ${stopped} of ${requested} server(s). The others were removed from the list but did not shut down cleanly; see the CodeXR output.`
+                        `Stopped ${stopped} of ${requested} server(s). The others were removed from the list but did not shut down cleanly; see the Code-XR output.`
                     );
                 }
 

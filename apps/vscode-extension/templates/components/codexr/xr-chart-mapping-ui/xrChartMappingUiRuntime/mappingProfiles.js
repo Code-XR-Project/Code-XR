@@ -372,7 +372,7 @@
     data.from = resolveChartDataSourceId(chartId, source, mappingSnapshot);
     data.legend = true;
     data.palette = existingData.palette || 'ubuntu';
-    data.title = existingData.title || 'CodeXR Analysis';
+    data.title = existingData.title || 'Code-XR Analysis';
     data.axis_name = true;
 
     // Every chart carries its canonical base attributes (normalization caps,
@@ -472,7 +472,7 @@
     var existingData = {
       from: settings.sourceId || (isHierarchicalChart(chartId) ? 'tree' : 'data'),
       palette: settings.palette || 'ubuntu',
-      title: settings.title || 'CodeXR Analysis'
+      title: settings.title || 'Code-XR Analysis'
     };
     var mapping = settings.mapping || {};
     var data = buildRuntimeChartData(chartId, existingData, mapping);

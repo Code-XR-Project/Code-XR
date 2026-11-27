@@ -70,7 +70,7 @@ test('local XR server prevents stale runtime script caching', () => {
     assert.match(server, /headers\.Expires = '0'/);
 });
 
-test('Babia Boats is the default XR file and directory chart while CodeXR Boats remains paused', () => {
+test('Babia Boats is the default XR file and directory chart while Code-XR Boats remains paused', () => {
     const config = readProjectFile('src', 'core', 'analysis', 'configuration', 'analysisConfiguration.ts');
     const profile = readProjectFile(
         'src',
@@ -175,7 +175,7 @@ test('XR template keeps babia-queryjson bound to the injected DATA_SOURCE placeh
     );
 });
 
-test('XR template owns the initial chart through a CodeXR analysis surface', () => {
+test('XR template owns the initial chart through a Code-XR analysis surface', () => {
     const template = readProjectFile('templates', 'xr', 'file', 'xr-visualization.html');
     const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
     const modeRuntime = readAssembledRuntime('analysis-mode', 'analysisModeRuntime.js');
@@ -193,7 +193,7 @@ test('XR template owns the initial chart through a CodeXR analysis surface', () 
     assert.doesNotMatch(modeRuntime, /querySelectorAll\('\[babia-queryjson\]'\)/);
 });
 
-test('XR template includes local CodeXR room component while preserving configurable environment', () => {
+test('XR template includes local Code-XR room component while preserving configurable environment', () => {
     const template = readProjectFile('templates', 'xr', 'file', 'xr-visualization.html');
 
     assert.doesNotMatch(template, /aframe-lounge-component\.min\.js/);
@@ -251,7 +251,7 @@ test('XR and DOM templates pin aframe-babia-components to the supported version'
     assert.match(domTemplate, /aframe-babia-components@1\.3\.4\/dist\/aframe-babia-components\.min\.js/);
 });
 
-test('XR parsers include CodeXR room runtime in generated assets', () => {
+test('XR parsers include Code-XR room runtime in generated assets', () => {
     const fileParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'fileXRParser.ts');
     const directoryParser = readProjectFile('src', 'core', 'analysis', 'parsers', 'directoryXRParser.ts');
 

@@ -15,7 +15,7 @@
         publishState({ scope: { kind: 'file', relativePath: normalized } });
         return;
       }
-      setStatus('File symbols are not part of this export: drilling into ' + normalized + ' needs the live CodeXR session.', true);
+      setStatus('File symbols are not part of this export: drilling into ' + normalized + ' needs the live Code-XR session.', true);
       return;
     }
     // Live: always ask the server. It answers from its content-hash cache, so

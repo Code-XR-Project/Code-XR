@@ -203,9 +203,9 @@ const GOLDEN = {
             "dependencyGraph": true,
             "dependencyGraphReason": "",
             "historicalComparison": true,
-            "historicalComparisonReason": "Replay only: new comparisons need the live CodeXR session.",
+            "historicalComparisonReason": "Replay only: new comparisons need the live Code-XR session.",
             "projectEvolution": true,
-            "projectEvolutionReason": "Replay only: generating a new movie needs the live CodeXR session."
+            "projectEvolutionReason": "Replay only: generating a new movie needs the live Code-XR session."
         },
         "entities": [
             {
@@ -329,9 +329,9 @@ const GOLDEN = {
             "dependencyGraph": false,
             "dependencyGraphReason": "Not selected for this export.",
             "historicalComparison": true,
-            "historicalComparisonReason": "Replay only: new comparisons need the live CodeXR session.",
+            "historicalComparisonReason": "Replay only: new comparisons need the live Code-XR session.",
             "projectEvolution": true,
-            "projectEvolutionReason": "Replay only: generating a new movie needs the live CodeXR session."
+            "projectEvolutionReason": "Replay only: generating a new movie needs the live Code-XR session."
         },
         "entities": [
             {
@@ -393,9 +393,9 @@ const GOLDEN = {
             "dependencyGraph": false,
             "dependencyGraphReason": "Not selected for this export.",
             "historicalComparison": true,
-            "historicalComparisonReason": "Replay only: new comparisons need the live CodeXR session.",
+            "historicalComparisonReason": "Replay only: new comparisons need the live Code-XR session.",
             "projectEvolution": true,
-            "projectEvolutionReason": "Replay only: generating a new movie needs the live CodeXR session."
+            "projectEvolutionReason": "Replay only: generating a new movie needs the live Code-XR session."
         },
         "entities": [
             {
@@ -639,7 +639,7 @@ const GOLDEN = {
             "dependencyGraph": true,
             "dependencyGraphReason": "",
             "historicalComparison": true,
-            "historicalComparisonReason": "Replay only: new comparisons need the live CodeXR session.",
+            "historicalComparisonReason": "Replay only: new comparisons need the live Code-XR session.",
             "projectEvolution": false,
             "projectEvolutionReason": "No evolution movie was generated before export."
         },

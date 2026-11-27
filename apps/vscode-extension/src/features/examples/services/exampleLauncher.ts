@@ -54,11 +54,11 @@ export class ExampleLauncher {
                         chartsPath = path.join(workspaceRoot, 'examples', 'charts');
                         logger.debug(() => `Found CodeXR from workspace folders: ${workspaceRoot}`);
                     } else {
-                        result.errors.push('Could not find CodeXR directory with examples/charts');
+                        result.errors.push('Could not find Code-XR directory with examples/charts');
                         return result;
                     }
                 } else {
-                    result.errors.push('No workspace folder open and CodeXR path not found');
+                    result.errors.push('No workspace folder open and Code-XR path not found');
                     return result;
                 }
             }
