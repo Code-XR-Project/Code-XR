@@ -115,6 +115,8 @@ interface Group {
 export interface OpenOptions {
     /** #167: open as the preview tab (a single click in the explorer). */
     readonly preview?: boolean;
+    /** #285: false leaves the keyboard focus where it is (a single click keeps it in the explorer, as in VS Code). */
+    readonly focus?: boolean;
 }
 
 /** #173: Monaco's resources for workspace files, and the owner of the Code-XR metric markers. */

@@ -29,8 +29,8 @@ export interface TerminalPanel {
     toggle(): void;
     show(): void;
     hide(): void;
-    /** Starts a terminal from a profile (null: the default) and shows it. */
-    newTerminal(profileId?: string | null): Promise<void>;
+    /** Starts a terminal from a profile (null: the default) and shows it; #285: in `folder` (a workspace path) when given. */
+    newTerminal(profileId?: string | null, folder?: string): Promise<void>;
     /** #176: a task in a terminal of its own; resolves with its terminal id, or null when it did not start. */
     runTask(label: string, start: (cols: number, rows: number) => Promise<TerminalCreated>): Promise<number | null>;
     /** #18: the terminals' font size, for the open ones and the next. */
@@ -179,8 +179,8 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         removeTab(id);
     }
 
-    async function newTerminal(profileId: string | null = null): Promise<void> {
-        await openTerminal((cols, rows) => api.create(profileId, cols, rows), null);
+    async function newTerminal(profileId: string | null = null, folder?: string): Promise<void> {
+        await openTerminal((cols, rows) => (folder === undefined ? api.create(profileId, cols, rows) : api.create(profileId, cols, rows, folder)), null);
     }
 
     /**

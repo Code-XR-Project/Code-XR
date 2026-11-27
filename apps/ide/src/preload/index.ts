@@ -198,6 +198,9 @@ const api: CodeXRApi = Object.freeze({
         onDidChangeTrust: (listener: (trust: WorkspaceTrustInfo) => void) => subscribe(IPC_EVENTS.workspaceTrustChanged, listener),
         openExternalLink: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenExternalLink, url),
         trash: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrash, path),
+        copyEntry: (path: string, toFolder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceCopyEntry, path, toFolder),
+        moveEntry: (path: string, toFolder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceMoveEntry, path, toFolder),
+        revealInOs: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRevealInOs, path),
         recentFolders: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceRecentFolders),
         openRecent: (folder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenRecent, folder),
         onDidChange: (listener: (workspace: WorkspaceInfo | null) => void) => {
@@ -214,7 +217,8 @@ const api: CodeXRApi = Object.freeze({
         setDefaultProfile: (profileId: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalSetDefaultProfile, profileId),
         addCustomProfile: (args: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalAddCustomProfile, args),
         removeCustomProfile: (profileId: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalRemoveCustomProfile, profileId),
-        create: (profileId: string | null, cols: number, rows: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalCreate, profileId, cols, rows),
+        create: (profileId: string | null, cols: number, rows: number, folder?: string) =>
+            ipcRenderer.invoke(IPC_CHANNELS.terminalCreate, profileId, cols, rows, folder ?? null),
         input: (id: number, data: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalInput, id, data),
         resize: (id: number, cols: number, rows: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalResize, id, cols, rows),
         kill: (id: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalKill, id),
