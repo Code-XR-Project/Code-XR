@@ -1,24 +1,31 @@
 {
   "name": "code-xr",
   "displayName": "Code-XR",
-  "description": "Analyze your code and walk through it as a 3D city in your browser: metrics, dependency graph, Git history and collaboration, all local. VR optional.",
+  "description": "Analyze your code and explore it in 3D, in your browser or in VR: complexity metrics, dependency graph, Git history and live collaboration. 28 languages, all local.",
   "version": "1.2.1",
   "keywords": [
     "code visualization",
+    "software visualization",
     "code metrics",
-    "dependency graph",
     "cyclomatic complexity",
+    "cognitive complexity",
+    "maintainability index",
+    "halstead",
+    "dependency graph",
     "git history",
     "code city",
     "code analysis",
     "static analysis",
+    "code quality",
     "3D",
     "WebXR",
     "VR",
+    "AR",
+    "virtual reality",
     "A-Frame",
     "BabiaXR",
     "collaboration",
-    "code metrics"
+    "codelens"
   ],
   "icon": "resources/icon.png",
   "galleryBanner": {
@@ -28,8 +35,16 @@
   "homepage": "https://code-xr.adrianmonteslinares.com/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aMonteSl/CodeXR.git"
+    "url": "https://github.com/Code-XR-Project/Code-XR.git"
   },
+  "bugs": {
+    "url": "https://github.com/Code-XR-Project/Code-XR/issues"
+  },
+  "sponsor": {
+    "url": "https://buymeacoffee.com/adrianadyrx"
+  },
+  "pricing": "Free",
+  "qna": "marketplace",
   "license": "GPL-3.0-only",
   "publisher": "aMonteSl",
   "author": "Adrián Montes Linares",
@@ -38,11 +53,9 @@
   },
   "categories": [
     "Visualization",
-    "Data Science",
-    "Debuggers",
     "Linters",
-    "Testing",
-    "Other"
+    "Data Science",
+    "Education"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -63,23 +76,23 @@
     "commands": [
       {
         "command": "codeXR.collaboration.selectIdentity",
-        "title": "CodeXR: Select Collaboration Identity"
+        "title": "Code-XR: Select Collaboration Identity"
       },
       {
         "command": "codeXR.collaboration.setName",
-        "title": "CodeXR: Set Collaboration Name"
+        "title": "Code-XR: Set Collaboration Name"
       },
       {
         "command": "codeXR.collaboration.selectAvatar",
-        "title": "CodeXR: Select Avatar Color"
+        "title": "Code-XR: Select Avatar Color"
       },
       {
         "command": "codeXR.collaboration.showAvatarModelInfo",
-        "title": "CodeXR: Show Avatar Model Information"
+        "title": "Code-XR: Show Avatar Model Information"
       },
       {
         "command": "codeXR.collaboration.joinRemote",
-        "title": "CodeXR: Join Remote Session"
+        "title": "Code-XR: Join Remote Session"
       },
       {
         "command": "codexr.server.launch",
@@ -288,78 +301,78 @@
       },
       {
         "command": "codeXR.pythonEnv.debugFailInstallation",
-        "title": "CodeXR: Debug Python Environment Failure",
+        "title": "Code-XR: Debug Python Environment Failure",
         "icon": "$(bug)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.revealInScene",
-        "title": "CodeXR: Reveal in XR Scene",
+        "title": "Code-XR: Reveal in XR Scene",
         "enablement": "codeXR.analysis.sceneRunning"
       },
       {
         "command": "codeXR.analysis.analyzeFile",
-        "title": "CodeXR: Analyze File (LivePanel)",
+        "title": "Code-XR: Analyze File (LivePanel)",
         "icon": "$(file-code)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeFileXR",
-        "title": "CodeXR: Analyze File (XR)",
+        "title": "Code-XR: Analyze File (XR)",
         "icon": "$(device-camera-video)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeDirectory",
-        "title": "CodeXR: Analyze Directory (LivePanel)",
+        "title": "Code-XR: Analyze Directory (LivePanel)",
         "icon": "$(folder)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeDirectoryDeep",
-        "title": "CodeXR: Analyze Directory (LivePanel Deep)",
+        "title": "Code-XR: Analyze Directory (LivePanel Deep)",
         "icon": "$(folder-library)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeDirectoryXR",
-        "title": "CodeXR: Analyze Directory (XR)",
+        "title": "Code-XR: Analyze Directory (XR)",
         "icon": "$(device-desktop)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeDirectoryXRDeep",
-        "title": "CodeXR: Analyze Directory (XR Deep)",
+        "title": "Code-XR: Analyze Directory (XR Deep)",
         "icon": "$(layers-dot)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeProject",
-        "title": "CodeXR: Analyze Project (LivePanel)",
+        "title": "Code-XR: Analyze Project (LivePanel)",
         "icon": "$(project)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeProjectDeep",
-        "title": "CodeXR: Analyze Project (LivePanel Deep)",
+        "title": "Code-XR: Analyze Project (LivePanel Deep)",
         "icon": "$(layers)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeProjectXR",
-        "title": "CodeXR: Analyze Project (XR)",
+        "title": "Code-XR: Analyze Project (XR)",
         "icon": "$(device-desktop)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.analyzeProjectXRDeep",
-        "title": "CodeXR: Analyze Project (XR Deep)",
+        "title": "Code-XR: Analyze Project (XR Deep)",
         "icon": "$(layers-dot)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.visualizeDOM",
-        "title": "CodeXR: Visualize DOM",
+        "title": "Code-XR: Visualize DOM",
         "icon": "$(browser)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
@@ -401,78 +414,78 @@
       },
       {
         "command": "codeXR.analysis.runLast.analyzeFile",
-        "title": "CodeXR: Run Last: Analyze File (LivePanel)",
+        "title": "Code-XR: Run Last: Analyze File (LivePanel)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeFileXR",
-        "title": "CodeXR: Run Last: Analyze File (XR)",
+        "title": "Code-XR: Run Last: Analyze File (XR)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeDirectory",
-        "title": "CodeXR: Run Last: Analyze Directory (LivePanel)",
+        "title": "Code-XR: Run Last: Analyze Directory (LivePanel)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeDirectoryDeep",
-        "title": "CodeXR: Run Last: Analyze Directory (LivePanel Deep)",
+        "title": "Code-XR: Run Last: Analyze Directory (LivePanel Deep)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeDirectoryXR",
-        "title": "CodeXR: Run Last: Analyze Directory (XR)",
+        "title": "Code-XR: Run Last: Analyze Directory (XR)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeDirectoryXRDeep",
-        "title": "CodeXR: Run Last: Analyze Directory (XR Deep)",
+        "title": "Code-XR: Run Last: Analyze Directory (XR Deep)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeProject",
-        "title": "CodeXR: Run Last: Analyze Project (LivePanel)",
+        "title": "Code-XR: Run Last: Analyze Project (LivePanel)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeProjectDeep",
-        "title": "CodeXR: Run Last: Analyze Project (LivePanel Deep)",
+        "title": "Code-XR: Run Last: Analyze Project (LivePanel Deep)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeProjectXR",
-        "title": "CodeXR: Run Last: Analyze Project (XR)",
+        "title": "Code-XR: Run Last: Analyze Project (XR)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.analyzeProjectXRDeep",
-        "title": "CodeXR: Run Last: Analyze Project (XR Deep)",
+        "title": "Code-XR: Run Last: Analyze Project (XR Deep)",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
         "command": "codeXR.analysis.runLast.visualizeDOM",
-        "title": "CodeXR: Run Last: Visualize DOM",
+        "title": "Code-XR: Run Last: Visualize DOM",
         "icon": "$(history)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       }
     ],
     "configuration": {
-      "title": "CodeXR",
+      "title": "Code-XR",
       "properties": {
         "codeXR.debug.verboseLogs": {
           "type": "boolean",
           "default": false,
-          "description": "Enable verbose CodeXR debug logging in the dedicated output channel."
+          "description": "Enable verbose Code-XR debug logging in the dedicated output channel."
         },
         "codeXR.problems.metrics.maxComplexity": {
           "type": "integer",
@@ -503,7 +516,7 @@
       "activitybar": [
         {
           "id": "codexr",
-          "title": "CodeXR",
+          "title": "Code-XR",
           "icon": "resources/icon.svg"
         }
       ]
@@ -512,7 +525,7 @@
       "codexr": [
         {
           "id": "codexrTree",
-          "name": "CodeXR",
+          "name": "Code-XR",
           "icon": "$(server-environment)"
         }
       ]
