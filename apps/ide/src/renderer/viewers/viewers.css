@@ -12,7 +12,7 @@
   padding: 2px 8px;
   border-bottom: 1px solid var(--line);
   background: var(--chrome);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   flex-wrap: wrap;
   white-space: nowrap;
 }
@@ -25,29 +25,23 @@
 .viewer-scroll[hidden], .viewer-message[hidden] { display: none; }
 .viewer-message { flex: 1; display: grid; place-items: center; padding: 24px; text-align: center; }
 .viewer-find { display: flex; align-items: center; gap: 2px; }
-.viewer-find-input, .pdf-page-input {
-  height: 22px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--editor);
-  color: var(--fg);
-  font: inherit;
-}
+
+.viewer-find-input, .pdf-page-input { height: var(--control-h-sm); }
 .viewer-find-input { width: 160px; padding: 0 6px; }
-.viewer-find-input:focus, .pdf-page-input:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+
 .viewer-find-count { min-width: 64px; margin: 0 4px; text-align: center; font-variant-numeric: tabular-nums; }
 .pdf-page-input { width: 40px; margin: 0 4px; text-align: center; }
 
 /* The image: fitted by default, checkerboard behind transparency. */
 .image-viewer-stage { display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
 .image-viewer-image {
-  background-color: #fff;
+  background-color: var(--checker-light);
   background-image:
-    linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
+    linear-gradient(45deg, var(--checker-dark) 25%, transparent 25%), linear-gradient(-45deg, var(--checker-dark) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker-dark) 75%), linear-gradient(-45deg, transparent 75%, var(--checker-dark) 75%);
   background-size: 16px 16px;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
   image-rendering: auto;
 }
 .image-viewer-stage.is-fit { overflow: hidden; }
@@ -59,8 +53,8 @@
 .pdf-page {
   position: relative;
   flex: none;
-  background: #fff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  background: var(--checker-light);
+  box-shadow: var(--shadow-sm);
   --scale-round-x: 1px;
   --scale-round-y: 1px;
 }
@@ -107,4 +101,4 @@
 .pdf-page .textLayer br::selection { background: transparent; }
 .pdf-page .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }
 .pdf-page .textLayer.selecting .endOfContent { top: 0; }
-.pdf-page .textLayer .highlight { position: static; margin: -1px; padding: 1px; border-radius: 3px; background-color: rgba(255, 140, 0, 0.5); }
+.pdf-page .textLayer .highlight { position: static; margin: -1px; padding: 1px; border-radius: var(--radius-sm); background-color: rgba(255, 140, 0, 0.5); }

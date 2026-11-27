@@ -252,8 +252,12 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
             document.createTextNode(' IDE'),
         ]),
         el('p', { className: 'welcome-tagline', text: 'Edit, analyse and explore your code in extended reality.' }),
-        status,
-        infoList,
+        // Visual polish V6: the build details are for a bug report, not the first thing a person reads.
+        el('details', { className: 'welcome-build', attrs: { 'data-testid': 'welcome-build' } }, [
+            el('summary', { text: 'About this build' }),
+            status,
+            infoList,
+        ]),
     ]);
 
     const editorArea = el('main', { className: 'editor-area' }, [welcome]);
@@ -373,6 +377,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         showError(message: string): void {
             status.textContent = message;
             status.className = 'error';
+            // An error must not hide inside the collapsed build details.
+            status.parentElement?.setAttribute('open', '');
         },
     };
 }

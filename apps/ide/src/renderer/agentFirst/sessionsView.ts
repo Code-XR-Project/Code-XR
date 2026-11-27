@@ -218,6 +218,10 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
             return option;
         }));
         newChatButton.disabled = !agents.some((agent) => agent.kind === 'acp' && agent.availability !== 'missing');
+        if (newChatButton.disabled) {
+            // Never an empty picker: say why New chat is off (visual polish V3).
+            agentSelect.prepend(el('option', { text: 'No agent yet', attrs: { value: '', disabled: '', selected: '' } }));
+        }
         const builtins = agents.filter((agent) => agent.kind === 'builtin');
         const builtinRow: HTMLElement[] = [];
         if (builtins.length > 0) {
