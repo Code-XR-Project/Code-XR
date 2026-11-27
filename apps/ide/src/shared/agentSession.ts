@@ -267,6 +267,66 @@ export interface SessionSummary {
     readonly unread: boolean;
     /** Files the agent changed in this chat that are still pending review (AF5). */
     readonly pendingChanges: number;
+    /** AF12: the git worktree the chat's agent works in, when the chat was started in one. */
+    readonly worktree?: SessionWorktree;
+}
+
+/**
+ * AF12 (#277): a chat started with "Separate worktree" runs its agent in a git
+ * worktree of its own, on its own branch, outside the project. Written by the
+ * main process only; the renderer shows it and names the chat by id, never by
+ * these paths.
+ */
+export interface SessionWorktree {
+    /** `codexr/agent/<slug>-<id>`. */
+    readonly branch: string;
+    /** Top of the worktree (under `<userData>/worktrees`). */
+    readonly path: string;
+    /** Where the agent works: `path` plus the project's sub-folder inside the repository. */
+    readonly cwd: string;
+    /** The commit the branch started from. */
+    readonly baseCommit: string;
+    /** Top of the project's main work tree, where merges land. */
+    readonly repoRoot: string;
+    /** The worktree and its branch were discarded: the chat is kept, read-only. */
+    readonly removed?: boolean;
+}
+
+/** AF12: whether the window's folder can give a chat its own worktree. */
+export interface WorktreeAvailabilityView {
+    readonly ok: boolean;
+    /** Why not, when `ok` is false. */
+    readonly message: string | null;
+}
+
+/** AF12: what a worktree chat's agent changed, for the chat header's Worktree bar. */
+export interface WorktreeStatusView {
+    readonly branch: string;
+    /** The project's current branch (where Merge and Squash land), or null when it is detached. */
+    readonly into: string | null;
+    /** False when the worktree folder is gone (discarded, or deleted outside the IDE). */
+    readonly exists: boolean;
+    readonly removed: boolean;
+    /** Repository-relative, forward slashes. */
+    readonly files: readonly { readonly path: string; readonly status: 'added' | 'modified' | 'deleted'; readonly committed: boolean; readonly uncommitted: boolean }[];
+    /** Commits on the branch since it started. */
+    readonly ahead: number;
+    /** Commits on the project's branch that the agent's branch does not have. */
+    readonly behind: number;
+    readonly hasUncommitted: boolean;
+}
+
+export interface WorktreeCommitView {
+    /** Null when there was nothing to commit. */
+    readonly commit: string | null;
+    readonly fileCount: number;
+}
+
+export interface WorktreeMergeView {
+    readonly strategy: 'merge' | 'squash';
+    readonly into: string;
+    readonly commit: string | null;
+    readonly nothingToMerge: boolean;
 }
 
 export interface AgentSessionState extends SessionSummary {
@@ -330,6 +390,8 @@ export type SessionEvent =
     | { readonly type: 'pending-changes'; readonly count: number }
     /** AF9: attaches the metric delta of the turn that ended with `turnId`. */
     | { readonly type: 'metric-delta'; readonly turnId: string; readonly delta: TurnMetricDeltaView }
+    /** AF12: the chat's worktree was created or discarded. */
+    | { readonly type: 'worktree'; readonly worktree: SessionWorktree }
     | { readonly type: 'read' };
 
 /** Main -> renderer: an event for one session, or a session list change. */
@@ -495,6 +557,8 @@ export function applySessionEvent(state: AgentSessionState, event: SessionEvent,
             copy[index] = { ...target, metricDelta: event.delta };
             return { ...state, items: copy };
         }
+        case 'worktree':
+            return touch({ worktree: event.worktree });
         case 'read':
             return state.unread ? { ...state, unread: false } : state;
     }
@@ -524,6 +588,7 @@ export function summarize(state: AgentSessionState): SessionSummary {
         status: state.status,
         unread: state.unread,
         pendingChanges: state.pendingChanges,
+        ...(state.worktree ? { worktree: state.worktree } : {}),
     };
 }
 
@@ -571,6 +636,11 @@ export const AGENT_SESSION_CHANNELS = {
     undoChanges: 'codexr:agent-sessions:undo-changes',
     previewRestore: 'codexr:agent-sessions:preview-restore',
     restoreCheckpoint: 'codexr:agent-sessions:restore-checkpoint',
+    worktreeAvailability: 'codexr:agent-sessions:worktree-availability',
+    worktreeStatus: 'codexr:agent-sessions:worktree-status',
+    worktreeCommit: 'codexr:agent-sessions:worktree-commit',
+    worktreeMerge: 'codexr:agent-sessions:worktree-merge',
+    worktreeDiscard: 'codexr:agent-sessions:worktree-discard',
     describeInstall: 'codexr:agent-sessions:describe-install',
     install: 'codexr:agent-sessions:install',
     uninstall: 'codexr:agent-sessions:uninstall',
@@ -607,8 +677,11 @@ export interface AgentSessionsApi {
     /** Recent projects and their chats, the window's own folder first. */
     listProjects(): Promise<readonly ProjectSessions[]>;
     get(sessionId: string): Promise<AgentSessionState>;
-    /** A new chat in the folder open in this window. */
-    create(agentRef: string): Promise<AgentSessionState>;
+    /**
+     * A new chat in the folder open in this window; with `worktree`, in a git
+     * worktree and branch of its own (AF12), refused when the folder cannot have one.
+     */
+    create(agentRef: string, options?: { readonly worktree?: boolean }): Promise<AgentSessionState>;
     /** Sends a message; events stream through `onMessage`. Resolves when the turn ends. */
     prompt(sessionId: string, text: string, attachments?: readonly PromptAttachment[]): Promise<void>;
     cancel(sessionId: string): Promise<void>;
@@ -616,7 +689,8 @@ export interface AgentSessionsApi {
     setMode(sessionId: string, modeId: string): Promise<void>;
     setConfigOption(sessionId: string, optionId: string, valueId: string): Promise<void>;
     rename(sessionId: string, title: string): Promise<SessionSummary>;
-    remove(sessionId: string): Promise<void>;
+    /** Deletes a chat; with `removeWorktree`, also its worktree and branch (AF12), else they are kept. */
+    remove(sessionId: string, options?: { readonly removeWorktree?: boolean }): Promise<void>;
     markRead(sessionId: string): Promise<void>;
     /** AF5: the files the chat changed that still await review. */
     changes(sessionId: string): Promise<ChatChanges>;
@@ -630,6 +704,16 @@ export interface AgentSessionsApi {
     previewRestore(sessionId: string, checkpointId: string): Promise<readonly string[]>;
     /** AF6: puts every file back as it was before the message with this checkpoint; returns the paths written. */
     restoreCheckpoint(sessionId: string, checkpointId: string): Promise<readonly string[]>;
+    /** AF12: whether a new chat of this window's folder can have its own worktree. */
+    worktreeAvailability(): Promise<WorktreeAvailabilityView>;
+    /** AF12: what the chat's agent changed on its branch, ahead/behind the project's branch. */
+    worktreeStatus(sessionId: string): Promise<WorktreeStatusView>;
+    /** AF12: commits everything in the chat's worktree on its branch. */
+    worktreeCommit(sessionId: string, message: string): Promise<WorktreeCommitView>;
+    /** AF12: merges (`--no-ff`) or squashes the chat's branch into the project's current branch; refused with the reason when it is not safe. */
+    worktreeMerge(sessionId: string, strategy: 'merge' | 'squash'): Promise<WorktreeMergeView>;
+    /** AF12: removes the chat's worktree and deletes its branch; the chat is kept, read-only. */
+    worktreeDiscard(sessionId: string): Promise<void>;
     /**
      * AF2: reads from the npm registry what installing a preset's adapter
      * would download (the only network call, made because the person asked).

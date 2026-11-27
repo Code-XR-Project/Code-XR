@@ -152,11 +152,23 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
             title: `Changes: ${chatTitle}`,
             iconName: 'changes.diff',
             create(context) {
-                const view = createChangesView(sessionId, { api, openFile: (path) => options.openFile(path), onStatus: options.onStatus });
+                // AF12: the files of a worktree chat are in its worktree, not in the folder the editor shows.
+                let worktreePath: string | null = null;
+                const openFile = (path: string): void => {
+                    if (worktreePath) {
+                        options.onStatus(`${path} is in this chat's worktree (${worktreePath}). The editor shows the main project; merge the branch to bring it in.`);
+                        return;
+                    }
+                    options.openFile(path);
+                };
+                const view = createChangesView(sessionId, { api, openFile, onStatus: options.onStatus });
                 const set = changesViews.get(sessionId) ?? new Set<ChangesView>();
                 set.add(view);
                 changesViews.set(sessionId, set);
-                api.get(sessionId).then((state) => context.setTitle(`Changes: ${state.title}`), (error: unknown) => {
+                api.get(sessionId).then((state) => {
+                    worktreePath = state.worktree?.path ?? null;
+                    context.setTitle(`Changes: ${state.title}`);
+                }, (error: unknown) => {
                     if (/That chat no longer exists/.test(errorText(error))) {
                         context.close();
                     }
