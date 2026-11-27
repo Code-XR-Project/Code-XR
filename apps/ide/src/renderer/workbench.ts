@@ -48,6 +48,8 @@ export interface Workbench {
     readonly scmView: HTMLElement;
     /** The status bar's slot for the current branch (#17), at its left. */
     readonly branchStatus: HTMLElement;
+    /** #177: the Restricted Mode item, at the start of the status bar (trustView.ts fills it). */
+    readonly trustStatus: HTMLButtonElement;
     /** Whether a side-bar view is the one shown (and the side bar visible). */
     isViewVisible(id: ViewId): boolean;
     /** The Analysis view's pane of the side bar (#15: the Python environment). */
@@ -171,7 +173,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     // #166: the active editor's position, indentation, encoding, line endings and language.
     const editorStatus = el('span', { className: 'status-editor', attrs: { 'data-testid': 'editor-status' } });
     const branchStatus = el('span', { className: 'status-branch', attrs: { 'data-testid': 'branch-status' } });
-    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [branchStatus, problemsItem, statusLeft]), el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
+    const trustStatus = el('button', { className: 'status-item status-trust', attrs: { type: 'button', 'data-testid': 'trust-status', hidden: '' } });
+    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [trustStatus, branchStatus, problemsItem, statusLeft]), el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
 
     const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
     // #137: the bottom panel (hidden until the terminal opens).
@@ -188,6 +191,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         searchView,
         scmView,
         branchStatus,
+        trustStatus,
         isViewVisible: (id: ViewId) => !panes.get(id)?.hidden && layout.sideBarVisible && !layout.zen,
         analysisView,
         agentsView,

@@ -15,6 +15,8 @@ import { checkForUpdates } from './updates/updateCheck.ts';
 import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
 import { createMainWindow } from './window.ts';
 import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
+import { initWorkspaceTrust } from './trust/workspaceTrust.ts';
+import { JsonKeyValueStore } from './core/jsonStore.ts';
 import { APP_ORIGIN, trustedOrigins } from './security.ts';
 import { log } from './log.ts';
 import { IPC_EVENTS } from '../shared/api.ts';
@@ -103,6 +105,19 @@ async function start(): Promise<void> {
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
     agentServices = startAgents({ isSmoke, commandRunner: terminalHost.commandRunner });
+    // #177: workspace trust decisions, in the user-data folder (in memory for the smoke run).
+    const trustFile = isSmoke ? null : new JsonKeyValueStore(path.join(app.getPath('userData'), 'workspace-trust.json'));
+    let smokeTrust: unknown = [];
+    initWorkspaceTrust({
+        load: () => (trustFile ? trustFile.get('folders') : smokeTrust),
+        save: async (decisions) => {
+            if (trustFile) {
+                await trustFile.update('folders', decisions);
+            } else {
+                smokeTrust = decisions;
+            }
+        },
+    });
     const lsp = createLspHost();
     languageServers = lsp;
     registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp);

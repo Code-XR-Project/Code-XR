@@ -5,6 +5,7 @@ import { emptyGitStatus, GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitCommitResult,
 import { log } from '../log.ts';
 import { workspaceOrNull } from '../workspace/workspaceWindows.ts';
 import { GitService } from './gitService.ts';
+import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 
 type Handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => void;
 
@@ -120,7 +121,13 @@ async function watchRepository(contents: WebContents, entry: WindowGit): Promise
     watch(path.join(repo.commonDir, 'refs', 'heads'), (name) => !name.endsWith('.lock'));
 }
 
+export const RESTRICTED_GIT_MESSAGE = 'Restricted Mode: Git does not run in this folder until you trust it. A repository brings its own hooks, filters and configuration, which Git would run. Use Manage Workspace Trust.';
+
 async function statusOf(contents: WebContents): Promise<GitStatus> {
+    if (workspaceOrNull(contents) && !isWorkspaceTrusted(contents)) {
+        dispose(contents.id);
+        return emptyGitStatus('restricted', RESTRICTED_GIT_MESSAGE);
+    }
     const service = gitServiceOf(contents);
     if (!service) {
         return emptyGitStatus('no-folder', 'Open a folder to use Source Control.');
@@ -134,6 +141,9 @@ async function statusOf(contents: WebContents): Promise<GitStatus> {
 }
 
 function requireService(contents: WebContents): GitService {
+    if (workspaceOrNull(contents) && !isWorkspaceTrusted(contents)) {
+        throw new Error(RESTRICTED_GIT_MESSAGE);
+    }
     const service = gitServiceOf(contents);
     if (!service) {
         throw new Error('No folder is open in this window.');
@@ -148,6 +158,13 @@ async function confirm(contents: WebContents, options: MessageBoxOptions): Promi
 }
 
 export function registerGitHandlers(handle: Handle): void {
+    // #177: a trust change turns Git on or off for the window; its Source Control view refreshes.
+    addTrustChangeListener((contents) => {
+        dispose(contents.id);
+        if (!contents.isDestroyed()) {
+            contents.send(GIT_IPC_EVENTS.gitChanged);
+        }
+    });
     handle(GIT_IPC_CHANNELS.gitStatus, (event) => statusOf(event.sender));
     handle(GIT_IPC_CHANNELS.gitStage, async (event, paths) => {
         await requireService(event.sender).stage(paths);

@@ -30,6 +30,8 @@ export interface SmokeProbe {
     /** #17: Source Control answered for the smoke folder and refused a path out of it. */
     readonly gitStatusState: string | null;
     readonly gitTraversalRefused: boolean;
+    /** #177: the folder's trust before and after the smoke run trusted it, and Git while it was not trusted. */
+    readonly trust: { readonly before?: string; readonly shieldShown?: boolean; readonly restrictedGit?: string; readonly after?: string; readonly error?: string } | null;
     /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
     readonly editorOpened: boolean;
     /** #138: file icons in the explorer and the tabs, and those that failed to load from the app. */
@@ -111,6 +113,17 @@ const RENDERER_PROBE = `(async () => {
     try { readFileKind = (await window.codexr.workspace.readFile('package.json')).kind; } catch { readFileKind = null; }
     let traversalRefused = false;
     try { await window.codexr.workspace.readFile('../package.json'); } catch { traversalRefused = true; }
+    // #177: a new folder starts untrusted, with Git off and the shield shown; trusting it turns Git on.
+    let trust = null;
+    try {
+        const before = await window.codexr.workspace.trust();
+        const shieldShown = Boolean(document.querySelector('[data-testid="trust-status"]:not([hidden])'));
+        const restrictedGit = (await window.codexr.git.status()).state;
+        const after = await window.codexr.workspace.setTrust('folder');
+        trust = { before: before.state, shieldShown, restrictedGit, after: after.state };
+    } catch (error) {
+        trust = { error: String(error) };
+    }
     let gitStatusState = null;
     try { gitStatusState = (await window.codexr.git.status()).state; } catch { gitStatusState = null; }
     let gitTraversalRefused = false;
@@ -361,6 +374,7 @@ const RENDERER_PROBE = `(async () => {
         readFileKind,
         traversalRefused,
         gitStatusState,
+        trust,
         gitTraversalRefused,
         editorOpened,
         fileIconsShown,
@@ -431,6 +445,9 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
         if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
         if (probe.gitStatusState === null) { failures.push('git.status did not answer'); }
+        if (probe.trust?.before !== 'unknown' || probe.trust.restrictedGit !== 'restricted' || probe.trust.after !== 'trusted' || !probe.trust.shieldShown) {
+            failures.push(`workspace trust did not gate Git or did not take the answer (got ${JSON.stringify(probe.trust)})`);
+        }
         if (!probe.gitTraversalRefused) { failures.push('git.headContent followed a path out of the folder'); }
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
         if (probe.fileIconsShown === 0) { failures.push('the explorer and the tabs showed no file icon'); }

@@ -50,6 +50,17 @@ export function languageServerSymbols(model: monaco.editor.ITextModel): Promise<
     return symbolsOf ? symbolsOf(model) : Promise.resolve([]);
 }
 
+let reopenAll: (() => void) | null = null;
+
+/**
+ * #177: sends every followed document again (close, then open). The main
+ * process stops a window's language servers when its trust changes; the next
+ * open starts the ones the new trust allows.
+ */
+export function reopenLanguageDocuments(): void {
+    reopenAll?.();
+}
+
 export function installLanguageClient(api: LspApi, host: LanguageClientHost): void {
     if (installed) {
         return;
@@ -107,6 +118,12 @@ export function installLanguageClient(api: LspApi, host: LanguageClientHost): vo
         void api.didClose(uri).catch(warn);
     }
 
+    reopenAll = () => {
+        for (const entry of [...tracked.values()]) {
+            untrack(entry.model);
+            track(entry.model);
+        }
+    };
     monaco.editor.getModels().forEach(track);
     monaco.editor.onDidCreateModel(track);
     monaco.editor.onWillDisposeModel(untrack);

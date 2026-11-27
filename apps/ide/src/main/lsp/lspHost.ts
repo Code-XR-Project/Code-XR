@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { LSP_IPC_EVENTS, serverIdOf, type LspDiagnosticsEvent, type LspServerId } from '../../shared/lsp.ts';
 import { channelLog } from '../log.ts';
 import { addFolderChangeListener, currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
+import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { LanguageServer, type DiagnosticsParams } from './languageServer.ts';
 import { assertLanguage, assertRequestMethod, assertText, assertVersion, buildDocumentRequest, CompletionDataStore, lspLanguageId } from './lspProtocol.ts';
 import { findPythonServer, typescriptServerCommand, type ServerCommand } from './lspServers.ts';
@@ -90,6 +91,8 @@ export function createLspHost(): LspHost {
     }
 
     addFolderChangeListener((contents) => void stopSession(contents.id));
+    // #177: the renderer sends its documents again after a trust change, and the servers the new trust allows start.
+    addTrustChangeListener((contents) => void stopSession(contents.id));
 
     /** The window's session for its open folder; a new one when the folder changed. */
     async function sessionOf(contents: WebContents): Promise<Session> {
@@ -145,6 +148,11 @@ export function createLspHost(): LspHost {
     async function createServer(session: Session, id: LspServerId): Promise<LanguageServer | null> {
         let command: ServerCommand | null;
         try {
+            if (id !== 'typescript' && !isWorkspaceTrusted(session.contents)) {
+                // #177: pyright runs the interpreter a project's config names, so Restricted Mode starts no Python server.
+                lspLog.info('Restricted Mode: the Python language server does not start until this folder is trusted (Manage Workspace Trust).');
+                return null;
+            }
             command = id === 'typescript'
                 ? typescriptCommand()
                 : await findPythonServer({ platform: process.platform, env: process.env, isFile: isExecutableFile });

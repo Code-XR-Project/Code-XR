@@ -548,6 +548,10 @@ body {
 .status-problems { flex: none; display: inline-flex; align-items: center; gap: 3px; margin-left: -6px; }
 .status-problems svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .status-problems svg + span { margin-right: 5px; }
+/* #177: Restricted Mode, the first item of the status bar while the folder is not trusted. */
+.status-item.status-trust { display: inline-flex; align-items: center; gap: 4px; background: var(--warn); color: #1b1300; font-weight: 600; }
+.status-item.status-trust[hidden] { display: none; }
+.status-trust-icon { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 .status-item {
   padding: 0 6px;
   height: 20px;

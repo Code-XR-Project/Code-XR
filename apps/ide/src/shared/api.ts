@@ -112,6 +112,20 @@ export interface WatchedEntry {
 }
 
 /** A file read for the editor. Binary and oversized files are reported, not sent. */
+/** #177: whether the open folder may run what it defines (Git, language servers it configures, tasks). */
+export type WorkspaceTrustState = 'trusted' | 'restricted' | 'unknown';
+
+export interface WorkspaceTrustInfo {
+    /** `unknown` until the person answers; the IDE treats it as restricted. */
+    readonly state: WorkspaceTrustState;
+    /** The open folder (absolute), or null without one. */
+    readonly folder: string | null;
+    /** The folder whose trust covers this one (itself or a parent), when trusted. */
+    readonly trustedThrough: string | null;
+    /** The parent folder, offered as "trust all folders in ..."; null at a drive or file-system root. */
+    readonly parent: string | null;
+}
+
 export type FileContent =
     | { readonly kind: 'text'; readonly path: string; readonly text: string; readonly mtimeMs: number }
     | { readonly kind: 'binary' | 'too-large'; readonly path: string; readonly size: number };
@@ -467,6 +481,15 @@ export interface CodeXRApi {
         openRecent(folder: string): Promise<WorkspaceInfo>;
         /** Fires when the workspace changes from outside the renderer (`--folder=` at startup, File > Open Recent). */
         onDidChange(listener: (workspace: WorkspaceInfo | null) => void): Unsubscribe;
+        /** #177: the open folder's trust. */
+        trust(): Promise<WorkspaceTrustInfo>;
+        /**
+         * #177: trusts the open folder (`folder`), every folder in its parent
+         * (`parent`), or puts it in Restricted Mode (`restrict`). Remembered.
+         */
+        setTrust(choice: 'folder' | 'parent' | 'restrict'): Promise<WorkspaceTrustInfo>;
+        /** #177: the open folder's trust changed (this window or another). */
+        onDidChangeTrust(listener: (trust: WorkspaceTrustInfo) => void): Unsubscribe;
     };
     /**
      * The integrated terminal (#137). The pty lives in the main process; the
@@ -585,6 +608,8 @@ export const IPC_CHANNELS = {
     workspaceRename: 'codexr:workspace:rename',
     workspaceCopyPath: 'codexr:workspace:copy-path',
     workspaceReadImage: 'codexr:workspace:read-image',
+    workspaceTrust: 'codexr:workspace:trust',
+    workspaceSetTrust: 'codexr:workspace:set-trust',
     workspaceOpenExternalLink: 'codexr:workspace:open-external-link',
     settingsGet: 'codexr:settings:get',
     settingsUpdate: 'codexr:settings:update',
@@ -641,6 +666,7 @@ export const IPC_EVENTS = {
     workspaceChanged: 'codexr:workspace:changed',
     command: 'codexr:command',
     workspaceFilesChanged: 'codexr:workspace:files-changed',
+    workspaceTrustChanged: 'codexr:workspace:trust-changed',
     workspaceSearchResult: 'codexr:workspace:search-result',
     workspaceSearchDone: 'codexr:workspace:search-done',
     pythonStatusChanged: 'codexr:python:status-changed',

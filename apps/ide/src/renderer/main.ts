@@ -4,6 +4,7 @@ import { createPythonView, pythonStatusText } from './pythonView.ts';
 import { createAnalysisRunView } from './analysisRunView.ts';
 import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter, type NotificationAction } from './notifications.ts';
+import { createWorkspaceTrustView } from './trustView.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
@@ -317,9 +318,25 @@ function showWorkspace(workspace: Parameters<typeof explorer.show>[0]): void {
     void explorer.show(workspace);
 }
 
+// #177: workspace trust. The main process gates Git, the Python language server and tasks; this asks and shows.
+const workspaceTrust = createWorkspaceTrustView({
+    api: api.workspace,
+    notifications,
+    statusItem: workbench.trustStatus,
+    pick: (label, items, apply) => pick(label, items.map((item) => ({ ...item, value: item.id })), apply),
+    onError: (message) => notifications.notify('error', message),
+    onChange: () => {
+        // The main process restarted this window's language servers; send the open documents again.
+        if (editorsLoading) {
+            void import('./lsp/languageClient.ts').then(({ reopenLanguageDocuments }) => reopenLanguageDocuments());
+        }
+    },
+});
+
 /** #139: the main process stops the old folder's scene; the panel follows, and the new folder may be analysed. */
 function folderOpened(root: string): void {
     folderIsOpen = true;
+    void workspaceTrust.refresh();
     quickOpenFiles.reset();
     searchView.reset();
     scmView.reset();
@@ -338,6 +355,7 @@ api.workspace.onDidChange((workspace) => {
         scmView.reset();
         scenePanel.close();
         runView.setHasFolder(false);
+        void workspaceTrust.refresh();
     }
     showWorkspace(workspace);
 });
@@ -348,6 +366,7 @@ api.workspace.current().then(
         if (workspace) {
             runView.folderOpened(workspace.root);
         }
+        void workspaceTrust.refresh();
         switchTabsFolder(workspace?.root ?? null);
         return explorer.show(workspace);
     },
@@ -588,6 +607,7 @@ registerWorkbenchCommands(registry, {
     save: () => void editors?.save(),
     saveAll: () => void editors?.saveAll(),
     closeEditor: () => editors?.closeActive(),
+    manageWorkspaceTrust: () => workspaceTrust.manage(),
     splitEditor: () => editors?.split(),
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
     openMarkdownPreview: () => { editors?.openMarkdownPreview(); },

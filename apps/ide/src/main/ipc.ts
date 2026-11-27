@@ -21,6 +21,7 @@ import { setMenuAccelerators } from './menu.ts';
 import { applyColorTheme, previewColorTheme } from './settings/theme.ts';
 import { COLOR_THEME_SETTING } from '../shared/settings.ts';
 import { cancelSearch, replaceInFiles, startSearch } from './workspace/searchService.ts';
+import { setWorkspaceTrust, trustInfoOf } from './trust/workspaceTrust.ts';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -138,6 +139,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         clipboard.writeText(workspaceOf(event.sender).displayPath(path, kind));
     });
     // #179: the Markdown preview's images and links; the path and the URL are checked here.
+    // #177: the trust of the window's own folder; the choice is checked in workspaceTrust.ts.
+    handle(IPC_CHANNELS.workspaceTrust, (event) => trustInfoOf(event.sender));
+    handle(IPC_CHANNELS.workspaceSetTrust, (event, choice) => setWorkspaceTrust(event.sender, choice));
     handle(IPC_CHANNELS.workspaceReadImage, (event, path) => workspaceOf(event.sender).readImage(path));
     handle(IPC_CHANNELS.workspaceOpenExternalLink, async (_event, url) => {
         if (!isOpenableExternalLink(url)) {
