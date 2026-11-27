@@ -15,6 +15,7 @@ import { AgentCatalog } from './agentCatalog.ts';
 import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
 import { loginCommandLine } from './agentTerminals.ts';
 import { SessionStore } from './sessionStore.ts';
+import { codexrMcpServerSpec } from './codexrMcpSpec.ts';
 
 /**
  * AF1: builds the agent-first chat service and wires it into Electron: the
@@ -31,7 +32,15 @@ export interface AgentSessionsRuntime {
     confirmCustomAgent(contents: WebContents, commandLine: string): Promise<boolean>;
 }
 
-export function startAgentSessions(options: { readonly isSmoke: boolean; readonly terminal: TerminalHost; readonly profiles: AgentProfiles }): AgentSessionsRuntime {
+export interface AgentSessionsRuntimeOptions {
+    readonly isSmoke: boolean;
+    readonly terminal: TerminalHost;
+    readonly profiles: AgentProfiles;
+    /** AF10: the static folder of a window's Code-XR analysis, handed to the agents' Code-XR MCP server. */
+    readonly analysisOutput?: (contents: WebContents) => string | null;
+}
+
+export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentSessionsRuntime {
     const userData = options.isSmoke ? path.join(os.tmpdir(), `codexr-ide-smoke-agent-sessions-${process.pid}`) : app.getPath('userData');
     const dir = path.join(userData, 'agent-sessions');
     const catalog = new AgentCatalog({
@@ -107,6 +116,16 @@ export function startAgentSessions(options: { readonly isSmoke: boolean; readonl
             });
             const created = await options.terminal.runCommand(contents, line, request.cwd, 100, 30, { onExit: (_id, exitCode) => markExited(exitCode) });
             return { terminal: { terminalId: created.id, title: request.title, cwd: created.cwd }, exited };
+        },
+        // AF10: every chat gets the Code-XR MCP server, so the agent can query the
+        // project's metrics, hotspots, dependencies and evolution itself.
+        mcpServers: (root) => {
+            if (!root) {
+                return [];
+            }
+            const owner = webContents.getAllWebContents().find((contents) => !contents.isDestroyed() && currentWorkspaceInfo(contents)?.root === root);
+            const analysisDir = owner ? (options.analysisOutput?.(owner) ?? null) : null;
+            return [codexrMcpServerSpec({ execPath: process.execPath, appPath: app.getAppPath(), root, analysisDir, isPackaged: app.isPackaged })];
         },
         spawnAllowed: !options.isSmoke,
         probeDir: path.join(dir, 'probe'),

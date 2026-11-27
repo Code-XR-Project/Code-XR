@@ -3,7 +3,7 @@ import type { AttachmentSources } from '../agents/chatAttachments.ts';
 import type { CommandRegistry } from '../commands/commandRegistry.ts';
 import type { CustomEditorInput } from '../editor/customEditor.ts';
 import type { EditorGroup } from '../editor/editorGroup.ts';
-import type { Notifications } from '../notifications.ts';
+import type { NotificationCenter } from '../notifications.ts';
 import type { Workbench } from '../workbench.ts';
 import { el } from '../dom.ts';
 import { createChatView, type ChatView, type ChatViewDeps } from './chatView.ts';
@@ -30,7 +30,7 @@ export interface AgentWorkbenchOptions {
     readonly workbench: Workbench;
     readonly api: AgentSessionsApi;
     readonly registry: CommandRegistry;
-    readonly notifications: Notifications;
+    readonly notifications: NotificationCenter;
     readonly attachments: AttachmentSources;
     editorGroup(): Promise<EditorGroup>;
     openFile(path: string, line?: number): void;
@@ -116,6 +116,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         };
     }
     const titleSetters = new WeakMap<ChatView, (title: string) => void>();
+    const tabClosers = new Map<string, () => void>();
 
     function chatInput(sessionId: string, title = 'Chat'): CustomEditorInput {
         return {
@@ -124,8 +125,15 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
             iconName: 'chat.md',
             create(context) {
                 const view = createChatView(sessionId, chatDeps());
+                // A restored tab whose chat was deleted (here or in another window) closes itself.
+                api.get(sessionId).catch((error: unknown) => {
+                    if (/That chat no longer exists/.test(errorText(error))) {
+                        context.close();
+                    }
+                });
                 views.add(view);
                 titleSetters.set(view, (next) => context.setTitle(next));
+                tabClosers.set(sessionId, () => context.close());
                 return {
                     element: view.element,
                     onShow: () => {
@@ -143,6 +151,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
                     dispose: () => {
                         view.dispose();
                         views.delete(view);
+                        tabClosers.delete(sessionId);
                     },
                 };
             },
@@ -184,6 +193,8 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         setMode,
         showTerminal: options.showTerminal,
         extraSections: [instructions.element],
+        openBuiltinAgents: () => workbench.showView('agents'),
+        onRemoved: (id) => tabClosers.get(id)?.(),
         onAttention: (counts) => {
             const parts = [];
             if (counts.running > 0) {
@@ -278,6 +289,9 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         },
         folderChanged(): void {
             renderDock();
+            if (mode === 'agent') {
+                workbench.showView('chats');
+            }
             sessions.refresh().catch(() => undefined);
             instructions.refresh().catch(() => undefined);
         },

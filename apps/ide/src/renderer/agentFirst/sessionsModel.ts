@@ -80,7 +80,7 @@ export function attentionCounts(projects: readonly ProjectSessions[]): { readonl
 
 /** The agent a new chat uses by default: the last one used if still usable, else the first usable one. */
 export function defaultAgent(agents: readonly AgentView[], lastUsed: string | null): AgentView | null {
-    const usable = agents.filter((agent) => agent.availability !== 'missing');
+    const usable = agents.filter((agent) => agent.kind === 'acp' && agent.availability !== 'missing');
     return usable.find((agent) => agent.ref === lastUsed) ?? usable.find((agent) => agent.kind === 'acp') ?? usable[0] ?? null;
 }
 

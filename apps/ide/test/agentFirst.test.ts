@@ -52,6 +52,13 @@ describe('chat model', () => {
         assert.deepEqual(changeCounts(null, 'x\ny'), { added: 2, removed: 0 });
     });
 
+    it('never shows a line twice when two hunks are close', () => {
+        const before = ['export function total() {', '    let sum = 0;', '    loop();', '}'].join('\n');
+        const after = ['function helper() {}', '', 'export function total() {', '    return helper();', '}'].join('\n');
+        const texts = diffLinesForCard(before, after).filter((line) => line.kind !== 'add').map((line) => line.text);
+        assert.equal(texts.filter((text) => text === '    let sum = 0;').length, 1);
+    });
+
     it('caps a huge diff', () => {
         const lines = diffLinesForCard(null, Array.from({ length: 1000 }, (_, i) => String(i)).join('\n'), 2, 10);
         assert.equal(lines.length, 11);
@@ -124,7 +131,7 @@ describe('sessions model', () => {
     it('chooses the default agent', () => {
         const agents = [agent({ ref: 'builtin:x', kind: 'builtin' }), agent({ ref: 'acp:claude' }), agent({ ref: 'acp:codex', availability: 'missing' })];
         assert.equal(defaultAgent(agents, 'acp:codex')?.ref, 'acp:claude');
-        assert.equal(defaultAgent(agents, 'builtin:x')?.ref, 'builtin:x');
+        assert.equal(defaultAgent(agents, 'builtin:x')?.ref, 'acp:claude');
         assert.equal(defaultAgent([], null), null);
     });
 });

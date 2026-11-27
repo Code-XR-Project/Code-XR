@@ -66,7 +66,7 @@ export function diffLinesForCard(oldText: string | null, newText: string, contex
     const original = splitLines(before);
     const hunks = diffLines(before, newText);
     let cursor = 0;
-    for (const hunk of hunks) {
+    hunks.forEach((hunk, hunkIndex) => {
         const start = Math.max(cursor, hunk.originalStart - context);
         if (start > cursor && lines.length > 0) {
             lines.push({ kind: 'gap', text: '' });
@@ -83,12 +83,13 @@ export function diffLinesForCard(oldText: string | null, newText: string, contex
             lines.push({ kind: 'add', text });
         }
         const after = hunk.originalStart + hunk.originalCount;
-        const end = Math.min(original.length, after + context);
+        // Trailing context stops where the next hunk starts, or a line would show twice.
+        const end = Math.min(original.length, after + context, hunks[hunkIndex + 1]?.originalStart ?? Number.POSITIVE_INFINITY);
         for (let index = after; index < end; index += 1) {
             lines.push({ kind: 'context', text: original[index] ?? '' });
         }
-        cursor = end;
-    }
+        cursor = Math.max(end, after);
+    });
     if (cursor < original.length && lines.length > 0) {
         lines.push({ kind: 'gap', text: '' });
     }

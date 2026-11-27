@@ -150,11 +150,23 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
             usageMeter.title = `${state.usage.used.toLocaleString()} of ${state.usage.size.toLocaleString()} tokens of context used`;
         }
         renderItems(state);
+        markStreaming(state);
         renderPlan(state.plan);
         renderControls(state);
         updateSendButton();
         if (stickToBottom) {
             transcript.scrollTop = transcript.scrollHeight;
+        }
+    }
+
+    /** The caret sits on the reply being written, and only while the turn runs (rendered nodes are cached). */
+    function markStreaming(current: AgentSessionState): void {
+        for (const node of transcript.querySelectorAll('.af-message.is-streaming')) {
+            node.classList.remove('is-streaming');
+        }
+        const last = current.items.at(-1);
+        if (last?.kind === 'assistant' && current.status === 'running') {
+            rendered.get(`assistant:${last.id}`)?.node.classList.add('is-streaming');
         }
     }
 
@@ -215,8 +227,7 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
             case 'assistant': {
                 const body = el('div', { className: 'af-message-body' });
                 body.append(renderMarkdown(item.text, { copy: deps.copy }));
-                const streaming = index === current.items.length - 1 && current.status === 'running';
-                return el('div', { className: `af-message is-assistant${streaming ? ' is-streaming' : ''}`, attrs: { 'data-testid': 'af-assistant' } }, [body]);
+                return el('div', { className: 'af-message is-assistant', attrs: { 'data-testid': 'af-assistant' } }, [body]);
             }
             case 'thought':
                 return el('details', { className: 'af-thought' }, [

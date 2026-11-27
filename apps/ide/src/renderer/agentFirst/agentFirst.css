@@ -44,9 +44,9 @@
 .af-mode-button.is-active { background: var(--hover); color: var(--fg); font-weight: 600; }
 .af-mode-button:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 .af-new-row { display: flex; gap: 6px; margin: 0 12px; }
-.af-new-chat { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; margin: 0; flex: 1; }
+.af-new-chat { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; margin: 0; flex: 0 0 auto; white-space: nowrap; padding-inline: 12px; }
 .af-new-chat svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
-.af-new-agent { max-width: 45%; }
+.af-new-agent { flex: 1 1 0; min-width: 0; }
 .af-search { margin: 0 12px; width: calc(100% - 24px); }
 .af-section-title { display: flex; align-items: center; justify-content: space-between; margin: 6px 12px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); cursor: default; }
 .af-agents > summary { list-style: none; cursor: pointer; }
@@ -173,7 +173,7 @@
 .af-turn-end { display: grid; gap: 4px; font-size: 12px; }
 .af-turn-end:empty { display: none; }
 .af-turn-files { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 10px; border: 1px dashed var(--line); border-radius: 6px; }
-.af-turn-file { display: inline-flex; align-items: center; min-width: 0; }
+.af-turn-file { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .af-stop { margin: 0; }
 .af-stop.is-error { color: var(--crit); }
 .af-plan { margin: 0 max(16px, calc((100% - 860px) / 2)); border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; background: var(--panel); font-size: 12px; }

@@ -583,5 +583,11 @@ describe('AcpConnection over a real child process', () => {
         const connection = AcpConnection.spawn({ command: path.join(base, 'no-such-agent'), args: [], env: {} }, base, {} as never);
         await assert.rejects(connection.initialize(), /no-such-agent|ENOENT|exited/);
     });
+
+    it('reports the exit code and the stderr tail when the agent dies, not just a closed stream', async () => {
+        const crash = 'process.stdin.once("data", () => { process.stderr.write("Cannot find module foo\\n"); process.exit(3); });';
+        const connection = AcpConnection.spawn({ command: process.execPath, args: ['-e', crash], env: { PATH: process.env['PATH'] ?? '' } }, base, {} as never);
+        await assert.rejects(connection.initialize(), /exited with code 3.*Cannot find module foo/);
+    });
 });
 

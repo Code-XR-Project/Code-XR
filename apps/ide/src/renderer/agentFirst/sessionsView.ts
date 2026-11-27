@@ -29,6 +29,10 @@ export interface SessionsViewDeps {
     onAttention?(counts: { running: number; waiting: number; unread: number }): void;
     /** Opens a terminal running an agent's login command is handled in main; this shows the terminal panel. */
     showTerminal?(): void;
+    /** Shows the Agents view, where the IDE's own agents chat (epic #189). */
+    openBuiltinAgents?(): void;
+    /** A chat was deleted: its tab closes. */
+    onRemoved?(sessionId: string): void;
     /** Sections shown under the agents list (the project instructions of AF11). */
     readonly extraSections?: readonly HTMLElement[];
 }
@@ -140,14 +144,26 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
 
     function renderAgents(): void {
         const chosen = agentSelect.value || defaultAgent(agents, lastAgent())?.ref || '';
-        agentSelect.replaceChildren(...agents.map((agent) => {
+        // The IDE's own agents (epic #189) keep their chat in the Agents view for now.
+        agentSelect.replaceChildren(...agents.filter((agent) => agent.kind === 'acp').map((agent) => {
             const option = el('option', { text: agent.availability === 'missing' ? `${agent.name} (not installed)` : agent.name, attrs: { value: agent.ref } });
             option.disabled = agent.availability === 'missing';
             option.selected = agent.ref === chosen;
             return option;
         }));
-        newChatButton.disabled = !agents.some((agent) => agent.availability !== 'missing');
-        agentList.replaceChildren(...agents.map((agent) => {
+        newChatButton.disabled = !agents.some((agent) => agent.kind === 'acp' && agent.availability !== 'missing');
+        const builtins = agents.filter((agent) => agent.kind === 'builtin');
+        const builtinRow: HTMLElement[] = [];
+        if (builtins.length > 0) {
+            const open = el('button', { className: 'secondary-button af-small-button', text: 'Open', attrs: { type: 'button', title: 'Chat with these agents in the Agents view' } });
+            open.addEventListener('click', () => deps.openBuiltinAgents?.());
+            builtinRow.push(el('li', { className: 'af-agent', attrs: { 'data-availability': 'available', 'data-ref': 'builtin' } }, [
+                el('div', { className: 'af-agent-main' }, [el('span', { className: 'af-agent-name', text: 'IDE agents' }), el('span', { className: 'af-badge', text: String(builtins.length) })]),
+                el('p', { className: 'muted af-agent-detail', text: `${builtins.map((agent) => agent.name).join(', ')}: the IDE's own agents, with a provider and API key set up in the Agents view.` }),
+                ...(deps.openBuiltinAgents ? [el('span', { className: 'af-agent-actions' }, [open])] : []),
+            ]));
+        }
+        agentList.replaceChildren(...agents.filter((agent) => agent.kind === 'acp').map((agent) => {
             const actions = el('span', { className: 'af-agent-actions' });
             if (agent.kind === 'acp' && agent.availability !== 'missing') {
                 const methods = agent.authMethods ?? [];
@@ -195,7 +211,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
                 el('p', { className: 'muted af-agent-detail', text: agent.detail ?? agent.description }),
                 actions,
             ]);
-        }));
+        }), ...builtinRow);
     }
 
     function renderProjects(): void {
@@ -319,7 +335,10 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
         row.replaceWith(confirm);
         yes.focus();
         yes.addEventListener('click', () => {
-            deps.api.remove(session.id).then(() => refresh()).catch((error: unknown) => deps.onStatus(errorText(error)));
+            deps.api.remove(session.id).then(() => {
+                deps.onRemoved?.(session.id);
+                return refresh();
+            }).catch((error: unknown) => deps.onStatus(errorText(error)));
         });
         no.addEventListener('click', () => renderProjects());
     }

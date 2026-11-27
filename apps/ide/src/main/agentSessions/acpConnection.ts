@@ -115,10 +115,41 @@ export class AcpConnection {
     private readonly closeListeners: ((error: Error | null) => void)[] = [];
     private closed = false;
 
+    private readonly exited: Promise<void>;
+
     private constructor(connection: ClientConnection, child: ChildProcess | null) {
         this.connection = connection;
         this.child = child;
-        void connection.closed.then(() => this.markClosed(this.exitError));
+        this.exited = child && child.exitCode === null && child.signalCode === null
+            ? new Promise<void>((resolve) => child.once('exit', () => resolve()))
+            : Promise.resolve();
+        // stdout ends a moment before the process reports its exit: wait for
+        // it, so the close carries the exit code and the stderr tail.
+        void connection.closed.then(async () => {
+            await this.settleExit();
+            this.markClosed(this.exitError);
+        });
+    }
+
+    /** Waits (briefly) for the process to report its exit after the stream ended. */
+    private async settleExit(): Promise<void> {
+        if (!this.child || this.exitError) {
+            return;
+        }
+        await Promise.race([this.exited, new Promise<void>((resolve) => setTimeout(resolve, 500).unref())]);
+    }
+
+    /** A request that failed because the stream closed reports why the agent went away instead. */
+    private async explain<T>(request: Promise<T>): Promise<T> {
+        try {
+            return await request;
+        } catch (error) {
+            if (error instanceof Error && /connection closed/i.test(error.message)) {
+                await this.settleExit();
+                throw this.exitError ?? error;
+            }
+            throw error;
+        }
     }
 
     /** Starts the agent process in `cwd` and connects to its stdio. */
@@ -183,7 +214,7 @@ export class AcpConnection {
     }
 
     initialize(): Promise<InitializeResponse> {
-        return this.connection.agent.request(methods.agent.initialize, {
+        return this.explain(this.connection.agent.request(methods.agent.initialize, {
             protocolVersion: ACP_PROTOCOL_VERSION,
             clientInfo: { name: 'code-xr-ide', title: 'Code-XR IDE', version: '0.1.0' },
             clientCapabilities: {
@@ -191,23 +222,23 @@ export class AcpConnection {
                 terminal: true,
                 auth: { terminal: true },
             },
-        });
+        }));
     }
 
     authenticate(methodId: string): Promise<unknown> {
-        return this.connection.agent.request(methods.agent.authenticate, { methodId });
+        return this.explain(this.connection.agent.request(methods.agent.authenticate, { methodId }));
     }
 
     newSession(cwd: string, mcpServers: readonly McpServer[]): Promise<NewSessionResponse> {
-        return this.connection.agent.request(methods.agent.session.new, { cwd, mcpServers: [...mcpServers] });
+        return this.explain(this.connection.agent.request(methods.agent.session.new, { cwd, mcpServers: [...mcpServers] }));
     }
 
     loadSession(sessionId: string, cwd: string, mcpServers: readonly McpServer[]): Promise<LoadSessionResponse> {
-        return this.connection.agent.request(methods.agent.session.load, { sessionId, cwd, mcpServers: [...mcpServers] });
+        return this.explain(this.connection.agent.request(methods.agent.session.load, { sessionId, cwd, mcpServers: [...mcpServers] }));
     }
 
     prompt(sessionId: string, prompt: readonly ContentBlock[]): Promise<PromptResponse> {
-        return this.connection.agent.request(methods.agent.session.prompt, { sessionId, prompt: [...prompt] });
+        return this.explain(this.connection.agent.request(methods.agent.session.prompt, { sessionId, prompt: [...prompt] }));
     }
 
     cancel(sessionId: string): Promise<void> {
@@ -215,14 +246,14 @@ export class AcpConnection {
     }
 
     async setMode(sessionId: string, modeId: string): Promise<void> {
-        await this.connection.agent.request(methods.agent.session.setMode, { sessionId, modeId });
+        await this.explain(this.connection.agent.request(methods.agent.session.setMode, { sessionId, modeId }));
     }
 
     setConfigOption(sessionId: string, configId: string, value: string | boolean): Promise<SetSessionConfigOptionResponse> {
-        return this.connection.agent.request(
+        return this.explain(this.connection.agent.request(
             methods.agent.session.setConfigOption,
             typeof value === 'boolean' ? { sessionId, configId, type: 'boolean', value } : { sessionId, configId, value },
-        );
+        ));
     }
 
     /** Closes the connection and stops the process. Safe to call more than once. */
