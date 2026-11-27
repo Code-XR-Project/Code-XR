@@ -15,6 +15,7 @@ import type { FileFunctionMetrics, FunctionMetricsSnapshot } from './problems.ts
  */
 
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentsApi } from './agents.ts';
+import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AgentSessionsApi } from './agentSession.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitApi } from './git.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspApi } from './lsp.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TasksApi } from './tasks.ts';
@@ -350,6 +351,8 @@ export type Unsubscribe = () => void;
 export interface CodeXRApi {
     /** The AI agent hub: providers, keys, chats (contract in agents.ts). */
     readonly agents: AgentsApi;
+    /** Epic #265 (AF1): agent-first chats with coding agents over ACP (contract in agentSession.ts). */
+    readonly agentSessions: AgentSessionsApi;
     /** #17: Source Control for the open folder (contract in git.ts). */
     readonly git: GitApi;
     /** #176: the folder's tasks and Run Current File; command lines are built in the main process. */
@@ -679,6 +682,8 @@ export const IPC_CHANNELS = {
     terminalKill: 'codexr:terminal:kill',
     // The AI agent hub keeps its own channel list in agents.ts.
     ...AGENT_IPC_CHANNELS,
+    // AF1: the agent-first chat keeps its own channel list in agentSession.ts.
+    ...AGENT_SESSION_CHANNELS,
     // #17: Source Control keeps its own channel list in git.ts.
     ...GIT_IPC_CHANNELS,
     // #21: the language client keeps its own channel list in lsp.ts.
@@ -716,6 +721,7 @@ export const IPC_EVENTS = {
     outputAppended: 'codexr:output:appended',
     metricsChanged: 'codexr:problems:metrics-changed',
     ...AGENT_IPC_EVENTS,
+    agentSessionMessage: AGENT_SESSION_EVENTS.message,
     ...GIT_IPC_EVENTS,
     ...LSP_IPC_EVENTS,
     ...TASK_IPC_EVENTS,

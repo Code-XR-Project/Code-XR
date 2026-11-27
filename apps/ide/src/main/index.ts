@@ -29,6 +29,7 @@ import { initRecentFolders, openRecentFolder, recentFolderList, setWorkspace } f
 import { chooseStartupFolder } from './workspace/startupFolder.ts';
 import { createTerminalHost, type TerminalHost } from './terminal/terminalHost.ts';
 import { startAgents, type AgentServices } from './agents/agentsRuntime.ts';
+import { startAgentSessions, type AgentSessionsRuntime } from './agentSessions/agentSessionsRuntime.ts';
 import { setScenePreloadPath } from './analysis/sceneView.ts';
 import { appIconPath } from './appIcon.ts';
 import { createLspHost, type LspHost } from './lsp/lspHost.ts';
@@ -81,11 +82,14 @@ if (!isSmoke && !app.requestSingleInstanceLock()) {
 let terminals: TerminalHost | null = null;
 // A12: MCP server processes likewise.
 let agentServices: AgentServices | null = null;
+// AF1: coding agents (one process per chat) likewise; their chats are written first.
+let agentSessions: AgentSessionsRuntime | null = null;
 // #21: so do the language servers.
 let languageServers: LspHost | null = null;
 app.on('will-quit', () => {
     void terminals?.killAll();
     void agentServices?.mcp.closeAll();
+    void agentSessions?.service.stopAll();
     void languageServers?.stopAll();
     // #180: debug sessions end their adapter and their program.
     void stopAllDebugSessions();
@@ -120,6 +124,8 @@ async function start(): Promise<void> {
     const keybindingsFile = path.join(app.getPath('userData'), KEYBINDINGS_FILE_NAME);
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
     agentServices = startAgents({ isSmoke, commandRunner: terminalHost.commandRunner });
+    // The smoke run may never start an agent: the service refuses to spawn there.
+    agentSessions = startAgentSessions({ isSmoke, terminal: terminalHost, profiles: agentServices.profiles, analysisOutput: (contents) => core.analysis.outputDirectory(contents), analysis: core.analysis });
     // #177: workspace trust decisions, in the user-data folder (in memory for the smoke run).
     const trustFile = isSmoke ? null : new JsonKeyValueStore(path.join(app.getPath('userData'), 'workspace-trust.json'));
     let smokeTrust: unknown = [];
@@ -145,7 +151,7 @@ async function start(): Promise<void> {
     const extensionHosts = new ExtensionHostManager({ service: extensions, hostScript: EXTENSION_HOST_PATH, isDevelopment });
     extensions.attachHost((handle) => extensionHosts.register(handle));
     app.on('will-quit', () => void extensionHosts.stopAll());
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp, extensions);
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp, agentSessions, extensions);
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);

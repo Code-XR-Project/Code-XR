@@ -6,6 +6,7 @@ import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo, type WorkspaceTrustInfo } from '../shared/api.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
+import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AcpAgentDefinition, type AgentSessionMessage, type PromptAttachment } from '../shared/agentSession.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
 import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
@@ -69,6 +70,42 @@ const api: CodeXRApi = Object.freeze({
         usage: () => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsUsage),
         savePrices: (prices: readonly ModelPrice[]) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSavePrices, prices),
         saveBudget: (budget: BudgetSettings) => ipcRenderer.invoke(AGENT_IPC_CHANNELS.agentsSaveBudget, budget),
+    }),
+    // AF1: chats with coding agents over ACP; main validates every argument and runs the agents.
+    agentSessions: Object.freeze({
+        listAgents: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listAgents),
+        probeAgent: (ref: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.probeAgent, ref),
+        saveCustomAgent: (input: Omit<AcpAgentDefinition, 'id' | 'preset'>, id?: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.saveCustomAgent, input, id),
+        removeCustomAgent: (id: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.removeCustomAgent, id),
+        login: (ref: string, methodId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.login, ref, methodId),
+        listProjects: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listProjects),
+        get: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.get, sessionId),
+        create: (agentRef: string, options?: { readonly worktree?: boolean }) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.create, agentRef, { worktree: options?.worktree === true }),
+        prompt: (sessionId: string, text: string, attachments?: readonly PromptAttachment[]) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.prompt, sessionId, text, attachments ?? []),
+        cancel: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.cancel, sessionId),
+        respondPermission: (sessionId: string, requestId: string, optionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.respondPermission, sessionId, requestId, optionId),
+        setMode: (sessionId: string, modeId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.setMode, sessionId, modeId),
+        setConfigOption: (sessionId: string, optionId: string, valueId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.setConfigOption, sessionId, optionId, valueId),
+        rename: (sessionId: string, title: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.rename, sessionId, title),
+        remove: (sessionId: string, options?: { readonly removeWorktree?: boolean }) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.remove, sessionId, { removeWorktree: options?.removeWorktree === true }),
+        markRead: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.markRead, sessionId),
+        // AF5/AF6: review and checkpoints; paths are workspace-relative and checked in main.
+        changes: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.changes, sessionId),
+        changeDiff: (sessionId: string, path: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.changeDiff, sessionId, path),
+        keepChanges: (sessionId: string, paths: readonly string[] | 'all') => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.keepChanges, sessionId, paths),
+        undoChanges: (sessionId: string, paths: readonly string[] | 'all') => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.undoChanges, sessionId, paths),
+        previewRestore: (sessionId: string, checkpointId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.previewRestore, sessionId, checkpointId),
+        restoreCheckpoint: (sessionId: string, checkpointId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.restoreCheckpoint, sessionId, checkpointId),
+        // AF12: a chat's worktree is named by the chat id only; main looks up its path.
+        worktreeAvailability: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeAvailability),
+        worktreeStatus: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeStatus, sessionId),
+        worktreeCommit: (sessionId: string, message: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeCommit, sessionId, message),
+        worktreeMerge: (sessionId: string, strategy: 'merge' | 'squash') => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeMerge, sessionId, strategy),
+        worktreeDiscard: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeDiscard, sessionId),
+        describeInstall: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.describeInstall, presetId),
+        install: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.install, presetId),
+        uninstall: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.uninstall, presetId),
+        onMessage: (listener: (message: AgentSessionMessage) => void) => subscribe(AGENT_SESSION_EVENTS.message, listener),
     }),
     // #17: only workspace-relative paths and branch names cross; main validates each one.
     git: Object.freeze({

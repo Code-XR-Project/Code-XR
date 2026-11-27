@@ -3,6 +3,9 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { AnalysisOrchestrator } from '@codexr/core/analysis/analysisOrchestrator';
 import { AnalysisConfigurationStorage } from '@codexr/core/analysis/configuration/analysisConfigurationStorage';
+import { analysisRefreshCoordinator } from '@codexr/core/analysis/refresh/analysisRefreshCoordinator';
+import { UnifiedSessionRegistry } from '@codexr/core/analysis/session/sessionRegistry';
+import { SessionWatcherManager } from '@codexr/core/analysis/watchers/sessionWatcherManager';
 import { CollaborationProfileManager } from '@codexr/core/collaboration/collaborationProfileManager';
 import { getHost } from '@codexr/core/host/hostRegistry';
 import { EXTENSION_MODE, type CoreContext } from '@codexr/core/host/hostPaths';
@@ -18,6 +21,9 @@ import { channelLog } from '../log.ts';
 import type { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
 import { resolveInWorkspace } from '../workspace/workspacePath.ts';
 import { readAnalysedFileCount, watchAnalysedFileCount } from './analysedFiles.ts';
+import { readMetrics, type FileMetrics } from '../agents/tools/analysisQueries.ts';
+import { computeMetricDelta, type MetricDeltaReport } from './metricDelta.ts';
+import { followRefreshes, waitUntilSettled, type RefreshPort, type SceneUpdatedEvent, type SettleResult } from './sceneRefresh.ts';
 import { closeScene, enterSceneXr, sceneSupportsImmersiveXr, showScene } from './sceneView.ts';
 import { unsupportedXrMessage } from './sceneXrPolicy.ts';
 import { sceneTargetToWorkspacePath } from './sceneEditorTarget.ts';
@@ -42,6 +48,18 @@ const log = channelLog('core');
 const AUTO_START_KEY = 'ide.analysis.autoStartOnOpen';
 const DEFAULT_AUTO_START: AutoStartMode = 'xr-deep';
 
+/** AF9: how long a turn's delta waits for the core's re-analysis to catch up with the disk. */
+const DEFAULT_SETTLE_TIMEOUT_MS = 60_000;
+/**
+ * AF9: a change the core's own watcher is still hashing has updated its file
+ * tracker but not yet queued its refresh; a short pause after our reconcile
+ * lets that refresh be queued before "settled" is read.
+ */
+const RECONCILE_GRACE_MS = 250;
+
+/** Why a scene could not be brought up to date with the disk. */
+export type SceneSettleResult = SettleResult | 'no-scene' | 'not-following';
+
 const NO_WORKSPACE: AnalysisStartResult = { ok: false, reason: 'no-workspace', message: 'Open a folder first.' };
 
 function isFileKind(kind: AnalysisKind): kind is FileAnalysisKind {
@@ -56,6 +74,8 @@ interface WindowScene {
     /** What was analysed: the folder itself, or one file of it. */
     readonly target: string;
     readonly serverId: string;
+    /** The core's analysis session behind the server (AF8), when the registry names it. */
+    readonly sessionId: string | undefined;
     readonly url: string;
     /** The sharing state last sent to the window (#155), to send changes only. */
     share: SceneShareState;
@@ -77,6 +97,8 @@ export class AnalysisService {
     private readonly scenes = new Map<number, WindowScene>();
     private readonly python: PythonEnvironmentService;
     private readonly hooks: { sceneOpened?(contents: WebContents, folder: string): void };
+    /** AF8: who hears that a window's scene was re-analysed after a change on disk. */
+    private readonly updateListeners = new Set<(contents: WebContents, event: SceneUpdatedEvent) => void>();
 
     constructor(python: PythonEnvironmentService, subscriptions: HostDisposable[], hooks: { sceneOpened?(contents: WebContents, folder: string): void } = {}) {
         this.python = python;
@@ -141,6 +163,90 @@ export class AnalysisService {
     async setAutoStart(mode: AutoStartMode): Promise<AutoStartMode> {
         await getHost().globalState.update(AUTO_START_KEY, mode);
         return mode;
+    }
+
+    /**
+     * AF8: whether an open scene follows changes on disk (the core's
+     * auto-analysis setting, shared with the extension; on by default). The
+     * core reads it on every change, so turning it off takes effect at once;
+     * turning it on reaches a scene launched while it was off only when that
+     * scene is analysed again (the core starts no watcher for it).
+     */
+    async followsChanges(): Promise<boolean> {
+        return AnalysisConfigurationStorage.getInstance(this.context).getAutoAnalysisEnabled();
+    }
+
+    async setFollowsChanges(enabled: boolean): Promise<boolean> {
+        await AnalysisConfigurationStorage.getInstance(this.context).setAutoAnalysisEnabled(enabled);
+        return enabled;
+    }
+
+    /**
+     * AF8: `listener` hears each re-analysis of a window's scene that a change
+     * on disk caused (the editor's save, a terminal, an agent). Returns the
+     * function that stops it.
+     */
+    onSceneUpdated(listener: (contents: WebContents, event: SceneUpdatedEvent) => void): () => void {
+        this.updateListeners.add(listener);
+        return () => this.updateListeners.delete(listener);
+    }
+
+    /**
+     * AF9: brings the window's scene up to date with the disk: asks the core
+     * to compare the folder with its last analysis now (not waiting for the
+     * file watcher), then waits for the refresh it queued. Never throws.
+     */
+    async settleScene(contents: WebContents, timeoutMs = DEFAULT_SETTLE_TIMEOUT_MS): Promise<SceneSettleResult> {
+        const scene = this.scenes.get(contents.id);
+        if (!scene?.sessionId || !getActiveServerRegistry().getServer(scene.serverId)) {
+            return 'no-scene';
+        }
+        const { sessionId } = scene;
+        try {
+            if (!await this.followsChanges()) {
+                return 'not-following';
+            }
+            await SessionWatcherManager.reconcileSession(sessionId);
+        } catch (error) {
+            log.warn(`Could not reconcile the analysis of ${scene.target}: ${String(error)}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, RECONCILE_GRACE_MS));
+        return waitUntilSettled(refreshPort(sessionId), timeoutMs);
+    }
+
+    /**
+     * AF9: the metric records of the window's project scene (one per analysed
+     * file), or null without one. Taken at the start of an agent's turn, they
+     * are the `before` of `turnMetricDelta`.
+     */
+    async sceneMetrics(contents: WebContents): Promise<FileMetrics[] | null> {
+        const scene = this.scenes.get(contents.id);
+        const dir = this.outputDirectory(contents);
+        // A single file's analysis records its functions, not files: no per-file delta there.
+        if (!scene || !dir || isFileKind(scene.kind)) {
+            return null;
+        }
+        try {
+            return await readMetrics(dir);
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * AF9: what a turn did to the measurements: waits for the scene to catch
+     * up with the disk, then compares its records with `before` (from
+     * `sceneMetrics` at the turn's start). `changedPaths` are relative to the
+     * window's folder (the folder a project scene analyses).
+     */
+    async turnMetricDelta(
+        contents: WebContents,
+        before: readonly FileMetrics[] | null,
+        changedPaths?: readonly string[] | null,
+        options: { readonly timeoutMs?: number } = {},
+    ): Promise<{ readonly settle: SceneSettleResult; readonly report: MetricDeltaReport }> {
+        const settle = await this.settleScene(contents, options.timeoutMs);
+        return { settle, report: computeMetricDelta(before, await this.sceneMetrics(contents), changedPaths) };
     }
 
     /**
@@ -373,6 +479,15 @@ export class AnalysisService {
         }
     }
 
+    /** The core's analysis session a server serves: named in its registration, else found by server id. */
+    private sessionOf(serverId: string): string | undefined {
+        const named = getActiveServerRegistry().getServer(serverId)?.metadata?.sessionId;
+        if (typeof named === 'string' && named) {
+            return named;
+        }
+        return UnifiedSessionRegistry.getInstance(this.context).getAllSessions().find((session) => session.serverId === serverId)?.id;
+    }
+
     private liveScene(win: BrowserWindow): WindowScene {
         const scene = this.scenes.get(win.webContents.id);
         if (!scene || !getActiveServerRegistry().getServer(scene.serverId)) {
@@ -427,13 +542,32 @@ export class AnalysisService {
         const single = isFileKind(this.ownerKind);
         const files = single ? 1 : await readAnalysedFileCount(server?.htmlFile);
         const contents = win.webContents;
-        const unwatch = watchAnalysedFileCount(single ? undefined : server?.htmlFile, files, (count) => {
+        const unwatchCount = watchAnalysedFileCount(single ? undefined : server?.htmlFile, files, (count) => {
             if (!contents.isDestroyed()) {
                 contents.send(IPC_EVENTS.analysisSceneFilesChanged, { url: serverUrl, files: count } satisfies SceneFilesEvent);
             }
         });
+        const sessionId = this.sessionOf(serverId);
+        // AF8: each finished re-analysis of this scene, for whoever listens.
+        const unfollow = sessionId
+            ? followRefreshes(refreshPort(sessionId), (revision) => {
+                void readAnalysedFileCount(single ? undefined : server?.htmlFile).then((count) => {
+                    if (contents.isDestroyed()) {
+                        return;
+                    }
+                    const event: SceneUpdatedEvent = count === undefined ? { url: serverUrl, revision } : { url: serverUrl, revision, files: count };
+                    for (const listener of this.updateListeners) {
+                        listener(contents, event);
+                    }
+                });
+            })
+            : () => undefined;
+        const unwatch = (): void => {
+            unwatchCount();
+            unfollow();
+        };
         win.once('closed', unwatch);
-        this.scenes.set(win.webContents.id, { folder: this.ownerFolder, kind: this.ownerKind, target: this.ownerTarget, serverId, url: serverUrl, share, unwatch });
+        this.scenes.set(win.webContents.id, { folder: this.ownerFolder, kind: this.ownerKind, target: this.ownerTarget, serverId, sessionId, url: serverUrl, share, unwatch });
         if (previous && previous.serverId !== serverId) {
             // A new analysis replaces the window's scene; its old server (and tunnel) has nothing left to show.
             void this.stopTunnel(previous.serverId);
@@ -457,4 +591,12 @@ export class AnalysisService {
         }
         await showScene(win, serverUrl);
     }
+}
+
+/** The core's refresh state of one analysis session, as `sceneRefresh.ts` reads it. */
+function refreshPort(sessionId: string): RefreshPort {
+    return {
+        view: () => analysisRefreshCoordinator.getViewState(sessionId),
+        onChange: (listener) => analysisRefreshCoordinator.onStateChanged(sessionId, () => listener()),
+    };
 }

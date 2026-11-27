@@ -14,6 +14,8 @@ import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
 import { createPanelHost } from './panel/panelHost.ts';
 import { createAgentsView } from './agents/agentsView.ts';
+import { installAgentWorkbench } from './agentFirst/agentWorkbench.ts';
+import { displayPath } from './agentFirst/chatModel.ts';
 import { createEditReviewer } from './agents/editReview.ts';
 import { registerAgentCommands } from './agents/agentCommands.ts';
 import { createProblemsView } from './problems/problemsView.ts';
@@ -118,7 +120,9 @@ function editorGroup(): Promise<EditorGroup> {
             onStatus: (message) => workbench.setStatus(message),
             git: { baseline: (path) => api.git.baseline(path), blame: (path, contents) => api.git.blame(path, contents) },
             debug: debug.decorations,
-            onActiveChange: (path) => {
+            onActiveChange: (tabId) => {
+                // AF3: a chat (or another custom tab) is not a file of the folder.
+                const path = tabId && !isSchemeId(tabId) ? tabId : null;
                 document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
                 activeFile = path;
                 scheduleSessionSave();
@@ -149,6 +153,8 @@ function editorGroup(): Promise<EditorGroup> {
         editors.setSceneShown(!workbench.sceneArea.hidden);
         // #256: PDFs and images open in viewer tabs.
         editors.registerCustomEditor(fileViewerResolver(api.workspace));
+        // Epic #265 (AF3): chats are editor tabs too.
+        editors.registerCustomEditor((id) => agentWorkbench.resolveCustomEditor(id));
         outline = createOutlineController({
             editors,
             view: outlineView,
@@ -500,6 +506,7 @@ function folderOpened(root: string): void {
 }
 
 api.workspace.onDidChange((workspace) => {
+    agentFolderChanged(workspace?.root ?? null);
     if (workspace) {
         folderOpened(workspace.root);
     } else {
@@ -519,6 +526,7 @@ api.workspace.current().then(
     (workspace) => {
         runView.setHasFolder(workspace !== null);
         folderIsOpen = workspace !== null;
+        agentFolderChanged(workspace?.root ?? null);
         if (workspace) {
             runView.folderOpened(workspace.root);
         }
@@ -1042,6 +1050,58 @@ const agentsView = createAgentsView(workbench.agentsView, api.agents, {
 });
 agentsView.refresh().catch((error: unknown) => workbench.setStatus(`Agents unavailable: ${String(error)}`));
 
+// Epic #265: the agent-first workbench (Chats view, chat tabs, Agent and Classic layouts).
+let agentRoot: string | null = null;
+/** A path from an agent (absolute) as the workspace path the editor opens. */
+function workspacePathOf(path: string): string {
+    return displayPath(path, agentRoot);
+}
+const agentWorkbench = installAgentWorkbench({
+    workbench,
+    api: api.agentSessions,
+    registry,
+    notifications,
+    attachments: {
+        listFiles: async () => (await api.workspace.listFiles()).files,
+        activeSelection: () => {
+            const selection = editors?.activeSelection();
+            return selection ? { kind: 'selection', ...selection } : null;
+        },
+        onStatus: (message) => workbench.setStatus(message),
+    },
+    instructions: {
+        listFiles: async () => (await api.workspace.listFiles()).files,
+        createEntry: (parent, name, kind) => api.workspace.createEntry(parent, name, kind),
+        writeFile: (path, text) => api.workspace.writeFile(path, text),
+    },
+    editorGroup,
+    openFile: (path, line) => {
+        const target = workspacePathOf(path);
+        void editorGroup().then((group) => (line === undefined ? group.open(target) : group.openAt(target, line, 1, 0)));
+    },
+    copy: (text) => {
+        navigator.clipboard.writeText(text).then(() => workbench.setStatus('Copied to the clipboard.'), () => workbench.setStatus('Could not copy.'));
+    },
+    onStatus: (message) => workbench.setStatus(message),
+    openProject: async (folder) => {
+        await api.workspace.openRecent(folder);
+    },
+    showTerminal: () => terminal.show(),
+    analyseProject: () => {
+        if (!runView.analyse('xr-deep')) {
+            workbench.showView('analysis');
+        }
+    },
+    hasFolder: () => folderIsOpen,
+    openFolder: () => {
+        registry.execute('workspace.openFolder');
+    },
+});
+function agentFolderChanged(root: string | null): void {
+    agentRoot = root;
+    agentWorkbench.folderChanged();
+}
+
 const pythonView = createPythonView(workbench.analysisView, api.python, {
     onStatus: (status) => {
         workbench.setPythonStatus(pythonStatusText(status), status.message, status.state);
@@ -1086,6 +1146,11 @@ api.python.status().then((status) => {
 }, (error: unknown) => workbench.setStatus(`Could not check Python: ${String(error)}`));
 api.app.onNotification((notification) => {
     workbench.setStatus(notification.message);
+    // Epic #265: the scene re-analyses on every change an agent makes; a toast
+    // per save would bury the chat, and the scene itself shows the update.
+    if (notification.severity === 'info' && /Code-XR re-analysis updated/.test(notification.message)) {
+        return;
+    }
     notifications.notify(notification.severity, notification.message, notification.severity === 'error' ? { actions: [showOutputAction('core')] } : {});
 });
 // #153: the core's long tasks (the Python set-up steps, the language parsers...) as progress notifications.

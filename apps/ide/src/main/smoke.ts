@@ -30,6 +30,8 @@ export interface SmokeProbe {
     /** #17: Source Control answered for the smoke folder and refused a path out of it. */
     readonly gitStatusState: string | null;
     readonly gitTraversalRefused: boolean;
+    /** AF2: the smoke run may not download anything; reading what an agent install would fetch is refused. */
+    readonly agentInstallRefused: boolean;
     /** #177: the folder's trust before and after the smoke run trusted it, and Git while it was not trusted. */
     readonly trust: { readonly before?: string; readonly shieldShown?: boolean; readonly restrictedGit?: string; readonly tasksRefused?: boolean; readonly debugRefused?: boolean; readonly remoteRefused?: boolean; readonly after?: string; readonly error?: string } | null;
     /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
@@ -162,6 +164,8 @@ const RENDERER_PROBE = `(async () => {
     try { gitStatusState = (await window.codexr.git.status()).state; } catch { gitStatusState = null; }
     let gitTraversalRefused = false;
     try { await window.codexr.git.headContent('../package.json'); } catch { gitTraversalRefused = true; }
+    let agentInstallRefused = false;
+    try { await window.codexr.agentSessions.describeInstall('claude'); } catch (e) { agentInstallRefused = /not available in this mode/.test(String(e)); }
     document.querySelector('[data-testid="explorer-tree"] [data-path="package.json"]')?.click();
     const editorUntil = Date.now() + 15000;
     const editorReady = () => document.querySelector('.editor-tab[data-path="package.json"][aria-selected="true"]') && document.querySelector('.monaco-editor .view-line');
@@ -412,6 +416,7 @@ const RENDERER_PROBE = `(async () => {
         gitStatusState,
         trust,
         gitTraversalRefused,
+        agentInstallRefused,
         editorOpened,
         fileIconsShown,
         fileIconsBroken,
@@ -538,6 +543,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
             failures.push(`workspace trust did not gate Git, tasks or debugging, or did not take the answer (got ${JSON.stringify(probe.trust)})`);
         }
         if (!probe.gitTraversalRefused) { failures.push('git.headContent followed a path out of the folder'); }
+        if (!probe.agentInstallRefused) { failures.push('the smoke run could reach the npm registry to install an agent'); }
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }
         if (probe.fileIconsShown === 0) { failures.push('the explorer and the tabs showed no file icon'); }
         if (probe.fileIconsBroken.length > 0) { failures.push(`file icons did not load: ${probe.fileIconsBroken.join(', ')}`); }

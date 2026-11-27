@@ -4,6 +4,8 @@
 //   out/main/index.cjs      main process   (Node, CommonJS)
 //   out/preload/index.cjs   preload        (sandboxed: may only require 'electron')
 //   out/renderer/           renderer       (browser, served from codexr://app/)
+//   out/codexrMcp/index.cjs the Code-XR MCP server for external agents (AF10;
+//                           a separate process run with ELECTRON_RUN_AS_NODE)
 //   out/extensionHost/index.cjs  extension host (#259: a Node child process on Electron's own Node)
 import { builtinModules } from 'node:module';
 import path from 'node:path';
@@ -28,7 +30,7 @@ const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtin
  */
 const MAIN_NATIVE_EXTERNALS = ['node-pty'];
 
-/** @param {'main' | 'preload' | 'scenePreload' | 'extensionHost'} target @param {{ dev?: boolean }} [opts] */
+/** @param {'main' | 'preload' | 'scenePreload' | 'codexrMcp' | 'extensionHost'} target @param {{ dev?: boolean }} [opts] */
 export function nodeTargetConfig(target, opts = {}) {
     return {
         configFile: false,
