@@ -19,6 +19,8 @@ export interface GitRunOptions {
     /** Exit codes that are not failures (`git diff --no-index` exits 1 when files differ). */
     readonly okExitCodes?: readonly number[] | undefined;
     readonly timeoutMs?: number | undefined;
+    /** Written to git's standard input (`blame --contents -`); stdin is closed either way. */
+    readonly input?: string | undefined;
 }
 
 /** Thrown when no `git` executable is on PATH. */
@@ -72,7 +74,7 @@ export function gitEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 
 export const runGit: GitRunner = (cwd, args, options = {}) => new Promise((resolve, reject) => {
     const fullArgs = [...BASE_ARGS, ...args];
-    execFile('git', fullArgs, {
+    const child = execFile('git', fullArgs, {
         cwd,
         env: gitEnvironment(process.env),
         timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
@@ -100,4 +102,7 @@ export const runGit: GitRunner = (cwd, args, options = {}) => new Promise((resol
         }
         resolve({ stdout, stderr, exitCode: 0 });
     });
+    // A closed stdin keeps a git that unexpectedly reads it from waiting for the timeout.
+    child.stdin?.on('error', () => undefined);
+    child.stdin?.end(options.input ?? '');
 });

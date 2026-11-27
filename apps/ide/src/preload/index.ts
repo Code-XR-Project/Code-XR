@@ -75,6 +75,8 @@ const api: CodeXRApi = Object.freeze({
         switchBranch: (name: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitSwitchBranch, name),
         createBranch: (name: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitCreateBranch, name),
         headContent: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitHeadContent, path),
+        baseline: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitBaseline, path),
+        blame: (path: string, contents: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitBlame, path, contents),
         onDidChange: (listener: () => void) => subscribe(GIT_IPC_EVENTS.gitChanged, () => listener()),
     }),
     // #176: a task by the id main listed, a file by its workspace path; never a command line.

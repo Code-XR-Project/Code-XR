@@ -361,6 +361,15 @@ describe('GitService against a real repository', () => {
         await service.restore('README.md');
     });
 
+    it('blames the editor\'s text through stdin, unsaved lines uncommitted (#175)', async () => {
+        const lines = await service.blame('README.md', 'inserted above\nhello\n');
+        assert.equal(lines.length, 2);
+        assert.equal(lines[0]?.commit.uncommitted, true);
+        assert.equal(lines[1]?.commit.summary, 'First commit');
+        assert.equal(lines[1]?.originalLine, 1);
+        assert.equal(fs.readFileSync(path.join(repo, 'README.md'), 'utf8'), 'hello\n', 'the file on disk is untouched');
+    });
+
     it('creates, lists and switches branches, refusing names that are not branches', async () => {
         await service.createBranch('feature/x');
         assert.equal((await service.status()).branch, 'feature/x');

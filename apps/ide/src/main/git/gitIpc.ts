@@ -2,6 +2,7 @@ import { BrowserWindow, dialog, shell, type IpcMainInvokeEvent, type MessageBoxO
 import fs from 'node:fs';
 import path from 'node:path';
 import { emptyGitStatus, GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitCommitResult, type GitStatus } from '../../shared/git.ts';
+import type { GitBlameLine } from '../../shared/gitGutter.ts';
 import { log } from '../log.ts';
 import { workspaceOrNull } from '../workspace/workspaceWindows.ts';
 import { GitService } from './gitService.ts';
@@ -251,4 +252,34 @@ export function registerGitHandlers(handle: Handle): void {
         return statusOf(event.sender);
     });
     handle(GIT_IPC_CHANNELS.gitHeadContent, (event, file) => requireService(event.sender).headContent(file));
+    // #175: the editor asks on every file it opens, so "nothing to show" is null, never an error.
+    handle(GIT_IPC_CHANNELS.gitBaseline, async (event, file) => {
+        try {
+            return await requireService(event.sender).headContent(file);
+        } catch {
+            return null;
+        }
+    });
+    handle(GIT_IPC_CHANNELS.gitBlame, async (event, file, contents): Promise<GitBlameLine[] | null> => {
+        if (typeof contents !== 'string' || contents.length > MAX_BLAME_CONTENTS) {
+            return null;
+        }
+        try {
+            const lines = await requireService(event.sender).blame(file, contents);
+            return lines.map((entry) => ({
+                line: entry.line,
+                hash: entry.commit.hash.slice(0, 8),
+                author: entry.commit.author,
+                authorMail: entry.commit.authorMail,
+                authorTime: entry.commit.authorTime,
+                summary: entry.commit.summary,
+                uncommitted: entry.commit.uncommitted,
+            }));
+        } catch {
+            // Untracked, not a repository, no git, Restricted Mode: no blame.
+            return null;
+        }
+    });
 }
+
+const MAX_BLAME_CONTENTS = 5 * 1024 * 1024;

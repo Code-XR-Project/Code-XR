@@ -6,6 +6,7 @@ import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter, type NotificationAction } from './notifications.ts';
 import { createWorkspaceTrustView } from './trustView.ts';
 import { createTaskRunner } from './taskRunner.ts';
+import { explorerDecorations } from '../shared/gitGutter.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
@@ -88,6 +89,7 @@ function editorGroup(): Promise<EditorGroup> {
         installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
+            git: { baseline: (path) => api.git.baseline(path), blame: (path, contents) => api.git.blame(path, contents) },
             onActiveChange: (path) => {
                 document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
                 activeFile = path;
@@ -400,8 +402,12 @@ const scmView = createScmView(workbench.scmView, api.git, {
     showView: () => workbench.showView('scm'),
     notify: (severity, message) => notifications.notify(severity, message),
     onDidChangeFiles: (listener) => void api.workspace.onDidChangeFiles(listener),
+    // #175: the explorer's colours and letters follow each status.
+    onStatus: (status) => explorer.setGitDecorations(explorerDecorations(status)),
 });
 void scmView.refresh();
+// #175: a commit, checkout or stage moves HEAD or the index: the editor's markers and blame are read again.
+api.git.onDidChange(() => editors?.gitChanged());
 
 // #18: settings, user and folder. The main process stores and validates
 // them; the renderer shows them and applies the ones in force.
@@ -630,6 +636,10 @@ registerWorkbenchCommands(registry, {
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
     openMarkdownPreview: () => { editors?.openMarkdownPreview(); },
     runTask: () => tasks.runTask(),
+    toggleInlineBlame: () => {
+        const on = settingsReport ? settingOf<boolean>(settingsReport, 'git.blame.inline') : true;
+        api.settings.update('user', 'git.blame.inline', on ? false : null).then(applySettings, (error: unknown) => notifications.notify('error', `Could not change the setting: ${String(error)}`));
+    },
     runCurrentFile: () => tasks.runCurrentFile(),
     configureTasks: () => tasks.configure(),
     canPreviewMarkdown: () => editors?.canPreviewMarkdown() ?? false,

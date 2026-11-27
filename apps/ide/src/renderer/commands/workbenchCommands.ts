@@ -74,6 +74,8 @@ export interface WorkbenchCommandTargets {
     runTask(): void;
     runCurrentFile(): void;
     configureTasks(): void;
+    /** #175: turns the cursor line's blame on or off (the user setting). */
+    toggleInlineBlame(): void;
 }
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
@@ -114,6 +116,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.action.tasks.runTask', category: 'Tasks', title: 'Run Task', enabled: targets.hasFolder, run: targets.runTask },
         { id: 'workbench.action.tasks.configureTaskRunner', category: 'Tasks', title: 'Configure Tasks', enabled: targets.hasFolder, run: targets.configureTasks },
         { id: 'workbench.action.runCurrentFile', category: 'Run', title: 'Run Current File', keybinding: 'CmdOrCtrl+F5', enabled: targets.hasActiveEditor, run: targets.runCurrentFile },
+        { id: 'git.blame.toggleInline', category: 'Git', title: 'Toggle Inline Blame', run: targets.toggleInlineBlame },
         { id: 'terminal.toggle', category: 'View', title: 'Toggle Terminal', ...menu('terminal.toggle'), run: targets.toggleTerminal },
         { id: 'terminal.new', category: 'Terminal', title: 'Create New Terminal', ...menu('terminal.new'), run: targets.newTerminal },
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },

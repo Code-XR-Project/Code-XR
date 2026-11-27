@@ -5,6 +5,7 @@ import { languageName, type EditorStatusState, type EndOfLine, type Indentation,
 import { settingOf, type SettingValues } from '../../shared/settings.ts';
 import type { FileFunctionMetrics, MetricThresholds, Problem, ProblemSeverity } from '../../shared/problems.ts';
 import { installMetricLens } from './metricLens.ts';
+import { installGitDecorations, type GitDecorationsHooks } from './gitDecorations.ts';
 import { createMarkdownPreview, type MarkdownPreview } from './markdownPreview.ts';
 import { isMarkdownPath } from './markdownPath.ts';
 import {
@@ -203,6 +204,8 @@ export interface EditorGroup {
     setFunctionMetrics(files: readonly FileFunctionMetrics[], thresholds: MetricThresholds, enabled: boolean): void;
     /** #178: a scene is shown beside the code; the editor's context menu offers "Reveal in XR Scene" only then. */
     setSceneShown(shown: boolean): void;
+    /** #175: the repository changed (commit, checkout, stage): the gutter markers and the blame are read again. */
+    gitChanged(): void;
 }
 
 export function createEditorGroup(
@@ -232,6 +235,8 @@ export function createEditorGroup(
         onFileClean?(path: string): void;
         /** #178: "Reveal in XR Scene" from the editor's context menu, on the active file. */
         revealInScene?(path: string): void;
+        /** #175: the files' text at HEAD and their blame, from the main process (null when Git has nothing to say). */
+        git?: GitDecorationsHooks;
     },
 ): EditorGroup {
     const groupsRow = el('div', { className: 'editor-groups', attrs: { 'data-testid': 'editor-groups' } });
@@ -310,6 +315,8 @@ export function createEditorGroup(
         isStale: (model) => [...docs.values()].some((doc) => doc.model === model && isDirty(doc)),
         showProblems: (path, name) => callbacks.showFunctionProblems?.(path, name),
     });
+    // #175: change markers against HEAD and the cursor line's blame.
+    const gitDecorations = callbacks.git ? installGitDecorations(callbacks.git) : null;
     monaco.editor.onDidChangeMarkers((resources) => {
         if (resources.some((uri) => uri.scheme === FILE_SCHEME)) {
             callbacks.onMarkersChange?.();
@@ -482,6 +489,7 @@ export function createEditorGroup(
         void applyEditorConfig(doc);
         applyMetricMarkers(doc);
         metricLens.refresh(model);
+        gitDecorations?.attach(model, doc.path);
         callbacks.onOpenFilesChange?.();
         return doc;
     }
@@ -495,6 +503,7 @@ export function createEditorGroup(
         }
         monaco.editor.setModelMarkers(doc.model, METRIC_OWNER, []);
         metricLens.forget(doc.model);
+        gitDecorations?.forget(doc.model);
         doc.model.dispose();
     }
 
@@ -861,6 +870,9 @@ export function createEditorGroup(
                 },
             }),
         );
+        if (gitDecorations) {
+            group.disposables.push(gitDecorations.addEditor(editor));
+        }
         root.addEventListener('mousedown', () => focusGroupInternal(group), true);
 
         strip.addEventListener('keydown', (event) => {
@@ -1387,6 +1399,7 @@ export function createEditorGroup(
             for (const group of groups) {
                 group.editor.updateOptions(options);
             }
+            gitDecorations?.setBlameEnabled(settingOf<boolean>(snapshot, 'git.blame.inline'));
             // #170: saving.
             fileSettings = {
                 trimTrailingWhitespace: settingOf<boolean>(snapshot, 'files.trimTrailingWhitespace'),
@@ -1431,6 +1444,9 @@ export function createEditorGroup(
                     endColumn: marker.endColumn,
                 }];
             });
+        },
+        gitChanged(): void {
+            gitDecorations?.repositoryChanged();
         },
         setFunctionMetrics(metricFiles: readonly FileFunctionMetrics[], thresholds: MetricThresholds, enabled: boolean): void {
             metricLens.update(metricFiles, thresholds, enabled);
