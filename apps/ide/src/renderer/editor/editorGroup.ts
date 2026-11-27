@@ -9,6 +9,8 @@ import { installGitDecorations, type GitDecorationsHooks } from './gitDecoration
 import { installDebugDecorations, type DebugDecorationsHooks } from './debugDecorations.ts';
 import { createMarkdownPreview, type MarkdownPreview } from './markdownPreview.ts';
 import { isMarkdownPath } from './markdownPath.ts';
+import type { CustomEditorContext, CustomEditorInput, CustomEditorResolver, CustomEditorView } from './customEditor.ts';
+import { CustomEditorRegistry } from './customEditorRegistry.ts';
 import {
     clampSplit, closeTargets, cycleTab, DEFAULT_SPLIT, discardQuestion, moveTab,
     type CloseKind, type GroupSession, type TabSession,
@@ -72,6 +74,10 @@ interface Doc {
     /** #170: a save is being written (an auto save does not start a second one). */
     saving: boolean;
     readonly listener: monaco.IDisposable;
+    /** #256: a custom tab's input (its model is an empty placeholder, never shown); null for a text file. */
+    readonly custom: CustomEditorInput | null;
+    /** #256: the dot a custom view asked for. */
+    customDirty: boolean;
 }
 
 /** A document's tab in one group. */
@@ -83,6 +89,9 @@ interface Tab {
     viewState: monaco.editor.ICodeEditorViewState | null;
     /** #167: a preview tab, replaced by the next preview of its group until it is kept. */
     preview: boolean;
+    /** #256: this tab's view of a custom input (null for a text file). */
+    readonly view: CustomEditorView | null;
+    readonly label: HTMLElement;
 }
 
 /** An editor group (#168): a tab strip over a Monaco editor. */
@@ -91,6 +100,8 @@ interface Group {
     readonly strip: HTMLElement;
     readonly host: HTMLElement;
     readonly placeholder: HTMLElement;
+    /** #256: where the active custom tab's element goes, in place of the editor. */
+    readonly customHost: HTMLElement;
     readonly editor: monaco.editor.IStandaloneCodeEditor;
     readonly sceneShown: monaco.editor.IContextKey<boolean>;
     readonly tabs: Map<string, Tab>;
@@ -105,6 +116,8 @@ export interface OpenOptions {
 
 /** #173: Monaco's resources for workspace files, and the owner of the Code-XR metric markers. */
 const FILE_SCHEME = 'codexr-file';
+/** #256: the placeholder models of custom tabs; nothing (languages, lenses, markers) follows this scheme. */
+const CUSTOM_SCHEME = 'codexr-custom';
 const METRIC_OWNER = 'codexr-metrics';
 const MARKER_SEVERITY: Record<ProblemSeverity, monaco.MarkerSeverity> = {
     error: monaco.MarkerSeverity.Error,
@@ -193,6 +206,17 @@ export interface EditorGroup {
     closeMarkdownPreview(): void;
     canPreviewMarkdown(): boolean;
     markdownPreviewOpen(): boolean;
+    /**
+     * #256: opens a custom tab (a view of its own instead of a text editor)
+     * in the active group, or activates the one with the same id.
+     */
+    openCustom(input: CustomEditorInput, options?: OpenOptions): void;
+    /**
+     * #256: adds a resolver that turns an id into a custom input: a file being
+     * opened (the PDF and image viewers) or a tab of a saved session. The
+     * returned function removes it.
+     */
+    registerCustomEditor(resolver: CustomEditorResolver): () => void;
     /** #18: applies the editor settings in force. */
     applySettings(settings: SettingValues): void;
     /** #170: formats the active file with its language's formatter; false when it has none. */
@@ -294,7 +318,12 @@ export function createEditorGroup(
 
     /** The active tab of the active group. */
     const activeTab = (): Tab | null => current.active;
-    const activeDoc = (): Doc | null => current.active?.doc ?? null;
+    /** The active text document: null when the active tab is a custom one (#256), so text commands leave it alone. */
+    const activeDoc = (): Doc | null => {
+        const doc = current.active?.doc ?? null;
+        return doc?.custom ? null : doc;
+    };
+    const customEditors = new CustomEditorRegistry<CustomEditorInput>();
     const tabsOf = (doc: Doc): Tab[] => groups.flatMap((group) => {
         const tab = group.tabs.get(doc.path);
         return tab?.doc === doc ? [tab] : [];
@@ -388,7 +417,7 @@ export function createEditorGroup(
 
     /** Draws a document's state on every tab that shows it. */
     function refreshDoc(doc: Doc): void {
-        const dirty = isDirty(doc);
+        const dirty = isDirty(doc) || doc.customDirty;
         const title = doc.diskState === 'deleted' ? 'Deleted on disk'
             : doc.diskState === 'changed' ? 'Changed on disk; your version is unsaved'
                 : dirty ? 'Unsaved changes' : '';
@@ -431,16 +460,33 @@ export function createEditorGroup(
         }
     }
 
+    /** #256: takes the shown custom view out of `group` (another tab, or none, takes its place). */
+    function hideCustomView(group: Group): void {
+        const shown = group.customHost.firstElementChild;
+        if (!shown) {
+            return;
+        }
+        const owner = [...group.tabs.values()].find((candidate) => candidate.view?.element === shown);
+        owner?.view?.onHide?.();
+        shown.remove();
+    }
+
     function activate(group: Group, tab: Tab | null, focus = true): void {
         const previous = group.active;
         if (previous && previous !== tab) {
-            previous.viewState = group.editor.saveViewState();
+            if (!previous.view) {
+                previous.viewState = group.editor.saveViewState();
+            }
             previous.element.setAttribute('aria-selected', 'false');
             previous.element.tabIndex = -1;
         }
         group.active = tab;
         const wasCurrent = current === group;
         focusGroupInternal(group, false);
+        if (group.customHost.firstElementChild !== (tab?.view?.element ?? null)) {
+            hideCustomView(group);
+        }
+        group.customHost.hidden = !tab?.view;
         if (!tab) {
             group.editor.setModel(null);
             showPlaceholder(group, docs.size === 0 ? 'Open a file from the explorer.' : null);
@@ -448,7 +494,14 @@ export function createEditorGroup(
             return;
         }
         showPlaceholder(group, null);
-        if (group.editor.getModel() !== tab.doc.model) {
+        if (tab.view) {
+            group.host.hidden = true;
+            group.editor.setModel(null);
+            if (!tab.view.element.isConnected) {
+                group.customHost.append(tab.view.element);
+                tab.view.onShow?.();
+            }
+        } else if (group.editor.getModel() !== tab.doc.model) {
             group.editor.setModel(tab.doc.model);
             if (tab.viewState) {
                 group.editor.restoreViewState(tab.viewState);
@@ -458,7 +511,11 @@ export function createEditorGroup(
         tab.element.tabIndex = 0;
         tab.element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         if (focus) {
-            group.editor.focus();
+            if (tab.view) {
+                tab.view.focus?.();
+            } else {
+                group.editor.focus();
+            }
         }
         callbacks.onActiveChange(tab.doc.path);
         followPreview(tab.doc);
@@ -484,6 +541,7 @@ export function createEditorGroup(
         const doc: Doc = {
             path: content.path, model, savedVersion: model.getAlternativeVersionId(), mtimeMs: content.mtimeMs,
             diskState: 'same', bom: content.text.startsWith(BOM), config: {}, autoSaveTimer: undefined, saving: false, lensStale: false,
+            custom: null, customDirty: false,
             listener: model.onDidChangeContent(() => {
                 refreshDoc(doc);
                 scheduleAutoSave(doc);
@@ -506,6 +564,30 @@ export function createEditorGroup(
         return doc;
     }
 
+    /** #256: a custom tab's document: an empty placeholder model under its own scheme, never shown or saved. */
+    function createCustomDoc(input: CustomEditorInput): Doc {
+        const uri = monaco.Uri.from({ scheme: CUSTOM_SCHEME, path: `/${input.id}` });
+        const model = monaco.editor.getModel(uri) ?? monaco.editor.createModel('', 'plaintext', uri);
+        const doc: Doc = {
+            path: input.id, model, savedVersion: model.getAlternativeVersionId(), mtimeMs: 0,
+            diskState: 'same', bom: false, config: {}, autoSaveTimer: undefined, saving: false, lensStale: false,
+            listener: { dispose: () => undefined }, custom: input, customDirty: false,
+        };
+        docs.set(doc.path, doc);
+        callbacks.onOpenFilesChange?.();
+        return doc;
+    }
+
+    /** #256: the document for a custom input, or for a file a resolver claims; null when nothing claims `id`. */
+    function customDocFor(id: string): Doc | null {
+        const known = docs.get(id);
+        if (known) {
+            return known.custom ? known : null;
+        }
+        const input = customEditors.resolve(id);
+        return input && input.id === id ? createCustomDoc(input) : null;
+    }
+
     function disposeDoc(doc: Doc): void {
         clearTimeout(doc.autoSaveTimer);
         docs.delete(doc.path);
@@ -521,14 +603,35 @@ export function createEditorGroup(
     }
 
     function addTab(group: Group, doc: Doc, preview = false, before: Element | null = null): Tab {
-        const name = doc.path.split('/').pop() ?? doc.path;
+        const name = doc.custom ? doc.custom.title : doc.path.split('/').pop() ?? doc.path;
         const dirtyMark = el('span', { className: 'tab-dirty', attrs: { 'aria-hidden': 'true' } });
         const close = el('button', { className: 'tab-close', attrs: { type: 'button', title: 'Close', 'aria-label': `Close ${name}`, tabindex: '-1' } }, [icon(CLOSE)]);
+        const label = el('span', { className: 'tab-label', text: name });
         const element = el('div', {
             className: 'editor-tab',
-            attrs: { role: 'tab', 'aria-selected': 'false', tabindex: '-1', title: doc.path, 'data-path': doc.path, draggable: 'true' },
-        }, [fileIcon(name, 'file'), el('span', { className: 'tab-label', text: name }), dirtyMark, close]);
-        const tab: Tab = { doc, group, element, dirtyMark, viewState: null, preview: false };
+            attrs: { role: 'tab', 'aria-selected': 'false', tabindex: '-1', title: doc.custom?.filePath ?? doc.custom?.title ?? doc.path, 'data-path': doc.path, draggable: 'true' },
+        }, [fileIcon(doc.custom?.iconName ?? name, 'file'), label, dirtyMark, close]);
+        let view: CustomEditorView | null = null;
+        if (doc.custom) {
+            const context: CustomEditorContext = {
+                id: doc.path,
+                setTitle: (title) => {
+                    label.textContent = title;
+                    close.setAttribute('aria-label', `Close ${title}`);
+                    if (!doc.custom?.filePath) { element.title = title; }
+                },
+                setDirty: (dirty) => {
+                    doc.customDirty = dirty;
+                    refreshDoc(doc);
+                },
+                close: () => {
+                    if (tab.group.tabs.get(doc.path) === tab) { closeTabs(tab.group, [tab]); }
+                },
+                status: (message) => callbacks.onStatus(message),
+            };
+            view = doc.custom.create(context);
+        }
+        const tab: Tab = { doc, group, element, dirtyMark, viewState: null, preview: false, view, label };
         setPreview(tab, preview);
         element.addEventListener('click', (event) => {
             if ((event.target as Element).closest('.tab-close')) {
@@ -625,6 +728,10 @@ export function createEditorGroup(
         }
         const closing = new Set(targets);
         const leaving = targets.filter((tab) => tabsOf(tab.doc).every((other) => closing.has(other)));
+        // #256: a custom view may keep its tab open (it asks its own question).
+        if (ask && targets.some((tab) => tab.view?.canClose?.() === false)) {
+            return false;
+        }
         const question = ask ? discardQuestion(targets.map((tab) => tab.doc.path), new Set(leaving.filter((tab) => isDirty(tab.doc)).map((tab) => tab.doc.path))) : null;
         if (question !== null && !window.confirm(question)) {
             return false;
@@ -634,6 +741,7 @@ export function createEditorGroup(
         for (const tab of targets) {
             group.tabs.delete(tab.doc.path);
             tab.element.remove();
+            disposeView(tab);
         }
         for (const tab of leaving) {
             disposeDoc(tab.doc);
@@ -657,6 +765,18 @@ export function createEditorGroup(
         }
         sessionChanged();
         return true;
+    }
+
+    /** #256: a closing tab's custom view leaves its group for good. */
+    function disposeView(tab: Tab): void {
+        if (!tab.view) {
+            return;
+        }
+        if (tab.view.element.isConnected) {
+            tab.view.onHide?.();
+            tab.view.element.remove();
+        }
+        tab.view.dispose?.();
     }
 
     /** #168: a group left without tabs goes, as long as another one stays. */
@@ -780,6 +900,13 @@ export function createEditorGroup(
 
     /** Re-reads one open file after the watcher reported it. */
     async function followDisk(doc: Doc): Promise<void> {
+        if (doc.custom) {
+            // #256: a file viewer reads its file again (or finds it gone) on its own.
+            for (const tab of tabsOf(doc)) {
+                tab.view?.fileChanged?.('changed');
+            }
+            return;
+        }
         let content: FileContent;
         try {
             content = await api.readFile(doc.path);
@@ -855,10 +982,11 @@ export function createEditorGroup(
         const strip = el('div', { className: 'editor-tabs', attrs: { role: 'tablist', 'aria-label': 'Open editors', 'data-testid': 'editor-tabs' } });
         const host = el('div', { className: 'editor-host', attrs: { 'data-testid': 'editor-host' } });
         const placeholder = el('div', { className: 'editor-placeholder muted' });
-        const root = el('div', { className: 'editor-group', attrs: { 'data-testid': 'editor-group' } }, [strip, host, placeholder]);
+        const customHost = el('div', { className: 'editor-custom-host', attrs: { 'data-testid': 'editor-custom-host', hidden: '' } });
+        const root = el('div', { className: 'editor-group', attrs: { 'data-testid': 'editor-group' } }, [strip, host, customHost, placeholder]);
         const editor = monaco.editor.create(host, { ...editorOptions, model: null });
         const sceneShown = editor.createContextKey<boolean>('codexrSceneShown', sceneIsShown);
-        const group: Group = { root, strip, host, placeholder, editor, sceneShown, tabs: new Map(), active: null, disposables: [] };
+        const group: Group = { root, strip, host, placeholder, customHost, editor, sceneShown, tabs: new Map(), active: null, disposables: [] };
         const ifCurrent = (listener: () => void) => () => { if (current === group) { listener(); } };
         group.disposables.push(
             editor.onDidChangeCursorSelection(ifCurrent(scheduleStatus)),
@@ -1017,7 +1145,7 @@ export function createEditorGroup(
 
     /** #168: a tab dropped on the other group moves there (the file's model goes with it, unchanged). */
     function moveTabToGroup(tab: Tab, target: Group, before: Element | null): void {
-        const viewState = tab.group.active === tab ? tab.group.editor.saveViewState() : tab.viewState;
+        const viewState = tab.group.active === tab && !tab.view ? tab.group.editor.saveViewState() : tab.viewState;
         const preview = tab.preview;
         showDoc(target, tab.doc, { before: target.tabs.has(tab.doc.path) ? null : before, viewState, preview });
         closeTabs(tab.group, [tab], false);
@@ -1169,7 +1297,7 @@ export function createEditorGroup(
 
     /** Opens `path` in `group`: the document if it is already open (in either group), else read from disk. */
     async function openIn(group: Group, path: string, options: OpenOptions & { viewState?: monaco.editor.ICodeEditorViewState | null; focus?: boolean } = {}): Promise<Tab | null> {
-        const known = docs.get(path);
+        const known = docs.get(path) ?? customDocFor(path);
         if (known) {
             return showDoc(group, known, options);
         }
@@ -1199,7 +1327,7 @@ export function createEditorGroup(
             if (group.tabs.has(entry.path)) {
                 continue;
             }
-            let doc = docs.get(entry.path);
+            let doc = docs.get(entry.path) ?? customDocFor(entry.path) ?? undefined;
             if (!doc) {
                 let content: FileContent;
                 try {
@@ -1222,7 +1350,7 @@ export function createEditorGroup(
     }
 
     function groupSession(group: Group): GroupSession {
-        if (group.active) {
+        if (group.active && !group.active.view) {
             group.active.viewState = group.editor.saveViewState();
         }
         const tabs = ordered(group);
@@ -1257,7 +1385,7 @@ export function createEditorGroup(
             let replacements = 0;
             for (const path of paths) {
                 const doc = docs.get(path);
-                if (!doc) {
+                if (!doc || doc.custom) {
                     continue;
                 }
                 handled.push(path);
@@ -1279,7 +1407,7 @@ export function createEditorGroup(
         },
         async applyAgentEdit(path, expected, text) {
             const doc = docs.get(path);
-            if (!doc) {
+            if (!doc || doc.custom) {
                 return 'not-open';
             }
             if (fileText(doc) !== expected) {
@@ -1371,6 +1499,15 @@ export function createEditorGroup(
             return true;
         },
         groupCount: () => groups.length,
+        openCustom(input: CustomEditorInput, options: OpenOptions = {}): void {
+            const doc = docs.get(input.id) ?? createCustomDoc(input);
+            if (!doc.custom) {
+                callbacks.onStatus(`${input.id} is already open as a file.`);
+                return;
+            }
+            showDoc(current, doc, options);
+        },
+        registerCustomEditor: (resolver: CustomEditorResolver) => customEditors.register(resolver),
         openMarkdownPreview: () => openPreview(),
         closeMarkdownPreview: () => closePreview(),
         canPreviewMarkdown: () => {
@@ -1543,6 +1680,7 @@ export function createEditorGroup(
             for (const group of [...groups].reverse()) {
                 for (const tab of group.tabs.values()) {
                     tab.element.remove();
+                    disposeView(tab);
                 }
                 group.tabs.clear();
                 group.active = null;
@@ -1560,7 +1698,7 @@ export function createEditorGroup(
             callbacks.onOpenFilesChange?.();
         },
         dirtyPaths: () => [...docs.values()].filter(isDirty).map((doc) => doc.path),
-        openPaths: () => [...docs.keys()],
+        openPaths: () => [...docs.values()].filter((doc) => !doc.custom || doc.custom.filePath !== undefined).map((doc) => doc.path),
         async entryMoved(from: string, to: string | null): Promise<void> {
             const affected = [...docs.values()].filter((doc) => doc.path === from || doc.path.startsWith(`${from}/`));
             const reopen: { group: Group; path: string; active: boolean }[] = [];
@@ -1599,7 +1737,7 @@ export function createEditorGroup(
             // #170: an .editorconfig changed: read them again and re-apply them to every open file.
             if (paths.some((path) => path === EDITORCONFIG_NAME || path.endsWith(`/${EDITORCONFIG_NAME}`))) {
                 editorConfigs = new Map();
-                await Promise.all([...docs.values()].map(applyEditorConfig));
+                await Promise.all([...docs.values()].filter((doc) => !doc.custom).map(applyEditorConfig));
             }
             await Promise.all([...docs.values()].filter((doc) => changed.has(doc.path)).map(followDisk));
         },

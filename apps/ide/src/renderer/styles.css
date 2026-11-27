@@ -428,6 +428,10 @@ body {
 .editor-host { flex: 1; min-height: 0; }
 .editor-placeholder { flex: 1; display: grid; place-items: center; }
 .editor-host[hidden], .editor-placeholder[hidden] { display: none; }
+/* #256: a custom tab's view (PDF, image, chat) in place of the editor. */
+.editor-custom-host { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.editor-custom-host[hidden] { display: none; }
+.editor-custom-host > * { flex: 1; min-height: 0; }
 
 .welcome-title {
   font-size: clamp(28px, 4vw, 40px);

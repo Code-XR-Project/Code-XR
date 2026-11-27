@@ -202,6 +202,36 @@ Each run gets a terminal tab of its own, in the folder, started with the shell o
 
 The renderer names a task only by the id the main process listed, or a file by its workspace path; the main process re-reads the folder, builds the command line (quoted for bash/zsh/fish, PowerShell or cmd), checks the trust and starts the terminal (`shared/tasks.ts`, pure and unit-tested; `main/tasks/`; `renderer/taskRunner.ts`). The smoke run checks that a task is refused in an untrusted folder.
 
+## PDF and image viewers (#256)
+
+PDFs and images open in an editor tab instead of being refused as binary files. This covers the explorer, Quick Open, search results and links in the Markdown preview. The tabs behave like file tabs:
+- a single click opens a preview tab;
+- they can be dragged to the other group or split with `Ctrl/Cmd+\`;
+- they are restored with the folder's session;
+- they follow the file on disk.
+
+- **PDF**
+  - Drawn by [PDF.js](https://github.com/mozilla/pdf.js), fitted to the width by default.
+  - Pages are drawn as they come near the viewport, and give their memory back when they are far away.
+  - Text can be selected and copied.
+  - The toolbar has the page number (type one and press Enter), previous and next page, zoom in and out (also `Ctrl/Cmd+=` / `Ctrl/Cmd+-` and `Ctrl/Cmd`+wheel), fit width (`Ctrl/Cmd+0`) and actual size.
+  - It also has a find box (`Ctrl/Cmd+F`, Enter and Shift+Enter step through the matches, Escape clears them) that highlights the match on the page.
+  - Up to 64 MB. Password-protected PDFs are not supported yet.
+- **Images** (PNG, JPEG, GIF, WebP, BMP, ICO, AVIF, up to 8 MB)
+  - Fitted to the tab over a checkerboard.
+  - Zoom in steps, to actual size or back to fit, with the same keys.
+  - The size in pixels and bytes is shown in the toolbar.
+  - SVG stays a text file: it is a document that can carry script.
+- **Security**
+  - The bytes come from the main process through a read that stays inside the folder and is size-capped (`workspace.readDocument` / `readImage`).
+  - PDF.js parses them in its own worker, bundled with the app.
+  - The CSP is unchanged: no frames, no objects, no remote fetches.
+  - Viewing is read-only, so it works in Restricted Mode.
+- **Custom editor tabs**
+  - The viewers are the first users of a generic seam in `renderer/editor/customEditor.ts`. `editorGroup.openCustom(input)` opens a tab whose content is a DOM element of its own, and `registerCustomEditor(resolver)` turns an id (a file being opened, or a tab of a saved session) into such a tab.
+  - A tab's id is a workspace path for a file viewer, and carries a prefix of its own otherwise (`chat:<id>`).
+  - Text commands (save, format, go to line) leave custom tabs alone; close, split, keep and copy path work on them.
+
 ## Debugger (#180)
 
 **Run and Debug** (activity bar, `Ctrl/Cmd+Shift+D`) debugs Python and Node.js programs over the Debug Adapter Protocol. Click left of a line number (or press `F9`) to set a breakpoint; breakpoints follow the text as you edit, are listed in the view and are kept per folder. **F5** starts the configuration picked in the view, by default the active file with its language's debugger, and continues once paused. While paused, the line is highlighted, and the view shows **Variables** (expanded on demand, open nodes stay open from one stop to the next), **Watch** expressions, the **Call Stack** (click a frame to inspect it) and **Breakpoints**. A floating toolbar over the editors and the usual keys drive it: Continue `F5`, Pause `F6`, Step Over `F10`, Step Into `F11`, Step Out `Shift+F11`, Restart `Ctrl/Cmd+Shift+F5`, Stop `Shift+F5`. The **Debug Console** (panel, `Ctrl/Cmd+Shift+Y`) shows the program's output and evaluates expressions in the selected frame. The status bar turns orange while a session runs.

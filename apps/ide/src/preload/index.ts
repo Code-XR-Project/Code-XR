@@ -173,6 +173,7 @@ const api: CodeXRApi = Object.freeze({
         rename: (path: string, newName: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRename, path, newName),
         copyPath: (path: string, kind: 'absolute' | 'relative') => ipcRenderer.invoke(IPC_CHANNELS.workspaceCopyPath, path, kind),
         readImage: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadImage, path),
+        readDocument: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadDocument, path),
         trust: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrust),
         setTrust: (choice: 'folder' | 'parent' | 'restrict') => ipcRenderer.invoke(IPC_CHANNELS.workspaceSetTrust, choice),
         onDidChangeTrust: (listener: (trust: WorkspaceTrustInfo) => void) => subscribe(IPC_EVENTS.workspaceTrustChanged, listener),

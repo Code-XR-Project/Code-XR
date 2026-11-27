@@ -1,0 +1,110 @@
+/* #256: the PDF and image viewer tabs. */
+
+.viewer-lazy { display: flex; flex-direction: column; min-height: 0; }
+.viewer-lazy > * { flex: 1; min-height: 0; }
+.viewer { display: flex; flex-direction: column; min-height: 0; height: 100%; background: var(--editor); }
+.viewer-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 32px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--chrome);
+  font-size: 12px;
+  flex-wrap: wrap;
+  white-space: nowrap;
+}
+.viewer-toolbar .icon-button[aria-pressed='true'] { background: var(--hover); color: var(--fg); }
+.viewer-spacer { flex: 1; min-width: 8px; }
+.viewer-separator { width: 1px; height: 16px; margin: 0 6px; background: var(--line); }
+.viewer-zoom { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.viewer-info { font-variant-numeric: tabular-nums; }
+.viewer-scroll { flex: 1; min-height: 0; overflow: auto; outline: none; }
+.viewer-scroll[hidden], .viewer-message[hidden] { display: none; }
+.viewer-message { flex: 1; display: grid; place-items: center; padding: 24px; text-align: center; }
+.viewer-find { display: flex; align-items: center; gap: 2px; }
+.viewer-find-input, .pdf-page-input {
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+}
+.viewer-find-input { width: 160px; padding: 0 6px; }
+.viewer-find-input:focus, .pdf-page-input:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+.viewer-find-count { min-width: 64px; margin: 0 4px; text-align: center; font-variant-numeric: tabular-nums; }
+.pdf-page-input { width: 40px; margin: 0 4px; text-align: center; }
+
+/* The image: fitted by default, checkerboard behind transparency. */
+.image-viewer-stage { display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
+.image-viewer-image {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  image-rendering: auto;
+}
+.image-viewer-stage.is-fit { overflow: hidden; }
+.image-viewer-stage.is-fit .image-viewer-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* The PDF: pages down the middle, drawn white whatever the theme. */
+.pdf-scroll { position: relative; background: var(--panel); }
+.pdf-pages { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 8px; width: max-content; min-width: 100%; box-sizing: border-box; }
+.pdf-page {
+  position: relative;
+  flex: none;
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+}
+.pdf-canvas { display: block; }
+
+/* pdf.js's text layer (from its pdf_viewer.css, trimmed): transparent text over the canvas, for selection and find. */
+.pdf-page .textLayer {
+  color-scheme: only light;
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.pdf-page .textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+.pdf-page .textLayer > :not(.markedContent),
+.pdf-page .textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.pdf-page .textLayer .markedContent { display: contents; }
+.pdf-page .textLayer ::selection { background: rgba(0, 120, 215, 0.3); color: transparent; }
+.pdf-page .textLayer br::selection { background: transparent; }
+.pdf-page .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }
+.pdf-page .textLayer.selecting .endOfContent { top: 0; }
+.pdf-page .textLayer .highlight { position: static; margin: -1px; padding: 1px; border-radius: 3px; background-color: rgba(255, 140, 0, 0.5); }
