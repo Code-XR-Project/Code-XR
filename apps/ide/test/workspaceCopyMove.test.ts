@@ -36,7 +36,7 @@ function trySymlink(target: string, linkRelative: string, type: 'file' | 'dir'):
 }
 
 beforeEach(() => {
-    base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-ide-copy-')));
+    base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-ide-copy-')));
     root = path.join(base, 'project');
     outside = path.join(base, 'secret');
     fs.mkdirSync(root);
