@@ -372,7 +372,7 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         const done = entries.filter((entry) => entry.status === 'completed').length;
         planSummary.textContent = `Plan: ${done} of ${entries.length} done`;
         planList.replaceChildren(...entries.map((entry) => el('li', { className: 'af-plan-entry', attrs: { 'data-status': entry.status } }, [
-            el('span', { className: 'af-plan-mark', attrs: { 'aria-hidden': 'true' }, text: entry.status === 'completed' ? '✓' : entry.status === 'in_progress' ? '▸' : '○' }),
+            el('span', { className: 'af-plan-mark', attrs: { 'aria-hidden': 'true', 'data-status': entry.status } }),
             el('span', { text: entry.content }),
         ])));
     }
