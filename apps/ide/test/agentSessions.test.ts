@@ -214,14 +214,13 @@ describe('SessionStore', () => {
 
 describe('AgentCatalog', () => {
     it('finds a preset on PATH, reports a missing one with how to install it, and lists built-in profiles', async () => {
-        const bin = path.join(base, 'bin');
-        fs.mkdirSync(bin, { recursive: true });
-        const agentFile = path.join(bin, 'codex-acp');
-        fs.writeFileSync(agentFile, '#!/bin/sh\n');
-        fs.chmodSync(agentFile, 0o755);
+        // A POSIX PATH on every host: a Windows drive letter would be split at its ':'.
+        const bin = '/agents/bin';
+        const agentFile = `${bin}/codex-acp`;
         const catalog = new AgentCatalog({
             packagesDir: path.join(base, 'packages'),
             store: new JsonKeyValueStore(path.join(base, 'catalog.json')),
+            probe: { isExecutable: (file) => Promise.resolve(file === agentFile), readText: diskProbe.readText },
             env: { PATH: bin, HOME: '/home/u', OPENAI_API_KEY: 'k', ANTHROPIC_API_KEY: 'secret', UNRELATED: 'x' },
             platform: 'linux',
             execPath: process.execPath,

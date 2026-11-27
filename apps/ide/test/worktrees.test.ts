@@ -49,6 +49,8 @@ function repo(files: Record<string, string> = { 'a.txt': 'a\n', 'b.txt': 'b\n', 
     realGit(root, 'config', 'user.name', 'Test Person');
     realGit(root, 'config', 'user.email', 'test@example.invalid');
     realGit(root, 'config', 'commit.gpgsign', 'false');
+    // Git for Windows checks files out with CRLF by default; the tests compare bytes.
+    realGit(root, 'config', 'core.autocrlf', 'false');
     for (const [relative, content] of Object.entries(files)) {
         write(root, relative, content);
     }
