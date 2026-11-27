@@ -16,6 +16,10 @@ import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
 import { loginCommandLine } from './agentTerminals.ts';
 import { SessionStore } from './sessionStore.ts';
 import { codexrMcpServerSpec } from './codexrMcpSpec.ts';
+import { SessionChanges } from '../checkpoints/sessionChanges.ts';
+import { toTurnMetricDeltaView } from '../analysis/metricDelta.ts';
+import type { AnalysisService } from '../analysis/analysisService.ts';
+import type { FileMetrics } from '../agents/tools/analysisQueries.ts';
 
 /**
  * AF1: builds the agent-first chat service and wires it into Electron: the
@@ -38,7 +42,12 @@ export interface AgentSessionsRuntimeOptions {
     readonly profiles: AgentProfiles;
     /** AF10: the static folder of a window's Code-XR analysis, handed to the agents' Code-XR MCP server. */
     readonly analysisOutput?: (contents: WebContents) => string | null;
+    /** AF9: the window's live analysis, measured before and after each turn. */
+    readonly analysis?: Pick<AnalysisService, 'sceneMetrics' | 'turnMetricDelta'>;
 }
+
+/** How long the metric delta waits for the scene to catch up with a turn's edits. */
+const METRIC_DELTA_TIMEOUT_MS = 30_000;
 
 export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentSessionsRuntime {
     const userData = options.isSmoke ? path.join(os.tmpdir(), `codexr-ide-smoke-agent-sessions-${process.pid}`) : app.getPath('userData');
@@ -81,7 +90,49 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
         return contents && !contents.isDestroyed() ? contents : null;
     };
 
+    // AF5/AF6: snapshots in shadow repositories outside every project, review bases per chat.
+    const changes = new SessionChanges({
+        storageDir: path.join(userData, 'checkpoints'),
+        bases: new JsonKeyValueStore(path.join(dir, 'review.json')),
+    });
+    /** The window that has `root` open (the chat's owner for the analysis). */
+    const windowOf = (root: string): WebContents | null =>
+        webContents.getAllWebContents().find((contents) => !contents.isDestroyed() && currentWorkspaceInfo(contents)?.root === root) ?? null;
+    /** AF9: per chat, the scene's metrics and the checkpoint taken when its running turn started. */
+    const turnStarts = new Map<string, { readonly metrics: FileMetrics[] | null; readonly checkpointId: string | null }>();
+
+    const measureTurn = async (sessionId: string, root: string, turnId: string): Promise<void> => {
+        const start = turnStarts.get(sessionId);
+        turnStarts.delete(sessionId);
+        const owner = windowOf(root);
+        if (!start?.metrics || !start.checkpointId || !owner || !options.analysis) {
+            return;
+        }
+        const changed = await changes.changedSince(root, start.checkpointId);
+        if (changed.length === 0) {
+            return;
+        }
+        const { report } = await options.analysis.turnMetricDelta(owner, start.metrics, changed, { timeoutMs: METRIC_DELTA_TIMEOUT_MS });
+        const view = toTurnMetricDeltaView(report);
+        if (view) {
+            service.attachMetricDelta(sessionId, turnId, view);
+        }
+    };
+
     const service: AgentSessionService = new AgentSessionService({
+        review: changes,
+        beforePrompt: async (sessionId, root) => {
+            const checkpoint = await changes.beforePrompt(sessionId, root);
+            const owner = options.analysis ? windowOf(root) : null;
+            const metrics = owner && options.analysis ? await options.analysis.sceneMetrics(owner).catch(() => null) : null;
+            turnStarts.set(sessionId, { metrics, checkpointId: checkpoint?.checkpointId ?? null });
+            return checkpoint;
+        },
+        afterTurn: async (sessionId, root, turnId) => {
+            // The delta waits for the scene to refresh: it never holds the chat up.
+            void measureTurn(sessionId, root, turnId).catch((error: unknown) => log.warn(`[agent] Could not measure the turn: ${String(error)}`));
+            return changes.afterTurn(sessionId, root);
+        },
         catalog,
         store: new SessionStore(dir),
         decisions: new JsonKeyValueStore(path.join(dir, 'permissions.json')),

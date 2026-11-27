@@ -113,7 +113,7 @@ async function start(): Promise<void> {
     const keybindings = isSmoke ? new KeybindingsService(memoryStorage(), null) : new KeybindingsService(fileStorage(keybindingsFile), keybindingsFile);
     agentServices = startAgents({ isSmoke, commandRunner: terminalHost.commandRunner });
     // The smoke run may never start an agent: the service refuses to spawn there.
-    agentSessions = startAgentSessions({ isSmoke, terminal: terminalHost, profiles: agentServices.profiles, analysisOutput: (contents) => core.analysis.outputDirectory(contents) });
+    agentSessions = startAgentSessions({ isSmoke, terminal: terminalHost, profiles: agentServices.profiles, analysisOutput: (contents) => core.analysis.outputDirectory(contents), analysis: core.analysis });
     // #177: workspace trust decisions, in the user-data folder (in memory for the smoke run).
     const trustFile = isSmoke ? null : new JsonKeyValueStore(path.join(app.getPath('userData'), 'workspace-trust.json'));
     let smokeTrust: unknown = [];

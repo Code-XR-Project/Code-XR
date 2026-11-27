@@ -84,6 +84,13 @@ const api: CodeXRApi = Object.freeze({
         rename: (sessionId: string, title: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.rename, sessionId, title),
         remove: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.remove, sessionId),
         markRead: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.markRead, sessionId),
+        // AF5/AF6: review and checkpoints; paths are workspace-relative and checked in main.
+        changes: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.changes, sessionId),
+        changeDiff: (sessionId: string, path: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.changeDiff, sessionId, path),
+        keepChanges: (sessionId: string, paths: readonly string[] | 'all') => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.keepChanges, sessionId, paths),
+        undoChanges: (sessionId: string, paths: readonly string[] | 'all') => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.undoChanges, sessionId, paths),
+        previewRestore: (sessionId: string, checkpointId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.previewRestore, sessionId, checkpointId),
+        restoreCheckpoint: (sessionId: string, checkpointId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.restoreCheckpoint, sessionId, checkpointId),
         onMessage: (listener: (message: AgentSessionMessage) => void) => subscribe(AGENT_SESSION_EVENTS.message, listener),
     }),
     // #17: only workspace-relative paths and branch names cross; main validates each one.

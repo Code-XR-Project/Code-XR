@@ -12,6 +12,7 @@ import { AgentCatalog, agentEnvironment, findOnPath, diskProbe } from '../src/ma
 import { AgentSessionService, type WindowPort } from '../src/main/agentSessions/agentSessionService.ts';
 import { keepTail, loginCommandLine } from '../src/main/agentSessions/agentTerminals.ts';
 import { SessionStore, projectKey } from '../src/main/agentSessions/sessionStore.ts';
+import { SessionChanges } from '../src/main/checkpoints/sessionChanges.ts';
 
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-ide-agent-sessions-'));
 after(() => fs.rmSync(base, { recursive: true, force: true }));
@@ -81,6 +82,20 @@ describe('applySessionEvent', () => {
         state = reduce([{ type: 'read' }], state);
         assert.equal(state.unread, false);
         assert.equal(reduce([{ type: 'read' }], state), state);
+    });
+});
+
+describe('applySessionEvent: metric deltas (AF9)', () => {
+    it('attaches a delta to the turn it names and ignores an unknown turn', () => {
+        const delta = { summary: 'x', totals: [{ metric: 'maxComplexity', before: 9, after: 1 }], files: [], moreFiles: 0 };
+        const ended = reduce([{ type: 'user', id: 'u1', text: 'go', at: AT }, { type: 'turn-end', id: 'e1', stopReason: 'end_turn', at: AT }]);
+        const state = reduce([{ type: 'metric-delta', turnId: 'e1', delta }], ended);
+        const turn = state.items.at(-1);
+        assert.ok(turn?.kind === 'turn-end');
+        assert.deepEqual(turn.metricDelta, delta);
+        assert.notEqual(turn, ended.items.at(-1), 'a new item, so the chat redraws it');
+        assert.equal(state.updatedAt, ended.updatedAt, 'a late delta does not move the chat up the list');
+        assert.equal(reduce([{ type: 'metric-delta', turnId: 'nope', delta }], ended), ended);
     });
 });
 
@@ -348,7 +363,7 @@ function fakeAgent(log: FakeAgentLog) {
         });
 }
 
-async function setup(name: string, options: { trusted?: boolean; afterTurn?: () => Promise<number | null> } = {}) {
+async function setup(name: string, options: { trusted?: boolean; afterTurn?: () => Promise<number | null>; changes?: SessionChanges } = {}) {
     const root = path.join(base, name, 'project');
     fs.mkdirSync(root, { recursive: true });
     fs.writeFileSync(path.join(root, 'a.txt'), 'one\ntwo\nthree\n');
@@ -372,7 +387,13 @@ async function setup(name: string, options: { trusted?: boolean; afterTurn?: () 
         },
         openTerminal: () => Promise.reject(new Error('no terminal in tests')),
         connect: (_launch, _cwd, handlers) => AcpConnection.inProcess(fakeAgent(log), handlers),
-        beforePrompt: () => Promise.resolve({ checkpointId: 'cp-1' }),
+        ...(options.changes
+            ? {
+                review: options.changes,
+                beforePrompt: (sessionId: string, workspaceRoot: string) => options.changes!.beforePrompt(sessionId, workspaceRoot),
+                afterTurn: (sessionId: string, workspaceRoot: string) => options.changes!.afterTurn(sessionId, workspaceRoot),
+            }
+            : { beforePrompt: () => Promise.resolve({ checkpointId: 'cp-1' }) }),
         ...(options.afterTurn ? { afterTurn: options.afterTurn } : {}),
         spawnAllowed: true,
         probeDir: path.join(base, name, 'probe'),
@@ -505,6 +526,89 @@ describe('AgentSessionService with a fake ACP agent', () => {
         }
         assert.deepEqual(written, [path.join(root, 'new.txt')]);
         await assert.rejects(service.prompt(window, created.id, 'x', [{ kind: 'file', path: '../secret.txt' }]), /outside the project/);
+        await service.stopAll();
+    });
+
+    it('reviews the chat\'s changes: list, diff, undo, keep and restore to a message (AF5, AF6)', async () => {
+        const changes = new SessionChanges({ storageDir: path.join(base, 'review', 'checkpoints'), bases: new JsonKeyValueStore(path.join(base, 'review', 'review.json')) });
+        const { root, service, window, ref } = await setup('review', { changes });
+        const created = await service.create(window, ref);
+        const file = path.join(root, 'a.txt');
+        await service.prompt(window, created.id, `write ${file}`, []);
+        let state = await service.get(window, created.id);
+        assert.equal(state.pendingChanges, 1);
+        const first = state.items.find((item) => item.kind === 'user');
+        assert.ok(first?.kind === 'user' && first.checkpoint && /^[0-9a-f]{40,64}$/.test(first.checkpoint));
+
+        let listed = await service.changes(window, created.id);
+        assert.deepEqual(listed.files.map((entry) => [entry.path, entry.status]), [['a.txt', 'modified']]);
+        assert.deepEqual(await service.changeDiff(window, created.id, './a.txt'), { path: 'a.txt', oldText: 'one\ntwo\nthree\n', newText: 'written' });
+
+        // Undo puts the file back and the chat's count follows.
+        listed = await service.undoChanges(window, created.id, ['a.txt']);
+        assert.equal(listed.files.length, 0);
+        assert.equal(fs.readFileSync(file, 'utf8'), 'one\ntwo\nthree\n');
+        assert.equal((await service.get(window, created.id)).pendingChanges, 0);
+
+        // Keep accepts the change: no longer pending, still on disk.
+        await service.prompt(window, created.id, `write ${file}`, []);
+        assert.equal((await service.get(window, created.id)).pendingChanges, 1);
+        listed = await service.keepChanges(window, created.id, 'all');
+        assert.equal(listed.files.length, 0);
+        assert.equal(fs.readFileSync(file, 'utf8'), 'written');
+
+        // Restore to the first message: preview lists the file, restore writes it.
+        assert.deepEqual(await service.previewRestore(window, created.id, first.checkpoint), ['a.txt']);
+        assert.deepEqual(await service.restoreCheckpoint(window, created.id, first.checkpoint), ['a.txt']);
+        assert.equal(fs.readFileSync(file, 'utf8'), 'one\ntwo\nthree\n');
+        state = await service.get(window, created.id);
+        assert.equal(state.pendingChanges, 1, 'the restore differs from what was kept');
+
+        // The renderer is untrusted: foreign checkpoints, paths that leave the project and bad lists are refused.
+        await assert.rejects(service.restoreCheckpoint(window, created.id, 'a'.repeat(40)), /not part of this chat/);
+        await assert.rejects(service.changeDiff(window, created.id, '../secret.txt'), /cannot leave the project/);
+        await assert.rejects(service.undoChanges(window, created.id, []), /Invalid list/);
+        await assert.rejects(service.keepChanges(window, created.id, [42]), /Invalid file path/);
+        await assert.rejects(service.undoChanges(window, created.id, ['.git/config']), /\.git/);
+        await service.remove(window, created.id);
+        assert.equal(changes.reviewBase(created.id), null);
+        await service.stopAll();
+        await changes.dispose();
+    });
+
+    it('refuses to undo or restore while the agent works', async () => {
+        const changes = new SessionChanges({ storageDir: path.join(base, 'review-busy', 'checkpoints'), bases: new JsonKeyValueStore(path.join(base, 'review-busy', 'review.json')) });
+        const { service, window, ref, log } = await setup('review-busy', { changes });
+        const created = await service.create(window, ref);
+        const turn = service.prompt(window, created.id, 'perm', []);
+        await waitFor(() => log.prompts.length === 1, 'the prompt');
+        const user = (await service.get(window, created.id)).items.find((item) => item.kind === 'user');
+        assert.ok(user?.kind === 'user' && user.checkpoint);
+        await assert.rejects(service.undoChanges(window, created.id, 'all'), /still working/);
+        await assert.rejects(service.restoreCheckpoint(window, created.id, user.checkpoint), /still working/);
+        // Reading is fine while it works.
+        assert.deepEqual((await service.changes(window, created.id)).files, []);
+        await service.cancel(window, created.id);
+        await turn;
+        await service.stopAll();
+        await changes.dispose();
+    });
+
+    it('attaches a metric delta to its turn and refuses review actions without checkpoints', async () => {
+        const { service, window, ref, messages } = await setup('delta');
+        const created = await service.create(window, ref);
+        await service.prompt(window, created.id, 'hello', []);
+        const turn = (await service.get(window, created.id)).items.at(-1);
+        assert.ok(turn?.kind === 'turn-end');
+        const delta = { summary: '1 file (1 changed)', totals: [{ metric: 'codeLines', before: 10, after: 4 }], files: [], moreFiles: 0 };
+        service.attachMetricDelta(created.id, turn.id, delta);
+        service.attachMetricDelta(created.id, 'unknown-turn', delta);
+        const after = await service.get(window, created.id);
+        const ended = after.items.at(-1);
+        assert.ok(ended?.kind === 'turn-end');
+        assert.deepEqual(ended.metricDelta, delta);
+        assert.equal(messages.filter((message) => message.kind === 'event' && message.event.type === 'metric-delta').length, 1);
+        await assert.rejects(service.changes(window, created.id), /not available/);
         await service.stopAll();
     });
 

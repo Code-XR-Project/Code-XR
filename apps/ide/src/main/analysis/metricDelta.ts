@@ -1,3 +1,4 @@
+import type { MetricChangeView, TurnMetricDeltaView } from '../../shared/agentSession.ts';
 import { normalize, type FileMetrics } from '../agents/tools/analysisQueries.ts';
 
 /**
@@ -235,4 +236,33 @@ export function formatMetricDelta(report: MetricDeltaReport): string {
         lines.push(`- ${file.path} [${file.status}]${changes.length > 0 ? `: ${changes.join(', ')}` : ''}`);
     }
     return lines.join('\n');
+}
+
+/** The project totals a chat shows, in the order it shows them. */
+const VIEW_TOTALS: readonly (keyof MetricTotals)[] = [
+    'maxComplexity', 'avgComplexity', 'codeLines', 'functionCount', 'classCount', 'highComplexityFunctions', 'criticalComplexityFunctions', 'files',
+];
+
+/**
+ * AF9: the report as the chat keeps it on a turn: serialisable, only what
+ * moved, at most `maxFiles` files. Null when there is nothing to show (no
+ * analysis on either side, or no metric moved), so a chat without a scene
+ * stays quiet.
+ */
+export function toTurnMetricDeltaView(report: MetricDeltaReport, maxFiles = 30): TurnMetricDeltaView | null {
+    const { before, after } = report.totals;
+    if (report.status !== 'ok' || !before || !after) {
+        return null;
+    }
+    const totals: MetricChangeView[] = VIEW_TOTALS.filter((key) => before[key] !== after[key]).map((key) => ({ metric: key, before: before[key], after: after[key] }));
+    const moved = report.files.filter((file) => file.status === 'added' || file.status === 'removed' || file.status === 'changed');
+    if (totals.length === 0 && moved.length === 0) {
+        return null;
+    }
+    const files = moved.slice(0, maxFiles).map((file) => ({
+        path: file.path,
+        status: file.status,
+        changes: Object.entries(file.metrics).map(([metric, change]) => ({ metric, before: change.before, after: change.after })),
+    }));
+    return { summary: report.summary, totals, files, moreFiles: moved.length - files.length };
 }

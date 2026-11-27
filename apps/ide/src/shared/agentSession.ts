@@ -122,7 +122,53 @@ export type TranscriptItem =
           readonly id: string;
           readonly stopReason: 'end_turn' | 'max_tokens' | 'max_turn_requests' | 'refusal' | 'cancelled' | 'error';
           readonly at: string;
+          /** What the turn did to the live analysis' metrics (AF9), when a scene was open and something moved. */
+          readonly metricDelta?: TurnMetricDeltaView;
       };
+
+// ---- Review of changes (AF5, AF6) and metric deltas (AF9) ------------------
+
+/** One file a chat changed that still awaits review. */
+export interface ChangedFileView {
+    /** Workspace-relative, forward slashes. */
+    readonly path: string;
+    readonly status: 'added' | 'modified' | 'deleted';
+    readonly additions: number;
+    readonly deletions: number;
+    readonly binary: boolean;
+}
+
+/** The pending changes of a chat; `disabledReason` set (and `files` empty) when checkpoints are off for its project. */
+export interface ChatChanges {
+    readonly files: readonly ChangedFileView[];
+    readonly disabledReason: string | null;
+}
+
+/** The two sides of one file: the review base and the disk now. Null for a side where the file does not exist. */
+export interface ChangeDiffView {
+    readonly path: string;
+    readonly oldText: string | null;
+    readonly newText: string | null;
+}
+
+/** One metric of a file or of the project, before and after a turn. */
+export interface MetricChangeView {
+    readonly metric: string;
+    readonly before: number | null;
+    readonly after: number | null;
+}
+
+/** A compact, serialisable metric delta of one turn (AF9), kept on its turn-end item. */
+export interface TurnMetricDeltaView {
+    /** One line, from the analysis ("2 files (2 changed): code lines -6 ..."). */
+    readonly summary: string;
+    /** Project totals that moved. */
+    readonly totals: readonly MetricChangeView[];
+    /** Files the turn changed, with the metrics that moved (capped). */
+    readonly files: readonly { readonly path: string; readonly status: string; readonly changes: readonly MetricChangeView[] }[];
+    /** Files left out of `files` by the cap. */
+    readonly moreFiles: number;
+}
 
 export interface PlanEntryView {
     readonly content: string;
@@ -238,6 +284,8 @@ export type SessionEvent =
     | { readonly type: 'title'; readonly title: string }
     | { readonly type: 'agent-session'; readonly agentSessionId: string }
     | { readonly type: 'pending-changes'; readonly count: number }
+    /** AF9: attaches the metric delta of the turn that ended with `turnId`. */
+    | { readonly type: 'metric-delta'; readonly turnId: string; readonly delta: TurnMetricDeltaView }
     | { readonly type: 'read' };
 
 /** Main -> renderer: an event for one session, or a session list change. */
@@ -392,6 +440,16 @@ export function applySessionEvent(state: AgentSessionState, event: SessionEvent,
             return touch({ agentSessionId: event.agentSessionId });
         case 'pending-changes':
             return touch({ pendingChanges: event.count });
+        case 'metric-delta': {
+            const index = items.findIndex((item) => item.kind === 'turn-end' && item.id === event.turnId);
+            const target = items[index];
+            if (!target || target.kind !== 'turn-end') {
+                return state;
+            }
+            const copy = items.slice();
+            copy[index] = { ...target, metricDelta: event.delta };
+            return { ...state, items: copy };
+        }
         case 'read':
             return state.unread ? { ...state, unread: false } : state;
     }
@@ -462,6 +520,12 @@ export const AGENT_SESSION_CHANNELS = {
     rename: 'codexr:agent-sessions:rename',
     remove: 'codexr:agent-sessions:remove',
     markRead: 'codexr:agent-sessions:mark-read',
+    changes: 'codexr:agent-sessions:changes',
+    changeDiff: 'codexr:agent-sessions:change-diff',
+    keepChanges: 'codexr:agent-sessions:keep-changes',
+    undoChanges: 'codexr:agent-sessions:undo-changes',
+    previewRestore: 'codexr:agent-sessions:preview-restore',
+    restoreCheckpoint: 'codexr:agent-sessions:restore-checkpoint',
 } as const;
 
 export const AGENT_SESSION_EVENTS = {
@@ -506,5 +570,17 @@ export interface AgentSessionsApi {
     rename(sessionId: string, title: string): Promise<SessionSummary>;
     remove(sessionId: string): Promise<void>;
     markRead(sessionId: string): Promise<void>;
+    /** AF5: the files the chat changed that still await review. */
+    changes(sessionId: string): Promise<ChatChanges>;
+    /** AF5: one pending file, as it was at its review base and as it is on disk. */
+    changeDiff(sessionId: string, path: string): Promise<ChangeDiffView>;
+    /** AF5: accepts these files (or all) as they are now: they stop being pending. */
+    keepChanges(sessionId: string, paths: readonly string[] | 'all'): Promise<ChatChanges>;
+    /** AF5: puts these files (or all) back as they were at their review base. */
+    undoChanges(sessionId: string, paths: readonly string[] | 'all'): Promise<ChatChanges>;
+    /** AF6: the files `restoreCheckpoint` would write, without writing anything. */
+    previewRestore(sessionId: string, checkpointId: string): Promise<readonly string[]>;
+    /** AF6: puts every file back as it was before the message with this checkpoint; returns the paths written. */
+    restoreCheckpoint(sessionId: string, checkpointId: string): Promise<readonly string[]>;
     onMessage(listener: (message: AgentSessionMessage) => void): () => void;
 }

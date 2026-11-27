@@ -21,6 +21,8 @@ import {
     type AgentSessionMessage,
     type AgentSessionState,
     type AgentView,
+    type ChangeDiffView,
+    type ChatChanges,
     type LoginTerminal,
     type PermissionOptionView,
     type ProjectSessions,
@@ -28,7 +30,9 @@ import {
     type SessionEvent,
     type SessionSummary,
     type ToolKind,
+    type TurnMetricDeltaView,
 } from '../../shared/agentSession.ts';
+import { normalizeProjectPath } from '../checkpoints/checkpointStore.ts';
 import { isSameOrInside } from '../trust/trustModel.ts';
 import { AcpConnection, type AcpClientHandlers, type AgentLaunch } from './acpConnection.ts';
 import {
@@ -100,8 +104,14 @@ export interface AgentSessionServiceOptions {
     readonly mcpServers?: (workspaceRoot: string | null) => readonly McpServer[];
     /** Takes a checkpoint before a prompt is sent (AF6); its id is recorded on the person's message. */
     readonly beforePrompt?: (sessionId: string, workspaceRoot: string) => Promise<{ readonly checkpointId: string } | null>;
-    /** After each turn: how many files the agent changed that still await review (AF5), sent as `pending-changes`. */
-    readonly afterTurn?: (sessionId: string, workspaceRoot: string) => Promise<number | null>;
+    /**
+     * After each turn: how many files the agent changed that still await
+     * review (AF5), sent as `pending-changes`. `turnId` is the id of the
+     * turn-end item, for `attachMetricDelta` (AF9).
+     */
+    readonly afterTurn?: (sessionId: string, workspaceRoot: string, turnId: string) => Promise<number | null>;
+    /** The review of a chat's changes and its checkpoints (AF5, AF6); absent, the review calls refuse. */
+    readonly review?: ChangeReview;
     /** Starts an agent (tests connect to an in-process agent instead). */
     readonly connect?: (launch: AgentLaunch, cwd: string, handlers: AcpClientHandlers) => AcpConnection;
     /** False in the smoke run: no agent process may start. */
@@ -118,6 +128,30 @@ export interface AgentSessionServiceOptions {
     readonly startTimeoutMs?: number;
     /** How long a cancelled turn may take to end before the agent is stopped, ms. */
     readonly cancelGraceMs?: number;
+}
+
+/** What the chat needs from the checkpoints (AF5, AF6): `SessionChanges` in the IDE. Paths are project-relative. */
+export interface ChangeReview {
+    pending(sessionId: string, root: string): Promise<ChatChanges>;
+    diff(sessionId: string, root: string, path: string): Promise<{ readonly oldText: string | null; readonly newText: string | null }>;
+    keep(sessionId: string, root: string, paths: readonly string[] | 'all'): Promise<void>;
+    undo(sessionId: string, root: string, paths: readonly string[] | 'all'): Promise<unknown>;
+    previewRestore(root: string, checkpointId: string): Promise<string[]>;
+    restoreCheckpoint(root: string, checkpointId: string): Promise<string[]>;
+    forget?(sessionId: string): Promise<void>;
+}
+
+const MAX_REVIEW_PATHS = 5000;
+
+/** Paths from the renderer: an array of project-relative paths (normalised), or 'all'. */
+function reviewPaths(value: unknown): readonly string[] | 'all' {
+    if (value === 'all') {
+        return 'all';
+    }
+    if (!Array.isArray(value) || value.length === 0 || value.length > MAX_REVIEW_PATHS) {
+        throw new Error('Invalid list of files.');
+    }
+    return [...new Set(value.map((entry) => normalizeProjectPath(requireString(entry, 'file path'))))];
 }
 
 interface PendingPermission {
@@ -425,18 +459,20 @@ export class AgentSessionService {
             const embedded = agent.init.agentCapabilities?.promptCapabilities?.embeddedContext === true;
             const response = await agent.connection.prompt(agent.sessionId, buildPromptBlocks(text, resolved, embedded));
             this.flushTerminalOutput(live);
-            this.emit(live, { type: 'turn-end', id: randomUUID(), stopReason: live.cancelRequested ? 'cancelled' : stopReasonOf(response.stopReason), at: this.now() });
-            await this.reportPendingChanges(live);
+            const turnId = randomUUID();
+            this.emit(live, { type: 'turn-end', id: turnId, stopReason: live.cancelRequested ? 'cancelled' : stopReasonOf(response.stopReason), at: this.now() });
+            await this.reportPendingChanges(live, turnId);
         } catch (error) {
             this.flushTerminalOutput(live);
             this.cancelPermissions(live);
+            const turnId = randomUUID();
             if (live.cancelRequested) {
-                this.emit(live, { type: 'turn-end', id: randomUUID(), stopReason: 'cancelled', at: this.now() });
+                this.emit(live, { type: 'turn-end', id: turnId, stopReason: 'cancelled', at: this.now() });
             } else {
                 this.reportFailure(live, error);
-                this.emit(live, { type: 'turn-end', id: randomUUID(), stopReason: 'error', at: this.now() });
+                this.emit(live, { type: 'turn-end', id: turnId, stopReason: 'error', at: this.now() });
             }
-            await this.reportPendingChanges(live);
+            await this.reportPendingChanges(live, turnId);
         } finally {
             live.turnActive = false;
             live.cancelRequested = false;
@@ -533,6 +569,7 @@ export class AgentSessionService {
         this.stopAgent(live);
         this.live.delete(live.state.id);
         await this.options.store.remove(live.root, live.state.id);
+        await this.hook('review.forget', () => this.options.review?.forget?.(live.state.id));
         this.sessionsChanged();
     }
 
@@ -544,6 +581,62 @@ export class AgentSessionService {
         }
         this.emit(live, { type: 'read' });
         this.sessionsChanged();
+    }
+
+    // ---- Review of changes and checkpoints (AF5, AF6, AF9) ---------------------
+
+    async changes(window: WindowPort, sessionId: unknown): Promise<ChatChanges> {
+        const { live, review } = await this.reviewOf(window, sessionId, false);
+        return this.refreshChanges(live, review);
+    }
+
+    async changeDiff(window: WindowPort, sessionId: unknown, filePath: unknown): Promise<ChangeDiffView> {
+        const { live, review } = await this.reviewOf(window, sessionId, false);
+        const relative = normalizeProjectPath(requireString(filePath, 'file path'));
+        const { oldText, newText } = await review.diff(live.state.id, live.root, relative);
+        return { path: relative, oldText, newText };
+    }
+
+    async keepChanges(window: WindowPort, sessionId: unknown, paths: unknown): Promise<ChatChanges> {
+        const { live, review } = await this.reviewOf(window, sessionId, true);
+        await review.keep(live.state.id, live.root, reviewPaths(paths));
+        return this.refreshChanges(live, review);
+    }
+
+    async undoChanges(window: WindowPort, sessionId: unknown, paths: unknown): Promise<ChatChanges> {
+        const { live, review } = await this.reviewOf(window, sessionId, true);
+        await review.undo(live.state.id, live.root, reviewPaths(paths));
+        return this.refreshChanges(live, review);
+    }
+
+    async previewRestore(window: WindowPort, sessionId: unknown, checkpointId: unknown): Promise<readonly string[]> {
+        const { live, review } = await this.reviewOf(window, sessionId, false);
+        return review.previewRestore(live.root, this.checkpointOf(live, checkpointId));
+    }
+
+    async restoreCheckpoint(window: WindowPort, sessionId: unknown, checkpointId: unknown): Promise<readonly string[]> {
+        const { live, review } = await this.reviewOf(window, sessionId, true);
+        const written = await review.restoreCheckpoint(live.root, this.checkpointOf(live, checkpointId));
+        await this.refreshChanges(live, review).catch((error: unknown) => this.options.log?.(`Could not refresh the changes of ${live.state.id}: ${errorMessage(error)}`));
+        return written;
+    }
+
+    /** AF9: attaches a metric delta to one of the chat's finished turns (quietly ignored once the chat is gone). */
+    attachMetricDelta(sessionId: string, turnId: string, delta: TurnMetricDeltaView): void {
+        const live = this.live.get(sessionId);
+        if (!live || !live.state.items.some((item) => item.kind === 'turn-end' && item.id === turnId)) {
+            return;
+        }
+        this.emit(live, { type: 'metric-delta', turnId, delta });
+    }
+
+    /** Only a checkpoint recorded on one of the chat's own messages can be restored. */
+    private checkpointOf(live: Live, checkpointId: unknown): string {
+        const id = requireString(checkpointId, 'checkpoint', 128);
+        if (!live.state.items.some((item) => item.kind === 'user' && item.checkpoint === id)) {
+            throw new Error('That checkpoint is not part of this chat.');
+        }
+        return id;
     }
 
     // ---- Windows and shutdown -------------------------------------------------
@@ -1004,11 +1097,39 @@ export class AgentSessionService {
         }
     }
 
-    private async reportPendingChanges(live: Live): Promise<void> {
-        const count = await this.hook('afterTurn', () => this.options.afterTurn?.(live.state.id, live.root));
+    private async reportPendingChanges(live: Live, turnId: string): Promise<void> {
+        const count = await this.hook('afterTurn', () => this.options.afterTurn?.(live.state.id, live.root, turnId));
+        this.setPendingCount(live, count);
+    }
+
+    private setPendingCount(live: Live, count: number | null): void {
         if (typeof count === 'number' && Number.isInteger(count) && count >= 0 && count !== live.state.pendingChanges) {
             this.emit(live, { type: 'pending-changes', count });
         }
+    }
+
+    /** The review calls: the window must have the chat's folder open, and the review must exist. */
+    private async reviewOf(window: WindowPort, sessionId: unknown, mutating: boolean): Promise<{ live: Live; review: ChangeReview }> {
+        this.remember(window);
+        const live = await this.open(window, sessionId);
+        this.assertContinuable(live, window);
+        const review = this.options.review;
+        if (!review) {
+            throw new Error('Checkpoints are not available here.');
+        }
+        if (mutating && live.turnActive) {
+            throw new Error('The agent is still working. Stop it or wait for it to finish, then try again.');
+        }
+        return { live, review };
+    }
+
+    /** Refreshes the chat's pending count after a review action and returns the list. */
+    private async refreshChanges(live: Live, review: ChangeReview): Promise<ChatChanges> {
+        const changes = await review.pending(live.state.id, live.root);
+        if (changes.disabledReason === null) {
+            this.setPendingCount(live, changes.files.length);
+        }
+        return changes;
     }
 
     private reportFailure(live: Live, error: unknown): void {

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readMetrics, type FileMetrics } from '../src/main/agents/tools/analysisQueries.ts';
-import { computeMetricDelta, formatMetricDelta, metricTotals } from '../src/main/analysis/metricDelta.ts';
+import { computeMetricDelta, formatMetricDelta, metricTotals, toTurnMetricDeltaView } from '../src/main/analysis/metricDelta.ts';
 
 /** AF9 (#274): the metric delta of an agent's turn, from two analyses' records. */
 
@@ -128,5 +128,27 @@ describe('metric delta of a turn', () => {
         };
         const report = computeMetricDelta(await readMetrics(dir('before', before)), await readMetrics(dir('after', afterTurn)), ['src/c.ts']);
         assert.deepEqual(report.files.map((file) => [file.path, file.status]), [['src/c.ts', 'added']]);
+    });
+});
+
+describe('metric delta as a chat keeps it (AF9)', () => {
+    it('keeps only what moved, caps the files and stays quiet when nothing did', () => {
+        const report = computeMetricDelta(before, afterTurn, ['src/a.ts', 'src/b.ts', 'src/c.ts', 'lib/old.py', 'README.md']);
+        const view = toTurnMetricDeltaView(report);
+        assert.ok(view);
+        assert.equal(view.summary, report.summary);
+        assert.deepEqual(view.totals.map((total) => total.metric), ['maxComplexity', 'avgComplexity', 'codeLines', 'functionCount', 'highComplexityFunctions']);
+        assert.deepEqual(view.totals[0], { metric: 'maxComplexity', before: 12, after: 15 });
+        assert.deepEqual(view.files.map((file) => [file.path, file.status]), [['lib/old.py', 'removed'], ['src/a.ts', 'changed'], ['src/c.ts', 'added']]);
+        assert.deepEqual(view.files[1]?.changes.find((change) => change.metric === 'codeLines'), { metric: 'codeLines', before: 100, after: 118 });
+        assert.equal(view.moreFiles, 0);
+        const capped = toTurnMetricDeltaView(report, 1);
+        assert.equal(capped?.files.length, 1);
+        assert.equal(capped?.moreFiles, 2);
+        // Serialisable as is: it travels over IPC and is saved with the chat.
+        assert.deepEqual(JSON.parse(JSON.stringify(view)), view);
+        assert.equal(toTurnMetricDeltaView(computeMetricDelta(before, before, ['src/b.ts'])), null);
+        assert.equal(toTurnMetricDeltaView(computeMetricDelta(null, afterTurn)), null);
+        assert.equal(toTurnMetricDeltaView(computeMetricDelta(before, null)), null);
     });
 });
