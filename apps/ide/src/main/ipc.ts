@@ -7,6 +7,7 @@ import { registerAgentHandlers } from './agents/agentsIpc.ts';
 import { registerGitHandlers } from './git/gitIpc.ts';
 import type { LspHost } from './lsp/lspHost.ts';
 import { registerLspHandlers } from './lsp/lspIpc.ts';
+import { registerTaskHandlers } from './tasks/taskHost.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isOpenableExternalLink, isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -238,6 +239,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     registerGitHandlers(handle);
     // #21: language servers (lsp/lspIpc.ts).
     registerLspHandlers(handle, lsp);
+    // #176: tasks and Run Current File (tasks/taskHost.ts), in trusted folders only.
+    registerTaskHandlers(handle, terminal, settings);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

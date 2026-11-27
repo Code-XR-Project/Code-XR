@@ -6,6 +6,7 @@ import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo, type WorkspaceTrustInfo } from '../shared/api.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
+import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
 
 const KNOWN_COMMANDS: ReadonlySet<string> = new Set(IDE_COMMANDS);
@@ -75,6 +76,14 @@ const api: CodeXRApi = Object.freeze({
         createBranch: (name: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitCreateBranch, name),
         headContent: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitHeadContent, path),
         onDidChange: (listener: () => void) => subscribe(GIT_IPC_EVENTS.gitChanged, () => listener()),
+    }),
+    // #176: a task by the id main listed, a file by its workspace path; never a command line.
+    tasks: Object.freeze({
+        list: () => ipcRenderer.invoke(TASK_IPC_CHANNELS.tasksList),
+        run: (taskId: string, cols: number, rows: number) => ipcRenderer.invoke(TASK_IPC_CHANNELS.tasksRun, taskId, cols, rows),
+        runFile: (path: string, cols: number, rows: number) => ipcRenderer.invoke(TASK_IPC_CHANNELS.tasksRunFile, path, cols, rows),
+        configure: () => ipcRenderer.invoke(TASK_IPC_CHANNELS.tasksConfigure),
+        onFinished: (listener: (event: TaskFinished) => void) => subscribe(TASK_IPC_EVENTS.tasksFinished, listener),
     }),
     // #21: documents by Monaco URI and allow-listed requests; never a server, a path or a command line.
     lsp: Object.freeze({

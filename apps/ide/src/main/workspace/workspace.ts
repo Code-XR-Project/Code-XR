@@ -91,6 +91,18 @@ export class Workspace {
         return kind === 'absolute' ? path.join(this.root, ...segments) : segments.join(path.sep);
     }
 
+    /**
+     * #176: the absolute path of a file of the folder, for "Run Current File".
+     * The real path, so a symlink cannot point the interpreter outside.
+     */
+    async runnableFile(relativePath: unknown): Promise<string> {
+        const real = await this.realPathInside(relativePath);
+        if (!(await fs.stat(real)).isFile()) {
+            throw new Error('Not a file.');
+        }
+        return real;
+    }
+
     /** #164: every file for quick open, from the real root so a symlinked root lists like the explorer. */
     listFiles(): Promise<FileIndex> {
         return listWorkspaceFiles(this.realRoot, this.rules);

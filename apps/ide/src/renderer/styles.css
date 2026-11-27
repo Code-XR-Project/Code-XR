@@ -718,6 +718,9 @@ body {
 .terminal-tab[aria-selected='true'] { color: var(--fg); background: var(--editor); box-shadow: inset 0 -2px 0 var(--accent); }
 .terminal-tab:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 .terminal-tab.is-exited .tab-label { color: var(--crit); }
+/* #176: a task's tab stays after it ends; only a failure is marked. */
+.terminal-tab.is-task.is-succeeded .tab-label { color: inherit; }
+.terminal-tab.is-task.is-failed .terminal-tab-icon { color: var(--crit); }
 .terminal-tab:hover .tab-close, .terminal-tab[aria-selected='true'] .tab-close { visibility: visible; }
 .terminal-tab-icon { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tab-rename {

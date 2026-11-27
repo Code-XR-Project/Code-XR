@@ -1,4 +1,4 @@
-import type { CodeXRApi, TerminalProfile, TerminalProfileList } from '../../shared/api.ts';
+import type { CodeXRApi, TerminalCreated, TerminalProfile, TerminalProfileList } from '../../shared/api.ts';
 import { el, icon } from '../dom.ts';
 import type { PanelHost } from '../panel/panelHost.ts';
 import type * as XtermModule from './xtermView.ts';
@@ -20,6 +20,7 @@ const ICONS = {
     trash: 'M4 7h16M10 11v6M14 11v6M9 7V4h6v3M6 7l1 13h10l1-13',
     close: 'M6 6l12 12M18 6L6 18',
     terminal: 'M4 17l6-5-6-5M12 19h8',
+    task: 'M5 4h14v16H5zM9 9l3 3-3 3M13 15h3',
 } as const;
 
 export interface TerminalPanel {
@@ -30,6 +31,8 @@ export interface TerminalPanel {
     hide(): void;
     /** Starts a terminal from a profile (null: the default) and shows it. */
     newTerminal(profileId?: string | null): Promise<void>;
+    /** #176: a task in a terminal of its own; resolves with its terminal id, or null when it did not start. */
+    runTask(label: string, start: (cols: number, rows: number) => Promise<TerminalCreated>): Promise<number | null>;
     /** #18: the terminals' font size, for the open ones and the next. */
     setFontSize(size: number): void;
 }
@@ -45,6 +48,8 @@ interface TerminalTab {
     readonly host: HTMLElement;
     readonly view: XtermView;
     exited: boolean;
+    /** #176: the task this terminal runs, or null for a shell. */
+    readonly task: string | null;
 }
 
 export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'], platform: Promise<string>, hooks: TerminalPanelHooks): TerminalPanel {
@@ -55,6 +60,8 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
     const tabs = new Map<number, TerminalTab>();
     // Output that arrived before `create` resolved in this page (the two travel separately).
     const early = new Map<number, string>();
+    const earlyExit = new Map<number, number>();
+    let starting = 0;
 
     const tabList = el('div', { className: 'terminal-tabs', attrs: { role: 'tablist', 'aria-label': 'Terminals', 'data-testid': 'terminal-tabs' } });
     const button = (label: string, path: string, testId: string): HTMLButtonElement =>
@@ -173,6 +180,16 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
     }
 
     async function newTerminal(profileId: string | null = null): Promise<void> {
+        await openTerminal((cols, rows) => api.create(profileId, cols, rows), null);
+    }
+
+    /**
+     * Starts a terminal through `create` (a shell, or #176 a task's command)
+     * and adds its tab. `task` names the task: its tab stays after it exits,
+     * with the exit code. Resolves with the terminal's id, or null when it
+     * could not start.
+     */
+    async function openTerminal(create: (cols: number, rows: number) => Promise<TerminalCreated>, task: string | null): Promise<number | null> {
         show(false);
         const [{ createXtermView }, os] = await Promise.all([loadingView ??= import('./xtermView.ts'), platform]);
         const host = el('div', { className: 'terminal-host' });
@@ -189,25 +206,35 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
             },
         });
         view.fit();
+        starting += 1;
         try {
-            const created = await api.create(profileId, view.cols, view.rows);
+            const created = await create(view.cols, view.rows);
             id = created.id;
             profileName = created.profile.name;
+            if (task !== null && 'command' in created && typeof created.command === 'string') {
+                // As in VS Code: the task's command line first, so the output can be read against it.
+                view.write(`\x1b[2m> Executing task: ${created.command.replace(/[\x00-\x1f\x7f]/g, ' ')}\x1b[0m\r\n\r\n`);
+            }
         } catch (error) {
             view.dispose();
             host.remove();
-            hooks.onError(`Could not start a terminal: ${error instanceof Error ? error.message : String(error)}`);
+            hooks.onError(`Could not start ${task === null ? 'a terminal' : `"${task}"`}: ${error instanceof Error ? error.message : String(error)}`);
             activate(activeId);
-            return;
+            return null;
+        } finally {
+            starting -= 1;
         }
         const terminalId = id;
         const label = el('span', { className: 'tab-label' });
         const close = el('button', { className: 'tab-close', attrs: { type: 'button', 'aria-label': 'Kill terminal', title: 'Kill terminal', tabindex: '-1' } }, [icon(ICONS.close)]);
-        const tab = el('div', { className: 'terminal-tab', attrs: { role: 'tab', 'data-terminal-id': String(terminalId) } }, [icon(ICONS.terminal, 'terminal-tab-icon'), label, close]);
-        label.textContent = uniqueTitle(profileName);
+        const tab = el('div', { className: 'terminal-tab', attrs: { role: 'tab', 'data-terminal-id': String(terminalId) } }, [icon(task === null ? ICONS.terminal : ICONS.task, 'terminal-tab-icon'), label, close]);
+        label.textContent = uniqueTitle(task === null ? profileName : `Task - ${task}`);
         tab.title = `${label.textContent} (double-click to rename)`;
         host.dataset['terminalId'] = String(terminalId);
-        const entry: TerminalTab = { id: terminalId, tab, label, host, view, exited: false };
+        if (task !== null) {
+            tab.classList.add('is-task');
+        }
+        const entry: TerminalTab = { id: terminalId, tab, label, host, view, exited: false, task };
         tabs.set(terminalId, entry);
         tab.addEventListener('click', () => activate(terminalId));
         tab.addEventListener('dblclick', () => startRename(entry));
@@ -227,6 +254,28 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
             view.write(pending);
         }
         activate(terminalId);
+        const exit = earlyExit.get(terminalId);
+        if (exit !== undefined) {
+            earlyExit.delete(terminalId);
+            exited(entry, exit);
+        }
+        return terminalId;
+    }
+
+    function exited(entry: TerminalTab, exitCode: number): void {
+        entry.exited = true;
+        if (entry.task !== null) {
+            // #176: a task's tab stays, so its output and its result can be read.
+            entry.tab.classList.add('is-exited', exitCode === 0 ? 'is-succeeded' : 'is-failed');
+            entry.tab.dataset['exitCode'] = String(exitCode);
+            entry.view.write(`\r\n\x1b[2m[Task "${entry.task}" finished with exit code ${exitCode}. Close this tab or run the task again.]\x1b[0m\r\n`);
+        } else if (exitCode === 0) {
+            // A clean `exit` closes the tab, as in VS Code; a failure stays readable.
+            removeTab(entry.id);
+        } else {
+            entry.tab.classList.add('is-exited');
+            entry.view.write(`\r\n\x1b[2m[The process exited with code ${exitCode}.]\x1b[0m\r\n`);
+        }
     }
 
     api.onData(({ id, data }) => {
@@ -238,17 +287,16 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         }
     });
     api.onExit(({ id, exitCode }) => {
-        early.delete(id);
         const entry = tabs.get(id);
-        if (!entry) { return; }
-        entry.exited = true;
-        // A clean `exit` closes the tab, as in VS Code; a failure stays readable.
-        if (exitCode === 0) {
-            removeTab(id);
-        } else {
-            entry.tab.classList.add('is-exited');
-            entry.view.write(`\r\n\x1b[2m[The process exited with code ${exitCode}.]\x1b[0m\r\n`);
+        if (!entry) {
+            // A short task can end before `create` resolved here: kept for its tab.
+            if (starting > 0) {
+                earlyExit.set(id, exitCode);
+            }
+            return;
         }
+        early.delete(id);
+        exited(entry, exitCode);
     });
 
     // The profiles menu: start a terminal from any profile, pick the default, manage custom ones.
@@ -352,6 +400,7 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         show: () => show(),
         hide,
         newTerminal,
+        runTask: (label, start) => openTerminal(start, label),
         setFontSize(size: number): void {
             if (size === fontSize) {
                 return;

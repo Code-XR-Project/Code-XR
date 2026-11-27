@@ -72,6 +72,9 @@ export const SETTINGS: readonly SettingDefinition[] = [
     { key: 'problems.metrics.maxFunctionLines', category: 'Problems', title: 'Max Function Lines', description: 'A function with more lines of code (NLOC) than this is a warning in the Problems panel. 0 turns the check off.', type: 'number', min: 0, max: 100000, integer: true, default: 50 },
     { key: 'problems.metrics.maxParameters', category: 'Problems', title: 'Max Parameters', description: 'A function that takes more parameters than this is a warning in the Problems panel. 0 turns the check off.', type: 'number', min: 0, max: 1000, integer: true, default: 5 },
     { key: 'update.checkOnStartup', category: 'Application', title: 'Check For Updates On Start-up', description: 'When the IDE starts, ask GitHub whether a newer Code-XR IDE was released, and offer its page. Off by default: it is a network call. Help > Check for Updates… asks once, whatever this says.', type: 'boolean', default: false, userOnly: true },
+    // #176: Run Current File. Empty means the usual name on PATH (python3, or python on Windows; node).
+    { key: 'run.pythonInterpreter', category: 'Run', title: 'Python Interpreter', description: 'What Run Current File runs a .py file with: a name on PATH or a full path (a virtual environment\'s python, for example). Empty uses python3, or python on Windows.', type: 'string', maxLength: 1000, default: '' },
+    { key: 'run.nodeInterpreter', category: 'Run', title: 'Node Interpreter', description: 'What Run Current File runs a .js or .ts file with: a name on PATH or a full path. Empty uses node (TypeScript needs Node 22.18 or later).', type: 'string', maxLength: 1000, default: '' },
     { key: 'terminal.integrated.fontSize', category: 'Terminal', title: 'Font Size', description: 'The terminal font size, in pixels.', type: 'number', min: 6, max: 72, integer: true, default: 13 },
 ] as const;
 
