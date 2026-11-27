@@ -58,7 +58,7 @@ import {
     type MappingContext,
     type ResolvedAttachment,
 } from './acpMapping.ts';
-import { loginProgram, type AgentCatalog } from './agentCatalog.ts';
+import { loginProgram, nativeLoginProgram, type AgentCatalog } from './agentCatalog.ts';
 import { parsePresetId, type AgentInstaller } from './agentInstaller.ts';
 import { AgentTerminals } from './agentTerminals.ts';
 import { isSessionId, type SessionStore } from './sessionStore.ts';
@@ -375,7 +375,12 @@ export class AgentSessionService {
         }
         if (spec.view.type === 'terminal') {
             const launch = resolution.launch;
-            const program = loginProgram(launch, spec);
+            const program = await nativeLoginProgram(loginProgram(launch, spec), {
+                platform: this.platform,
+                arch: process.arch,
+                env: launch.env,
+                exists: (file) => fs.promises.stat(file).then((stat) => stat.isFile(), () => false),
+            });
             const cwd = this.options.rootOf(window) ?? this.options.homeDir;
             const size = (value: unknown, fallback: number): number => (typeof value === 'number' && Number.isInteger(value) && value >= 2 && value <= 1000 ? value : fallback);
             const opened = await this.options.openTerminal(window, {
