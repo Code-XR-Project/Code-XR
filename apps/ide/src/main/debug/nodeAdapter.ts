@@ -82,7 +82,7 @@ export function breakpointUrlRegex(file: string, platform: string = process.plat
         const body = parts.map(caseless).join('[\\\\/]');
         return `^(?:file:\\/\\/\\/)?${body}$`;
     }
-    const url = pathToFileURL(file).href;
+    const url = pathToFileURL(file, { windows: false }).href;
     return `^(?:${escape(url)}|${escape(file)})$`;
 }
 
