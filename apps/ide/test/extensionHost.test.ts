@@ -444,7 +444,9 @@ describe('the extension host process (#259)', () => {
         assert.equal(message.extensionId, 'acme.demo');
         const state = await main.request<Record<string, unknown>>(HOST_METHODS.executeCommand, 'demo.state', []);
         assert.equal(state['last'], 'Yes');
-        assert.equal(state['storage'], path.join(tmp, 'storage', 'global', 'acme.demo'));
+        // `Uri.fsPath` lower-cases a Windows drive letter, as VS Code's does.
+        const expectedStorage = path.join(tmp, 'storage', 'global', 'acme.demo');
+        assert.equal(process.platform === 'win32' ? String(state['storage']).toLowerCase() : state['storage'], process.platform === 'win32' ? expectedStorage.toLowerCase() : expectedStorage);
     });
 
     it('writes configuration through the main process and sees the change', async () => {

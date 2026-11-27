@@ -68,7 +68,8 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
     const extensionId: ExtensionId = record.description.id;
     const report = (api: string): void => host.reportMissing(extensionId, api);
     const data = host.data;
-    const workspaceRoot = data.workspaceFolder;
+    // In `Uri.fsPath`'s spelling (a lower-case drive letter on Windows), so it compares with the paths of URIs.
+    const workspaceRoot = data.workspaceFolder ? Uri.file(data.workspaceFolder).fsPath : null;
     const workspaceFolder = workspaceRoot ? { uri: Uri.file(workspaceRoot), name: path.basename(workspaceRoot), index: 0 } : undefined;
 
     /* ------------------------------ commands ------------------------------ */
