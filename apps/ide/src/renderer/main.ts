@@ -1086,7 +1086,7 @@ const agentWorkbench = installAgentWorkbench({
     openProject: async (folder) => {
         await api.workspace.openRecent(folder);
     },
-    showTerminal: () => terminal.show(),
+    runInTerminal: (label, start) => terminal.runTask(label, start),
     analyseProject: () => {
         if (!runView.analyse('xr-deep')) {
             workbench.showView('analysis');

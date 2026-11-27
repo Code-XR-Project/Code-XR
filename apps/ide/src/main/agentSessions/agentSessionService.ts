@@ -23,6 +23,7 @@ import {
     type AgentView,
     type ChangeDiffView,
     type ChatChanges,
+    type ImportableSession,
     type InstallDescription,
     type LoginTerminal,
     type PermissionOptionView,
@@ -57,7 +58,7 @@ import {
     type MappingContext,
     type ResolvedAttachment,
 } from './acpMapping.ts';
-import type { AgentCatalog } from './agentCatalog.ts';
+import { loginProgram, type AgentCatalog } from './agentCatalog.ts';
 import { parsePresetId, type AgentInstaller } from './agentInstaller.ts';
 import { AgentTerminals } from './agentTerminals.ts';
 import { isSessionId, type SessionStore } from './sessionStore.ts';
@@ -110,7 +111,10 @@ export interface AgentSessionServiceOptions {
      * Runs an agent's login command in a new terminal of the window (terminal
      * login methods): resolves once it runs, with a promise of its exit code.
      */
-    readonly openTerminal: (window: WindowPort, request: { readonly command: string; readonly args: readonly string[]; readonly cwd: string; readonly env: Readonly<Record<string, string>>; readonly title: string }) => Promise<{ readonly terminal: LoginTerminal; readonly exited: Promise<number> }>;
+    /**
+     * #297: runs a login program directly (no shell) in a terminal of the window.
+     */
+    readonly openTerminal: (window: WindowPort, request: { readonly command: string; readonly args: readonly string[]; readonly cwd: string; readonly env: Readonly<Record<string, string>>; readonly title: string; readonly cols: number; readonly rows: number }) => Promise<{ readonly terminal: LoginTerminal; readonly exited: Promise<number> }>;
     /** The MCP servers every chat gets in `session/new` and `session/load` (the IDE's own server). Default none. */
     readonly mcpServers?: (workspaceRoot: string | null) => readonly McpServer[];
     /** Takes a checkpoint before a prompt is sent (AF6); its id is recorded on the person's message. */
@@ -193,6 +197,8 @@ interface Live {
     cancelRequested: boolean;
     cancelTimer: ReturnType<typeof setTimeout> | null;
     replaying: boolean;
+    /** #298: the person's messages of an imported history arrive in chunks; they are joined here. */
+    importedUser: string | null;
     configRaw: readonly SessionConfigOption[];
     readonly permissions: Map<string, PendingPermission>;
     readonly terminalBuffer: Map<string, { output: string; exitCode?: number | null; truncated: boolean }>;
@@ -206,6 +212,15 @@ const MAX_EMBEDDED_FILE = 256 * 1024;
 const MAX_READ_FILE = 10 * 1024 * 1024;
 const TERMINAL_FLUSH_MS = 50;
 const LOGIN_TIMEOUT_MS = 10 * 60_000;
+/** #298: at most this many chats are offered for import, read in at most this many pages. */
+const MAX_IMPORT = 200;
+const MAX_IMPORT_PAGES = 20;
+
+/** #298: an imported chat's title: the agent's, cleaned, or a neutral one. */
+function importTitle(value: unknown): string {
+    const text = typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+    return text ? (text.length > 80 ? `${text.slice(0, 79)}...` : text) : 'Imported chat';
+}
 
 /** Fails with `message` when `promise` takes longer than `ms`. */
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
@@ -333,7 +348,7 @@ export class AgentSessionService {
         this.broadcast({ kind: 'agents-changed' });
     }
 
-    async login(window: WindowPort, ref: unknown, methodId: unknown): Promise<LoginTerminal | null> {
+    async login(window: WindowPort, ref: unknown, methodId: unknown, cols?: unknown, rows?: unknown): Promise<LoginTerminal | null> {
         this.remember(window);
         const agentRef = requireString(ref, 'agent', 200);
         const method = requireString(methodId, 'login method', 200);
@@ -360,10 +375,17 @@ export class AgentSessionService {
         }
         if (spec.view.type === 'terminal') {
             const launch = resolution.launch;
-            const command = spec.command ?? launch.command;
-            const args = spec.command ? (spec.args ?? []) : [...launch.args, ...(spec.args ?? [])];
+            const program = loginProgram(launch, spec);
             const cwd = this.options.rootOf(window) ?? this.options.homeDir;
-            const opened = await this.options.openTerminal(window, { command, args, cwd, env: { ...launch.env, ...(spec.env ?? {}) }, title: `${definition.name}: ${spec.view.name}` });
+            const size = (value: unknown, fallback: number): number => (typeof value === 'number' && Number.isInteger(value) && value >= 2 && value <= 1000 ? value : fallback);
+            const opened = await this.options.openTerminal(window, {
+                ...program,
+                cwd,
+                env: { ...launch.env, ...(spec.env ?? {}) },
+                title: `${definition.name}: ${spec.view.name}`,
+                cols: size(cols, 100),
+                rows: size(rows, 30),
+            });
             // Once the login command ends, the agent is probed again; the picker hears `agents-changed`.
             void opened.exited
                 .then(() => this.probeAgent(window, agentRef))
@@ -477,14 +499,144 @@ export class AgentSessionService {
             return;
         }
         const authMethods = mapAuthMethods(init.authMethods ?? []);
+        // #297: an agent may open a session while signed out and only refuse the
+        // first prompt (Claude Code does), so ask who is signed in when it can say.
+        const status = await readAuthStatus(connection, init, timeout);
+        if (status.state === 'unauthenticated') {
+            this.options.catalog.setState(agentRef, { availability: 'needs-login', detail: 'Not signed in. Use one of its sign-in buttons.', authMethods });
+            return;
+        }
         try {
             await withTimeout(connection.newSession(this.options.probeDir, []), timeout, 'The agent did not open a session in time.');
-            this.options.catalog.setState(agentRef, { availability: 'ready', authMethods });
+            this.options.catalog.setState(agentRef, { availability: 'ready', authMethods, ...(status.account ? { detail: `Signed in as ${status.account}.` } : {}) });
         } catch (error) {
             this.options.catalog.setState(agentRef, isAuthRequiredError(error)
                 ? { availability: 'needs-login', detail: 'Log in to use this agent.', authMethods }
                 : { availability: 'error', detail: errorMessage(error), authMethods });
         }
+    }
+
+    /** #298: the joined message of the person in an imported replay becomes a message of the chat. */
+    private flushImportedUser(live: Live): void {
+        const text = live.importedUser;
+        live.importedUser = null;
+        if (text !== null && text.trim()) {
+            this.emit(live, { type: 'user', id: randomUUID(), text, at: live.state.updatedAt });
+        }
+    }
+
+    /**
+     * #298: the chats the agent keeps in its own history for the open folder
+     * (ACP `session/list`), less those already in the IDE. The agent reads its
+     * own files; the IDE never opens them.
+     */
+    async listImportable(window: WindowPort, ref: unknown): Promise<ImportableSession[]> {
+        this.remember(window);
+        const agentRef = requireString(ref, 'agent', 200);
+        const root = this.options.rootOf(window);
+        if (!root) {
+            throw new Error('Open a folder to import its chats.');
+        }
+        if (!this.options.isTrusted(window)) {
+            throw new Error('This folder is in Restricted Mode. Trust it to start an agent.');
+        }
+        const definition = this.options.catalog.definition(agentRef);
+        if (!definition) {
+            throw new Error('Only an ACP agent keeps a history to import.');
+        }
+        const resolution = await this.options.catalog.resolve(definition);
+        if (!resolution.found) {
+            throw new Error(resolution.detail);
+        }
+        const connection = this.connectAgent(resolution.launch, root, REFUSING_HANDLERS);
+        const timeout = this.options.startTimeoutMs ?? 60_000;
+        try {
+            const init = await withTimeout(connection.initialize(), timeout, 'The agent did not answer initialize in time.');
+            if (!init.agentCapabilities?.sessionCapabilities?.list || !init.agentCapabilities.loadSession) {
+                throw new Error(`${definition.name} cannot list or reopen its earlier chats, so there is nothing to import.`);
+            }
+            const known = await this.linkedAgentSessions(root, agentRef);
+            const found: ImportableSession[] = [];
+            let cursor: string | undefined;
+            for (let page = 0; page < MAX_IMPORT_PAGES; page += 1) {
+                const response = await withTimeout(connection.listSessions(root, cursor), timeout, 'The agent did not list its chats in time.');
+                for (const info of response.sessions) {
+                    if (typeof info.sessionId !== 'string' || !info.sessionId || info.sessionId.length > 200 || known.has(info.sessionId)) {
+                        continue;
+                    }
+                    // Only the chats of this folder: an agent may ignore the filter.
+                    if (typeof info.cwd === 'string' && !isSameOrInside(root, info.cwd, this.platform)) {
+                        continue;
+                    }
+                    found.push({ agentSessionId: info.sessionId, title: importTitle(info.title), updatedAt: typeof info.updatedAt === 'string' ? info.updatedAt : null });
+                }
+                cursor = typeof response.nextCursor === 'string' && response.nextCursor ? response.nextCursor : undefined;
+                if (!cursor || found.length >= MAX_IMPORT) {
+                    break;
+                }
+            }
+            return found.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')).slice(0, MAX_IMPORT);
+        } catch (error) {
+            if (isAuthRequiredError(error)) {
+                throw new Error(`${definition.name} needs you to sign in first.`);
+            }
+            throw error;
+        } finally {
+            connection.close();
+        }
+    }
+
+    /** #298: adds chats of the agent's history to the folder's list; each reads its messages when first opened. */
+    async importSessions(window: WindowPort, ref: unknown, sessions: unknown): Promise<number> {
+        this.remember(window);
+        const agentRef = requireString(ref, 'agent', 200);
+        const root = this.options.rootOf(window);
+        if (!root) {
+            throw new Error('Open a folder to import its chats.');
+        }
+        const definition = this.options.catalog.definition(agentRef);
+        if (!definition) {
+            throw new Error('Only an ACP agent keeps a history to import.');
+        }
+        if (!Array.isArray(sessions) || sessions.length > MAX_IMPORT) {
+            throw new Error(`Import at most ${MAX_IMPORT} chats at a time.`);
+        }
+        const known = await this.linkedAgentSessions(root, agentRef);
+        let added = 0;
+        for (const raw of sessions as unknown[]) {
+            const record = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+            const agentSessionId = record['agentSessionId'];
+            if (typeof agentSessionId !== 'string' || !agentSessionId || agentSessionId.length > 200 || known.has(agentSessionId)) {
+                continue;
+            }
+            const updatedAt = typeof record['updatedAt'] === 'string' && !Number.isNaN(Date.parse(record['updatedAt'])) ? new Date(record['updatedAt']).toISOString() : this.now();
+            const base = emptySession({ id: randomUUID(), title: importTitle(record['title']), agentRef, agentName: definition.name, workspaceRoot: root, createdAt: updatedAt, updatedAt });
+            const state: AgentSessionState = { ...base, agentSessionId, historyPending: true };
+            known.add(agentSessionId);
+            this.track(state, root, window.id);
+            await this.options.store.saveNow(state);
+            added += 1;
+        }
+        if (added > 0) {
+            this.sessionsChanged();
+        }
+        return added;
+    }
+
+    /** The agent-side ids of the folder's chats with `agentRef`, so a chat is not imported twice. */
+    private async linkedAgentSessions(root: string, agentRef: string): Promise<Set<string>> {
+        const ids = new Set<string>();
+        const projects = await this.options.store.listProjects(root);
+        for (const summary of projects.find((project) => project.root === root)?.sessions ?? []) {
+            if (summary.agentRef !== agentRef) {
+                continue;
+            }
+            const state = this.live.get(summary.id)?.state ?? (await this.options.store.load(root, summary.id));
+            if (state?.agentSessionId) {
+                ids.add(state.agentSessionId);
+            }
+        }
+        return ids;
     }
 
     private connectAgent(launch: AgentLaunch, cwd: string, handlers: AcpClientHandlers): AcpConnection {
@@ -507,6 +659,10 @@ export class AgentSessionService {
     async get(window: WindowPort, sessionId: unknown): Promise<AgentSessionState> {
         this.remember(window);
         const live = await this.open(window, sessionId);
+        // #298: an imported chat reads its messages from the agent when it is first opened.
+        if (live.state.historyPending && this.options.spawnAllowed && this.options.isTrusted(window) && this.options.rootOf(window) === live.root) {
+            void this.ensureAgent(live, window).catch((error: unknown) => this.reportStartFailure(live, error));
+        }
         return live.state;
     }
 
@@ -984,6 +1140,7 @@ export class AgentSessionService {
             cancelRequested: false,
             cancelTimer: null,
             replaying: false,
+            importedUser: null,
             configRaw: [],
             permissions: new Map(),
             terminalBuffer: new Map(),
@@ -1121,18 +1278,28 @@ export class AgentSessionService {
             const previous = live.state.agentSessionId;
             let sessionId: string | null = null;
             if (previous && init.agentCapabilities?.loadSession) {
-                live.replaying = true;
+                // #298: an imported chat keeps what the agent replays: that is its history.
+                const importing = live.state.historyPending === true;
+                live.replaying = !importing;
                 try {
                     const loaded = await withTimeout(connection.loadSession(previous, workRoot, mcpServers), timeout, 'The agent did not reopen the chat in time.');
                     sessionId = previous;
+                    if (importing) {
+                        this.flushImportedUser(live);
+                        this.emit(live, { type: 'history', pending: false });
+                    }
                     this.applySessionSetup(live, loaded.modes, loaded.configOptions);
                 } catch (error) {
                     if (isAuthRequiredError(error)) {
                         throw error;
                     }
                     this.emit(live, { type: 'notice', id: randomUUID(), level: 'info', text: `${definition.name} could not reopen its earlier session (${errorMessage(error)}); it starts a new one and does not remember the earlier messages.` });
+                    if (importing) {
+                        this.emit(live, { type: 'history', pending: false });
+                    }
                 } finally {
                     live.replaying = false;
+                    live.importedUser = null;
                 }
             }
             if (!sessionId) {
@@ -1192,6 +1359,19 @@ export class AgentSessionService {
     }
 
     private onUpdate(live: Live, update: SessionUpdate, ctx: MappingContext): void {
+        if (live.state.historyPending) {
+            // #298: the replay of an imported chat. The person's messages come as
+            // chunks the live mapping ignores (the IDE records its own), so they
+            // are joined here and become the chat's messages.
+            if (update.sessionUpdate === 'user_message_chunk') {
+                const text = update.content.type === 'text' ? update.content.text : '';
+                live.importedUser = (live.importedUser ?? '') + text;
+                return;
+            }
+            if (!['available_commands_update', 'current_mode_update', 'config_option_update', 'usage_update'].includes(update.sessionUpdate)) {
+                this.flushImportedUser(live);
+            }
+        }
         if (live.replaying && !['available_commands_update', 'current_mode_update', 'config_option_update', 'usage_update'].includes(update.sessionUpdate)) {
             // `session/load` replays the history the IDE already has.
             return;
@@ -1441,7 +1621,7 @@ export class AgentSessionService {
     private reportFailure(live: Live, error: unknown): void {
         if (isAuthRequiredError(error)) {
             this.markNeedsLogin(live);
-            this.emit(live, { type: 'notice', id: randomUUID(), level: 'error', text: `${live.state.agentName} needs you to log in. Choose Log in for it in the agent picker, then send the message again.` });
+            this.emit(live, { type: 'notice', id: randomUUID(), level: 'error', text: `${live.state.agentName} needs you to sign in. Use one of its sign-in buttons in the Agents section of the Chats view, then send the message again.` });
             return;
         }
         this.emit(live, { type: 'notice', id: randomUUID(), level: 'error', text: errorMessage(error) });
@@ -1475,5 +1655,18 @@ export class AgentSessionService {
             live.terminalTimer = null;
         }
         live.terminalBuffer.clear();
+    }
+}
+
+/** #297: `auth/status` when the agent advertises it; unknown otherwise or on any failure. */
+async function readAuthStatus(connection: AcpConnection, init: InitializeResponse, timeout: number): Promise<{ readonly state: 'authenticated' | 'unauthenticated' | 'unknown'; readonly account?: string }> {
+    const capabilities = init.agentCapabilities as { readonly auth?: { readonly status?: unknown } } | undefined;
+    if (!capabilities?.auth?.status) {
+        return { state: 'unknown' };
+    }
+    try {
+        return await withTimeout(connection.authStatus(), Math.min(timeout, 15_000), 'The agent did not say whether it is signed in.');
+    } catch {
+        return { state: 'unknown' };
     }
 }

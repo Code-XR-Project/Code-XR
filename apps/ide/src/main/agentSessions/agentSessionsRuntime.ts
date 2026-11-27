@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { AGENT_SESSION_EVENTS, type InstallDescription } from '../../shared/agentSession.ts';
-import { shellCommand, shellKind } from '../../shared/tasks.ts';
 import { JsonKeyValueStore } from '../core/jsonStore.ts';
 import { log } from '../log.ts';
 import type { AgentProfiles } from '../agents/agentProfiles.ts';
@@ -14,7 +13,6 @@ import { addFolderChangeListener, currentWorkspaceInfo } from '../workspace/work
 import { AgentCatalog } from './agentCatalog.ts';
 import { AgentInstaller, consentDetail } from './agentInstaller.ts';
 import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
-import { loginCommandLine } from './agentTerminals.ts';
 import { SessionStore } from './sessionStore.ts';
 import { codexrMcpServerSpec } from './codexrMcpSpec.ts';
 import { SessionChanges } from '../checkpoints/sessionChanges.ts';
@@ -196,15 +194,26 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
             if (!contents) {
                 throw new Error('The window closed.');
             }
-            const shell = await options.terminal.defaultShellPath();
-            const kind = shellKind(shell);
-            const line = loginCommandLine(kind, shellCommand(shell, [request.command, ...request.args]), request.env, terminalEnvironment(process.env));
             let markExited: (code: number) => void = () => undefined;
             const exited = new Promise<number>((resolve) => {
                 markExited = resolve;
             });
-            const created = await options.terminal.runCommand(contents, line, request.cwd, 100, 30, { onExit: (_id, exitCode) => markExited(exitCode) });
-            return { terminal: { terminalId: created.id, title: request.title, cwd: created.cwd }, exited };
+            // #297: the login program itself runs in the terminal, with no shell between:
+            // nothing is typed into the person's shell, so no quoting or start-up race.
+            const created = await options.terminal.runProgram(
+                contents,
+                {
+                    file: request.command,
+                    args: request.args,
+                    env: { ...terminalEnvironment(process.env), ...request.env },
+                    name: request.title,
+                },
+                request.cwd,
+                request.cols,
+                request.rows,
+                { onExit: (_id, exitCode) => markExited(exitCode) },
+            );
+            return { terminal: { terminal: created, title: request.title, command: [request.command, ...request.args].join(' ') }, exited };
         },
         // AF10: every chat gets the Code-XR MCP server, so the agent can query the
         // project's metrics, hotspots, dependencies and evolution itself.

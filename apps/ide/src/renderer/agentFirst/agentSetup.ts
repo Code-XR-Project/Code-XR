@@ -1,6 +1,7 @@
-import type { AgentSessionsApi, AgentView, InstallDescription } from '../../shared/agentSession.ts';
+import type { AgentSessionsApi, AgentView, ImportableSession, InstallDescription } from '../../shared/agentSession.ts';
+import type { TerminalCreated } from '../../shared/api.ts';
 import { el } from '../dom.ts';
-import { describeRows, isUpToDate, setupActions } from './agentSetupModel.ts';
+import { describeRows, importedWhen, isUpToDate, setupActions } from './agentSetupModel.ts';
 
 /**
  * The actions of one agent (AF1, AF2 #267), shared by the Agents section of
@@ -16,8 +17,8 @@ import { describeRows, isUpToDate, setupActions } from './agentSetupModel.ts';
 export interface AgentSetupDeps {
     readonly api: AgentSessionsApi;
     onStatus(message: string): void;
-    /** Shows the terminal panel (terminal sign-ins). */
-    showTerminal?(): void;
+    /** #297: runs a terminal sign-in in a terminal of its own in the panel (`TerminalPanel.runTask`). */
+    runInTerminal?(label: string, start: (cols: number, rows: number) => Promise<TerminalCreated>): Promise<number | null>;
     /** Reloads the agents (and probes them when asked). */
     refresh(probe: boolean): Promise<void>;
     /** One agent's new view, after a check. */
@@ -42,14 +43,27 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
         if (action === 'login') {
             for (const method of (agent.authMethods ?? []).slice(0, 3)) {
                 button(method.name, method.description ?? method.name, () => {
+                    if (method.type === 'terminal' && deps.runInTerminal) {
+                        // #297: the login program gets a terminal of its own in the panel, shown at once.
+                        const label = `${agent.name}: ${method.name}`;
+                        deps.runInTerminal(label, (cols, rows) => deps.api.login(agent.ref, method.id, cols, rows).then((opened) => {
+                            if (!opened) {
+                                throw new Error('The agent did not start a sign-in.');
+                            }
+                            return { ...opened.terminal, command: opened.command };
+                        }))
+                            .then((id) => {
+                                if (id !== null) {
+                                    deps.onStatus(`${agent.name}: follow the sign-in in the terminal. The agent is checked again when it ends.`);
+                                }
+                            })
+                            .catch((error: unknown) => deps.onStatus(errorText(error)));
+                        return;
+                    }
+                    deps.onStatus(`${agent.name}: signing in, follow the browser if it opens...`);
                     deps.api.login(agent.ref, method.id)
                         .then(() => {
-                            if (method.type === 'terminal') {
-                                deps.showTerminal?.();
-                                deps.onStatus(`${agent.name}: finish the sign-in in the terminal, then press Check.`);
-                            } else {
-                                deps.onStatus(`${agent.name}: signed in.`);
-                            }
+                            deps.onStatus(`${agent.name}: signed in.`);
                             return deps.refresh(true);
                         })
                         .catch((error: unknown) => deps.onStatus(errorText(error)));
@@ -65,6 +79,21 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
                         deps.onStatus(errorText(error));
                         self.disabled = false;
                         self.textContent = 'Check';
+                    });
+            });
+        } else if (action === 'import') {
+            button('Import chats', `Bring the chats ${agent.name} already has for this folder into the list`, (self) => {
+                self.disabled = true;
+                self.textContent = 'Looking...';
+                const reset = (): void => {
+                    self.disabled = false;
+                    self.textContent = 'Import chats';
+                };
+                deps.api.listImportable(agent.ref)
+                    .then((found) => showImport(panel, agent, found, deps, reset))
+                    .catch((error: unknown) => {
+                        reset();
+                        showError(panel, `Could not read ${agent.name}'s chats: ${errorText(error)}`);
                     });
             });
         } else if (action === 'install' || action === 'update') {
@@ -111,6 +140,63 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
 function showError(panel: HTMLElement, message: string): void {
     panel.hidden = false;
     panel.replaceChildren(el('p', { className: 'af-install-error', text: message, attrs: { role: 'alert' } }));
+}
+
+/** #298: the agent's earlier chats with a box each; the chosen ones are added to the list. */
+function showImport(panel: HTMLElement, agent: AgentView, found: readonly ImportableSession[], deps: AgentSetupDeps, reset: () => void): void {
+    const close = (): void => {
+        panel.hidden = true;
+        panel.replaceChildren();
+        reset();
+    };
+    const cancel = el('button', { className: 'secondary-button af-small-button', text: found.length ? 'Cancel' : 'Close', attrs: { type: 'button' } });
+    cancel.addEventListener('click', (event) => {
+        event.stopPropagation();
+        close();
+    });
+    panel.hidden = false;
+    if (found.length === 0) {
+        panel.replaceChildren(
+            el('p', { className: 'muted af-install-note', text: `${agent.name} has no other chats for this folder.` }),
+            el('div', { className: 'af-install-actions' }, [cancel]),
+        );
+        return;
+    }
+    const boxes = found.map((session) => {
+        const box = el('input', { attrs: { type: 'checkbox', checked: '', 'data-id': session.agentSessionId } });
+        const when = importedWhen(session.updatedAt);
+        return { session, box, row: el('label', { className: 'af-import-row' }, [box, el('span', { className: 'af-import-title', text: session.title }), ...(when ? [el('span', { className: 'muted af-import-when', text: when })] : [])]) };
+    });
+    const go = el('button', { className: 'primary-button af-small-button', text: `Import ${found.length}`, attrs: { type: 'button', 'data-testid': 'af-import-confirm' } });
+    const count = (): void => {
+        const chosen = boxes.filter((entry) => entry.box.checked).length;
+        go.textContent = `Import ${chosen}`;
+        go.disabled = chosen === 0;
+    };
+    for (const entry of boxes) {
+        entry.box.addEventListener('change', count);
+    }
+    go.addEventListener('click', (event) => {
+        event.stopPropagation();
+        go.disabled = true;
+        cancel.disabled = true;
+        const chosen = boxes.filter((entry) => entry.box.checked).map((entry) => entry.session);
+        deps.api.importSessions(agent.ref, chosen)
+            .then((added) => {
+                deps.onStatus(added === 1 ? `1 chat of ${agent.name} imported. Its messages load when you open it.` : `${added} chats of ${agent.name} imported. Their messages load when you open them.`);
+                close();
+            })
+            .catch((error: unknown) => {
+                reset();
+                showError(panel, `Could not import: ${errorText(error)}`);
+            });
+    });
+    panel.replaceChildren(
+        el('p', { className: 'af-install-title', text: `${agent.name}: chats for this folder` }),
+        el('div', { className: 'af-import-list', attrs: { 'data-testid': 'af-import-list' } }, boxes.map((entry) => entry.row)),
+        el('p', { className: 'muted af-install-note', text: `${agent.name} reads them from its own history; they stay there too.` }),
+        el('div', { className: 'af-install-actions' }, [go, cancel]),
+    );
 }
 
 function showDescription(panel: HTMLElement, description: InstallDescription, deps: AgentSetupDeps, reset: () => void): void {

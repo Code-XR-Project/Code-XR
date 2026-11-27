@@ -6,7 +6,7 @@ import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo, type WorkspaceTrustInfo } from '../shared/api.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
-import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AcpAgentDefinition, type AgentSessionMessage, type PromptAttachment } from '../shared/agentSession.ts';
+import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AcpAgentDefinition, type AgentSessionMessage, type ImportableSession, type PromptAttachment } from '../shared/agentSession.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
 import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
@@ -77,7 +77,7 @@ const api: CodeXRApi = Object.freeze({
         probeAgent: (ref: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.probeAgent, ref),
         saveCustomAgent: (input: Omit<AcpAgentDefinition, 'id' | 'preset'>, id?: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.saveCustomAgent, input, id),
         removeCustomAgent: (id: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.removeCustomAgent, id),
-        login: (ref: string, methodId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.login, ref, methodId),
+        login: (ref: string, methodId: string, cols?: number, rows?: number) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.login, ref, methodId, cols, rows),
         listProjects: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listProjects),
         get: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.get, sessionId),
         create: (agentRef: string, options?: { readonly worktree?: boolean }) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.create, agentRef, { worktree: options?.worktree === true }),
@@ -102,6 +102,8 @@ const api: CodeXRApi = Object.freeze({
         worktreeCommit: (sessionId: string, message: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeCommit, sessionId, message),
         worktreeMerge: (sessionId: string, strategy: 'merge' | 'squash') => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeMerge, sessionId, strategy),
         worktreeDiscard: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.worktreeDiscard, sessionId),
+        listImportable: (ref: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listImportable, ref),
+        importSessions: (ref: string, sessions: readonly ImportableSession[]) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.importSessions, ref, sessions),
         describeInstall: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.describeInstall, presetId),
         install: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.install, presetId),
         uninstall: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.uninstall, presetId),

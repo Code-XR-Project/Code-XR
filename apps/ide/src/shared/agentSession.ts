@@ -10,6 +10,8 @@
  * extension (1.3.0) can reuse it as is.
  */
 
+import type { TerminalCreated } from './api.ts';
+
 // ---- Agents ----------------------------------------------------------------
 
 /** The agents the IDE knows how to launch without any configuration (AF2). */
@@ -339,6 +341,19 @@ export interface AgentSessionState extends SessionSummary {
     readonly usage: { readonly used: number; readonly size: number } | null;
     /** The agent-side session id (ACP), kept to resume with `session/load`. */
     readonly agentSessionId: string | null;
+    /**
+     * #298: imported from the agent's own history and not read yet: the first
+     * `session/load` fills the transcript from the agent's replay.
+     */
+    readonly historyPending?: boolean;
+}
+
+/** #298: a chat the agent keeps in its own history (ACP `session/list`), offered for import. */
+export interface ImportableSession {
+    readonly agentSessionId: string;
+    readonly title: string;
+    /** ISO time of its last activity, when the agent says. */
+    readonly updatedAt: string | null;
 }
 
 /** A project and its chats, for the sessions sidebar (AF7). */
@@ -387,6 +402,8 @@ export type SessionEvent =
     | { readonly type: 'turn-end'; readonly id: string; readonly stopReason: Extract<TranscriptItem, { kind: 'turn-end' }>['stopReason']; readonly at: string }
     | { readonly type: 'title'; readonly title: string }
     | { readonly type: 'agent-session'; readonly agentSessionId: string }
+    /** #298: the imported history was read (false) or is still to read (true). */
+    | { readonly type: 'history'; readonly pending: boolean }
     | { readonly type: 'pending-changes'; readonly count: number }
     /** AF9: attaches the metric delta of the turn that ended with `turnId`. */
     | { readonly type: 'metric-delta'; readonly turnId: string; readonly delta: TurnMetricDeltaView }
@@ -545,6 +562,10 @@ export function applySessionEvent(state: AgentSessionState, event: SessionEvent,
             return touch({ title: event.title });
         case 'agent-session':
             return touch({ agentSessionId: event.agentSessionId });
+        case 'history': {
+            const { historyPending: _dropped, ...rest } = state;
+            return event.pending ? { ...state, historyPending: true } : rest;
+        }
         case 'pending-changes':
             return touch({ pendingChanges: event.count });
         case 'metric-delta': {
@@ -641,6 +662,8 @@ export const AGENT_SESSION_CHANNELS = {
     worktreeCommit: 'codexr:agent-sessions:worktree-commit',
     worktreeMerge: 'codexr:agent-sessions:worktree-merge',
     worktreeDiscard: 'codexr:agent-sessions:worktree-discard',
+    listImportable: 'codexr:agent-sessions:list-importable',
+    importSessions: 'codexr:agent-sessions:import-sessions',
     describeInstall: 'codexr:agent-sessions:describe-install',
     install: 'codexr:agent-sessions:install',
     uninstall: 'codexr:agent-sessions:uninstall',
@@ -652,9 +675,11 @@ export const AGENT_SESSION_EVENTS = {
 
 /** The integrated terminal a terminal login method runs in (see `AgentSessionsApi.login`). */
 export interface LoginTerminal {
-    readonly terminalId: number;
+    /** #297: the terminal as the terminal API reports it, so the panel shows it like a task's. */
+    readonly terminal: TerminalCreated;
     readonly title: string;
-    readonly cwd: string;
+    /** The program and arguments that run, shown at the top of the terminal (no secret is ever in them). */
+    readonly command: string;
 }
 
 /** What `window.codexr.agentSessions` offers the renderer. */
@@ -668,12 +693,12 @@ export interface AgentSessionsApi {
     /**
      * Runs one of the agent's login methods. An `agent` method resolves once
      * the agent finished its own login (it may open the browser). A `terminal`
-     * method resolves as soon as the agent's login command runs in a new
-     * integrated terminal of this window, with that terminal's id (the id the
-     * terminal API and its data/exit events use) so the window can show it;
-     * the agent is probed again when the command exits (`agents-changed`).
+     * method resolves as soon as the agent's login program runs, directly and
+     * with no shell, in a new integrated terminal of this window sized
+     * `cols` x `rows`; the window shows it through `TerminalPanel.runTask`.
+     * The agent is probed again when the program exits (`agents-changed`).
      */
-    login(ref: string, methodId: string): Promise<LoginTerminal | null>;
+    login(ref: string, methodId: string, cols?: number, rows?: number): Promise<LoginTerminal | null>;
     /** Recent projects and their chats, the window's own folder first. */
     listProjects(): Promise<readonly ProjectSessions[]>;
     get(sessionId: string): Promise<AgentSessionState>;
@@ -714,6 +739,14 @@ export interface AgentSessionsApi {
     worktreeMerge(sessionId: string, strategy: 'merge' | 'squash'): Promise<WorktreeMergeView>;
     /** AF12: removes the chat's worktree and deletes its branch; the chat is kept, read-only. */
     worktreeDiscard(sessionId: string): Promise<void>;
+    /**
+     * #298: the chats the agent keeps in its own history for the open folder
+     * (ACP `session/list`), less the ones already in the IDE. The agent reads
+     * them itself; the IDE never opens the vendor's files.
+     */
+    listImportable(ref: string): Promise<readonly ImportableSession[]>;
+    /** #298: adds those chats to the list; each one's messages are read from the agent when it is first opened. Resolves with how many were added. */
+    importSessions(ref: string, sessions: readonly ImportableSession[]): Promise<number>;
     /**
      * AF2: reads from the npm registry what installing a preset's adapter
      * would download (the only network call, made because the person asked).

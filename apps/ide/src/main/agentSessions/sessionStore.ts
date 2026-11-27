@@ -76,7 +76,7 @@ function worktreeOf(value: unknown): SessionWorktree | undefined {
 
 /** Fills fields an older file may lack, so the reducer never meets `undefined`. */
 function normalize(state: AgentSessionState): AgentSessionState {
-    const { worktree: storedWorktree, ...rest } = state;
+    const { worktree: storedWorktree, historyPending: _history, ...rest } = state;
     const worktree = worktreeOf(storedWorktree);
     return settled({
         ...rest,
@@ -92,6 +92,7 @@ function normalize(state: AgentSessionState): AgentSessionState {
         configOptions: Array.isArray(state.configOptions) ? state.configOptions : [],
         usage: state.usage ?? null,
         agentSessionId: typeof state.agentSessionId === 'string' ? state.agentSessionId : null,
+        ...(state.historyPending === true ? { historyPending: true } : {}),
     });
 }
 

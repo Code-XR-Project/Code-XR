@@ -32,6 +32,8 @@ export interface TerminalHost {
     killAll(): Promise<void>;
     /** #176: a terminal of this window that runs one command line in `cwd`, with the default profile's shell. */
     runCommand(contents: WebContents, command: string, cwd: string, cols: unknown, rows: unknown, hooks: CommandHooks): Promise<TerminalCreated>;
+    /** #297: a terminal of this window that runs one program directly (no shell), with `env` as its whole environment. */
+    runProgram(contents: WebContents, program: { readonly file: string; readonly args: readonly string[]; readonly env: Readonly<Record<string, string>>; readonly name: string }, cwd: string, cols: unknown, rows: unknown, hooks: CommandHooks): Promise<TerminalCreated>;
     /** The default profile's shell, which task command lines are quoted for. */
     defaultShellPath(): Promise<string>;
     /** Runs agents' commands (epic #189, A9) with the default profile's shell. */
@@ -163,6 +165,12 @@ export function createTerminalHost(options: { readonly isSmoke: boolean }): Term
             track(contents);
             const created = await service.createCommand(contents, cols, rows, cwd, (profile) => shellInvocation(profile.path, command), hooks);
             log.info(`Terminal ${created.id}: task with ${created.profile.name} in ${cwd}`);
+            return created;
+        },
+        async runProgram(contents, program, cwd, cols, rows, hooks) {
+            track(contents);
+            const created = await service.createProgram(contents, program, cols, rows, cwd, hooks);
+            log.info(`Terminal ${created.id}: ${program.name} in ${cwd}`);
             return created;
         },
         defaultShellPath: async () => (await registry.resolve(null)).path,

@@ -632,7 +632,7 @@ describe('AgentSessionService with a fake ACP agent', () => {
         await service.prompt(window, created.id, 'auth', []);
         const state = await service.get(window, created.id);
         const notice = state.items.find((item) => item.kind === 'notice' && item.level === 'error');
-        assert.ok(notice?.kind === 'notice' && /log in/i.test(notice.text));
+        assert.ok(notice?.kind === 'notice' && /needs you to sign in/i.test(notice.text));
         assert.equal(state.status, 'error');
         const agents = await service.listAgents(window);
         const fake = agents.find((view) => view.ref === ref);

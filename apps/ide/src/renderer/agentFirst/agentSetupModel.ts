@@ -5,9 +5,9 @@ import type { AgentView, InstallDescription, InstallProgress } from '../../share
  * (AF2, #267) and the first-run guide (AF13, #278). No DOM.
  */
 
-export type SetupAction = 'install' | 'update' | 'remove' | 'login' | 'check';
+export type SetupAction = 'install' | 'update' | 'remove' | 'login' | 'check' | 'import';
 
-/** What an agent row offers: install a missing preset; update or remove one the IDE installed; sign in and check. */
+/** What an agent row offers: install a missing preset; update or remove one the IDE installed; sign in and check; import its chats once ready. */
 export function setupActions(agent: AgentView): SetupAction[] {
     if (agent.kind !== 'acp') {
         return [];
@@ -20,6 +20,10 @@ export function setupActions(agent: AgentView): SetupAction[] {
         actions.push('login');
     }
     actions.push('check');
+    // #298: a signed-in agent can hand over the chats it already has for this folder.
+    if (agent.availability === 'ready') {
+        actions.push('import');
+    }
     if (agent.preset && agent.installedVersion) {
         actions.push('update', 'remove');
     }
@@ -149,4 +153,21 @@ export function onboardingSteps(input: OnboardingInput): OnboardingStep[] {
 /** Whether the guide opens on its own: never once onboarded, and never for someone who already chatted. */
 export function shouldShowOnboarding(onboarded: string | null, hasChat: boolean): boolean {
     return onboarded !== 'true' && !hasChat;
+}
+
+/** #298: "Today 14:05", "12 Nov", or "" when the agent gave no time. */
+export function importedWhen(updatedAt: string | null, now: Date = new Date()): string {
+    if (!updatedAt) {
+        return '';
+    }
+    const at = new Date(updatedAt);
+    if (Number.isNaN(at.getTime())) {
+        return '';
+    }
+    const sameDay = at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate();
+    if (sameDay) {
+        return `Today ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+    }
+    const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][at.getMonth()] ?? '';
+    return at.getFullYear() === now.getFullYear() ? `${at.getDate()} ${month}` : `${at.getDate()} ${month} ${at.getFullYear()}`;
 }
