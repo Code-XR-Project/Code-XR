@@ -284,11 +284,13 @@ const RENDERER_PROBE = `(async () => {
         const activeAfter = document.querySelector('[data-testid="editor-tabs"] .editor-tab[aria-selected="true"]')?.getAttribute('data-path');
         tabsProbe.cycled = activeAfter === order[(order.indexOf('README.md') + 1) % order.length];
         await new Promise((r) => setTimeout(r, 450));
-        const sessionEntry = Object.keys(localStorage).find((key) => key.startsWith('codexr.tabs:'));
-        try {
-            const saved = JSON.parse(localStorage.getItem(sessionEntry ?? '') ?? '{}');
-            tabsProbe.sessionSaved = Array.isArray(saved.tabs) && saved.tabs.some((tab) => tab.path === 'tsconfig.json') && saved.preview === 'README.md';
-        } catch { tabsProbe.sessionSaved = false; }
+        // The smoke's user-data folder can hold other folders' sessions (another checkout ran it): any entry may be this one.
+        tabsProbe.sessionSaved = Object.keys(localStorage).filter((key) => key.startsWith('codexr.tabs:')).some((key) => {
+            try {
+                const saved = JSON.parse(localStorage.getItem(key) ?? '{}');
+                return Array.isArray(saved.tabs) && saved.tabs.some((tab) => tab.path === 'tsconfig.json') && saved.preview === 'README.md';
+            } catch { return false; }
+        });
         const confirmBefore = window.confirm;
         window.confirm = () => true;
         tabOf('README.md')?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 40 }));
