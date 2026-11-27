@@ -76,7 +76,66 @@ Every video on the channel, with its GIF and duration, is listed in [media/v1.2.
 
 ## What's New in v1.2.1
 
-Version 1.2.1 brings Code-XR's own metrics engine, five new languages, three new metrics and many fixes: see the [CHANGELOG](CHANGELOG.md) for the full list.
+Version 1.2.1 brings Code-XR's own metrics engine, five new languages, three new metrics, three ways to move between your code and the scene, and many fixes. The full list is in the [CHANGELOG](CHANGELOG.md).
+
+### Code-XR's own metrics engine
+
+Code-XR no longer uses Lizard. Every metric is computed by Code-XR's own analysis engine, which ships with the extension: nothing extra to install. It makes Code-XR independent of an external library, makes new languages possible, and fixes values that used to be wrong (nesting depth, complexity of some constructs, function names, line ranges and parameter counts).
+
+### Five new languages
+
+| Language | Extensions |
+|---|---|
+| **Rust** | `.rs` |
+| **Dart** | `.dart` |
+| **Shell (Bash)** | `.sh`, `.bash` |
+| **PowerShell** | `.ps1`, `.psm1` |
+| **R** | `.r` |
+
+They appear in *Files by Language* and get every metric, in the LivePanel, in the XR scene and in the dependency graph, like the other 23 languages. The full matrix is under [Supported Languages](#supported-languages).
+
+### Three new metrics, for every function
+
+| Metric | What it tells you | How to read it |
+|---|---|---|
+| **Cognitive complexity** | How hard a function's control flow is to *read*. Each `if`, loop or `catch` costs more the deeper it is nested (SonarSource's definition). | Two functions with the same cyclomatic complexity can differ a lot here: the deeply nested one is harder to understand. |
+| **Halstead metrics** | Volume, difficulty, effort and estimated bugs, measured from the operators and operands a function uses. | Higher volume and effort mean more code to hold in your head; estimated bugs is a rough count of defects to expect. |
+| **Maintainability index** | One score from 0 to 100 that combines Halstead volume, cyclomatic complexity and lines of code. | Above 50 is good, 20 to 50 is moderate, below 20 is hard to maintain. |
+
+Where to see them: the LivePanel tables and cards, and any numeric axis of the chart control panel in the XR scene. Folder and project analyses add per-file summaries (average and maximum cognitive complexity, average and minimum maintainability index, total Halstead volume and estimated bugs).
+
+### Reveal in XR Scene: from a file to the scene
+
+Find a file in the 3D scene without searching for it.
+
+1. Start an XR analysis of a folder or project (**Code-XR: Analyze Directory (XR)** or **Analyze Project (XR)**) and open the scene.
+2. Right-click a file of that folder in the Explorer, in the editor or on its tab, and pick **Code-XR: Reveal in XR Scene**. It is also in the Command Palette for the file you are editing.
+3. In the classic analysis, a marker appears over the file's element together with its legend for a few seconds. In the dependency graph, the file's card is pinned (or its folder's card, when the file is inside a folded folder).
+
+The entry only appears while an analysis server is running. Every running scene that shows the file reacts; guests' views never move.
+
+### Open in editor: from the scene to the code
+
+The other direction, from the dependency graph back to VS Code.
+
+1. Open an XR analysis in the browser on your own machine and switch to the dependency graph.
+2. Select a file or a symbol to open its card.
+3. Press **Open in editor**. VS Code opens the file, at the symbol's line for a symbol.
+
+The button only appears on your own machine. Guests who joined through a Cloudflare link or the local network do not see it, and the server refuses the request from them.
+
+### Open a scene on a standalone headset
+
+Put a scene on a Quest (or any standalone headset) by scanning a QR code.
+
+1. With a scene running, expand its server in **ACTIVE SERVERS** and pick **Open on a headset**.
+2. A panel shows the address and its QR code. Scan it with the headset, or type the address in the headset's browser.
+
+WebXR needs a secure (HTTPS) address, so the panel picks one for you:
+
+- **Shared server** (*Start Remote Access*): the Cloudflare invitation link, which works from any network.
+- **HTTPS server**: its local network address. The headset must be on the same Wi-Fi and accept the certificate.
+- **Plain HTTP server, not shared**: the panel asks you to start remote access first.
 
 ## What's New in v1.2.0: "Threads, Timelines & Global Networks"
 
