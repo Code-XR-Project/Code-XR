@@ -5,6 +5,14 @@
 .status-branch { display: flex; flex-shrink: 0; }
 .scm-branch { display: inline-flex; align-items: center; gap: 4px; }
 .scm-branch[hidden] { display: none; }
+/* #284: ahead/behind beside the branch; it spins while a push, pull or fetch runs. */
+.scm-sync { display: inline-flex; align-items: center; gap: 4px; }
+.scm-sync[hidden] { display: none; }
+.scm-sync span:empty { display: none; }
+.scm-sync svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.scm-sync.is-running svg { animation: scm-spin 1s linear infinite; }
+@keyframes scm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .scm-sync.is-running svg { animation: none; } }
 .scm-branch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 .activity-item { position: relative; }
