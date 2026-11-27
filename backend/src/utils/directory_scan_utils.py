@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""
+Shared helpers for directory-based analysis scanning.
+
+This module centralizes the list of analyzable extensions and the directory/file
+ignore rules used by directory XR and LivePanel coordinators.
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Iterable, Iterator, Sequence
+
+from metric_language_contract import get_supported_metric_extensions
+
+ANALYZABLE_EXTENSIONS: list[str] = get_supported_metric_extensions()
+
+EXCLUDED_DIRECTORIES = {
+    '.git', '.svn', '.hg', '.bzr',
+    'node_modules', 'bower_components', 'jspm_packages',
+    'dist', 'build', 'out', 'target', 'bin', 'obj',
+    '.next', '.nuxt', '_site',
+    '.vscode', '.idea', '.vs', '.settings', '.eclipse',
+    '__pycache__', '.pytest_cache', '.mypy_cache', 'site-packages',
+    'coverage', '.coverage', '.nyc_output',
+    'venv', '.venv', 'env', '.env',
+    'tmp', '.tmp', 'temp', 'logs', 'log', 'cache', '.cache',
+}
+
+
+def should_skip_directory_name(name: str) -> bool:
+    if not name or name in {'.', '..'}:
+        return True
+    if name in EXCLUDED_DIRECTORIES:
+        return True
+    return name.startswith('.')
+
+
+def should_skip_file_name(name: str) -> bool:
+    return not name or name.startswith('.')
+
+
+def is_analyzable_file_path(file_path: str, extensions: Sequence[str] | None = None) -> bool:
+    current_extensions = set(extensions or ANALYZABLE_EXTENSIONS)
+    if not os.path.isfile(file_path):
+        return False
+    if should_skip_file_name(os.path.basename(file_path)):
+        return False
+    return os.path.splitext(file_path)[1].lower() in current_extensions
+
+
+def filter_explicit_files_for_analysis(
+    file_paths: Iterable[str] | None,
+    max_total_files: int | None = None,
+) -> list[str]:
+    if not file_paths:
+        return []
+
+    filtered: list[str] = []
+    for file_path in file_paths:
+        if is_analyzable_file_path(file_path):
+            filtered.append(file_path)
+        if max_total_files is not None and len(filtered) >= max_total_files:
+            break
+
+    return sorted(filtered)
+
+
+def _iter_candidate_paths(
+    directory_path: str,
+    recursive: bool,
+    max_entries_per_directory: int,
+) -> Iterator[str]:
+    """Yield the full paths of the visible files to consider, in traversal order.
+
+    Each directory listing is capped at ``max_entries_per_directory`` entries
+    before hidden names are skipped. Recursive mode prunes excluded and hidden
+    directories; flat mode returns nothing for an unreadable directory.
+    """
+    if recursive:
+        for root, dirs, files in os.walk(directory_path, topdown=True):
+            dirs[:] = [directory for directory in dirs if not should_skip_directory_name(directory)]
+            for file_name in files[:max_entries_per_directory]:
+                if not should_skip_file_name(file_name):
+                    yield os.path.join(root, file_name)
+        return
+
+    try:
+        entries = os.listdir(directory_path)
+    except OSError:
+        return
+
+    for entry in entries[:max_entries_per_directory]:
+        if should_skip_file_name(entry):
+            continue
+        full_path = os.path.join(directory_path, entry)
+        if os.path.isfile(full_path):
+            yield full_path
+
+
+def scan_directory_files_for_analysis(
+    directory_path: str,
+    recursive: bool = False,
+    max_entries_per_directory: int = 1000,
+    max_total_files: int | None = None,
+) -> list[str]:
+    analyzable_files: list[str] = []
+    extensions = set(ANALYZABLE_EXTENSIONS)
+
+    for full_path in _iter_candidate_paths(directory_path, recursive, max_entries_per_directory):
+        if os.path.splitext(full_path)[1].lower() in extensions:
+            analyzable_files.append(full_path)
+            if max_total_files is not None and len(analyzable_files) >= max_total_files:
+                break
+
+    return sorted(analyzable_files)

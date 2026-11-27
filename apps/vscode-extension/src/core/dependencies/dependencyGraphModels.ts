@@ -1,0 +1,75 @@
+type DependencyRelationKind =
+    | 'import'
+    | 'include'
+    | 'require'
+    | 'inheritance'
+    | 'implementation'
+    | 'call'
+    | 'contains';
+
+type DependencyConfidence = 'exact' | 'probable' | 'ambiguous';
+type DependencyCapability = 'exact' | 'best-effort' | 'unsupported';
+export type DependencyGraphLayout = 'force-3d' | 'hierarchical' | 'metric-space';
+type DependencySymbolKind =
+    | 'module'
+    | 'function'
+    | 'method'
+    | 'class'
+    | 'interface'
+    | 'trait'
+    | 'struct'
+    | 'record'
+    | 'enum';
+
+export type DependencyGraphScope =
+    | { kind: 'directory'; relativePath: string }
+    | { kind: 'file'; relativePath: string };
+export type DependencyEdgeEncoding =
+    | 'relation-type'
+    | 'intensity-color'
+    | 'intensity-width'
+    | 'intensity-combined';
+
+interface DependencyNode {
+    id: string;
+    kind: 'file' | 'group' | 'external' | 'symbol';
+    label: string;
+    relativePath?: string;
+    language?: string;
+    symbolKind?: DependencySymbolKind;
+    ownerId?: string;
+    lineStart?: number;
+    lineEnd?: number;
+    external: boolean;
+    metrics: Record<string, number | string>;
+}
+
+interface DependencyEdge {
+    id: string;
+    source: string;
+    target: string;
+    kind: DependencyRelationKind;
+    confidence: DependencyConfidence;
+    occurrences: number;
+}
+
+export interface DependencyGraphDataset {
+    schemaVersion: 1 | 2;
+    revision: number;
+    targetType?: 'file' | 'directory';
+    targetRelativePath?: string;
+    sourceRevision: number;
+    nodes: DependencyNode[];
+    edges: DependencyEdge[];
+    warnings: string[];
+    capabilities: Record<string, Record<DependencyRelationKind, DependencyCapability>>;
+    generatedAt: string;
+}
+
+export interface DependencyRefreshRequest {
+    sourceRevision: number;
+    changedFiles: string[];
+    addedFiles: string[];
+    removedFiles: string[];
+    forceFullScan?: boolean;
+}

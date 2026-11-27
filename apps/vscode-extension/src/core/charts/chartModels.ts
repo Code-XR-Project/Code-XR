@@ -1,0 +1,84 @@
+/**
+ * BabiaXR Template System Models
+ * Core interfaces for chart metadata and dimension mapping
+ */
+
+/**
+ * Supported data types for chart dimensions
+ */
+export type DimensionDataType = 'numeric' | 'text' | 'any';
+export type DimensionValueRule = 'text-non-empty' | 'numeric-finite' | 'numeric-positive';
+
+/**
+ * Chart dimension definition
+ */
+export interface ChartDimension {
+    /** Name of the dimension (e.g., 'key', 'size') */
+    name: string;
+    
+    /** Display label for the dimension */
+    label: string;
+    
+    /** Expected data type for this dimension */
+    dataType: DimensionDataType;
+
+    /** Optional runtime rule for validating mapped values */
+    valueRule?: DimensionValueRule;
+    
+    /** Whether this dimension is required */
+    required: boolean;
+    
+    /** Description of what this dimension represents */
+    description?: string;
+}
+
+/**
+ * Chart metadata definition
+ */
+export interface ChartMetadata {
+    /** Unique identifier for the chart type */
+    id: string;
+    
+    /** Display name of the chart */
+    name: string;
+    
+    /** Description of the chart */
+    description: string;
+    
+    /** List of supported dimensions */
+    dimensions: ChartDimension[];
+    
+    /** HTML template for the chart component */
+    htmlTemplate: string;
+    
+    /** Category of the chart (e.g., 'circular', 'linear', '3d') */
+    category: string;
+}
+
+/**
+ * Dimension mapping configuration
+ */
+export interface DimensionMapping {
+    /** Dimension name */
+    dimension: string;
+    
+    /** Data field name to map to this dimension */
+    dataField: string;
+    
+    /** Optional label override */
+    label?: string;
+}
+
+/**
+ * Chart validation result
+ */
+export interface ChartValidationResult {
+    /** Whether the configuration is valid */
+    isValid: boolean;
+    
+    /** Validation errors */
+    errors: string[];
+    
+    /** Validation warnings */
+    warnings: string[];
+}

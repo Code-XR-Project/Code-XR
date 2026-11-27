@@ -1,0 +1,89 @@
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+// Runs the backend unittest suites (backend/tests) with the first Python found.
+// Node builtins only: `node backend/scripts/run-python-tests.cjs` needs no npm ci.
+const backendRoot = path.resolve(__dirname, '..');
+const testRoot = path.join(backendRoot, 'tests');
+
+function getPythonCandidates() {
+    const candidates = [];
+
+    if (process.env.CODEXR_PYTHON) {
+        candidates.push({ command: process.env.CODEXR_PYTHON, args: [], source: 'CODEXR_PYTHON' });
+    }
+
+    const localAppData = process.env.LOCALAPPDATA;
+    if (localAppData) {
+        for (const version of ['Python312', 'Python311', 'Python310']) {
+            const interpreter = path.join(localAppData, 'Programs', 'Python', version, 'python.exe');
+            if (fs.existsSync(interpreter)) {
+                candidates.push({ command: interpreter, args: [], source: version });
+            }
+        }
+    }
+
+    candidates.push({ command: 'py', args: ['-3'], source: 'py launcher' });
+    candidates.push({ command: 'python', args: [], source: 'python on PATH' });
+    candidates.push({ command: 'python3', args: [], source: 'python3 on PATH' });
+
+    return candidates;
+}
+
+let blockedBySandbox = false;
+
+function tryInterpreter(candidate) {
+    const versionCheck = spawnSync(candidate.command, [...candidate.args, '--version'], {
+        cwd: backendRoot,
+        encoding: 'utf8',
+    });
+
+    if (versionCheck.error) {
+        if (versionCheck.error.code === 'EPERM') {
+            blockedBySandbox = true;
+        }
+        return false;
+    }
+
+    if (versionCheck.status !== 0) {
+        return false;
+    }
+
+    const result = spawnSync(
+        candidate.command,
+        [
+            ...candidate.args,
+            '-m',
+            'unittest',
+            'discover',
+            '-s',
+            testRoot,
+            '-p',
+            'test_*.py',
+        ],
+        {
+            cwd: backendRoot,
+            stdio: 'inherit',
+        },
+    );
+
+    process.exit(result.status ?? 1);
+}
+
+for (const candidate of getPythonCandidates()) {
+    tryInterpreter(candidate);
+}
+
+// Locally a missing interpreter is a skip, so the rest of the gate stays usable.
+// Under CI it is a failure: a job that "passes" because it ran nothing protects
+// nothing.
+const skippedExitCode = process.env.CI ? 1 : 0;
+
+if (blockedBySandbox) {
+    console.warn('TEST_RUNNER: Python interpreter detected, but this sandbox cannot execute it. Backend Python tests were skipped.');
+    process.exit(skippedExitCode);
+}
+
+console.warn('TEST_RUNNER: Python interpreter not available. Backend Python tests were skipped.');
+process.exit(skippedExitCode);

@@ -1,0 +1,6 @@
+[
+  {"name": "analysis", "filePath": "src/analysis.ts", "fileName": "analysis.ts", "totalLines": 72, "complexity": 14, "functionCount": 8, "language": "TypeScript"},
+  {"name": "server", "filePath": "src/server.ts", "fileName": "server.ts", "totalLines": 54, "complexity": 9, "functionCount": 6, "language": "TypeScript"},
+  {"name": "history", "filePath": "src/history.js", "fileName": "history.js", "totalLines": 38, "complexity": 6, "functionCount": 4, "language": "JavaScript"},
+  {"name": "dependencies", "filePath": "src/dependencies.py", "fileName": "dependencies.py", "totalLines": 61, "complexity": 11, "functionCount": 7, "language": "Python"}
+]

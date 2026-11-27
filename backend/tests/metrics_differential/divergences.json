@@ -1,0 +1,2513 @@
+[
+  {
+    "file": "manual_test/csharp_metrics.cs",
+    "function": "MetricBox::Compute@4",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 4,
+    "reason": "Lizard does not count `foreach`.",
+    "spec": "C11"
+  },
+  {
+    "file": "manual_test/deep/deep_go_extra.go",
+    "function": "DeepCompute@4",
+    "field": "longName",
+    "lizard": "DeepCompute values [ ] int , limit int , offset int",
+    "ours": "DeepCompute(values[]int, limit int, offset int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "compute@1",
+    "field": "lineStart",
+    "lizard": 1,
+    "ours": 5,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "compute@1",
+    "field": "lineEnd",
+    "lizard": 1,
+    "ours": 15,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "compute@1",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 11,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "compute@1",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "helper@1",
+    "field": "lineStart",
+    "lizard": 1,
+    "ours": 17,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "helper@1",
+    "field": "lineEnd",
+    "lizard": 1,
+    "ours": 25,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "manual_test/erlang_metrics.erl",
+    "function": "helper@1",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 9,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "manual_test/fortran_metrics.f90",
+    "function": "metrics_mod::compute@4",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "manual_test/gdscript_metrics.gd",
+    "function": "compute@4",
+    "field": "complexity",
+    "lizard": 5,
+    "ours": 4,
+    "reason": "Lizard counts `else`, which is not a decision.",
+    "spec": "C3"
+  },
+  {
+    "file": "manual_test/go_metrics.go",
+    "function": "Compute@8",
+    "field": "longName",
+    "lizard": "Compute values [ ] int , limit int",
+    "ours": "Compute(values[]int, limit int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/go_metrics.go",
+    "function": "Helper@22",
+    "field": "longName",
+    "lizard": "Helper value int , offset int",
+    "ours": "Helper(value int, offset int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/kotlin_metrics.kt",
+    "function": "compute@3",
+    "field": "longName",
+    "lizard": "compute values : List < Int > , offset : Int",
+    "ours": "compute(values: List<Int>, offset: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/kotlin_metrics.kt",
+    "function": "helper@17",
+    "field": "longName",
+    "lizard": "helper value : Int , offset : Int",
+    "ours": "helper(value: Int, offset: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/lua_metrics.lua",
+    "function": "MetricBox@23",
+    "field": "name",
+    "lizard": "MetricBox",
+    "ours": "MetricBox:helper",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "manual_test/lua_metrics.lua",
+    "function": "MetricBox@23",
+    "field": "longName",
+    "lizard": "MetricBox",
+    "ours": "MetricBox:helper(value, seed)",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "manual_test/lua_metrics.lua",
+    "function": "MetricBox@5",
+    "field": "name",
+    "lizard": "MetricBox",
+    "ours": "MetricBox:new",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "manual_test/lua_metrics.lua",
+    "function": "MetricBox@5",
+    "field": "longName",
+    "lizard": "MetricBox",
+    "ours": "MetricBox:new(limit)",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "manual_test/lua_metrics.lua",
+    "function": "MetricBox@9",
+    "field": "name",
+    "lizard": "MetricBox",
+    "ours": "MetricBox:compute",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "manual_test/lua_metrics.lua",
+    "function": "MetricBox@9",
+    "field": "longName",
+    "lizard": "MetricBox",
+    "ours": "MetricBox:compute(values, offset)",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "manual_test/perl_metrics.pl",
+    "function": "MetricBox::compute@4",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "manual_test/php_metrics.php",
+    "function": "MetricBox::compute@4",
+    "field": "longName",
+    "lizard": "MetricBox::compute $values $values $limit $limit",
+    "ours": "MetricBox::compute(array $values, int $limit)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/php_metrics.php",
+    "function": "MetricBox::compute@4",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 2,
+    "reason": "Lizard reports 1 parameter for every PHP function.",
+    "spec": "PARAMS-PHP"
+  },
+  {
+    "file": "manual_test/php_metrics.php",
+    "function": "MetricBox::helper@18",
+    "field": "longName",
+    "lizard": "MetricBox::helper $value $value $offset $offset",
+    "ours": "MetricBox::helper(int $value, int $offset)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/php_metrics.php",
+    "function": "MetricBox::helper@18",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 2,
+    "reason": "Lizard reports 1 parameter for every PHP function.",
+    "spec": "PARAMS-PHP"
+  },
+  {
+    "file": "manual_test/ruby_metrics.rb",
+    "function": "compute@8",
+    "field": "longName",
+    "lizard": "compute values , offset = 0 )",
+    "ours": "compute(values, offset=0)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/ruby_metrics.rb",
+    "function": "helper@22",
+    "field": "longName",
+    "lizard": "helper value , seed )",
+    "ours": "helper(value, seed)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/ruby_metrics.rb",
+    "function": "initialize@3",
+    "field": "longName",
+    "lizard": "initialize limit , factor )",
+    "ours": "initialize(limit, factor)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "compute@3",
+    "field": "longName",
+    "lizard": "compute values : List [ Int ] , limit : Int",
+    "ours": "compute(values: List[Int], limit: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "compute@3",
+    "field": "lineEnd",
+    "lizard": 17,
+    "ours": 15,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "compute@3",
+    "field": "lineCount",
+    "lizard": 14,
+    "ours": 13,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "compute@3",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "helper@17",
+    "field": "longName",
+    "lizard": "helper value : Int , offset : Int",
+    "ours": "helper(value: Int, offset: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "helper@17",
+    "field": "lineEnd",
+    "lizard": 25,
+    "ours": 24,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/scala_metrics.scala",
+    "function": "helper@17",
+    "field": "lineCount",
+    "lizard": 9,
+    "ours": 8,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/solidity_metrics.sol",
+    "function": "compute@5",
+    "field": "longName",
+    "lizard": "compute uint256 [ ] memory values , uint256 limit",
+    "ours": "compute(uint256[]memory values, uint256 limit)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/solidity_metrics.sol",
+    "function": "helper@19",
+    "field": "longName",
+    "lizard": "helper uint256 value , uint256 offset",
+    "ours": "helper(uint256 value, uint256 offset)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/swift_metrics.swift",
+    "function": "compute@3",
+    "field": "longName",
+    "lizard": "compute values : [ Int ] , limit : Int",
+    "ours": "compute(values: [Int], limit: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/swift_metrics.swift",
+    "function": "helper@17",
+    "field": "longName",
+    "lizard": "helper value : Int , offset : Int",
+    "ours": "helper(value: Int, offset: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/ttcn_metrics.ttcn3",
+    "function": "if@14",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "manual_test/ttcn_metrics.ttcn3",
+    "function": "if@4",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "manual_test/ttcn_metrics.ttcn3",
+    "function": "compute@3",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "manual_test/ttcn_metrics.ttcn3",
+    "function": "helper@13",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "manual_test/typescript_component.tsx",
+    "function": "(anonymous)@5",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 2,
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "manual_test/typescript_component.tsx",
+    "function": "MetricPanel@15",
+    "field": "parameters",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "A destructured parameter is one formal parameter; Lizard counts its names.",
+    "spec": "PARAMS-DESTRUCT"
+  },
+  {
+    "file": "manual_test/typescript_component.tsx",
+    "function": "compute@4",
+    "field": "lineEnd",
+    "lizard": 15,
+    "ours": 13,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/typescript_metrics.ts",
+    "function": "compute@4",
+    "field": "lineEnd",
+    "lizard": 18,
+    "ours": 16,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/typescript_metrics.ts",
+    "function": "compute@4",
+    "field": "lineCount",
+    "lizard": 14,
+    "ours": 13,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/vue_metrics.vue",
+    "function": "compute@7",
+    "field": "lineEnd",
+    "lizard": 19,
+    "ours": 17,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/vue_metrics.vue",
+    "function": "compute@7",
+    "field": "lineCount",
+    "lizard": 12,
+    "ours": 11,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "manual_test/zig_metrics.zig",
+    "function": "compute@4",
+    "field": "longName",
+    "lizard": "compute values : [ ] const i32 , limit : i32",
+    "ours": "compute(values: []const i32, limit: i32)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "manual_test/zig_metrics.zig",
+    "function": "helper@18",
+    "field": "longName",
+    "lizard": "helper value : i32 , offset : i32",
+    "ours": "helper(value: i32, offset: i32)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/c_nesting.c",
+    "function": "deep@1",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/c_nesting.c",
+    "function": "flat@12",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_hard.cpp",
+    "function": "geo::Circle::area@23",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_hard.cpp",
+    "function": "geo::Point::operator ==@11",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_hard.cpp",
+    "function": "geo_main@45",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_header.hpp",
+    "function": "util::Text::trimmed@12",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_header.hpp",
+    "function": "util::max_of@25",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_header.hxx",
+    "function": "area@1",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_source.cc",
+    "function": "Registry::add@20",
+    "field": "maxNestingDepth",
+    "lizard": 4,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/cpp_source.cxx",
+    "function": "trace@10",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::CountLarge@36",
+    "field": "complexity",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard does not count `foreach`.",
+    "spec": "C11"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::CountLarge@36",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::Withdraw@26",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::if@17",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard misses C# accessors, expression-bodied members and switch expressions, and invents a function named `if`.",
+    "spec": "CS-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::Account@10",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses C# accessors, expression-bodied members and switch expressions, and invents a function named `if`.",
+    "spec": "CS-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::Describe@46",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses C# accessors, expression-bodied members and switch expressions, and invents a function named `if`.",
+    "spec": "CS-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::get_Balance@14",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses C# accessors, expression-bodied members and switch expressions, and invents a function named `if`.",
+    "spec": "CS-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::get_IsRich@24",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses C# accessors, expression-bodied members and switch expressions, and invents a function named `if`.",
+    "spec": "CS-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_hard.cs",
+    "function": "Account::set_Balance@15",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses C# accessors, expression-bodied members and switch expressions, and invents a function named `if`.",
+    "spec": "CS-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/csharp_property.cs",
+    "function": "Account::get_Balance@5",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard never detects C# property accessors.",
+    "spec": "CS-ACCESSOR"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "clamp@1",
+    "field": "lineStart",
+    "lizard": 1,
+    "ours": 5,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "clamp@1",
+    "field": "lineEnd",
+    "lizard": 1,
+    "ours": 7,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "clamp@1",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 3,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "clamp@1",
+    "field": "complexity",
+    "lizard": 1,
+    "ours": 5,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "dist@1",
+    "field": "lineStart",
+    "lizard": 1,
+    "ours": 9,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "dist@1",
+    "field": "lineEnd",
+    "lizard": 1,
+    "ours": 13,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "dist@1",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 5,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_header.hrl",
+    "function": "dist@1",
+    "field": "parameters",
+    "lizard": 4,
+    "ours": 2,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_not.erl",
+    "function": "flip@1",
+    "field": "lineStart",
+    "lizard": 1,
+    "ours": 4,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_not.erl",
+    "function": "flip@1",
+    "field": "lineEnd",
+    "lizard": 1,
+    "ours": 8,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_not.erl",
+    "function": "flip@1",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 5,
+    "reason": "Lizard's Erlang reader puts every function at line 1 with NLOC 1, counts record fields as parameters and, with macros, loses clauses and guards.",
+    "spec": "ERLANG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/erlang_not.erl",
+    "function": "flip@1",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard counts `not`, which is negation, not a branch.",
+    "spec": "C7"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/fortran_f95.f95",
+    "function": "main@1",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not report a Fortran main `program` unit, so its code counts for nothing.",
+    "spec": "FORTRAN-PROGRAM"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/fortran_fixed.f",
+    "function": "ISIGN2@15",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/fortran_fixed.f",
+    "function": "SCALE@2",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/fortran_modern.f08",
+    "function": "stats::classify@14",
+    "field": "complexity",
+    "lizard": 5,
+    "ours": 3,
+    "reason": "Lizard counts the `case` of `select case` and `case default`.",
+    "spec": "C14"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/fortran_modern.f08",
+    "function": "stats::classify@14",
+    "field": "maxNestingDepth",
+    "lizard": 4,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/gdscript_else.gd",
+    "function": "pick@1",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard counts `else`, which is not a decision.",
+    "spec": "C3"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/gdscript_hard.gd",
+    "function": "state_name@15",
+    "field": "complexity",
+    "lizard": 1,
+    "ours": 3,
+    "reason": "Lizard does not count the branches of a GDScript `match`.",
+    "spec": "C15"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/gdscript_hard.gd",
+    "function": "state_name@15",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/gdscript_hard.gd",
+    "function": "take_damage@7",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Add@9",
+    "field": "longName",
+    "lizard": "(s*Store)Add v int",
+    "ours": "Add(v int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Apply@43",
+    "field": "longName",
+    "lizard": "Apply values [ ] int , fn func int int",
+    "ours": "Apply(values[]int, fn func(int)int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Apply@43",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Sum@17",
+    "field": "longName",
+    "lizard": "(s Store)Sum",
+    "ours": "Sum()",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Sum@17",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard counts a Go named result as a parameter.",
+    "spec": "PARAMS-GO"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Worker@24",
+    "field": "longName",
+    "lizard": "Worker jobs < - chan int , done chan struct { }",
+    "ours": "Worker(jobs<-chan int, done chan struct{})",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "Worker@24",
+    "field": "maxNestingDepth",
+    "lizard": 5,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "unknown@45",
+    "field": "name",
+    "lizard": "unknown",
+    "ours": "square",
+    "reason": "Lizard names an anonymous function after the call it is passed to or `unknown`; ours uses the variable it is assigned to, else `(anonymous)`.",
+    "spec": "NAME-ANON"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/go_hard.go",
+    "function": "unknown@45",
+    "field": "longName",
+    "lizard": " n int",
+    "ours": "square(n int)",
+    "reason": "Lizard names an anonymous function after the call it is passed to or `unknown`; ours uses the variable it is assigned to, else `(anonymous)`.",
+    "spec": "NAME-ANON"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/java_hard.java",
+    "function": "(anonymous)::run@31",
+    "field": "longName",
+    "lizard": "Hard::Hard::task.run()",
+    "ours": "(anonymous)::run()",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/java_hard.java",
+    "function": "(anonymous)::run@31",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/java_hard.java",
+    "function": "Hard::label@20",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/java_nesting.java",
+    "function": "Nesting::three@2",
+    "field": "maxNestingDepth",
+    "lizard": 4,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/javascript_nullish.js",
+    "function": "chain@5",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/javascript_nullish.js",
+    "function": "orDefault@1",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard tokenizes `??` as two `?` and counts it twice.",
+    "spec": "C5"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/javascript_nullish.js",
+    "function": "orDefault@1",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_common.cjs",
+    "function": "start@4",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "(anonymous)@4",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard tokenizes `??` as two `?` and counts it twice.",
+    "spec": "C5"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "(anonymous)@4",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 2,
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "(anonymous)@4",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "push@11",
+    "field": "lineEnd",
+    "lizard": 14,
+    "ours": 16,
+    "reason": "Lizard misreads a regex or template literal and loses or invents functions around it.",
+    "spec": "JS-LEXING"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "push@11",
+    "field": "lineCount",
+    "lizard": 4,
+    "ours": 6,
+    "reason": "Lizard misreads a regex or template literal and loses or invents functions around it.",
+    "spec": "JS-LEXING"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "push@11",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "render@4",
+    "field": "longName",
+    "lizard": "render",
+    "ours": "render(template, data)",
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "render@4",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "retry@27",
+    "field": "longName",
+    "lizard": "retry",
+    "ours": "retry(fn, times=3)",
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "retry@27",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "retry@27",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "list.forEach@20",
+    "field": "name",
+    "lizard": "list.forEach",
+    "ours": "(anonymous)",
+    "reason": "Lizard names an anonymous function after the call it is passed to or `unknown`; ours uses the variable it is assigned to, else `(anonymous)`.",
+    "spec": "NAME-ANON"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "list.forEach@20",
+    "field": "longName",
+    "lizard": "list.forEach ( function ( item )",
+    "ours": "(anonymous)(item)",
+    "reason": "Lizard names an anonymous function after the call it is passed to or `unknown`; ours uses the variable it is assigned to, else `(anonymous)`.",
+    "spec": "NAME-ANON"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "(anonymous)@3",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard misreads a regex or template literal and loses or invents functions around it.",
+    "spec": "JS-LEXING"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "from@18",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misreads a regex or template literal and loses or invents functions around it.",
+    "spec": "JS-LEXING"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/js_module.mjs",
+    "function": "main@2",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misreads a regex or template literal and loses or invents functions around it.",
+    "spec": "JS-LEXING"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_hard.kt",
+    "function": "firstOrNull@37",
+    "field": "longName",
+    "lizard": "firstOrNull items : List < T > , predicate : T -> Boolean",
+    "ours": "firstOrNull(items: List<T>, predicate: (T)->Boolean)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_hard.kt",
+    "function": "walk@22",
+    "field": "longName",
+    "lizard": "walk limit : Int",
+    "ours": "walk(limit: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_hard.kt",
+    "function": "walk@22",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_hard.kt",
+    "function": "(anonymous)@10",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard misses expression-bodied functions (`fun f() = ...`, `def f = ...`).",
+    "spec": "EXPR-BODY"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_hard.kt",
+    "function": "describe@12",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses expression-bodied functions (`fun f() = ...`, `def f = ...`).",
+    "spec": "EXPR-BODY"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_hard.kt",
+    "function": "near@9",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses expression-bodied functions (`fun f() = ...`, `def f = ...`).",
+    "spec": "EXPR-BODY"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_script.kts",
+    "function": "total@3",
+    "field": "longName",
+    "lizard": "total items : List < Int >",
+    "ours": "total(items: List<Int>)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_script.kts",
+    "function": "label@11",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses expression-bodied functions (`fun f() = ...`, `def f = ...`).",
+    "spec": "EXPR-BODY"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_when.kt",
+    "function": "describe@1",
+    "field": "longName",
+    "lizard": "describe code : Int",
+    "ours": "describe(code: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/kotlin_when.kt",
+    "function": "describe@1",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "Stack.new@4",
+    "field": "longName",
+    "lizard": "Stack.new )",
+    "ours": "Stack.new()",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "square@37",
+    "field": "longName",
+    "lizard": "square x )",
+    "ours": "square(x)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "sum@25",
+    "field": "longName",
+    "lizard": "sum list )",
+    "ours": "sum(list)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "sum@25",
+    "field": "complexity",
+    "lizard": 4,
+    "ours": 5,
+    "reason": "Lizard reads Lua's length operator `#` like a preprocessor line and drops the rest of the line.",
+    "spec": "C12"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "Stack@15",
+    "field": "name",
+    "lizard": "Stack",
+    "ours": "Stack:pop",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "Stack@15",
+    "field": "longName",
+    "lizard": "Stack",
+    "ours": "Stack:pop()",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "Stack@8",
+    "field": "name",
+    "lizard": "Stack",
+    "ours": "Stack:push",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/lua_hard.lua",
+    "function": "Stack@8",
+    "field": "longName",
+    "lizard": "Stack",
+    "ours": "Stack:push(value)",
+    "reason": "Lizard names every Lua method after its table only.",
+    "spec": "LUA-NAMES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/objc_hard.mm",
+    "function": "helper@29",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/objc_hard.mm",
+    "function": "helper@29",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/objc_hard.mm",
+    "function": "for@11",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/objc_hard.mm",
+    "function": "if@21",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/objc_hard.mm",
+    "function": "addValue: times:@9",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/objc_hard.mm",
+    "function": "shared@19",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::add@11",
+    "field": "name",
+    "lizard": "Hard::add",
+    "ours": "Hard::Counter::add",
+    "reason": "Lizard keeps only the first segment of a Perl package name.",
+    "spec": "NAME-PERL"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::add@11",
+    "field": "longName",
+    "lizard": "Hard::add",
+    "ours": "Hard::Counter::add",
+    "reason": "Lizard keeps only the first segment of a Perl package name.",
+    "spec": "NAME-PERL"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::summary@18",
+    "field": "name",
+    "lizard": "Hard::summary",
+    "ours": "Hard::Counter::summary",
+    "reason": "Lizard keeps only the first segment of a Perl package name.",
+    "spec": "NAME-PERL"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::summary@18",
+    "field": "longName",
+    "lizard": "Hard::summary",
+    "ours": "Hard::Counter::summary",
+    "reason": "Lizard keeps only the first segment of a Perl package name.",
+    "spec": "NAME-PERL"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::summary@18",
+    "field": "complexity",
+    "lizard": 6,
+    "ours": 5,
+    "reason": "Lizard counts every `:`, so a ternary adds 2.",
+    "spec": "C6"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::summary@18",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard never counts Perl parameters; ours also reads `my $x = shift`.",
+    "spec": "PARAMS-PERL"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::summary@18",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_module.pm",
+    "function": "Hard::Counter::new@5",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard reads Perl's `//` operator as a regex and loses the function.",
+    "spec": "PERL-LEXING"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_ternary.pl",
+    "function": "sign@1",
+    "field": "complexity",
+    "lizard": 5,
+    "ours": 2,
+    "reason": "Lizard counts every `:`, so a ternary adds 2.",
+    "spec": "C6"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/perl_ternary.pl",
+    "function": "sign@1",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::__construct@8",
+    "field": "longName",
+    "lizard": "Invoice::__construct $currency $currency",
+    "ours": "Invoice::__construct(private string $currency='EUR')",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::add@10",
+    "field": "longName",
+    "lizard": "Invoice::add $item $item $price $price $qty $qty",
+    "ours": "Invoice::add(string $item, float $price, int $qty=1)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::add@10",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 3,
+    "reason": "Lizard reports 1 parameter for every PHP function.",
+    "spec": "PARAMS-PHP"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::add@10",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::label@28",
+    "field": "longName",
+    "lizard": "Invoice::label $code $code",
+    "ours": "Invoice::label(int $code)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::label@28",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 4,
+    "reason": "Lizard counts a PHP `match` once instead of once per non-default arm.",
+    "spec": "C17"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::parse@37",
+    "field": "longName",
+    "lizard": "Invoice::parse $raw $raw",
+    "ours": "Invoice::parse(?string $raw)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::parse@37",
+    "field": "complexity",
+    "lizard": 7,
+    "ours": 4,
+    "reason": "Lizard counts the `?` of an optional parameter or nullable type and splits `??` into two decisions.",
+    "spec": "C4,C5"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::parse@37",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_class.php",
+    "function": "Invoice::total@19",
+    "field": "longName",
+    "lizard": "Invoice::total",
+    "ours": "Invoice::total()",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_legacy.php5",
+    "function": "legacy_sum@2",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 5,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_params.php",
+    "function": "combine@2",
+    "field": "longName",
+    "lizard": "combine $first $first $second $second",
+    "ours": "combine($first, $second)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_params.php",
+    "function": "combine@2",
+    "field": "complexity",
+    "lizard": 5,
+    "ours": 4,
+    "reason": "Lizard tokenizes `??` as two `?` and counts it twice.",
+    "spec": "C5"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_params.php",
+    "function": "combine@2",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 2,
+    "reason": "Lizard reports 1 parameter for every PHP function.",
+    "spec": "PARAMS-PHP"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_params.php",
+    "function": "combine@2",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/php_template.phtml",
+    "function": "render@2",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "kind@36",
+    "field": "complexity",
+    "lizard": 2,
+    "ours": 5,
+    "reason": "Lizard ignores the arms of a Python `match`.",
+    "spec": "C2"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "kind@36",
+    "field": "maxNestingDepth",
+    "lizard": 5,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "retry.decorator@6",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "retry@5",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "size@28",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "tokens@31",
+    "field": "maxNestingDepth",
+    "lizard": 2,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "retry.retry.decorator.wrapper@8",
+    "field": "name",
+    "lizard": "retry.retry.decorator.wrapper",
+    "ours": "retry.decorator.wrapper",
+    "reason": "Lizard repeats the outer function name for a doubly nested Python function.",
+    "spec": "NAME-NESTED"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/py_hard.py",
+    "function": "retry.retry.decorator.wrapper@8",
+    "field": "longName",
+    "lizard": "retry.retry.decorator.wrapper( * args , ** kwargs )",
+    "ours": "retry.decorator.wrapper(*args, **kwargs)",
+    "reason": "Lizard repeats the outer function name for a doubly nested Python function.",
+    "spec": "NAME-NESTED"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/python_finally_match.py",
+    "function": "cleanup@1",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 4,
+    "reason": "Lizard counts `finally` (not a branch) and ignores `match`/`case` arms.",
+    "spec": "C1,C2"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/python_finally_match.py",
+    "function": "cleanup@1",
+    "field": "maxNestingDepth",
+    "lizard": 4,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/python_stub.pyi",
+    "function": "area@1",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/python_windowed.pyw",
+    "function": "area@1",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "find@11",
+    "field": "longName",
+    "lizard": "find name )",
+    "ours": "find(name)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "find@11",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "initialize@3",
+    "field": "longName",
+    "lizard": "initialize items = [ ] )",
+    "ours": "initialize(items=[])",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "label@19",
+    "field": "longName",
+    "lizard": "label count )",
+    "ours": "label(count)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "label@19",
+    "field": "lineEnd",
+    "lizard": 24,
+    "ours": 25,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "label@19",
+    "field": "lineCount",
+    "lizard": 6,
+    "ours": 7,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "restock@27",
+    "field": "longName",
+    "lizard": "restock amount )",
+    "ours": "restock(amount)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "restock@27",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "self.build@38",
+    "field": "longName",
+    "lizard": "self.build * names )",
+    "ours": "self.build(*names)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "total@7",
+    "field": "longName",
+    "lizard": "total",
+    "ours": "total()",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_hard.rb",
+    "function": "total@7",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_unless.rb",
+    "function": "check@1",
+    "field": "longName",
+    "lizard": "check value )",
+    "ours": "check(value)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_unless.rb",
+    "function": "check@1",
+    "field": "complexity",
+    "lizard": 2,
+    "ours": 3,
+    "reason": "Lizard does not count `unless`.",
+    "spec": "C9"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ruby_windowed.rbw",
+    "function": "area@1",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "area@8",
+    "field": "longName",
+    "lizard": "area s : Shape",
+    "ours": "area(s: Shape)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "area@8",
+    "field": "lineEnd",
+    "lizard": 14,
+    "ours": 12,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "area@8",
+    "field": "lineCount",
+    "lizard": 6,
+    "ours": 5,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "area@8",
+    "field": "complexity",
+    "lizard": 5,
+    "ours": 4,
+    "reason": "Lizard counts the wildcard `case _` of a Scala match.",
+    "spec": "C18"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "area@8",
+    "field": "maxNestingDepth",
+    "lizard": 4,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "total@14",
+    "field": "longName",
+    "lizard": "total shapes : List [ Shape ]",
+    "ours": "total(shapes: List[Shape])",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "total@14",
+    "field": "lineEnd",
+    "lizard": 24,
+    "ours": 22,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "total@14",
+    "field": "lineCount",
+    "lizard": 10,
+    "ours": 9,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "total@14",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_hard.scala",
+    "function": "names@24",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses expression-bodied functions (`fun f() = ...`, `def f = ...`).",
+    "spec": "EXPR-BODY"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/scala_script.sc",
+    "function": "area@2",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/solidity_hard.sol",
+    "function": "deposit@17",
+    "field": "longName",
+    "lizard": "deposit",
+    "ours": "deposit()",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/solidity_hard.sol",
+    "function": "deposit@17",
+    "field": "maxNestingDepth",
+    "lizard": 1,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/solidity_hard.sol",
+    "function": "withdraw@22",
+    "field": "longName",
+    "lizard": "withdraw uint256 amount",
+    "ours": "withdraw(uint256 amount)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/solidity_hard.sol",
+    "function": "constructor@13",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard skips Solidity modifiers, constructors and receive/fallback functions.",
+    "spec": "SOL-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/solidity_hard.sol",
+    "function": "onlyOwner@8",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard skips Solidity modifiers, constructors and receive/fallback functions.",
+    "spec": "SOL-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/solidity_hard.sol",
+    "function": "receive@32",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard skips Solidity modifiers, constructors and receive/fallback functions.",
+    "spec": "SOL-MEMBERS"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "describe@18",
+    "field": "longName",
+    "lizard": "describe owner : String?",
+    "ours": "describe(owner: String?)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "describe@18",
+    "field": "complexity",
+    "lizard": 4,
+    "ours": 5,
+    "reason": "Lizard does not count Swift `??`.",
+    "spec": "C13"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "describe@18",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "process@31",
+    "field": "longName",
+    "lizard": "process _ values : [ Int ] , transform : Int -> Int",
+    "ours": "process(_ values: [Int], transform: (Int)->Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "withdraw@10",
+    "field": "longName",
+    "lizard": "withdraw _ amount : Int",
+    "ours": "withdraw(_ amount: Int)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "withdraw@10",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "set@4",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard reports `private(set)` as a function named `set` and misses `init`.",
+    "spec": "SWIFT-INIT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/swift_hard.swift",
+    "function": "init@6",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard reports `private(set)` as a function named `set` and misses `init`.",
+    "spec": "SWIFT-INIT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "(anonymous)@23",
+    "field": "parameters",
+    "lizard": 1,
+    "ours": 2,
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "add@17",
+    "field": "lineEnd",
+    "lizard": 22,
+    "ours": 20,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "add@17",
+    "field": "lineCount",
+    "lizard": 5,
+    "ours": 4,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "classify@56",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "find@26",
+    "field": "longName",
+    "lizard": "find",
+    "ours": "find(predicate: (item: T)=>boolean)",
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "find@26",
+    "field": "lineEnd",
+    "lizard": 26,
+    "ours": 33,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "find@26",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 8,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "find@26",
+    "field": "complexity",
+    "lizard": 1,
+    "ours": 4,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "find@26",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "find@26",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "map@22",
+    "field": "lineEnd",
+    "lizard": 26,
+    "ours": 24,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "map@22",
+    "field": "lineCount",
+    "lizard": 4,
+    "ours": 3,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "name",
+    "lizard": ">",
+    "ours": "load",
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "longName",
+    "lizard": ">",
+    "ours": "load(keys: K[], fetch: (key: K)=>Promise<V>)",
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "lineEnd",
+    "lizard": 40,
+    "ours": 52,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "lineCount",
+    "lizard": 1,
+    "ours": 13,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "complexity",
+    "lizard": 1,
+    "ours": 4,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 2,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@40",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 3,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "void@11",
+    "field": "name",
+    "lizard": "void",
+    "ours": "notify",
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "void@11",
+    "field": "longName",
+    "lizard": "void",
+    "ours": "notify(count)",
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "void@11",
+    "field": "parameters",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": ">@2",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "onError?@6",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "onEvent@5",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "get size@35",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard reads a TypeScript function type (`(x: T) => R`) as a function and loses the real one around it.",
+    "spec": "TS-FUNC-TYPE"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ts_hard.ts",
+    "function": "pick@54",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard misses arrow functions or their parameters.",
+    "spec": "ARROW"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ttcn_else.ttcn",
+    "function": "pick@2",
+    "field": "complexity",
+    "lizard": 3,
+    "ours": 2,
+    "reason": "Lizard counts `else`, which is not a decision.",
+    "spec": "C3"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ttcn_module.ttcn3",
+    "function": "for@15",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ttcn_module.ttcn3",
+    "function": "if@5",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ttcn_module.ttcn3",
+    "function": "if@7",
+    "field": "presence",
+    "lizard": true,
+    "ours": false,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ttcn_module.ttcn3",
+    "function": "f_clamp@4",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/ttcn_module.ttcn3",
+    "function": "f_sum@13",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard does not know this extension and reports no functions or parses it as C.",
+    "spec": "EXT"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "get area@13",
+    "field": "lineEnd",
+    "lizard": 20,
+    "ours": 18,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "get area@13",
+    "field": "lineCount",
+    "lizard": 7,
+    "ours": 6,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "grow@20",
+    "field": "lineEnd",
+    "lizard": 23,
+    "ours": 22,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "grow@20",
+    "field": "lineCount",
+    "lizard": 4,
+    "ours": 3,
+    "reason": "Lizard ends the function on the wrong line: in the next member or the enclosing block, or (Ruby `case ... then`) before its last `end`.",
+    "spec": "LINES"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "label@1",
+    "field": "longName",
+    "lizard": "label ( name? : string , fallback : string = \"none\" ) ( input : T )",
+    "ours": "label(name?: string, fallback: string=\"none\")",
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "label@1",
+    "field": "lineEnd",
+    "lizard": 10,
+    "ours": 4,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "label@1",
+    "field": "lineCount",
+    "lizard": 8,
+    "ours": 4,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "label@1",
+    "field": "complexity",
+    "lizard": 4,
+    "ours": 3,
+    "reason": "Lizard counts the `?` of an optional parameter or nullable type and splits `??` into two decisions.",
+    "spec": "C4,C5"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "label@1",
+    "field": "maxNestingDepth",
+    "lizard": 3,
+    "ours": 0,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/typescript_optional.ts",
+    "function": "identity@6",
+    "field": "presence",
+    "lizard": false,
+    "ours": true,
+    "reason": "Lizard loses a generic TypeScript function, names it `>` or merges it into the previous one.",
+    "spec": "TS-GENERIC"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_hard.zig",
+    "function": "first@23",
+    "field": "longName",
+    "lizard": "first items : [ ] const ? u32",
+    "ours": "first(items: []const?u32)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_hard.zig",
+    "function": "kind@15",
+    "field": "longName",
+    "lizard": "kind value : i32",
+    "ours": "kind(value: i32)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_hard.zig",
+    "function": "kind@15",
+    "field": "complexity",
+    "lizard": 4,
+    "ours": 3,
+    "reason": "Lizard counts the default `else =>` prong of a switch.",
+    "spec": "C10"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_hard.zig",
+    "function": "kind@15",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_hard.zig",
+    "function": "parse@3",
+    "field": "longName",
+    "lizard": "parse text : [ ] const u8",
+    "ours": "parse(text: []const u8)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_switch_else.zig",
+    "function": "classify@1",
+    "field": "longName",
+    "lizard": "classify x : u32",
+    "ours": "classify(x: u32)",
+    "reason": "Lizard drops the parentheses of the signature, repeats parameters or keeps the receiver in longName.",
+    "spec": "NAME-SIG"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_switch_else.zig",
+    "function": "classify@1",
+    "field": "complexity",
+    "lizard": 4,
+    "ours": 3,
+    "reason": "Lizard counts the default `else =>` prong of a switch.",
+    "spec": "C10"
+  },
+  {
+    "file": "tests/metrics_differential/corpus/zig_switch_else.zig",
+    "function": "classify@1",
+    "field": "maxNestingDepth",
+    "lizard": 0,
+    "ours": 1,
+    "reason": "Lizard nesting depth is a token heuristic (`&&`, `?`, `case` raise it, `;` lowers it); ours is block nesting.",
+    "spec": "ND"
+  }
+]

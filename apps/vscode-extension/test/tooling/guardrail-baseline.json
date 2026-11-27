@@ -1,0 +1,341 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "node test/tooling/measureGuardrails.cjs --write",
+  "definitions": {
+    "console.total": "CallExpression nodes whose callee is console.<log|warn|error|debug|info|trace> in src/**/*.ts (console calls inside template strings are text, not nodes, and are not counted)",
+    "console.byModule": "console.total grouped by the first directory under src/, or the first two for src/core/ and src/features/ (files directly in src/ count as \"(root)\")",
+    "catch.consoleOnly": "catch clauses with at least one statement where every statement is a console.* call",
+    "catch.emptyNoComment": "catch clauses with an empty block that also carries no comment explaining the swallow",
+    "any.total": "AnyKeyword type nodes in src/**/*.ts (\": any\", \"as any\", \"<any>\", \"any[]\", generic arguments)",
+    "any.byModule": "any.total grouped like console.byModule",
+    "suppressions.total": "occurrences of @ts-ignore, @ts-expect-error, @ts-nocheck or eslint-disable in src/**/*.ts",
+    "size.filesOver500": "src files with more than 500 physical lines",
+    "functions.over80Lines": "function-like nodes with a body spanning more than 80 physical lines",
+    "complexity.overN": "function-like nodes whose CCN exceeds N, where CCN = 1 + if + for/for-in/for-of + while + do + catch + ?: + case + && + || + ??, nested functions measured separately",
+    "reachability.unreachable": "src modules with no import, export-from, import(), require() or import-type path from src/extension.ts (relative specifiers only)",
+    "templates.consoleLog": "console.log( occurrences in templates/**/*.js, excluding the xr-chart-debug runtime whose console output is its tested contract",
+    "eslint.maxWarnings": "the --max-warnings value of the package.json \"lint\" script, or null when the script has none",
+    "commands.internalByKind": "registered-but-uncontributed commands in test/commands/internalCommandIds.cjs, per kind; \"pending-removal\" is the unreachable debt"
+  },
+  "ratcheted": {
+    "console.total": 2,
+    "console.byModule": {
+      "platform": 2
+    },
+    "catch.consoleOnly": 0,
+    "catch.emptyNoComment": 0,
+    "any.total": 83,
+    "any.byModule": {
+      "app": 8,
+      "core/analysis": 13,
+      "core/charts": 6,
+      "core/python-env": 5,
+      "core/server": 10,
+      "features/active-servers": 1,
+      "features/analysis": 10,
+      "features/examples": 3,
+      "features/learn-more": 1,
+      "features/servers": 1,
+      "features/visualization-settings": 3,
+      "features/visualize-data": 10,
+      "platform": 12
+    },
+    "suppressions.total": 0,
+    "size.filesOver500": [
+      "src/core/analysis/python/executePython.ts",
+      "src/core/analysis/refresh/analysisRefreshCoordinator.ts",
+      "src/core/export/exportManifest.ts",
+      "src/core/history/gitRepositoryService.ts",
+      "src/core/python-env/venvManager.ts",
+      "src/core/remote-access/remoteAccessManager.ts",
+      "src/core/remote-access/remoteSessionAuthority.ts",
+      "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
+      "src/core/server/collaboration/collaborationRoomServer.ts",
+      "src/core/server/httpServer.ts",
+      "src/features/active-servers/views/activeServerItems.ts",
+      "src/features/active-servers/views/handleServerActions.ts",
+      "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
+    ],
+    "functions.over80Lines": 32,
+    "complexity.over10": 49,
+    "complexity.over15": 8,
+    "complexity.over20": 0,
+    "complexity.over30": 0,
+    "reachability.unreachable": [],
+    "templates.consoleLog": 31,
+    "eslint.maxWarnings": 151,
+    "commands.internalByKind": {
+      "legacy-alias": 2,
+      "programmatic": 2,
+      "tree-item": 32
+    }
+  },
+  "informational": {
+    "src.files": 309,
+    "src.lines": 51857,
+    "src.functions": 3557,
+    "src.unreachableLines": 0,
+    "console.byFile": {
+      "src/platform/logging/sink.ts": 2
+    },
+    "console.topFiles": [
+      {
+        "file": "src/platform/logging/sink.ts",
+        "count": 2
+      }
+    ],
+    "any.byFile": {
+      "src/app/commands/registerAllCommands.ts": 1,
+      "src/app/sidebar/ModularTreeDataProvider.ts": 5,
+      "src/app/sidebar/commonCommands.ts": 2,
+      "src/core/analysis/parsers/directoryXRParser.ts": 2,
+      "src/core/analysis/parsers/fileXRParser.ts": 3,
+      "src/core/analysis/processors/analysisBootstrap.ts": 2,
+      "src/core/analysis/python/executePython.ts": 2,
+      "src/core/analysis/session-servers/serverLaunchOrchestrator.ts": 2,
+      "src/core/analysis/session/analysisSession.ts": 1,
+      "src/core/analysis/utils/themeUtils.ts": 1,
+      "src/core/charts/processing/templateProcessor.ts": 2,
+      "src/core/charts/settings/settingsAccessors.ts": 1,
+      "src/core/charts/settings/settingsStorage.ts": 3,
+      "src/core/python-env/venvManager.ts": 5,
+      "src/core/server/http/httpRespond.ts": 1,
+      "src/core/server/httpsTlsOptions.ts": 1,
+      "src/core/server/launchServerWithFile.ts": 1,
+      "src/core/server/multiServerLauncher.ts": 1,
+      "src/core/server/serverFactory.ts": 1,
+      "src/core/server/serverSettingsManager.ts": 4,
+      "src/core/server/sse/SSEManager.ts": 1,
+      "src/features/active-servers/views/activeServerItems.ts": 1,
+      "src/features/analysis/commands/analysisCommandRegistrations.ts": 5,
+      "src/features/analysis/commands/dom/uriPathConverter.ts": 1,
+      "src/features/analysis/sections/settings/analysis-file-mode/analysisFileModeCommands.ts": 1,
+      "src/features/analysis/sections/settings/files-by-language-sorting/filesByLanguageSortingUtils.ts": 1,
+      "src/features/analysis/sections/settings/profile-configuration/profileConfiguration.ts": 1,
+      "src/features/analysis/views/AnalysisSectionProvider.ts": 1,
+      "src/features/examples/views/handleBabiaExampleClicks.ts": 3,
+      "src/features/learn-more/views/handleLearnMoreClicks.ts": 1,
+      "src/features/servers/views/configurationItems.ts": 1,
+      "src/features/visualization-settings/views/VisualizationSettingsSectionProvider.ts": 2,
+      "src/features/visualization-settings/views/visualizationSettingsItems.ts": 1,
+      "src/features/visualize-data/services/jsonFieldAnalyzer.ts": 5,
+      "src/features/visualize-data/services/visualizationLauncher.ts": 1,
+      "src/features/visualize-data/services/visualizationRestorer.ts": 1,
+      "src/features/visualize-data/views/VisualizeDataSectionProvider.ts": 1,
+      "src/features/visualize-data/views/visualizeDataSectionItems.ts": 2,
+      "src/platform/commands/commandBuilder.ts": 5,
+      "src/platform/commands/commandRegistry.ts": 2,
+      "src/platform/tree/baseInterfaces.ts": 5
+    },
+    "any.topFiles": [
+      {
+        "file": "src/app/sidebar/ModularTreeDataProvider.ts",
+        "count": 5
+      },
+      {
+        "file": "src/core/python-env/venvManager.ts",
+        "count": 5
+      },
+      {
+        "file": "src/features/analysis/commands/analysisCommandRegistrations.ts",
+        "count": 5
+      },
+      {
+        "file": "src/features/visualize-data/services/jsonFieldAnalyzer.ts",
+        "count": 5
+      },
+      {
+        "file": "src/platform/commands/commandBuilder.ts",
+        "count": 5
+      },
+      {
+        "file": "src/platform/tree/baseInterfaces.ts",
+        "count": 5
+      },
+      {
+        "file": "src/core/server/serverSettingsManager.ts",
+        "count": 4
+      },
+      {
+        "file": "src/core/analysis/parsers/fileXRParser.ts",
+        "count": 3
+      },
+      {
+        "file": "src/core/charts/settings/settingsStorage.ts",
+        "count": 3
+      },
+      {
+        "file": "src/features/examples/views/handleBabiaExampleClicks.ts",
+        "count": 3
+      },
+      {
+        "file": "src/app/sidebar/commonCommands.ts",
+        "count": 2
+      },
+      {
+        "file": "src/core/analysis/parsers/directoryXRParser.ts",
+        "count": 2
+      },
+      {
+        "file": "src/core/analysis/processors/analysisBootstrap.ts",
+        "count": 2
+      },
+      {
+        "file": "src/core/analysis/python/executePython.ts",
+        "count": 2
+      },
+      {
+        "file": "src/core/analysis/session-servers/serverLaunchOrchestrator.ts",
+        "count": 2
+      }
+    ],
+    "complexity.worst10": [
+      {
+        "ccn": 20,
+        "lines": 73,
+        "function": "sampleTimeline",
+        "file": "src/core/history/gitTimelineSampler.ts"
+      },
+      {
+        "ccn": 20,
+        "lines": 50,
+        "function": "handleCollaborationMessage",
+        "file": "src/core/server/analysis/analysisMessageRouter.ts"
+      },
+      {
+        "ccn": 19,
+        "lines": 50,
+        "function": "handleMessage",
+        "file": "src/core/server/collaboration/collaborationRoomServer.ts"
+      },
+      {
+        "ccn": 18,
+        "lines": 47,
+        "function": "closeAnalysis",
+        "file": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 51,
+        "function": "recalculateLivePanelSummary",
+        "file": "src/core/analysis/watchers/directoryReanalysisData.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 98,
+        "function": "startBroadcast",
+        "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts"
+      },
+      {
+        "ccn": 17,
+        "lines": 55,
+        "function": "updateFromLegacyConfig",
+        "file": "src/core/server/serverSettingsManager.ts"
+      },
+      {
+        "ccn": 16,
+        "lines": 31,
+        "function": "validateConfig",
+        "file": "src/core/server/registry/serverRegistrar.ts"
+      },
+      {
+        "ccn": 15,
+        "lines": 79,
+        "function": "handleApiRequest",
+        "file": "src/core/server/httpServer.ts"
+      },
+      {
+        "ccn": 15,
+        "lines": 157,
+        "function": "launchServer",
+        "file": "src/core/server/multiServerLauncher.ts"
+      }
+    ],
+    "size.largest10": [
+      {
+        "file": "src/core/python-env/venvManager.ts",
+        "lines": 849
+      },
+      {
+        "file": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts",
+        "lines": 803
+      },
+      {
+        "file": "src/core/export/exportManifest.ts",
+        "lines": 746
+      },
+      {
+        "file": "src/core/history/gitRepositoryService.ts",
+        "lines": 679
+      },
+      {
+        "file": "src/core/remote-access/remoteSessionAuthority.ts",
+        "lines": 632
+      },
+      {
+        "file": "src/features/active-servers/views/handleServerActions.ts",
+        "lines": 628
+      },
+      {
+        "file": "src/core/server/httpServer.ts",
+        "lines": 605
+      },
+      {
+        "file": "src/core/analysis/python/executePython.ts",
+        "lines": 588
+      },
+      {
+        "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 581
+      },
+      {
+        "file": "src/core/remote-access/remoteAccessManager.ts",
+        "lines": 569
+      }
+    ]
+  },
+  "waivers": [
+    {
+      "metric": "eslint.maxWarnings",
+      "from": 0,
+      "to": 201,
+      "reason": "W3-08: no-explicit-any lands as warn; the lint budget starts at its measured count (201 = any.total)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "eslint.maxWarnings",
+      "from": 201,
+      "to": 311,
+      "reason": "W3-09: complexity 15, max-depth 4, max-params 5, max-lines-per-function 80, max-lines 600 land as warn; budget +110 (37+5+28+35+5)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "eslint.maxWarnings",
+      "from": 311,
+      "to": 608,
+      "reason": "W3-10: type-aware no-floating-promises (296) and no-misused-promises (1) land as warn; budget 311 -> 608",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "console.byModule.core",
+      "from": 1,
+      "to": 2,
+      "reason": "L01: the log sink's console fallback (console.warn/console.error while no output channel is attached) is the one allowlisted console use in src (re-recorded in the merge of origin/v1.2.1 at e16b95e8)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 0,
+      "to": 2,
+      "reason": "#42: commandRegistry.ts moved from commands/shared/ to platform/commands/; its two any move with it (commands 8 -> 6, total unchanged)",
+      "date": "2026-11-25"
+    },
+    {
+      "metric": "any.byModule.platform",
+      "from": 2,
+      "to": 7,
+      "reason": "#42: views/common/baseInterfaces.ts moved to platform/tree/ (its src-layout.md destination); its any moves with it (views and platform shift by the same count, total unchanged)",
+      "date": "2026-11-25"
+    }
+  ]
+}

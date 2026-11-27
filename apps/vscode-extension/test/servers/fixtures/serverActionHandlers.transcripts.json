@@ -1,0 +1,2393 @@
+{
+  "unknown server id, every public action": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server missing-id",
+      "error: ACTIVE_SERVER: Server missing-id not found",
+      "log: ACTIVE_SERVER: Opening server missing-id in browser",
+      "error: ACTIVE_SERVER: Server missing-id not found",
+      "log: ACTIVE_SERVER: Opening server missing-id in lateral panel",
+      "error: ACTIVE_SERVER: Server missing-id not found",
+      "log: ACTIVE_SERVER: Copying URL for server missing-id",
+      "error: ACTIVE_SERVER: Server missing-id not found",
+      "log: ACTIVE_SERVER: Stopping server missing-id",
+      "error: ACTIVE_SERVER: Server missing-id not found",
+      "log: ACTIVE_SERVER: Showing details for server missing-id",
+      "error: ACTIVE_SERVER: Server missing-id not found"
+    ],
+    "ui": [
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "This participant is no longer connected.",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "This participant is no longer connected.",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "This server does not support remote access.",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Cross-network connection",
+        "options": {
+          "modal": true,
+          "detail": "Status   Not shared"
+        },
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Server not found: missing-id",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "missing-id"
+      ],
+      [
+        "openInBrowser",
+        "missing-id"
+      ],
+      [
+        "openInPanel",
+        "missing-id"
+      ],
+      [
+        "copyUrl",
+        "missing-id"
+      ],
+      [
+        "copyLanUrl",
+        "missing-id"
+      ],
+      [
+        "startRemoteAccess",
+        "missing-id"
+      ],
+      [
+        "threw",
+        "<Error: The remote access manager is not initialized.>"
+      ],
+      [
+        "copyRemoteInvitation",
+        "missing-id"
+      ],
+      [
+        "threw",
+        "<Error: The remote access manager is not initialized.>"
+      ],
+      [
+        "stopRemoteAccess",
+        "missing-id"
+      ],
+      [
+        "threw",
+        "<Error: The remote access manager is not initialized.>"
+      ],
+      [
+        "showParticipantDetails",
+        "missing-id",
+        "peer-x"
+      ],
+      [
+        "removeParticipant",
+        "missing-id",
+        "peer-x"
+      ],
+      [
+        "regeneratePairingCode",
+        "missing-id"
+      ],
+      [
+        "showRemoteStatus",
+        "missing-id"
+      ],
+      [
+        "stopServer",
+        "missing-id"
+      ],
+      [
+        "showServerDetails",
+        "missing-id"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick on an HTTP server, remote setting off: Server Info": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Executing action 'showDetails' on server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Showing details for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Displaying detailed information for server server-3000-1768474677000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Open in Panel",
+            "description": "Open server in VS Code lateral panel",
+            "action": "openInPanel"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for http://localhost:3000",
+          "title": "Server Actions - localhost:3000"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Server Information — Scene A",
+        "options": {
+          "modal": true,
+          "detail": "Status     Running · up 1h 2m\nAddress    http://localhost:3000\nNetwork    http://192.0.2.10:3000\nPort       3000\nSecurity   HTTP\nMode       Browser\n\nServing    index.html\nFolder     …/demo/scene\nType       http\nDetails    Classic analysis of demo"
+        },
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick on an HTTP server: Copy URL then Network URL": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Executing action 'copyUrl' on server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Copying URL for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Copied http://192.0.2.10:3000 to clipboard"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Open in Panel",
+            "description": "Open server in VS Code lateral panel",
+            "action": "openInPanel"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for http://localhost:3000",
+          "title": "Server Actions - localhost:3000"
+        }
+      },
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Local URL",
+            "description": "http://localhost:3000",
+            "detail": "For use on this computer only"
+          },
+          {
+            "label": "Network URL",
+            "description": "http://192.0.2.10:3000",
+            "detail": "For access from other devices on the network"
+          }
+        ],
+        "options": {
+          "placeHolder": "Choose URL type to copy"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Copied Network URL to clipboard",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "http://192.0.2.10:3000",
+    "unusedAnswers": 0
+  },
+  "quick pick on an HTTP server: Open in Panel": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Executing action 'openInPanel' on server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Opening server server-3000-1768474677000 in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-1768474677000 (http://localhost:3000) in lateral panel",
+      "log: ACTIVE_SERVER: Successfully opened http://localhost:3000 in lateral panel"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Open in Panel",
+            "description": "Open server in VS Code lateral panel",
+            "action": "openInPanel"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for http://localhost:3000",
+          "title": "Server Actions - localhost:3000"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in VS Code panel",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3000-1768474677000"
+      ],
+      [
+        "openPreview",
+        "http://localhost:3000",
+        "<fixture>/projects/demo/scene/index.html",
+        "lateralPanel",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick dismissed": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3000-1768474677000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Open in Panel",
+            "description": "Open server in VS Code lateral panel",
+            "action": "openInPanel"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for http://localhost:3000",
+          "title": "Server Actions - localhost:3000"
+        }
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick on a shared HTTPS server: Remote status": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Executing action 'remoteStatus' on server server-3443-1768478358000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Copy remote invitation",
+            "description": "Copy the protected temporary link",
+            "action": "copyRemoteInvitation"
+          },
+          {
+            "label": "Remote status",
+            "description": "View pending requests and tunnel status",
+            "action": "remoteStatus"
+          },
+          {
+            "label": "Stop remote connection",
+            "description": "Close the tunnel and revoke the remote sessions",
+            "action": "stopRemoteAccess"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for https://localhost:3443",
+          "title": "Server Actions - localhost:3443"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Cross-network connection — localhost:3443",
+        "options": {
+          "modal": true,
+          "detail": "Status       Shared\nPending      2 requests waiting\n\nInvitation   https://example.trycloudflare.com/invite#t\nPublic URL   https://example.trycloudflare.com"
+        },
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3443-1768478358000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick on a shared HTTPS server: Copy remote invitation, then Stop remote connection": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Executing action 'copyRemoteInvitation' on server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Showing actions for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Executing action 'stopRemoteAccess' on server server-3443-1768478358000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Copy remote invitation",
+            "description": "Copy the protected temporary link",
+            "action": "copyRemoteInvitation"
+          },
+          {
+            "label": "Remote status",
+            "description": "View pending requests and tunnel status",
+            "action": "remoteStatus"
+          },
+          {
+            "label": "Stop remote connection",
+            "description": "Close the tunnel and revoke the remote sessions",
+            "action": "stopRemoteAccess"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for https://localhost:3443",
+          "title": "Server Actions - localhost:3443"
+        }
+      },
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Copy remote invitation",
+            "description": "Copy the protected temporary link",
+            "action": "copyRemoteInvitation"
+          },
+          {
+            "label": "Remote status",
+            "description": "View pending requests and tunnel status",
+            "action": "remoteStatus"
+          },
+          {
+            "label": "Stop remote connection",
+            "description": "Close the tunnel and revoke the remote sessions",
+            "action": "stopRemoteAccess"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for https://localhost:3443",
+          "title": "Server Actions - localhost:3443"
+        }
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3443-1768478358000"
+      ],
+      [
+        "copyInvitation",
+        "server-3443-1768478358000"
+      ],
+      [
+        "showServerActions",
+        "server-3443-1768478358000"
+      ],
+      [
+        "stopSharing",
+        "server-3443-1768478358000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick on a tunnel in error: View remote error": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Executing action 'remoteStatus' on server server-3000-1768474677000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Start remote connection",
+            "description": "Publish temporarily through a Cloudflare Quick Tunnel",
+            "action": "startRemoteAccess"
+          },
+          {
+            "label": "View remote error",
+            "description": "cloudflared exited",
+            "action": "remoteStatus"
+          },
+          {
+            "label": "Open in Panel",
+            "description": "Open server in VS Code lateral panel",
+            "action": "openInPanel"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for http://localhost:3000",
+          "title": "Server Actions - localhost:3000"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Cross-network connection — Scene A",
+        "options": {
+          "modal": true,
+          "detail": "Status   Error · cloudflared exited\n\nError    cloudflared exited"
+        },
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "quick pick with the remote setting on: Start remote connection": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Executing action 'startRemoteAccess' on server server-3000-1768474677000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Start remote connection",
+            "description": "Publish temporarily through a Cloudflare Quick Tunnel",
+            "action": "startRemoteAccess"
+          },
+          {
+            "label": "Open in Panel",
+            "description": "Open server in VS Code lateral panel",
+            "action": "openInPanel"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for http://localhost:3000",
+          "title": "Server Actions - localhost:3000"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Server shared through Cloudflare. The invitation link has been copied to the clipboard.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3000-1768474677000"
+      ],
+      [
+        "startSharing",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "https://example.trycloudflare.com/invite#t",
+    "unusedAnswers": 0
+  },
+  "quick pick on a starting tunnel lists the shared entries": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing actions for server server-3444-1768478395000",
+      "log: ACTIVE_SERVER: Executing action 'showDetails' on server server-3444-1768478395000",
+      "log: ACTIVE_SERVER: Showing details for server server-3444-1768478395000",
+      "log: ACTIVE_SERVER: Displaying detailed information for server server-3444-1768478395000"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Open in Browser",
+            "description": "Open server in external browser",
+            "action": "openInBrowser"
+          },
+          {
+            "label": "Copy remote invitation",
+            "description": "Copy the protected temporary link",
+            "action": "copyRemoteInvitation"
+          },
+          {
+            "label": "Remote status",
+            "description": "View pending requests and tunnel status",
+            "action": "remoteStatus"
+          },
+          {
+            "label": "Stop remote connection",
+            "description": "Close the tunnel and revoke the remote sessions",
+            "action": "stopRemoteAccess"
+          },
+          {
+            "label": "Copy URL",
+            "description": "Copy server URL to clipboard",
+            "action": "copyUrl"
+          },
+          {
+            "label": "Server Info",
+            "description": "Show detailed server information",
+            "action": "showDetails"
+          },
+          {
+            "label": "Stop Server",
+            "description": "Stop this server",
+            "action": "stopServer"
+          }
+        ],
+        "options": {
+          "placeHolder": "Actions for https://localhost:3444",
+          "title": "Server Actions - localhost:3444"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Server Information — localhost:3444",
+        "options": {
+          "modal": true,
+          "detail": "Status          Running · up 5s\nAddress         https://localhost:3444\nNetwork         https://192.0.2.10:3444\nPort            3444\nSecurity        HTTPS (custom certificate)\nMode            Panel\n\nCross-network   Starting..."
+        },
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerActions",
+        "server-3444-1768478395000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "open in browser and in the panel, HTTP": {
+    "console": [
+      "log: ACTIVE_SERVER: Opening server server-3000-1768474677000 in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser",
+      "log: ACTIVE_SERVER: Opening server server-3000-1768474677000 in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-1768474677000 (http://localhost:3000) in lateral panel",
+      "log: ACTIVE_SERVER: Successfully opened http://localhost:3000 in lateral panel"
+    ],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in VS Code panel",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "openInBrowser",
+        "server-3000-1768474677000"
+      ],
+      [
+        "openPreview",
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/projects/demo/scene/index.html",
+        "browser"
+      ],
+      [
+        "openInPanel",
+        "server-3000-1768474677000"
+      ],
+      [
+        "openPreview",
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/projects/demo/scene/index.html",
+        "lateralPanel",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "open an HTTPS server in the panel: redirected, then cancelled": {
+    "console": [
+      "log: ACTIVE_SERVER: Opening server server-3443-1768478358000 in lateral panel",
+      "log: ACTIVE_SERVER: HTTPS server server-3443-1768478358000 cannot be opened in lateral panel - cert mode: https-default",
+      "log: ACTIVE_SERVER: Redirecting server server-3443-1768478358000 to browser due to HTTPS incompatibility",
+      "log: ACTIVE_SERVER: Opening server server-3443-1768478358000 in browser",
+      "log: ACTIVE_SERVER: Opened https://localhost:3443 in browser",
+      "log: ACTIVE_SERVER: Opening server server-3443-1768478358000 in lateral panel",
+      "log: ACTIVE_SERVER: HTTPS server server-3443-1768478358000 cannot be opened in lateral panel - cert mode: https-default",
+      "log: ACTIVE_SERVER: User cancelled opening HTTPS server server-3443-1768478358000 in panel"
+    ],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "HTTPS content cannot be displayed in VS Code panels due to security restrictions. The content will not load properly.",
+        "items": [
+          "Open in Browser Instead",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Opened https://localhost:3443 in browser",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "HTTPS content cannot be displayed in VS Code panels due to security restrictions. The content will not load properly.",
+        "items": [
+          "Open in Browser Instead",
+          "Cancel"
+        ]
+      }
+    ],
+    "calls": [
+      [
+        "openInPanel",
+        "server-3443-1768478358000"
+      ],
+      [
+        "openPreview",
+        "https://localhost:3443",
+        "",
+        "browser"
+      ],
+      [
+        "openInPanel",
+        "server-3443-1768478358000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "the preview fails in both modes": {
+    "console": [
+      "log: ACTIVE_SERVER: Opening server server-3000-1768474677000 in browser",
+      "error: ACTIVE_SERVER: Error opening http://localhost:3000 in browser: [\"<Error: no browser available>\"]",
+      "log: ACTIVE_SERVER: Opening server server-3000-1768474677000 in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-1768474677000 (http://localhost:3000) in lateral panel",
+      "error: ACTIVE_SERVER: Error opening http://localhost:3000 in panel: [\"<Error: no browser available>\"]"
+    ],
+    "ui": [
+      {
+        "kind": "error",
+        "message": "Failed to open in browser: no browser available",
+        "items": []
+      },
+      {
+        "kind": "error",
+        "message": "Failed to open in panel: no browser available",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "openInBrowser",
+        "server-3000-1768474677000"
+      ],
+      [
+        "openPreview",
+        "http://localhost:3000",
+        "<fixture>/projects/demo/scene/index.html",
+        "browser"
+      ],
+      [
+        "openInPanel",
+        "server-3000-1768474677000"
+      ],
+      [
+        "openPreview",
+        "http://localhost:3000",
+        "<fixture>/projects/demo/scene/index.html",
+        "lateralPanel",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "copy URL: Local, cancelled, and on localhost": {
+    "console": [
+      "log: ACTIVE_SERVER: Copying URL for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Copied https://localhost:3443 to clipboard",
+      "log: ACTIVE_SERVER: Copying URL for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Copying URL for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Copied https://localhost:3443 to clipboard"
+    ],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Local URL",
+            "description": "https://localhost:3443",
+            "detail": "For use on this computer only"
+          },
+          {
+            "label": "Network URL",
+            "description": "https://192.0.2.10:3443",
+            "detail": "For access from other devices on the network"
+          }
+        ],
+        "options": {
+          "placeHolder": "Choose URL type to copy"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Copied Local URL to clipboard",
+        "items": []
+      },
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Local URL",
+            "description": "https://localhost:3443",
+            "detail": "For use on this computer only"
+          },
+          {
+            "label": "Network URL",
+            "description": "https://192.0.2.10:3443",
+            "detail": "For access from other devices on the network"
+          }
+        ],
+        "options": {
+          "placeHolder": "Choose URL type to copy"
+        }
+      },
+      {
+        "kind": "info",
+        "message": "Copied https://localhost:3443 to clipboard",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "copyUrl",
+        "server-3443-1768478358000"
+      ],
+      [
+        "copyUrl",
+        "server-3443-1768478358000"
+      ],
+      [
+        "copyUrl",
+        "server-3443-1768478358000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "https://localhost:3443",
+    "unusedAnswers": 0
+  },
+  "copy the LAN URL": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Network address copied: http://192.0.2.10:3000",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Network address copied: https://192.0.2.10:3443",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "copyLanUrl",
+        "server-3000-1768474677000"
+      ],
+      [
+        "copyLanUrl",
+        "server-3443-1768478358000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "https://192.0.2.10:3443",
+    "unusedAnswers": 0
+  },
+  "remote access through the manager": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Server shared through Cloudflare. The invitation link has been copied to the clipboard.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "startRemoteAccess",
+        "server-3000-1768474677000"
+      ],
+      [
+        "startSharing",
+        "server-3000-1768474677000"
+      ],
+      [
+        "copyRemoteInvitation",
+        "server-3000-1768474677000"
+      ],
+      [
+        "copyInvitation",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopRemoteAccess",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopSharing",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "https://example.trycloudflare.com/invite#t",
+    "unusedAnswers": 0
+  },
+  "remote access started but not shared: no clipboard": {
+    "console": [],
+    "ui": [],
+    "calls": [
+      [
+        "startRemoteAccess",
+        "server-3000-1768474677000"
+      ],
+      [
+        "startSharing",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "participant details: a remote guest removed, the session revoked": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Participant — Grace",
+        "options": {
+          "modal": true,
+          "detail": "Name         Grace\nRole         Guest\nAvatar       no-such-avatar\n\nClient       Browser\nConnection   Remote (cross-network)\nIP address   203.0.113.7\nConnected    <clock> · 2m 5s ago"
+        },
+        "items": [
+          "Remove from Session"
+        ]
+      },
+      {
+        "kind": "warning",
+        "message": "Remove Grace from the session?",
+        "options": {
+          "modal": true,
+          "detail": "Their remote session will be revoked: they will need a new invitation and pairing code to join again.\n\nThey will see a message explaining they were removed."
+        },
+        "items": [
+          "Remove"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Grace was removed. Their remote session was revoked.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showParticipantDetails",
+        "server-3000-1768474677000",
+        "peer-remote"
+      ],
+      [
+        "removeParticipant",
+        "peer-remote"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "participant details: the host (Close only) and a LAN guest with an invalid date": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Participant — Ada (host)",
+        "options": {
+          "modal": true,
+          "detail": "Name         Ada (host)\nRole         Host\nAvatar       codexr-blue\n\nClient       Code-XR\nConnection   Local network\nIP address   127.0.0.1\nConnected    <clock> · 2m 5s ago"
+        },
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Participant — Linus",
+        "options": {
+          "modal": true,
+          "detail": "Name         Linus\nRole         Guest\nAvatar       codexr-blue\n\nClient       Browser\nConnection   Local network\nIP address   192.0.2.44\nConnected    not a date"
+        },
+        "items": [
+          "Remove from Session"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "This participant is no longer connected.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showParticipantDetails",
+        "server-3000-1768474677000",
+        "peer-host"
+      ],
+      [
+        "showParticipantDetails",
+        "server-3000-1768474677000",
+        "peer-lan"
+      ],
+      [
+        "showParticipantDetails",
+        "server-3000-1768474677000",
+        "peer-gone"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "remove participant: host refused, LAN guest declined then removed, unknown peer": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "The host of the session cannot be removed.",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Remove Linus from the session?",
+        "options": {
+          "modal": true,
+          "detail": "They are on the local network, so they can open the server address again unless you stop the server.\n\nThey will see a message explaining they were removed."
+        },
+        "items": [
+          "Remove"
+        ]
+      },
+      {
+        "kind": "warning",
+        "message": "Remove Linus from the session?",
+        "options": {
+          "modal": true,
+          "detail": "They are on the local network, so they can open the server address again unless you stop the server.\n\nThey will see a message explaining they were removed."
+        },
+        "items": [
+          "Remove"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Linus was removed from the session.",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "This participant is no longer connected.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "removeParticipant",
+        "server-3000-1768474677000",
+        "peer-host"
+      ],
+      [
+        "removeParticipant",
+        "server-3000-1768474677000",
+        "peer-lan"
+      ],
+      [
+        "removeParticipant",
+        "server-3000-1768474677000",
+        "peer-lan"
+      ],
+      [
+        "removeParticipant",
+        "peer-lan"
+      ],
+      [
+        "removeParticipant",
+        "server-3000-1768474677000",
+        "peer-gone"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "remove participant: runtime cannot remove, guest already left": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "Remove Grace from the session?",
+        "options": {
+          "modal": true,
+          "detail": "Their remote session will be revoked: they will need a new invitation and pairing code to join again.\n\nThey will see a message explaining they were removed."
+        },
+        "items": [
+          "Remove"
+        ]
+      },
+      {
+        "kind": "warning",
+        "message": "This server does not support removing participants.",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Remove Grace from the session?",
+        "options": {
+          "modal": true,
+          "detail": "Their remote session will be revoked: they will need a new invitation and pairing code to join again.\n\nThey will see a message explaining they were removed."
+        },
+        "items": [
+          "Remove"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Grace had already left the session.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "removeParticipant",
+        "server-3000-1768474677000",
+        "peer-remote"
+      ],
+      [
+        "removeParticipant",
+        "server-3443-1768478358000",
+        "peer-remote"
+      ],
+      [
+        "removeParticipant",
+        "peer-remote"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "regenerate pairing code: no authority, nobody waiting, one waiting": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "This server does not support remote access.",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Nobody is waiting to connect right now.",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "regeneratePairingCode",
+        "server-3000-1768474677000"
+      ],
+      [
+        "regeneratePairingCode",
+        "server-3443-1768478358000"
+      ],
+      [
+        "regeneratePairingCode",
+        "server-3444-1768478395000"
+      ],
+      [
+        "regeneratePairingCode",
+        "req-1"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "regenerate pairing code: two waiting, the second picked, then dismissed": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Alice",
+            "description": "203.0.113.9",
+            "detail": "Waiting for the code",
+            "requestId": "req-1"
+          },
+          {
+            "label": "Bob",
+            "description": "203.0.113.10",
+            "detail": "Their code was invalidated by a failed attempt",
+            "requestId": "req-2"
+          }
+        ],
+        "options": {
+          "title": "Generate new pairing code",
+          "placeHolder": "Who is trying to connect?"
+        }
+      },
+      {
+        "kind": "quickPick",
+        "items": [
+          {
+            "label": "Alice",
+            "description": "203.0.113.9",
+            "detail": "Waiting for the code",
+            "requestId": "req-1"
+          },
+          {
+            "label": "Bob",
+            "description": "203.0.113.10",
+            "detail": "Their code was invalidated by a failed attempt",
+            "requestId": "req-2"
+          }
+        ],
+        "options": {
+          "title": "Generate new pairing code",
+          "placeHolder": "Who is trying to connect?"
+        }
+      }
+    ],
+    "calls": [
+      [
+        "regeneratePairingCode",
+        "server-3000-1768474677000"
+      ],
+      [
+        "regeneratePairingCode",
+        "req-2"
+      ],
+      [
+        "regeneratePairingCode",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "remote status: not shared, shared, error, starting": {
+    "console": [],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Cross-network connection — Scene A",
+        "options": {
+          "modal": true,
+          "detail": "Status   Not shared"
+        },
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Cross-network connection — localhost:3443",
+        "options": {
+          "modal": true,
+          "detail": "Status       Shared\nPending      2 requests waiting\n\nInvitation   https://example.trycloudflare.com/invite#t\nPublic URL   https://example.trycloudflare.com"
+        },
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Cross-network connection — localhost:3444",
+        "options": {
+          "modal": true,
+          "detail": "Status   Error · tunnel failed"
+        },
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Cross-network connection — Scene A",
+        "options": {
+          "modal": true,
+          "detail": "Status    Shared\nPending   1 request waiting"
+        },
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showRemoteStatus",
+        "server-3000-1768474677000"
+      ],
+      [
+        "showRemoteStatus",
+        "server-3443-1768478358000"
+      ],
+      [
+        "showRemoteStatus",
+        "server-3444-1768478395000"
+      ],
+      [
+        "showRemoteStatus",
+        "server-3001-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "server details: full, minimal, shared with one request": {
+    "console": [
+      "log: ACTIVE_SERVER: Showing details for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Displaying detailed information for server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Showing details for server server-3444-1768478395000",
+      "log: ACTIVE_SERVER: Displaying detailed information for server server-3444-1768478395000",
+      "log: ACTIVE_SERVER: Showing details for server server-3443-1768478358000",
+      "log: ACTIVE_SERVER: Displaying detailed information for server server-3443-1768478358000"
+    ],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "Server Information — Scene A",
+        "options": {
+          "modal": true,
+          "detail": "Status     Running · up 1h 2m\nAddress    http://localhost:3000\nNetwork    http://192.0.2.10:3000\nPort       3000\nSecurity   HTTP\nMode       Browser\n\nServing    index.html\nFolder     …/demo/scene\nType       http\nDetails    Classic analysis of demo"
+        },
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Server Information — localhost:3444",
+        "options": {
+          "modal": true,
+          "detail": "Status     Running · up 5s\nAddress    https://localhost:3444\nNetwork    https://192.0.2.10:3444\nPort       3444\nSecurity   HTTPS (custom certificate)\nMode       Panel"
+        },
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Server Information — localhost:3443",
+        "options": {
+          "modal": true,
+          "detail": "Status          Running · up 42s\nAddress         https://localhost:3443\nNetwork         https://192.0.2.10:3443\nPort            3443\nSecurity        HTTPS (self-signed)\nMode            Browser\n\nFolder          short/root\n\nCross-network   Shared · 1 request waiting\nInvitation      https://example.trycloudflare.com/invite#t"
+        },
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "showServerDetails",
+        "server-3000-1768474677000"
+      ],
+      [
+        "showServerDetails",
+        "server-3444-1768478395000"
+      ],
+      [
+        "showServerDetails",
+        "server-3443-1768478358000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "stop server: stopped, refused by control, control throws, cancelled": {
+    "console": [
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000 (http://localhost:3000)",
+      "log: ACTIVE_SERVER: Successfully stopped server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000 (http://localhost:3000)",
+      "error: ACTIVE_SERVER: Failed to stop server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000 (http://localhost:3000)",
+      "error: ACTIVE_SERVER: Error stopping server server-3000-1768474677000: [\"<Error: stopServer exploded>\"]",
+      "log: ACTIVE_SERVER: Stopping server server-3000-1768474677000",
+      "log: ACTIVE_SERVER: User cancelled stopping server server-3000-1768474677000"
+    ],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "Stop server http://localhost:3000?",
+        "items": [
+          "Stop",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Stopped server http://localhost:3000",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Stop server http://localhost:3000?",
+        "items": [
+          "Stop",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "error",
+        "message": "Failed to stop server http://localhost:3000",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Stop server http://localhost:3000?",
+        "items": [
+          "Stop",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "error",
+        "message": "Error stopping server: stopServer exploded",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Stop server http://localhost:3000?",
+        "items": [
+          "Stop",
+          "Cancel"
+        ]
+      }
+    ],
+    "calls": [
+      [
+        "stopServer",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopSharing",
+        "server-3000-1768474677000",
+        false
+      ],
+      [
+        "ServerControl.stopServer",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopServer",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopSharing",
+        "server-3000-1768474677000",
+        false
+      ],
+      [
+        "ServerControl.stopServer",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopServer",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopSharing",
+        "server-3000-1768474677000",
+        false
+      ],
+      [
+        "ServerControl.stopServer",
+        "server-3000-1768474677000"
+      ],
+      [
+        "stopServer",
+        "server-3000-1768474677000"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [
+      {
+        "id": "codeXR.activeServers.refreshServers",
+        "args": []
+      }
+    ],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "stop all: none running": {
+    "console": [
+      "log: ACTIVE_SERVER: Stopping all servers"
+    ],
+    "ui": [
+      {
+        "kind": "info",
+        "message": "No servers are currently running",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "stopAllServers"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "stop all: one summary from the returned counts": {
+    "console": [
+      "log: ACTIVE_SERVER: Stopping all servers",
+      "log: ACTIVE_SERVER: Stopping 2 servers",
+      "log: ACTIVE_SERVER: Successfully stopped all servers",
+      "log: ACTIVE_SERVER: Stopping all servers",
+      "log: ACTIVE_SERVER: Stopping 2 servers",
+      "error: ACTIVE_SERVER: Stopped 1 of 2 servers",
+      "log: ACTIVE_SERVER: Stopping all servers",
+      "log: ACTIVE_SERVER: Stopping 2 servers",
+      "error: ACTIVE_SERVER: Error stopping all servers: [\"<Error: stopAllServers exploded>\"]",
+      "log: ACTIVE_SERVER: Stopping all servers",
+      "log: ACTIVE_SERVER: User cancelled stopping all servers"
+    ],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "Stop all 2 server(s)?",
+        "items": [
+          "Stop All",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Stopped 2 server(s)",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Stop all 2 server(s)?",
+        "items": [
+          "Stop All",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "warning",
+        "message": "Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the Code-XR output.",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Stop all 2 server(s)?",
+        "items": [
+          "Stop All",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "error",
+        "message": "Error stopping servers: stopAllServers exploded",
+        "items": []
+      },
+      {
+        "kind": "warning",
+        "message": "Stop all 2 server(s)?",
+        "items": [
+          "Stop All",
+          "Cancel"
+        ]
+      }
+    ],
+    "calls": [
+      [
+        "stopAllServers"
+      ],
+      [
+        "stopAll"
+      ],
+      [
+        "ServerControl.stopAllServers"
+      ],
+      [
+        "stopAllServers"
+      ],
+      [
+        "stopAll"
+      ],
+      [
+        "ServerControl.stopAllServers"
+      ],
+      [
+        "stopAllServers"
+      ],
+      [
+        "stopAll"
+      ],
+      [
+        "ServerControl.stopAllServers"
+      ],
+      [
+        "stopAllServers"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [
+      {
+        "id": "codeXR.activeServers.refreshServers",
+        "args": []
+      },
+      {
+        "id": "codeXR.activeServers.refreshServers",
+        "args": []
+      }
+    ],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "stop all without a remote manager": {
+    "console": [
+      "log: ACTIVE_SERVER: Stopping all servers",
+      "log: ACTIVE_SERVER: Stopping 1 servers",
+      "log: ACTIVE_SERVER: Successfully stopped all servers"
+    ],
+    "ui": [
+      {
+        "kind": "warning",
+        "message": "Stop all 1 server(s)?",
+        "items": [
+          "Stop All",
+          "Cancel"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Stopped 1 server(s)",
+        "items": []
+      }
+    ],
+    "calls": [
+      [
+        "stopAllServers"
+      ],
+      [
+        "ServerControl.stopAllServers"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [
+      {
+        "id": "codeXR.activeServers.refreshServers",
+        "args": []
+      }
+    ],
+    "clipboard": "",
+    "unusedAnswers": 0
+  },
+  "refresh": {
+    "console": [
+      "log: ACTIVE_SERVER: Refreshing servers display"
+    ],
+    "ui": [],
+    "calls": [
+      [
+        "refreshServers"
+      ]
+    ],
+    "publicStatics": [
+      "showServerActions",
+      "openInBrowser",
+      "openInPanel",
+      "copyUrl",
+      "copyLanUrl",
+      "startRemoteAccess",
+      "copyRemoteInvitation",
+      "stopRemoteAccess",
+      "showParticipantDetails",
+      "removeParticipant",
+      "regeneratePairingCode",
+      "showRemoteStatus",
+      "stopServer",
+      "showServerDetails",
+      "stopAllServers",
+      "refreshServers"
+    ],
+    "executedCommands": [
+      {
+        "id": "codeXR.activeServers.refreshServers",
+        "args": []
+      }
+    ],
+    "clipboard": "",
+    "unusedAnswers": 0
+  }
+}

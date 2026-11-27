@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bubble Chart - BabiaXR Example</title>
+    <meta name="description" content="A 3D bubble chart built with the babia-bubbles component: two categories on the floor, height and size encode values.">
+    <!-- Same library versions as the Code-XR scene templates. -->
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-babia-components@1.3.4/dist/aframe-babia-components.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.5.0/dist/aframe-environment-component.min.js"></script>
+</head>
+<body>
+    <a-scene background="color: #cfdbe6">
+        <!-- Environment and lights. A light backdrop keeps BabiaXR's axis
+             labels (always drawn in black) readable. -->
+        <a-entity environment="preset: default; skyType: gradient; skyColor: #cfdbe6; horizonColor: #eef3f7;
+                               ground: flat; groundColor: #b9c4ce; groundColor2: #b9c4ce;
+                               grid: 1x1; gridColor: #a3afbb; dressing: none; lighting: none; fog: 0"></a-entity>
+        <a-light type="ambient" intensity="1"></a-light>
+        <a-light type="directional" intensity="1.8" position="-4 10 8"></a-light>
+
+        <!-- Title (a plain a-text: BabiaXR titles ignore titleColor on A-Frame 1.7) -->
+        <a-text value="Commits (height) and reviews (size)" color="#1b2430" align="center" width="10"
+                position="0 7.6 0" rotation="0 36 0"></a-text>
+
+        <!-- Bubble chart: developer x year grid, height = commits, bubble size = reviews -->
+        <a-entity babia-bubbles='x_axis: developer;
+                                 z_axis: year;
+                                 height: commits;
+                                 radius: reviews;
+                                 heightMax: 6;
+                                 radiusMax: 0.7;
+                                 palette: ubuntu;
+                                 legend: true;
+                                 axis_name: true;
+                                 data: [
+                                   {"developer": "Ana", "year": "2022", "commits": 51, "reviews": 14},
+                                   {"developer": "Ana", "year": "2023", "commits": 60, "reviews": 8},
+                                   {"developer": "Ana", "year": "2024", "commits": 19, "reviews": 39},
+                                   {"developer": "Ana", "year": "2025", "commits": 22, "reviews": 28},
+                                   {"developer": "Carlos", "year": "2022", "commits": 84, "reviews": 8},
+                                   {"developer": "Carlos", "year": "2023", "commits": 74, "reviews": 18},
+                                   {"developer": "Carlos", "year": "2024", "commits": 14, "reviews": 10},
+                                   {"developer": "Carlos", "year": "2025", "commits": 65, "reviews": 31},
+                                   {"developer": "Sofia", "year": "2022", "commits": 18, "reviews": 20},
+                                   {"developer": "Sofia", "year": "2023", "commits": 21, "reviews": 40},
+                                   {"developer": "Sofia", "year": "2024", "commits": 64, "reviews": 8},
+                                   {"developer": "Sofia", "year": "2025", "commits": 82, "reviews": 12},
+                                   {"developer": "Pablo", "year": "2022", "commits": 38, "reviews": 8},
+                                   {"developer": "Pablo", "year": "2023", "commits": 83, "reviews": 30},
+                                   {"developer": "Pablo", "year": "2024", "commits": 16, "reviews": 19},
+                                   {"developer": "Pablo", "year": "2025", "commits": 15, "reviews": 40}
+                                 ]'
+                  position="-4.75 0 -5.6"></a-entity>
+
+        <!-- Camera rig: drag to look around, WASD / arrow keys to move.
+             Hover over a bar, slice or bubble to see its value. -->
+        <a-entity id="rig" movement-controls="fly: true" position="6 7.5 8.2" rotation="-25 36 0">
+            <a-entity camera position="0 0 0" look-controls></a-entity>
+            <a-entity laser-controls="hand: right"></a-entity>
+        </a-entity>
+        <a-entity cursor="rayOrigin: mouse"></a-entity>
+    </a-scene>
+</body>
+</html>

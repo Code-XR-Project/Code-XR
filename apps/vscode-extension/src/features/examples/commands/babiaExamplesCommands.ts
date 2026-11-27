@@ -1,0 +1,173 @@
+import * as vscode from 'vscode';
+import { BABIA_EXAMPLE_LIBRARIES, BabiaExample } from '../model/babiaExampleModel';
+import { ExampleClickHandler } from '../views/handleExampleClicks';
+import { BabiaExamplesTreeDataProvider } from '../views/babiaExamplesTreeView';
+import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
+import { DetailRow, formatDetailSections } from '../../../platform/ui/detailDialog';
+import { getLogger } from '../../../platform/logging/sink';
+
+const logger = getLogger('EXAMPLES');
+
+/**
+ * Babia Examples command declarations.
+ */
+export class BabiaExamplesCommands {
+    public static getCommandRegistrations(
+        context: vscode.ExtensionContext,
+        treeDataProvider?: BabiaExamplesTreeDataProvider,
+    ): ExtensionCommandRegistration[] {
+        const clickHandler = new ExampleClickHandler(context);
+        context.subscriptions.push({
+            dispose: () => clickHandler.cleanup(),
+        });
+
+        return [
+            {
+                id: 'codeXR.babiaExamples.launchExample',
+                module: 'EXAMPLES',
+                description: 'Launch Babia example',
+                handler: async (example: BabiaExample) => {
+                    logger.debug(() => `Launch command triggered for "${example.name}"`);
+                    await clickHandler.handleExampleClick(example);
+                },
+                errorMessage: 'Failed to launch Babia example'
+            },
+            {
+                id: 'codeXR.babiaExamples.showLibraryInfo',
+                module: 'EXAMPLES',
+                description: 'Show BabiaXR credits and licenses',
+                handler: async () => {
+                    const exampleCount = (await clickHandler.getExampleLauncher().getExamples()).length;
+                    const detail = formatDetailSections([
+                        BABIA_EXAMPLE_LIBRARIES.map((library) => {
+                            // Skip the package name when it just repeats the label.
+                            const simplify = (value: string) => value.toLowerCase().replace(/[-_]/g, '');
+                            const prefix = simplify(library.name) === simplify(library.label)
+                                ? ''
+                                : `${library.name} `;
+                            return [
+                                library.label,
+                                `${prefix}${library.version} · ${library.license}`,
+                            ] as DetailRow;
+                        }),
+                        [
+                            ['Examples', `${exampleCount} scene(s) bundled with Code-XR`],
+                            ['Data', 'Sample JSON in examples/data'],
+                        ],
+                        [
+                            ['Note', 'Scenes load these libraries from public CDNs when opened.'],
+                        ],
+                    ]);
+
+                    const babia = BABIA_EXAMPLE_LIBRARIES[0];
+                    const answer = await vscode.window.showInformationMessage(
+                        'BabiaXR Examples',
+                        { modal: true, detail },
+                        'Open BabiaXR',
+                        'Open source',
+                        'Open license',
+                    );
+                    if (answer === 'Open BabiaXR') {
+                        await vscode.env.openExternal(vscode.Uri.parse(babia.website));
+                    } else if (answer === 'Open source') {
+                        await vscode.env.openExternal(vscode.Uri.parse(babia.source));
+                    } else if (answer === 'Open license') {
+                        await vscode.env.openExternal(vscode.Uri.parse(babia.licenseUrl));
+                    }
+                },
+                errorMessage: 'Failed to show BabiaXR information'
+            },
+            {
+                id: 'codeXR.babiaExamples.refresh',
+                module: 'EXAMPLES',
+                description: 'Refresh Babia examples',
+                handler: async () => {
+                    if (!treeDataProvider) {
+                        void vscode.window.showInformationMessage('Babia examples view is not ready yet.');
+                        return;
+                    }
+
+                    logger.debug('Refresh command triggered');
+                    await treeDataProvider.rescan();
+                    void vscode.window.showInformationMessage('Babia examples refreshed');
+                },
+                errorMessage: 'Failed to refresh Babia examples'
+            },
+            {
+                id: 'codeXR.babiaExamples.openFolder',
+                module: 'EXAMPLES',
+                description: 'Open Babia examples folder',
+                handler: async () => {
+                    const workspaceRoots = vscode.workspace.workspaceFolders;
+                    if (!workspaceRoots || workspaceRoots.length === 0) {
+                        void vscode.window.showWarningMessage('No workspace folder is open');
+                        return;
+                    }
+
+                    const examplesPath = vscode.Uri.joinPath(workspaceRoots[0].uri, 'examples', 'charts');
+                    await vscode.commands.executeCommand('vscode.openFolder', examplesPath, { forceNewWindow: false });
+                },
+                errorMessage: 'Failed to open Babia examples folder'
+            },
+            {
+                id: 'codeXR.babiaExamples.showDetails',
+                module: 'EXAMPLES',
+                description: 'Show Babia example details',
+                handler: async (example: BabiaExample) => {
+                    const details = [
+                        `# Babia Example: ${example.name}`,
+                        '',
+                        `**Category:** ${example.category}`,
+                        `**Valid:** ${example.isValid ? 'Yes' : 'No'}`,
+                        `**Directory:** ${example.directory}`,
+                        `**HTML File:** ${example.htmlFilePath || 'Not found'}`,
+                        ''
+                    ];
+
+                    if (example.description) {
+                        details.push(`**Description:** ${example.description}`);
+                        details.push('');
+                    }
+
+                    if (example.lastModified) {
+                        const lastModified = new Date(example.lastModified).toLocaleString();
+                        details.push(`**Last Modified:** ${lastModified}`);
+                        details.push('');
+                    }
+
+                    if (!example.isValid) {
+                        details.push('## Issues');
+                        details.push('- No valid HTML file found in the example directory');
+                        details.push('');
+                    }
+
+                    details.push('## Actions');
+                    details.push(example.isValid
+                        ? '- Click the example in the tree to launch it'
+                        : '- Fix the HTML file issue to make this example launchable');
+
+                    const doc = await vscode.workspace.openTextDocument({
+                        content: details.join('\n'),
+                        language: 'markdown'
+                    });
+
+                    await vscode.window.showTextDocument(doc);
+                },
+                errorMessage: 'Failed to show Babia example details'
+            },
+            {
+                id: 'codeXR.babiaExamples.openView',
+                module: 'EXAMPLES',
+                description: 'Open Babia examples view',
+                handler: async () => {
+                    try {
+                        await vscode.commands.executeCommand('codeXR.babiaExamplesView.focus');
+                    } catch (error) {
+                        logger.error('Error in open view command:', error);
+                    }
+                },
+                silentErrors: true,
+            }
+        ];
+    }
+}

@@ -1,13 +1,13 @@
 # CodeXR — Launch media
 
-Screenshots, GIFs and videos for the README and the website. **Nothing here ships inside the VSIX**: `package.json`'s `files` allowlist only picks `resources/favicon.ico`, `resources/icon.*`, `resources/avatars/**` and `resources/languages_icons/color/**` (the SVGs the tree actually uses — the unused `no_color/` PNGs are excluded), so `media/` can never be packaged by accident. `resources/` means "assets the extension uses at runtime"; `media/` means "assets that explain the extension".
+Screenshots, GIFs and videos for the README and the website. **Nothing here ships inside the VSIX**: `package.json`'s `files` allowlist only picks `resources/icon.*`, `resources/avatars/**` and `resources/languages_icons/color/**` (the SVGs the tree actually uses), so `media/` can never be packaged by accident. `resources/` means "assets the extension uses at runtime"; `media/` means "assets that explain the extension".
 
 This file is the inventory of what is actually here, not a wish list. When you add or retake something, update the table it belongs to.
 
 ```
 media/
 ├── SHOTLIST.md                 this file
-├── v1.1.0/                     assets of the previous release (history preserved)
+├── v1.1.0/comparison/          the 1.0.0 vs 1.1.0 before/after shots (the rest of v1.1.0 lives in git history)
 └── v1.2.0/                     "Threads, Timelines & Global Networks"
     ├── hero.png                cover shot
     ├── analysis/               what each analysis looks like
@@ -23,7 +23,7 @@ The four analyses keep the same folder name everywhere they appear — `normal`,
 
 ## Rules
 
-**Weight budget.** Not a style preference: the 1.1.0 GIFs are 30-44 MB each, which GitHub's image proxy and the Marketplace will not serve at a usable speed, so they are effectively invisible to visitors.
+**Weight budget.** Not a style preference: the 1.1.0 GIFs were 30-44 MB each, which GitHub's image proxy and the Marketplace will not serve at a usable speed, so they were effectively invisible to visitors (they were removed from the tree in 1.2.1).
 
 | Format | Used in | Hard limit | Target |
 |---|---|---|---|
@@ -174,7 +174,7 @@ XR, not just how it looks. JPEG ~1600 px, 115-152 KB each.
 
 The two sides of the joining flow, used by the README's cross-network tutorial. One folder per role, because every shot belongs to exactly one of them.
 
-**`invited_user/`** is what the person joining sees in their browser. Rendered from the **real production page** (`src/servers/runtime/remote/pairingPage.ts`, compiled and served as-is, so the HTML, CSS and client script are exactly what a guest gets) with only the three endpoints it calls stubbed: a faithful capture would otherwise need a live Cloudflare tunnel and a second machine. The alias and the code shown are therefore invented, and nothing else is. Captured at 640 px wide, `deviceScaleFactor: 2`, dark scheme. Retaken after the page adopted the product site's design tokens (slate surfaces, steel-blue accent, no glass or neon glow), so **whenever that styling changes these four must be retaken together** with the script that produced them.
+**`invited_user/`** is what the person joining sees in their browser. Rendered from the **real production page** (`src/core/server/remote/pairingPage.ts`, compiled and served as-is, so the HTML, CSS and client script are exactly what a guest gets) with only the three endpoints it calls stubbed: a faithful capture would otherwise need a live Cloudflare tunnel and a second machine. The alias and the code shown are therefore invented, and nothing else is. Captured at 640 px wide, `deviceScaleFactor: 2`, dark scheme. Retaken after the page adopted the product site's design tokens (slate surfaces, steel-blue accent, no glass or neon glow), so **whenever that styling changes these four must be retaken together** with the script that produced them.
 
 | File | Size | What it shows |
 |---|---|---|
@@ -201,4 +201,4 @@ Still missing on the host side: the participant card and its *Remove from Sessio
 
 ## v1.1.0 (legacy)
 
-`analysis-table/`, `collaborative/`, `comparison/`, `gifts/` and `screen/`. The four GIFs in `gifts/` are 30-44 MB — almost certainly not rendering for anyone. Either re-export them within the budget or drop them from the new README.
+Only `comparison/` remains. `analysis-table/`, `collaborative/`, `gifts/` and `screen/` (four 30-46 MB GIFs and three PNGs, about 162 MB) were referenced by neither README nor the website and were deleted from the tree in 1.2.1; they are still in git history (any commit before the deletion).

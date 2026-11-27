@@ -2,9 +2,24 @@
 
 ## What this project is
 
-**CodeXR** (`code-xr`, published by `aMonteSl`, GPL-3.0) is a VS Code extension that analyzes source code and visualizes the metrics in extended reality. The pipeline: a **Python backend** (Lizard metrics, ~23 languages, run in a venv the extension manages) produces JSON → **BabiaXR/A-Frame templates** turn it into an XR scene → **local HTTP/HTTPS servers with SSE live-reload** serve it to a browser or headset. Three analysis modes share the pipeline: XR scene, LivePanel (2D webview), and DOM visualization. It also offers collaborative XR sessions and opt-in cross-network sharing via Cloudflare tunnels.
+**CodeXR** (`code-xr`, published by `aMonteSl`, GPL-3.0) is a VS Code extension that analyzes source code and visualizes the metrics in extended reality. The pipeline: a **Python backend** (its own code-metrics analyzer since 1.2.1, which replaced Lizard; 28 languages; run in a venv the extension manages) produces JSON → **BabiaXR/A-Frame templates** turn it into an XR scene → **local HTTP/HTTPS servers with SSE live-reload** serve it to a browser or headset. Three analysis modes share the pipeline: XR scene, LivePanel (2D webview), and DOM visualization. It also offers collaborative XR sessions and opt-in cross-network sharing via Cloudflare tunnels.
 
-Current work: **v1.2.0** (branch `v1.2.0`, with larger features on `feature/*` branches off it; `master` is the PR target). The volatile state of the version lives in `.claude/docs/V1.2.0_STATUS.md` — read it, don't re-derive it from git.
+Current work: **v1.2.1 — a maintenance release: cleanup, optimization, internal hygiene, no new features** (branch `v1.2.1`; `master` is the PR target and the only other branch). The volatile state of the version lives in `.claude/docs/V1.2.1_STATUS.md` — read it, don't re-derive it from git. **1.2.0 shipped on 2026-07-30**; its cycle is closed and `V1.2.0_STATUS.md` is now a historical record.
+
+## Repository layout (monorepo) — read before using any path below
+
+Since 2026-11-25 this is an **npm-workspaces monorepo** (details: `docs/monorepo.md`):
+
+| Path | Content |
+|---|---|
+| `apps/vscode-extension/` | The extension (workspace `code-xr`): `src/`, `test/`, `templates/`, `examples/`, `resources/`, `scripts/`, `docs/` (not shipped since 1.2.1), `package.json`, README/CHANGELOG |
+| `backend/src/`, `backend/tests/` | The Python backend (was `src/code_analysis/python/`) and its suites (was `test/python/`), with their fixtures (`backend/tests/fixtures/`) |
+| `backend/manual_test/`, `backend/scripts/` | The per-language analysis corpus for `npm run test:analysis` (was `manual_test/`) and the backend's tools (the `test:python` / `test:analysis` / `lint:python` runners, `report-manual-metrics.py`) |
+| `apps/ide/` | Code-XR IDE (Electron + Monaco), workspace `code-xr-ide`, epic #11 — read `apps/ide/README.md` before touching it (process split, security baseline, IPC contract) |
+| `packages/` | Planned shared workspaces (`core`, `xr-scenes`) — empty, see `packages/README.md` |
+| root | `package.json` (workspaces + mirrored scripts), the only `package-lock.json`, `media/`, `pages/`, `.github/`, `.claude/`, `.vscode/`, `docs/` |
+
+**Path convention for everything in `.claude/` written before the move:** `src/…`, `test/…`, `templates/…`, `scripts/…`, `docs/…` mean `apps/vscode-extension/<same>`; `src/code_analysis/python/…` means `backend/src/…`; `test/python/…` means `backend/tests/…`; `manual_test/…` means `backend/manual_test/…` and `test/fixtures/dependency-languages/` means `backend/tests/fixtures/dependency-languages/` (both moved in 1.2.1). Run `npm ci` and the commands below from the repository root; each script delegates to the extension workspace.
 
 ## Context system — read this first
 
@@ -17,18 +32,22 @@ Current work: **v1.2.0** (branch `v1.2.0`, with larger features on `feature/*` b
 | `.claude/docs/DEVELOPMENT.md` | Scripts, launch configs, test layers, packaging |
 | `.claude/docs/PYTHON_ANALYSIS.md` | Python backend + field-schema contract |
 | `.claude/docs/XR_COMPONENTS.md` | Scene generation, browser runtimes, chart system |
-| `.claude/docs/V1.2.0_STATUS.md` | Dated snapshot: done / in progress / pending / needs verification |
+| `.claude/docs/V1.2.1_STATUS.md` | **Active** dated snapshot: cleanup backlog (ranked), baseline measurements, session log |
+| `.claude/docs/v1.2.1/ROADMAP.md` | **The v1.2.1 programme**: decisions, per-commit protocol, commit-by-commit tables per wave. Siblings: `AUDIT.md` (220 findings — grep it, never read it whole), `DESIGN_GUARDRAILS.md`, `DESIGN_STRUCTURAL.md`, `CRITIC_REVIEW.md` |
+| `.claude/docs/V1.2.0_STATUS.md` | Historical record of the closed 1.2.0 cycle; source of carried-over debt |
 | `.claude/docs/AI_WORKFLOWS.md` | Playbooks: feature, bug fix, refactor, docs, release prep |
 
 ## Development commands
 
 | Command | Purpose |
 |---|---|
-| `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies Python backend, `templates/`, `examples/`) |
-| `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/` |
-| `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests |
+| `npm run compile` / `npm run watch` | webpack build → `dist/` (also copies the Python backend; `templates/` and `examples/` ship from the package root, not from `dist/`) |
+| `npm run typecheck` / `npm run lint` | tsc --noEmit / ESLint over `src/`, `test/`, `scripts/`, the standalone `templates/` runtimes and the config files |
+| `npm test` | **Default gate**: typecheck + lint + compile-tests + unit tests of the extension, then typecheck + lint + unit tests of the IDE |
+| `npm run ide:dev` / `ide:smoke` | IDE with hot reload / build the IDE and launch it hidden to check the security baseline from inside the real window |
 | `npm run test:unit` | Node native runner over `test/**/*.test.cjs` (not Mocha) |
-| `npm run test:python` / `test:analysis` / `test:all` | Python suites / per-language end-to-end metrics / everything |
+| `npm run test:python` (= `test:backend`) / `test:analysis` / `test:all` | Python suites in `backend/tests` / per-language end-to-end metrics / everything |
+| `npm run lint:python` | `ruff check` over `backend/` (config `backend/ruff.toml`, ruff pinned in `backend/requirements-dev.txt`); lint only, never a formatter |
 | `npm run package:vsix` | Build the installable `.vsix` |
 | F5 "Run CodeXR Extension" | Isolated Extension Development Host (staged under `.vscode-test/dev-extension`) |
 
@@ -43,26 +62,28 @@ Full matrix and manual-validation flow: `.claude/docs/DEVELOPMENT.md`.
 | `runtime-component` | Touching JS/CSS under `templates/components/` — injection paths, load order, required tests |
 | `add-language` | Language-support changes — Python contract ↔ TS metadata sync, fixtures, test matrix |
 | `capture-media` | Producing README/website screenshots — drives a real running analysis with Playwright and reviews every shot (list in `media/SHOTLIST.md`) |
+| `cleanup` | **The v1.2.1 default**: any cleanup, dead-code removal, file split, lint tightening or size optimization — proof-before-delete rules and the measurement ritual |
 
 ## AI workflow rules
 
-1. **One feature, bug, or refactor per session.** Finish and validate before starting the next.
-2. Run `npm test` (plus the narrowest specialized script for the touched area) before declaring anything done. Never claim behavior works without a test run or the F5 flow.
-3. Work on `v1.2.0` or a `feature/*` branch off it; never commit directly to `master`.
+1. **One feature, bug, or refactor per session.** Finish and validate before starting the next. In the v1.2.1 cleanup programme the unit is the **commit**: one roadmap item = one bisectable commit, several per session in roadmap order, gate after each.
+2. Run `npm test` (plus the narrowest specialized script for the touched area) before declaring anything done. Never claim behavior works without a test run or the F5 flow. `lint` inside that gate fails on any error and on warnings over the recorded `--max-warnings` budget.
+3. Work on `v1.2.1` or a `feature/*` branch off it; never commit directly to `master`.
 4. Label claims: confirmed / self-assessed (docs claim it) / inferred / open question. Docs' status labels ("Implementado") are self-assessments, not verified facts.
-5. When you change the version state (feature lands, verification resolved), **update `.claude/docs/V1.2.0_STATUS.md` and the CHANGELOG "[1.2.0] – Unreleased" section in the same session**. Architecture changed → `ARCHITECTURE.md`; tooling changed → `DEVELOPMENT.md`; doc added → `INDEX.md`.
+5. When you change the version state (cleanup lands, verification resolved), **update `.claude/docs/V1.2.1_STATUS.md` and the CHANGELOG `[1.2.1]` section in the same session** (it carries a provisional date, moved forward when the release is cut). Architecture changed → `ARCHITECTURE.md`; tooling changed → `DEVELOPMENT.md`; doc added → `INDEX.md`.
+6. **v1.2.1 is maintenance only**: cleanup, optimization, hygiene. Changes are behaviour-neutral unless the CHANGELOG says otherwise; a new feature belongs in 1.3.0. Deadness is proved by grep, never assumed from a filename.
 
 ## Safety rules
 
-- **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains copies of the Python backend and templates — the sources are `src/code_analysis/python/` and `templates/`.)
-- **`docs/**`, `templates/**`, `examples/**` ship inside the VSIX** (package.json `files` allowlist; there is no `.vscodeignore`). `.claude/**` does not ship. Think before adding files to shipped folders.
-- Command IDs must be unique — `assertUniqueCommandIds` in `src/commands/index.ts` throws on duplicates.
+- **Never edit**: `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `node_modules/`, `tsconfig.tsbuildinfo`. (`dist/` contains a copy of the Python backend — the source is `backend/src/`.)
+- **`templates/**`, `examples/**` ship inside the VSIX** (`docs/**` stopped shipping in 1.2.1) (package.json `files` allowlist; there is no `.vscodeignore`). `.claude/**` does not ship. Think before adding files to shipped folders.
+- Command IDs must be unique — `assertUniqueCommandIds` (`src/platform/commands/commandRegistry.ts`, called by `src/app/commands/registerAllCommands.ts`) throws on duplicates.
 - JS under `templates/components/` is injected into user-facing generated scenes; treat changes there like shipping frontend code (and respect the load order in `templates/components/COMPONENTS.md`).
 - Project principles (roadmap exit criteria): no telemetry, no network calls or downloads without explicit user consent, server-validated admin operations.
-- Don't delete or rewrite existing docs; record inconsistencies in `.claude/docs/V1.2.0_STATUS.md` → "Documentation debt" instead.
+- Don't delete or rewrite existing docs; record inconsistencies in `.claude/docs/V1.2.1_STATUS.md` instead (the historical list is `V1.2.0_STATUS.md` → "Documentation debt"; `INDEX.md` routes docs work through both).
 
 ## Context management
 
 - Never scan `node_modules/`, `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/`, `package-lock.json`.
-- `src/code_analysis/` is 246 files and `package.json` is ~1,000 lines — navigate via the module map in `ARCHITECTURE.md` and targeted Grep, never wholesale reads.
+- `src/core/analysis/` + `src/features/analysis/` are about 120 files and `package.json` is ~1,000 lines — navigate via the module map in `ARCHITECTURE.md` and targeted Grep, never wholesale reads.
 - Long-form knowledge lives in `.claude/docs/`, decisions live in the repo (status doc, CHANGELOG) — not in chat history. If you learn something durable, write it into the right doc before the session ends.

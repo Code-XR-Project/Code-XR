@@ -1,0 +1,120 @@
+name: IDE installers
+
+# Builds the Code-XR IDE installers (#20) on the three operating systems:
+#   Linux    AppImage and .deb
+#   Windows  NSIS installer (.exe)
+#   macOS    .dmg (Apple silicon; the runner's architecture)
+#
+# A tag `ide-vX.Y.Z` (matching apps/ide/package.json's version) builds them
+# and attaches them to a DRAFT GitHub release, which the maintainer reviews
+# and publishes by hand: nothing reaches users from here on its own. A pull
+# request that touches the packaging, or a manual run, only builds them and
+# keeps them as workflow artifacts, to try an installer before tagging.
+#
+# The installers are not signed or notarised (thesis prototype): the README's
+# "Installers" section says what each OS shows because of it. No secrets are
+# used, and like ci.yml no third-party action: the release is made with the
+# GitHub CLI the runners already have.
+
+on:
+  push:
+    tags:
+      - 'ide-v[0-9]*'
+  pull_request:
+    branches:
+      - master
+      - 'v[0-9]*'
+    paths:
+      - '.github/workflows/ide-release.yml'
+      - 'apps/ide/electron-builder.config.cjs'
+      - 'apps/ide/package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ide-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DO_NOT_TRACK: '1'
+  npm_config_audit: 'false'
+  npm_config_fund: 'false'
+  npm_config_update_notifier: 'false'
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  # electron-builder downloads the Electron release it packages itself.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+  # No signing identity is looked up on macOS (mac.identity in the config).
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  installers:
+    name: installers (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: The tag matches the IDE's version
+        if: startsWith(github.ref, 'refs/tags/ide-v')
+        shell: bash
+        run: |
+          version=$(node -p "require('./apps/ide/package.json').version")
+          if [ "ide-v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match apps/ide/package.json version $version" >&2
+            exit 1
+          fi
+
+      # Builds the extension's Python backend copy (dist/code_analysis), the
+      # IDE (out/), then the installers into apps/ide/release/.
+      - name: Build the installers
+        run: npm run dist --workspace=code-xr-ide
+
+      - name: Keep the installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-xr-ide-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            apps/ide/release/*.AppImage
+            apps/ide/release/*.deb
+            apps/ide/release/*.exe
+            apps/ide/release/*.dmg
+
+  draft-release:
+    name: draft release
+    needs: installers
+    if: startsWith(github.ref, 'refs/tags/ide-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch the installers
+        uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" installers/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --title "Code-XR IDE ${GITHUB_REF_NAME#ide-v}" \
+            --notes "Installers for the Code-XR IDE. They are not signed: see the IDE README, section Installers, for what each system asks the first time."

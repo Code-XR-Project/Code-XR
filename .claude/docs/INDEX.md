@@ -3,6 +3,8 @@
 > **Purpose**: The navigation hub. Every session starts here (pointed from `CLAUDE.md`) and reads *only* the documents mapped to its task.
 > **Stability**: Update whenever a document is added, removed, or repurposed.
 
+> **Monorepo (2026-11-25):** paths in these docs predate the move. `src/`, `test/`, `templates/`, `scripts/`, `docs/` → `apps/vscode-extension/…`; `src/code_analysis/python/` → `backend/src/`; `test/python/` → `backend/tests/`; `manual_test/` → `backend/manual_test/` (1.2.1). Layout and rationale: `docs/monorepo.md` (repository root). Inside `src/`, paths written before story #55 (2026-11-25: `code_analysis/`, `servers/`, `views/`, …) moved to the feature-first layers `app/ → features/ → core/ → platform/ → shared/`; translate any old path with `docs/cleanup/src-move-map.json`.
+
 ## Document inventory
 
 ### Internal AI/dev context (`.claude/docs/` — never shipped in the VSIX)
@@ -14,7 +16,14 @@
 | `DEVELOPMENT.md` | npm scripts, launch configs, test layers, packaging, tooling quirks |
 | `PYTHON_ANALYSIS.md` | The Python metrics backend, venv, field-schema contract |
 | `XR_COMPONENTS.md` | Scene generation, browser runtimes, table modes, chart system |
-| `V1.2.0_STATUS.md` | **Volatile** dated snapshot: implemented / in progress / pending / needs-verification / documentation debt |
+| `V1.2.1_STATUS.md` | **Volatile — the active status doc.** Cleanup backlog (ranked), baseline measurements, session log |
+| `v1.2.1/ROADMAP.md` | **The v1.2.1 programme**: maintainer decisions, per-commit protocol, tool-measured baseline, the override table, commit-by-commit tables per wave (W0-W5), the record-only register for 1.3.0, exit criteria. Read sections A-E, then only your wave |
+| `v1.2.1/AUDIT.md` | Frozen evidence: 220 findings with skeptic verdicts + the "looks dead but is ALIVE" lists. ~275 KB — **grep it** (finding id or file name), never read it whole |
+| `v1.2.1/DESIGN_GUARDRAILS.md` | File-level design for the safety net, the ratchet, H1/H2, the ESLint/tsc/ruff rollout, the vscode-free log sink, typing |
+| `v1.2.1/DESIGN_STRUCTURAL.md` | Target architecture + commit slicing for every W4/W5 refactor, each with the characterization test that must land first, and a cut order |
+| `v1.2.1/CRITIC_REVIEW.md` | The 38 corrections to those designs, with file:line evidence; summarized in the ROADMAP override table |
+| `v1.2.1/sessions/*.md` | One log per cleanup story of epic #26 (`<issue>-<slug>.md`): commits, before/after numbers, gates, what was deliberately left, quirks for 1.3.0, the F5 checks for the maintainer. `docs/cleanup/REPORT.md` consolidates them |
+| `V1.2.0_STATUS.md` | Historical record of the closed 1.2.0 cycle (released 2026-07-30); source of carried-over debt. Do not rewrite |
 | `AI_WORKFLOWS.md` | Playbooks per task type + universal session rules |
 
 ### Project skills (`.claude/skills/` — never shipped; invoked via the Skill tool or `/<name>`)
@@ -25,40 +34,49 @@
 | `session-close` | End-of-session checklist: status doc, CHANGELOG, doc sync, commit hygiene |
 | `runtime-component` | Rules for `templates/components/` runtimes: injection paths, load order, tests |
 | `add-language` | Language-support changes: Python contract ↔ TS metadata, fixtures, test matrix |
+| `capture-media` | README/website screenshots driven from a real running analysis (`media/SHOTLIST.md`) |
+| `cleanup` | **v1.2.1 default**: dead-code removal, file splits, lint tightening, size optimization — proof-before-delete + measurement ritual |
 
-### Existing project docs (shipped in the VSIX via `docs/**`)
+### Existing project docs (README/CHANGELOG ship in the VSIX; `docs/` does not since 1.2.1 — the README links it on GitHub)
 
 | Document | Language | One-line purpose |
 |---|---|---|
 | `README.md` | EN | User-facing overview, features, install (partly one release behind — see status doc) |
-| `CHANGELOG.md` | EN | Version history; `[1.2.0] – Unreleased` is the active section |
-| `docs/project/ROADMAP_V1.2.0.md` | ES | v1.2.0 goals, per-area status table, delivery sequence, exit criteria |
-| `docs/features/DEPENDENCY_GRAPH_XR.md` | EN | Dependency-graph XR mode: architecture, 23 languages, layouts, limits |
+| `CHANGELOG.md` | EN | Version history; `[1.2.1]` is the active section (provisional date; 1.2.0 released 2026-07-30) |
+| `docs/project/ROADMAP_V1.2.0.md` | EN | v1.2.0 goals, per-area status table, delivery sequence, exit criteria |
+| `docs/features/DEPENDENCY_GRAPH_XR.md` | EN | Dependency-graph XR mode: architecture, 28 languages, layouts, limits |
 | `docs/features/HISTORICAL_COMPARISON_XR.md` | ES | Historical comparator: dual table, safe Git access, caching, limits |
-| `docs/features/PROJECT_EVOLUTION_XR.md` | EN | Project Evolution "movie" mode (in progress; file currently untracked) |
+| `docs/features/PROJECT_EVOLUTION_XR.md` | EN | Project Evolution "movie" mode |
 | `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` | ES | Quick Tunnel remote access: flow, limits, authorization layer |
 | `docs/xr-testing/XR_DEBUG_COMMANDS.md` | EN | Browser-console debug APIs for generated XR scenes |
 | `THIRD_PARTY_NOTICES.md` | EN | Third-party licenses; what is and isn't bundled |
 | `templates/components/COMPONENTS.md` | EN | Inventory + load order of browser-side component runtimes |
 | `test/README.md` | EN | Test suite layout and commands |
-| `manual_test/README.md` | EN | Per-language fixtures for `npm run test:analysis` |
+| `backend/manual_test/README.md` | EN | Per-language fixtures for `npm run test:analysis` |
+| `docs/cleanup/README.md` (repository root) | EN | The v1.2.1 deep-cleanup epic (#26): story map, baseline, how "no functionality lost" is proved; links the documents below |
+| `docs/cleanup/REPORT.md` | EN | **Final report of the cleanup**: findings, every story and PR, behaviour-neutrality evidence, exit criteria, what is left for 1.3.0, automated E2E results and the consolidated maintainer F5 checklist |
+| `docs/cleanup/feature-baseline.md` | EN | Inventory of everything the extension contributes and does (pinned by `test/baseline/`), with the §10 verification checklist |
+| `docs/cleanup/src-layout.md`, `src-move-map.json` | EN | Story #55: the feature-first `src/` layout and the old → new path map |
+| `docs/cleanup/{host-boundary,modernization,sweep-outside-src,w2-revalidation}.md` | EN | Layering, idiom modernization, the sweep outside `src/`, the W2 re-validation |
+| `docs/xr-audit/README.md` (repository root) | EN | **XR environment audit (2026-11-25)**: 102 findings across panels, launcher, charts/containment, project evolution, dependency graph, historical comparison and mode lifecycle, each with evidence, repro status and proposed fix; per-area reports beside it. Read before fixing anything in the XR epic |
 
 ## Task → reading list
 
 | Task | Read (in order) | Likely folders |
 |---|---|---|
 | **Any session (always)** | `CLAUDE.md` → this index | — |
-| **New feature** | `ARCHITECTURE.md` → `V1.2.0_STATUS.md` → area doc(s) → `AI_WORKFLOWS.md` §feature | per module convention |
+| **Cleanup / optimization (v1.2.1 default)** | `V1.2.1_STATUS.md` (where we are: waves + session log) → `v1.2.1/ROADMAP.md` §A-E, then your wave's table → `cleanup` skill → grep `v1.2.1/AUDIT.md` for the finding id / file before deleting; `v1.2.1/DESIGN_*.md` for the design of the item | whatever the roadmap row names |
+| **New feature** | `ARCHITECTURE.md` → `V1.2.1_STATUS.md` → area doc(s) → `AI_WORKFLOWS.md` §feature. **Note: features are out of scope for 1.2.1** | per module convention |
 | **Bug fix** | `ARCHITECTURE.md` (module map) → `AI_WORKFLOWS.md` §bug fix; area doc if a contract seam is involved | the one module |
 | **Refactor** | `ARCHITECTURE.md` (contracts!) → `AI_WORKFLOWS.md` §refactor | crossing modules |
-| **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/babia_templates/`, `engine/components/` |
-| **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `src/code_analysis/python/`, `engine/`, `src/utils/languageMetadata.ts` |
-| **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `code_analysis/dependencies/`, graph runtime |
-| **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `code_analysis/historical/` |
-| **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/servers/`, `active_servers/`, `collaboration/`, `remote_access/` |
+| **XR visuals / scene / runtimes** | `XR_COMPONENTS.md` → `templates/components/COMPONENTS.md`; `docs/xr-testing/XR_DEBUG_COMMANDS.md` when debugging | `templates/`, `src/core/charts/`, `src/core/analysis/scene-assets/` |
+| **Analysis / metrics / languages** | `PYTHON_ANALYSIS.md` → `ARCHITECTURE.md` §contracts | `backend/src/`, `src/core/analysis/`, `src/core/analysis/languages/languageMetadata.ts` |
+| **Dependency graph** | `XR_COMPONENTS.md` → `docs/features/DEPENDENCY_GRAPH_XR.md` | `core/dependencies/`, graph runtime |
+| **Historical / Project Evolution** | `V1.2.0_STATUS.md` → `docs/features/HISTORICAL_COMPARISON_XR.md` / `docs/features/PROJECT_EVOLUTION_XR.md` | `core/history/`, `core/export/` |
+| **Servers / SSE / collaboration / remote** | `ARCHITECTURE.md` → `docs/features/CLOUDFLARE_REMOTE_ACCESS.md` for tunnels | `src/core/server/`, `src/features/servers/`, `src/features/active-servers/`, `core/collaboration/`, `features/collaboration/`, `core/remote-access/` |
 | **Build / test / tooling** | `DEVELOPMENT.md` | `scripts/`, configs |
-| **Docs update** | `AI_WORKFLOWS.md` §docs → `V1.2.0_STATUS.md` §documentation debt | `docs/`, `.claude/docs/` |
-| **Release preparation** | `V1.2.0_STATUS.md` (all) → `docs/project/ROADMAP_V1.2.0.md` → `AI_WORKFLOWS.md` §release → `DEVELOPMENT.md` §packaging | everything user-visible |
+| **Docs update** | `AI_WORKFLOWS.md` §docs → `V1.2.1_STATUS.md` §carried-over debt → `V1.2.0_STATUS.md` §documentation debt | `docs/`, `.claude/docs/` |
+| **Release preparation** | `V1.2.1_STATUS.md` (all) → `docs/cleanup/REPORT.md` (exit criteria, maintainer F5 checklist) → `AI_WORKFLOWS.md` §release → `DEVELOPMENT.md` §packaging; `docs/project/ROADMAP_V1.2.0.md` only for historical exit criteria | everything user-visible |
 
 ## Folders to avoid (context cost / generated)
 
@@ -67,7 +85,7 @@
 | `node_modules/`, `dist/`, `out/`, `output/`, `artifacts/`, `.vscode-test/` | Generated / dependencies; never read or edit |
 | `tsconfig.tsbuildinfo`, `package-lock.json` | Build cache / lockfile; huge, no signal |
 | `resources/` (media), `examples/` | Binary/media assets; only relevant when explicitly working on them |
-| `src/code_analysis/` *as a whole* | 246 files — enter via `ARCHITECTURE.md` module map, never scan |
+| `src/core/analysis/` + `src/features/analysis/` *as a whole* | about 120 files — enter via `ARCHITECTURE.md` module map, never scan |
 | `package.json` *as a whole* | ~70 commands; grep the section you need |
 
 ## Keeping this index current

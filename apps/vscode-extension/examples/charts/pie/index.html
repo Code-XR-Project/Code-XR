@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pie Chart - BabiaXR Example</title>
+    <meta name="description" content="A 3D pie chart built with the babia-pie component.">
+    <!-- Same library versions as the Code-XR scene templates. -->
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-babia-components@1.3.4/dist/aframe-babia-components.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.5.0/dist/aframe-environment-component.min.js"></script>
+</head>
+<body>
+    <a-scene background="color: #cfdbe6">
+        <!-- Environment and lights. A light backdrop keeps BabiaXR's axis
+             labels (always drawn in black) readable. -->
+        <a-entity environment="preset: default; skyType: gradient; skyColor: #cfdbe6; horizonColor: #eef3f7;
+                               ground: flat; groundColor: #b9c4ce; groundColor2: #b9c4ce;
+                               grid: 1x1; gridColor: #a3afbb; dressing: none; lighting: none; fog: 0"></a-entity>
+        <a-light type="ambient" intensity="1"></a-light>
+        <a-light type="directional" intensity="1.8" position="-4 10 8"></a-light>
+
+        <!-- Title, below the chart: hovering a slice shows its value above it -->
+        <a-text value="Population by country (millions)" color="#1b2430" align="center" width="8"
+                position="0 1 0"></a-text>
+
+        <!-- Pie chart: one slice per country, size = population.
+             rotation="90 0 0" stands the chart up so it faces the camera. -->
+        <a-entity babia-pie='key: country;
+                             size: population;
+                             palette: flat;
+                             legend: true;
+                             animation: true;
+                             data: [
+                               {"country": "United States", "population": 329},
+                               {"country": "Brazil", "population": 212},
+                               {"country": "Mexico", "population": 126},
+                               {"country": "Japan", "population": 126},
+                               {"country": "Germany", "population": 83},
+                               {"country": "France", "population": 67},
+                               {"country": "Italy", "population": 60},
+                               {"country": "Spain", "population": 47}
+                             ]'
+                  position="0 4.2 0" rotation="90 0 0" scale="2 2 2"></a-entity>
+
+        <!-- Camera rig: drag to look around, WASD / arrow keys to move.
+             Hover over a bar, slice or bubble to see its value. -->
+        <a-entity id="rig" movement-controls="fly: true" position="0 4.6 8" rotation="0 0 0">
+            <a-entity camera position="0 0 0" look-controls></a-entity>
+            <a-entity laser-controls="hand: right"></a-entity>
+        </a-entity>
+        <a-entity cursor="rayOrigin: mouse"></a-entity>
+    </a-scene>
+</body>
+</html>

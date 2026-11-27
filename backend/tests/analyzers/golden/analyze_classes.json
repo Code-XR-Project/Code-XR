@@ -1,0 +1,9455 @@
+{
+ ".py": {
+  "file": "sample.py",
+  "classCount": 18,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "dataclass",
+    "line": 10
+   },
+   {
+    "name": "N2x",
+    "type": "dataclass",
+    "line": 12
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   }
+  ]
+ },
+ ".js": {
+  "file": "sample.js",
+  "classCount": 65,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N4x",
+    "type": "exported_class",
+    "line": 16
+   },
+   {
+    "name": "N147x",
+    "type": "exported_class",
+    "line": 175
+   },
+   {
+    "name": "N5x",
+    "type": "default_class",
+    "line": 17
+   },
+   {
+    "name": "N148x",
+    "type": "default_class",
+    "line": 176
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N8x",
+    "type": "exported_interface",
+    "line": 20
+   },
+   {
+    "name": "N151x",
+    "type": "exported_interface",
+    "line": 179
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 60
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 180
+   },
+   {
+    "name": "N10x",
+    "type": "exported_type",
+    "line": 22
+   },
+   {
+    "name": "N153x",
+    "type": "exported_type",
+    "line": 181
+   },
+   {
+    "name": "MetricPair",
+    "type": "exported_type",
+    "line": 830
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N12x",
+    "type": "exported_enum",
+    "line": 24
+   },
+   {
+    "name": "N155x",
+    "type": "exported_enum",
+    "line": 183
+   },
+   {
+    "name": "N13x",
+    "type": "const_enum",
+    "line": 25
+   },
+   {
+    "name": "N14x",
+    "type": "declare_class",
+    "line": 26
+   },
+   {
+    "name": "N15x",
+    "type": "declare_interface",
+    "line": 27
+   }
+  ]
+ },
+ ".ts": {
+  "file": "sample.ts",
+  "classCount": 65,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N4x",
+    "type": "exported_class",
+    "line": 16
+   },
+   {
+    "name": "N147x",
+    "type": "exported_class",
+    "line": 175
+   },
+   {
+    "name": "N5x",
+    "type": "default_class",
+    "line": 17
+   },
+   {
+    "name": "N148x",
+    "type": "default_class",
+    "line": 176
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N8x",
+    "type": "exported_interface",
+    "line": 20
+   },
+   {
+    "name": "N151x",
+    "type": "exported_interface",
+    "line": 179
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 60
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 180
+   },
+   {
+    "name": "N10x",
+    "type": "exported_type",
+    "line": 22
+   },
+   {
+    "name": "N153x",
+    "type": "exported_type",
+    "line": 181
+   },
+   {
+    "name": "MetricPair",
+    "type": "exported_type",
+    "line": 830
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N12x",
+    "type": "exported_enum",
+    "line": 24
+   },
+   {
+    "name": "N155x",
+    "type": "exported_enum",
+    "line": 183
+   },
+   {
+    "name": "N13x",
+    "type": "const_enum",
+    "line": 25
+   },
+   {
+    "name": "N14x",
+    "type": "declare_class",
+    "line": 26
+   },
+   {
+    "name": "N15x",
+    "type": "declare_interface",
+    "line": 27
+   }
+  ]
+ },
+ ".jsx": {
+  "file": "sample.jsx",
+  "classCount": 65,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N4x",
+    "type": "exported_class",
+    "line": 16
+   },
+   {
+    "name": "N147x",
+    "type": "exported_class",
+    "line": 175
+   },
+   {
+    "name": "N5x",
+    "type": "default_class",
+    "line": 17
+   },
+   {
+    "name": "N148x",
+    "type": "default_class",
+    "line": 176
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N8x",
+    "type": "exported_interface",
+    "line": 20
+   },
+   {
+    "name": "N151x",
+    "type": "exported_interface",
+    "line": 179
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 60
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 180
+   },
+   {
+    "name": "N10x",
+    "type": "exported_type",
+    "line": 22
+   },
+   {
+    "name": "N153x",
+    "type": "exported_type",
+    "line": 181
+   },
+   {
+    "name": "MetricPair",
+    "type": "exported_type",
+    "line": 830
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N12x",
+    "type": "exported_enum",
+    "line": 24
+   },
+   {
+    "name": "N155x",
+    "type": "exported_enum",
+    "line": 183
+   },
+   {
+    "name": "N13x",
+    "type": "const_enum",
+    "line": 25
+   },
+   {
+    "name": "N14x",
+    "type": "declare_class",
+    "line": 26
+   },
+   {
+    "name": "N15x",
+    "type": "declare_interface",
+    "line": 27
+   }
+  ]
+ },
+ ".tsx": {
+  "file": "sample.tsx",
+  "classCount": 65,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N4x",
+    "type": "exported_class",
+    "line": 16
+   },
+   {
+    "name": "N147x",
+    "type": "exported_class",
+    "line": 175
+   },
+   {
+    "name": "N5x",
+    "type": "default_class",
+    "line": 17
+   },
+   {
+    "name": "N148x",
+    "type": "default_class",
+    "line": 176
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N8x",
+    "type": "exported_interface",
+    "line": 20
+   },
+   {
+    "name": "N151x",
+    "type": "exported_interface",
+    "line": 179
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 60
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 180
+   },
+   {
+    "name": "N10x",
+    "type": "exported_type",
+    "line": 22
+   },
+   {
+    "name": "N153x",
+    "type": "exported_type",
+    "line": 181
+   },
+   {
+    "name": "MetricPair",
+    "type": "exported_type",
+    "line": 830
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N12x",
+    "type": "exported_enum",
+    "line": 24
+   },
+   {
+    "name": "N155x",
+    "type": "exported_enum",
+    "line": 183
+   },
+   {
+    "name": "N13x",
+    "type": "const_enum",
+    "line": 25
+   },
+   {
+    "name": "N14x",
+    "type": "declare_class",
+    "line": 26
+   },
+   {
+    "name": "N15x",
+    "type": "declare_interface",
+    "line": 27
+   }
+  ]
+ },
+ ".java": {
+  "file": "sample.java",
+  "classCount": 86,
+  "classes": [
+   {
+    "name": "N16x",
+    "type": "public_class",
+    "line": 29
+   },
+   {
+    "name": "N59x",
+    "type": "public_class",
+    "line": 76
+   },
+   {
+    "name": "N101x",
+    "type": "public_class",
+    "line": 121
+   },
+   {
+    "name": "MetricBox",
+    "type": "public_class",
+    "line": 271
+   },
+   {
+    "name": "JavaMetrics",
+    "type": "public_class",
+    "line": 414
+   },
+   {
+    "name": "N17x",
+    "type": "private_class",
+    "line": 30
+   },
+   {
+    "name": "N60x",
+    "type": "private_class",
+    "line": 77
+   },
+   {
+    "name": "N102x",
+    "type": "private_class",
+    "line": 122
+   },
+   {
+    "name": "N18x",
+    "type": "protected_class",
+    "line": 31
+   },
+   {
+    "name": "N61x",
+    "type": "protected_class",
+    "line": 78
+   },
+   {
+    "name": "N19x",
+    "type": "package_class",
+    "line": 32
+   },
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N21x",
+    "type": "public_interface",
+    "line": 34
+   },
+   {
+    "name": "N64x",
+    "type": "public_interface",
+    "line": 81
+   },
+   {
+    "name": "N22x",
+    "type": "private_interface",
+    "line": 35
+   },
+   {
+    "name": "N65x",
+    "type": "private_interface",
+    "line": 82
+   },
+   {
+    "name": "N23x",
+    "type": "protected_interface",
+    "line": 36
+   },
+   {
+    "name": "N66x",
+    "type": "protected_interface",
+    "line": 83
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N25x",
+    "type": "public_enum",
+    "line": 38
+   },
+   {
+    "name": "N74x",
+    "type": "public_enum",
+    "line": 91
+   },
+   {
+    "name": "N26x",
+    "type": "private_enum",
+    "line": 39
+   },
+   {
+    "name": "N75x",
+    "type": "private_enum",
+    "line": 92
+   },
+   {
+    "name": "N27x",
+    "type": "protected_enum",
+    "line": 40
+   },
+   {
+    "name": "N76x",
+    "type": "protected_enum",
+    "line": 93
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N29x",
+    "type": "annotation",
+    "line": 42
+   },
+   {
+    "name": "N131x",
+    "type": "annotation",
+    "line": 155
+   },
+   {
+    "name": "N134x",
+    "type": "annotation",
+    "line": 158
+   },
+   {
+    "name": "MetricBox",
+    "type": "annotation",
+    "line": 524
+   },
+   {
+    "name": "N30x",
+    "type": "public_annotation",
+    "line": 43
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N32x",
+    "type": "public_abstract_class",
+    "line": 45
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N34x",
+    "type": "public_final_class",
+    "line": 47
+   },
+   {
+    "name": "N35x",
+    "type": "public_record",
+    "line": 48
+   },
+   {
+    "name": "N81x",
+    "type": "public_record",
+    "line": 98
+   },
+   {
+    "name": "N36x",
+    "type": "record",
+    "line": 49
+   },
+   {
+    "name": "N82x",
+    "type": "record",
+    "line": 99
+   }
+  ]
+ },
+ ".scala": {
+  "file": "sample.scala",
+  "classCount": 49,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N39x",
+    "type": "case_class",
+    "line": 53
+   },
+   {
+    "name": "N40x",
+    "type": "sealed_class",
+    "line": 54
+   },
+   {
+    "name": "N84x",
+    "type": "sealed_class",
+    "line": 101
+   },
+   {
+    "name": "N121x",
+    "type": "sealed_class",
+    "line": 144
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N42x",
+    "type": "object",
+    "line": 56
+   },
+   {
+    "name": "N126x",
+    "type": "object",
+    "line": 149
+   },
+   {
+    "name": "ScalaMetrics",
+    "type": "object",
+    "line": 704
+   },
+   {
+    "name": "N43x",
+    "type": "case_object",
+    "line": 57
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N45x",
+    "type": "sealed_trait",
+    "line": 59
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 60
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 180
+   },
+   {
+    "name": "N47x",
+    "type": "implicit_class",
+    "line": 61
+   },
+   {
+    "name": "N48x",
+    "type": "implicit_object",
+    "line": 62
+   }
+  ]
+ },
+ ".sc": {
+  "file": "sample.sc",
+  "classCount": 49,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N39x",
+    "type": "case_class",
+    "line": 53
+   },
+   {
+    "name": "N40x",
+    "type": "sealed_class",
+    "line": 54
+   },
+   {
+    "name": "N84x",
+    "type": "sealed_class",
+    "line": 101
+   },
+   {
+    "name": "N121x",
+    "type": "sealed_class",
+    "line": 144
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N42x",
+    "type": "object",
+    "line": 56
+   },
+   {
+    "name": "N126x",
+    "type": "object",
+    "line": 149
+   },
+   {
+    "name": "ScalaMetrics",
+    "type": "object",
+    "line": 704
+   },
+   {
+    "name": "N43x",
+    "type": "case_object",
+    "line": 57
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N45x",
+    "type": "sealed_trait",
+    "line": 59
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 60
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 180
+   },
+   {
+    "name": "N47x",
+    "type": "implicit_class",
+    "line": 61
+   },
+   {
+    "name": "N48x",
+    "type": "implicit_object",
+    "line": 62
+   }
+  ]
+ },
+ ".cpp": {
+  "file": "sample.cpp",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N51x",
+    "type": "union",
+    "line": 66
+   },
+   {
+    "name": "N115x",
+    "type": "union",
+    "line": 137
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   },
+   {
+    "name": "N52x",
+    "type": "template_class",
+    "line": 67
+   },
+   {
+    "name": "N53x",
+    "type": "template_struct",
+    "line": 68
+   },
+   {
+    "name": "N54x",
+    "type": "namespace",
+    "line": 69
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N56x",
+    "type": "enum_struct",
+    "line": 71
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N58x",
+    "type": "typedef_class",
+    "line": 73
+   },
+   {
+    "name": "N58z",
+    "type": "typedef_class",
+    "line": 74
+   },
+   {
+    "name": "N156x",
+    "type": "typedef_class",
+    "line": 185
+   },
+   {
+    "name": "MetricPair",
+    "type": "typedef_class",
+    "line": 212
+   }
+  ]
+ },
+ ".cc": {
+  "file": "sample.cc",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N51x",
+    "type": "union",
+    "line": 66
+   },
+   {
+    "name": "N115x",
+    "type": "union",
+    "line": 137
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   },
+   {
+    "name": "N52x",
+    "type": "template_class",
+    "line": 67
+   },
+   {
+    "name": "N53x",
+    "type": "template_struct",
+    "line": 68
+   },
+   {
+    "name": "N54x",
+    "type": "namespace",
+    "line": 69
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N56x",
+    "type": "enum_struct",
+    "line": 71
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N58x",
+    "type": "typedef_class",
+    "line": 73
+   },
+   {
+    "name": "N58z",
+    "type": "typedef_class",
+    "line": 74
+   },
+   {
+    "name": "N156x",
+    "type": "typedef_class",
+    "line": 185
+   },
+   {
+    "name": "MetricPair",
+    "type": "typedef_class",
+    "line": 212
+   }
+  ]
+ },
+ ".cxx": {
+  "file": "sample.cxx",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N51x",
+    "type": "union",
+    "line": 66
+   },
+   {
+    "name": "N115x",
+    "type": "union",
+    "line": 137
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   },
+   {
+    "name": "N52x",
+    "type": "template_class",
+    "line": 67
+   },
+   {
+    "name": "N53x",
+    "type": "template_struct",
+    "line": 68
+   },
+   {
+    "name": "N54x",
+    "type": "namespace",
+    "line": 69
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N56x",
+    "type": "enum_struct",
+    "line": 71
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N58x",
+    "type": "typedef_class",
+    "line": 73
+   },
+   {
+    "name": "N58z",
+    "type": "typedef_class",
+    "line": 74
+   },
+   {
+    "name": "N156x",
+    "type": "typedef_class",
+    "line": 185
+   },
+   {
+    "name": "MetricPair",
+    "type": "typedef_class",
+    "line": 212
+   }
+  ]
+ },
+ ".h": {
+  "file": "sample.h",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N51x",
+    "type": "union",
+    "line": 66
+   },
+   {
+    "name": "N115x",
+    "type": "union",
+    "line": 137
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   },
+   {
+    "name": "N52x",
+    "type": "template_class",
+    "line": 67
+   },
+   {
+    "name": "N53x",
+    "type": "template_struct",
+    "line": 68
+   },
+   {
+    "name": "N54x",
+    "type": "namespace",
+    "line": 69
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N56x",
+    "type": "enum_struct",
+    "line": 71
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N58x",
+    "type": "typedef_class",
+    "line": 73
+   },
+   {
+    "name": "N58z",
+    "type": "typedef_class",
+    "line": 74
+   },
+   {
+    "name": "N156x",
+    "type": "typedef_class",
+    "line": 185
+   },
+   {
+    "name": "MetricPair",
+    "type": "typedef_class",
+    "line": 212
+   }
+  ]
+ },
+ ".hpp": {
+  "file": "sample.hpp",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N51x",
+    "type": "union",
+    "line": 66
+   },
+   {
+    "name": "N115x",
+    "type": "union",
+    "line": 137
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   },
+   {
+    "name": "N52x",
+    "type": "template_class",
+    "line": 67
+   },
+   {
+    "name": "N53x",
+    "type": "template_struct",
+    "line": 68
+   },
+   {
+    "name": "N54x",
+    "type": "namespace",
+    "line": 69
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N56x",
+    "type": "enum_struct",
+    "line": 71
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N58x",
+    "type": "typedef_class",
+    "line": 73
+   },
+   {
+    "name": "N58z",
+    "type": "typedef_class",
+    "line": 74
+   },
+   {
+    "name": "N156x",
+    "type": "typedef_class",
+    "line": 185
+   },
+   {
+    "name": "MetricPair",
+    "type": "typedef_class",
+    "line": 212
+   }
+  ]
+ },
+ ".cs": {
+  "file": "sample.cs",
+  "classCount": 93,
+  "classes": [
+   {
+    "name": "N16x",
+    "type": "public_class",
+    "line": 29
+   },
+   {
+    "name": "N59x",
+    "type": "public_class",
+    "line": 76
+   },
+   {
+    "name": "N101x",
+    "type": "public_class",
+    "line": 121
+   },
+   {
+    "name": "MetricBox",
+    "type": "public_class",
+    "line": 271
+   },
+   {
+    "name": "JavaMetrics",
+    "type": "public_class",
+    "line": 414
+   },
+   {
+    "name": "N17x",
+    "type": "private_class",
+    "line": 30
+   },
+   {
+    "name": "N60x",
+    "type": "private_class",
+    "line": 77
+   },
+   {
+    "name": "N102x",
+    "type": "private_class",
+    "line": 122
+   },
+   {
+    "name": "N18x",
+    "type": "protected_class",
+    "line": 31
+   },
+   {
+    "name": "N61x",
+    "type": "protected_class",
+    "line": 78
+   },
+   {
+    "name": "N62x",
+    "type": "internal_class",
+    "line": 79
+   },
+   {
+    "name": "N103x",
+    "type": "internal_class",
+    "line": 123
+   },
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N21x",
+    "type": "public_interface",
+    "line": 34
+   },
+   {
+    "name": "N64x",
+    "type": "public_interface",
+    "line": 81
+   },
+   {
+    "name": "N22x",
+    "type": "private_interface",
+    "line": 35
+   },
+   {
+    "name": "N65x",
+    "type": "private_interface",
+    "line": 82
+   },
+   {
+    "name": "N23x",
+    "type": "protected_interface",
+    "line": 36
+   },
+   {
+    "name": "N66x",
+    "type": "protected_interface",
+    "line": 83
+   },
+   {
+    "name": "N67x",
+    "type": "internal_interface",
+    "line": 84
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N69x",
+    "type": "public_struct",
+    "line": 86
+   },
+   {
+    "name": "N70x",
+    "type": "private_struct",
+    "line": 87
+   },
+   {
+    "name": "N71x",
+    "type": "protected_struct",
+    "line": 88
+   },
+   {
+    "name": "N72x",
+    "type": "internal_struct",
+    "line": 89
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N25x",
+    "type": "public_enum",
+    "line": 38
+   },
+   {
+    "name": "N74x",
+    "type": "public_enum",
+    "line": 91
+   },
+   {
+    "name": "N26x",
+    "type": "private_enum",
+    "line": 39
+   },
+   {
+    "name": "N75x",
+    "type": "private_enum",
+    "line": 92
+   },
+   {
+    "name": "N27x",
+    "type": "protected_enum",
+    "line": 40
+   },
+   {
+    "name": "N76x",
+    "type": "protected_enum",
+    "line": 93
+   },
+   {
+    "name": "N77x",
+    "type": "internal_enum",
+    "line": 94
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N79x",
+    "type": "public_delegate",
+    "line": 96
+   },
+   {
+    "name": "N80x",
+    "type": "delegate",
+    "line": 97
+   },
+   {
+    "name": "N35x",
+    "type": "public_record",
+    "line": 48
+   },
+   {
+    "name": "N81x",
+    "type": "public_record",
+    "line": 98
+   },
+   {
+    "name": "N36x",
+    "type": "record",
+    "line": 49
+   },
+   {
+    "name": "N82x",
+    "type": "record",
+    "line": 99
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N40x",
+    "type": "sealed_class",
+    "line": 54
+   },
+   {
+    "name": "N84x",
+    "type": "sealed_class",
+    "line": 101
+   },
+   {
+    "name": "N121x",
+    "type": "sealed_class",
+    "line": 144
+   },
+   {
+    "name": "N85x",
+    "type": "static_class",
+    "line": 102
+   }
+  ]
+ },
+ ".rb": {
+  "file": "sample.rb",
+  "classCount": 23,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N87x",
+    "type": "module",
+    "line": 105
+   },
+   {
+    "name": "N169x",
+    "type": "module",
+    "line": 200
+   },
+   {
+    "name": "metrics_mod",
+    "type": "module",
+    "line": 333
+   },
+   {
+    "name": "ttcn_metrics",
+    "type": "module",
+    "line": 784
+   },
+   {
+    "name": "N88x",
+    "type": "singleton_class",
+    "line": 106
+   }
+  ]
+ },
+ ".php": {
+  "file": "sample.php",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".phtml": {
+  "file": "sample.phtml",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".php3": {
+  "file": "sample.php3",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".php4": {
+  "file": "sample.php4",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".php5": {
+  "file": "sample.php5",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".phps": {
+  "file": "sample.phps",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".swift": {
+  "file": "sample.swift",
+  "classCount": 58,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N97x",
+    "type": "protocol",
+    "line": 117
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N99x",
+    "type": "actor",
+    "line": 119
+   },
+   {
+    "name": "N100x",
+    "type": "extension",
+    "line": 120
+   },
+   {
+    "name": "DartExtension",
+    "type": "extension",
+    "line": 913
+   },
+   {
+    "name": "N16x",
+    "type": "public_class",
+    "line": 29
+   },
+   {
+    "name": "N59x",
+    "type": "public_class",
+    "line": 76
+   },
+   {
+    "name": "N101x",
+    "type": "public_class",
+    "line": 121
+   },
+   {
+    "name": "MetricBox",
+    "type": "public_class",
+    "line": 271
+   },
+   {
+    "name": "JavaMetrics",
+    "type": "public_class",
+    "line": 414
+   },
+   {
+    "name": "N17x",
+    "type": "private_class",
+    "line": 30
+   },
+   {
+    "name": "N60x",
+    "type": "private_class",
+    "line": 77
+   },
+   {
+    "name": "N102x",
+    "type": "private_class",
+    "line": 122
+   },
+   {
+    "name": "N62x",
+    "type": "internal_class",
+    "line": 79
+   },
+   {
+    "name": "N103x",
+    "type": "internal_class",
+    "line": 123
+   },
+   {
+    "name": "N104x",
+    "type": "open_class",
+    "line": 124
+   },
+   {
+    "name": "N123x",
+    "type": "open_class",
+    "line": 146
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   }
+  ]
+ },
+ ".go": {
+  "file": "sample.go",
+  "classCount": 8,
+  "classes": [
+   {
+    "name": "N106x",
+    "type": "struct",
+    "line": 127
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 385
+   },
+   {
+    "name": "N107x",
+    "type": "interface",
+    "line": 128
+   },
+   {
+    "name": "N106x",
+    "type": "type_alias",
+    "line": 127
+   },
+   {
+    "name": "N107x",
+    "type": "type_alias",
+    "line": 128
+   },
+   {
+    "name": "N108x",
+    "type": "type_alias",
+    "line": 129
+   },
+   {
+    "name": "N168x",
+    "type": "type_alias",
+    "line": 199
+   },
+   {
+    "name": "MetricBox",
+    "type": "type_alias",
+    "line": 385
+   }
+  ]
+ },
+ ".rs": {
+  "file": "sample.rs",
+  "classCount": 28,
+  "classes": [
+   {
+    "name": "N50x",
+    "type": "struct",
+    "line": 65
+   },
+   {
+    "name": "N73x",
+    "type": "struct",
+    "line": 90
+   },
+   {
+    "name": "N96x",
+    "type": "struct",
+    "line": 116
+   },
+   {
+    "name": "N109x",
+    "type": "struct",
+    "line": 131
+   },
+   {
+    "name": "N116x",
+    "type": "struct",
+    "line": 138
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "N117x",
+    "type": "enum",
+    "line": 139
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N44x",
+    "type": "trait",
+    "line": 58
+   },
+   {
+    "name": "N93x",
+    "type": "trait",
+    "line": 112
+   },
+   {
+    "name": "N111x",
+    "type": "trait",
+    "line": 133
+   },
+   {
+    "name": "N118x",
+    "type": "trait",
+    "line": 140
+   },
+   {
+    "name": "N51x",
+    "type": "union",
+    "line": 66
+   },
+   {
+    "name": "N115x",
+    "type": "union",
+    "line": 137
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   }
+  ]
+ },
+ ".kt": {
+  "file": "sample.kt",
+  "classCount": 53,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N120x",
+    "type": "data_class",
+    "line": 143
+   },
+   {
+    "name": "N40x",
+    "type": "sealed_class",
+    "line": 54
+   },
+   {
+    "name": "N84x",
+    "type": "sealed_class",
+    "line": 101
+   },
+   {
+    "name": "N121x",
+    "type": "sealed_class",
+    "line": 144
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N104x",
+    "type": "open_class",
+    "line": 124
+   },
+   {
+    "name": "N123x",
+    "type": "open_class",
+    "line": 146
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N42x",
+    "type": "object",
+    "line": 56
+   },
+   {
+    "name": "N126x",
+    "type": "object",
+    "line": 149
+   },
+   {
+    "name": "ScalaMetrics",
+    "type": "object",
+    "line": 704
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N128x",
+    "type": "annotation_class",
+    "line": 151
+   },
+   {
+    "name": "N129x",
+    "type": "inline_class",
+    "line": 152
+   },
+   {
+    "name": "N130x",
+    "type": "value_class",
+    "line": 153
+   }
+  ]
+ },
+ ".kts": {
+  "file": "sample.kts",
+  "classCount": 53,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N120x",
+    "type": "data_class",
+    "line": 143
+   },
+   {
+    "name": "N40x",
+    "type": "sealed_class",
+    "line": 54
+   },
+   {
+    "name": "N84x",
+    "type": "sealed_class",
+    "line": 101
+   },
+   {
+    "name": "N121x",
+    "type": "sealed_class",
+    "line": 144
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 18
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 52
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 100
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 109
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 145
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 177
+   },
+   {
+    "name": "DartSample",
+    "type": "abstract_class",
+    "line": 911
+   },
+   {
+    "name": "N104x",
+    "type": "open_class",
+    "line": 124
+   },
+   {
+    "name": "N123x",
+    "type": "open_class",
+    "line": 146
+   },
+   {
+    "name": "N33x",
+    "type": "final_class",
+    "line": 46
+   },
+   {
+    "name": "N41x",
+    "type": "final_class",
+    "line": 55
+   },
+   {
+    "name": "N91x",
+    "type": "final_class",
+    "line": 110
+   },
+   {
+    "name": "N105x",
+    "type": "final_class",
+    "line": 125
+   },
+   {
+    "name": "N124x",
+    "type": "final_class",
+    "line": 147
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N42x",
+    "type": "object",
+    "line": 56
+   },
+   {
+    "name": "N126x",
+    "type": "object",
+    "line": 149
+   },
+   {
+    "name": "ScalaMetrics",
+    "type": "object",
+    "line": 704
+   },
+   {
+    "name": "N55x",
+    "type": "enum_class",
+    "line": 70
+   },
+   {
+    "name": "N127x",
+    "type": "enum_class",
+    "line": 150
+   },
+   {
+    "name": "N128x",
+    "type": "annotation_class",
+    "line": 151
+   },
+   {
+    "name": "N129x",
+    "type": "inline_class",
+    "line": 152
+   },
+   {
+    "name": "N130x",
+    "type": "value_class",
+    "line": 153
+   }
+  ]
+ },
+ ".m": {
+  "file": "sample.m",
+  "classCount": 8,
+  "classes": [
+   {
+    "name": "N29x",
+    "type": "interface",
+    "line": 42
+   },
+   {
+    "name": "N131x",
+    "type": "interface",
+    "line": 155
+   },
+   {
+    "name": "N134x",
+    "type": "interface",
+    "line": 158
+   },
+   {
+    "name": "MetricBox",
+    "type": "interface",
+    "line": 524
+   },
+   {
+    "name": "N132x",
+    "type": "implementation",
+    "line": 156
+   },
+   {
+    "name": "MetricBox",
+    "type": "implementation",
+    "line": 529
+   },
+   {
+    "name": "N133x",
+    "type": "protocol",
+    "line": 157
+   },
+   {
+    "name": "N134x",
+    "type": "category",
+    "line": 158
+   }
+  ]
+ },
+ ".mm": {
+  "file": "sample.mm",
+  "classCount": 8,
+  "classes": [
+   {
+    "name": "N29x",
+    "type": "interface",
+    "line": 42
+   },
+   {
+    "name": "N131x",
+    "type": "interface",
+    "line": 155
+   },
+   {
+    "name": "N134x",
+    "type": "interface",
+    "line": 158
+   },
+   {
+    "name": "MetricBox",
+    "type": "interface",
+    "line": 524
+   },
+   {
+    "name": "N132x",
+    "type": "implementation",
+    "line": 156
+   },
+   {
+    "name": "MetricBox",
+    "type": "implementation",
+    "line": 529
+   },
+   {
+    "name": "N133x",
+    "type": "protocol",
+    "line": 157
+   },
+   {
+    "name": "N134x",
+    "type": "category",
+    "line": 158
+   }
+  ]
+ },
+ ".lua": {
+  "file": "sample.lua",
+  "classCount": 6,
+  "classes": [
+   {
+    "name": "N135x",
+    "type": "table_class",
+    "line": 160
+   },
+   {
+    "name": "MetricBox",
+    "type": "table_class",
+    "line": 490
+   },
+   {
+    "name": "N136x",
+    "type": "global_table",
+    "line": 161
+   },
+   {
+    "name": "N137x",
+    "type": "class_constructor",
+    "line": 162
+   },
+   {
+    "name": "MetricBox",
+    "type": "class_constructor",
+    "line": 492
+   },
+   {
+    "name": "N138x",
+    "type": "class_declaration",
+    "line": 163
+   }
+  ]
+ },
+ ".erl": {
+  "file": "sample.erl",
+  "classCount": 5,
+  "classes": [
+   {
+    "name": "N139x",
+    "type": "module",
+    "line": 165
+   },
+   {
+    "name": "erlang_metrics",
+    "type": "module",
+    "line": 307
+   },
+   {
+    "name": "N140x",
+    "type": "record",
+    "line": 166
+   },
+   {
+    "name": "N141x",
+    "type": "behaviour",
+    "line": 167
+   },
+   {
+    "name": "N142x",
+    "type": "behavior",
+    "line": 168
+   }
+  ]
+ },
+ ".hrl": {
+  "file": "sample.hrl",
+  "classCount": 5,
+  "classes": [
+   {
+    "name": "N139x",
+    "type": "module",
+    "line": 165
+   },
+   {
+    "name": "erlang_metrics",
+    "type": "module",
+    "line": 307
+   },
+   {
+    "name": "N140x",
+    "type": "record",
+    "line": 166
+   },
+   {
+    "name": "N141x",
+    "type": "behaviour",
+    "line": 167
+   },
+   {
+    "name": "N142x",
+    "type": "behavior",
+    "line": 168
+   }
+  ]
+ },
+ ".pl": {
+  "file": "sample.pl",
+  "classCount": 6,
+  "classes": [
+   {
+    "name": "class",
+    "type": "package",
+    "line": 32
+   },
+   {
+    "name": "Outer::Inner::Leaf",
+    "type": "package",
+    "line": 170
+   },
+   {
+    "name": "manualtest",
+    "type": "package",
+    "line": 384
+   },
+   {
+    "name": "MetricBox",
+    "type": "package",
+    "line": 556
+   },
+   {
+    "name": "N144x",
+    "type": "moose_class",
+    "line": 171
+   },
+   {
+    "name": "N145x",
+    "type": "mouse_class",
+    "line": 172
+   }
+  ]
+ },
+ ".pm": {
+  "file": "sample.pm",
+  "classCount": 6,
+  "classes": [
+   {
+    "name": "class",
+    "type": "package",
+    "line": 32
+   },
+   {
+    "name": "Outer::Inner::Leaf",
+    "type": "package",
+    "line": 170
+   },
+   {
+    "name": "manualtest",
+    "type": "package",
+    "line": 384
+   },
+   {
+    "name": "MetricBox",
+    "type": "package",
+    "line": 556
+   },
+   {
+    "name": "N144x",
+    "type": "moose_class",
+    "line": 171
+   },
+   {
+    "name": "N145x",
+    "type": "mouse_class",
+    "line": 172
+   }
+  ]
+ },
+ ".pod": {
+  "file": "sample.pod",
+  "classCount": 6,
+  "classes": [
+   {
+    "name": "class",
+    "type": "package",
+    "line": 32
+   },
+   {
+    "name": "Outer::Inner::Leaf",
+    "type": "package",
+    "line": 170
+   },
+   {
+    "name": "manualtest",
+    "type": "package",
+    "line": 384
+   },
+   {
+    "name": "MetricBox",
+    "type": "package",
+    "line": 556
+   },
+   {
+    "name": "N144x",
+    "type": "moose_class",
+    "line": 171
+   },
+   {
+    "name": "N145x",
+    "type": "mouse_class",
+    "line": 172
+   }
+  ]
+ },
+ ".t": {
+  "file": "sample.t",
+  "classCount": 6,
+  "classes": [
+   {
+    "name": "class",
+    "type": "package",
+    "line": 32
+   },
+   {
+    "name": "Outer::Inner::Leaf",
+    "type": "package",
+    "line": 170
+   },
+   {
+    "name": "manualtest",
+    "type": "package",
+    "line": 384
+   },
+   {
+    "name": "MetricBox",
+    "type": "package",
+    "line": 556
+   },
+   {
+    "name": "N144x",
+    "type": "moose_class",
+    "line": 171
+   },
+   {
+    "name": "N145x",
+    "type": "mouse_class",
+    "line": 172
+   }
+  ]
+ },
+ ".vue": {
+  "file": "sample.vue",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 3
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 5
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 7
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 25
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 43
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 56
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 72
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 96
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 100
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 107
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 134
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 166
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 195
+   },
+   {
+    "name": "N4x",
+    "type": "exported_class",
+    "line": 8
+   },
+   {
+    "name": "N147x",
+    "type": "exported_class",
+    "line": 167
+   },
+   {
+    "name": "N5x",
+    "type": "default_class",
+    "line": 9
+   },
+   {
+    "name": "N148x",
+    "type": "default_class",
+    "line": 168
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 10
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 36
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 92
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 101
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 137
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 169
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 11
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 29
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 77
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 103
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 140
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 170
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 186
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 193
+   },
+   {
+    "name": "N8x",
+    "type": "exported_interface",
+    "line": 12
+   },
+   {
+    "name": "N151x",
+    "type": "exported_interface",
+    "line": 171
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 13
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 52
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 128
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 172
+   },
+   {
+    "name": "N10x",
+    "type": "exported_type",
+    "line": 14
+   },
+   {
+    "name": "N153x",
+    "type": "exported_type",
+    "line": 173
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 15
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 33
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 62
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 63
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 64
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 87
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 105
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 110
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 124
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 142
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 174
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 180
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 198
+   },
+   {
+    "name": "N12x",
+    "type": "exported_enum",
+    "line": 16
+   },
+   {
+    "name": "N155x",
+    "type": "exported_enum",
+    "line": 175
+   }
+  ]
+ },
+ ".c": {
+  "file": "sample.c",
+  "classCount": 10,
+  "classes": [
+   {
+    "name": "N58z",
+    "type": "typedef_struct",
+    "line": 74
+   },
+   {
+    "name": "N156x",
+    "type": "typedef_struct",
+    "line": 185
+   },
+   {
+    "name": "MetricPair",
+    "type": "typedef_struct",
+    "line": 212
+   },
+   {
+    "name": "N157x",
+    "type": "struct",
+    "line": 186
+   },
+   {
+    "name": "MetricBox",
+    "type": "struct",
+    "line": 758
+   },
+   {
+    "name": "N158x",
+    "type": "typedef_enum",
+    "line": 187
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N160x",
+    "type": "typedef_union",
+    "line": 189
+   },
+   {
+    "name": "N161x",
+    "type": "union",
+    "line": 190
+   },
+   {
+    "name": "N162x",
+    "type": "typedef",
+    "line": 191
+   }
+  ]
+ },
+ ".sol": {
+  "file": "sample.sol",
+  "classCount": 12,
+  "classes": [
+   {
+    "name": "N163x",
+    "type": "contract",
+    "line": 193
+   },
+   {
+    "name": "MetricBox",
+    "type": "contract",
+    "line": 731
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   },
+   {
+    "name": "N165x",
+    "type": "library",
+    "line": 195
+   },
+   {
+    "name": "N166x",
+    "type": "abstract_contract",
+    "line": 196
+   }
+  ]
+ },
+ ".f": {
+  "file": "sample.f",
+  "classCount": 22,
+  "classes": [
+   {
+    "name": "N167x",
+    "type": "type",
+    "line": 198
+   },
+   {
+    "name": "N9x",
+    "type": "type",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type",
+    "line": 60
+   },
+   {
+    "name": "N106x",
+    "type": "type",
+    "line": 127
+   },
+   {
+    "name": "N107x",
+    "type": "type",
+    "line": 128
+   },
+   {
+    "name": "N108x",
+    "type": "type",
+    "line": 129
+   },
+   {
+    "name": "N114x",
+    "type": "type",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type",
+    "line": 180
+   },
+   {
+    "name": "N168x",
+    "type": "type",
+    "line": 199
+   },
+   {
+    "name": "MetricBox",
+    "type": "type",
+    "line": 385
+   },
+   {
+    "name": "N87x",
+    "type": "module",
+    "line": 105
+   },
+   {
+    "name": "N169x",
+    "type": "module",
+    "line": 200
+   },
+   {
+    "name": "metrics_mod",
+    "type": "module",
+    "line": 333
+   },
+   {
+    "name": "ttcn_metrics",
+    "type": "module",
+    "line": 784
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   }
+  ]
+ },
+ ".f90": {
+  "file": "sample.f90",
+  "classCount": 22,
+  "classes": [
+   {
+    "name": "N167x",
+    "type": "type",
+    "line": 198
+   },
+   {
+    "name": "N9x",
+    "type": "type",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type",
+    "line": 60
+   },
+   {
+    "name": "N106x",
+    "type": "type",
+    "line": 127
+   },
+   {
+    "name": "N107x",
+    "type": "type",
+    "line": 128
+   },
+   {
+    "name": "N108x",
+    "type": "type",
+    "line": 129
+   },
+   {
+    "name": "N114x",
+    "type": "type",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type",
+    "line": 180
+   },
+   {
+    "name": "N168x",
+    "type": "type",
+    "line": 199
+   },
+   {
+    "name": "MetricBox",
+    "type": "type",
+    "line": 385
+   },
+   {
+    "name": "N87x",
+    "type": "module",
+    "line": 105
+   },
+   {
+    "name": "N169x",
+    "type": "module",
+    "line": 200
+   },
+   {
+    "name": "metrics_mod",
+    "type": "module",
+    "line": 333
+   },
+   {
+    "name": "ttcn_metrics",
+    "type": "module",
+    "line": 784
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   }
+  ]
+ },
+ ".f95": {
+  "file": "sample.f95",
+  "classCount": 22,
+  "classes": [
+   {
+    "name": "N167x",
+    "type": "type",
+    "line": 198
+   },
+   {
+    "name": "N9x",
+    "type": "type",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type",
+    "line": 60
+   },
+   {
+    "name": "N106x",
+    "type": "type",
+    "line": 127
+   },
+   {
+    "name": "N107x",
+    "type": "type",
+    "line": 128
+   },
+   {
+    "name": "N108x",
+    "type": "type",
+    "line": 129
+   },
+   {
+    "name": "N114x",
+    "type": "type",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type",
+    "line": 180
+   },
+   {
+    "name": "N168x",
+    "type": "type",
+    "line": 199
+   },
+   {
+    "name": "MetricBox",
+    "type": "type",
+    "line": 385
+   },
+   {
+    "name": "N87x",
+    "type": "module",
+    "line": 105
+   },
+   {
+    "name": "N169x",
+    "type": "module",
+    "line": 200
+   },
+   {
+    "name": "metrics_mod",
+    "type": "module",
+    "line": 333
+   },
+   {
+    "name": "ttcn_metrics",
+    "type": "module",
+    "line": 784
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   }
+  ]
+ },
+ ".f03": {
+  "file": "sample.f03",
+  "classCount": 22,
+  "classes": [
+   {
+    "name": "N167x",
+    "type": "type",
+    "line": 198
+   },
+   {
+    "name": "N9x",
+    "type": "type",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type",
+    "line": 60
+   },
+   {
+    "name": "N106x",
+    "type": "type",
+    "line": 127
+   },
+   {
+    "name": "N107x",
+    "type": "type",
+    "line": 128
+   },
+   {
+    "name": "N108x",
+    "type": "type",
+    "line": 129
+   },
+   {
+    "name": "N114x",
+    "type": "type",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type",
+    "line": 180
+   },
+   {
+    "name": "N168x",
+    "type": "type",
+    "line": 199
+   },
+   {
+    "name": "MetricBox",
+    "type": "type",
+    "line": 385
+   },
+   {
+    "name": "N87x",
+    "type": "module",
+    "line": 105
+   },
+   {
+    "name": "N169x",
+    "type": "module",
+    "line": 200
+   },
+   {
+    "name": "metrics_mod",
+    "type": "module",
+    "line": 333
+   },
+   {
+    "name": "ttcn_metrics",
+    "type": "module",
+    "line": 784
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   }
+  ]
+ },
+ ".f08": {
+  "file": "sample.f08",
+  "classCount": 22,
+  "classes": [
+   {
+    "name": "N167x",
+    "type": "type",
+    "line": 198
+   },
+   {
+    "name": "N9x",
+    "type": "type",
+    "line": 21
+   },
+   {
+    "name": "N46x",
+    "type": "type",
+    "line": 60
+   },
+   {
+    "name": "N106x",
+    "type": "type",
+    "line": 127
+   },
+   {
+    "name": "N107x",
+    "type": "type",
+    "line": 128
+   },
+   {
+    "name": "N108x",
+    "type": "type",
+    "line": 129
+   },
+   {
+    "name": "N114x",
+    "type": "type",
+    "line": 136
+   },
+   {
+    "name": "N152x",
+    "type": "type",
+    "line": 180
+   },
+   {
+    "name": "N168x",
+    "type": "type",
+    "line": 199
+   },
+   {
+    "name": "MetricBox",
+    "type": "type",
+    "line": 385
+   },
+   {
+    "name": "N87x",
+    "type": "module",
+    "line": 105
+   },
+   {
+    "name": "N169x",
+    "type": "module",
+    "line": 200
+   },
+   {
+    "name": "metrics_mod",
+    "type": "module",
+    "line": 333
+   },
+   {
+    "name": "ttcn_metrics",
+    "type": "module",
+    "line": 784
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 19
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 37
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 85
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 111
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 148
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 178
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 194
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 201
+   }
+  ]
+ },
+ ".gd": {
+  "file": "sample.gd",
+  "classCount": 34,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "N172x",
+    "type": "class_name",
+    "line": 204
+   },
+   {
+    "name": "MetricBox",
+    "type": "class_name",
+    "line": 365
+   },
+   {
+    "name": "N173x",
+    "type": "extends",
+    "line": 205
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".dart": {
+  "file": "sample.dart",
+  "classCount": 50,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N6x",
+    "type": "class",
+    "line": 18
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N31x",
+    "type": "class",
+    "line": 44
+   },
+   {
+    "name": "N33x",
+    "type": "class",
+    "line": 46
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N38x",
+    "type": "class",
+    "line": 52
+   },
+   {
+    "name": "N40x",
+    "type": "class",
+    "line": 54
+   },
+   {
+    "name": "N41x",
+    "type": "class",
+    "line": 55
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N83x",
+    "type": "class",
+    "line": 100
+   },
+   {
+    "name": "N84x",
+    "type": "class",
+    "line": 101
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N90x",
+    "type": "class",
+    "line": 109
+   },
+   {
+    "name": "N91x",
+    "type": "class",
+    "line": 110
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N105x",
+    "type": "class",
+    "line": 125
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N121x",
+    "type": "class",
+    "line": 144
+   },
+   {
+    "name": "N122x",
+    "type": "class",
+    "line": 145
+   },
+   {
+    "name": "N124x",
+    "type": "class",
+    "line": 147
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N149x",
+    "type": "class",
+    "line": 177
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "DartSample",
+    "type": "class",
+    "line": 911
+   },
+   {
+    "name": "DartMixin",
+    "type": "mixin",
+    "line": 912
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   },
+   {
+    "name": "N100x",
+    "type": "extension",
+    "line": 120
+   },
+   {
+    "name": "DartExtension",
+    "type": "extension",
+    "line": 913
+   }
+  ]
+ },
+ ".ps1": {
+  "file": "sample.ps1",
+  "classCount": 32,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "PsUpperSample",
+    "type": "class",
+    "line": 914
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".psm1": {
+  "file": "sample.psm1",
+  "classCount": 32,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 11
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 13
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   },
+   {
+    "name": "PsUpperSample",
+    "type": "class",
+    "line": 914
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 23
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 41
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 70
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 71
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 72
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 95
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 113
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 118
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 132
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 150
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 182
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 188
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 206
+   }
+  ]
+ },
+ ".r": {
+  "file": "sample.r",
+  "classCount": 3,
+  "classes": [
+   {
+    "name": "RS4Sample",
+    "type": "s4_class",
+    "line": 915
+   },
+   {
+    "name": "RRefSample",
+    "type": "reference_class",
+    "line": 916
+   },
+   {
+    "name": "RSixSample",
+    "type": "r6_class",
+    "line": 917
+   }
+  ]
+ },
+ ".sh": {
+  "file": "sample.sh",
+  "classCount": 0,
+  "classes": []
+ },
+ ".bash": {
+  "file": "sample.bash",
+  "classCount": 0,
+  "classes": []
+ },
+ ".xyz": {
+  "file": "sample.xyz",
+  "classCount": 0,
+  "classes": [],
+  "warning": "Unsupported file extension: .xyz"
+ },
+ ".pyw": {
+  "file": "sample.pyw",
+  "classCount": 0,
+  "classes": [],
+  "warning": "Unsupported file extension: .pyw"
+ },
+ ".mjs": {
+  "file": "sample.mjs",
+  "classCount": 0,
+  "classes": [],
+  "warning": "Unsupported file extension: .mjs"
+ },
+ ".PY": {
+  "file": "sample.PY",
+  "classCount": 18,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "dataclass",
+    "line": 10
+   },
+   {
+    "name": "N2x",
+    "type": "dataclass",
+    "line": 12
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 15
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 33
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 51
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 64
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 80
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 104
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 108
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 115
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 142
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 174
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 203
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 243
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 464
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 587
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 613
+   },
+   {
+    "name": "MetricBox",
+    "type": "class",
+    "line": 673
+   }
+  ]
+ },
+ ".Vue": {
+  "file": "sample.Vue",
+  "classCount": 55,
+  "classes": [
+   {
+    "name": "N1x",
+    "type": "class",
+    "line": 3
+   },
+   {
+    "name": "N2x",
+    "type": "class",
+    "line": 5
+   },
+   {
+    "name": "N3x",
+    "type": "class",
+    "line": 7
+   },
+   {
+    "name": "N20x",
+    "type": "class",
+    "line": 25
+   },
+   {
+    "name": "N37x",
+    "type": "class",
+    "line": 43
+   },
+   {
+    "name": "N49x",
+    "type": "class",
+    "line": 56
+   },
+   {
+    "name": "N63x",
+    "type": "class",
+    "line": 72
+   },
+   {
+    "name": "N86x",
+    "type": "class",
+    "line": 96
+   },
+   {
+    "name": "N89x",
+    "type": "class",
+    "line": 100
+   },
+   {
+    "name": "N95x",
+    "type": "class",
+    "line": 107
+   },
+   {
+    "name": "N119x",
+    "type": "class",
+    "line": 134
+   },
+   {
+    "name": "N146x",
+    "type": "class",
+    "line": 166
+   },
+   {
+    "name": "N171x",
+    "type": "class",
+    "line": 195
+   },
+   {
+    "name": "N4x",
+    "type": "exported_class",
+    "line": 8
+   },
+   {
+    "name": "N147x",
+    "type": "exported_class",
+    "line": 167
+   },
+   {
+    "name": "N5x",
+    "type": "default_class",
+    "line": 9
+   },
+   {
+    "name": "N148x",
+    "type": "default_class",
+    "line": 168
+   },
+   {
+    "name": "N6x",
+    "type": "abstract_class",
+    "line": 10
+   },
+   {
+    "name": "N31x",
+    "type": "abstract_class",
+    "line": 36
+   },
+   {
+    "name": "N38x",
+    "type": "abstract_class",
+    "line": 44
+   },
+   {
+    "name": "N83x",
+    "type": "abstract_class",
+    "line": 92
+   },
+   {
+    "name": "N90x",
+    "type": "abstract_class",
+    "line": 101
+   },
+   {
+    "name": "N122x",
+    "type": "abstract_class",
+    "line": 137
+   },
+   {
+    "name": "N149x",
+    "type": "abstract_class",
+    "line": 169
+   },
+   {
+    "name": "N7x",
+    "type": "interface",
+    "line": 11
+   },
+   {
+    "name": "N24x",
+    "type": "interface",
+    "line": 29
+   },
+   {
+    "name": "N68x",
+    "type": "interface",
+    "line": 77
+   },
+   {
+    "name": "N92x",
+    "type": "interface",
+    "line": 103
+   },
+   {
+    "name": "N125x",
+    "type": "interface",
+    "line": 140
+   },
+   {
+    "name": "N150x",
+    "type": "interface",
+    "line": 170
+   },
+   {
+    "name": "N164x",
+    "type": "interface",
+    "line": 186
+   },
+   {
+    "name": "N170x",
+    "type": "interface",
+    "line": 193
+   },
+   {
+    "name": "N8x",
+    "type": "exported_interface",
+    "line": 12
+   },
+   {
+    "name": "N151x",
+    "type": "exported_interface",
+    "line": 171
+   },
+   {
+    "name": "N9x",
+    "type": "type_alias",
+    "line": 13
+   },
+   {
+    "name": "N46x",
+    "type": "type_alias",
+    "line": 52
+   },
+   {
+    "name": "N114x",
+    "type": "type_alias",
+    "line": 128
+   },
+   {
+    "name": "N152x",
+    "type": "type_alias",
+    "line": 172
+   },
+   {
+    "name": "N10x",
+    "type": "exported_type",
+    "line": 14
+   },
+   {
+    "name": "N153x",
+    "type": "exported_type",
+    "line": 173
+   },
+   {
+    "name": "N11x",
+    "type": "enum",
+    "line": 15
+   },
+   {
+    "name": "N28x",
+    "type": "enum",
+    "line": 33
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 62
+   },
+   {
+    "name": "struct",
+    "type": "enum",
+    "line": 63
+   },
+   {
+    "name": "N57x",
+    "type": "enum",
+    "line": 64
+   },
+   {
+    "name": "N78x",
+    "type": "enum",
+    "line": 87
+   },
+   {
+    "name": "N94x",
+    "type": "enum",
+    "line": 105
+   },
+   {
+    "name": "N98x",
+    "type": "enum",
+    "line": 110
+   },
+   {
+    "name": "N110x",
+    "type": "enum",
+    "line": 124
+   },
+   {
+    "name": "class",
+    "type": "enum",
+    "line": 142
+   },
+   {
+    "name": "N154x",
+    "type": "enum",
+    "line": 174
+   },
+   {
+    "name": "N159x",
+    "type": "enum",
+    "line": 180
+   },
+   {
+    "name": "N174x",
+    "type": "enum",
+    "line": 198
+   },
+   {
+    "name": "N12x",
+    "type": "exported_enum",
+    "line": 16
+   },
+   {
+    "name": "N155x",
+    "type": "exported_enum",
+    "line": 175
+   }
+  ]
+ }
+}

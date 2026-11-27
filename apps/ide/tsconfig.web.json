@@ -1,0 +1,13 @@
+{
+  "//": "Renderer: DOM types only. No Node types, so a Node API used here fails the type check. Of the core it may use only the pure core/metrics (#173/#178) and core/xr (#19).",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": [],
+    "paths": {
+      "@codexr/core/metrics/*": ["./.core-types/core/metrics/*"],
+      "@codexr/core/xr/*": ["./.core-types/core/xr/*"]
+    }
+  },
+  "include": ["src/renderer/**/*.ts", "src/shared/**/*.ts"]
+}

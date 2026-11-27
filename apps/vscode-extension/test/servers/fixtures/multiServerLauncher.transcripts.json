@@ -1,0 +1,1692 @@
+{
+  "http, browser, auto-open, scene file and metadata": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"My scene\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"My scene\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"My scene\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"My scene\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: Received custom name from launcher: My scene",
+      "log: ACTIVE_SERVERS: Registering server with name: My scene",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"My scene\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "analysis-1"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "http, no scene file: the templates root, no main file": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<undefined>\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <project>/templates",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<undefined>\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<project>/templates",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "<undefined>",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "http, lateral panel, auto-open": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"lateralPanel\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"lateralPanel\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/lateralPanel)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=lateralPanel",
+      "log: SERVER: Auto-opening server in lateralPanel mode",
+      "log: SERVER: Opening server server-3000-<time> in lateral panel via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-<time> (http://localhost:3000) in lateral panel",
+      "log: ACTIVE_SERVER: Successfully opened http://localhost:3000 in lateral panel"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "lateralPanel",
+        "server-3000-<time>"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in VS Code panel",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "https-default, browser, busy port moves to the next free one": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"Secure\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTPS\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"https-default\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 already in use. Searching for next available port (3001)...",
+      "log: SERVER: Free port found at 3001. Launching server...",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3001 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTPS server with generated local certificates...",
+      "log: SERVER: Starting https-default server...",
+      "log: SERVER: Port 3000 already in use. Using port 3001 instead.",
+      "log: SERVER: Successfully launched https-default server on port 3001",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"Secure\"]",
+      "log: SERVER: DEBUG - port: [3001]",
+      "log: SERVER: DEBUG - url: [\"https://localhost:3001\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3001,\"customName\":\"Secure\",\"url\":\"https://localhost:3001\",\"launchMode\":\"browser\",\"certMode\":\"https-default\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3001,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"Secure\",\"url\":\"https://localhost:3001\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3001-<time> at https://localhost:3001 (https-default/browser)",
+      "log: ACTIVE_SERVERS: Received custom name from launcher: Secure",
+      "log: ACTIVE_SERVERS: Registering server with name: Secure",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3001-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3001-<time>\"]",
+      "log: SERVER: Registered server customName: [\"Secure\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3001-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3001-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3001-<time> in browser",
+      "log: ACTIVE_SERVER: Opened https://localhost:3001 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "https-default",
+        "config": {
+          "port": 3001,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "https-default"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ],
+      [
+        "findAvailablePort",
+        3001,
+        3100
+      ]
+    ],
+    "previews": [
+      [
+        "https://localhost:3001/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "https://localhost:3001",
+        "serverType": "https-default",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3001-<time>",
+        "port": 3001,
+        "httpsOverridden": false,
+        "portChanged": true,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Port 3000 was busy, launching server on port 3001 instead.",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Opened https://localhost:3001 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "https-custom, browser: certificate paths reach the server, redacted in the log": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTPS\",\"https\":{\"certSource\":\"custom\",\"certPath\":\"***REDACTED***\",\"keyPath\":\"***REDACTED***\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"https-custom\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTPS server with custom certificates...",
+      "log: SERVER: Starting https-custom server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched https-custom server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"https://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"https://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"https-custom\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"https://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at https://localhost:3000 (https-custom/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened https://localhost:3000 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "https-custom",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "certPath": "<fixture>/certs/cert.pem",
+          "keyPath": "<fixture>/certs/key.pem",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "analysis-2"
+        }
+      }
+    ],
+    "started": [
+      "https-custom"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "https://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "https://localhost:3000",
+        "serverType": "https-custom",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Opened https://localhost:3000 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "https-custom without certificate paths fails before any server starts": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTPS\",\"https\":{\"certSource\":\"custom\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"https-custom\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTPS server with custom certificates...",
+      "error: SERVER: Error launching https-custom server: [\"<Error: Custom certificate paths are required for custom HTTPS server>\"]"
+    ],
+    "constructed": [],
+    "started": [],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [],
+    "results": [
+      {
+        "success": false,
+        "error": "Custom certificate paths are required for custom HTTPS server",
+        "httpsOverridden": false
+      }
+    ],
+    "runningCount": 0,
+    "messages": [],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "https + lateral panel: HTTP override, the dialog answered \"Change to Browser Mode\"": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTPS\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"lateralPanel\"}}]",
+      "log: SERVER: HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility",
+      "log: SERVER: Original server type would have been: https-default",
+      "log: SERVER: VS Code webview panels do not support HTTPS content, using HTTP fallback",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: *** IMPORTANT *** Temporarily overriding HTTPS to HTTP for lateral panel compatibility",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"lateralPanel\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/lateralPanel)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=lateralPanel",
+      "log: SERVER: Auto-opening server in lateralPanel mode",
+      "log: SERVER: Opening server server-3000-<time> in lateral panel via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-<time> (http://localhost:3000) in lateral panel",
+      "log: ACTIVE_SERVER: Successfully opened http://localhost:3000 in lateral panel"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "lateralPanel",
+        "server-3000-<time>"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": true,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "warning",
+        "message": "Launching in HTTP mode due to VS Code limitations: lateral panel views do not support HTTPS content. Use browser mode to preserve HTTPS.",
+        "items": [
+          "Change to Browser Mode"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in VS Code panel",
+        "items": []
+      }
+    ],
+    "executedCommands": [
+      {
+        "id": "codexr.server.config.openMode",
+        "args": []
+      }
+    ],
+    "clipboard": ""
+  },
+  "https-custom + lateral panel: HTTP override, the dialog dismissed": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTPS\",\"https\":{\"certSource\":\"custom\",\"certPath\":\"***REDACTED***\",\"keyPath\":\"***REDACTED***\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"lateralPanel\"}}]",
+      "log: SERVER: HTTPS + Lateral Panel conflict detected - overriding to HTTP for compatibility",
+      "log: SERVER: Original server type would have been: https-custom",
+      "log: SERVER: VS Code webview panels do not support HTTPS content, using HTTP fallback",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: *** IMPORTANT *** Temporarily overriding HTTPS to HTTP for lateral panel compatibility",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"lateralPanel\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/lateralPanel)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=lateralPanel",
+      "log: SERVER: Auto-opening server in lateralPanel mode",
+      "log: SERVER: Opening server server-3000-<time> in lateral panel via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-<time> (http://localhost:3000) in lateral panel",
+      "log: ACTIVE_SERVER: Successfully opened http://localhost:3000 in lateral panel"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "lateralPanel",
+        "server-3000-<time>"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": true,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "warning",
+        "message": "Launching in HTTP mode due to VS Code limitations: lateral panel views do not support HTTPS content. Use browser mode to preserve HTTPS.",
+        "items": [
+          "Change to Browser Mode"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in VS Code panel",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "no auto-open on a LAN address, answered \"Copy Network URL\"": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":false,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=false, mode=browser",
+      "log: SERVER: Auto-open is disabled, showing success notification only",
+      "log: SERVER: Network access URL: http://192.0.2.10:3000"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Server launched successfully! Network: http://192.0.2.10:3000 Local: http://localhost:3000",
+        "items": [
+          "Open Now",
+          "Copy Network URL"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Network URL copied to clipboard",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": "http://192.0.2.10:3000"
+  },
+  "no auto-open, answered \"Open Now\" in browser mode": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":false,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=false, mode=browser",
+      "log: SERVER: Auto-open is disabled, showing success notification only",
+      "log: SERVER: Network access URL: http://192.0.2.10:3000",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Server launched successfully! Network: http://192.0.2.10:3000 Local: http://localhost:3000",
+        "items": [
+          "Open Now",
+          "Copy Network URL"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "no auto-open, answered \"Open Now\" in panel mode": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":false,\"openMode\":\"lateralPanel\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"lateralPanel\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/lateralPanel)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=false, mode=lateralPanel",
+      "log: SERVER: Auto-open is disabled, showing success notification only",
+      "log: SERVER: Network access URL: http://192.0.2.10:3000",
+      "log: SERVER: Opening server server-3000-<time> in lateral panel via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in lateral panel",
+      "log: ACTIVE_SERVER: Opening HTTP server server-3000-<time> (http://localhost:3000) in lateral panel",
+      "log: ACTIVE_SERVER: Successfully opened http://localhost:3000 in lateral panel"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "lateralPanel",
+        "server-3000-<time>"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Server launched successfully! Network: http://192.0.2.10:3000 Local: http://localhost:3000",
+        "items": [
+          "Open Now",
+          "Copy Network URL"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in VS Code panel",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "no auto-open without a LAN address: plain toast, \"Copy Network URL\" copies nothing": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTPS\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":false,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"https-default\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTPS server with generated local certificates...",
+      "log: SERVER: Starting https-default server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched https-default server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"https://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"https://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"https-default\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"https://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at https://localhost:3000 (https-default/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=false, mode=browser",
+      "log: SERVER: Auto-open is disabled, showing success notification only"
+    ],
+    "constructed": [
+      {
+        "kind": "https-default",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "https-default"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "https://localhost:3000",
+        "serverType": "https-default",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Server launched successfully on https://localhost:3000",
+        "items": [
+          "Open Now",
+          "Copy Network URL"
+        ]
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "auto-open fails in the registry lookup, answered \"Open Manually\"": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "error: SERVER: Failed to open server in browser: Error: registry lookup failed",
+      "error: SERVER: Error during auto-opening: [\"<Error: registry lookup failed>\"]",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "warning",
+        "message": "Server launched but failed to auto-open: registry lookup failed",
+        "items": [
+          "Open Manually"
+        ]
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "auto-open: the preview itself fails": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: No custom name provided. Using default name: localhost:3000",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"<undefined>\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "error: ACTIVE_SERVER: Error opening http://localhost:3000 in browser: [\"<Error: no browser available>\"]"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 1,
+    "messages": [
+      {
+        "kind": "error",
+        "message": "Failed to open in browser: no browser available",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "server start rejects": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "error: SERVER: Error launching http server: [\"<Error: EADDRINUSE: address already in use>\"]"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [],
+    "results": [
+      {
+        "success": false,
+        "error": "EADDRINUSE: address already in use",
+        "httpsOverridden": false
+      }
+    ],
+    "runningCount": 0,
+    "messages": [],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "no free port anywhere": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 already in use. Searching for next available port (3001)...",
+      "error: SERVER: Failed to find available port starting from 3001: [\"<Error: No available ports found in range>\"]",
+      "error: SERVER: Error during multi-server launch: [\"<Error: No available ports found starting from 3000: No available ports found in range>\"]"
+    ],
+    "constructed": [],
+    "started": [],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ],
+      [
+        "findAvailablePort",
+        3001,
+        3100
+      ]
+    ],
+    "previews": [],
+    "results": [
+      {
+        "success": false,
+        "error": "Failed to launch server: No available ports found starting from 3000: No available ports found in range"
+      }
+    ],
+    "runningCount": 0,
+    "messages": [],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "registration fails: the server is stopped and the launch fails": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"<undefined>\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "error: SERVER: Failed to register server in registry: [\"<Error: registry unavailable>\"]"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [],
+    "results": [
+      {
+        "success": false,
+        "error": "Failed to register the server: registry unavailable",
+        "httpsOverridden": false
+      }
+    ],
+    "runningCount": 0,
+    "messages": [],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "invalid mode": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"<undefined>\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"FTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "error: SERVER: Error during multi-server launch: [\"<Error: Invalid server mode: FTP>\"]"
+    ],
+    "constructed": [],
+    "started": [],
+    "portCalls": [],
+    "previews": [],
+    "results": [
+      {
+        "success": false,
+        "error": "Failed to launch server: Invalid server mode: FTP"
+      }
+    ],
+    "runningCount": 0,
+    "messages": [],
+    "executedCommands": [],
+    "clipboard": ""
+  },
+  "two launches on one launcher": {
+    "console": [
+      "log: SERVER: Multi-server launcher initialized",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"first\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"first\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Service initialized",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"first\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: ACTIVE_SERVERS: Registry initialized",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"first\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: Received custom name from launcher: first",
+      "log: ACTIVE_SERVERS: Registering server with name: first",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"first\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 1 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser",
+      "log: SERVER: Starting multi-server launch process...",
+      "log: SERVER: launchServer called with parameters: [{\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"second\"}]",
+      "log: SERVER: Loaded settings: [{\"mode\":\"HTTP\",\"https\":{\"certSource\":\"default\",\"certPath\":\"<undefined>\",\"keyPath\":\"<undefined>\"},\"defaultPort\":3000,\"launch\":{\"autoOpen\":true,\"openMode\":\"browser\"}}]",
+      "log: SERVER: Determined server type: [\"http\"]",
+      "log: SERVER: Checking availability of port 3000...",
+      "log: SERVER: Port 3000 is available",
+      "log: SERVER: DEBUG - Configuring server to listen on 0.0.0.0:3000 for network access",
+      "log: SERVER: Using static root: <fixture>/scene",
+      "log: SERVER: Main file configured: index.html",
+      "log: SERVER: Creating HTTP server...",
+      "log: SERVER: Starting http server...",
+      "log: SERVER: Using requested port 3000",
+      "log: SERVER: Successfully launched http server on port 3000",
+      "log: SERVER: DEBUG - About to register server with the following details:",
+      "log: SERVER: DEBUG - customName: [\"second\"]",
+      "log: SERVER: DEBUG - port: [3000]",
+      "log: SERVER: DEBUG - url: [\"http://localhost:3000\"]",
+      "log: SERVER_REGISTRAR: Registering server with config: [{\"port\":3000,\"customName\":\"second\",\"url\":\"http://localhost:3000\",\"launchMode\":\"browser\",\"certMode\":\"http\"}]",
+      "log: SERVER: registerServer called with config: [{\"port\":3000,\"htmlFile\":\"<fixture>/scene/index.html\",\"customName\":\"second\",\"url\":\"http://localhost:3000\"}]",
+      "log: ACTIVE_SERVERS: Registered server server-3000-<time> at http://localhost:3000 (http/browser)",
+      "log: ACTIVE_SERVERS: Received custom name from launcher: second",
+      "log: ACTIVE_SERVERS: Registering server with name: second",
+      "log: SERVER_REGISTRAR: Successfully registered server server-3000-<time>",
+      "log: SERVER: Successfully registered server with registry:",
+      "log: SERVER: Registered server ID: [\"server-3000-<time>\"]",
+      "log: SERVER: Registered server customName: [\"second\"]",
+      "log: SERVER: Successfully registered server server_<time>_<random> (active ID: server-3000-<time>) via registrar service",
+      "log: SERVER: Currently managing 2 server(s)",
+      "log: SERVER: Auto-open configuration: enabled=true, mode=browser",
+      "log: SERVER: Auto-opening server in browser mode",
+      "log: SERVER: Opening server server-3000-<time> in browser via shared handler",
+      "log: ACTIVE_SERVER: Opening server server-3000-<time> in browser",
+      "log: ACTIVE_SERVER: Opened http://localhost:3000 in browser"
+    ],
+    "constructed": [
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      },
+      {
+        "kind": "http",
+        "config": {
+          "port": 3000,
+          "host": "0.0.0.0",
+          "staticRoot": "<fixture>/scene",
+          "enableCors": true,
+          "allowedOrigins": [
+            "*"
+          ],
+          "mainFile": "index.html",
+          "extensionContext": "<extensionContext>",
+          "analysisSessionId": "<undefined>"
+        }
+      }
+    ],
+    "started": [
+      "http",
+      "http"
+    ],
+    "portCalls": [
+      [
+        "isPortAvailable",
+        3000
+      ],
+      [
+        "isPortAvailable",
+        3000
+      ]
+    ],
+    "previews": [
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ],
+      [
+        "http://localhost:3000/?codexr_token=fixture",
+        "<fixture>/scene/index.html",
+        "browser"
+      ]
+    ],
+    "results": [
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      },
+      {
+        "success": true,
+        "serverUrl": "http://localhost:3000",
+        "serverType": "http",
+        "serverId": "server_<time>_<random>",
+        "activeServerId": "server-3000-<time>",
+        "port": 3000,
+        "httpsOverridden": false,
+        "portChanged": false,
+        "originalPort": 3000
+      }
+    ],
+    "runningCount": 2,
+    "messages": [
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      },
+      {
+        "kind": "info",
+        "message": "Opened http://localhost:3000 in browser",
+        "items": []
+      }
+    ],
+    "executedCommands": [],
+    "clipboard": ""
+  }
+}

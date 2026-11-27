@@ -1,0 +1,141 @@
+/* Source Control (#17): the side-bar view, the branch in the status bar, and the diff view. */
+
+.status-left { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.status-left > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.status-branch { display: flex; flex-shrink: 0; }
+.scm-branch { display: inline-flex; align-items: center; gap: 4px; }
+.scm-branch[hidden] { display: none; }
+.scm-branch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.activity-item { position: relative; }
+.scm-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--status-fg);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+.scm-badge[hidden] { display: none; }
+
+.scm-empty[hidden], .scm-commit-box[hidden], .scm-groups[hidden] { display: none; }
+.scm-commit-box { display: grid; gap: 6px; margin: 0 12px 10px; }
+.scm-message {
+  width: 100%;
+  min-height: 52px;
+  resize: vertical;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.scm-message:focus { outline: 1px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.scm-commit-box .scm-commit { margin: 0; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.scm-commit svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.scm-groups { display: flex; flex-direction: column; }
+.scm-group-header, .scm-change {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 8px 0 12px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.scm-group-header { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.scm-group-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.scm-change { padding-left: 20px; cursor: pointer; }
+.scm-change:hover, .scm-group-header:hover { background: var(--hover); }
+.scm-change:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+.scm-name { flex-shrink: 0; }
+.scm-change.is-deleted .scm-name { text-decoration: line-through; }
+.scm-folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.scm-row-actions { display: none; gap: 1px; flex-shrink: 0; }
+.scm-change:hover .scm-row-actions, .scm-change:focus-within .scm-row-actions,
+.scm-group-header:hover .scm-row-actions, .scm-group-header:focus-within .scm-row-actions { display: flex; }
+.scm-row-actions .icon-button { width: 20px; height: 20px; }
+.scm-row-actions .icon-button svg { width: 14px; height: 14px; }
+.scm-count {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--hover);
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.scm-letter { flex-shrink: 0; width: 14px; text-align: center; font-size: 12px; font-weight: 600; }
+.scm-letter[data-letter='M'], .scm-letter[data-letter='T'] { color: var(--warn); }
+.scm-letter[data-letter='A'], .scm-letter[data-letter='U'], .scm-letter[data-letter='C'] { color: #3fb950; }
+.scm-letter[data-letter='D'], .scm-letter[data-letter='!'] { color: var(--crit); }
+.scm-letter[data-letter='R'] { color: var(--accent); }
+@media (prefers-color-scheme: light) {
+  .scm-letter[data-letter='A'], .scm-letter[data-letter='U'], .scm-letter[data-letter='C'] { color: #1a7f37; }
+}
+
+/* The diff view covers the editor area while it is open. */
+.editor-area { position: relative; }
+.scm-diff {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--editor);
+}
+.scm-diff:focus { outline: none; }
+.scm-diff-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 35px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--chrome);
+  white-space: nowrap;
+  min-width: 0;
+}
+.scm-diff-title { flex-shrink: 0; }
+.scm-diff-folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.scm-diff-actions { display: flex; align-items: center; gap: 6px; }
+.scm-diff-open { padding: 3px 8px; font-size: 12px; }
+.scm-diff-open[hidden] { display: none; }
+.scm-diff-host { flex: 1; min-height: 0; }
+
+/* #175: the explorer's rows follow the Git status: a colour, and a letter on files. */
+.tree-row[data-git] .tree-label { color: var(--git-colour); }
+.tree-row[data-git='modified'], .tree-row[data-git='renamed'] { --git-colour: var(--warn); }
+.tree-row[data-git='added'], .tree-row[data-git='untracked'] { --git-colour: #3fb950; }
+.tree-row[data-git='deleted'], .tree-row[data-git='conflict'] { --git-colour: var(--crit); }
+.tree-git-letter { flex-shrink: 0; margin-left: auto; padding: 0 8px 0 6px; font-size: 11px; font-weight: 600; color: var(--git-colour); }
+@media (prefers-color-scheme: light) {
+  .tree-row[data-git='added'], .tree-row[data-git='untracked'] { --git-colour: #1a7f37; }
+}
+
+/* #175: the editor's change markers, beside the metric strip (#178), and the peek under a change. */
+.monaco-editor .git-gutter { width: 3px !important; margin-left: 7px; cursor: pointer; }
+.monaco-editor .git-gutter.is-added { background: #3fb950; }
+.monaco-editor .git-gutter.is-modified { background: var(--accent); }
+.monaco-editor .git-gutter.is-deleted { width: 7px !important; background: linear-gradient(to top, var(--crit) 0 3px, transparent 3px); }
+@media (prefers-color-scheme: light) {
+  .monaco-editor .git-gutter.is-added { background: #1a7f37; }
+}
+.monaco-editor .git-blame-inline { color: var(--muted); opacity: 0.75; font-style: italic; }
+.git-peek { box-sizing: border-box; display: flex; flex-direction: column; border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); background: var(--panel); font-size: 12px; }
+.git-peek-header { flex: none; display: flex; align-items: center; gap: 6px; height: 28px; padding: 4px 8px; box-sizing: border-box; }
+.git-peek-title { flex: 1; color: var(--muted); }
+.git-peek-original { flex: 1; margin: 0; padding: 0 8px 4px; overflow: auto; color: var(--crit); white-space: pre; }
+.git-peek-note { margin: 0; padding: 0 8px 4px; }

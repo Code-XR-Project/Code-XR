@@ -1,0 +1,252 @@
+name: CI
+
+# The same gates a developer runs locally, on every pull request to master or
+# to a release branch (v1.2.1, ...).
+# Nothing here is CI-only: if it is green locally it should be green here, and
+# the other way round.
+#
+# The repository is an npm-workspaces monorepo: `npm ci` and the root scripts
+# run from the repository root and delegate to apps/vscode-extension; the
+# Python backend lives in backend/.
+#
+# Deliberately absent: secrets, third-party actions, coverage or telemetry
+# uploaders. The browser harnesses run on Linux only (job `harnesses`): the
+# scene libraries they need are vendored under
+# apps/vscode-extension/test/vendor/scene-libraries, so they need no CDN.
+
+on:
+  pull_request:
+    branches:
+      - master
+      - 'v[0-9]*'
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DO_NOT_TRACK: '1'
+  npm_config_audit: 'false'
+  npm_config_fund: 'false'
+  npm_config_update_notifier: 'false'
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  # The Electron binary (~100 MB) is only needed by the IDE smoke job, which
+  # turns this back off. Type checking and unit tests use the package's types.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+jobs:
+  gate:
+    name: npm test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # The repo is developed on Windows with a CRLF working tree; ubuntu and
+    # macOS are its LF/POSIX runs. All three block: the extension and the
+    # future IDE must work on each. (Making the checks *required* for merging
+    # is a branch-protection setting on GitHub, which only the maintainer can
+    # change.)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Extension: typecheck + lint + compile-tests + unit suites (no webpack
+      # build). IDE: typecheck + lint + unit tests.
+      - name: Gate
+        run: npm test
+
+  python:
+    name: python suites (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Development tools only (ruff, and the pinned lizard the metrics
+      # differential test re-checks its frozen golden with), from backend/requirements-dev.txt.
+      # setup-python puts its interpreter first on PATH on every runner OS.
+      - name: Install backend dev tools
+        run: python -m pip install -r backend/requirements-dev.txt
+
+      # `npm run lint:python`: ruff check with backend/ruff.toml. A missing ruff
+      # is a failure, never a skip.
+      - name: Lint Python
+        run: node backend/scripts/run-ruff.cjs
+        env:
+          CODEXR_PYTHON: ${{ steps.python.outputs.python-path }}
+
+      # The next runners only use Node builtins, so they need no npm ci. With CI set, a
+      # runner that finds no interpreter fails instead of skipping.
+      - name: Backend unit suites
+        run: node backend/scripts/run-python-tests.cjs
+        env:
+          CODEXR_PYTHON: ${{ steps.python.outputs.python-path }}
+
+      # `npm run test:analysis`: builds a clean venv and measures the
+      # per-language fixtures with Code-XR's own metrics analyzer (no lizard).
+      - name: Per-language analysis fixtures
+        run: node backend/scripts/run-analysis-tests.cjs
+
+      # This suite also loads the compiled LivePanelParser from out/, which the
+      # steps above never needed: install and compile the tests first.
+      - name: Install
+        run: npm ci
+
+      - name: Compile tests
+        run: npm run compile-tests
+
+      - name: HTML DOM analysis
+        run: node apps/vscode-extension/test/runners/run-html-analysis-tests.cjs
+
+      # #13: the core runs one analysis with no VS Code at all (a stub host and
+      # the venv the fixture step above built).
+      - name: Core without VS Code
+        run: node apps/vscode-extension/test/runners/run-core-smoke.cjs
+
+  ide-smoke:
+    name: IDE smoke (${{ matrix.os }})
+    # Builds the Code-XR IDE and launches it hidden with --codexr-smoke: the
+    # real window must open and, from inside the page, prove that the renderer
+    # is sandboxed (no require/process), the CSP blocks eval, navigation and
+    # window.open are blocked, and the preload API answers over IPC (#12).
+    # #137: it also opens the terminal panel with the default profile (Git
+    # Bash on windows-latest, $SHELL elsewhere), types `echo codexr-smoke` and
+    # reads the output back. node-pty is a native module, but an N-API one
+    # with prebuilt binaries for win32/darwin/linux x64 and arm64 in its npm
+    # package, so `npm ci` compiles nothing and the same binary loads in
+    # Electron: no @electron/rebuild step, no compiler on the runner.
+    runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor,
+      # which Chromium's sandbox needs. Re-allow them on the runner instead of
+      # launching Electron with --no-sandbox, so the smoke run keeps the real
+      # sandbox.
+      - name: Allow the Chromium sandbox (Linux)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Smoke (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run ide:smoke
+
+      - name: Smoke
+        if: runner.os != 'Linux'
+        run: npm run ide:smoke
+
+  harnesses:
+    name: browser harnesses (ubuntu-latest)
+    # Real A-Frame scenes in headless Chromium (S15, #87). The harnesses block
+    # every non-local request and serve the scene libraries from the vendored
+    # copies, so the only download here is Playwright's own Chromium.
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Harnesses
+        run: npm run test:harnesses
+
+  package:
+    name: package the VSIX
+    if: github.event_name != 'push'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Package
+        run: npm run package:vsix
+
+      # The built package against what must and must not ship (the files
+      # allowlist is the only control; there is no .vscodeignore). The listing
+      # is uploaded so a reviewer can diff two runs.
+      - name: Check the VSIX listing
+        run: node apps/vscode-extension/scripts/vsix-listing.mjs --out vsix-listing.txt
+
+      # What ships, hashed: reviewers can compare two runs of a cleanup branch.
+      - name: Fingerprint dist
+        run: node apps/vscode-extension/scripts/dist-fingerprint.mjs --out dist-fingerprint.json
+
+      - name: Upload the VSIX, its fingerprint and its listing
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-xr-vsix
+          path: |
+            apps/vscode-extension/artifacts/*.vsix
+            dist-fingerprint.json
+            vsix-listing.txt
+          retention-days: 14
+          if-no-files-found: error

@@ -1,0 +1,610 @@
+{
+  "generatedBy": "python backend/tests/dependencies/regenerate_golden.py",
+  "pins": "analyze_file_dependencies; the real code_metrics_analyzer",
+  "capabilities": {
+    "Python": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Ruby": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Java": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "C": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "C++": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "C#": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Erlang": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Fortran": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "GDScript": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Go": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "JavaScript": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Kotlin": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Lua": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Objective-C": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "PHP": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Perl": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Scala": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Solidity": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Swift": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "TypeScript": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "TTCN-3": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Vue": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Zig": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Rust": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Dart": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "Shell": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "PowerShell": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"},
+    "R": {"import": "exact", "include": "exact", "require": "exact", "inheritance": "best-effort", "implementation": "best-effort", "call": "best-effort", "contains": "exact"}
+  },
+  "cases": {
+    "fixture corpus: python_sample.py": {
+      "payload": {
+        "schemaVersion": 2,
+        "revision": 0,
+        "targetType": "file",
+        "targetRelativePath": "python_sample.py",
+        "nodes": [
+          {
+            "id": "symbol:042eb1dc1382b440",
+            "kind": "symbol",
+            "symbolKind": "module",
+            "label": "python_sample.py",
+            "relativePath": "python_sample.py",
+            "language": "Python",
+            "external": false,
+            "lineStart": 1,
+            "lineEnd": 3,
+            "metrics": {"totalLines": 3, "fanIn": 0, "fanOut": 1, "degree": 1, "dependentCount": 0, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "file:6641e1be5075de0d",
+            "kind": "file",
+            "label": "shared.gd",
+            "relativePath": "shared.gd",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          }
+        ],
+        "edges": [{"id": "edge:bc415585c7c62219", "source": "symbol:042eb1dc1382b440", "target": "file:6641e1be5075de0d", "kind": "import", "confidence": "exact", "occurrences": 1}],
+        "warnings": [],
+        "capabilities": "<the capabilities block at the top of this document>",
+        "generatedAt": ""
+      }
+    },
+    "fixture corpus: cpp_sample.cpp": {
+      "payload": {
+        "schemaVersion": 2,
+        "revision": 0,
+        "targetType": "file",
+        "targetRelativePath": "cpp_sample.cpp",
+        "nodes": [
+          {
+            "id": "symbol:7b285fe1f881f097",
+            "kind": "symbol",
+            "symbolKind": "module",
+            "label": "cpp_sample.cpp",
+            "relativePath": "cpp_sample.cpp",
+            "language": "C++",
+            "external": false,
+            "lineStart": 1,
+            "lineEnd": 3,
+            "metrics": {"totalLines": 3, "fanIn": 0, "fanOut": 2, "degree": 2, "dependentCount": 0, "cycleSize": 0, "relationCount": 2}
+          },
+          {
+            "id": "symbol:44fa9bc052b29bb5",
+            "kind": "symbol",
+            "symbolKind": "class",
+            "label": "CppSample",
+            "relativePath": "cpp_sample.cpp",
+            "language": "C++",
+            "external": false,
+            "ownerId": "symbol:7b285fe1f881f097",
+            "lineStart": 2,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "file:1de33a684cee256c",
+            "kind": "file",
+            "label": "shared.h",
+            "relativePath": "shared.h",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          }
+        ],
+        "edges": [
+          {"id": "edge:545d8e4e68cd62ad", "source": "symbol:7b285fe1f881f097", "target": "symbol:44fa9bc052b29bb5", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:b01af91d46acd7b0", "source": "symbol:7b285fe1f881f097", "target": "file:1de33a684cee256c", "kind": "include", "confidence": "exact", "occurrences": 1}
+        ],
+        "warnings": [],
+        "capabilities": "<the capabilities block at the top of this document>",
+        "generatedAt": ""
+      }
+    },
+    "fixture corpus: ttcn_sample.ttcn3": {
+      "payload": {
+        "schemaVersion": 2,
+        "revision": 0,
+        "targetType": "file",
+        "targetRelativePath": "ttcn_sample.ttcn3",
+        "nodes": [
+          {
+            "id": "symbol:34d150637ec0961a",
+            "kind": "symbol",
+            "symbolKind": "module",
+            "label": "ttcn_sample.ttcn3",
+            "relativePath": "ttcn_sample.ttcn3",
+            "language": "TTCN-3",
+            "external": false,
+            "lineStart": 1,
+            "lineEnd": 3,
+            "metrics": {"totalLines": 3, "fanIn": 0, "fanOut": 2, "degree": 2, "dependentCount": 0, "cycleSize": 0, "relationCount": 2}
+          },
+          {
+            "id": "external:6cb90256e0550389",
+            "kind": "external",
+            "label": "from",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "file:6641e1be5075de0d",
+            "kind": "file",
+            "label": "shared.gd",
+            "relativePath": "shared.gd",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          }
+        ],
+        "edges": [
+          {"id": "edge:78038cc568b2ece0", "source": "symbol:34d150637ec0961a", "target": "external:6cb90256e0550389", "kind": "import", "confidence": "exact", "occurrences": 2},
+          {"id": "edge:c5afdcfce6f2e818", "source": "symbol:34d150637ec0961a", "target": "file:6641e1be5075de0d", "kind": "import", "confidence": "exact", "occurrences": 1}
+        ],
+        "warnings": [],
+        "capabilities": "<the capabilities block at the top of this document>",
+        "generatedAt": ""
+      }
+    },
+    "project: worker.py": {
+      "payload": {
+        "schemaVersion": 2,
+        "revision": 0,
+        "targetType": "file",
+        "targetRelativePath": "worker.py",
+        "nodes": [
+          {
+            "id": "symbol:3c5e96565a8b81d1",
+            "kind": "symbol",
+            "symbolKind": "module",
+            "label": "worker.py",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "lineStart": 1,
+            "lineEnd": 47,
+            "metrics": {"totalLines": 47, "fanIn": 0, "fanOut": 17, "degree": 17, "dependentCount": 0, "cycleSize": 0, "relationCount": 18}
+          },
+          {
+            "id": "symbol:48b77f2c908a1085",
+            "kind": "symbol",
+            "symbolKind": "class",
+            "label": "Base",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 7,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2}
+          },
+          {
+            "id": "symbol:450f25e75f256e52",
+            "kind": "symbol",
+            "symbolKind": "class",
+            "label": "Worker",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 12,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 2}
+          },
+          {
+            "id": "symbol:b24a4f1820009c04",
+            "kind": "symbol",
+            "symbolKind": "class",
+            "label": "Late",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 39,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "symbol:69a9f52886f352e2",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "describe",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 10,
+            "lineEnd": 11,
+            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:79cd2df206410ea0",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "run",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 15,
+            "lineEnd": 17,
+            "metrics": {"totalLines": 3, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:1bfb4fb9b47f820c",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "again",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 20,
+            "lineEnd": 21,
+            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:46c6c9a09c35ebe0",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "helper",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 24,
+            "lineEnd": 27,
+            "metrics": {"totalLines": 4, "fanIn": 3, "fanOut": 1, "degree": 4, "dependentCount": 3, "cycleSize": 0, "relationCount": 4, "complexity": 2.0, "parameters": 1, "nestingDepth": 1}
+          },
+          {
+            "id": "symbol:c0d30fea12cda59b",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "ping",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 30,
+            "lineEnd": 32,
+            "metrics": {"totalLines": 2, "fanIn": 3, "fanOut": 1, "degree": 3, "dependentCount": 3, "cycleSize": 2, "relationCount": 4, "complexity": 1.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:9ccee63819a93d22",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "pong",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 35,
+            "lineEnd": 38,
+            "metrics": {"totalLines": 3, "fanIn": 3, "fanOut": 2, "degree": 4, "dependentCount": 3, "cycleSize": 2, "relationCount": 5, "complexity": 1.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:3652530f5723cd16",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "inner",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 36,
+            "lineEnd": 37,
+            "metrics": {"totalLines": 2, "fanIn": 2, "fanOut": 0, "degree": 2, "dependentCount": 2, "cycleSize": 0, "relationCount": 2, "complexity": 0.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:6681d39d19278372",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "pong.inner",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 36,
+            "lineEnd": 37,
+            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1, "complexity": 1.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:e8d242cd3231758b",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "helper",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:3c5e96565a8b81d1",
+            "lineStart": 42,
+            "lineEnd": 43,
+            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:4eda42c424e1ad5c",
+            "kind": "symbol",
+            "symbolKind": "method",
+            "label": "rebase",
+            "relativePath": "worker.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:48b77f2c908a1085",
+            "lineStart": 46,
+            "lineEnd": 47,
+            "metrics": {"totalLines": 2, "fanIn": 2, "fanOut": 1, "degree": 3, "dependentCount": 2, "cycleSize": 0, "relationCount": 3, "complexity": 1.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "external:a32020618c7ef238",
+            "kind": "external",
+            "label": "os",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "external:1a3585c6138675e6",
+            "kind": "external",
+            "label": "vendor_lib",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "external:94413dbe7f7b17e4",
+            "kind": "external",
+            "label": "worker",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "file:3919fe86bc3efab4",
+            "kind": "file",
+            "label": "helpers.py",
+            "relativePath": "helpers.py",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "file:ed848e06e30b8c6d",
+            "kind": "file",
+            "label": "util.py",
+            "relativePath": "package/util.py",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          }
+        ],
+        "edges": [
+          {"id": "edge:c0a4e0362d61c7de", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:48b77f2c908a1085", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:0dfff6cfe54535a2", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:450f25e75f256e52", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:76574584d4049a81", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:b24a4f1820009c04", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:d794617358e6d185", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:69a9f52886f352e2", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:cbf7dedd96b7564f", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:79cd2df206410ea0", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:5c8e5c648901f5a5", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:1bfb4fb9b47f820c", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:26d84d60c8306a28", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:46c6c9a09c35ebe0", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:2ff525f5c63d0a3d", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:c0d30fea12cda59b", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:071716756bb93286", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:9ccee63819a93d22", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:dcc9841ad99c25c1", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:3652530f5723cd16", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:fe83c3aa9bca1c0b", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:6681d39d19278372", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:7599598f7fe761d5", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:e8d242cd3231758b", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:0c68fbf72becaec8", "source": "symbol:48b77f2c908a1085", "target": "symbol:4eda42c424e1ad5c", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:7b4d140519dc1901", "source": "symbol:3c5e96565a8b81d1", "target": "external:a32020618c7ef238", "kind": "import", "confidence": "exact", "occurrences": 2},
+          {"id": "edge:b72f475e58f92138", "source": "symbol:3c5e96565a8b81d1", "target": "file:3919fe86bc3efab4", "kind": "import", "confidence": "exact", "occurrences": 2},
+          {"id": "edge:e32333e5fcf7a0cf", "source": "symbol:3c5e96565a8b81d1", "target": "external:1a3585c6138675e6", "kind": "import", "confidence": "exact", "occurrences": 3},
+          {"id": "edge:56e1c7a111247d65", "source": "symbol:3c5e96565a8b81d1", "target": "file:ed848e06e30b8c6d", "kind": "import", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:bd3dfcb4a2870d6d", "source": "symbol:3c5e96565a8b81d1", "target": "external:94413dbe7f7b17e4", "kind": "import", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:c4075b35319fffb2", "source": "symbol:69a9f52886f352e2", "target": "symbol:46c6c9a09c35ebe0", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:2e63d16798c71b78", "source": "symbol:3c5e96565a8b81d1", "target": "symbol:450f25e75f256e52", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:150151c03ccc21b7", "source": "symbol:79cd2df206410ea0", "target": "symbol:46c6c9a09c35ebe0", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:f31a2ee964efef53", "source": "symbol:46c6c9a09c35ebe0", "target": "symbol:9ccee63819a93d22", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:746c2301c2c8ac28", "source": "symbol:c0d30fea12cda59b", "target": "symbol:9ccee63819a93d22", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:4d24c527c85aef79", "source": "symbol:9ccee63819a93d22", "target": "symbol:c0d30fea12cda59b", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:c2ae7a578cdc9d3e", "source": "symbol:9ccee63819a93d22", "target": "symbol:3652530f5723cd16", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:5fd8932162f90235", "source": "symbol:e8d242cd3231758b", "target": "symbol:4eda42c424e1ad5c", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:6414a0282272e212", "source": "symbol:4eda42c424e1ad5c", "target": "symbol:c0d30fea12cda59b", "kind": "call", "confidence": "ambiguous", "occurrences": 1}
+        ],
+        "warnings": [],
+        "capabilities": "<the capabilities block at the top of this document>",
+        "generatedAt": ""
+      }
+    },
+    "project: shapes.ts": {
+      "payload": {
+        "schemaVersion": 2,
+        "revision": 0,
+        "targetType": "file",
+        "targetRelativePath": "shapes.ts",
+        "nodes": [
+          {
+            "id": "symbol:174b92869fdf7c3b",
+            "kind": "symbol",
+            "symbolKind": "module",
+            "label": "shapes.ts",
+            "relativePath": "shapes.ts",
+            "language": "TypeScript",
+            "external": false,
+            "lineStart": 1,
+            "lineEnd": 22,
+            "metrics": {"totalLines": 22, "fanIn": 0, "fanOut": 8, "degree": 8, "dependentCount": 0, "cycleSize": 0, "relationCount": 8}
+          },
+          {
+            "id": "symbol:8cdb13fc9f43f2f6",
+            "kind": "symbol",
+            "symbolKind": "interface",
+            "label": "Shape",
+            "relativePath": "shapes.ts",
+            "language": "TypeScript",
+            "external": false,
+            "ownerId": "symbol:174b92869fdf7c3b",
+            "lineStart": 5,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "symbol:9e01e82c36d80668",
+            "kind": "symbol",
+            "symbolKind": "class",
+            "label": "Circle",
+            "relativePath": "shapes.ts",
+            "language": "TypeScript",
+            "external": false,
+            "ownerId": "symbol:174b92869fdf7c3b",
+            "lineStart": 9,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 3, "degree": 4, "dependentCount": 1, "cycleSize": 0, "relationCount": 4}
+          },
+          {
+            "id": "symbol:52065bec22560c86",
+            "kind": "symbol",
+            "symbolKind": "method",
+            "label": "area",
+            "relativePath": "shapes.ts",
+            "language": "TypeScript",
+            "external": false,
+            "ownerId": "symbol:9e01e82c36d80668",
+            "lineStart": 11,
+            "lineEnd": 13,
+            "metrics": {"totalLines": 3, "fanIn": 3, "fanOut": 1, "degree": 3, "dependentCount": 3, "cycleSize": 2, "relationCount": 4, "complexity": 1.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:06d623fc35eb5c32",
+            "kind": "symbol",
+            "symbolKind": "method",
+            "label": "compute",
+            "relativePath": "shapes.ts",
+            "language": "TypeScript",
+            "external": false,
+            "ownerId": "symbol:9e01e82c36d80668",
+            "lineStart": 16,
+            "lineEnd": 18,
+            "metrics": {"totalLines": 3, "fanIn": 3, "fanOut": 1, "degree": 3, "dependentCount": 3, "cycleSize": 2, "relationCount": 4, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+          },
+          {
+            "id": "symbol:43e27f83b11791fe",
+            "kind": "symbol",
+            "symbolKind": "method",
+            "label": "standalone",
+            "relativePath": "shapes.ts",
+            "language": "TypeScript",
+            "external": false,
+            "ownerId": "symbol:9e01e82c36d80668",
+            "lineStart": 20,
+            "lineEnd": 22,
+            "metrics": {"totalLines": 3, "fanIn": 1, "fanOut": 1, "degree": 2, "dependentCount": 1, "cycleSize": 0, "relationCount": 2, "complexity": 1.0, "parameters": 0, "nestingDepth": 0}
+          },
+          {
+            "id": "external:4020ebf55ab37c9d",
+            "kind": "external",
+            "label": "fs",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "external:95910421b3d2bc9e",
+            "kind": "external",
+            "label": "../outside",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "external:b3d557e43b720281",
+            "kind": "external",
+            "label": "Base",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "external:c8714330c62979f6",
+            "kind": "external",
+            "label": "Shape",
+            "external": true,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          },
+          {
+            "id": "file:c721056b5b88ec13",
+            "kind": "file",
+            "label": "geometry.ts",
+            "relativePath": "geometry.ts",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          }
+        ],
+        "edges": [
+          {"id": "edge:ae334f72d3753448", "source": "symbol:174b92869fdf7c3b", "target": "symbol:8cdb13fc9f43f2f6", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:9f945b37c28cb767", "source": "symbol:174b92869fdf7c3b", "target": "symbol:9e01e82c36d80668", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:d823ce656b1a8a06", "source": "symbol:9e01e82c36d80668", "target": "symbol:52065bec22560c86", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:12932a45967d4fe4", "source": "symbol:9e01e82c36d80668", "target": "symbol:06d623fc35eb5c32", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:4f40874b8ea38e1b", "source": "symbol:9e01e82c36d80668", "target": "symbol:43e27f83b11791fe", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:651dd2741876ba53", "source": "symbol:174b92869fdf7c3b", "target": "file:c721056b5b88ec13", "kind": "import", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:d7bc99310b152549", "source": "symbol:174b92869fdf7c3b", "target": "external:4020ebf55ab37c9d", "kind": "import", "confidence": "exact", "occurrences": 2},
+          {"id": "edge:27962323a35fc70c", "source": "symbol:174b92869fdf7c3b", "target": "external:95910421b3d2bc9e", "kind": "import", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:d6ca9d06b84cfb27", "source": "symbol:174b92869fdf7c3b", "target": "external:b3d557e43b720281", "kind": "inheritance", "confidence": "probable", "occurrences": 1},
+          {"id": "edge:8aa22f1b638c2683", "source": "symbol:174b92869fdf7c3b", "target": "external:c8714330c62979f6", "kind": "implementation", "confidence": "probable", "occurrences": 1},
+          {"id": "edge:e8a29406caf01210", "source": "symbol:174b92869fdf7c3b", "target": "symbol:52065bec22560c86", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:9a2adb0989d91e8d", "source": "symbol:52065bec22560c86", "target": "symbol:06d623fc35eb5c32", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:f6ba21541b6a91a2", "source": "symbol:06d623fc35eb5c32", "target": "symbol:52065bec22560c86", "kind": "call", "confidence": "ambiguous", "occurrences": 1},
+          {"id": "edge:5de0794262488084", "source": "symbol:43e27f83b11791fe", "target": "symbol:06d623fc35eb5c32", "kind": "call", "confidence": "ambiguous", "occurrences": 1}
+        ],
+        "warnings": [],
+        "capabilities": "<the capabilities block at the top of this document>",
+        "generatedAt": ""
+      }
+    },
+    "project: package/util.py": {
+      "payload": {
+        "schemaVersion": 2,
+        "revision": 0,
+        "targetType": "file",
+        "targetRelativePath": "package/util.py",
+        "nodes": [
+          {
+            "id": "symbol:93c06f5456831637",
+            "kind": "symbol",
+            "symbolKind": "module",
+            "label": "util.py",
+            "relativePath": "package/util.py",
+            "language": "Python",
+            "external": false,
+            "lineStart": 1,
+            "lineEnd": 5,
+            "metrics": {"totalLines": 5, "fanIn": 0, "fanOut": 2, "degree": 2, "dependentCount": 0, "cycleSize": 0, "relationCount": 2}
+          },
+          {
+            "id": "symbol:8f4c4d4537391caf",
+            "kind": "symbol",
+            "symbolKind": "function",
+            "label": "tool",
+            "relativePath": "package/util.py",
+            "language": "Python",
+            "external": false,
+            "ownerId": "symbol:93c06f5456831637",
+            "lineStart": 4,
+            "lineEnd": 5,
+            "metrics": {"totalLines": 2, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1, "complexity": 1.0, "parameters": 1, "nestingDepth": 0}
+          },
+          {
+            "id": "file:3919fe86bc3efab4",
+            "kind": "file",
+            "label": "helpers.py",
+            "relativePath": "helpers.py",
+            "external": false,
+            "metrics": {"totalLines": 0, "fanIn": 1, "fanOut": 0, "degree": 1, "dependentCount": 1, "cycleSize": 0, "relationCount": 1}
+          }
+        ],
+        "edges": [
+          {"id": "edge:65da4407304058e7", "source": "symbol:93c06f5456831637", "target": "symbol:8f4c4d4537391caf", "kind": "contains", "confidence": "exact", "occurrences": 1},
+          {"id": "edge:08928194463f4996", "source": "symbol:93c06f5456831637", "target": "file:3919fe86bc3efab4", "kind": "import", "confidence": "exact", "occurrences": 2}
+        ],
+        "warnings": [],
+        "capabilities": "<the capabilities block at the top of this document>",
+        "generatedAt": ""
+      }
+    }
+  }
+}

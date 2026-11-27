@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cylinder Chart - BabiaXR Example</title>
+    <meta name="description" content="A 3D cylinder chart built with the babia-cyls component: height and radius each encode a value.">
+    <!-- Same library versions as the Code-XR scene templates. -->
+    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-babia-components@1.3.4/dist/aframe-babia-components.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.5.0/dist/aframe-environment-component.min.js"></script>
+</head>
+<body>
+    <a-scene background="color: #cfdbe6">
+        <!-- Environment and lights. A light backdrop keeps BabiaXR's axis
+             labels (always drawn in black) readable. -->
+        <a-entity environment="preset: default; skyType: gradient; skyColor: #cfdbe6; horizonColor: #eef3f7;
+                               ground: flat; groundColor: #b9c4ce; groundColor2: #b9c4ce;
+                               grid: 1x1; gridColor: #a3afbb; dressing: none; lighting: none; fog: 0"></a-entity>
+        <a-light type="ambient" intensity="1"></a-light>
+        <a-light type="directional" intensity="1.8" position="-4 10 8"></a-light>
+
+        <!-- Title (a plain a-text: BabiaXR titles ignore titleColor on A-Frame 1.7) -->
+        <a-text value="Sales (height) and units in stock (radius)" color="#1b2430" align="center" width="10"
+                position="0 9 0"></a-text>
+
+        <!-- Cylinder chart: one cylinder per product, height = sales, radius = units in stock -->
+        <a-entity babia-cyls='x_axis: product;
+                              height: sales;
+                              radius: stock;
+                              chartHeight: 7;
+                              radiusMax: 1.2;
+                              palette: ubuntu;
+                              legend: true;
+                              data: [
+                                {"product": "Laptops", "sales": 1350, "stock": 30},
+                                {"product": "Phones", "sales": 980, "stock": 45},
+                                {"product": "Tablets", "sales": 450, "stock": 15},
+                                {"product": "Accessories", "sales": 1200, "stock": 25}
+                              ]'
+                  position="-4.3 0 0"></a-entity>
+
+        <!-- Camera rig: drag to look around, WASD / arrow keys to move.
+             Hover over a bar, slice or bubble to see its value. -->
+        <a-entity id="rig" movement-controls="fly: true" position="0 4.2 9.5" rotation="0 0 0">
+            <a-entity camera position="0 0 0" look-controls></a-entity>
+            <a-entity laser-controls="hand: right"></a-entity>
+        </a-entity>
+        <a-entity cursor="rayOrigin: mouse"></a-entity>
+    </a-scene>
+</body>
+</html>

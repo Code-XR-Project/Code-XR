@@ -1,0 +1,16 @@
+{
+  "output": "virtualScreenRuntime.js",
+  "parts": [
+    "moduleAndConfig.js",
+    "sourcesAndChrome.js",
+    "visibilityAndLayout.js",
+    "sharedState.js",
+    "webrtcPeers.js",
+    "relayTransport.js",
+    "signalingAndRemote.js",
+    "placementRegistry.js",
+    "followAndTransform.js",
+    "pointerAndDrag.js",
+    "wiringAndApi.js"
+  ]
+}

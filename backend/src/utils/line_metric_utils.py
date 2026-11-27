@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""
+Shared helpers for file line metrics.
+"""
+
+from __future__ import annotations
+
+from xr_field_schema import safe_ratio
+
+
+def read_text_lines(file_path: str) -> list[str]:
+    try:
+        with open(file_path, encoding='utf-8', errors='ignore') as file:
+            return file.readlines()
+    except (OSError, ValueError):
+        return []
+
+
+def build_line_metrics(file_path: str, comment_lines: int = 0) -> dict[str, float]:
+    lines = read_text_lines(file_path)
+    total_lines = len(lines)
+    blank_lines = sum(1 for line in lines if not line.strip())
+    safe_comment_lines = max(int(comment_lines or 0), 0)
+    code_lines = max(total_lines - safe_comment_lines - blank_lines, 0)
+
+    return {
+        'totalLines': total_lines,
+        'codeLines': code_lines,
+        'commentLines': safe_comment_lines,
+        'blankLines': blank_lines,
+        'commentRatio': safe_ratio(safe_comment_lines, total_lines),
+        'codeRatio': safe_ratio(code_lines, total_lines),
+        'blankRatio': safe_ratio(blank_lines, total_lines),
+    }

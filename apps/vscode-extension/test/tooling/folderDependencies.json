@@ -1,0 +1,168 @@
+{
+  "description": "Allowed import directions between the folders of src/ (stories #42, #55). A folder is the first directory under src/, or the first two under the areas in `twoLevelAreas`. Checked by test/tooling/dependencyDirection.test.cjs; `node test/tooling/folderDependencies.cjs` prints the measured matrix. When files move, rewrite this file, not the test.",
+  "twoLevelAreas": [
+    "core",
+    "features"
+  ],
+  "layers": [
+    "app",
+    "features",
+    "core",
+    "platform",
+    "shared"
+  ],
+  "layersNote": "Top to bottom: a folder may import its own layer or a lower one, never a higher one, and a feature never imports another feature. Folders outside these areas (the pre-#55 tree, `(root)`) are not ranked. Each exception needs a reason.",
+  "layerExceptions": {
+    "features/active-servers->features/collaboration": "The COLLABORATION tree group is nested inside ACTIVE SERVERS by design (ARCHITECTURE \"Activation flow\"): ActiveServersSectionProvider builds it with CollaborationSectionProvider and activeServerItems uses collaborationItems. The alternative, moving the two collaboration view files under features/active-servers/views/, was left to the maintainer (src-layout.md §3.5)."
+  },
+  "mayImport": {
+    "(root)": [
+      "app",
+      "core/analysis",
+      "core/collaboration",
+      "core/host",
+      "core/remote-access",
+      "core/server",
+      "features/active-servers",
+      "features/analysis",
+      "features/metrics-in-editor",
+      "features/python-env",
+      "platform"
+    ],
+    "app": [
+      "core/host",
+      "core/python-env",
+      "core/server",
+      "features/active-servers",
+      "features/ai-agents",
+      "features/analysis",
+      "features/collaboration",
+      "features/examples",
+      "features/learn-more",
+      "features/python-env",
+      "features/servers",
+      "features/visualization-settings",
+      "features/visualize-data",
+      "platform"
+    ],
+    "core/analysis": [
+      "core/charts",
+      "core/history",
+      "core/host",
+      "core/python-env",
+      "core/server",
+      "platform",
+      "shared"
+    ],
+    "core/charts": [
+      "core/host",
+      "platform",
+      "shared"
+    ],
+    "core/collaboration": [
+      "core/host",
+      "platform"
+    ],
+    "core/dependencies": [
+      "core/analysis",
+      "core/host"
+    ],
+    "core/export": [
+      "core/analysis",
+      "core/history",
+      "core/host",
+      "core/python-env",
+      "platform"
+    ],
+    "core/history": [
+      "core/analysis",
+      "core/host"
+    ],
+    "core/host": [],
+    "core/metrics": [],
+    "core/xr": [],
+    "core/python-env": [
+      "core/host",
+      "platform"
+    ],
+    "core/remote-access": [
+      "core/collaboration",
+      "core/host",
+      "core/server",
+      "platform"
+    ],
+    "core/server": [
+      "core/analysis",
+      "core/collaboration",
+      "core/dependencies",
+      "core/history",
+      "core/host",
+      "core/remote-access",
+      "platform",
+      "shared"
+    ],
+    "features/active-servers": [
+      "core/collaboration",
+      "core/remote-access",
+      "core/server",
+      "core/xr",
+      "features/collaboration",
+      "platform"
+    ],
+    "features/ai-agents": [
+      "platform"
+    ],
+    "features/analysis": [
+      "core/analysis",
+      "core/charts",
+      "core/export",
+      "core/server",
+      "platform"
+    ],
+    "features/collaboration": [
+      "core/collaboration",
+      "core/remote-access",
+      "platform"
+    ],
+    "features/examples": [
+      "core/server",
+      "platform"
+    ],
+    "features/learn-more": [
+      "platform"
+    ],
+    "features/metrics-in-editor": [
+      "core/analysis",
+      "core/metrics",
+      "platform"
+    ],
+    "features/python-env": [
+      "core/python-env",
+      "platform"
+    ],
+    "features/servers": [
+      "core/remote-access",
+      "core/server",
+      "platform"
+    ],
+    "features/visualization-settings": [
+      "core/charts",
+      "platform"
+    ],
+    "features/visualize-data": [
+      "core/charts",
+      "core/server",
+      "platform",
+      "shared"
+    ],
+    "platform": [],
+    "shared": []
+  },
+  "twoWayPairs": {
+    "core/analysis<->core/history": "Was inside code_analysis before #55. The Git history services compose the analysis session, the session registry, ExecutePython, the configuration storage and the analysis file policy (core/history -> core/analysis), while the re-analysis watchers publish on analysisUpdateEvents (core/analysis/watchers -> core/history/analysisUpdateEvents.ts). Moving that event bus next to the watchers would remove the pair.",
+    "core/analysis<->core/server": "The analysis<->server pair of docs/cleanup/src-layout.md §3.5. The analysis bridges are hosted by the HTTP server (core/server/analysis/* -> core/analysis refresh, watchers and the session registry) and stopping a server closes its analysis session (core/server/serverControl.ts -> core/analysis/session); the analysis engine launches and notifies servers (core/analysis/session-servers -> multiServerLauncher, SSEManager, fileToServerMap, ServerSettingsManager). Inverting it means registering the bridges from the analysis side and an event or callback seam for the session (#13).",
+    "core/remote-access<->core/server": "The servers authorize remote requests with RemoteSessionAuthority and the remote-access model (core/server -> core/remote-access), and RemoteAccessManager watches the running-server registry to stop a tunnel when its server goes and reads and turns off the cross-network setting through ServerSettingsManager (core/remote-access -> core/server). Breaking it needs that setting and the registry events behind an injected accessor (#13)."
+  },
+  "vscodeFreeFloor": 195,
+  "vscodeFreeNote": "src files from which no import path reaches `vscode` (type imports included). 97 when #42 started; may only go up. Raise the floor when it does. #55 batch 0 lowered it 109 -> 106 only because three vscode-free re-export barrels were deleted (configuration/models, customComponents, refresh index.ts); no surviving file lost the property. #13 step 1 raised it 106 -> 116: 114 measured on v1.2.1 at 6f827a19 (docs/ide/vscode-api-inventory.md), plus the two vscode-free files of the new core/host seam. #13 step 2 raised it 116 -> 118 (core/host/hostPaths.ts and core/analysis/python/backendScriptPath.ts). #13 step 2b raised it 118 -> 122 (settingsFile, generatedHttpsCertificateManager, pythonEnvStorage, themeUtils take structural FileLocation/GlobalStorageContext). #173/#178 raised it by 3: core/metrics/functionMetrics.ts, core/metrics/functionMetricsTracker.ts and core/analysis/analysisEvents.ts, shared with the Code-XR IDE. #19 raised it 190 -> 195, measured: core/xr/headsetQr.ts (shared with the IDE) and features/active-servers/services/headsetPage.ts among them."
+}

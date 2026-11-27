@@ -1,0 +1,917 @@
+Class-counter golden corpus (roadmap W5-44). Every analyze_classes arm reads this same
+text under its own extension. Part 1 is one generated line per dispatch pattern, wrapped
+in the first script element of the file so the Vue arm (which reads only the first one)
+sees them too; part 2 is the per-language manual_test fixtures as of 1.2.1.
+Edit it only together with golden/analyze_classes.json.
+
+==== part 1: one generated line per pattern ====
+<script>
+# ---- .py ----
+    @dataclass 
+ class N1x
+    @dataclasses.dataclass 
+ class N2x
+# ---- .js ----
+    class N3x
+    export class N4x
+    export default class N5x
+    abstract class N6x
+    interface N7x
+    export interface N8x
+    type N9x =
+    export type N10x =
+    enum N11x
+    export enum N12x
+    const enum N13x
+    declare class N14x
+    declare interface N15x
+# ---- .java ----
+    public class N16x
+    private class N17x
+    protected class N18x
+    package class N19x
+    class N20x
+    public interface N21x
+    private interface N22x
+    protected interface N23x
+    interface N24x
+    public enum N25x
+    private enum N26x
+    protected enum N27x
+    enum N28x
+    @interface N29x
+    public @interface N30x
+    abstract class N31x
+    public abstract class N32x
+    final class N33x
+    public final class N34x
+    public record N35x
+    record N36x
+# ---- .scala ----
+    class N37x
+    abstract class N38x
+    case class N39x
+    sealed class N40x
+    final class N41x
+    object N42x
+    case object N43x
+    trait N44x
+    sealed trait N45x
+    type N46x =
+    implicit class N47x
+    implicit object N48x
+# ---- .cpp ----
+    class N49x
+    struct N50x
+    union N51x
+    template < x> class N52x
+    template < x> struct N53x
+    namespace N54x
+    enum class N55x
+    enum struct N56x
+    enum N57x
+    typedef class N58x
+    typedef struct N58z
+# ---- .cs ----
+    public class N59x
+    private class N60x
+    protected class N61x
+    internal class N62x
+    class N63x
+    public interface N64x
+    private interface N65x
+    protected interface N66x
+    internal interface N67x
+    interface N68x
+    public struct N69x
+    private struct N70x
+    protected struct N71x
+    internal struct N72x
+    struct N73x
+    public enum N74x
+    private enum N75x
+    protected enum N76x
+    internal enum N77x
+    enum N78x
+    public delegate T N79x
+    delegate T N80x
+    public record N81x
+    record N82x
+    abstract class N83x
+    sealed class N84x
+    static class N85x
+# ---- .rb ----
+    class N86x
+    module N87x
+    class << N88x
+# ---- .php ----
+    class N89x
+    abstract class N90x
+    final class N91x
+    interface N92x
+    trait N93x
+    enum N94x
+# ---- .swift ----
+    class N95x
+    struct N96x
+    protocol N97x
+    enum N98x
+    actor N99x
+    extension N100x
+    public class N101x
+    private class N102x
+    internal class N103x
+    open class N104x
+    final class N105x
+# ---- .go ----
+    type N106x struct
+    type N107x interface
+    type N108x T
+# ---- .rs ----
+    struct N109x
+    enum N110x
+    trait N111x
+    impl N112x
+    impl T for N113x
+    type N114x =
+    union N115x
+    pub struct N116x
+    pub enum N117x
+    pub trait N118x
+# ---- .kt ----
+    class N119x
+    data class N120x
+    sealed class N121x
+    abstract class N122x
+    open class N123x
+    final class N124x
+    interface N125x
+    object N126x
+    enum class N127x
+    annotation class N128x
+    inline class N129x
+    value class N130x
+# ---- .m ----
+    @interface N131x
+    @implementation N132x
+    @protocol N133x
+    @interface N134x (C134y)
+# ---- .lua ----
+    local N135x = {}
+    N136x = {}
+    function N137x:new
+    local N138x = class(
+# ---- .erl ----
+    -module ( N139x
+    -record ( N140x
+    -behaviour ( N141x
+    -behavior ( N142x
+# ---- .pl ----
+    package Outer::Inner::Leaf
+    use Moose; package N144x
+    use Mouse; package N145x
+# ---- .vue ----
+    class N146x
+    export class N147x
+    export default class N148x
+    abstract class N149x
+    interface N150x
+    export interface N151x
+    type N152x =
+    export type N153x =
+    enum N154x
+    export enum N155x
+# ---- .c ----
+    typedef struct N156x
+    struct N157x {
+    typedef enum N158x
+    enum N159x {
+    typedef union N160x
+    union N161x {
+    typedef  x N162x;
+# ---- .sol ----
+    contract N163x
+    interface N164x
+    library N165x
+    abstract contract N166x
+# ---- .f ----
+    type :: N167x
+    type N168x
+    module N169x
+    interface N170x
+# ---- .gd ----
+    class N171x
+    class_name N172x
+    extends N173x
+    enum N174x
+</script>
+==== part 2: manual_test fixtures ====
+==== c_metrics.c ====
+// C fixture for CodeXR metrics
+#include <stddef.h>
+
+typedef struct MetricPair {
+    int value;
+    int limit;
+} MetricPair;
+
+int compute(const int *values, size_t count, int limit) {
+    int total = 0;
+    for (size_t index = 0; index < count; ++index) {
+        if (values[index] > limit) {
+            if ((values[index] % 2) == 0) {
+                total += values[index];
+            } else {
+                total += limit;
+            }
+        }
+    }
+    return total;
+}
+
+int helper(MetricPair pair, int offset) {
+    if (pair.value > pair.limit) {
+        if (offset > 0) {
+            return pair.value + offset;
+        }
+    }
+    return pair.limit;
+}
+==== cpp_metrics.cpp ====
+// C++ fixture for CodeXR metrics
+#include <vector>
+
+class MetricBox {
+public:
+    int compute(const std::vector<int>& values, int limit) {
+        int total = 0;
+        for (int value : values) {
+            if (value > limit) {
+                if ((value % 2) == 0) {
+                    total += value;
+                } else {
+                    total += limit;
+                }
+            }
+        }
+        return total;
+    }
+
+    int helper(int value, int offset) {
+        if (value > offset) {
+            if (offset > 0) {
+                return value + offset;
+            }
+        }
+        return value;
+    }
+};
+==== csharp_metrics.cs ====
+// C# fixture for CodeXR metrics
+public class MetricBox
+{
+    public int Compute(int[] values, int limit)
+    {
+        var total = 0;
+        foreach (var value in values)
+        {
+            if (value > limit)
+            {
+                if (value % 2 == 0)
+                {
+                    total += value;
+                }
+                else
+                {
+                    total += limit;
+                }
+            }
+        }
+        return total;
+    }
+
+    public int Helper(int value, int offset)
+    {
+        if (value > offset)
+        {
+            if (offset > 0)
+            {
+                return value + offset;
+            }
+        }
+        return value;
+    }
+}
+==== erlang_metrics.erl ====
+%% Erlang fixture for CodeXR metrics
+-module(erlang_metrics).
+-export([compute/2, helper/2]).
+
+compute(Values, Limit) ->
+    lists:foldl(fun(Value, Acc) ->
+        if
+            Value > Limit ->
+                if
+                    Value rem 2 =:= 0 -> Acc + Value;
+                    true -> Acc + Limit
+                end;
+            true -> Acc
+        end
+    end, 0, Values).
+
+helper(Value, Offset) ->
+    case Value of
+        N when N > Offset ->
+            if
+                Offset > 0 -> N + Offset;
+                true -> N
+            end;
+        _ -> Value
+    end.
+==== fortran_metrics.f90 ====
+! Fortran fixture for CodeXR metrics
+module metrics_mod
+contains
+  integer function compute(values, limit)
+    integer, intent(in) :: values(3), limit
+    integer :: i
+    compute = 0
+    do i = 1, 3
+      if (values(i) > limit) then
+        if (mod(values(i), 2) == 0) then
+          compute = compute + values(i)
+        else
+          compute = compute + limit
+        end if
+      end if
+    end do
+  end function compute
+
+  integer function helper(value, offset)
+    integer, intent(in) :: value, offset
+    if (value > offset) then
+      if (offset > 0) then
+        helper = value + offset
+      else
+        helper = value
+      end if
+    else
+      helper = value
+    end if
+  end function helper
+end module metrics_mod
+==== gdscript_metrics.gd ====
+# GDScript fixture for CodeXR metrics
+class_name MetricBox
+
+func compute(values: Array, limit: int, offset: int) -> int:
+    var total := 0
+    for value in values:
+        if value > limit:
+            if value % 2 == 0:
+                total += value + offset
+            else:
+                total += limit
+    return total
+
+func helper(value: int, seed: int) -> int:
+    if value > seed:
+        if seed > 0:
+            return value + seed
+    return value
+==== go_metrics.go ====
+// Go fixture for CodeXR metrics
+package manualtest
+
+type MetricBox struct {
+	Limit int
+}
+
+func Compute(values []int, limit int) int {
+	total := 0
+	for _, value := range values {
+		if value > limit {
+			if value%2 == 0 {
+				total += value
+			} else {
+				total += limit
+			}
+		}
+	}
+	return total
+}
+
+func Helper(value int, offset int) int {
+	if value > offset {
+		if offset > 0 {
+			return value + offset
+		}
+	}
+	return value
+}
+==== java_metrics.java ====
+// Java fixture for CodeXR metrics
+public class JavaMetrics {
+    public int compute(int[] values, int limit) {
+        int total = 0;
+        for (int value : values) {
+            if (value > limit) {
+                if (value % 2 == 0) {
+                    total += value;
+                } else {
+                    total += limit;
+                }
+            }
+        }
+        return total;
+    }
+
+    public int helper(int value, int offset) {
+        if (value > offset) {
+            if (offset > 0) {
+                return value + offset;
+            }
+        }
+        return value;
+    }
+}
+==== javascript_metrics.js ====
+// JavaScript fixture for CodeXR metrics
+export function compute(values, limit) {
+  let total = 0;
+  for (const value of values) {
+    if (value > limit) {
+      if (value % 2 === 0) {
+        total += value;
+      } else {
+        total += limit;
+      }
+    }
+  }
+  return total;
+}
+
+export function helper(value, offset) {
+  if (value > offset) {
+    if (offset > 0) {
+      return value + offset;
+    }
+  }
+  return value;
+}
+==== kotlin_metrics.kt ====
+// Kotlin fixture for CodeXR metrics
+class MetricBox(private val limit: Int) {
+    fun compute(values: List<Int>, offset: Int): Int {
+        var total = 0
+        for (value in values) {
+            if (value > limit) {
+                if (value % 2 == 0) {
+                    total += value + offset
+                } else {
+                    total += limit
+                }
+            }
+        }
+        return total
+    }
+
+    fun helper(value: Int, offset: Int): Int {
+        if (value > offset) {
+            if (offset > 0) {
+                return value + offset
+            }
+        }
+        return value
+    }
+}
+==== lua_metrics.lua ====
+-- Lua fixture for CodeXR metrics
+local MetricBox = {}
+MetricBox.__index = MetricBox
+
+function MetricBox:new(limit)
+  return setmetatable({ limit = limit }, self)
+end
+
+function MetricBox:compute(values, offset)
+  local total = 0
+  for _, value in ipairs(values) do
+    if value > self.limit then
+      if value % 2 == 0 then
+        total = total + value + offset
+      else
+        total = total + self.limit
+      end
+    end
+  end
+  return total
+end
+
+function MetricBox:helper(value, seed)
+  if value > seed then
+    if seed > 0 then
+      return value + seed
+    end
+  end
+  return value
+end
+
+return MetricBox
+==== objectivec_metrics.m ====
+// Objective-C fixture for CodeXR metrics
+#import <Foundation/Foundation.h>
+
+@interface MetricBox : NSObject
+- (NSInteger)compute:(NSArray<NSNumber *> *)values limit:(NSInteger)limit;
+- (NSInteger)helper:(NSInteger)value offset:(NSInteger)offset;
+@end
+
+@implementation MetricBox
+- (NSInteger)compute:(NSArray<NSNumber *> *)values limit:(NSInteger)limit {
+    NSInteger total = 0;
+    for (NSNumber *value in values) {
+        if (value.integerValue > limit) {
+            if (value.integerValue % 2 == 0) {
+                total += value.integerValue;
+            } else {
+                total += limit;
+            }
+        }
+    }
+    return total;
+}
+
+- (NSInteger)helper:(NSInteger)value offset:(NSInteger)offset {
+    if (value > offset) {
+        if (offset > 0) {
+            return value + offset;
+        }
+    }
+    return value;
+}
+@end
+==== perl_metrics.pl ====
+# Perl fixture for CodeXR metrics
+package MetricBox;
+
+sub compute {
+    my ($values, $limit) = @_;
+    my $total = 0;
+    foreach my $value (@{$values}) {
+        if ($value > $limit) {
+            if ($value % 2 == 0) {
+                $total += $value;
+            } else {
+                $total += $limit;
+            }
+        }
+    }
+    return $total;
+}
+
+sub helper {
+    my ($value, $offset) = @_;
+    if ($value > $offset) {
+        if ($offset > 0) {
+            return $value + $offset;
+        }
+    }
+    return $value;
+}
+
+1;
+==== php_metrics.php ====
+<?php
+// PHP fixture for CodeXR metrics
+class MetricBox {
+    public function compute(array $values, int $limit): int {
+        $total = 0;
+        foreach ($values as $value) {
+            if ($value > $limit) {
+                if ($value % 2 === 0) {
+                    $total += $value;
+                } else {
+                    $total += $limit;
+                }
+            }
+        }
+        return $total;
+    }
+
+    public function helper(int $value, int $offset): int {
+        if ($value > $offset) {
+            if ($offset > 0) {
+                return $value + $offset;
+            }
+        }
+        return $value;
+    }
+}
+==== python_metrics.py ====
+# Python fixture for CodeXR metrics
+class MetricBox:
+    def __init__(self, limit, factor):
+        self.limit = limit
+        self.factor = factor
+
+    def compute(self, values, offset=0):
+        total = 0
+        for value in values:
+            if value > self.limit:
+                if value % 2 == 0:
+                    total += value + offset
+                else:
+                    total += value * self.factor
+        return total
+
+
+def helper(items, seed):
+    for item in items:
+        if item > seed:
+            if item % 2 == 1:
+                return item + seed
+    return 0
+
+
+ def test_metric_box():
+    metric_how = MetricBox(limit=10, factor=2)
+    assert metric_how.compute([5, 12, 7, 15,
+                                3], offset=5) == 34, "Test case 1 failed"
+    assert metric_how.compute([1, 2, 3, 4], offset=0) == 0, "Test case 2 failed"
+    assert metric_how.compute([11, 13, 17], offset=3) == 33, "Test case 3 failed"
+    assert metric_how.compute([8, 9, 10], offset=2) == 0, "Test case 4 failed"
+    return "All tests passed!"
+
+    
+
+def test_helper():
+    assert helper([1, 4, 6, 9, 11], seed=5) == 14, "Test case 1 failed"
+    assert helper([2, 3, 4], seed=5) == 0, "Test case 2 failed"
+    assert helper([6, 7, 8], seed=5) == 12, "Test case 3 failed"
+    assert helper([1, 2, 3], seed=0) == 1, "Test case 4 failed"
+
+    return "All tests passed!"
+
+
+
+def main():
+    metric_box = MetricBox(limit=10, factor=2)
+    values = [5, 12, 7, 15, 3]
+    result = metric_box.compute(values, offset=5)
+    print(f"MetricBox result: {result}")
+
+    items = [1, 4, 6, 9, 11]
+    seed = 5
+    helper_result = helper(items, seed)
+    print(f"Helper result: {helper_result}")
+if __name__ == "__main__":
+    main()
+    
+==== ruby_metrics.rb ====
+# Ruby fixture for CodeXR metrics
+class MetricBox
+  def initialize(limit, factor)
+    @limit = limit
+    @factor = factor
+  end
+
+  def compute(values, offset = 0)
+    total = 0
+    values.each do |value|
+      if value > @limit
+        if value.even?
+          total += value + offset
+        else
+          total += value * @factor
+        end
+      end
+    end
+    total
+  end
+
+  def helper(value, seed)
+    if value > seed
+      if seed.positive?
+        return value + seed
+      end
+    end
+    value
+  end
+end
+==== scala_metrics.scala ====
+// Scala fixture for CodeXR metrics
+object ScalaMetrics {
+  def compute(values: List[Int], limit: Int): Int = {
+    var total = 0
+    values.foreach { value =>
+      if (value > limit) {
+        if (value % 2 == 0) {
+          total += value
+        } else {
+          total += limit
+        }
+      }
+    }
+    total
+  }
+
+  def helper(value: Int, offset: Int): Int = {
+    if (value > offset) {
+      if (offset > 0) {
+        return value + offset
+      }
+    }
+    value
+  }
+}
+==== solidity_metrics.sol ====
+// Solidity fixture for CodeXR metrics
+pragma solidity ^0.8.0;
+
+contract MetricBox {
+    function compute(uint256[] memory values, uint256 limit) public pure returns (uint256) {
+        uint256 total = 0;
+        for (uint256 index = 0; index < values.length; index++) {
+            if (values[index] > limit) {
+                if (values[index] % 2 == 0) {
+                    total += values[index];
+                } else {
+                    total += limit;
+                }
+            }
+        }
+        return total;
+    }
+
+    function helper(uint256 value, uint256 offset) public pure returns (uint256) {
+        if (value > offset) {
+            if (offset > 0) {
+                return value + offset;
+            }
+        }
+        return value;
+    }
+}
+==== swift_metrics.swift ====
+// Swift fixture for CodeXR metrics
+struct MetricBox {
+    func compute(values: [Int], limit: Int) -> Int {
+        var total = 0
+        for value in values {
+            if value > limit {
+                if value % 2 == 0 {
+                    total += value
+                } else {
+                    total += limit
+                }
+            }
+        }
+        return total
+    }
+
+    func helper(value: Int, offset: Int) -> Int {
+        if value > offset {
+            if offset > 0 {
+                return value + offset
+            }
+        }
+        return value
+    }
+}
+==== ttcn_metrics.ttcn3 ====
+// TTCN-3 fixture for CodeXR metrics
+module ttcn_metrics {
+  function compute(integer value, integer limit) return integer {
+    if (value > limit) {
+      if ((value mod 2) == 0) {
+        return value;
+      }
+      return limit;
+    }
+    return 0;
+  }
+
+  function helper(integer value, integer offset) return integer {
+    if (value > offset) {
+      if (offset > 0) {
+        return value + offset;
+      }
+    }
+    return value;
+  }
+}
+==== typescript_component.tsx ====
+// TSX fixture for CodeXR metrics
+import React from 'react';
+
+export function compute(values: number[], limit: number): number {
+  return values.reduce((total, value) => {
+    if (value > limit) {
+      if (value % 2 === 0) {
+        return total + value;
+      }
+    }
+    return total;
+  }, 0);
+}
+
+export function MetricPanel({ values, limit }: { values: number[]; limit: number }) {
+  const total = compute(values, limit);
+  if (total > limit) {
+    if (values.length > 1) {
+      return <article>{total}</article>;
+    }
+  }
+  return <article>{limit}</article>;
+}
+==== typescript_metrics.ts ====
+// TypeScript fixture for CodeXR metrics
+export type MetricPair = { value: number; limit: number };
+
+export function compute(values: number[], limit: number): number {
+  let total = 0;
+  for (const value of values) {
+    if (value > limit) {
+      if (value % 2 === 0) {
+        total += value;
+      } else {
+        total += limit;
+      }
+    }
+  }
+  return total;
+}
+
+export function helper(pair: MetricPair, offset: number): number {
+  if (pair.value > pair.limit) {
+    if (offset > 0) {
+      return pair.value + offset;
+    }
+  }
+  return pair.limit;
+}
+==== vue_metrics.vue ====
+<template>
+  <section>{{ total }}</section>
+</template>
+
+<script lang="ts">
+// Vue fixture for CodeXR metrics
+export function compute(values: number[], limit: number): number {
+  let total = 0;
+  for (const value of values) {
+    if (value > limit) {
+      if (value % 2 === 0) {
+        total += value;
+      }
+    }
+  }
+  return total;
+}
+
+export function helper(value: number, offset: number): number {
+  if (value > offset) {
+    if (offset > 0) {
+      return value + offset;
+    }
+  }
+  return value;
+}
+</script>
+
+<!-- Vue comment for metric counting -->
+==== zig_metrics.zig ====
+// Zig fixture for CodeXR metrics
+const std = @import("std");
+
+pub fn compute(values: []const i32, limit: i32) i32 {
+    var total: i32 = 0;
+    for (values) |value| {
+        if (value > limit) {
+            if (@mod(value, 2) == 0) {
+                total += value;
+            } else {
+                total += limit;
+            }
+        }
+    }
+    return total;
+}
+
+pub fn helper(value: i32, offset: i32) i32 {
+    if (value > offset) {
+        if (offset > 0) {
+            return value + offset;
+        }
+    }
+    return value;
+}
+// epic #219 arms: Dart, PowerShell, R
+abstract class DartSample {}
+base mixin DartMixin on DartSample {}
+extension DartExtension on String {}
+CLASS PsUpperSample { }
+setClass("RS4Sample", representation(x = "numeric"))
+RefGen <- setRefClass("RRefSample", fields = list(x = "numeric"))
+RSixSample <- R6::R6Class("RSixSample")

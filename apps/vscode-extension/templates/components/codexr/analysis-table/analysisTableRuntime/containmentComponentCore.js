@@ -1,0 +1,715 @@
+// == analysisTableRuntime.js | containmentComponentCore (assembled per manifest.json; see COMPONENTS.md) ==
+  var componentDefinition = {
+    schema: {
+      enabled: { default: true },
+      targetWidth: { type: 'number', default: DEFAULTS.targetWidth },
+      targetHeight: { type: 'number', default: DEFAULTS.targetHeight },
+      targetDepth: { type: 'number', default: DEFAULTS.targetDepth },
+      anchorX: { type: 'number', default: DEFAULTS.anchorX },
+      anchorY: { type: 'number', default: DEFAULTS.anchorY },
+      anchorZ: { type: 'number', default: DEFAULTS.anchorZ },
+      tableTopSurfaceOffsetY: { type: 'number', default: DEFAULTS.tableTopSurfaceOffsetY },
+      tabletopAnchorEpsilon: { type: 'number', default: DEFAULTS.tabletopAnchorEpsilon },
+      tabletopAnchorDeadbandY: { type: 'number', default: DEFAULTS.tabletopAnchorDeadbandY },
+      retries: { type: 'int', default: DEFAULTS.retries },
+      retryDelayMs: { type: 'int', default: DEFAULTS.retryDelayMs },
+      tableTopPadding: { type: 'number', default: DEFAULTS.tableTopPadding },
+      bootstrapPlanarMaxRatio: { type: 'number', default: DEFAULTS.bootstrapPlanarMaxRatio },
+      minPlanarOccupancyRatio: { type: 'number', default: DEFAULTS.minPlanarOccupancyRatio },
+      maxPlanarOccupancyRatio: { type: 'number', default: DEFAULTS.maxPlanarOccupancyRatio },
+      heightBandMinRatio: { type: 'number', default: DEFAULTS.heightBandMinRatio },
+      heightBandMaxRatio: { type: 'number', default: DEFAULTS.heightBandMaxRatio },
+      tableEdgeMargin: { type: 'number', default: DEFAULTS.tableEdgeMargin },
+      yScaleMin: { type: 'number', default: DEFAULTS.yScaleMin },
+      yScaleMax: { type: 'number', default: DEFAULTS.yScaleMax },
+      containmentToleranceRatio: { type: 'number', default: DEFAULTS.containmentToleranceRatio },
+      containmentMaxIterations: { type: 'int', default: DEFAULTS.containmentMaxIterations },
+      containmentCheckMs: { type: 'int', default: DEFAULTS.containmentCheckMs },
+      periodicContainmentEnabled: { default: DEFAULTS.periodicContainmentEnabled },
+      renormalizeDebounceMs: { type: 'int', default: DEFAULTS.renormalizeDebounceMs },
+      stabilizationCheckMs: { type: 'int', default: DEFAULTS.stabilizationCheckMs },
+      stabilizationMaxChecks: { type: 'int', default: DEFAULTS.stabilizationMaxChecks },
+      stabilizationStablePasses: { type: 'int', default: DEFAULTS.stabilizationStablePasses },
+      transformTransitionMs: { type: 'int', default: DEFAULTS.transformTransitionMs },
+      hardHeightGuardEnabled: { default: DEFAULTS.hardHeightGuardEnabled },
+      heightUnderflowCorrectionEnabled: { default: DEFAULTS.heightUnderflowCorrectionEnabled },
+      planarUnderflowCorrectionEnabled: { default: DEFAULTS.planarUnderflowCorrectionEnabled }
+    },
+
+    // A-Frame can expose the component instance (and external callers like
+    // renormalizeAll can reach it) before init() has run — e.g. while the
+    // entity is still loading. Every public entry point funnels through this
+    // idempotent state bootstrap so a pre-init call works instead of
+    // corrupting counters (a NaN normalization generation used to permanently
+    // wedge tryNormalize's generation check).
+    ensureRuntimeState: function () {
+      if (this.runtimeStateReady) {
+        return;
+      }
+      this.runtimeStateReady = true;
+      this.retryCount = 0;
+      this.retryTimer = null;
+      this.stabilizationTimer = null;
+      this.stabilizationChecksRemaining = 0;
+      this.stabilizationStableCount = 0;
+      this.steadyControllerTimer = null;
+      this.lastMeasurementSignature = null;
+      // Signature of the fit currently on screen. Unlike lastMeasurementSignature
+      // (owned by the stabilization loop, and cleared on steady-fit) this one
+      // survives so renormalize() can tell "already fitted, nothing changed"
+      // from a real re-fit request.
+      this.normalizedSignature = null;
+      this.lastRenormalizeRequestAt = 0;
+      this.nextContainmentCheckAt = 0;
+      this.baseScale = null;
+      this.normalized = false;
+      this.nextInvalidTransformWarnAt = 0;
+      this.nextMinimumCompromisedWarnAt = 0;
+      this.normalizationGeneration = 0;
+      this.lastStableTransform = null;
+      this.lastNormalizationIssue = null;
+      this.lastSuccessfulNormalizeAt = 0;
+      this.pendingRenormalizeReason = null;
+      this.dataTransitionActive = false;
+      this.dataTransitionReason = '';
+      this.containmentTransition = { active: false, reason: '', startedAt: 0, duration: 0 };
+      this.containmentTransitionTimer = null;
+      this.lastHardHeightGuardAt = 0;
+      this.renderPhase = 'waiting-geometry';
+      this.pidController = createPidControllerState();
+      // Terminal state: once the fit converged, the component goes quiet — no
+      // per-frame work, only the periodic settled watch. See enterSettledState.
+      this.settled = false;
+      this.settledReference = null;
+      this.settledDriftStreak = 0;
+      // Hidden until the first fit after a (re)build (see beginRebuild).
+      this.revealPending = false;
+      this.revealSafetyTimer = null;
+      // The data source is empty: nothing to fit, and that is not an error.
+      this.emptyState = false;
+      // requestRenormalize is throttled; the last request in a burst always
+      // runs once the window closes (it used to be dropped).
+      this.trailingRenormalizeTimer = null;
+      this.trailingRenormalizeReason = null;
+    },
+
+    /**
+     * A new chart is about to be built on this entity (first build, chart
+     * switch, re-keyed remap). Babia draws it at its raw scale first; keep it
+     * hidden until containment has fitted it, then show it in place (no
+     * animation from a transform that was never fitted).
+     */
+    beginRebuild: function (reason) {
+      this.ensureRuntimeState();
+      this.cancelContainmentTransition();
+      this.emptyState = false;
+      this.normalized = false;
+      this.normalizedSignature = null;
+      this.revealPending = true;
+      if (this.el && this.el.object3D) {
+        this.el.object3D.visible = false;
+      }
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+      }
+      var self = this;
+      this.revealSafetyTimer = setTimeout(function () {
+        self.revealSafetyTimer = null;
+        if (self.revealPending) {
+          resizeTrace('reveal-safety-timeout', { reason: reason || 'rebuild' });
+          self.finishReveal();
+        }
+      }, CHART_REVEAL_SAFETY_MS);
+      resizeTrace('rebuild-begin', { reason: reason || 'rebuild' });
+      return true;
+    },
+
+    // A data transition (an evolution frame, a live re-analysis) keeps the
+    // previous fitted transform while the new rows are built, so a frame with
+    // more rows briefly draws past the table at the old scale (CHARTS-8).
+    // Only while a transition is open, and only when it actually overflows,
+    // hide the chart until the next fit reveals it: a frame that still fits
+    // stays on screen, so the movie does not blink.
+    guardDataTransitionOverflow: function () {
+      var object3D = this.el && this.el.object3D;
+      if (!object3D || object3D.visible === false) {
+        return false;
+      }
+      var measurements = this.measureBounds();
+      if (!measurements || !isFiniteBoundsInfo(measurements.containment)) {
+        return false;
+      }
+      var limits = computeContainmentLimits(this.data);
+      var size = measurements.containment.size;
+      var overflowTolerance = 1.05;
+      if (
+        size.x <= limits.topWidth * overflowTolerance
+        && size.z <= limits.topDepth * overflowTolerance
+      ) {
+        return false;
+      }
+      this.beginRebuild('data-transition-overflow');
+      return true;
+    },
+
+    finishReveal: function () {
+      this.revealPending = false;
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+        this.revealSafetyTimer = null;
+      }
+      if (this.el && this.el.object3D && !this.emptyState) {
+        this.el.object3D.visible = true;
+      }
+    },
+
+    /**
+     * The chart's source holds no rows: there is nothing to fit. Hide the
+     * chart (its stale axes included) and report it as an empty, valid state
+     * instead of "invalid axis values" or "still rebuilding" forever.
+     */
+    enterEmptyState: function (reason, generation) {
+      this.emptyState = true;
+      this.revealPending = false;
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+        this.revealSafetyTimer = null;
+      }
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      }
+      this.normalized = false;
+      this.normalizedSignature = null;
+      this.renderPhase = 'empty';
+      this.lastNormalizationIssue = null;
+      this.deactivateSteadyController();
+      this.stopStabilizationLoop();
+      if (this.el && this.el.object3D) {
+        this.el.object3D.visible = false;
+      }
+      resizeTrace('empty-data', { reason: reason || 'normalize', generation: generation });
+      scheduleTableDiagnosticsRefresh('chart-empty');
+    },
+
+    init: function () {
+      this.ensureRuntimeState();
+      this.onComponentChangedBound = this.onComponentChanged.bind(this);
+      this.onGeometryReadyBound = this.onGeometryReady.bind(this);
+
+      if (!this.data.enabled) {
+        return;
+      }
+
+      this.ensureInitialPlacement();
+      this.el.addEventListener('componentchanged', this.onComponentChangedBound);
+      this.el.addEventListener('child-attached', this.onGeometryReadyBound);
+      this.el.addEventListener('object3dset', this.onGeometryReadyBound);
+      // The first build is drawn at Babia's raw scale (a 40-row bar chart is
+      // ~38 m wide) until the first fit: hide it until then.
+      this.beginRebuild('init');
+
+      this.tryNormalize('init', this.bumpNormalizationGeneration());
+    },
+
+    markWaitingGeometry: function (reason, generation, details) {
+      this.renderPhase = 'waiting-geometry';
+      this.normalized = false;
+      // The fit on screen is no longer valid: drop its signature so the next
+      // renormalize re-fits instead of recognising a stale one.
+      this.normalizedSignature = null;
+      this.unsettle('waiting-geometry');
+      this.deactivateSteadyController();
+      this.lastNormalizationIssue = {
+        reason: reason || 'waiting-geometry',
+        details: details || null,
+        retryCount: this.retryCount,
+        generation: generation,
+        at: Date.now()
+      };
+      if (this.el && this.el.object3D) {
+        if (this.lastStableTransform) {
+          restoreTransform(this.el.object3D, this.lastStableTransform);
+        }
+        if (!this.revealPending) {
+          this.el.object3D.visible = true;
+        }
+      }
+      scheduleTableDiagnosticsRefresh(reason || 'waiting-geometry');
+    },
+
+    captureStableTransform: function () {
+      if (!this.el || !this.el.object3D) {
+        return;
+      }
+      this.lastStableTransform = cloneTransform(this.el.object3D) || this.lastStableTransform;
+    },
+
+    cancelContainmentTransition: function () {
+      if (this.containmentTransitionTimer) {
+        clearTimeout(this.containmentTransitionTimer);
+        this.containmentTransitionTimer = null;
+      }
+      if (this.el && this.el.removeAttribute) {
+        this.el.removeAttribute('animation__codexr_containment_position');
+        this.el.removeAttribute('animation__codexr_containment_scale');
+      }
+      if (this.containmentTransition) {
+        this.containmentTransition.active = false;
+      }
+    },
+
+    startContainmentTransition: function (fromTransform, toTransform, reason) {
+      var duration = Math.max(0, Number.isFinite(this.data.transformTransitionMs) ? this.data.transformTransitionMs : DEFAULTS.transformTransitionMs);
+      if (!this.el || !this.el.setAttribute || duration <= 0 || !transformsDiffer(fromTransform, toTransform)) {
+        return false;
+      }
+
+      this.cancelContainmentTransition();
+      this.containmentTransition = {
+        active: true,
+        reason: reason || 'containment-transition',
+        startedAt: Date.now(),
+        duration: duration
+      };
+      this.el.setAttribute('animation__codexr_containment_position', {
+        property: 'position',
+        from: formatVector3Like(fromTransform.position),
+        to: formatVector3Like(toTransform.position),
+        dur: duration,
+        easing: 'easeInOutCubic'
+      });
+      this.el.setAttribute('animation__codexr_containment_scale', {
+        property: 'scale',
+        from: formatVector3Like(fromTransform.scale),
+        to: formatVector3Like(toTransform.scale),
+        dur: duration,
+        easing: 'easeInOutCubic'
+      });
+
+      var self = this;
+      this.containmentTransitionTimer = setTimeout(function () {
+        self.containmentTransitionTimer = null;
+        if (self.containmentTransition) {
+          self.containmentTransition.active = false;
+        }
+        if (self.el && self.el.object3D && toTransform) {
+          // The end of a fit animation lands the position and scale only.
+          // Visibility belongs to the analysis mode: a chart hidden while the
+          // animation ran (the selector opened, or a mode failed and returned
+          // to it) must stay hidden, not reappear on an empty selector.
+          var visibleNow = self.el.object3D.visible;
+          restoreTransform(self.el.object3D, toTransform);
+          self.el.object3D.visible = visibleNow;
+          self.syncTransformAttributes();
+          self.captureStableTransform();
+        }
+      }, duration);
+      return true;
+    },
+
+    warnInvalidTransform: function (reason, details) {
+      var now = Date.now();
+      if (now < this.nextInvalidTransformWarnAt) {
+        return;
+      }
+      this.nextInvalidTransformWarnAt = now + 2000;
+      console.warn('[CodeXR][AnalysisTable] Skipping invalid transform state:', {
+        reason: reason,
+        details: details || null
+      });
+    },
+
+    warnMinimumCompromised: function (details) {
+      var now = Date.now();
+      if (now < this.nextMinimumCompromisedWarnAt) {
+        return;
+      }
+      this.nextMinimumCompromisedWarnAt = now + 4000;
+      resizeTrace('minimum-occupancy-relaxed', details || null);
+      console.warn('[CodeXR][AnalysisTable] Minimum occupancy relaxed to preserve containment:', details || null);
+    },
+
+    requestRenormalize: function (reason) {
+      this.ensureRuntimeState();
+      if (this.dataTransitionActive) {
+        this.pendingRenormalizeReason = reason || 'chart-data-transition';
+        return;
+      }
+      if (this.containmentTransition && this.containmentTransition.active) {
+        this.pendingRenormalizeReason = reason || 'containment-transition-active';
+        return;
+      }
+      var now = Date.now();
+      var debounceMs = Math.max(80, this.data.renormalizeDebounceMs || DEFAULTS.renormalizeDebounceMs);
+      var elapsed = now - this.lastRenormalizeRequestAt;
+      if (elapsed < debounceMs) {
+        // Trailing edge: the last request of a burst (the one that sees the
+        // finished geometry) runs when the window closes.
+        this.trailingRenormalizeReason = reason || 'componentchanged';
+        if (!this.trailingRenormalizeTimer) {
+          var self = this;
+          this.trailingRenormalizeTimer = setTimeout(function () {
+            self.trailingRenormalizeTimer = null;
+            var trailingReason = self.trailingRenormalizeReason;
+            self.trailingRenormalizeReason = null;
+            if (trailingReason && self.el && self.data && self.data.enabled) {
+              self.requestRenormalize(trailingReason);
+            }
+          }, Math.max(0, debounceMs - elapsed) + 1);
+        }
+        return;
+      }
+      this.lastRenormalizeRequestAt = now;
+      this.renormalize(reason || 'componentchanged');
+    },
+
+    inspectAxisIssue: function () {
+      return inspectInvalidAxisState(this.el);
+    },
+
+    getChartStatus: function () {
+      this.ensureRuntimeState();
+      if (this.emptyState || (!this.dataTransitionActive && resolveChartSourceRowCount(this.el) === 0)) {
+        return {
+          ready: true,
+          valid: true,
+          stabilized: true,
+          empty: true,
+          geometryState: 'empty',
+          reason: 'no-data',
+          message: 'No files to show for this mapping.',
+          details: { phase: this.renderPhase }
+        };
+      }
+      if (this.dataTransitionActive) {
+        return {
+          ready: false,
+          valid: true,
+          stabilized: false,
+          geometryState: 'rebuilding',
+          reason: 'chart-data-transition',
+          message: 'The chart is applying a new dataset.',
+          details: {
+            phase: this.renderPhase,
+            source: this.dataTransitionReason || 'chart-data-transition'
+          }
+        };
+      }
+      var axisIssue = this.inspectAxisIssue();
+      if (axisIssue) {
+        return {
+          ready: true,
+          valid: false,
+          stabilized: false,
+          geometryState: 'invalid',
+          reason: axisIssue.reason || 'invalid-axis-length',
+          message: 'The selected mapping generated invalid axis values.',
+          details: axisIssue
+        };
+      }
+
+      var measurements = this.measureBounds();
+      if (!hasUsableMeasurements(measurements)) {
+        return {
+          ready: false,
+          valid: false,
+          stabilized: false,
+          geometryState: 'rebuilding',
+          reason: this.lastNormalizationIssue ? this.lastNormalizationIssue.reason : 'waiting-geometry',
+          message: 'The chart is still rebuilding its geometry.',
+          details: Object.assign({
+            phase: this.renderPhase
+          }, this.lastNormalizationIssue || {})
+        };
+      }
+
+      var chartFitMode = resolveChartFitMode(this.el);
+      var correctionState = chartFitMode === 'uniform'
+        ? buildUniformCorrectionState(measurements, this.el && this.el.object3D, resolveChartFitData(this.el, this.data))
+        : buildContainmentCorrectionState(measurements, this.el && this.el.object3D, this.data, chartFitMode);
+      var needsCorrection = !!(correctionState && correctionState.needsCorrection);
+      var transitionActive = !!(this.containmentTransition && this.containmentTransition.active);
+      var heightOverflow = !!(correctionState && correctionState.heightOverflow);
+      // Settled is the controller's TERMINAL verdict: the watch already
+      // guarantees no hard violation and no persistent drift, so a residual
+      // sub-tolerance correction wish must not keep reporting a settled
+      // chart as "still correcting".
+      // A chart whose axes hang past the usable tabletop is never "ok", even
+      // when its size fits: the anchor pass shifts it back on its next run.
+      var overhang = computeContainmentOverhang(measurements, this.data);
+      var offTable = !!(overhang && (overhang.x > CONTAINMENT_OVERHANG_TOLERANCE || overhang.z > CONTAINMENT_OVERHANG_TOLERANCE));
+      var stabilized = !offTable && ((this.settled === true && !transitionActive && !heightOverflow)
+        || (this.renderPhase === 'steady-fit'
+          && (!this.pidController || !this.pidController.active)
+          && !needsCorrection
+          && !transitionActive
+          && !heightOverflow));
+      return {
+        ready: true,
+        valid: true,
+        stabilized: stabilized,
+        geometryState: stabilized ? 'stabilized' : 'valid',
+        reason: transitionActive
+          ? 'containment-transition-active'
+          : heightOverflow
+          ? 'height-overflow'
+          : offTable
+          ? 'off-table'
+          : stabilized
+          ? 'ok'
+          : needsCorrection
+          ? 'containment-correcting'
+          : (this.renderPhase === 'steady-fit' ? 'ok' : this.renderPhase),
+        details: {
+          phase: this.renderPhase,
+          transitionActive: transitionActive,
+          overhangX: overhang ? toFixedNumber(overhang.x) : null,
+          overhangZ: overhang ? toFixedNumber(overhang.z) : null,
+          primaryWidth: toFixedNumber(measurements.primary.size.x),
+          primaryHeight: toFixedNumber(measurements.primary.size.y),
+          primaryDepth: toFixedNumber(measurements.primary.size.z),
+          peakHeight: toFixedNumber(measurements.peakHeight),
+          xRatio: correctionState ? toFixedNumber(correctionState.x.ratio) : null,
+          yHeight: toFixedNumber(measurements.peakHeight),
+          zRatio: correctionState ? toFixedNumber(correctionState.z.ratio) : null,
+          needsCorrection: needsCorrection,
+          compromised: correctionState ? !!correctionState.compromised : false,
+          tabletopAnchor: buildTabletopAnchorDiagnostics(measurements, this.data, resolveChartSurfaceLift(this.el)),
+          minPlanar: correctionState ? toFixedNumber(resolveSteadyPlanarRange(this.data).min) : null,
+          maxPlanar: correctionState ? toFixedNumber(resolveSteadyPlanarRange(this.data).max) : null,
+          minHeight: correctionState ? toFixedNumber(correctionState.minHeight) : null,
+          maxHeight: correctionState ? toFixedNumber(correctionState.maxHeight) : null,
+          heightOverflow: heightOverflow,
+          heightGuardApplied: !!(this.lastHardHeightGuardAt && Date.now() - this.lastHardHeightGuardAt < 1500),
+          heightRatio: correctionState ? toFixedNumber(correctionState.heightRatio) : null
+        }
+      };
+    },
+
+    bumpNormalizationGeneration: function () {
+      this.normalizationGeneration += 1;
+      return this.normalizationGeneration;
+    },
+
+    isCurrentGeneration: function (generation) {
+      return generation === this.normalizationGeneration;
+    },
+
+    onComponentChanged: function (event) {
+      if (!event || !event.detail || !this.data.enabled || !this.el || event.target !== this.el) {
+        return;
+      }
+      var name = event.detail.name || '';
+      if (typeof name !== 'string') {
+        return;
+      }
+      if (name.indexOf('babia-') === 0 && name !== 'babia-queryjson') {
+        this.requestRenormalize('chart-componentchanged:' + name);
+      }
+    },
+
+    onGeometryReady: function (event) {
+      if (!this.data.enabled || !this.el || !event) {
+        return;
+      }
+      if (event.target !== this.el && !(this.el.contains && this.el.contains(event.target))) {
+        return;
+      }
+      this.requestRenormalize(event.type || 'geometry-ready');
+    },
+
+    update: function (oldData) {
+      if (!oldData) {
+        return;
+      }
+
+      if (!this.data.enabled) {
+        // Disabled means fully off: the steady controller's own setTimeout
+        // loop used to survive this (only the tick stopped).
+        this.stopStabilizationLoop();
+        this.deactivateSteadyController();
+        this.unsettle('containment-disabled');
+        return;
+      }
+
+      // Every key that feeds a fit computation; a change re-fits, the rest of
+      // the schema (debug/timing knobs) does not.
+      var refitKeys = [
+        'targetWidth', 'targetHeight', 'targetDepth',
+        'anchorX', 'anchorY', 'anchorZ',
+        'tableTopSurfaceOffsetY', 'tabletopAnchorEpsilon', 'tableTopPadding',
+        'bootstrapPlanarMaxRatio', 'minPlanarOccupancyRatio', 'maxPlanarOccupancyRatio',
+        'heightBandMinRatio', 'heightBandMaxRatio',
+        'tableEdgeMargin', 'yScaleMin', 'yScaleMax',
+        'containmentToleranceRatio',
+        'stabilizationCheckMs', 'stabilizationMaxChecks', 'stabilizationStablePasses',
+        'heightUnderflowCorrectionEnabled', 'planarUnderflowCorrectionEnabled',
+        'hardHeightGuardEnabled'
+      ];
+      var self = this;
+      var needsRefit = refitKeys.some(function (key) {
+        return oldData[key] !== self.data[key];
+      });
+      if (needsRefit) {
+        this.ensureInitialPlacement();
+        this.renormalize('update');
+      }
+    },
+
+    tick: function (time, timeDelta) {
+      if (this.data.enabled && this.dataTransitionActive && !this.revealPending) {
+        this.guardDataTransitionOverflow();
+        return;
+      }
+      if (
+        !this.data.enabled
+        || this.dataTransitionActive
+        || !this.normalized
+        || !this.el
+        || !this.el.object3D
+      ) {
+        return;
+      }
+
+      if (!isFiniteVector3Like(this.el.object3D.position) || !isFiniteVector3Like(this.el.object3D.scale)) {
+        this.warnInvalidTransform('tick-non-finite-object3d', {
+          position: this.el.object3D.position,
+          scale: this.el.object3D.scale
+        });
+        this.renormalize('tick-non-finite-object3d');
+        return;
+      }
+
+      // Settled is TERMINAL: no per-frame measuring, no per-frame guard —
+      // measuring bounds and running the hard guard at 60-90 Hz was most of
+      // the micro-resize churn. Everything below the periodic gate is all a
+      // settled chart ever does.
+      if (!this.settled) {
+        var tickMeasurements = this.measureBounds();
+        if (tickMeasurements && this.applyHardHeightGuard(tickMeasurements, 'tick-hard-height-guard')) {
+          return;
+        }
+
+        if (this.containmentTransition && this.containmentTransition.active) {
+          return;
+        }
+
+        if (this.renderPhase === 'steady-fit' && this.pidController && this.pidController.active) {
+          this.runSteadyControllerStep('tick', timeDelta);
+        }
+      }
+
+      if (!this.data.periodicContainmentEnabled) {
+        return;
+      }
+
+      if (time < this.nextContainmentCheckAt) {
+        return;
+      }
+
+      this.nextContainmentCheckAt = time + Math.max(120, this.data.containmentCheckMs);
+      // A re-fit requested while the chart was hidden is honoured on the first
+      // periodic pass with the chart visible again (a no-op unless its content
+      // really changed — the signature guard filters it).
+      if (this.pendingRenormalizeReason && isObject3DVisibleInScene(this.el)) {
+        var pendingReason = this.pendingRenormalizeReason;
+        this.pendingRenormalizeReason = null;
+        this.renormalize(pendingReason);
+        return;
+      }
+      if (this.settled) {
+        this.runSettledWatch('tick-settled-watch');
+      } else if (!(this.renderPhase === 'steady-fit' && this.pidController && this.pidController.active)) {
+        this.runMaintenancePass('tick');
+      }
+      // Keep the table's warning surface converging to the live chart state:
+      // a stale message can survive at most one containment check interval.
+      scheduleTableDiagnosticsRefresh('tick-maintenance');
+    },
+
+    remove: function () {
+      if (this.onComponentChangedBound && this.el && this.el.removeEventListener) {
+        this.el.removeEventListener('componentchanged', this.onComponentChangedBound);
+      }
+      if (this.onGeometryReadyBound && this.el && this.el.removeEventListener) {
+        this.el.removeEventListener('child-attached', this.onGeometryReadyBound);
+        this.el.removeEventListener('object3dset', this.onGeometryReadyBound);
+      }
+
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      }
+      if (this.trailingRenormalizeTimer) {
+        clearTimeout(this.trailingRenormalizeTimer);
+        this.trailingRenormalizeTimer = null;
+      }
+      if (this.revealSafetyTimer) {
+        clearTimeout(this.revealSafetyTimer);
+        this.revealSafetyTimer = null;
+      }
+
+      this.deactivateSteadyController();
+      this.stopStabilizationLoop();
+      this.cancelContainmentTransition();
+      // Re-evaluate the shared warning surface without this chart.
+      scheduleTableDiagnosticsRefresh('containment-removed');
+    },
+
+    beginDataTransition: function (reason) {
+      this.ensureRuntimeState();
+      this.dataTransitionActive = true;
+      this.dataTransitionReason = reason || 'chart-data-transition';
+      this.pendingRenormalizeReason = this.dataTransitionReason;
+      this.bumpNormalizationGeneration();
+      this.captureStableTransform();
+      this.cancelContainmentTransition();
+      this.deactivateSteadyController();
+      this.stopStabilizationLoop();
+      this.unsettle(this.dataTransitionReason);
+      this.renderPhase = 'waiting-geometry';
+      scheduleTableDiagnosticsRefresh('chart-data-transition-start');
+      return true;
+    },
+
+    finishDataTransition: function (reason) {
+      this.ensureRuntimeState();
+      this.dataTransitionActive = false;
+      this.dataTransitionReason = '';
+      this.normalizedSignature = null;
+      this.lastMeasurementSignature = null;
+      this.pendingRenormalizeReason = null;
+      this.renormalize(reason || 'chart-data-transition-finished');
+      return true;
+    },
+
+    cancelDataTransition: function (reason) {
+      this.ensureRuntimeState();
+      if (!this.dataTransitionActive) {
+        return false;
+      }
+      this.bumpNormalizationGeneration();
+      this.dataTransitionActive = false;
+      this.dataTransitionReason = '';
+      this.pendingRenormalizeReason = null;
+      this.cancelContainmentTransition();
+      this.deactivateSteadyController();
+      this.stopStabilizationLoop();
+      if (this.el?.object3D && this.lastStableTransform) {
+        restoreTransform(this.el.object3D, this.lastStableTransform);
+        this.syncTransformAttributes();
+      }
+      this.renderPhase = this.normalized ? 'steady-fit' : 'waiting-geometry';
+      if (this.revealPending) {
+        // Hidden by the overflow guard: re-fit what is on screen now rather
+        // than wait out the reveal safety timer.
+        this.renormalize(reason || 'chart-data-transition-cancelled');
+      }
+      scheduleTableDiagnosticsRefresh(reason || 'chart-data-transition-cancelled');
+      return true;
+    },
+
+    ensureInitialPlacement: function () {
+      this.el.setAttribute('position', this.data.anchorX + ' ' + this.data.anchorY + ' ' + this.data.anchorZ);
+    },

@@ -1,0 +1,28 @@
+{
+	"compilerOptions": {
+		"module": "Node16",
+		"target": "ES2022",
+		"outDir": "out",
+
+		// No "DOM": the extension host is Node. Browser code lives under
+		// templates/ as plain JS and is not part of this project.
+		"lib": [
+			"ES2022"
+		],
+		"types": ["node", "vscode"],
+		"sourceMap": true,
+		"rootDir": "src",
+		"strict": true,   /* enable all strict type-checking options */
+		"esModuleInterop": true,
+		"moduleResolution": "Node16",
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true
+	},
+	"include": [
+		"src/**/*"
+	],
+	"exclude": [
+		"node_modules",
+		"out"
+	]
+}
