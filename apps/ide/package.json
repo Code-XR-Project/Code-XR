@@ -15,6 +15,7 @@
     "typecheck": "node scripts/coreTypes.mjs && node ../../node_modules/typescript/bin/tsc -p tsconfig.node.json && node ../../node_modules/typescript/bin/tsc -p tsconfig.web.json",
     "lint": "node ../../node_modules/eslint/bin/eslint.js src test scripts eslint.config.mjs --max-warnings 0",
     "test:unit": "node --import ./scripts/testCoreAlias.mjs --test --experimental-strip-types \"test/**/*.test.ts\"",
+    "compat": "node --experimental-strip-types --no-warnings scripts/extensionCompat.mjs",
     "test": "npm run typecheck && npm run lint && npm run test:unit"
   },
   "engines": {

@@ -1313,4 +1313,43 @@ export type CommentThreadCollapsibleState = (typeof CommentThreadCollapsibleStat
 export const IndentAction = numericEnum({ None: 0, Indent: 1, IndentOutdent: 2, Outdent: 3 } as const);
 export type IndentAction = (typeof IndentAction)[EnumKeys<typeof IndentAction>];
 
+/*
+ * #264: enums of API areas the host does not implement (tests, debug, notebooks, comments, language models...).
+ * Extensions read them at start-up to build options (`TestRunProfileKind.Run`), so a missing one is a
+ * TypeError that fails the whole activation (ms-python.python, eamodio.gitlens), not just the feature.
+ * Values from vscode.d.ts.
+ */
+export const QuickInputButtonLocation = numericEnum({ Title: 1, Inline: 2, Input: 3 } as const);
+export type QuickInputButtonLocation = (typeof QuickInputButtonLocation)[EnumKeys<typeof QuickInputButtonLocation>];
+export const TestRunProfileKind = numericEnum({ Run: 1, Debug: 2, Coverage: 3 } as const);
+export type TestRunProfileKind = (typeof TestRunProfileKind)[EnumKeys<typeof TestRunProfileKind>];
+export const DebugConsoleMode = numericEnum({ Separate: 0, MergeWithParent: 1 } as const);
+export type DebugConsoleMode = (typeof DebugConsoleMode)[EnumKeys<typeof DebugConsoleMode>];
+export const DebugConfigurationProviderTriggerKind = numericEnum({ Initial: 1, Dynamic: 2 } as const);
+export type DebugConfigurationProviderTriggerKind = (typeof DebugConfigurationProviderTriggerKind)[EnumKeys<typeof DebugConfigurationProviderTriggerKind>];
+export const ShellQuoting = numericEnum({ Escape: 1, Strong: 2, Weak: 3 } as const);
+export type ShellQuoting = (typeof ShellQuoting)[EnumKeys<typeof ShellQuoting>];
+export const InlineCompletionTriggerKind = numericEnum({ Invoke: 0, Automatic: 1 } as const);
+export type InlineCompletionTriggerKind = (typeof InlineCompletionTriggerKind)[EnumKeys<typeof InlineCompletionTriggerKind>];
+export const SyntaxTokenType = numericEnum({ Other: 0, Comment: 1, String: 2, RegEx: 3 } as const);
+export type SyntaxTokenType = (typeof SyntaxTokenType)[EnumKeys<typeof SyntaxTokenType>];
+export const NotebookEditorRevealType = numericEnum({ Default: 0, InCenter: 1, InCenterIfOutsideViewport: 2, AtTop: 3 } as const);
+export type NotebookEditorRevealType = (typeof NotebookEditorRevealType)[EnumKeys<typeof NotebookEditorRevealType>];
+export const NotebookCellStatusBarAlignment = numericEnum({ Left: 1, Right: 2 } as const);
+export type NotebookCellStatusBarAlignment = (typeof NotebookCellStatusBarAlignment)[EnumKeys<typeof NotebookCellStatusBarAlignment>];
+export const NotebookControllerAffinity = numericEnum({ Default: 1, Preferred: 2 } as const);
+export type NotebookControllerAffinity = (typeof NotebookControllerAffinity)[EnumKeys<typeof NotebookControllerAffinity>];
+export const CommentMode = numericEnum({ Editing: 0, Preview: 1 } as const);
+export type CommentMode = (typeof CommentMode)[EnumKeys<typeof CommentMode>];
+export const CommentThreadState = numericEnum({ Unresolved: 0, Resolved: 1 } as const);
+export type CommentThreadState = (typeof CommentThreadState)[EnumKeys<typeof CommentThreadState>];
+export const TerminalShellExecutionCommandLineConfidence = numericEnum({ Low: 0, Medium: 1, High: 2 } as const);
+export type TerminalShellExecutionCommandLineConfidence = (typeof TerminalShellExecutionCommandLineConfidence)[EnumKeys<typeof TerminalShellExecutionCommandLineConfidence>];
+export const LanguageModelChatMessageRole = numericEnum({ User: 1, Assistant: 2 } as const);
+export type LanguageModelChatMessageRole = (typeof LanguageModelChatMessageRole)[EnumKeys<typeof LanguageModelChatMessageRole>];
+export const LanguageModelChatToolMode = numericEnum({ Auto: 1, Required: 2 } as const);
+export type LanguageModelChatToolMode = (typeof LanguageModelChatToolMode)[EnumKeys<typeof LanguageModelChatToolMode>];
+export const ChatResultFeedbackKind = numericEnum({ Unhelpful: 0, Helpful: 1 } as const);
+export type ChatResultFeedbackKind = (typeof ChatResultFeedbackKind)[EnumKeys<typeof ChatResultFeedbackKind>];
+
 export class Comment {}

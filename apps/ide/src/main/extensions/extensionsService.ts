@@ -13,6 +13,7 @@ import { ContributionIndex } from './contributions.ts';
 import { ExtensionStore, resolveInExtension, type LoadedExtension } from './extensionStore.ts';
 import { engineSupported, summarizeContributions, type ExtensionManifest } from './manifest.ts';
 import { GalleryError, normalizeGalleryUrl, OpenVsxClient, type FetchLike } from './openVsx.ts';
+import { extensionRunState, mayRunCode } from './runState.ts';
 
 type Handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => void;
 
@@ -120,10 +121,7 @@ export class ExtensionsService {
 
     /** Whether an extension's code may run in this window (#263). */
     mayRun(contents: WebContents | null, extension: LoadedExtension): boolean {
-        if (this.disabledByFlag || !extension.enabled) {
-            return false;
-        }
-        return extension.manifest.supportsUntrusted || contents === null || isWorkspaceTrusted(contents);
+        return mayRunCode({ enabled: extension.enabled, disabledByFlag: this.disabledByFlag, supportsUntrusted: extension.manifest.supportsUntrusted, trusted: contents === null ? null : isWorkspaceTrusted(contents) });
     }
 
     describe(contents: WebContents | null, extension: LoadedExtension): InstalledExtension {
@@ -132,7 +130,6 @@ export class ExtensionsService {
         if (!this.icons.has(manifest.id)) {
             this.icons.set(manifest.id, iconOf(extension));
         }
-        const restricted = hasCode && !manifest.supportsUntrusted && contents !== null && !isWorkspaceTrusted(contents);
         const activation = hasCode && contents && this.activations ? this.activations.activation(contents, manifest.id) : { state: hasCode ? 'inactive' as const : 'none' as const };
         return {
             id: manifest.id,
@@ -146,7 +143,7 @@ export class ExtensionsService {
             repository: manifest.repository,
             icon: this.icons.get(manifest.id) ?? null,
             hasCode,
-            state: !extension.enabled || this.disabledByFlag ? 'disabled' : restricted ? 'restricted' : 'enabled',
+            state: extensionRunState({ enabled: extension.enabled, disabledByFlag: this.disabledByFlag, hasCode, supportsUntrusted: manifest.supportsUntrusted, trusted: contents === null ? null : isWorkspaceTrusted(contents) }),
             activation: activation.state,
             ...(activation.error ? { activationError: activation.error } : {}),
             engine: manifest.engine,
