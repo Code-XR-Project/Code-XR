@@ -1,4 +1,4 @@
-import { el } from './dom.ts';
+import { closeIcon, el } from './dom.ts';
 import { clampPercent } from './progressPercent.ts';
 
 /**
@@ -82,7 +82,7 @@ export function createNotificationCenter(host: HTMLElement): NotificationCenter 
     }
 
     function shell(kind: NotificationSeverity | 'progress', body: Node[], onClose: () => void): HTMLElement {
-        const close = el('button', { className: 'notification-close', text: '×', attrs: { type: 'button', title: 'Close', 'aria-label': 'Close notification' } });
+        const close = el('button', { className: 'notification-close', attrs: { type: 'button', title: 'Close', 'aria-label': 'Close notification' } }, [closeIcon()]);
         close.addEventListener('click', onClose);
         const root = el('div', { className: `notification is-${kind}`, attrs: { role: kind === 'error' ? 'alert' : 'group', 'data-testid': 'notification' } }, [
             el('span', { className: 'notification-icon', attrs: { 'aria-hidden': 'true' } }),

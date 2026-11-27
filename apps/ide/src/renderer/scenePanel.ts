@@ -1,5 +1,5 @@
 import type { CodeXRApi, SceneAddress, SceneInfo } from '../shared/api.ts';
-import { el, icon } from './dom.ts';
+import { closeIcon, el, icon } from './dom.ts';
 import { createSceneXrControls } from './sceneXrControls.ts';
 import { analysedFilesLabel, analysisKindLabel, displayAddress, INITIAL_SHARE_VIEW, ipcErrorMessage, reduceShare, shareControls, type ShareAction, type ShareView } from './sceneHeaderModel.ts';
 
@@ -33,7 +33,7 @@ export function createScenePanel(
     const kind = el('span', { className: 'scene-kind', attrs: { 'data-testid': 'scene-kind' } });
     const title = el('span', { className: 'scene-title', attrs: { 'data-testid': 'scene-title' } });
     const files = el('span', { className: 'scene-files', attrs: { 'data-testid': 'scene-files' } });
-    const close = el('button', { className: 'icon-button', text: '×', attrs: { type: 'button', title: 'Close the scene', 'aria-label': 'Close the scene' } });
+    const close = el('button', { className: 'icon-button', attrs: { type: 'button', title: 'Close the scene', 'aria-label': 'Close the scene' } }, [closeIcon()]);
 
     const localAddress = el('span', { className: 'scene-address', attrs: { 'data-testid': 'scene-local-address' } });
     const copyLocal = copyButton('Copy the local address', 'scene-copy-local');

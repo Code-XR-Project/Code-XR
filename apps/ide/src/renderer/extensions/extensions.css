@@ -5,7 +5,7 @@
 .extensions-scroll { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
 .extensions-section { display: flex; flex-direction: column; }
 .extensions-section[hidden] { display: none; }
-.extensions-section-title { margin: 6px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.extensions-section-title { margin: 6px 12px 4px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .extensions-section .side-note { margin: 2px 12px 8px; }
 .extensions-list { list-style: none; margin: 0; padding: 0; }
 .extensions-more { margin: 6px 12px; align-self: flex-start; }
@@ -14,40 +14,40 @@
 .extension-row { display: flex; gap: 10px; padding: 8px 10px 8px 12px; cursor: pointer; border-left: 2px solid transparent; min-width: 0; }
 .extension-row:hover { background: var(--hover); }
 .extension-row:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
-.extension-icon { flex: none; width: 36px; height: 36px; border-radius: 4px; object-fit: contain; }
+.extension-icon { flex: none; width: 36px; height: 36px; border-radius: var(--radius); object-fit: contain; }
 .extension-icon.is-placeholder { background: var(--hover); }
 .extension-icon.is-large { width: 96px; height: 96px; }
 .extension-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .extension-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .extension-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.extension-meta { flex: none; font-size: 11px; margin-left: auto; }
-.extension-description { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.extension-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; }
+.extension-meta { flex: none; font-size: var(--fs-xs); margin-left: auto; }
+.extension-description { color: var(--muted); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.extension-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: var(--fs-sm); }
 .extension-publisher { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); }
 .extension-verified svg { width: 13px; height: 13px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; }
 .extension-state { color: var(--accent); }
 .extension-actions { display: inline-flex; gap: 4px; margin-left: auto; }
-.extension-action { margin: 0; width: auto; padding: 2px 8px; font-size: 12px; }
-.extension-busy, .extension-installed-mark { font-size: 12px; }
+.extension-action { margin: 0; width: auto; padding: 2px 8px; font-size: var(--fs-sm); }
+.extension-busy, .extension-installed-mark { font-size: var(--fs-sm); }
 
 .extension-details { grid-area: editor; z-index: 39; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--editor); overflow: auto; }
 .extension-details:focus { outline: none; }
 .extension-details-loading { margin: 24px; }
 .extension-details-head { display: flex; gap: 20px; align-items: flex-start; padding: 20px 24px 16px; border-bottom: 1px solid var(--line); }
 .extension-details-title { flex: 1; min-width: 0; }
-.extension-details-title h2 { margin: 0 0 4px; font-size: 22px; font-weight: 600; overflow-wrap: anywhere; }
+.extension-details-title h2 { margin: 0 0 4px; font-size: var(--fs-2xl); font-weight: 600; overflow-wrap: anywhere; }
 .extension-details-publisher { display: flex; align-items: center; gap: 4px; margin: 0 0 6px; color: var(--muted); }
 .extension-details-description { margin: 0 0 10px; }
 .extension-details-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.extension-details-actions .extension-action { padding: 4px 12px; font-size: 13px; }
+.extension-details-actions .extension-action { padding: 4px 12px; font-size: var(--fs-md); }
 .extension-details-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 280px); gap: 24px; padding: 16px 24px 24px; min-height: 0; }
 .extension-details-readme { min-width: 0; }
 .extension-details-readme .markdown-preview { border: 0; height: auto; }
 .extension-details-readme .markdown-preview-header { display: none; }
 .extension-details-readme .markdown-preview-body { overflow: visible; padding: 0; }
 .extension-details-side { min-width: 0; }
-.extension-details-side h3 { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-.extension-details-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; font-size: 12px; }
+.extension-details-side h3 { margin: 16px 0 6px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.extension-details-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; font-size: var(--fs-sm); }
 .extension-details-facts dt { color: var(--muted); }
 .extension-details-facts dd { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 900px) {
@@ -62,8 +62,8 @@
 .activity-item { position: relative; }
 .activity-item > .codicon-glyph { width: 24px; font-size: 24px; }
 .activity-item > .ext-icon-mask { width: 24px; height: 24px; }
-.activity-letter { font-weight: 600; font-size: 16px; }
-.activity-badge { position: absolute; right: 6px; bottom: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: var(--status-fg); font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; }
+.activity-letter { font-weight: 600; font-size: var(--fs-xl); }
+.activity-badge { position: absolute; right: 6px; bottom: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill); background: var(--button-bg); color: var(--on-accent); font-size: var(--fs-2xs); font-weight: 600; line-height: 16px; text-align: center; }
 .activity-badge[hidden] { display: none; }
 
 /* The Source Control and Run and Debug panes hold their view and, under it, extensions' views. */
@@ -90,7 +90,7 @@
 .ext-view-message { margin: 4px 12px 6px; }
 .ext-view-message[hidden] { display: none; }
 
-.ext-action.is-text { width: auto; padding: 0 6px; font: inherit; font-size: 12px; }
+.ext-action.is-text { width: auto; padding: 0 6px; font: inherit; font-size: var(--fs-sm); }
 .ext-action:disabled { opacity: 0.4; cursor: default; }
 
 .ext-tree-row { gap: 4px; }
@@ -100,7 +100,7 @@
 .ext-tree-checkbox { flex: none; margin: 0 2px 0 0; }
 .ext-tree-actions { margin-left: auto; display: none; align-items: center; gap: 2px; }
 .ext-tree-row:hover > .ext-tree-actions, .ext-tree-row:focus > .ext-tree-actions, .ext-tree-row[aria-selected='true'] > .ext-tree-actions { display: flex; }
-.ext-tree-actions > .ext-action { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 3px; background: none; color: var(--muted); cursor: pointer; }
+.ext-tree-actions > .ext-action { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); cursor: pointer; }
 .ext-tree-actions > .ext-action:hover { background: var(--hover); color: var(--fg); }
 
 .ext-welcome { padding: 6px 0 8px; }

@@ -32,6 +32,14 @@ export function icon(pathData: string, className?: string): SVGSVGElement {
     return svg;
 }
 
+/** The one close glyph of the workbench (tabs, notifications, the scene, the dock): an X drawn in SVG, never a text character. */
+export const CLOSE_ICON_PATH = 'M6 6l12 12M18 6L6 18';
+
+/** A close glyph for an `icon-button` or a notification. */
+export function closeIcon(): SVGSVGElement {
+    return icon(CLOSE_ICON_PATH, 'close-icon');
+}
+
 let iconSheetAdopted = false;
 
 /**

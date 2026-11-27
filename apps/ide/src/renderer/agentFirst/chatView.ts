@@ -133,7 +133,7 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         bar.chips,
         el('div', { className: 'af-input-wrap' }, [input, bar.popup, slashPopup]),
         queueNote,
-        el('div', { className: 'af-composer-row' }, [bar.attachButton, modeSelect, optionsSlot, el('span', { className: 'af-spacer' }), sendButton]),
+        el('div', { className: 'af-composer-row' }, [bar.attachButton, el('label', { className: 'af-option' }, [el('span', { className: 'af-option-name', text: 'Mode' }), modeSelect]), optionsSlot, el('span', { className: 'af-spacer' }), sendButton]),
     ]);
 
     const element = el('section', { className: 'af-chat', attrs: { 'data-testid': 'af-chat', 'data-session': sessionId } }, [header, worktreeBar.element, transcript, plan, composer]);
@@ -485,7 +485,8 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         }
     }
 
-    function configSelect(option: ConfigOptionView): HTMLSelectElement {
+    /** One of the agent's options (model, effort...): its name stays visible above the value (visual polish V4). */
+    function configSelect(option: ConfigOptionView): HTMLElement {
         const select = el('select', { className: 'af-select', attrs: { 'aria-label': option.name, title: option.name, 'data-option': option.id } });
         select.append(...option.values.map((value) => {
             const node = el('option', { text: value.name, attrs: { value: value.id, title: value.description ?? '' } });
@@ -495,7 +496,7 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         select.addEventListener('change', () => {
             deps.api.setConfigOption(sessionId, option.id, select.value).catch((error: unknown) => deps.onStatus(errorText(error)));
         });
-        return select;
+        return el('label', { className: 'af-option' }, [el('span', { className: 'af-option-name', text: option.name }), select]);
     }
 
     modeSelect.addEventListener('change', () => {

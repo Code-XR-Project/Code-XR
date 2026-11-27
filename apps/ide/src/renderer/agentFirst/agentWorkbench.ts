@@ -6,7 +6,7 @@ import type { CustomEditorInput } from '../editor/customEditor.ts';
 import type { EditorGroup } from '../editor/editorGroup.ts';
 import type { NotificationCenter } from '../notifications.ts';
 import type { Workbench } from '../workbench.ts';
-import { el } from '../dom.ts';
+import { closeIcon, el } from '../dom.ts';
 import { createChatView, type ChatView, type ChatViewDeps } from './chatView.ts';
 import { createSessionsView, type SessionsView } from './sessionsView.ts';
 import { createInstructionsView, type InstructionsViewDeps } from './instructionsView.ts';
@@ -95,7 +95,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
     const artPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     artPath.setAttribute('d', DOCK_ART);
     art.append(artPath);
-    const hideDock = el('button', { className: 'icon-button', text: '×', attrs: { type: 'button', title: 'Hide the live analysis column', 'aria-label': 'Hide the live analysis column' } });
+    const hideDock = el('button', { className: 'icon-button', attrs: { type: 'button', title: 'Hide the live analysis column', 'aria-label': 'Hide the live analysis column' } }, [closeIcon()]);
     hideDock.addEventListener('click', () => setDockHidden(true));
     workbench.dockArea.replaceChildren(
         el('header', { className: 'af-dock-head' }, [el('span', { text: 'Live analysis' }), el('span', { className: 'af-live', text: 'Waiting', attrs: { 'data-state': 'idle' } }), el('span', { className: 'af-spacer' }), hideDock]),
