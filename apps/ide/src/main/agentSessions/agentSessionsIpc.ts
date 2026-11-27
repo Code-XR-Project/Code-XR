@@ -19,6 +19,8 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.saveCustomAgent, (event, input, id) => service.saveCustomAgent(portOf(event.sender), input, id, (line) => runtime.confirmCustomAgent(event.sender, line)));
     handle(C.removeCustomAgent, (event, id) => service.removeCustomAgent(portOf(event.sender), id));
     handle(C.login, (event, ref, methodId, cols, rows) => service.login(portOf(event.sender), ref, methodId, cols, rows));
+    handle(C.signInWithKey, (event, ref, methodId, apiKey) => service.signInWithKey(portOf(event.sender), ref, methodId, apiKey));
+    handle(C.forgetKey, (event, ref) => service.forgetKey(portOf(event.sender), ref));
     handle(C.listProjects, (event) => service.listProjects(portOf(event.sender)));
     handle(C.get, (event, id) => service.get(portOf(event.sender), id));
     handle(C.create, (event, ref, options) => service.create(portOf(event.sender), ref, options));
