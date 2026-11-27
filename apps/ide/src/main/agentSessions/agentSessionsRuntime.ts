@@ -99,6 +99,8 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
         localAgentScript: path.join(app.getAppPath(), 'out', 'localAgent', 'index.cjs'),
         // #313: local models' keys (most need none) in the OS secret store, beside the chats.
         localKeys: new KeyVault(path.join(dir, 'local-model-keys.json'), electronCipher()),
+        // #297: API keys given to one agent, encrypted by the OS secret store like the built-in agent's keys.
+        secrets: new KeyVault(path.join(dir, 'agent-keys.json'), electronCipher()),
     });
 
     const ports = new Map<number, WindowPort>();

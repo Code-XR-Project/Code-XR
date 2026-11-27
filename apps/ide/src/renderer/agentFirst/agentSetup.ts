@@ -45,6 +45,11 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
         if (action === 'login') {
             for (const method of (agent.authMethods ?? []).slice(0, 3)) {
                 button(method.name, method.description ?? method.name, () => {
+                    if (method.type === 'api-key') {
+                        // #297: the key is typed here and kept by the main process; the page never reads it back.
+                        showKeyForm(panel, agent, method.id, method.name, deps);
+                        return;
+                    }
                     if (method.type === 'terminal' && deps.runInTerminal) {
                         // #297: the login program gets a terminal of its own in the panel, shown at once.
                         const label = `${agent.name}: ${method.name}`;
@@ -69,6 +74,20 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
                             return deps.refresh(true);
                         })
                         .catch((error: unknown) => deps.onStatus(errorText(error)));
+                });
+            }
+            if (agent.keySaved) {
+                button('Forget key', `${agent.name} starts without the key you gave it`, (self) => {
+                    self.disabled = true;
+                    deps.api.forgetKey(agent.ref)
+                        .then((view) => {
+                            deps.onStatus(`${agent.name}: the key was forgotten.`);
+                            deps.replace(view);
+                        })
+                        .catch((error: unknown) => {
+                            self.disabled = false;
+                            showError(panel, errorText(error));
+                        });
                 });
             }
         } else if (action === 'check') {
@@ -155,6 +174,53 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
         }
     }
     return el('div', { className: 'af-agent-setup' }, [buttons, panel]);
+}
+
+/** #297: an API-key login method: one password field, kept by the main process in the OS secret store. */
+function showKeyForm(panel: HTMLElement, agent: AgentView, methodId: string, methodName: string, deps: AgentSetupDeps): void {
+    const input = el('input', { className: 'agents-input', attrs: { type: 'password', autocomplete: 'off', spellcheck: 'false', 'aria-label': `${methodName} for ${agent.name}`, 'data-testid': 'af-key-input' } });
+    const go = el('button', { className: 'primary-button af-small-button', text: 'Save and sign in', attrs: { type: 'submit', 'data-testid': 'af-key-confirm' } });
+    const cancel = el('button', { className: 'secondary-button af-small-button', text: 'Cancel', attrs: { type: 'button' } });
+    const close = (): void => {
+        panel.hidden = true;
+        panel.replaceChildren();
+    };
+    cancel.addEventListener('click', (event) => {
+        event.stopPropagation();
+        close();
+    });
+    const form = el('form', { className: 'af-key-form' }, [
+        el('p', { className: 'af-install-title', text: `${agent.name}: ${methodName}` }),
+        input,
+        el('p', { className: 'muted af-install-note', text: `Kept encrypted by your operating system and given only to ${agent.name}, each time it starts. Forget it here at any time.` }),
+        el('div', { className: 'af-install-actions' }, [go, cancel]),
+    ]);
+    form.addEventListener('click', (event) => event.stopPropagation());
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const value = input.value;
+        if (!value.trim()) {
+            input.focus();
+            return;
+        }
+        go.disabled = true;
+        cancel.disabled = true;
+        go.textContent = 'Signing in...';
+        deps.api.signInWithKey(agent.ref, methodId, value)
+            .then((view) => {
+                input.value = '';
+                close();
+                deps.onStatus(view.availability === 'ready' ? `${agent.name}: signed in with your key.` : `${agent.name}: ${view.detail ?? 'the key was saved.'}`);
+                deps.replace(view);
+            })
+            .catch((error: unknown) => {
+                input.value = '';
+                showError(panel, errorText(error));
+            });
+    });
+    panel.hidden = false;
+    panel.replaceChildren(form);
+    input.focus();
 }
 
 function showError(panel: HTMLElement, message: string): void {

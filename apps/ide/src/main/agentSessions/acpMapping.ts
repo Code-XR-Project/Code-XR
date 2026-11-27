@@ -250,6 +250,16 @@ function stringRecord(value: unknown): Record<string, string> | undefined {
 }
 
 /**
+ * #297: the environment variables an agent reads its provider's key from.
+ * Codex reads `CODEX_API_KEY` before `OPENAI_API_KEY`, so both are set.
+ */
+export const API_KEY_ENV: Readonly<Record<string, readonly string[]>> = {
+    openai: ['OPENAI_API_KEY', 'CODEX_API_KEY'],
+    google: ['GEMINI_API_KEY'],
+    anthropic: ['ANTHROPIC_API_KEY'],
+};
+
+/**
  * The agent's `authMethods`: `type: "terminal"` (or a `terminal-auth` hint in
  * `_meta`) runs the agent's own login in a terminal, an environment-variable
  * method needs a key in the agent's environment, anything else is handled by
@@ -268,11 +278,15 @@ export function mapAuthMethods(methods: readonly AuthMethod[] | readonly unknown
         const meta = method['_meta'] && typeof method['_meta'] === 'object' ? (method['_meta'] as Record<string, unknown>) : {};
         const hint = meta['terminal-auth'] && typeof meta['terminal-auth'] === 'object' ? (meta['terminal-auth'] as Record<string, unknown>) : null;
         const declared = method['type'];
-        const type: AuthMethodView['type'] = declared === 'terminal' || hint ? 'terminal' : declared === 'env_var' || declared === 'env' ? 'env' : 'agent';
+        // #297: Codex and Gemini CLI mark their key method with `_meta["api-key"].provider`.
+        const keyMeta = meta['api-key'] && typeof meta['api-key'] === 'object' ? (meta['api-key'] as Record<string, unknown>) : null;
+        const provider = typeof keyMeta?.['provider'] === 'string' && Object.hasOwn(API_KEY_ENV, keyMeta['provider']) ? keyMeta['provider'] : null;
+        const type: AuthMethodView['type'] = declared === 'terminal' || hint ? 'terminal' : provider ? 'api-key' : declared === 'env_var' || declared === 'env' ? 'env' : 'agent';
         const view: AuthMethodView = {
             id: method['id'],
             name: method['name'],
             type,
+            ...(type === 'api-key' && provider ? { provider } : {}),
             ...(typeof method['description'] === 'string' && method['description'] ? { description: method['description'] } : {}),
         };
         const args = stringArray(method['args']) ?? stringArray(hint?.['args']);

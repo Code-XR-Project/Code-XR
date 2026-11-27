@@ -24,6 +24,8 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.listLocalModels, (event, server, baseUrl, apiKey, id) => service.listLocalModels(portOf(event.sender), server, baseUrl, apiKey, id));
     handle(C.detectLocalServers, (event) => service.detectLocalServers(portOf(event.sender)));
     handle(C.login, (event, ref, methodId, cols, rows) => service.login(portOf(event.sender), ref, methodId, cols, rows));
+    handle(C.signInWithKey, (event, ref, methodId, apiKey) => service.signInWithKey(portOf(event.sender), ref, methodId, apiKey));
+    handle(C.forgetKey, (event, ref) => service.forgetKey(portOf(event.sender), ref));
     handle(C.listProjects, (event) => service.listProjects(portOf(event.sender)));
     handle(C.get, (event, id) => service.get(portOf(event.sender), id));
     handle(C.create, (event, ref, options) => service.create(portOf(event.sender), ref, options));

@@ -62,7 +62,7 @@ import {
     type MappingContext,
     type ResolvedAttachment,
 } from './acpMapping.ts';
-import { loginProgram, nativeLoginProgram, type AgentCatalog } from './agentCatalog.ts';
+import { loginProgram, consoleLoginProgram, nativeLoginProgram, type AgentCatalog } from './agentCatalog.ts';
 import { parsePresetId, type AgentInstaller } from './agentInstaller.ts';
 import { AgentTerminals } from './agentTerminals.ts';
 import { isSessionId, type SessionStore } from './sessionStore.ts';
@@ -218,6 +218,9 @@ const MAX_EMBEDDED_FILE = 256 * 1024;
 const MAX_READ_FILE = 10 * 1024 * 1024;
 const TERMINAL_FLUSH_MS = 50;
 const LOGIN_TIMEOUT_MS = 10 * 60_000;
+/** #297: how often to ask `auth/status` again while the agent answers `unknown`. */
+const AUTH_STATUS_ATTEMPTS = 4;
+const AUTH_STATUS_RETRY_MS = 750;
 /** #298: at most this many chats are offered for import, read in at most this many pages. */
 const MAX_IMPORT = 200;
 const MAX_IMPORT_PAGES = 20;
@@ -423,12 +426,13 @@ export class AgentSessionService {
         }
         if (spec.view.type === 'terminal') {
             const launch = resolution.launch;
-            const program = await nativeLoginProgram(loginProgram(launch, spec), {
+            const native = await nativeLoginProgram(loginProgram(launch, spec), {
                 platform: this.platform,
                 arch: process.arch,
                 env: launch.env,
                 exists: (file) => fs.promises.stat(file).then((stat) => stat.isFile(), () => false),
             });
+            const program = await consoleLoginProgram(native, launch, { platform: this.platform, findNode: () => this.options.catalog.findSystemNode() });
             const cwd = this.options.rootOf(window) ?? this.options.homeDir;
             const size = (value: unknown, fallback: number): number => (typeof value === 'number' && Number.isInteger(value) && value >= 2 && value <= 1000 ? value : fallback);
             const opened = await this.options.openTerminal(window, {
@@ -447,13 +451,76 @@ export class AgentSessionService {
         }
         const connection = await this.openScratchConnection(resolution.launch);
         try {
+            // ACP: `initialize` first; Gemini CLI loads its configuration there and Codex starts its server.
+            const init = await withTimeout(connection.initialize(), this.options.startTimeoutMs ?? 60_000, 'The agent did not answer initialize in time.');
             await withTimeout(connection.authenticate(method), LOGIN_TIMEOUT_MS, 'The login took too long.');
-            await this.checkLogin(agentRef, connection);
+            await this.checkLogin(agentRef, connection, init);
         } finally {
             connection.close();
         }
         this.broadcast({ kind: 'agents-changed' });
         return null;
+    }
+
+    /**
+     * #297: an `api-key` method. The key is kept by the catalog (OS secret
+     * store) and given to this agent alone as its provider's environment
+     * variable, then the agent authenticates with that method in a scratch
+     * connection started with it. The key never reaches the page again.
+     */
+    async signInWithKey(window: WindowPort, ref: unknown, methodId: unknown, apiKey: unknown): Promise<AgentView> {
+        this.remember(window);
+        const agentRef = requireString(ref, 'agent', 200);
+        const method = requireString(methodId, 'login method', 200);
+        const key = typeof apiKey === 'string' ? apiKey.trim() : '';
+        if (!key || key.length > 1000 || /\s/.test(key)) {
+            throw new Error('Paste the key: one line, with no spaces.');
+        }
+        const definition = this.options.catalog.definition(agentRef);
+        if (!definition) {
+            throw new Error('Only an ACP agent signs in here; the built-in agent uses the keys of the Agents view.');
+        }
+        if (!this.options.spawnAllowed) {
+            throw new Error('Agents cannot start in this mode.');
+        }
+        if (!this.options.catalog.state(agentRef)?.authMethods) {
+            await this.probeAgent(window, agentRef);
+        }
+        const spec = this.options.catalog.state(agentRef)?.authMethods?.find((candidate) => candidate.view.id === method);
+        if (!spec || spec.view.type !== 'api-key' || !spec.view.provider) {
+            throw new Error('The agent does not take a key with that login method.');
+        }
+        await this.options.catalog.saveKey(agentRef, spec.view.provider, key);
+        const resolution = await this.options.catalog.resolve(definition);
+        if (!resolution.found) {
+            throw new Error(resolution.detail);
+        }
+        const connection = await this.openScratchConnection(resolution.launch);
+        try {
+            await withTimeout(connection.initialize(), this.options.startTimeoutMs ?? 60_000, 'The agent did not answer initialize in time.');
+            await withTimeout(connection.authenticate(method), LOGIN_TIMEOUT_MS, 'The login took too long.');
+        } catch (error) {
+            connection.close();
+            // A key the agent refused is not kept.
+            await this.options.catalog.forgetKey(agentRef);
+            this.broadcast({ kind: 'agents-changed' });
+            throw new Error(`${definition.name} did not accept the key: ${errorMessage(error)}`);
+        }
+        connection.close();
+        return this.probeAgent(window, agentRef);
+    }
+
+    /** #297: the agent starts without the key it was given from now on. */
+    async forgetKey(window: WindowPort, ref: unknown): Promise<AgentView> {
+        this.remember(window);
+        const agentRef = requireString(ref, 'agent', 200);
+        const definition = this.options.catalog.definition(agentRef);
+        if (!definition) {
+            throw new Error('Unknown agent.');
+        }
+        await this.options.catalog.forgetKey(agentRef);
+        this.broadcast({ kind: 'agents-changed' });
+        return this.probeAgent(window, agentRef);
     }
 
     // ---- Installing presets (AF2) ------------------------------------------
@@ -542,11 +609,11 @@ export class AgentSessionService {
     }
 
     /** `initialize` then `session/new`: ready, needs a login, or failing (and why). */
-    private async checkLogin(agentRef: string, connection: AcpConnection): Promise<void> {
+    private async checkLogin(agentRef: string, connection: AcpConnection, initialized?: InitializeResponse): Promise<void> {
         const timeout = this.options.startTimeoutMs ?? 60_000;
         let init: InitializeResponse;
         try {
-            init = await withTimeout(connection.initialize(), timeout, 'The agent did not answer initialize in time.');
+            init = initialized ?? (await withTimeout(connection.initialize(), timeout, 'The agent did not answer initialize in time.'));
         } catch (error) {
             this.options.catalog.setState(agentRef, { availability: 'error', detail: errorMessage(error) });
             return;
@@ -1717,9 +1784,26 @@ async function readAuthStatus(connection: AcpConnection, init: InitializeRespons
     if (!capabilities?.auth?.status) {
         return { state: 'unknown' };
     }
-    try {
-        return await withTimeout(connection.authStatus(), Math.min(timeout, 15_000), 'The agent did not say whether it is signed in.');
-    } catch {
-        return { state: 'unknown' };
+    // The first answer may be `unknown` while the agent still reads its login:
+    // Codex answers at once and reads in the background, and Claude Code's read
+    // of `claude auth status` can outlast its own 5 s bound on a cold start.
+    // Asking again starts a new read, so ask a few times before giving up.
+    const until = Date.now() + Math.min(timeout, 20_000);
+    let status: { readonly state: 'authenticated' | 'unauthenticated' | 'unknown'; readonly account?: string } = { state: 'unknown' };
+    for (let attempt = 0; attempt < AUTH_STATUS_ATTEMPTS; attempt += 1) {
+        const left = until - Date.now();
+        if (left <= 0) {
+            break;
+        }
+        try {
+            status = await withTimeout(connection.authStatus(), left, 'The agent did not say whether it is signed in.');
+        } catch {
+            return { state: 'unknown' };
+        }
+        if (status.state !== 'unknown') {
+            return status;
+        }
+        await new Promise((resolve) => setTimeout(resolve, AUTH_STATUS_RETRY_MS));
     }
+    return status;
 }

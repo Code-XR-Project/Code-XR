@@ -82,6 +82,8 @@ const api: CodeXRApi = Object.freeze({
         listLocalModels: (server: string, baseUrl: string, apiKey?: string, id?: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listLocalModels, server, baseUrl, apiKey, id),
         detectLocalServers: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.detectLocalServers),
         login: (ref: string, methodId: string, cols?: number, rows?: number) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.login, ref, methodId, cols, rows),
+        signInWithKey: (ref: string, methodId: string, apiKey: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.signInWithKey, ref, methodId, apiKey),
+        forgetKey: (ref: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.forgetKey, ref),
         listProjects: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listProjects),
         get: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.get, sessionId),
         create: (agentRef: string, options?: { readonly worktree?: boolean }) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.create, agentRef, { worktree: options?.worktree === true }),

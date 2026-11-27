@@ -4,7 +4,7 @@ import path from 'node:path';
 import { AGENT_PRESET_IDS, type AcpAgentDefinition, type AgentAvailability, type AgentPresetId, type AgentView, type LocalModelSettings } from '../../shared/agentSession.ts';
 import { isLocalServerId, LOCAL_SERVER_PRESETS, normalizeLocalBaseUrl } from '@codexr/local-models/servers.ts';
 import type { AgentLaunch } from './acpConnection.ts';
-import type { AuthMethodSpec } from './acpMapping.ts';
+import { API_KEY_ENV, type AuthMethodSpec } from './acpMapping.ts';
 
 /**
  * AF1/AF2: the agents a chat can use. Three presets the IDE knows how to
@@ -66,7 +66,7 @@ export const PRESETS: readonly PresetSpec[] = [
 ];
 
 /** What every agent may inherit from the IDE's environment. */
-const BASE_ENV = /^(PATH|PATHEXT|HOME|USERPROFILE|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|PROGRAMDATA|SYSTEMROOT|SYSTEMDRIVE|WINDIR|COMSPEC|TEMP|TMP|TMPDIR|LANG|LANGUAGE|LC_ALL|LC_CTYPE|USER|USERNAME|LOGNAME|SHELL|XDG_CONFIG_HOME|XDG_DATA_HOME|XDG_CACHE_HOME|XDG_STATE_HOME|XDG_RUNTIME_DIR|HTTPS?_PROXY|NO_PROXY|ALL_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|SSL_CERT_DIR)$/i;
+const BASE_ENV = /^(PATH|PATHEXT|HOME|USERPROFILE|HOMEDRIVE|HOMEPATH|APPDATA|LOCALAPPDATA|PROGRAMDATA|SYSTEMROOT|SYSTEMDRIVE|WINDIR|COMSPEC|TEMP|TMP|TMPDIR|LANG|LANGUAGE|LC_ALL|LC_CTYPE|USER|USERNAME|LOGNAME|SHELL|XDG_CONFIG_HOME|XDG_DATA_HOME|XDG_CACHE_HOME|XDG_STATE_HOME|XDG_RUNTIME_DIR|HTTPS?_PROXY|NO_PROXY|ALL_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|SSL_CERT_DIR|DISPLAY|WAYLAND_DISPLAY|XAUTHORITY|DBUS_SESSION_BUS_ADDRESS|BROWSER)$/i;
 
 /** The environment an agent starts with. */
 export function agentEnvironment(base: Readonly<Record<string, string | undefined>>, passEnv: RegExp | null, extra: Readonly<Record<string, string>>): Record<string, string> {
@@ -172,6 +172,8 @@ export interface CatalogOptions {
     readonly probe?: FileProbe;
     /** The built-in agent's profiles (epic #189). */
     readonly builtinProfiles: () => Promise<readonly { readonly id: string; readonly name: string }[]>;
+    /** #297: where API keys given to an agent are kept (the OS secret store); none means keys cannot be given. */
+    readonly secrets?: AgentSecrets;
     /** #312: the IDE's local-model agent bundle (out/localAgent/index.cjs); local models are missing without it. */
     readonly localAgentScript?: string;
     /** #313: where local models' API keys are kept (the OS secret store); without it no key can be saved. */
@@ -225,6 +227,13 @@ function localDescription(local: LocalModelSettings): string {
     return `${local.model} on ${label} (${host}). Runs on your own machine: no account, nothing leaves it.`;
 }
 
+/** #297: the slice of `KeyVault` the catalog needs. */
+export interface AgentSecrets {
+    get(id: string): string | undefined;
+    set(id: string, key: string): Promise<unknown>;
+    delete(id: string): Promise<void>;
+}
+
 /** What the last probe or chat learned about an agent. */
 export interface AgentState {
     readonly availability: AgentAvailability;
@@ -233,6 +242,8 @@ export interface AgentState {
 }
 
 const CUSTOM_KEY = 'customAgents';
+/** #297: agent ref -> the provider of the API key the person gave it (the key itself is in `secrets`). */
+const KEYS_KEY = 'agentKeys';
 const CUSTOM_ID = /^custom-[a-f0-9]{8}$/;
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -362,6 +373,28 @@ export async function nativeLoginProgram(
     return program;
 }
 
+/**
+ * #297: on Windows a console program started through the IDE's own GUI
+ * executable (`ELECTRON_RUN_AS_NODE`) gets no keyboard and prints nothing in
+ * a terminal (checked by the smoke run on windows-latest). A sign-in that is
+ * still a JavaScript program run that way after `nativeLoginProgram` runs
+ * with the system's Node.js instead, or is refused with what to do.
+ */
+export async function consoleLoginProgram(
+    program: { command: string; args: string[] },
+    launch: AgentLaunch,
+    options: { readonly platform: NodeJS.Platform; readonly findNode: () => Promise<string | null> },
+): Promise<{ command: string; args: string[] }> {
+    if (options.platform !== 'win32' || launch.env['ELECTRON_RUN_AS_NODE'] !== '1' || program.command !== launch.command) {
+        return program;
+    }
+    const node = await options.findNode();
+    if (node) {
+        return { command: node, args: program.args };
+    }
+    throw new Error(`On Windows the IDE cannot show this sign-in in its terminal without Node.js. Install Node.js from nodejs.org and try again, or run it yourself in a terminal: node ${program.args.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg)).join(' ')}`);
+}
+
 export class AgentCatalog {
     private readonly options: CatalogOptions;
     private readonly probe: FileProbe;
@@ -415,7 +448,8 @@ export class AgentCatalog {
     async resolve(definition: AcpAgentDefinition): Promise<Resolution> {
         const { env, platform, execPath, packagesDir } = this.options;
         const preset = definition.preset ? PRESETS.find((candidate) => candidate.id === definition.preset) : undefined;
-        const agentEnv = (extra: Record<string, string> = {}): Record<string, string> => agentEnvironment(env, preset?.passEnv ?? null, { ...(definition.env ?? {}), ...extra });
+        const keyEnv = this.keyEnv(`acp:${definition.id}`);
+        const agentEnv = (extra: Record<string, string> = {}): Record<string, string> => agentEnvironment(env, preset?.passEnv ?? null, { ...(definition.env ?? {}), ...keyEnv, ...extra });
         const viaNode = (script: string, via: string): Resolution => ({
             found: true,
             via,
@@ -485,6 +519,57 @@ export class AgentCatalog {
         return { found: true, via: found, launch: { command: found, args: [...definition.args], env: agentEnv() } };
     }
 
+    /** #297: the provider of the key given to an agent, when the IDE still holds that key. */
+    keyProvider(ref: string): string | null {
+        const raw = this.options.store.get<unknown>(KEYS_KEY);
+        const provider = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>)[ref] : undefined;
+        if (typeof provider !== 'string' || !Object.hasOwn(API_KEY_ENV, provider) || !this.options.secrets?.get(ref)) {
+            return null;
+        }
+        return provider;
+    }
+
+    /** #297: the environment variables that hand an agent the key it was given. */
+    keyEnv(ref: string): Record<string, string> {
+        const provider = this.keyProvider(ref);
+        const key = provider ? this.options.secrets?.get(ref) : undefined;
+        if (!provider || !key) {
+            return {};
+        }
+        return Object.fromEntries((API_KEY_ENV[provider] ?? []).map((name) => [name, key]));
+    }
+
+    /** #297: keeps a key for one agent (in the secret store) and which provider it is for. */
+    async saveKey(ref: string, provider: string, key: string): Promise<void> {
+        if (!this.options.secrets) {
+            throw new Error('The IDE cannot keep keys in this mode.');
+        }
+        if (!Object.hasOwn(API_KEY_ENV, provider)) {
+            throw new Error('The IDE does not know where this agent reads that key from.');
+        }
+        await this.options.secrets.set(ref, key);
+        await this.options.store.update(KEYS_KEY, { ...this.keyMap(), [ref]: provider });
+    }
+
+    async forgetKey(ref: string): Promise<void> {
+        await this.options.secrets?.delete(ref);
+        const { [ref]: _removed, ...rest } = this.keyMap();
+        await this.options.store.update(KEYS_KEY, rest);
+    }
+
+    private keyMap(): Record<string, string> {
+        const raw = this.options.store.get<unknown>(KEYS_KEY);
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+            return {};
+        }
+        return Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
+    }
+
+    /** The system's Node.js on PATH, for a sign-in that cannot run through the IDE's executable (#297). */
+    findSystemNode(): Promise<string | null> {
+        return findOnPath('node', this.options.env, this.options.platform, this.probe);
+    }
+
     /** AF2: the version of a preset the IDE installed under its own folder, or null. */
     async installedVersion(presetId: AgentPresetId): Promise<string | null> {
         const preset = PRESETS.find((candidate) => candidate.id === presetId);
@@ -522,6 +607,7 @@ export class AgentCatalog {
             ...(definition.preset ? { preset: definition.preset } : {}),
             ...(definition.local ? { local: { ...definition.local, hasKey: !!this.options.localKeys?.get(definition.id) } } : {}),
             ...(state?.authMethods?.length ? { authMethods: state.authMethods.map((method) => method.view) } : {}),
+            ...(this.keyProvider(ref) ? { keySaved: true } : {}),
         };
         if (!resolution.found) {
             return { ...base, availability: 'missing', detail: resolution.detail };
@@ -613,5 +699,8 @@ export class AgentCatalog {
         }
         await this.options.store.update(CUSTOM_KEY, this.customAgents().filter((agent) => agent.id !== id));
         this.states.delete(`acp:${id}`);
+        if (this.options.store.get<unknown>(KEYS_KEY)) {
+            await this.forgetKey(`acp:${id}`);
+        }
     }
 }

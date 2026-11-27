@@ -100,6 +100,8 @@ export interface AgentView {
     readonly installedVersion?: string;
     /** #313: a local model's server and model; `hasKey` says an API key is stored (never the key). */
     readonly local?: LocalModelSettings & { readonly hasKey: boolean };
+    /** #297: an API key the person gave this agent is kept by the IDE (never sent to the page). */
+    readonly keySaved?: boolean;
 }
 
 /**
@@ -148,8 +150,15 @@ export interface AuthMethodView {
     readonly id: string;
     readonly name: string;
     readonly description?: string;
-    /** `terminal`: the IDE runs the agent's own login in a terminal; `agent`: the agent opens the browser itself. */
-    readonly type: 'terminal' | 'agent' | 'env';
+    /**
+     * `terminal`: the IDE runs the agent's own login in a terminal; `agent`: the
+     * agent opens the browser itself; `api-key` (#297): the person pastes a key,
+     * kept in the OS secret store and handed to this agent only, as `provider`'s
+     * environment variable; `env`: the key must already be in the agent's environment.
+     */
+    readonly type: 'terminal' | 'agent' | 'env' | 'api-key';
+    /** `api-key` methods: whose key it is (`openai`, `google`, `anthropic`). */
+    readonly provider?: string;
 }
 
 // ---- Transcript ------------------------------------------------------------
@@ -686,6 +695,8 @@ export const AGENT_SESSION_CHANNELS = {
     listLocalModels: 'codexr:agent-sessions:list-local-models',
     detectLocalServers: 'codexr:agent-sessions:detect-local-servers',
     login: 'codexr:agent-sessions:login',
+    signInWithKey: 'codexr:agent-sessions:sign-in-with-key',
+    forgetKey: 'codexr:agent-sessions:forget-key',
     listProjects: 'codexr:agent-sessions:list-projects',
     get: 'codexr:agent-sessions:get',
     create: 'codexr:agent-sessions:create',
@@ -755,6 +766,14 @@ export interface AgentSessionsApi {
      * The agent is probed again when the program exits (`agents-changed`).
      */
     login(ref: string, methodId: string, cols?: number, rows?: number): Promise<LoginTerminal | null>;
+    /**
+     * #297: an `api-key` method. The key is kept in the OS secret store (or for
+     * this run only, without one), passed to this agent alone as its provider's
+     * environment variable on every start, and the agent signs in with it.
+     */
+    signInWithKey(ref: string, methodId: string, apiKey: string): Promise<AgentView>;
+    /** #297: forgets the key given to this agent; it starts without it from now on. */
+    forgetKey(ref: string): Promise<AgentView>;
     /** Recent projects and their chats, the window's own folder first. */
     listProjects(): Promise<readonly ProjectSessions[]>;
     get(sessionId: string): Promise<AgentSessionState>;
