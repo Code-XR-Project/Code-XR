@@ -8,7 +8,8 @@ import { channelLog } from '../log.ts';
 import { addFolderChangeListener, currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
 import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { LanguageServer, type DiagnosticsParams } from './languageServer.ts';
-import { assertLanguage, assertRequestMethod, assertText, assertVersion, buildDocumentRequest, CompletionDataStore, lspLanguageId } from './lspProtocol.ts';
+import { assertLanguage, assertRequestMethod, assertText, assertVersion, buildDocumentRequest, buildWorkspaceSymbolRequest, CompletionDataStore, lspLanguageId } from './lspProtocol.ts';
+import { mapDocumentResult, mapWorkspaceSymbols } from './lspResults.ts';
 import { findPythonServer, typescriptServerCommand, type ServerCommand } from './lspServers.ts';
 import { clientUriToWorkspacePath, mapServerUris, toClientUri, toServerUri, type WorkspaceRoots } from './lspUri.ts';
 
@@ -239,12 +240,21 @@ export function createLspHost(): LspHost {
                 }
                 return resolved ?? params;
             }
+            if (checked === 'workspace/symbol') {
+                // #287: every server of the window answers for its languages; a server that fails leaves its part out.
+                const query = buildWorkspaceSymbolRequest(params);
+                const answers = await Promise.all([...session.servers.values()].map((server) => server.request(checked, query).catch((error: unknown) => {
+                    lspLog.warn(`workspace/symbol failed: ${String(error)}`);
+                    return null;
+                })));
+                return answers.flatMap((answer) => mapWorkspaceSymbols(answer, toClient));
+            }
             const request = buildDocumentRequest(checked, params, (u) => toServerUri(u, session.roots));
             const server = serverHolding(session, request.serverUri);
             if (!server) {
                 return null;
             }
-            const result = mapServerUris(await server.request(request.method, request.params), toClient);
+            const result = mapDocumentResult(request.method, await server.request(request.method, request.params), toClient);
             if (request.method === 'textDocument/completion') {
                 const id = [...session.servers.entries()].find(([, candidate]) => candidate === server)?.[0];
                 return id ? session.completions.tokenize(result, id) : result;

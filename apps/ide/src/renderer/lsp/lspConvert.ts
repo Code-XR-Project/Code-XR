@@ -157,3 +157,180 @@ export function openTarget(selectionOrPosition: MonacoRange | { lineNumber: numb
 export function workspacePathOf(uriPath: string): string {
     return uriPath.replace(/^\/+/, '');
 }
+
+/** #287: Monaco's 1-based range as an LSP range. */
+export function toLspRange(range: MonacoRange): Lsp.Range {
+    return {
+        start: { line: range.startLineNumber - 1, character: range.startColumn - 1 },
+        end: { line: range.endLineNumber - 1, character: range.endColumn - 1 },
+    };
+}
+
+/** LSP DocumentHighlightKind (Text 1, Read 2, Write 3) to monaco.languages.DocumentHighlightKind (Text 0, Read 1, Write 2). */
+export function toHighlights(result: readonly Lsp.DocumentHighlight[] | null | undefined): { range: MonacoRange; kind: 0 | 1 | 2 }[] {
+    if (!Array.isArray(result)) {
+        return [];
+    }
+    return result.map((highlight) => ({
+        range: toMonacoRange(highlight.range),
+        kind: highlight.kind === 2 ? 1 : highlight.kind === 3 ? 2 : 0,
+    }));
+}
+
+export interface MonacoSignatureHelp {
+    signatures: {
+        label: string;
+        documentation?: { value: string };
+        parameters: { label: string | [number, number]; documentation?: { value: string } }[];
+        activeParameter?: number;
+    }[];
+    activeSignature: number;
+    activeParameter: number;
+}
+
+function documentationOf(content: string | Lsp.MarkupContent | undefined): { value: string } | undefined {
+    const value = markdownOf(content).join('\n\n');
+    return value ? { value } : undefined;
+}
+
+/** #287: signature help as Monaco shows it; null when the server has none. */
+export function toSignatureHelp(result: Lsp.SignatureHelp | null | undefined): MonacoSignatureHelp | null {
+    if (!result || !Array.isArray(result.signatures) || result.signatures.length === 0) {
+        return null;
+    }
+    const signatures = result.signatures.map((signature) => {
+        const documentation = documentationOf(signature.documentation);
+        const activeParameter = signature.activeParameter;
+        return {
+            label: signature.label,
+            ...(documentation ? { documentation } : {}),
+            parameters: (signature.parameters ?? []).map((parameter) => {
+                const parameterDocumentation = documentationOf(parameter.documentation);
+                const label: string | [number, number] = typeof parameter.label === 'string' ? parameter.label : [parameter.label[0], parameter.label[1]];
+                return { label, ...(parameterDocumentation ? { documentation: parameterDocumentation } : {}) };
+            }),
+            ...(typeof activeParameter === 'number' ? { activeParameter } : {}),
+        };
+    });
+    const activeSignature = Math.min(Math.max(0, result.activeSignature ?? 0), signatures.length - 1);
+    return { signatures, activeSignature, activeParameter: typeof result.activeParameter === 'number' ? result.activeParameter : 0 };
+}
+
+/** #287: the three answers of `textDocument/prepareRename` (besides null). */
+export type PrepareRenameAnswer = Lsp.Range | { range: Lsp.Range; placeholder: string } | { defaultBehavior: boolean };
+
+/**
+ * #287: what `textDocument/prepareRename` answered: the range to rename and
+ * the name to start from, `default` to use the word at the cursor, or null
+ * when the server says the symbol cannot be renamed.
+ */
+export function toRenameRange(result: PrepareRenameAnswer | null | undefined): { range: MonacoRange; placeholder?: string } | 'default' | null {
+    if (!result) {
+        return null;
+    }
+    if ('defaultBehavior' in result) {
+        return result.defaultBehavior ? 'default' : null;
+    }
+    if ('placeholder' in result) {
+        return { range: toMonacoRange(result.range), placeholder: result.placeholder };
+    }
+    return { range: toMonacoRange(result) };
+}
+
+/** A marker shown in the editor, as Monaco hands it to code action providers. */
+export interface MarkerLike extends MonacoRange {
+    readonly severity: number;
+    readonly message: string;
+    readonly source?: string | undefined;
+    readonly code?: string | { readonly value: string } | undefined;
+    readonly owner?: string | undefined;
+}
+
+/**
+ * #287: a marker as the LSP diagnostic it came from, for a code action
+ * request (servers key their fixes on its code: TypeScript's are numbers).
+ */
+export function toLspDiagnostic(marker: MarkerLike): Lsp.Diagnostic {
+    const code = typeof marker.code === 'string' ? marker.code : marker.code?.value;
+    const severity: Lsp.DiagnosticSeverity = marker.severity >= 8 ? 1 : marker.severity >= 4 ? 2 : marker.severity >= 2 ? 3 : 4;
+    return {
+        range: toLspRange(marker),
+        message: marker.message,
+        severity,
+        ...(marker.source ? { source: marker.source } : {}),
+        ...(code !== undefined && code !== '' ? { code: /^-?\d+$/.test(code) ? Number(code) : code } : {}),
+    };
+}
+
+/** #287: a code action the main process let through (the shape of `ClientCodeAction` in main/lsp/lspResults.ts). */
+export interface CodeActionItem {
+    readonly title: string;
+    readonly kind?: string;
+    readonly isPreferred?: boolean;
+    readonly disabled?: string;
+    readonly edit?: unknown;
+}
+
+export function toCodeActions(result: unknown): CodeActionItem[] {
+    if (!Array.isArray(result)) {
+        return [];
+    }
+    return result.flatMap((item): CodeActionItem[] => {
+        if (typeof item !== 'object' || item === null || typeof (item as { title?: unknown }).title !== 'string') {
+            return [];
+        }
+        const action = item as Record<string, unknown>;
+        return [{
+            title: action['title'] as string,
+            ...(typeof action['kind'] === 'string' ? { kind: action['kind'] } : {}),
+            ...(action['isPreferred'] === true ? { isPreferred: true } : {}),
+            ...(typeof action['disabled'] === 'string' ? { disabled: action['disabled'] } : {}),
+            ...(action['edit'] !== undefined ? { edit: action['edit'] } : {}),
+        }];
+    });
+}
+
+/** #287: one symbol of the workspace, for quick open's "#". */
+export interface WorkspaceSymbolItem {
+    readonly name: string;
+    /** monaco.languages.SymbolKind. */
+    readonly kind: number;
+    readonly container: string;
+    /** Workspace path. */
+    readonly path: string;
+    /** 1-based. */
+    readonly line: number;
+    readonly column: number;
+}
+
+/**
+ * #287: what `workspace/symbol` answered (already mapped and filtered by
+ * the main process) as quick open items; an item whose URI `pathOf` refuses
+ * is left out.
+ */
+export function toWorkspaceSymbolItems(result: unknown, pathOf: (uri: string) => string): WorkspaceSymbolItem[] {
+    if (!Array.isArray(result)) {
+        return [];
+    }
+    return result.flatMap((item): WorkspaceSymbolItem[] => {
+        const symbol = item as Partial<Lsp.SymbolInformation> | null;
+        const location = symbol?.location;
+        if (!symbol || typeof symbol.name !== 'string' || !location || typeof location.uri !== 'string' || !location.range) {
+            return [];
+        }
+        let path: string;
+        try {
+            path = pathOf(location.uri);
+        } catch {
+            return [];
+        }
+        return [{
+            name: symbol.name,
+            kind: symbolKind(symbol.kind ?? 13),
+            container: typeof symbol.containerName === 'string' ? symbol.containerName : '',
+            path,
+            line: location.range.start.line + 1,
+            column: location.range.start.character + 1,
+        }];
+    });
+}

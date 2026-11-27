@@ -6,6 +6,8 @@ import { fuzzyMatch } from './fuzzy.ts';
  * - `>` then a filter: the commands, recently used first while the filter is empty;
  * - `:` then `line[:column]`: go to that place in the active editor;
  * - `@`: the symbols of the active editor (handed to Monaco's own outline);
+ * - `#` then a name: the symbols of the whole workspace, from the language
+ *   servers' `workspace/symbol` (#287);
  * - anything else: quick open (#164), the workspace's files by fuzzy name,
  *   recently opened first while the text is empty.
  * Pure module, unit-tested in Node; quickInput.ts draws it.
@@ -14,6 +16,9 @@ import { fuzzyMatch } from './fuzzy.ts';
 export const COMMAND_PREFIX = '>';
 export const LINE_PREFIX = ':';
 export const SYMBOL_PREFIX = '@';
+export const WORKSPACE_SYMBOL_PREFIX = '#';
+/** #287: at most this many workspace symbols are listed. */
+export const MAX_SYMBOL_RESULTS = 200;
 /** Quick open shows at most this many matches; the box is not a file browser. */
 export const MAX_FILE_RESULTS = 200;
 
@@ -40,6 +45,8 @@ export type PaletteAction =
     | { readonly kind: 'pick'; readonly id: string }
     | { readonly kind: 'file'; readonly path: string }
     | { readonly kind: 'symbols' }
+    /** #287: a workspace symbol, 1-based, selecting its name. */
+    | { readonly kind: 'symbol'; readonly path: string; readonly line: number; readonly column: number; readonly length: number }
     | { readonly kind: 'none' };
 
 export interface PaletteContext {
@@ -60,6 +67,23 @@ export interface PaletteContext {
     /** The file of the active editor (left out of the recent list). */
     readonly activeFile?: string | null;
     readonly hasFolder?: boolean;
+    /** #287: what the language servers found for the "#" query; asked for by the caller as the text changes. */
+    readonly workspaceSymbols?: WorkspaceSymbolsState;
+}
+
+/** #287: one workspace symbol (renderer/lsp/lspConvert.ts `WorkspaceSymbolItem`). */
+export interface PaletteSymbol {
+    readonly name: string;
+    readonly container: string;
+    readonly path: string;
+    readonly line: number;
+    readonly column: number;
+}
+
+/** #287: the answer to a "#" query: null items while the servers are asked. */
+export interface WorkspaceSymbolsState {
+    readonly query: string;
+    readonly items: readonly PaletteSymbol[] | null;
 }
 
 export interface PaletteView {
@@ -83,6 +107,9 @@ export function paletteView(value: string, context: PaletteContext): PaletteView
             ? { entries: [], action: () => ({ kind: 'none' }), empty: 'Open a file first to see its symbols.' }
             : { entries: [], action: () => ({ kind: 'none' }), empty: '', immediate: { kind: 'symbols' } };
     }
+    if (value.startsWith(WORKSPACE_SYMBOL_PREFIX)) {
+        return workspaceSymbolView(value.slice(WORKSPACE_SYMBOL_PREFIX.length), context);
+    }
     return fileView(value, context);
 }
 
@@ -90,7 +117,48 @@ const HINTS: readonly PaletteEntry[] = [
     hint('help.commands', 'Show and run commands', COMMAND_PREFIX),
     hint('help.line', 'Go to a line', LINE_PREFIX),
     hint('help.symbols', 'Go to a symbol in the editor', SYMBOL_PREFIX),
+    hint('help.workspaceSymbols', 'Go to a symbol in the workspace', WORKSPACE_SYMBOL_PREFIX),
 ];
+
+/**
+ * #287: the workspace's symbols matching the query. The servers already
+ * filtered them by name; they are ranked again by the same fuzzy match as the
+ * rest of the box, so the highlights show why each one matched.
+ */
+function workspaceSymbolView(text: string, context: PaletteContext): PaletteView {
+    const query = text.trim();
+    const symbols = new Map<string, PaletteSymbol>();
+    const action = (entry: PaletteEntry): PaletteAction => {
+        const symbol = symbols.get(entry.id);
+        return symbol ? { kind: 'symbol', path: symbol.path, line: symbol.line, column: symbol.column, length: symbol.name.length } : { kind: 'none' };
+    };
+    if (!context.hasFolder) {
+        return { entries: [], action, empty: 'Open a folder to search its symbols.' };
+    }
+    if (query === '') {
+        return { entries: [], action, empty: 'Type the name of a function, class or variable to find it in the workspace.' };
+    }
+    const state = context.workspaceSymbols;
+    if (!state || state.items === null || state.query !== query) {
+        return { entries: [], action, empty: 'Searching the workspace for symbols…' };
+    }
+    // A symbol the server matched in its own way (a qualified name, a looser rule) stays, after the others.
+    const matches = state.items.map((symbol, order) => {
+        const match = fuzzyMatch(query, symbol.name);
+        return { symbol, order, score: match ? match.score : -1e9, highlights: match ? match.positions : [] };
+    });
+    matches.sort((a, b) => b.score - a.score || a.order - b.order);
+    const entries = matches.slice(0, MAX_SYMBOL_RESULTS).map(({ symbol, highlights }, index): PaletteEntry => {
+        const id = `${symbol.path}:${symbol.line}:${symbol.column}:${index}`;
+        symbols.set(id, symbol);
+        return { id, label: symbol.name, highlights, description: symbol.container ? `${symbol.container} · ${symbol.path}` : symbol.path, runnable: true };
+    });
+    return {
+        entries,
+        action,
+        empty: 'No matching symbols. The language servers start with the first file of their language: open one if none is open yet.',
+    };
+}
 
 function baseName(path: string): string {
     return path.slice(path.lastIndexOf('/') + 1);

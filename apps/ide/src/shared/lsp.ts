@@ -31,8 +31,13 @@ export function serverIdOf(language: LspLanguage): LspServerId {
 }
 
 /**
- * The only requests the renderer may send. Everything else (workspace edits,
- * commands, file operations) is refused before it reaches a server.
+ * The only requests the renderer may send. Everything else (commands,
+ * `workspace/executeCommand`, file operations, anything a server could run)
+ * is refused before it reaches a server. Rename and code actions only
+ * compute edits: the server's `WorkspaceEdit` comes back mapped to workspace
+ * URIs (refused whole when it names a file outside the folder or creates,
+ * renames or deletes one), and the renderer applies it through the editor
+ * group (#287).
  */
 export const LSP_REQUEST_METHODS = [
     'textDocument/hover',
@@ -40,6 +45,14 @@ export const LSP_REQUEST_METHODS = [
     'completionItem/resolve',
     'textDocument/definition',
     'textDocument/documentSymbol',
+    // #287: references, rename, signature help, highlights, quick fixes, workspace symbols.
+    'textDocument/references',
+    'textDocument/prepareRename',
+    'textDocument/rename',
+    'textDocument/signatureHelp',
+    'textDocument/documentHighlight',
+    'textDocument/codeAction',
+    'workspace/symbol',
 ] as const;
 export type LspRequestMethod = (typeof LSP_REQUEST_METHODS)[number];
 
@@ -80,6 +93,13 @@ export const LSP_IPC_CHANNELS = {
 export const LSP_IPC_EVENTS = {
     lspDiagnostics: 'codexr:lsp:diagnostics',
 } as const;
+
+/**
+ * #287: the start of the error message of an edit the main process refused
+ * (a file outside the folder, a file created, renamed or deleted); the
+ * renderer shows the message rather than applying part of the edit.
+ */
+export const LSP_EDIT_REFUSED = 'Refused workspace edit';
 
 /** The marker owner of language-server diagnostics in Monaco (the Problems panel lists it). */
 export const LSP_MARKER_OWNER = 'codexr-lsp';
