@@ -15,7 +15,6 @@ Some new features have been added: three new metrics and five new programming la
 - Code-XR's own metrics engine replaces Lizard.
 - Five new languages: Rust, Dart, Shell (Bash), PowerShell and R.
 - Three new metrics: cognitive complexity, Halstead metrics and the maintainability index.
-- Reveal in XR Scene, and Open in editor from the dependency graph.
 - Open a scene on a standalone headset, with a QR code.
 - The BabiaXR examples render again.
 - Many fixes in the XR room, the Git analyses, the local servers and the Python environment.
