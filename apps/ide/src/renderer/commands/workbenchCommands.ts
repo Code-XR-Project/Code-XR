@@ -71,6 +71,8 @@ export interface WorkbenchCommandTargets {
     manageWorkspaceTrust(): void;
     /** #179: the Markdown preview beside the editor, on the active file. */
     openMarkdownPreview(): void;
+    /** #253: the preview as a tab of its own. */
+    openMarkdownPreviewTab(): void;
     canPreviewMarkdown(): boolean;
     /** #176: the folder's tasks, the active file with its interpreter, and the user tasks file. */
     runTask(): void;
@@ -111,6 +113,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.focusSecondEditorGroup', category: 'View', title: 'Focus Second Editor Group', keybinding: 'CmdOrCtrl+2', recordRecent: false, run: () => { if (!targets.focusEditorGroup(1)) { targets.splitEditor(); } } },
         { id: 'workbench.trust.manage', category: 'Workspaces', title: 'Manage Workspace Trust', enabled: targets.hasFolder, run: targets.manageWorkspaceTrust },
         { id: 'markdown.showPreviewToSide', category: 'Markdown', title: 'Open Preview to the Side', keybinding: 'CmdOrCtrl+K V', enabled: targets.canPreviewMarkdown, run: targets.openMarkdownPreview },
+        { id: 'markdown.showPreview', category: 'Markdown', title: 'Open Preview', keybinding: 'CmdOrCtrl+Shift+V', enabled: targets.canPreviewMarkdown, run: targets.openMarkdownPreviewTab },
         { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveTab, run: targets.keepEditor },
         { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveTab, run: () => targets.copyActivePath('absolute') },
         { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveTab, run: () => targets.copyActivePath('relative') },

@@ -397,6 +397,8 @@ body {
 .editor-tabs.is-drop-target { background: var(--hover); }
 /* #179: the Markdown preview, a pane to the right of the editor groups; its colours are the workbench's. */
 .markdown-preview { display: flex; flex-direction: column; min-width: 160px; min-height: 0; border-left: 1px solid var(--line); background: var(--editor); }
+.markdown-preview.is-tab { border-left: 0; height: 100%; }
+.markdown-preview.is-tab .markdown-preview-header { display: none; }
 .markdown-preview-header { flex: none; display: flex; align-items: center; gap: 6px; height: 35px; padding: 0 6px 0 12px; background: var(--chrome); border-bottom: 1px solid var(--line); color: var(--fg); }
 .markdown-preview-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .markdown-preview-close { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: none; color: inherit; cursor: pointer; }
