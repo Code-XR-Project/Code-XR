@@ -14,6 +14,8 @@ export const OUTPUT_CHANNELS = [
     { id: 'lsp', label: 'Language servers' },
     // #251: installs, the extension host, and the VS Code API calls the host does not implement yet.
     { id: 'extensions', label: 'Extensions' },
+    // #180: the debug adapters: what each session ran, how it ended, an adapter's errors.
+    { id: 'debug', label: 'Debugger' },
 ] as const;
 
 export type OutputChannelId = (typeof OUTPUT_CHANNELS)[number]['id'];

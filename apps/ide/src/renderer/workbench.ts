@@ -26,6 +26,8 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'search', label: 'Search', icon: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21' },
     // #17: Source Control (git/scmView.ts).
     { id: 'scm', label: 'Source Control', icon: 'M6 3v12M6 15a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM18 9a3 3 0 1 0 0-6a3 3 0 1 0 0 6zM18 9c0 6-12 3-12 6' },
+    // #180: Run and Debug (debug/debugView.ts).
+    { id: 'debug', label: 'Run and Debug', icon: 'M5 4l9 6-9 6zM16 13a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM16 13v-2M13 17h-2M21 17h-2' },
     { id: 'analysis', label: 'Analysis', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
     // The AI agent hub (agents/agentsView.ts).
@@ -37,7 +39,7 @@ const ACTIVITY: readonly ActivityItem[] = [
 ];
 
 /** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
-export type ViewId = 'explorer' | 'search' | 'scm' | 'analysis' | 'xr' | 'agents' | 'extensions' | 'settings' | 'keybindings';
+export type ViewId = 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'extensions' | 'settings' | 'keybindings';
 
 export interface Workbench {
     /** The explorer's part of its side-bar pane (the file tree). */
@@ -48,6 +50,8 @@ export interface Workbench {
     readonly searchView: HTMLElement;
     /** The Source Control view's pane of the side bar (#17). */
     readonly scmView: HTMLElement;
+    /** #180: the Run and Debug view's pane of the side bar. */
+    readonly debugView: HTMLElement;
     /** The status bar's slot for the current branch (#17), at its left. */
     readonly branchStatus: HTMLElement;
     /** #177: the Restricted Mode item, at the start of the status bar (trustView.ts fills it). */
@@ -116,6 +120,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const explorerPane = el('div', { className: 'side-pane explorer-pane', attrs: { 'data-view': 'explorer' } }, [sideBar, outlineView]);
     const searchView = el('div', { className: 'side-pane', attrs: { 'data-view': 'search', 'data-testid': 'search-view' } });
     const scmView = el('div', { className: 'side-pane', attrs: { 'data-view': 'scm', 'data-testid': 'scm-view' } });
+    const debugView = el('div', { className: 'side-pane', attrs: { 'data-view': 'debug', 'data-testid': 'debug-view' } });
     const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
     const xrView = el('div', { className: 'side-pane', attrs: { 'data-view': 'xr' } }, [
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
@@ -125,8 +130,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const extensionsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'extensions', 'data-testid': 'extensions-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['extensions', extensionsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [explorerPane, searchView, scmView, analysisView, xrView, agentsView, extensionsView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['debug', debugView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['extensions', extensionsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [explorerPane, searchView, scmView, debugView, analysisView, xrView, agentsView, extensionsView, settingsView, keybindingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -195,6 +200,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         outlineView,
         searchView,
         scmView,
+        debugView,
         branchStatus,
         trustStatus,
         isViewVisible: (id: ViewId) => !panes.get(id)?.hidden && layout.sideBarVisible && !layout.zen,

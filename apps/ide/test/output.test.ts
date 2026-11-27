@@ -4,7 +4,7 @@ import { channelForScope, isOutputChannel, MAX_LINE_LENGTH, OUTPUT_CHANNELS, Out
 
 describe('output channels (#174)', () => {
     it('lists the channels and recognises them', () => {
-        assert.deepEqual(OUTPUT_CHANNELS.map((channel) => channel.id), ['ide', 'core', 'python', 'servers', 'lsp', 'extensions']);
+        assert.deepEqual(OUTPUT_CHANNELS.map((channel) => channel.id), ['ide', 'core', 'python', 'servers', 'lsp', 'extensions', 'debug']);
         assert.equal(isOutputChannel('python'), true);
         assert.equal(isOutputChannel('terminal'), false);
         assert.equal(isOutputChannel(3), false);

@@ -24,6 +24,7 @@ on:
     branches:
       - master
       - 'v[0-9]*'
+      - ide
     paths:
       - '.github/workflows/ide-release.yml'
       - 'apps/ide/electron-builder.config.cjs'

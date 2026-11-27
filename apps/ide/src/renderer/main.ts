@@ -6,6 +6,7 @@ import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter, type NotificationAction } from './notifications.ts';
 import { createWorkspaceTrustView } from './trustView.ts';
 import { createTaskRunner } from './taskRunner.ts';
+import { createDebugController, registerDebugCommands } from './debug/debugController.ts';
 import { explorerDecorations } from '../shared/gitGutter.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
@@ -93,6 +94,7 @@ function editorGroup(): Promise<EditorGroup> {
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             git: { baseline: (path) => api.git.baseline(path), blame: (path, contents) => api.git.blame(path, contents) },
+            debug: debug.decorations,
             onActiveChange: (path) => {
                 document.title = path ? `${path.split('/').pop()} - Code-XR` : 'Code-XR';
                 activeFile = path;
@@ -190,6 +192,8 @@ function scheduleSessionSave(): void {
 window.addEventListener('beforeunload', saveSession);
 /** The tabs follow the folder: the old folder's session is saved, the new one's restored. */
 function switchTabsFolder(root: string | null): void {
+    // #180: the folder's breakpoints come back with it; a session of the old one ends.
+    debug.setFolder(root);
     if (root === sessionRoot && root !== null) {
         return;
     }
@@ -315,6 +319,9 @@ api.workspace.onDidChangeFiles((paths) => {
     if (paths.includes('.codexr/settings.json')) {
         void loadSettings();
     }
+    if (paths.includes('.codexr/launch.json')) {
+        debug.reloadConfigurations();
+    }
     void explorer.refresh(paths);
     void editors?.onDiskChanged(paths);
 });
@@ -332,6 +339,7 @@ const workspaceTrust = createWorkspaceTrustView({
     pick: (label, items, apply) => pick(label, items.map((item) => ({ ...item, value: item.id })), apply),
     onError: (message) => notifications.notify('error', message),
     onChange: () => {
+        debug.reloadConfigurations();
         // The main process restarted this window's language servers; send the open documents again.
         if (editorsLoading) {
             void import('./lsp/languageClient.ts').then(({ reopenLanguageDocuments }) => reopenLanguageDocuments());
@@ -486,6 +494,30 @@ api.problems.functionMetrics().then((snapshot) => { if (snapshot) { receiveMetri
 const output = createOutputView(panelHost, api.output, { onError: (message) => workbench.setStatus(message) });
 const terminal = createTerminalPanel(panelHost, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
+});
+// #180: the debugger: its view in the side bar, the Debug Console in the panel, breakpoints in the editors.
+const debug = createDebugController({
+    api: api.debug,
+    notifications,
+    view: workbench.debugView,
+    panel: panelHost,
+    editorArea: workbench.editorArea,
+    storage: layoutStorage,
+    activeFile: () => activeFile,
+    activeLine: () => editors?.statusState()?.line ?? null,
+    saveAll: async () => {
+        if (editors && editors.dirtyPaths().length > 0) {
+            await editors.saveAll();
+        }
+    },
+    openFile: (path) => void editorGroup().then((group) => group.open(path)),
+    revealLine: (path, line, column) => void editorGroup().then((group) => group.openAt(path, line, column, 0)),
+    breakpointsChanged: (path) => editors?.breakpointsChanged(path),
+    setExecutionPoint: (point) => editors?.setExecutionPoint(point),
+    showView: () => workbench.showView('debug'),
+    manageTrust: () => workspaceTrust.manage(),
+    hasFolder: () => folderIsOpen,
+    setStatus: (message) => workbench.setStatus(message),
 });
 /** A notification's "Show Output" button, on the channel that explains it. */
 const showOutputAction = (channel: OutputChannelId): NotificationAction => ({ label: 'Show Output', run: () => output.show(channel) });
@@ -650,6 +682,7 @@ const extensions = installExtensions({
     notify: (kind, message) => notifications.notify(kind, message),
     selectColorTheme: () => selectColorTheme(),
 });
+registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),

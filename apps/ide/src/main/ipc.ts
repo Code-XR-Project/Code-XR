@@ -9,6 +9,7 @@ import type { LspHost } from './lsp/lspHost.ts';
 import { registerLspHandlers } from './lsp/lspIpc.ts';
 import { registerTaskHandlers } from './tasks/taskHost.ts';
 import type { ExtensionsService } from './extensions/extensionsService.ts';
+import { registerDebugHandlers } from './debug/debugHost.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isOpenableExternalLink, isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
@@ -244,6 +245,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     registerTaskHandlers(handle, terminal, settings);
     // #251: VS Code extensions (extensions/extensionsService.ts).
     extensions.register(handle);
+    // #180: the debugger (debug/debugHost.ts), in trusted folders only.
+    registerDebugHandlers(handle, settings, () => core.python);
 
     // Every channel in the contract must have a handler: a missing one would
     // only surface as a rejected promise in the renderer.

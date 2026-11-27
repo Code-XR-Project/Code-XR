@@ -29,6 +29,7 @@ import { startAgents, type AgentServices } from './agents/agentsRuntime.ts';
 import { setScenePreloadPath } from './analysis/sceneView.ts';
 import { appIconPath } from './appIcon.ts';
 import { createLspHost, type LspHost } from './lsp/lspHost.ts';
+import { stopAllDebugSessions } from './debug/debugHost.ts';
 
 // Layout of the build output (see scripts/build.mjs): out/main/index.cjs is
 // this file, next to out/preload/index.cjs and out/renderer/.
@@ -77,6 +78,8 @@ app.on('will-quit', () => {
     void terminals?.killAll();
     void agentServices?.mcp.closeAll();
     void languageServers?.stopAll();
+    // #180: debug sessions end their adapter and their program.
+    void stopAllDebugSessions();
 });
 
 async function start(): Promise<void> {

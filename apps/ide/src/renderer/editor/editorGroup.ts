@@ -6,6 +6,7 @@ import { settingOf, type SettingValues } from '../../shared/settings.ts';
 import type { FileFunctionMetrics, MetricThresholds, Problem, ProblemSeverity } from '../../shared/problems.ts';
 import { installMetricLens } from './metricLens.ts';
 import { installGitDecorations, type GitDecorationsHooks } from './gitDecorations.ts';
+import { installDebugDecorations, type DebugDecorationsHooks } from './debugDecorations.ts';
 import { createMarkdownPreview, type MarkdownPreview } from './markdownPreview.ts';
 import { isMarkdownPath } from './markdownPath.ts';
 import {
@@ -206,6 +207,10 @@ export interface EditorGroup {
     setSceneShown(shown: boolean): void;
     /** #175: the repository changed (commit, checkout, stage): the gutter markers and the blame are read again. */
     gitChanged(): void;
+    /** #180: the breakpoints of `path` (every file when null) changed; redraw them. */
+    breakpointsChanged(path: string | null): void;
+    /** #180: the line a paused debug session is on (null: running or ended). */
+    setExecutionPoint(point: { readonly path: string; readonly line: number; readonly top: boolean } | null): void;
 }
 
 export function createEditorGroup(
@@ -237,6 +242,8 @@ export function createEditorGroup(
         revealInScene?(path: string): void;
         /** #175: the files' text at HEAD and their blame, from the main process (null when Git has nothing to say). */
         git?: GitDecorationsHooks;
+        /** #180: the breakpoints in the glyph margin, owned by the debugger. */
+        debug?: DebugDecorationsHooks;
     },
 ): EditorGroup {
     const groupsRow = el('div', { className: 'editor-groups', attrs: { 'data-testid': 'editor-groups' } });
@@ -271,6 +278,8 @@ export function createEditorGroup(
         // The default colour provider turns any "#165" (an issue number in a comment) into a
         // colour swatch; CSS, SCSS and LESS keep their own colour decorators.
         defaultColorDecorators: 'never',
+        // #180: breakpoints are set by clicking left of the line numbers.
+        glyphMargin: callbacks.debug !== undefined,
     };
     let sceneIsShown = false;
 
@@ -317,6 +326,8 @@ export function createEditorGroup(
     });
     // #175: change markers against HEAD and the cursor line's blame.
     const gitDecorations = callbacks.git ? installGitDecorations(callbacks.git) : null;
+    // #180: breakpoints and the paused line.
+    const debugDecorations = callbacks.debug ? installDebugDecorations(callbacks.debug) : null;
     monaco.editor.onDidChangeMarkers((resources) => {
         if (resources.some((uri) => uri.scheme === FILE_SCHEME)) {
             callbacks.onMarkersChange?.();
@@ -490,6 +501,7 @@ export function createEditorGroup(
         applyMetricMarkers(doc);
         metricLens.refresh(model);
         gitDecorations?.attach(model, doc.path);
+        debugDecorations?.attach(model, doc.path);
         callbacks.onOpenFilesChange?.();
         return doc;
     }
@@ -504,6 +516,7 @@ export function createEditorGroup(
         monaco.editor.setModelMarkers(doc.model, METRIC_OWNER, []);
         metricLens.forget(doc.model);
         gitDecorations?.forget(doc.model);
+        debugDecorations?.forget(doc.model);
         doc.model.dispose();
     }
 
@@ -872,6 +885,9 @@ export function createEditorGroup(
         );
         if (gitDecorations) {
             group.disposables.push(gitDecorations.addEditor(editor));
+        }
+        if (debugDecorations) {
+            group.disposables.push(debugDecorations.addEditor(editor));
         }
         root.addEventListener('mousedown', () => focusGroupInternal(group), true);
 
@@ -1447,6 +1463,12 @@ export function createEditorGroup(
         },
         gitChanged(): void {
             gitDecorations?.repositoryChanged();
+        },
+        breakpointsChanged(path: string | null): void {
+            debugDecorations?.refresh(path);
+        },
+        setExecutionPoint(point): void {
+            debugDecorations?.setExecutionPoint(point);
         },
         setFunctionMetrics(metricFiles: readonly FileFunctionMetrics[], thresholds: MetricThresholds, enabled: boolean): void {
             metricLens.update(metricFiles, thresholds, enabled);
