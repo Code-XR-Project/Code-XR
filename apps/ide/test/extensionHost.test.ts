@@ -407,6 +407,8 @@ describe('the extension host process (#259)', () => {
             logRoot: path.join(tmp, 'logs'),
             env: { appName: 'Code-XR IDE', appRoot: tmp, appHost: 'desktop', language: 'en', machineId: 'm', sessionId: 's', uriScheme: 'codexr', shell: '/bin/sh', version: '0.0.0' },
             isDevelopment: false,
+            documents: [],
+            activeEditor: null,
         };
         await main.request(HOST_METHODS.init, init);
     });

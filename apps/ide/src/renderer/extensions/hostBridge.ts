@@ -27,6 +27,10 @@ export interface HostBridgeDeps {
     setStatus(message: string): void;
     /** Shows the Extensions view with a search (`workbench.extensions.search`). */
     searchExtensions(query: string): void;
+    /** #260: the language features' notifications (providers, diagnostics), for the language bridge. */
+    languageNotification(notification: Extract<UiNotification, { kind: 'diagnostics' | 'providerRegistered' | 'providerUnregistered' | 'providersReset' }>): void;
+    /** #260: the host's edits and saves of the editor's documents. */
+    languageRequest(request: Extract<UiRequest, { kind: 'applyEdit' | 'saveFile' | 'insertSnippet' }>): Promise<unknown>;
 }
 
 export interface HostBridge {
@@ -133,6 +137,10 @@ export function createHostBridge(deps: HostBridgeDeps): HostBridge {
                 return true;
             case 'command':
                 return runWorkbenchCommand(request.id, request.args);
+            case 'applyEdit':
+            case 'saveFile':
+            case 'insertSnippet':
+                return deps.languageRequest(request);
         }
     }
 
@@ -206,6 +214,12 @@ export function createHostBridge(deps: HostBridgeDeps): HostBridge {
                 return;
             case 'contextKey':
                 context.set(notification.key, notification.value);
+                return;
+            case 'diagnostics':
+            case 'providerRegistered':
+            case 'providerUnregistered':
+            case 'providersReset':
+                deps.languageNotification(notification);
                 return;
             case 'hostStopped':
                 deps.notifications.notify('error', notification.reason, {

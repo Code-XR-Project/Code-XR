@@ -11,6 +11,7 @@
  * Shared by main, the host and the renderer: no Node, Electron or DOM import.
  */
 
+import type { DiagnosticsUpdate, EditorStateData, ProviderRegistration, RangeData, WorkspaceEditData } from './extensionLanguageProtocol.ts';
 import type { ExtensionActivation, ExtensionId } from './extensions.ts';
 
 export type RpcMessage =
@@ -207,6 +208,9 @@ export interface HostInitData {
         readonly version: string;
     };
     readonly isDevelopment: boolean;
+    /** #260: the editor's open documents (absolute paths) and its active editor when the host starts. */
+    readonly documents: readonly { readonly path: string; readonly languageId: string; readonly version: number; readonly text: string }[];
+    readonly activeEditor: EditorStateData | null;
 }
 
 export const HOST_METHODS = {
@@ -224,6 +228,10 @@ export const HOST_METHODS = {
     trustChanged: 'trustChanged',
     /** () -> void. Deactivates every extension, then the host exits. */
     shutdown: 'shutdown',
+    /** #260 (DocumentEvent[]) notification: the editor's documents and active editor changed (absolute paths). */
+    documents: 'documents',
+    /** #260 (ProvideRequest) -> the provider's answer as plain data (extensionLanguageProtocol.ts). */
+    provide: 'provide',
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -274,6 +282,12 @@ export const MAIN_METHODS = {
     ui: 'ui',
     /** (UiNotification) notification: status bar items, progress, status messages. */
     uiNotify: 'uiNotify',
+    /** #260 (DiagnosticsUpdate) notification, absolute paths. */
+    diagnostics: 'diagnostics',
+    /** #260 (ProviderRegistration) notification. */
+    registerProvider: 'registerProvider',
+    /** #260 (handle) notification. */
+    unregisterProvider: 'unregisterProvider',
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -310,7 +324,13 @@ export type UiRequest =
     | { readonly kind: 'inputBox'; readonly extensionId: ExtensionId; readonly value?: string; readonly prompt?: string; readonly placeHolder?: string; readonly title?: string; readonly password: boolean }
     | { readonly kind: 'openFile'; readonly path: string; readonly line?: number; readonly column?: number; readonly preview: boolean }
     /** A command no extension registered: the workbench's own, or a built-in `vscode.*` one it maps. Args went through the host's wire format. */
-    | { readonly kind: 'command'; readonly id: string; readonly args: readonly unknown[] };
+    | { readonly kind: 'command'; readonly id: string; readonly args: readonly unknown[] }
+    /** #260: text edits for the editor's models (opening the files that are not open); answered with true when all applied. */
+    | { readonly kind: 'applyEdit'; readonly edit: WorkspaceEditData }
+    /** #260: `TextDocument.save()` of a document the editor has open. */
+    | { readonly kind: 'saveFile'; readonly path: string }
+    /** #260: `TextEditor.insertSnippet` on the active editor, at its selections or at `ranges`. */
+    | { readonly kind: 'insertSnippet'; readonly path: string; readonly snippet: string; readonly ranges?: readonly RangeData[] };
 
 export interface StatusBarItemData {
     /** Unique per host: `<extension id>/<n>`. */
@@ -334,7 +354,13 @@ export type UiNotification =
     | { readonly kind: 'progress'; readonly key: string; readonly title: string; readonly message?: string; readonly percent?: number }
     | { readonly kind: 'progressEnd'; readonly key: string }
     | { readonly kind: 'contextKey'; readonly key: string; readonly value: unknown }
-    | { readonly kind: 'hostStopped'; readonly reason: string };
+    | { readonly kind: 'hostStopped'; readonly reason: string }
+    /** #260: language features. Paths are workspace paths by the time they reach the renderer. */
+    | { readonly kind: 'diagnostics'; readonly update: DiagnosticsUpdate }
+    | { readonly kind: 'providerRegistered'; readonly registration: ProviderRegistration }
+    | { readonly kind: 'providerUnregistered'; readonly handle: number }
+    /** A host started or stopped: every provider and diagnostic of the previous one is gone. */
+    | { readonly kind: 'providersReset' };
 
 /** Main -> renderer: one UI request of the host (answer with `extensionsHostReply`), or a notification. */
 export type HostUiEvent =

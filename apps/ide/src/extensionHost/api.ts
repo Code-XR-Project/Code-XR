@@ -3,6 +3,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { MAIN_METHODS, type DialogRequest, type QuickPickItemData, type StatusBarItemData } from '../shared/extensionHostProtocol.ts';
 import { HOST_VSCODE_API_VERSION, type ExtensionId } from '../shared/extensions.ts';
+import { TextEditorImpl } from './documents.ts';
 import { matchGlob } from './glob.ts';
 import type { ExtensionHost, ExtensionRecord } from './host.ts';
 import { missingNamespace, withFallback } from './inert.ts';
@@ -17,8 +18,9 @@ import { CancellationTokenNone, Disposable, EventEmitter, FileSystemError, FileT
  * Code; the rest is reported once and replaced by an inert stand-in
  * (inert.ts), so an extension keeps running with that feature missing.
  *
- * #260 adds the documents of the editor and the language features, #261 the
- * tree views and webviews.
+ * The editor's documents and the language features are shared by every
+ * extension (documents.ts, languageFeatures.ts, #260); #261 adds the tree
+ * views and webviews.
  */
 
 type Item = string | { title: string; isCloseAffordance?: boolean };
@@ -77,12 +79,15 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
     const commands = withFallback('commands', {
         registerCommand: (id: string, callback: (...args: unknown[]) => unknown, thisArg?: unknown) => host.registerCommand(extensionId, id, callback, thisArg),
         registerTextEditorCommand: (id: string, callback: (...args: unknown[]) => unknown, thisArg?: unknown) => host.registerCommand(extensionId, id, (...args: unknown[]) => {
-            const editor = window.activeTextEditor;
+            const editor = host.documentsAndEditors.activeTextEditor;
             if (!editor) {
-                host.log({ level: 'warn', extensionId, message: `Command ${id} needs an active text editor; none is known to extensions yet.` });
+                host.log({ level: 'warn', extensionId, message: `Command ${id} needs an active text editor.` });
                 return undefined;
             }
-            return callback.call(thisArg, editor, { replace: () => undefined, insert: () => undefined, delete: () => undefined, setEndOfLine: () => undefined }, ...args);
+            // As in VS Code: the builder's edits are applied once the callback returns.
+            return editor.edit((builder) => {
+                callback.call(thisArg, editor, builder, ...args);
+            });
         }),
         executeCommand: <T>(id: string, ...args: unknown[]): Promise<T> => host.executeCommand(id, args) as Promise<T>,
         getCommands: async (filterInternal = false): Promise<string[]> => {
@@ -704,10 +709,6 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
     };
 
     const workspaceEvents = {
-        onDidOpenTextDocument: new EventEmitter<unknown>(),
-        onDidCloseTextDocument: new EventEmitter<unknown>(),
-        onDidChangeTextDocument: new EventEmitter<unknown>(),
-        onDidSaveTextDocument: new EventEmitter<unknown>(),
         onWillSaveTextDocument: new EventEmitter<unknown>(),
         onDidChangeWorkspaceFolders: new EventEmitter<unknown>(),
         onDidCreateFiles: new EventEmitter<unknown>(),
@@ -756,16 +757,12 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
                 }
             });
         },
-        applyEdit: () => {
-            // #260: edits go through the editor so unsaved text and undo stay right.
-            report('workspace.applyEdit');
-            return Promise.resolve(false);
-        },
+        applyEdit: (edit: types.WorkspaceEdit) => host.documentsAndEditors.applyEdit(edit),
         saveAll: () => Promise.resolve(false),
-        onDidOpenTextDocument: workspaceEvents.onDidOpenTextDocument.event,
-        onDidCloseTextDocument: workspaceEvents.onDidCloseTextDocument.event,
-        onDidChangeTextDocument: workspaceEvents.onDidChangeTextDocument.event,
-        onDidSaveTextDocument: workspaceEvents.onDidSaveTextDocument.event,
+        onDidOpenTextDocument: host.documentsAndEditors.onDidOpenTextDocument.event,
+        onDidCloseTextDocument: host.documentsAndEditors.onDidCloseTextDocument.event,
+        onDidChangeTextDocument: host.documentsAndEditors.onDidChangeTextDocument.event,
+        onDidSaveTextDocument: host.documentsAndEditors.onDidSaveTextDocument.event,
         onWillSaveTextDocument: workspaceEvents.onWillSaveTextDocument.event,
         onDidChangeWorkspaceFolders: workspaceEvents.onDidChangeWorkspaceFolders.event,
         onDidCreateFiles: workspaceEvents.onDidCreateFiles.event,
@@ -781,10 +778,6 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
     /* ------------------------------ window ------------------------------ */
 
     const windowEvents = {
-        onDidChangeActiveTextEditor: new EventEmitter<unknown>(),
-        onDidChangeVisibleTextEditors: new EventEmitter<unknown>(),
-        onDidChangeTextEditorSelection: new EventEmitter<unknown>(),
-        onDidChangeTextEditorVisibleRanges: new EventEmitter<unknown>(),
         onDidChangeTextEditorOptions: new EventEmitter<unknown>(),
         onDidChangeTextEditorViewColumn: new EventEmitter<unknown>(),
         onDidChangeWindowState: new EventEmitter<unknown>(),
@@ -795,33 +788,19 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
         onDidChangeTerminalState: new EventEmitter<unknown>(),
     };
 
-    function editorFor(document: TextDocumentModel) {
-        const selection = new types.Selection(0, 0, 0, 0);
-        return {
-            document,
-            selection,
-            selections: [selection],
-            visibleRanges: [] as types.Range[],
-            options: { tabSize: 4, insertSpaces: true },
-            viewColumn: types.ViewColumn.One,
-            edit: () => {
-                report('TextEditor.edit');
-                return Promise.resolve(false);
-            },
-            insertSnippet: () => {
-                report('TextEditor.insertSnippet');
-                return Promise.resolve(false);
-            },
-            setDecorations: () => undefined,
-            revealRange: () => undefined,
-            show: () => undefined,
-            hide: () => undefined,
-        };
+    /** The active editor when it shows `document`, else an editor object for it (edits still go through the workbench). */
+    function editorFor(document: TextDocumentModel): TextEditorImpl {
+        const active = host.documentsAndEditors.activeTextEditor;
+        return active?.document === document ? active : new TextEditorImpl(host, document, null);
     }
 
     const window = withFallback('window', {
-        activeTextEditor: undefined as unknown,
-        visibleTextEditors: [] as unknown[],
+        get activeTextEditor() {
+            return host.documentsAndEditors.activeTextEditor;
+        },
+        get visibleTextEditors() {
+            return host.documentsAndEditors.visibleTextEditors;
+        },
         activeTerminal: undefined,
         terminals: [],
         state: { focused: true, active: true },
@@ -877,10 +856,10 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
         withScmProgress: <R>(task: (progress: { report(value: unknown): void }) => PromiseLike<R>) => task({ report: () => undefined }),
         createTextEditorDecorationType: () => ({ key: host.nextKey(extensionId), dispose: () => undefined }),
         registerUriHandler: () => new Disposable(() => undefined),
-        onDidChangeActiveTextEditor: windowEvents.onDidChangeActiveTextEditor.event,
-        onDidChangeVisibleTextEditors: windowEvents.onDidChangeVisibleTextEditors.event,
-        onDidChangeTextEditorSelection: windowEvents.onDidChangeTextEditorSelection.event,
-        onDidChangeTextEditorVisibleRanges: windowEvents.onDidChangeTextEditorVisibleRanges.event,
+        onDidChangeActiveTextEditor: host.documentsAndEditors.onDidChangeActiveTextEditor.event,
+        onDidChangeVisibleTextEditors: host.documentsAndEditors.onDidChangeVisibleTextEditors.event,
+        onDidChangeTextEditorSelection: host.documentsAndEditors.onDidChangeTextEditorSelection.event,
+        onDidChangeTextEditorVisibleRanges: host.documentsAndEditors.onDidChangeTextEditorVisibleRanges.event,
         onDidChangeTextEditorOptions: windowEvents.onDidChangeTextEditorOptions.event,
         onDidChangeTextEditorViewColumn: windowEvents.onDidChangeTextEditorViewColumn.event,
         onDidChangeWindowState: windowEvents.onDidChangeWindowState.event,
@@ -889,13 +868,7 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
         onDidCloseTerminal: windowEvents.onDidCloseTerminal.event,
         onDidChangeActiveTerminal: windowEvents.onDidChangeActiveTerminal.event,
         onDidChangeTerminalState: windowEvents.onDidChangeTerminalState.event,
-        tabGroups: {
-            all: [],
-            activeTabGroup: { tabs: [], isActive: true, viewColumn: 1, activeTab: undefined },
-            onDidChangeTabGroups: new EventEmitter<unknown>().event,
-            onDidChangeTabs: new EventEmitter<unknown>().event,
-            close: () => Promise.resolve(false),
-        },
+        tabGroups: host.documentsAndEditors.tabGroups,
     }, report);
 
     /* ------------------------------ env ------------------------------ */
@@ -942,41 +915,40 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
         onDidChange: host.onDidChangeExtensions.event,
     }, report);
 
-    /* ------------------------------ languages (#260 adds the providers) ------------------------------ */
+    /* ------------------------------ languages (#260) ------------------------------ */
 
-    function createDiagnosticCollection(name = `${extensionId}.diagnostics`) {
-        const entries = new Map<string, [Uri, unknown[]]>();
-        const collection = {
-            name,
-            set(uriOrEntries: Uri | [Uri, unknown[] | undefined][], diagnostics?: unknown[]) {
-                if (Array.isArray(uriOrEntries)) {
-                    for (const [uri, list] of uriOrEntries) {
-                        collection.set(uri, list ?? []);
-                    }
-                    return;
-                }
-                if (!diagnostics || diagnostics.length === 0) {
-                    entries.delete(uriOrEntries.toString());
-                } else {
-                    entries.set(uriOrEntries.toString(), [uriOrEntries, [...diagnostics]]);
-                }
-            },
-            delete: (uri: Uri) => void entries.delete(uri.toString()),
-            clear: () => entries.clear(),
-            forEach: (callback: (uri: Uri, diagnostics: readonly unknown[], collection: unknown) => void, thisArg?: unknown) => {
-                for (const [uri, list] of entries.values()) {
-                    callback.call(thisArg, uri, list, collection);
-                }
-            },
-            get: (uri: Uri) => entries.get(uri.toString())?.[1],
-            has: (uri: Uri) => entries.has(uri.toString()),
-            dispose: () => entries.clear(),
-            [Symbol.iterator]: function* iterate() {
-                yield* [...entries.values()];
-            },
-        };
-        return collection;
-    }
+    const createDiagnosticCollection = (name?: string): unknown => host.languageFeatures.createDiagnosticCollection(extensionId, name ?? `${extensionId}.diagnostics`);
+    const features = host.languageFeatures;
+    const register = (kind: Parameters<typeof features.register>[1], extra: Parameters<typeof features.register>[4] = {}) => (selector: unknown, provider: unknown) => features.register(extensionId, kind, selector, provider, extra);
+    const triggers = (values: readonly unknown[]): string[] => values.filter((value): value is string => typeof value === 'string' && value.length > 0);
+    const providers = {
+        registerHoverProvider: register('hover'),
+        registerCompletionItemProvider: (selector: unknown, provider: { resolveCompletionItem?: unknown }, ...triggerCharacters: unknown[]) => features.register(extensionId, 'completion', selector, provider, {
+            triggerCharacters: triggers(triggerCharacters), resolves: typeof provider?.resolveCompletionItem === 'function',
+        }),
+        registerDefinitionProvider: register('definition'),
+        registerDeclarationProvider: register('declaration'),
+        registerTypeDefinitionProvider: register('typeDefinition'),
+        registerImplementationProvider: register('implementation'),
+        registerReferenceProvider: register('references'),
+        registerDocumentSymbolProvider: (selector: unknown, provider: unknown, metadata?: { label?: string }) => features.register(extensionId, 'documentSymbol', selector, provider, metadata?.label ? { label: metadata.label } : {}),
+        registerDocumentHighlightProvider: register('documentHighlight'),
+        registerSignatureHelpProvider: (selector: unknown, provider: unknown, first?: unknown, ...rest: unknown[]) => {
+            const metadata = typeof first === 'object' && first !== null ? first as { triggerCharacters?: unknown[]; retriggerCharacters?: unknown[] } : { triggerCharacters: [first, ...rest] };
+            return features.register(extensionId, 'signatureHelp', selector, provider, { triggerCharacters: triggers(metadata.triggerCharacters ?? []), retriggerCharacters: triggers(metadata.retriggerCharacters ?? []) });
+        },
+        registerDocumentFormattingEditProvider: register('formatting'),
+        registerDocumentRangeFormattingEditProvider: register('rangeFormatting'),
+        registerOnTypeFormattingEditProvider: (selector: unknown, provider: unknown, first: unknown, ...more: unknown[]) => features.register(extensionId, 'onTypeFormatting', selector, provider, { triggerCharacters: triggers([first, ...more]) }),
+        registerCodeActionsProvider: (selector: unknown, provider: unknown, metadata?: { providedCodeActionKinds?: readonly { value?: unknown }[] }) => features.register(extensionId, 'codeAction', selector, provider, {
+            providedCodeActionKinds: (metadata?.providedCodeActionKinds ?? []).map((kind) => String(kind?.value ?? '')),
+        }),
+        registerCodeLensProvider: (selector: unknown, provider: { resolveCodeLens?: unknown; onDidChangeCodeLenses?: unknown }) => features.register(extensionId, 'codeLens', selector, provider, { resolves: typeof provider?.resolveCodeLens === 'function' }),
+        registerRenameProvider: register('rename'),
+        registerFoldingRangeProvider: register('foldingRange'),
+        registerInlayHintsProvider: register('inlayHints'),
+        registerDocumentLinkProvider: register('documentLink'),
+    };
 
     const matchSelector = (selector: unknown, document: { languageId: string; uri: Uri }): number => {
         const selectors = Array.isArray(selector) ? selector : [selector];
@@ -1008,8 +980,9 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
     const languages = withFallback('languages', {
         getLanguages: () => Promise.resolve(host.allLanguages()),
         createDiagnosticCollection,
-        getDiagnostics: () => [],
-        onDidChangeDiagnostics: new EventEmitter<unknown>().event,
+        getDiagnostics: (uri?: Uri) => features.getDiagnostics(uri),
+        onDidChangeDiagnostics: features.onDidChangeDiagnostics.event,
+        ...providers,
         match: matchSelector,
         setTextDocumentLanguage: (document: TextDocumentModel, languageId: string) => {
             document.languageId = languageId;

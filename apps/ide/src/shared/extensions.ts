@@ -10,6 +10,7 @@
  */
 
 import type { HostUiEvent } from './extensionHostProtocol.ts';
+import type { DocumentEvent, ProvideRequest } from './extensionLanguageProtocol.ts';
 
 /** `publisher.name`, lower-cased: VS Code compares extension ids without case. */
 export type ExtensionId = string;
@@ -278,6 +279,10 @@ export interface ExtensionsApi {
     /** Answers a request of the host (`onHostUi`'s `request`), with its result or null when dismissed. */
     hostReply(id: number, result: unknown): Promise<void>;
     onHostUi(listener: (event: HostUiEvent) => void): () => void;
+    /** #260: the editor's documents and active editor changed (workspace paths). */
+    documentEvents(events: readonly DocumentEvent[]): Promise<void>;
+    /** #260: asks an extension's language feature provider; the answer is plain data (extensionLanguageProtocol.ts). */
+    provide(request: ProvideRequest): Promise<unknown>;
 }
 
 /** Activation events the renderer may fire (the others are the main process's or the host's own). */
@@ -304,6 +309,8 @@ export const EXTENSION_IPC_CHANNELS = {
     extensionsExecuteCommand: 'codexr:extensions:execute-command',
     extensionsActivateByEvent: 'codexr:extensions:activate-by-event',
     extensionsHostReply: 'codexr:extensions:host-reply',
+    extensionsDocuments: 'codexr:extensions:documents',
+    extensionsProvide: 'codexr:extensions:provide',
 } as const;
 
 export const EXTENSION_IPC_EVENTS = {

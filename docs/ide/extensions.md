@@ -12,7 +12,7 @@ Epic #251. Decision: [ADR 0002](../../adr/0002-vscode-extensions-in-the-ide.md).
 | Colour themes (JSON, JSON with comments, `include` chains, `.tmTheme`) | Done | #257 |
 | Languages, `language-configuration.json`, TextMate grammars (with injections and embedded languages), snippets | Done | #258 |
 | Extensions with code: the extension host, commands in the palette, messages, quick picks and input boxes, progress, status bar items, output channels, configuration, state and secrets, files and `findFiles` | Done | #259 |
-| Documents of the editor, diagnostics, language features (completion, hover, definitions...) | Next | #260 |
+| Documents of the editor, the active editor, diagnostics, language features (completion, hover, definitions, references, symbols, signature help, formatting, code actions, code lenses, rename, folding, inlay hints, links), `applyEdit`, language clients (`vscode-languageclient`) | Done | #260 |
 | Tree views, view containers, webviews | Planned | #261 |
 | The Code-XR extension itself | Planned | #262 |
 | File icon themes, product icon themes | Not yet: listed in the details page | — |
@@ -28,6 +28,8 @@ extensions/contributionsController.ts   ├─ extensionStore.ts  ------------> 
 extensions/monacoContributions.ts       ├─ vsix.ts (yauzl)                    <publisher>.<name>-<version>/
 extensions/textmate.ts (+ onig.wasm)    ├─ openVsx.ts  ---- https ---->  Open VSX registry
 extensions/hostBridge.ts  <--IPC-->     ├─ contributions.ts (themes, grammars, snippets, commands)
+extensions/documentSync.ts              ├─ documentMirror.ts (the editor's documents, checked)
+extensions/languageBridge.ts            │
                                         ├─ manifest.ts, plist.ts (pure)
                                         └─ extensionHostManager.ts            settings.json, secrets.json,
                                               │  fork, Node IPC                .storage/, .logs/, machine-id
@@ -62,6 +64,24 @@ The main process reads the files the manifest names, always through `resolveInEx
 - **Extension settings** live in `<userData>/extensions/settings.json` (JSON with comments, editable by hand), apart from the IDE's own settings, whose schema only knows the IDE's keys.
 - **Palette.** Each enabled extension's `contributes.commands` appear in the palette (*Category: Title*), except those `menus.commandPalette` hides with `"when": "false"`. `when` clauses and `contributes.keybindings` are not applied yet.
 
+## Documents and language features (#260)
+
+```
+Monaco model (codexr-file:/src/a.py)      main process                      extension host
+  documentSync.ts  -- open/change/close, active editor -->  documentMirror.ts  -- absolute paths -->  documents.ts
+  languageBridge.ts <-- providerRegistered / diagnostics --  (paths rewritten)  <--  languageFeatures.ts
+  Monaco provider   -- provide(handle, path, position) -->                      -->  the extension's provider
+```
+
+- **Documents.** Every Monaco model of a file of the folder is announced to the host when it opens, each content change as Monaco reports it (applied in order, so the host's text is the editor's, unsaved edits included), its language changes, saves and closing. The host keeps one `TextDocument` per open file for every extension (`workspace.textDocuments`, `onDidOpen/Change/Save/CloseTextDocument`). The main process keeps a checked copy (`documentMirror.ts`: paths through the workspace rules, ranges and sizes bounded, documents over 50 MB not followed), so a host that starts or restarts later is handed the open documents before any extension activates.
+- **Active editor.** `window.activeTextEditor` is the editor last focused or switched to, with its selections, visible ranges and indentation (`onDidChangeActiveTextEditor`, `onDidChangeTextEditorSelection`, `onDidChangeTextEditorVisibleRanges`). `window.tabGroups` lists the open documents as one group of text tabs (language clients use it to know which documents to pull diagnostics for).
+- **Edits.** `TextEditor.edit`, `registerTextEditorCommand`, `workspace.applyEdit` and `TextEditor.insertSnippet` go through the workbench: each file's edits are one undoable step in its model (a file that is not open is opened first), and the change comes back to the host before `applyEdit` resolves. File operations in a `WorkspaceEdit` (create, delete, rename) are done by the host on disk first. An edit that names a file outside the folder is refused whole. `TextDocument.save()` saves through the editor.
+- **Language features.** Each `languages.register*Provider` is announced to the workbench, which registers a Monaco provider of the same kind for the selector's languages; when Monaco asks, it sends the document's path and position, the host calls the extension's provider and answers with plain data (`shared/extensionLanguageProtocol.ts`). Supported: hover, completion (with `resolveCompletionItem`, snippets, commands), definition, declaration, type definition, implementation, references, document symbols, document highlights, signature help, document/range/on-type formatting, code actions (edits and commands; *Quick Fix* on a diagnostic), code lenses (with `resolveCodeLens`), rename (with `prepareRename`), folding ranges, inlay hints and document links (http, https, mailto). Commands of code actions, lenses and completion items run in the host.
+- **Diagnostics.** `languages.createDiagnosticCollection` sends its changes, batched per turn, as Monaco markers of owner `ext:<extension>:<collection>`, so they show as squiggles and in the Problems panel like the IDE's own; diagnostics of files that are not open are kept and appear when the file opens. `languages.getDiagnostics` and `onDidChangeDiagnostics` work across the extensions.
+- **Language clients.** Extensions built on `vscode-languageclient` (most language extensions) start their server as a child process of the host and work through the above: checked with Microsoft's *lsp-sample* (pull diagnostics while typing, completion).
+- **Paths.** The renderer only ever names workspace paths; the main process turns them into absolute paths for the host and every `path` in the host's answers back, dropping whatever points outside the folder.
+- **Not yet.** Decorations (`setDecorations`), semantic tokens (the TextMate grammars colour the code), call and type hierarchies, inline completions, colour pickers, selection ranges, linked editing and workspace symbols are accepted and reported in the *Extensions* output as missing; `when` clauses do not filter code actions.
+
 ## Security
 
 - CSP: `script-src 'self' 'wasm-unsafe-eval'` (WebAssembly only; `eval` and `new Function` stay blocked, which the smoke run checks).
@@ -79,6 +99,6 @@ The main process reads the files the manifest names, always through `resolveInEx
 5. Disable or uninstall from the row; the theme falls back to the OS one.
 6. Extensions with code: trust the folder, install an extension with commands (for example a `.vsix` of one of Microsoft's [extension samples](https://github.com/microsoft/vscode-extension-samples), or anything from Open VSX), then run its commands from the palette (F1). Messages, pickers, progress and status bar items appear in the workbench; *View: Output* > *Extensions* shows what each extension logs and the API it is missing.
 
-The unit tests are `apps/ide/test/extensions.test.ts` (manifest, VSIX reader with zip-slip and symlink archives, store, contributions, Open VSX client against a fake registry), `apps/ide/test/extensionsRenderer.test.ts` (theme conversion, language configuration, the view model) and `apps/ide/test/extensionHost.test.ts` (the RPC, the API's values, configuration, documents, and a real host process running three test extensions: activation by event, by command and through dependencies, a failed activation, messages, configuration writes, state on disk, workbench commands, missing API, `findFiles`, `deactivate`).
+The unit tests are `apps/ide/test/extensions.test.ts` (manifest, VSIX reader with zip-slip and symlink archives, store, contributions, Open VSX client against a fake registry), `apps/ide/test/extensionsRenderer.test.ts` (theme conversion, language configuration, the view model) `apps/ide/test/extensionHost.test.ts` (the RPC, the API's values, configuration, documents, and a real host process running three test extensions: activation by event, by command and through dependencies, a failed activation, messages, configuration writes, state on disk, workbench commands, missing API, `findFiles`, `deactivate`) and `apps/ide/test/extensionLanguages.test.ts` (#260: selectors and globs, path rewriting, the Monaco conversions, the main process's document copy refusing bad input, and a real host running a language extension: documents at start-up, diagnostics, hover, completion and its resolve, definition, symbols, code actions, code lenses, changes in order, the active editor, `TextEditor.edit`, `applyEdit` and save).
 
-Checked in the real IDE (Electron under xvfb) with five of Microsoft's extension samples compiled from source: *helloworld-minimal* (palette command and message), *progress* (`*` activation, progress notification), *statusbar* (status bar item), *configuration* (two quick picks, then `getConfiguration().update`) and *quickinput* (`showQuickPick` and its follow-up messages).
+Checked in the real IDE (Electron under xvfb) with six of Microsoft's extension samples compiled from source: *helloworld-minimal* (palette command and message), *progress* (`*` activation, progress notification), *statusbar* (status bar item), *configuration* (two quick picks, then `getConfiguration().update`), *quickinput* (`showQuickPick` and its follow-up messages) and *lsp-sample* (a `vscode-languageclient` extension with its language server: diagnostics in the editor and the Problems panel, updated while typing, and completion).
