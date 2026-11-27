@@ -671,6 +671,8 @@ export function createExplorer(
         if (!tree) {
             return;
         }
+        // A rebuilt row loses the keyboard focus; give it back to the same entry (the watcher refreshes after a paste).
+        const focused = tree.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset['path'] ?? null : null;
         for (const path of new Set(paths)) {
             if (path === '') {
                 await fillGroup(tree, '', 1);
@@ -683,6 +685,10 @@ export function createExplorer(
         }
         if (!tree.querySelector('[role="treeitem"][tabindex="0"]')) {
             tree.querySelector<HTMLElement>('[role="treeitem"]')?.setAttribute('tabindex', '0');
+        }
+        const row = focused === null ? undefined : nodeAt(focused)?.row;
+        if (row && !row.contains(document.activeElement) && (document.activeElement === document.body || document.activeElement === null)) {
+            focusRow(row);
         }
     }
 

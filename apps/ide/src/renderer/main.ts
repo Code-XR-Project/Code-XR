@@ -359,7 +359,8 @@ function showExplorerMenu(path: string, kind: 'file' | 'directory', x: number, y
 }
 
 const explorer = createExplorer(workbench.sideBar, api.workspace, {
-    onOpenFile: (path, preview) => void editorGroup().then((group) => group.open(path, { preview })),
+    // #285: a single click (a preview) keeps the focus in the explorer, so its Ctrl+C / X / V and arrows keep working.
+    onOpenFile: (path, preview) => void editorGroup().then((group) => group.open(path, { preview, focus: !preview })),
     onError: (message) => workbench.setStatus(message),
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
     onOpened: (workspace) => {
