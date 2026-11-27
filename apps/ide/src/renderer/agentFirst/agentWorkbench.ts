@@ -1,4 +1,5 @@
 import type { AgentSessionMessage, AgentSessionsApi, AgentSessionState, InstallProgress } from '../../shared/agentSession.ts';
+import type { TerminalCreated } from '../../shared/api.ts';
 import type { AttachmentSources } from '../agents/chatAttachments.ts';
 import type { CommandRegistry } from '../commands/commandRegistry.ts';
 import type { CustomEditorInput } from '../editor/customEditor.ts';
@@ -47,7 +48,8 @@ export interface AgentWorkbenchOptions {
     onStatus(message: string): void;
     /** Opens a recent folder in this window (resolves once it is open). */
     openProject(root: string): Promise<void>;
-    showTerminal(): void;
+    /** #297: runs a sign-in program in a terminal of its own (`TerminalPanel.runTask`). */
+    runInTerminal(label: string, start: (cols: number, rows: number) => Promise<TerminalCreated>): Promise<number | null>;
     /** Runs the XR analysis of the open folder (the dock's button). */
     analyseProject(): void;
     /** Whether a folder is open in this window. */
@@ -275,7 +277,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         onStatus: options.onStatus,
         mode: () => mode,
         setMode,
-        showTerminal: options.showTerminal,
+        runInTerminal: options.runInTerminal,
         extraSections: [instructions.element],
         openBuiltinAgents: () => workbench.showView('agents'),
         onRemoved: (id) => tabClosers.get(id)?.(),
@@ -361,7 +363,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
             setup: {
                 api,
                 onStatus: options.onStatus,
-                showTerminal: options.showTerminal,
+                runInTerminal: options.runInTerminal,
                 refresh: (probe) => sessions.refreshAgents(probe),
                 replace: () => void sessions.refreshAgents(false),
             },

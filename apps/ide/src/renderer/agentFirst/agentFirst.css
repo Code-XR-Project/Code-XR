@@ -325,3 +325,33 @@
 .af-worktree-confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 8px; border: 1px solid var(--crit); border-radius: var(--radius); }
 .af-worktree-confirm span { flex: 1 1 200px; }
 .af-worktree-error { margin: 0; padding: 6px 8px; border-left: 3px solid var(--crit); background: var(--editor); overflow-wrap: anywhere; }
+
+
+/* #298: importing an agent's earlier chats (appended block; the visual audit owns the rest). */
+.af-import-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;
+    overflow-y: auto;
+    margin: 4px 0;
+}
+.af-import-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 2px 0;
+    cursor: pointer;
+}
+.af-import-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.af-import-when {
+    flex: 0 0 auto;
+    font-size: 11px;
+}

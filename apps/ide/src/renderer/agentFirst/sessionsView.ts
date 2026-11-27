@@ -1,4 +1,5 @@
 import type { AgentSessionMessage, AgentSessionsApi, AgentView, ProjectSessions, SessionSummary } from '../../shared/agentSession.ts';
+import type { TerminalCreated } from '../../shared/api.ts';
 import { el, icon } from '../dom.ts';
 import { attentionCounts, availabilityLabel, defaultAgent, filterProjects, shortTime, statusLabel } from './sessionsModel.ts';
 import { agentActions, type AgentSetupDeps } from './agentSetup.ts';
@@ -29,8 +30,8 @@ export interface SessionsViewDeps {
     setMode(mode: 'agent' | 'classic'): void;
     /** Called when the attention counts change (for the status bar). */
     onAttention?(counts: { running: number; waiting: number; unread: number }): void;
-    /** Opens a terminal running an agent's login command is handled in main; this shows the terminal panel. */
-    showTerminal?(): void;
+    /** #297: runs an agent's terminal sign-in in a terminal of its own. */
+    runInTerminal?(label: string, start: (cols: number, rows: number) => Promise<TerminalCreated>): Promise<number | null>;
     /** Shows the Agents view, where the IDE's own agents chat (epic #189). */
     openBuiltinAgents?(): void;
     /** A chat was deleted: its tab closes. */
@@ -190,7 +191,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
     const setupDeps: AgentSetupDeps = {
         api: deps.api,
         onStatus: deps.onStatus,
-        ...(deps.showTerminal ? { showTerminal: deps.showTerminal } : {}),
+        ...(deps.runInTerminal ? { runInTerminal: deps.runInTerminal } : {}),
         refresh: (probe) => refreshAgents(probe),
         replace: (view) => {
             agents = agents.map((other) => (other.ref === view.ref ? view : other));

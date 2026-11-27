@@ -26,7 +26,7 @@ Everything here has unit tests and the IDE smoke test, run on Linux, Windows and
 |---|---|---|---|
 | 2.1 | #267 | In the Chats view, Agents section, press **Install** on an agent that is not installed. | A description appears (package, version, licence, size, source, install scripts), then a native dialog with the exact npm command. Nothing downloads before you confirm. Progress shows as a notification; the agent becomes "Installed". **Remove** asks again before deleting. |
 | 2.2 | #266 | Press **Check** on an installed agent. | It becomes "Ready", or "Needs login" with the vendor's own login buttons. |
-| 2.3 | #266 | Use a login button. | A terminal opens with the vendor's own sign-in (browser or code). After it, **Check** says Ready. The IDE never asks for your password or token. |
+| 2.3 | #297 | Press **Check** on Claude Code while signed out, then a login button (for example **Claude Subscription**). | Check says **Needs login**, not Ready. The button opens a terminal tab named after the method that runs the sign-in itself: the browser opens, or it prints a link and waits for the code. When it ends, the agent is checked again and says **Ready, Signed in as ...**. The IDE never asks for your password or token. Codex (ChatGPT) and Gemini (Google) open the browser from the agent itself. |
 
 ## 3. A coding chat
 
@@ -37,6 +37,7 @@ Everything here has unit tests and the IDE smoke test, run on Linux, Windows and
 | 3.3 | #268 | Type `/` and `@` in the composer; change the mode and model selects; send a second message while the agent works. | Slash commands and file attachments are offered; the message is queued and sent when the turn ends. **Stop** (or Esc) cancels a turn. |
 | 3.4 | #275 | Ask: "Use the Code-XR tools to tell me the three most complex files". | The agent calls `get_hotspots` (tool card titled with `[Code-XR]`) and answers from your analysis. |
 | 3.5 | #272 | Create two chats, rename one, search, restart the IDE. | Chats are grouped by project with status and time; tabs come back after the restart; a deleted chat closes its tab. |
+| 3.6 | #298 | On a ready agent that you have already used in this project from its own CLI, press **Import chats**, keep the ticks and press **Import**. | Your earlier chats for this folder are listed with their dates; the chosen ones appear in the Chats list. Opening one shows its messages; sending a message continues it. Importing again does not duplicate them. |
 
 ## 4. Review, checkpoints, live analysis
 
