@@ -44,3 +44,40 @@ export const VIEWER_IMAGE_EXTENSIONS: ReadonlySet<string> = new Set(['png', 'jpg
 export function isSchemeId(id: string): boolean {
     return /^[a-z][a-z0-9-]*:/i.test(id);
 }
+
+/** #288: what a comparison tab compares, decoded from its id. */
+export type CompareTarget =
+    | { readonly kind: 'saved'; readonly path: string }
+    | { readonly kind: 'files'; readonly left: string; readonly right: string };
+
+const COMPARE_SAVED_PREFIX = 'compare-saved:';
+const COMPARE_FILES_PREFIX = 'compare:';
+
+/** The id of "Compare with Saved" on `path`. */
+export function compareSavedId(path: string): string {
+    return `${COMPARE_SAVED_PREFIX}${path}`;
+}
+
+/** The id of a comparison of two files (left is the original). Each path is encoded, so a `|` in a name cannot split it. */
+export function compareFilesId(left: string, right: string): string {
+    return `${COMPARE_FILES_PREFIX}${encodeURIComponent(left)}|${encodeURIComponent(right)}`;
+}
+
+export function parseCompareId(id: string): CompareTarget | null {
+    if (id.startsWith(COMPARE_SAVED_PREFIX)) {
+        const path = id.slice(COMPARE_SAVED_PREFIX.length);
+        return path ? { kind: 'saved', path } : null;
+    }
+    if (id.startsWith(COMPARE_FILES_PREFIX)) {
+        const parts = id.slice(COMPARE_FILES_PREFIX.length).split('|');
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            return null;
+        }
+        try {
+            return { kind: 'files', left: decodeURIComponent(parts[0]), right: decodeURIComponent(parts[1]) };
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}

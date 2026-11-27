@@ -1,4 +1,5 @@
 import { renderWorkbench } from './workbench.ts';
+import { isSchemeId } from './editor/customEditorRegistry.ts';
 import { createExplorer } from './explorer.ts';
 import { createPythonView, pythonStatusText } from './pythonView.ts';
 import { createAnalysisRunView } from './analysisRunView.ts';
@@ -250,20 +251,46 @@ function revealInScene(path: string): void {
         (error: unknown) => workbench.setStatus(`Could not reveal the file in the XR scene: ${String(error)}`),
     );
 }
+/** #288: the file picked with "Select for Compare", until "Compare with Selected" uses it. */
+let compareSelection: string | null = null;
+
 function showTabMenu(path: string, x: number, y: number): void {
     const key = (id: string): string => {
         const binding = registry.keybindings(id)[0];
         return binding ? formatKeybinding(binding, platform) : '';
     };
+    // #256: a tab that is not a workspace file (a comparison, a preview, a chat) gets the tab entries only.
+    const isFile = !isSchemeId(path);
+    const fileItems: ContextMenuItem[] = isFile ? [
+        { separator: true },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
+        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
+        { separator: true },
+        { label: 'Compare with Saved', keybinding: key('workbench.files.action.compareWithSaved'), run: () => editors?.compareWithSaved(path), testId: 'tab-menu-compare-saved' },
+        { label: 'Select for Compare', run: () => { compareSelection = path; workbench.setStatus(`Selected ${path} for comparison`); }, testId: 'tab-menu-select-compare' },
+        ...(compareSelection !== null && compareSelection !== path
+            ? [{ label: `Compare with ${compareSelection.slice(compareSelection.lastIndexOf('/') + 1)}`, run: () => { if (compareSelection) { editors?.compareFiles(compareSelection, path); } }, testId: 'tab-menu-compare-selected' }]
+            : []),
+    ] : [];
+    if (!isFile) {
+        showContextMenu([
+            { label: 'Close', keybinding: key('editor.close'), run: () => editors?.closeActive(), testId: 'tab-menu-close' },
+            { label: 'Close Others', run: () => editors?.closeGroup('others', path), testId: 'tab-menu-close-others' },
+            { label: 'Close to the Right', run: () => editors?.closeGroup('right', path), testId: 'tab-menu-close-right' },
+            { label: 'Close All', keybinding: key('editor.closeAll'), run: () => editors?.closeGroup('all', path), testId: 'tab-menu-close-all' },
+            { separator: true },
+            { label: 'Split Right', keybinding: key('editor.splitRight'), run: () => editors?.split(path), testId: 'tab-menu-split-right' },
+            { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
+        ], x, y, { label: 'Tab actions', rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width) });
+        return;
+    }
     const items: ContextMenuItem[] = [
         { label: 'Close', keybinding: key('editor.close'), run: () => editors?.closeActive(), testId: 'tab-menu-close' },
         { label: 'Close Others', run: () => editors?.closeGroup('others', path), testId: 'tab-menu-close-others' },
         { label: 'Close to the Right', run: () => editors?.closeGroup('right', path), testId: 'tab-menu-close-right' },
         { label: 'Close Saved', keybinding: key('editor.closeSaved'), run: () => editors?.closeGroup('saved', path), testId: 'tab-menu-close-saved' },
         { label: 'Close All', keybinding: key('editor.closeAll'), run: () => editors?.closeGroup('all', path), testId: 'tab-menu-close-all' },
-        { separator: true },
-        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
-        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
+        ...fileItems,
         { separator: true },
         ...(isMarkdownPath(path) ? [{ label: 'Open Preview to the Side', keybinding: key('markdown.showPreviewToSide'), run: () => void openPreviewOf(path), testId: 'tab-menu-markdown-preview' }] : []),
         { label: 'Split Right', keybinding: key('editor.splitRight'), run: () => editors?.split(path), testId: 'tab-menu-split-right' },
@@ -697,7 +724,7 @@ registerWorkbenchCommands(registry, {
     },
     goToSymbol: () => editors?.showSymbols(),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
-    hasActiveTab: () => activeFile !== null,
+    hasActiveTab: () => (editors?.activeTabId() ?? null) !== null,
     changeIndentation: pickIndentation,
     changeEndOfLine: pickEndOfLine,
     changeLanguageMode: pickLanguage,
@@ -713,6 +740,7 @@ registerWorkbenchCommands(registry, {
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
     openMarkdownPreview: () => { editors?.openMarkdownPreview(); },
     openMarkdownPreviewTab: () => { editors?.openMarkdownPreviewTab(); },
+    compareWithSaved: () => { editors?.compareWithSaved(); },
     runTask: () => tasks.runTask(),
     toggleInlineBlame: () => {
         const on = settingsReport ? settingOf<boolean>(settingsReport, 'git.blame.inline') : true;
