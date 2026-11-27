@@ -392,7 +392,8 @@ describe('tree views in the extension host (#261)', () => {
         const kids = await children('acme.tree', alpha.handle);
         assert.deepEqual(kids?.items.map((item) => item.label), ['a1', 'a2']);
         const [a1, a2] = kids?.items ?? [];
-        assert.deepEqual(a1?.icon, { kind: 'iconFile', file: path.join(extensionFolder, 'leaf.svg') });
+        // Windows: the host spells the drive in lower case, as `Uri.fsPath` does.
+        assert.deepEqual(a1?.icon?.kind === 'iconFile' ? { ...a1.icon, file: a1.icon.file.toLowerCase() } : a1?.icon, { kind: 'iconFile', file: path.join(extensionFolder, 'leaf.svg').toLowerCase() });
         assert.equal(a1?.hasCommand, true);
         assert.equal(a2?.handle, 'i:stable-a2', 'an item id is its handle');
         assert.deepEqual(a2?.icon, { kind: 'file' });
