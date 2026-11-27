@@ -26,10 +26,14 @@ import { createOutlineView } from './outline/outlineView.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
 import { formatKeybinding } from './commands/keybindings.ts';
-import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
+import { COMMAND_PREFIX, LINE_PREFIX, paletteView, WORKSPACE_SYMBOL_PREFIX } from './commands/paletteModel.ts';
 import { createQuickOpenFiles } from './quickOpenFiles.ts';
+import { createWorkspaceSymbolSearch } from './workspaceSymbols.ts';
+import { toWorkspaceSymbolItems } from './lsp/lspConvert.ts';
+import { clientUriPath } from './lsp/lspEdits.ts';
 import { createSearchView } from './search/searchView.ts';
 import { createScmView } from './git/scmView.ts';
+import { registerGitCommands } from './git/gitCommands.ts';
 import { createQuickInput } from './commands/quickInput.ts';
 import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
@@ -56,6 +60,8 @@ if (!root) {
 const api = window.codexr;
 /** Whether this window has a folder open (#18: commands that need one are hidden without it). */
 let folderIsOpen = false;
+/** The open folder's absolute path, for the terminal's file links (#286). */
+let workspaceRoot: string | null = null;
 /** The active editor's file, for quick open's recent list (#164). */
 let activeFile: string | null = null;
 // #169: the layout is remembered in the renderer's storage (inside the IDE's user-data folder).
@@ -94,8 +100,15 @@ function editorGroup(): Promise<EditorGroup> {
     editorsLoading ??= Promise.all([
         import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts'), import('./viewers/fileViewers.ts'),
     ]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }, { fileViewerResolver }]) => {
+        // #259: extensions activate on the languages of the files that open.
+        extensions.watchEditorLanguages();
         // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
-        installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
+        installLanguageClient(api.lsp, {
+            openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)),
+            // #287: rename and code actions, applied by the editor group.
+            applyEdit: (files) => editorGroup().then((group) => group.applyWorkspaceEdit(files)),
+            setStatus: (message) => workbench.setStatus(message),
+        });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             git: { baseline: (path) => api.git.baseline(path), blame: (path, contents) => api.git.blame(path, contents) },
@@ -126,6 +139,7 @@ function editorGroup(): Promise<EditorGroup> {
             onMarkersChange: () => problemsView.setEditorProblems(editors?.editorProblems() ?? []),
             showFunctionProblems: (path, name) => problemsView.filterTo(`'${name}' ${path}`),
             onFileClean: (path) => outline?.fileClean(path),
+            onDidSave: (path) => extensions.documentSaved(path),
             revealInScene: (path) => revealInScene(path),
         });
         editors.setSceneShown(!workbench.sceneArea.hidden);
@@ -203,6 +217,7 @@ function scheduleSessionSave(): void {
 window.addEventListener('beforeunload', saveSession);
 /** The tabs follow the folder: the old folder's session is saved, the new one's restored. */
 function switchTabsFolder(root: string | null): void {
+    workspaceRoot = root;
     // #180: the folder's breakpoints come back with it; a session of the old one ends.
     debug.setFolder(root);
     if (root === sessionRoot && root !== null) {
@@ -237,6 +252,10 @@ function copyPath(path: string, kind: 'absolute' | 'relative'): void {
         () => workbench.setStatus(`Copied the ${kind === 'absolute' ? 'path' : 'relative path'} of ${path}`),
         (error: unknown) => workbench.setStatus(`Could not copy the path: ${String(error)}`),
     );
+}
+/** #285: the main process checks the path inside the folder and opens the system's file manager on it. */
+function revealInOs(path: string): void {
+    api.workspace.revealInOs(path).catch((error: unknown) => workbench.setStatus(`Could not reveal ${path || 'the folder'}: ${String(error)}`));
 }
 async function revealInExplorer(path: string): Promise<void> {
     workbench.showView('explorer');
@@ -321,23 +340,51 @@ function fileAnalysisItems(path: string, prefix: string): ContextMenuItem[] {
     ];
 }
 
-function showExplorerFileMenu(path: string, x: number, y: number): void {
+/** #285: the system file manager's name, as each OS's own menus say it. */
+function revealInOsLabel(): string {
+    return platform === 'win32' ? 'Reveal in File Explorer' : platform === 'darwin' ? 'Reveal in Finder' : 'Reveal in File Manager';
+}
+
+/**
+ * #16, #285: the explorer's context menu, on a file, a folder or the tree's
+ * free space (`''`, the top folder, which cannot be cut, renamed or deleted).
+ */
+function showExplorerMenu(path: string, kind: 'file' | 'directory', x: number, y: number): void {
+    const isFile = kind === 'file';
+    const isRoot = path === '';
+    const key = (binding: string): string => formatKeybinding(binding, platform);
+    const entryItems: ContextMenuItem[] = isRoot ? [] : [
+        { label: 'Cut', keybinding: key('cmdorctrl+x'), run: () => explorer.cut(path), testId: 'explorer-menu-cut' },
+        { label: 'Copy', keybinding: key('cmdorctrl+c'), run: () => explorer.copy(path), testId: 'explorer-menu-copy' },
+    ];
     const items: ContextMenuItem[] = [
-        { label: 'Open', run: () => void editorGroup().then((group) => group.open(path)), testId: 'explorer-menu-open' },
-        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'explorer-menu-copy-path' },
-        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'explorer-menu-copy-relative-path' },
-        ...(workbench.sceneArea.hidden ? [] : [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }]),
+        ...(isFile ? [{ label: 'Open', run: () => void editorGroup().then((group) => group.open(path)), testId: 'explorer-menu-open' }] : []),
+        { label: revealInOsLabel(), run: () => revealInOs(path), testId: 'explorer-menu-reveal-in-os' },
+        { label: 'Open in Integrated Terminal', run: () => void terminal.newTerminal(null, path), testId: 'explorer-menu-open-in-terminal' },
         { separator: true },
-        ...fileAnalysisItems(path, 'explorer-menu'),
+        ...entryItems,
+        { label: 'Paste', keybinding: key('cmdorctrl+v'), enabled: explorer.canPaste(), run: () => void explorer.paste(path), testId: 'explorer-menu-paste' },
+        ...(isRoot ? [] : [{ label: 'Duplicate', run: () => void explorer.duplicate(path), testId: 'explorer-menu-duplicate' }]),
+        { separator: true },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'explorer-menu-copy-path' },
+        ...(isRoot ? [] : [{ label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'explorer-menu-copy-relative-path' }]),
+        ...(isRoot ? [] : [
+            { separator: true } as const,
+            { label: 'Rename…', keybinding: 'F2', run: () => explorer.rename(path), testId: 'explorer-menu-rename' },
+            { label: 'Delete', keybinding: platform === 'darwin' ? 'Cmd+Backspace' : 'Delete', run: () => explorer.trash(path), testId: 'explorer-menu-delete' },
+        ]),
+        ...(isFile && !workbench.sceneArea.hidden ? [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }] : []),
+        ...(isFile ? [{ separator: true } as const, ...fileAnalysisItems(path, 'explorer-menu')] : []),
     ];
     showContextMenu(items, x, y, {
-        label: `Actions for ${path}`,
+        label: `Actions for ${path || 'the folder'}`,
         rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
     });
 }
 
 const explorer = createExplorer(workbench.sideBar, api.workspace, {
-    onOpenFile: (path, preview) => void editorGroup().then((group) => group.open(path, { preview })),
+    // #285: a single click (a preview) keeps the focus in the explorer, so its Ctrl+C / X / V and arrows keep working.
+    onOpenFile: (path, preview) => void editorGroup().then((group) => group.open(path, { preview, focus: !preview })),
     onError: (message) => workbench.setStatus(message),
     confirmOpenFolder: () => confirmDiscard('Opening another folder'),
     onOpened: (workspace) => {
@@ -348,7 +395,7 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
     onCreated: (path, kind) => { if (kind === 'file') { void editorGroup().then((group) => group.open(path)); } },
     onRenamed: (from, to) => void editors?.entryMoved(from, to),
     onTrashed: (path) => void editors?.entryMoved(path, null),
-    onFileContextMenu: showExplorerFileMenu,
+    onContextMenu: showExplorerMenu,
 });
 
 api.workspace.onDidChangeFiles((paths) => {
@@ -389,6 +436,7 @@ function folderOpened(root: string): void {
     folderIsOpen = true;
     void workspaceTrust.refresh();
     quickOpenFiles.reset();
+    workspaceSymbols.reset();
     searchView.reset();
     scmView.reset();
     scenePanel.close();
@@ -403,6 +451,7 @@ api.workspace.onDidChange((workspace) => {
     } else {
         folderIsOpen = false;
         quickOpenFiles.reset();
+        workspaceSymbols.reset();
         searchView.reset();
         scmView.reset();
         scenePanel.close();
@@ -450,7 +499,11 @@ const scmView = createScmView(workbench.scmView, api.git, {
     openQuickInput: (provider) => quickInput.open('', provider),
     isVisible: () => workbench.isViewVisible('scm'),
     showView: () => workbench.showView('scm'),
-    notify: (severity, message) => notifications.notify(severity, message),
+    notify: (severity, message, showOutput) => notifications.notify(severity, message, showOutput ? { actions: [showOutputAction('git')] } : {}),
+    // #284: a push, pull or fetch runs under a progress notification whose Cancel stops it.
+    showProgress: (title, cancel) => notifications.progress('git-remote', { title, onCancel: cancel }),
+    hideProgress: () => notifications.endProgress('git-remote'),
+    confirm: (message) => window.confirm(message),
     onDidChangeFiles: (listener) => void api.workspace.onDidChangeFiles(listener),
     // #175: the explorer's colours and letters follow each status.
     onStatus: (status) => explorer.setGitDecorations(explorerDecorations(status)),
@@ -506,6 +559,13 @@ workbench.layout.onDidChange(() => panelHost.setMaximized(workbench.layout.panel
 // #173: the Problems view: the languages' markers and the Code-XR metric checks of the last analysis.
 const problemsView = createProblemsView(panelHost, {
     open: (problem) => void editorGroup().then((group) => group.openAt(problem.path, problem.startLine, problem.startColumn, 0)),
+    // #287: the problem's range selected, then Monaco's quick fix menu there.
+    quickFix: (problem) => void editorGroup().then(async (group) => {
+        const length = problem.endLine === problem.startLine ? Math.max(0, problem.endColumn - problem.startColumn) : 0;
+        await group.openAt(problem.path, problem.startLine, problem.startColumn, length);
+        group.quickFix();
+    }),
+    rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
     onCounts: (counts) => workbench.setProblemCounts(counts.error, counts.warning),
 });
 workbench.onProblemsClick(() => (panelHost.isShowing('problems') ? panelHost.hide() : problemsView.show()));
@@ -533,6 +593,15 @@ api.problems.functionMetrics().then((snapshot) => { if (snapshot) { receiveMetri
 const output = createOutputView(panelHost, api.output, { onError: (message) => workbench.setStatus(message) });
 const terminal = createTerminalPanel(panelHost, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
+    // #286: Ctrl/Cmd+click on a URL or a file of the folder in the output.
+    links: {
+        workspaceRoot: () => workspaceRoot,
+        listDirectory: (path) => api.workspace.listDirectory(path),
+        openFile: (path, line, column) => void editorGroup().then((group) => (line === undefined ? group.open(path) : group.openAt(path, line, column ?? 1, 0))),
+        openUrl: (url) => {
+            api.workspace.openExternalLink(url).catch((error: unknown) => workbench.setStatus(`Could not open the link: ${String(error)}`));
+        },
+    },
 });
 // #180: the debugger: its view in the side bar, the Debug Console in the panel, breakpoints in the editors.
 const debug = createDebugController({
@@ -569,8 +638,13 @@ const registry = createCommandRegistry((id, error) => notifications.notify('erro
 // #164: the workspace's files, listed by the main process each time quick
 // open opens (a stale list is shown meanwhile), and the recently opened ones.
 const quickOpenFiles = createQuickOpenFiles(() => api.workspace.listFiles(), () => quickInput.refresh());
+// #287: "#" asks the language servers for the workspace's symbols.
+const workspaceSymbols = createWorkspaceSymbolSearch(
+    (query) => api.lsp.request('workspace/symbol', { query }).then((result) => toWorkspaceSymbolItems(result, clientUriPath)),
+    () => quickInput.refresh(),
+);
 const quickInput = createQuickInput(document.body, {
-    label: 'Search files by name (> for commands, : for a line, @ for symbols)',
+    label: 'Search files by name (> for commands, : for a line, @ for symbols, # for workspace symbols)',
     view: (value) => {
         if (folderIsOpen && quickOpenFiles.files() === null) {
             // Typing a file name after opening the box as the palette: list the files now.
@@ -588,6 +662,7 @@ const quickInput = createQuickInput(document.body, {
         filesTruncated: quickOpenFiles.truncated(),
         recentFiles: quickOpenFiles.recent(),
         activeFile,
+        ...(value.startsWith(WORKSPACE_SYMBOL_PREFIX) && folderIsOpen ? { workspaceSymbols: workspaceSymbols.state(value.slice(WORKSPACE_SYMBOL_PREFIX.length).trim()) } : {}),
         });
     },
     accept: (action) => {
@@ -599,6 +674,8 @@ const quickInput = createQuickInput(document.body, {
             void editorGroup().then((group) => group.open(action.path));
         } else if (action.kind === 'symbols') {
             editors?.showSymbols();
+        } else if (action.kind === 'symbol') {
+            void editorGroup().then((group) => group.openAt(action.path, action.line, action.column, action.length));
         }
     },
     rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
@@ -720,7 +797,20 @@ const extensions = installExtensions({
     onStatus: (message) => workbench.setStatus(message),
     notify: (kind, message) => notifications.notify(kind, message),
     selectColorTheme: () => selectColorTheme(),
+    notifications,
+    statusLeft: workbench.extensionStatusLeft,
+    statusRight: workbench.extensionStatusRight,
+    openQuickInput: (value, provider) => quickInput.open(value, provider),
+    openFile: (path, line, column) => editorGroup().then((group) => (line === undefined ? group.open(path) : group.openAt(path, line, column ?? 1, 0))),
+    saveFile: async (path) => {
+        const group = await editorGroup();
+        await group.open(path);
+        await group.save();
+        return !group.dirtyPaths().includes(path);
+    },
 });
+// #284: Source Control's remote, stash and branch commands, under VS Code's ids.
+registerGitCommands(registry, scmView);
 registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {
@@ -731,6 +821,7 @@ registerWorkbenchCommands(registry, {
         quickInput.open('');
     },
     goToSymbol: () => editors?.showSymbols(),
+    showAllSymbols: () => quickInput.open(WORKSPACE_SYMBOL_PREFIX),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
     hasActiveTab: () => (editors?.activeTabId() ?? null) !== null,
     changeIndentation: pickIndentation,
@@ -760,6 +851,8 @@ registerWorkbenchCommands(registry, {
     toggleTerminal: () => terminal.toggle(),
     newTerminal: () => void terminal.newTerminal(),
     closeTerminalPanel: () => terminal.hide(),
+    findInTerminal: () => terminal.find(),
+    terminalHasFocus: () => terminal.hasFocus(),
     showOutput: () => output.show(),
     showProblems: () => problemsView.focusFilter(),
     showView: (view) => workbench.showView(view),

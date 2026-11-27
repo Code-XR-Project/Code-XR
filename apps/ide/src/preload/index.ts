@@ -8,6 +8,8 @@ import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
 import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AcpAgentDefinition, type AgentSessionMessage, type PromptAttachment } from '../shared/agentSession.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
+import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
+import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
 import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, type ExtensionsChangedEvent, type ExtensionLogEvent, type GalleryQuery } from '../shared/extensions.ts';
 import { DEBUG_IPC_CHANNELS, DEBUG_IPC_EVENTS, type DebugEvent, type DebugStepKind } from '../shared/debug.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
@@ -116,6 +118,14 @@ const api: CodeXRApi = Object.freeze({
         headContent: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitHeadContent, path),
         baseline: (path: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitBaseline, path),
         blame: (path: string, contents: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitBlame, path, contents),
+        remote: (operation: string) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitRemote, operation),
+        cancelRemote: () => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitCancelRemote),
+        stash: (includeUntracked: boolean) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStash, includeUntracked),
+        stashes: () => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStashes),
+        stashApply: (index: number) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStashApply, index),
+        stashPop: (index: number) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStashPop, index),
+        stashDrop: (index: number) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitStashDrop, index),
+        deleteBranch: (name: string, force: boolean) => ipcRenderer.invoke(GIT_IPC_CHANNELS.gitDeleteBranch, name, force),
         onDidChange: (listener: () => void) => subscribe(GIT_IPC_EVENTS.gitChanged, () => listener()),
     }),
     // #176: a task by the id main listed, a file by its workspace path; never a command line.
@@ -168,6 +178,15 @@ const api: CodeXRApi = Object.freeze({
         grammarContent: (ref: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsGrammarContent, ref),
         onDidChange: (listener: (event: ExtensionsChangedEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsChanged, listener),
         onLog: (listener: (event: ExtensionLogEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsLog, listener),
+        // #259: the extension host of this window.
+        hostReady: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsHostReady),
+        restartHost: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsRestartHost),
+        executeCommand: (id: string, args?: readonly unknown[]) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsExecuteCommand, id, args ? [...args] : []),
+        activateByEvent: (event: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsActivateByEvent, event),
+        hostReply: (id: number, result: unknown) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsHostReply, id, result),
+        onHostUi: (listener: (event: HostUiEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsHostUi, listener),
+        documentEvents: (events: readonly DocumentEvent[]) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsDocuments, events),
+        provide: (request: ProvideRequest) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsProvide, request),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),
@@ -235,6 +254,9 @@ const api: CodeXRApi = Object.freeze({
         onDidChangeTrust: (listener: (trust: WorkspaceTrustInfo) => void) => subscribe(IPC_EVENTS.workspaceTrustChanged, listener),
         openExternalLink: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenExternalLink, url),
         trash: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrash, path),
+        copyEntry: (path: string, toFolder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceCopyEntry, path, toFolder),
+        moveEntry: (path: string, toFolder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceMoveEntry, path, toFolder),
+        revealInOs: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRevealInOs, path),
         recentFolders: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceRecentFolders),
         openRecent: (folder: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenRecent, folder),
         onDidChange: (listener: (workspace: WorkspaceInfo | null) => void) => {
@@ -251,7 +273,8 @@ const api: CodeXRApi = Object.freeze({
         setDefaultProfile: (profileId: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalSetDefaultProfile, profileId),
         addCustomProfile: (args: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalAddCustomProfile, args),
         removeCustomProfile: (profileId: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalRemoveCustomProfile, profileId),
-        create: (profileId: string | null, cols: number, rows: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalCreate, profileId, cols, rows),
+        create: (profileId: string | null, cols: number, rows: number, folder?: string) =>
+            ipcRenderer.invoke(IPC_CHANNELS.terminalCreate, profileId, cols, rows, folder ?? null),
         input: (id: number, data: string) => ipcRenderer.invoke(IPC_CHANNELS.terminalInput, id, data),
         resize: (id: number, cols: number, rows: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalResize, id, cols, rows),
         kill: (id: number) => ipcRenderer.invoke(IPC_CHANNELS.terminalKill, id),

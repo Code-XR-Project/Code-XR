@@ -99,6 +99,9 @@ export interface Workbench {
     readonly panel: HTMLElement;
     /** The status bar's slot for the active editor's items (#166, editor/editorStatus.ts). */
     readonly editorStatus: HTMLElement;
+    /** #259: the status bar items of extensions, left and right (extensions/hostBridge.ts fills them). */
+    readonly extensionStatusLeft: HTMLElement;
+    readonly extensionStatusRight: HTMLElement;
     /** Sizes and visibility of the side bar, panel and scene column (#169, layout/layout.ts). */
     readonly layout: WorkbenchLayout;
 }
@@ -194,7 +197,9 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const editorStatus = el('span', { className: 'status-editor', attrs: { 'data-testid': 'editor-status' } });
     const branchStatus = el('span', { className: 'status-branch', attrs: { 'data-testid': 'branch-status' } });
     const trustStatus = el('button', { className: 'status-item status-trust', attrs: { type: 'button', 'data-testid': 'trust-status', hidden: '' } });
-    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [trustStatus, branchStatus, problemsItem, statusLeft]), el('span', { className: 'status-right' }, [editorStatus, pythonItem, statusRight])]);
+    const extensionStatusLeft = el('span', { className: 'status-extensions', attrs: { 'data-testid': 'extension-status-left' } });
+    const extensionStatusRight = el('span', { className: 'status-extensions', attrs: { 'data-testid': 'extension-status-right' } });
+    const statusBar = el('footer', { className: 'status-bar' }, [el('span', { className: 'status-left' }, [trustStatus, branchStatus, problemsItem, extensionStatusLeft, statusLeft]), el('span', { className: 'status-right' }, [extensionStatusRight, editorStatus, pythonItem, statusRight])]);
 
     const sceneArea = el('section', { className: 'scene-area', attrs: { 'aria-label': 'Analysis scene', 'data-testid': 'scene-area', hidden: '' } });
     // #137: the bottom panel (hidden until the terminal opens).
@@ -246,6 +251,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         },
         panel,
         editorStatus,
+        extensionStatusLeft,
+        extensionStatusRight,
         layout,
         setStatus(message: string): void {
             statusLeft.textContent = message;

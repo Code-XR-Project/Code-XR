@@ -9,6 +9,9 @@
  * Shared by main, preload and renderer: no Node, Electron or DOM import.
  */
 
+import type { HostUiEvent } from './extensionHostProtocol.ts';
+import type { DocumentEvent, ProvideRequest } from './extensionLanguageProtocol.ts';
+
 /** `publisher.name`, lower-cased: VS Code compares extension ids without case. */
 export type ExtensionId = string;
 
@@ -212,12 +215,23 @@ export interface ContributedSnippet {
     readonly description: string;
 }
 
+/** A command of `contributes.commands` (#259): the palette lists it, the extension host runs it. */
+export interface ContributedCommand {
+    readonly extensionId: ExtensionId;
+    readonly command: string;
+    readonly title: string;
+    readonly category: string | null;
+    /** `menus.commandPalette` hides it (`"when": "false"`): it runs, but the palette does not list it. */
+    readonly hiddenFromPalette: boolean;
+}
+
 /** Everything declarative the workbench applies from the enabled extensions. */
 export interface ExtensionContributions {
     readonly themes: readonly ContributedTheme[];
     readonly languages: readonly ContributedLanguage[];
     readonly grammars: readonly ContributedGrammar[];
     readonly snippets: readonly ContributedSnippet[];
+    readonly commands: readonly ContributedCommand[];
 }
 
 export interface ExtensionsChangedEvent {
@@ -254,6 +268,26 @@ export interface ExtensionsApi {
     grammarContent(ref: string): Promise<GrammarContent | null>;
     onDidChange(listener: (event: ExtensionsChangedEvent) => void): () => void;
     onLog(listener: (event: ExtensionLogEvent) => void): () => void;
+    /** #259: the workbench is ready; starts this window's extension host if an extension with code may run. */
+    hostReady(): Promise<void>;
+    /** Stops and starts this window's extension host again (after a crash, or on request). */
+    restartHost(): Promise<void>;
+    /** Runs a command an extension contributes or registers (activating it first). */
+    executeCommand(id: string, args?: readonly unknown[]): Promise<unknown>;
+    /** Fires an activation event of the workbench: `onLanguage:<id>`, `onView:<id>`, `onUri`. */
+    activateByEvent(event: string): Promise<void>;
+    /** Answers a request of the host (`onHostUi`'s `request`), with its result or null when dismissed. */
+    hostReply(id: number, result: unknown): Promise<void>;
+    onHostUi(listener: (event: HostUiEvent) => void): () => void;
+    /** #260: the editor's documents and active editor changed (workspace paths). */
+    documentEvents(events: readonly DocumentEvent[]): Promise<void>;
+    /** #260: asks an extension's language feature provider; the answer is plain data (extensionLanguageProtocol.ts). */
+    provide(request: ProvideRequest): Promise<unknown>;
+}
+
+/** Activation events the renderer may fire (the others are the main process's or the host's own). */
+export function isWorkbenchActivationEvent(value: unknown): value is string {
+    return typeof value === 'string' && value.length <= 300 && /^(onLanguage|onView|onWebviewPanel|onCustomEditor|onFileSystem):[\w.\-/+#@]+$|^onUri$/.test(value);
 }
 
 export const EXTENSION_IPC_CHANNELS = {
@@ -270,11 +304,19 @@ export const EXTENSION_IPC_CHANNELS = {
     extensionsContributions: 'codexr:extensions:contributions',
     extensionsTheme: 'codexr:extensions:theme',
     extensionsGrammarContent: 'codexr:extensions:grammar-content',
+    extensionsHostReady: 'codexr:extensions:host-ready',
+    extensionsRestartHost: 'codexr:extensions:restart-host',
+    extensionsExecuteCommand: 'codexr:extensions:execute-command',
+    extensionsActivateByEvent: 'codexr:extensions:activate-by-event',
+    extensionsHostReply: 'codexr:extensions:host-reply',
+    extensionsDocuments: 'codexr:extensions:documents',
+    extensionsProvide: 'codexr:extensions:provide',
 } as const;
 
 export const EXTENSION_IPC_EVENTS = {
     extensionsChanged: 'codexr:extensions:changed',
     extensionsLog: 'codexr:extensions:log',
+    extensionsHostUi: 'codexr:extensions:host-ui',
 } as const;
 
 /** The default registry, and the setting that changes it. */

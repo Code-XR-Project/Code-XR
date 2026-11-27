@@ -1,14 +1,17 @@
 import type * as Lsp from 'vscode-languageserver-types';
 import { CLIENT_URI_SCHEME, isLspLanguage, LSP_MARKER_OWNER, type LspApi, type LspLanguage } from '../../shared/lsp.ts';
 import { monaco } from '../editor/monaco.ts';
-import { completionKindName, markdownOf, markerSeverity, openTarget, toLocations, toLspPosition, toMonacoRange, toSymbols, workspacePathOf } from './lspConvert.ts';
+import { completionKindName, markdownOf, markerSeverity, openTarget, toCodeActions, toHighlights, toLocations, toLspDiagnostic, toLspPosition, toLspRange, toMonacoRange, toRenameRange, toSignatureHelp, toSymbols, workspacePathOf, type MarkerLike, type PrepareRenameAnswer } from './lspConvert.ts';
+import { fileCount, refusalReason, workspaceEditFiles, type FileTextEdits, type WorkspaceEditOutcome } from './lspEdits.ts';
 
 /**
  * The Monaco side of language intelligence (#21): a small bridge, not a
  * generic language client. It follows every Monaco model of a workspace file
  * (`codexr-file:` URIs) whose language has a server, syncs its text to the
  * main process, and registers hover, completion, go to definition and
- * document symbols providers that forward to `window.codexr.lsp`.
+ * document symbols providers that forward to `window.codexr.lsp`; #287 adds
+ * references, rename, signature help, highlights and code actions, whose
+ * edits the editor group applies (`LanguageClientHost.applyEdit`).
  * Diagnostics become markers of their own owner (`codexr-lsp`), which the
  * Problems panel lists like any other.
  *
@@ -21,13 +24,27 @@ import { completionKindName, markdownOf, markerSeverity, openTarget, toLocations
 export interface LanguageClientHost {
     /** Opens a workspace file at a 1-based line and column, selecting `length` characters (go to definition). */
     openAt(path: string, line: number, column: number, length: number): Promise<void>;
+    /**
+     * #287: applies a server's edit (rename, a code action): open files as one
+     * undoable edit each, the others written through the workspace API.
+     */
+    applyEdit(files: readonly FileTextEdits[]): Promise<WorkspaceEditOutcome>;
+    /** #287: the status bar line after an edit ("Renamed 'a' to 'b' in 2 files"). */
+    setStatus(message: string): void;
 }
+
+/** #287: the Monaco command a code action runs to apply its edit (Monaco's own bulk edit cannot reach closed files). */
+const APPLY_EDIT_COMMAND = 'codexr.lsp.applyWorkspaceEdit';
 
 /** Changes are sent at most this often while typing; any request sends the pending one first. */
 const CHANGE_DEBOUNCE_MS = 150;
 
 const TS_TRIGGERS = ['.', '"', "'", '`', '/', '@', '<', '#'];
 const PYTHON_TRIGGERS = ['.', '[', '"', "'"];
+/** #287: signature help opens on these and is asked again on the retrigger ones. */
+const TS_SIGNATURE_TRIGGERS = ['(', ',', '<'];
+const PYTHON_SIGNATURE_TRIGGERS = ['(', ','];
+const SIGNATURE_RETRIGGERS = [')'];
 
 interface TrackedModel {
     readonly model: monaco.editor.ITextModel;
@@ -67,7 +84,12 @@ export function installLanguageClient(api: LspApi, host: LanguageClientHost): vo
     }
     installed = true;
     for (const defaults of [monaco.typescript.typescriptDefaults, monaco.typescript.javascriptDefaults]) {
-        defaults.setModeConfiguration({ ...defaults.modeConfiguration, completionItems: false, hovers: false, definitions: false, documentSymbols: false, diagnostics: false });
+        defaults.setModeConfiguration({
+            ...defaults.modeConfiguration,
+            completionItems: false, hovers: false, definitions: false, documentSymbols: false, diagnostics: false,
+            // #287: the server's answers cover the files that are not open.
+            references: false, rename: false, signatureHelp: false, documentHighlights: false, codeActions: false,
+        });
     }
 
     const tracked = new Map<string, TrackedModel>();
@@ -245,6 +267,147 @@ export function installLanguageClient(api: LspApi, host: LanguageClientHost): vo
     monaco.languages.registerDocumentSymbolProvider(all, {
         displayName: 'Language server',
         provideDocumentSymbols: (model) => documentSymbols(model),
+    });
+
+    // #287: references, highlights and signature help.
+    monaco.languages.registerReferenceProvider(all, {
+        async provideReferences(model, position, context) {
+            const uri = synced(model);
+            if (!uri) {
+                return null;
+            }
+            const result = await request<Lsp.Location[]>('textDocument/references', { textDocument: { uri }, position: toLspPosition(position), context: { includeDeclaration: context.includeDeclaration } });
+            return toLocations(result).map((location) => ({ uri: monaco.Uri.parse(location.uri), range: location.range }));
+        },
+    });
+
+    monaco.languages.registerDocumentHighlightProvider(all, {
+        async provideDocumentHighlights(model, position) {
+            const uri = synced(model);
+            if (!uri) {
+                return null;
+            }
+            return toHighlights(await request<Lsp.DocumentHighlight[]>('textDocument/documentHighlight', { textDocument: { uri }, position: toLspPosition(position) }));
+        },
+    });
+
+    const signatureProvider = (triggers: string[]): monaco.languages.SignatureHelpProvider => ({
+        signatureHelpTriggerCharacters: triggers,
+        signatureHelpRetriggerCharacters: SIGNATURE_RETRIGGERS,
+        async provideSignatureHelp(model, position, _token, context) {
+            const uri = synced(model);
+            if (!uri) {
+                return null;
+            }
+            const result = await request<Lsp.SignatureHelp>('textDocument/signatureHelp', {
+                textDocument: { uri },
+                position: toLspPosition(position),
+                context: { triggerKind: context.triggerKind, isRetrigger: context.isRetrigger, ...(context.triggerCharacter ? { triggerCharacter: context.triggerCharacter } : {}) },
+            });
+            const value = toSignatureHelp(result);
+            return value ? { value, dispose: () => undefined } : null;
+        },
+    });
+    monaco.languages.registerSignatureHelpProvider(selector(['typescript', 'javascript']), signatureProvider(TS_SIGNATURE_TRIGGERS));
+    monaco.languages.registerSignatureHelpProvider(selector(['python']), signatureProvider(PYTHON_SIGNATURE_TRIGGERS));
+
+    /** #287: applies a server edit through the editor group: how many files changed, or why none did. */
+    async function applyServerEdit(edit: unknown): Promise<{ readonly files: number } | { readonly error: string }> {
+        let files: FileTextEdits[];
+        try {
+            files = workspaceEditFiles(edit);
+        } catch (error) {
+            return { error: refusalReason(error) };
+        }
+        if (files.length === 0) {
+            return { files: 0 };
+        }
+        const outcome = await host.applyEdit(files).catch((error: unknown): WorkspaceEditOutcome => ({ applied: [], error: String(error) }));
+        return outcome.error !== undefined ? { error: outcome.error } : { files: outcome.applied.length };
+    }
+
+    // #287: rename. The server answers for the whole project and the editor group applies the edit, so Monaco gets none to apply.
+    monaco.languages.registerRenameProvider(all, {
+        async resolveRenameLocation(model, position) {
+            const uri = synced(model);
+            if (!uri) {
+                return null;
+            }
+            let result: unknown;
+            try {
+                result = await api.request('textDocument/prepareRename', { textDocument: { uri }, position: toLspPosition(position) });
+            } catch (error) {
+                warn(error);
+                return null; // a server without prepareRename: Monaco starts from the word at the cursor
+            }
+            const location = toRenameRange(result as PrepareRenameAnswer | null);
+            if (location === 'default') {
+                return null;
+            }
+            if (!location) {
+                return { range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column), text: '', rejectReason: 'This element cannot be renamed.' };
+            }
+            return { range: location.range, text: location.placeholder ?? model.getValueInRange(location.range) };
+        },
+        async provideRenameEdits(model, position, newName) {
+            const uri = synced(model);
+            if (!uri) {
+                return { edits: [], rejectReason: 'This file has no language server.' };
+            }
+            const oldName = model.getWordAtPosition(position)?.word;
+            let result: unknown;
+            try {
+                result = await api.request('textDocument/rename', { textDocument: { uri }, position: toLspPosition(position), newName });
+            } catch (error) {
+                const reason = `Rename failed: ${refusalReason(error)}`;
+                host.setStatus(reason);
+                return { edits: [], rejectReason: reason };
+            }
+            if (!result) {
+                return { edits: [], rejectReason: 'The language server found nothing to rename here.' };
+            }
+            const applied = await applyServerEdit(result);
+            if ('error' in applied) {
+                const reason = `Rename failed: ${applied.error}`;
+                host.setStatus(reason);
+                return { edits: [], rejectReason: reason };
+            }
+            host.setStatus(`Renamed ${oldName ? `'${oldName}' ` : ''}to '${newName}' in ${fileCount(applied.files)}`);
+            return { edits: [] };
+        },
+    });
+
+    // #287: quick fixes and the other code actions (Ctrl+., the lightbulb); each runs this command with its edit.
+    monaco.editor.registerCommand(APPLY_EDIT_COMMAND, (_accessor: unknown, edit: unknown, title: unknown) => {
+        void applyServerEdit(edit).then((applied) => {
+            const label = typeof title === 'string' ? title : 'Code action';
+            host.setStatus('error' in applied ? `${label} failed: ${applied.error}` : `${label}: changed ${fileCount(applied.files)}`);
+        });
+    });
+    monaco.languages.registerCodeActionProvider(all, {
+        async provideCodeActions(model, range, context) {
+            const uri = synced(model);
+            if (!uri) {
+                return { actions: [], dispose: () => undefined };
+            }
+            // Only the server's own diagnostics: the metric checks and the other owners have no fixes there.
+            const diagnostics = (context.markers as MarkerLike[])
+                .filter((marker) => marker.owner === undefined || marker.owner === LSP_MARKER_OWNER)
+                .map(toLspDiagnostic);
+            const result = await request<unknown>('textDocument/codeAction', {
+                textDocument: { uri },
+                range: toLspRange(range),
+                context: { diagnostics, triggerKind: context.trigger, ...(context.only ? { only: [context.only] } : {}) },
+            });
+            const actions = toCodeActions(result).map((action): monaco.languages.CodeAction => ({
+                title: action.title,
+                ...(action.kind !== undefined ? { kind: action.kind } : {}),
+                ...(action.isPreferred ? { isPreferred: true } : {}),
+                ...(action.disabled !== undefined ? { disabled: action.disabled } : {}),
+                ...(action.edit !== undefined ? { command: { id: APPLY_EDIT_COMMAND, title: action.title, arguments: [action.edit, action.title] } } : {}),
+            }));
+            return { actions, dispose: () => undefined };
+        },
     });
 
     // Go to definition into another file: Monaco has one editor, so the editor group opens the tab.

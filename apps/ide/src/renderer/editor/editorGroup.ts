@@ -9,6 +9,7 @@ import { installGitDecorations, type GitDecorationsHooks } from './gitDecoration
 import { installDebugDecorations, type DebugDecorationsHooks } from './debugDecorations.ts';
 import { createMarkdownPreview, type MarkdownPreview } from './markdownPreview.ts';
 import { isMarkdownPath } from './markdownPath.ts';
+import { applyTextEdits, type FileTextEdits, type WorkspaceEditOutcome } from '../lsp/lspEdits.ts';
 import type { CustomEditorContext, CustomEditorInput, CustomEditorResolver, CustomEditorView } from './customEditor.ts';
 import { compareFilesId, compareSavedId, CustomEditorRegistry, parseCompareId } from './customEditorRegistry.ts';
 import { createCompareView, type CompareSide } from './compareTab.ts';
@@ -115,6 +116,8 @@ interface Group {
 export interface OpenOptions {
     /** #167: open as the preview tab (a single click in the explorer). */
     readonly preview?: boolean;
+    /** #285: false leaves the keyboard focus where it is (a single click keeps it in the explorer, as in VS Code). */
+    readonly focus?: boolean;
 }
 
 /** #173: Monaco's resources for workspace files, and the owner of the Code-XR metric markers. */
@@ -174,8 +177,20 @@ export interface EditorGroup {
      * the editor's text is not the one the agent saw (unsaved edits).
      */
     applyAgentEdit(path: string, expected: string, text: string): Promise<'saved' | 'not-open' | 'unsaved-changes' | 'save-failed'>;
+    /**
+     * #287: applies a language server's edit (rename, a code action). Open
+     * files get one undoable edit each and stay unsaved, as in VS Code; the
+     * others are read, edited and written through the workspace API (which
+     * keeps every path inside the folder), each refused if it changed on disk
+     * since it was read. Every file is prepared before anything is written,
+     * and a failed write puts the files already written back, so the edit
+     * lands whole or not at all.
+     */
+    applyWorkspaceEdit(files: readonly FileTextEdits[]): Promise<WorkspaceEditOutcome>;
     /** #164: Monaco's own outline of the active file ("@" in quick open), where its language has symbols. */
     showSymbols(): void;
+    /** #287: Monaco's quick fix menu (Ctrl+.) at the active editor's selection. */
+    quickFix(): void;
     /** #166: the status bar's choices, applied to the active file. */
     setIndentation(indentation: Indentation): void;
     /** Changes the line endings as one undoable edit (the tab becomes dirty). */
@@ -273,6 +288,8 @@ export function createEditorGroup(
         showFunctionProblems?(path: string, name: string): void;
         /** #172: a tab's text matches the disk again (saved, reloaded, or undone back): its outline may be measured again. */
         onFileClean?(path: string): void;
+        /** #260: a file was written to disk (extensions hear `onDidSaveTextDocument`). */
+        onDidSave?(path: string): void;
         /** #178: "Reveal in XR Scene" from the editor's context menu, on the active file. */
         revealInScene?(path: string): void;
         /** #175: the files' text at HEAD and their blame, from the main process (null when Git has nothing to say). */
@@ -949,6 +966,7 @@ export function createEditorGroup(
             doc.mtimeMs = result.mtimeMs;
             doc.diskState = 'same';
             refreshDoc(doc);
+            callbacks.onDidSave?.(doc.path);
             if (reason === 'explicit') {
                 callbacks.onStatus(`Saved ${doc.path}`);
             }
@@ -1523,6 +1541,62 @@ export function createEditorGroup(
             doc.model.pushEditOperations([], [{ range: doc.model.getFullModelRange(), text }], () => null);
             return (await saveFile(doc, 'explicit')) ? 'saved' : 'save-failed';
         },
+        async applyWorkspaceEdit(files) {
+            const open: { readonly doc: Doc; readonly file: FileTextEdits }[] = [];
+            const closed: { readonly path: string; readonly before: string; readonly after: string; mtimeMs: number }[] = [];
+            for (const file of files) {
+                const doc = docs.get(file.path);
+                if (doc?.custom) {
+                    return { applied: [], error: `${file.path} is open in a viewer, not as text.` };
+                }
+                if (doc) {
+                    open.push({ doc, file });
+                    continue;
+                }
+                let content: FileContent;
+                try {
+                    content = await api.readFile(file.path);
+                } catch (error) {
+                    return { applied: [], error: `Could not read ${file.path}: ${String(error)}` };
+                }
+                if (content.kind !== 'text') {
+                    return { applied: [], error: `${file.path} is not a text file the editor can change.` };
+                }
+                // The server counts positions without the byte order mark, as the editor does.
+                const bom = content.text.startsWith(BOM);
+                let after: string;
+                try {
+                    after = applyTextEdits(bom ? content.text.slice(BOM.length) : content.text, file.edits);
+                } catch (error) {
+                    return { applied: [], error: error instanceof Error ? error.message : String(error) };
+                }
+                closed.push({ path: file.path, before: content.text, after: bom ? BOM + after : after, mtimeMs: content.mtimeMs });
+            }
+            const written: typeof closed = [];
+            for (const file of closed) {
+                try {
+                    const result = await api.writeFile(file.path, file.after, file.mtimeMs);
+                    written.push({ ...file, mtimeMs: result.mtimeMs });
+                } catch (error) {
+                    // Put back what was already written: half an edit (a rename) leaves code that does not build.
+                    await Promise.all(written.map((done) => api.writeFile(done.path, done.before, done.mtimeMs).catch(() => undefined)));
+                    const reason = String(error).includes(MODIFIED_ON_DISK) ? `${file.path} changed on disk while the edit was prepared` : `could not write ${file.path}: ${String(error)}`;
+                    return { applied: [], error: `Nothing was changed: ${reason}.` };
+                }
+            }
+            for (const { doc, file } of open) {
+                if (doc.model.isDisposed()) {
+                    continue;
+                }
+                doc.model.pushStackElement();
+                doc.model.pushEditOperations([], file.edits.map((edit) => ({
+                    range: new monaco.Range(edit.range.start.line + 1, edit.range.start.character + 1, edit.range.end.line + 1, edit.range.end.character + 1),
+                    text: edit.newText,
+                })), () => null);
+                doc.model.pushStackElement();
+            }
+            return { applied: files.map((file) => file.path) };
+        },
         activeSelection() {
             const selection = current.editor.getSelection();
             const doc = activeDoc();
@@ -1537,6 +1611,13 @@ export function createEditorGroup(
             }
             current.editor.focus();
             void current.editor.getAction('editor.action.quickOutline')?.run();
+        },
+        quickFix() {
+            if (!activeDoc()) {
+                return;
+            }
+            current.editor.focus();
+            void current.editor.getAction('editor.action.quickFix')?.run();
         },
         setIndentation(indentation) {
             activeDoc()?.model.updateOptions({ insertSpaces: indentation.insertSpaces, tabSize: indentation.tabSize, indentSize: indentation.tabSize });

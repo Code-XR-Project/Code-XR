@@ -64,8 +64,31 @@ const CLIENT_CAPABILITIES = {
         },
         definition: { dynamicRegistration: false, linkSupport: true },
         documentSymbol: { dynamicRegistration: false, hierarchicalDocumentSymbolSupport: true },
+        // #287
+        references: { dynamicRegistration: false },
+        documentHighlight: { dynamicRegistration: false },
+        rename: { dynamicRegistration: false, prepareSupport: true },
+        signatureHelp: {
+            dynamicRegistration: false,
+            contextSupport: true,
+            signatureInformation: { documentationFormat: ['markdown', 'plaintext'], parameterInformation: { labelOffsetSupport: true }, activeParameterSupport: true },
+        },
+        // No resolve support and no data support: an action comes with its whole edit, or the IDE leaves it out.
+        codeAction: {
+            dynamicRegistration: false,
+            isPreferredSupport: true,
+            disabledSupport: true,
+            codeActionLiteralSupport: { codeActionKind: { valueSet: ['', 'quickfix', 'refactor', 'refactor.extract', 'refactor.inline', 'refactor.rewrite', 'source', 'source.organizeImports'] } },
+        },
     },
-    workspace: { configuration: true, workspaceFolders: true, applyEdit: false },
+    workspace: {
+        configuration: true,
+        workspaceFolders: true,
+        // #287: edits come back in answers (rename, code actions) and are applied by the editor, text only.
+        applyEdit: false,
+        workspaceEdit: { documentChanges: true, resourceOperations: [], failureHandling: 'abort' },
+        symbol: { dynamicRegistration: false },
+    },
     window: { workDoneProgress: false },
 };
 
@@ -260,7 +283,9 @@ export class LanguageServer {
         connection.onRequest('client/registerCapability', () => null);
         connection.onRequest('client/unregisterCapability', () => null);
         connection.onRequest('window/workDoneProgress/create', () => null);
-        // A server never edits files behind the editor's back.
+        // A server never edits files behind the editor's back. #287: edits the person asked for (rename, a
+        // quick fix) come back as answers and go through the editor; a server only sends this request
+        // while running a command (`workspace/executeCommand`), which the IDE never sends, so it stays refused.
         connection.onRequest('workspace/applyEdit', () => ({ applied: false, failureReason: 'The Code-XR IDE does not apply server edits.' }));
         connection.onError(([error]) => log.warn(`[${id}] connection error: ${error.message}`));
     }

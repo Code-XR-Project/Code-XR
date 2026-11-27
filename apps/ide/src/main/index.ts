@@ -1,8 +1,10 @@
 import { app, BrowserWindow, nativeTheme } from 'electron';
+import fs from 'node:fs';
 import path from 'node:path';
 import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
 import { registerIpcHandlers } from './ipc.ts';
+import { ExtensionHostManager } from './extensions/extensionHostManager.ts';
 import { ExtensionsService } from './extensions/extensionsService.ts';
 import { fileStorage, memoryStorage, SettingsService } from './settings/settingsService.ts';
 import { KeybindingsService } from './settings/keybindingsService.ts';
@@ -38,6 +40,12 @@ const OUT_DIR = path.resolve(__dirname, '..');
 const PRELOAD_PATH = path.join(OUT_DIR, 'preload', 'index.cjs');
 /** #16: the scene view's own preload (only `CodeXRHostBridge.openInEditor`). */
 const SCENE_PRELOAD_PATH = path.join(OUT_DIR, 'scenePreload', 'index.cjs');
+/**
+ * #259: the extension host, a Node child process per window. Installers
+ * unpack it from the asar archive (electron-builder.config.cjs) so it runs
+ * from a real file, like the TypeScript language server.
+ */
+const EXTENSION_HOST_PATH = unpackedPath(path.join(OUT_DIR, 'extensionHost', 'index.cjs'));
 const RENDERER_DIR = path.join(OUT_DIR, 'renderer');
 
 // The dev server is honoured only from an unpackaged build, so an installed
@@ -136,6 +144,10 @@ async function start(): Promise<void> {
         settings,
         disableExtensions: process.argv.includes('--disable-extensions'),
     });
+    // #259: the extensions' code runs in a host process per window, never here or in the renderer.
+    const extensionHosts = new ExtensionHostManager({ service: extensions, hostScript: EXTENSION_HOST_PATH, isDevelopment });
+    extensions.attachHost((handle) => extensionHosts.register(handle));
+    app.on('will-quit', () => void extensionHosts.stopAll());
     registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp, agentSessions, extensions);
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
@@ -209,4 +221,10 @@ app.on('window-all-closed', () => {
 async function installDependencies(core: CoreServices): Promise<void> {
     await core.python.ensureReady().catch((error: unknown) => log.error('Could not set up the Python environment.', error));
     await core.cloudflared.ensureInstalled();
+}
+
+/** The `app.asar.unpacked` copy of a file of the archive, when there is one. */
+function unpackedPath(file: string): string {
+    const unpacked = file.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+    return unpacked !== file && fs.existsSync(unpacked) ? unpacked : file;
 }

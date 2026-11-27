@@ -21,7 +21,7 @@ export interface ContributionsController {
     previewTheme(themeId: string | null): Promise<void>;
 }
 
-const EMPTY: ExtensionContributions = { themes: [], languages: [], grammars: [], snippets: [] };
+const EMPTY: ExtensionContributions = { themes: [], languages: [], grammars: [], snippets: [], commands: [] };
 
 export function createContributionsController(api: ExtensionsApi, onError: (message: string) => void): ContributionsController {
     let contributions = EMPTY;

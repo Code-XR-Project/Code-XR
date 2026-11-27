@@ -429,7 +429,7 @@ describe('Source Control view model', () => {
     });
 
     it('labels the branch, a detached HEAD and no repository', () => {
-        assert.equal(branchLabel(status), 'main 2\u2193 1\u2191');
+        assert.equal(branchLabel(status), 'main', '#284: the counts moved to the sync item');
         assert.equal(branchLabel({ ...status, branch: null, upstream: null }), 'abc1234 (detached)');
         assert.equal(branchLabel(emptyGitStatus('not-repo')), null);
     });

@@ -37,6 +37,12 @@ export interface CommandDefinition {
     readonly secondaryKeybindings?: readonly string[];
     /** False for commands that should not appear under "recently used" (the palette itself). */
     readonly recordRecent?: boolean;
+    /**
+     * #259: a command an extension contributes. Its id is the extension's
+     * (VS Code allows any non-empty id, `_` prefixes and all), so the
+     * `area.action` rule does not apply; ids still never repeat.
+     */
+    readonly source?: 'extension';
     /** Hidden from the palette and not runnable while false. */
     readonly enabled?: () => boolean;
     run(): void | Promise<void>;
@@ -98,7 +104,7 @@ export function createCommandRegistry(onError: (id: string, error: unknown) => v
 
     return {
         register(command) {
-            if (!ID_PATTERN.test(command.id)) {
+            if (command.source === 'extension' ? !/^\S{1,300}$/.test(command.id) : !ID_PATTERN.test(command.id)) {
                 throw new Error(`Invalid command ID "${command.id}": use area.action.`);
             }
             if (commands.has(command.id)) {

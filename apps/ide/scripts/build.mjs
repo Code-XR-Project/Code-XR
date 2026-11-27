@@ -6,5 +6,6 @@ await build(nodeTargetConfig('main'));
 await build(nodeTargetConfig('preload'));
 await build(nodeTargetConfig('scenePreload'));
 await build(nodeTargetConfig('codexrMcp'));
+await build(nodeTargetConfig('extensionHost'));
 await build(rendererConfig());
 console.log('[code-xr-ide] built into apps/ide/out/');

@@ -66,6 +66,29 @@ export interface GitCommitResult {
     readonly commit: string | null;
 }
 
+/** #284: the operations that talk to a remote; one runs at a time per window, and can be cancelled. */
+export type GitRemoteOperation = 'push' | 'pull' | 'fetch' | 'sync';
+
+/** #284: what a remote operation left: the new status. */
+export interface GitRemoteResult {
+    readonly status: GitStatus;
+    /** False when the person cancelled a question (which remote to publish to) before git ran. */
+    readonly done: boolean;
+}
+
+/** #284: one entry of `git stash list`, newest first; `index` is the n of `stash@{n}`. */
+export interface GitStash {
+    readonly index: number;
+    readonly label: string;
+}
+
+/** #284: a branch deletion; `notMerged` when `-d` refused, so the page asks before forcing. */
+export interface GitDeleteBranchResult {
+    readonly status: GitStatus;
+    readonly deleted: boolean;
+    readonly notMerged: boolean;
+}
+
 /** What the renderer can ask of Source Control (`window.codexr.git`). */
 export interface GitApi {
     /** The repository's state, computed now. Never rejects for a missing git or a non-repository. */
@@ -103,6 +126,29 @@ export interface GitApi {
      * line. Null, never a rejection, when blame is not available.
      */
     blame(path: string, contents: string): Promise<readonly GitBlameLine[] | null>;
+    /**
+     * #284: push (the first push of a branch sets its upstream), pull, fetch
+     * (`--prune`) or sync (pull, then push). Credentials come from git's own
+     * helpers, never a prompt; a timeout bounds each one and `cancelRemote`
+     * stops it. Rejects with git's message, prefixed with what to do.
+     */
+    remote(operation: GitRemoteOperation): Promise<GitRemoteResult>;
+    /** #284: stops the remote operation this window is running; false when none was. */
+    cancelRemote(): Promise<boolean>;
+    /** #284: stashes the changes (`includeUntracked`: untracked files too). */
+    stash(includeUntracked: boolean): Promise<GitStatus>;
+    /** #284: the stash list, newest first. */
+    stashes(): Promise<readonly GitStash[]>;
+    /** #284: applies, pops or drops `stash@{index}`. */
+    stashApply(index: number): Promise<GitStatus>;
+    stashPop(index: number): Promise<GitStatus>;
+    stashDrop(index: number): Promise<GitStatus>;
+    /**
+     * #284: deletes a local branch other than the current one: `git branch -d`,
+     * or `-D` with `force`. An unmerged branch without `force` resolves with
+     * `notMerged` so the page can ask first.
+     */
+    deleteBranch(name: string, force: boolean): Promise<GitDeleteBranchResult>;
     /** Fires when the repository changed on disk (index, HEAD, refs), from the IDE or outside it. */
     onDidChange(listener: () => void): () => void;
 }
@@ -120,7 +166,21 @@ export const GIT_IPC_CHANNELS = {
     gitHeadContent: 'codexr:git:head-content',
     gitBaseline: 'codexr:git:baseline',
     gitBlame: 'codexr:git:blame',
+    gitRemote: 'codexr:git:remote',
+    gitCancelRemote: 'codexr:git:cancel-remote',
+    gitStash: 'codexr:git:stash',
+    gitStashes: 'codexr:git:stashes',
+    gitStashApply: 'codexr:git:stash-apply',
+    gitStashPop: 'codexr:git:stash-pop',
+    gitStashDrop: 'codexr:git:stash-drop',
+    gitDeleteBranch: 'codexr:git:delete-branch',
 } as const;
+
+export const GIT_REMOTE_OPERATIONS: readonly GitRemoteOperation[] = ['push', 'pull', 'fetch', 'sync'];
+
+export function isGitRemoteOperation(value: unknown): value is GitRemoteOperation {
+    return typeof value === 'string' && (GIT_REMOTE_OPERATIONS as readonly string[]).includes(value);
+}
 
 /** Main -> renderer events of Source Control; api.ts merges them into IPC_EVENTS. */
 export const GIT_IPC_EVENTS = {

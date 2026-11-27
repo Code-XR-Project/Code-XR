@@ -18,6 +18,10 @@ export interface QuickInputProvider {
     accept(action: PaletteAction): void;
     /** The field's accessible name and placeholder. */
     readonly label?: string;
+    /** #259: a placeholder other than the label (an extension's `placeHolder`). */
+    readonly placeholder?: string;
+    /** #259: the text is a secret (an extension's `password: true`): the field masks it. */
+    readonly password?: boolean;
     /** The entry to start on when the box opens (#171: the theme in use), instead of the first. */
     readonly initialId?: string;
     /** The highlighted entry changed (#171: the theme picker previews it). */
@@ -210,7 +214,8 @@ export function createQuickInput(host: HTMLElement, options: QuickInputOptions):
         pendingInitialId = provider.initialId;
         const label = provider.label ?? defaultLabel;
         input.setAttribute('aria-label', label);
-        input.placeholder = provider.label ?? '';
+        input.placeholder = provider.placeholder ?? provider.label ?? '';
+        input.type = provider.password ? 'password' : 'text';
         if (layer.hidden) {
             const focused = document.activeElement;
             returnFocus = focused instanceof HTMLElement && focused !== document.body ? focused : null;

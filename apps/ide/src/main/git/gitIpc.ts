@@ -1,11 +1,12 @@
 import { BrowserWindow, dialog, shell, type IpcMainInvokeEvent, type MessageBoxOptions, type WebContents } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { emptyGitStatus, GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitCommitResult, type GitStatus } from '../../shared/git.ts';
+import { emptyGitStatus, GIT_IPC_CHANNELS, GIT_IPC_EVENTS, isGitRemoteOperation, type GitCommitResult, type GitDeleteBranchResult, type GitRemoteResult, type GitStatus } from '../../shared/git.ts';
 import type { GitBlameLine } from '../../shared/gitGutter.ts';
-import { log } from '../log.ts';
+import { channelLog, log } from '../log.ts';
 import { workspaceOrNull } from '../workspace/workspaceWindows.ts';
-import { GitService } from './gitService.ts';
+import { GitService, type RemoteOptions } from './gitService.ts';
+import { GitCancelledError } from './gitRunner.ts';
 import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 
 type Handle = (channel: string, handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => void;
@@ -28,6 +29,10 @@ interface WindowGit {
 }
 
 const windows = new Map<number, WindowGit>();
+/** #284: the remote operation each window is running, to cancel it; one at a time per window. */
+const remoteRuns = new Map<number, AbortController>();
+/** #284: the Output panel's Git channel. */
+const gitLog = channelLog('git');
 /** Windows whose `destroyed` listener is installed (once per window). */
 const tracked = new Set<number>();
 
@@ -66,6 +71,8 @@ export function gitServiceOf(contents: WebContents): GitService | null {
 }
 
 function dispose(id: number): void {
+    // #284: a folder change, a trust change or a closed window stops its push, pull or fetch.
+    remoteRuns.get(id)?.abort();
     const entry = windows.get(id);
     if (!entry) {
         return;
@@ -250,6 +257,81 @@ export function registerGitHandlers(handle: Handle): void {
     handle(GIT_IPC_CHANNELS.gitCreateBranch, async (event, name) => {
         await requireService(event.sender).createBranch(name);
         return statusOf(event.sender);
+    });
+    // #284: push, pull, fetch and sync. Trust-gated like every other call; one per window, cancellable.
+    handle(GIT_IPC_CHANNELS.gitRemote, async (event, operation): Promise<GitRemoteResult> => {
+        if (!isGitRemoteOperation(operation)) {
+            throw new Error('Unknown Git remote operation.');
+        }
+        const service = requireService(event.sender);
+        const id = event.sender.id;
+        if (remoteRuns.has(id)) {
+            throw new Error('A push, pull or fetch is already running in this window.');
+        }
+        const controller = new AbortController();
+        remoteRuns.set(id, controller);
+        const options: RemoteOptions = {
+            signal: controller.signal,
+            chooseRemote: async (remotes) => {
+                const shown = remotes.slice(0, 8);
+                const response = await confirm(event.sender, {
+                    type: 'question',
+                    title: 'Publish Branch',
+                    message: 'Which remote should this branch be published to?',
+                    detail: 'The branch has no upstream yet. It is pushed under the same name and tracks it from then on.',
+                    buttons: [...shown, 'Cancel'],
+                    defaultId: 0,
+                    cancelId: shown.length,
+                    noLink: true,
+                });
+                return shown[response] ?? null;
+            },
+        };
+        gitLog.info(`${operation}: started in ${service.root}`);
+        try {
+            const output = await service[operation](options);
+            if (output) {
+                gitLog.info(output);
+            }
+            gitLog.info(output === null ? `${operation}: cancelled before it started.` : `${operation}: done.`);
+            return { status: await statusOf(event.sender), done: output !== null };
+        } catch (error) {
+            if (error instanceof GitCancelledError) {
+                gitLog.warn(`${operation}: cancelled.`);
+            } else {
+                gitLog.error(`${operation}: failed.\n${error instanceof Error ? error.message : String(error)}`);
+            }
+            throw error;
+        } finally {
+            remoteRuns.delete(id);
+        }
+    });
+    handle(GIT_IPC_CHANNELS.gitCancelRemote, (event) => {
+        const controller = remoteRuns.get(event.sender.id);
+        controller?.abort();
+        return controller !== undefined;
+    });
+    handle(GIT_IPC_CHANNELS.gitStash, async (event, includeUntracked) => {
+        await requireService(event.sender).stash(includeUntracked === true);
+        return statusOf(event.sender);
+    });
+    handle(GIT_IPC_CHANNELS.gitStashes, (event) => requireService(event.sender).stashes());
+    handle(GIT_IPC_CHANNELS.gitStashApply, async (event, index) => {
+        await requireService(event.sender).stashAction('apply', index);
+        return statusOf(event.sender);
+    });
+    handle(GIT_IPC_CHANNELS.gitStashPop, async (event, index) => {
+        await requireService(event.sender).stashAction('pop', index);
+        return statusOf(event.sender);
+    });
+    handle(GIT_IPC_CHANNELS.gitStashDrop, async (event, index) => {
+        await requireService(event.sender).stashAction('drop', index);
+        return statusOf(event.sender);
+    });
+    // #284: -d first; an unmerged branch comes back as `notMerged` and the page asks before forcing.
+    handle(GIT_IPC_CHANNELS.gitDeleteBranch, async (event, name, force): Promise<GitDeleteBranchResult> => {
+        const result = await requireService(event.sender).deleteBranch(name, force === true);
+        return { status: await statusOf(event.sender), deleted: result === 'deleted', notMerged: result === 'not-merged' };
     });
     handle(GIT_IPC_CHANNELS.gitHeadContent, (event, file) => requireService(event.sender).headContent(file));
     // #175: the editor asks on every file it opens, so "nothing to show" is null, never an error.

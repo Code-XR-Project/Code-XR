@@ -23,6 +23,8 @@ export interface NotificationOptions {
     readonly actions?: readonly NotificationAction[];
     /** Milliseconds before it closes on its own; 0 keeps it. Defaults: info 6 s, others 0. */
     readonly timeoutMs?: number;
+    /** #259: it closed without an action (its X, or the timeout): an extension waiting on it gets `undefined`. */
+    readonly onDismiss?: () => void;
 }
 
 export interface ProgressUpdate {
@@ -30,6 +32,8 @@ export interface ProgressUpdate {
     readonly message?: string | undefined;
     /** 0-100; absent for a task of unknown length (the bar then runs indeterminate). */
     readonly percent?: number | undefined;
+    /** #284: adds a Cancel button that runs this (read when the notification first shows). */
+    readonly onCancel?: (() => void) | undefined;
 }
 
 export interface NotificationHandle {
@@ -113,11 +117,15 @@ export function createNotificationCenter(host: HTMLElement): NotificationCenter 
                     return button;
                 })));
             }
-            const root = shell(severity, body, () => handle.close());
+            const dismiss = (): void => {
+                handle.close();
+                options.onDismiss?.();
+            };
+            const root = shell(severity, body, dismiss);
             root.dataset['severity'] = severity;
             const timeout = options.timeoutMs ?? (severity === 'info' && !options.actions?.length ? INFO_TIMEOUT_MS : 0);
             if (timeout > 0) {
-                timer = setTimeout(() => handle.close(), timeout);
+                timer = setTimeout(dismiss, timeout);
                 // Reading a toast keeps it.
                 root.addEventListener('mouseenter', () => clearTimeout(timer));
             }
@@ -133,7 +141,17 @@ export function createNotificationCenter(host: HTMLElement): NotificationCenter 
                 const message = el('p', { className: 'notification-detail' });
                 const bar = el('div', { className: 'progress-bar' });
                 const track = el('div', { className: 'progress-track', attrs: { role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100' } }, [bar]);
-                const root = shell('progress', [title, message, track], () => {
+                const body: Node[] = [title, message, track];
+                const onCancel = update.onCancel;
+                if (onCancel) {
+                    const cancel = el('button', { className: 'secondary-button', text: 'Cancel', attrs: { type: 'button', 'data-testid': 'notification-cancel' } });
+                    cancel.addEventListener('click', () => {
+                        cancel.disabled = true;
+                        onCancel();
+                    });
+                    body.push(el('div', { className: 'notification-actions' }, [cancel]));
+                }
+                const root = shell('progress', body, () => {
                     // Hiding a running task's toast does not stop the task.
                     root.remove();
                     progressToasts.delete(key);

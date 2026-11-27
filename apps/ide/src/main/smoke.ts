@@ -33,7 +33,7 @@ export interface SmokeProbe {
     /** AF2: the smoke run may not download anything; reading what an agent install would fetch is refused. */
     readonly agentInstallRefused: boolean;
     /** #177: the folder's trust before and after the smoke run trusted it, and Git while it was not trusted. */
-    readonly trust: { readonly before?: string; readonly shieldShown?: boolean; readonly restrictedGit?: string; readonly tasksRefused?: boolean; readonly debugRefused?: boolean; readonly after?: string; readonly error?: string } | null;
+    readonly trust: { readonly before?: string; readonly shieldShown?: boolean; readonly restrictedGit?: string; readonly tasksRefused?: boolean; readonly debugRefused?: boolean; readonly remoteRefused?: boolean; readonly after?: string; readonly error?: string } | null;
     /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
     readonly editorOpened: boolean;
     /** #138: file icons in the explorer and the tabs, and those that failed to load from the app. */
@@ -77,6 +77,14 @@ export interface TerminalProbe {
     readonly screen: readonly string[];
     readonly status: string;
     readonly cspViolations: readonly string[];
+    /** #286: Ctrl/Cmd+F opened the find widget, it counted `codexr-smoke`, and Escape closed it. */
+    readonly find: { readonly opened: boolean; readonly count: string; readonly closed: boolean };
+    /**
+     * #286: hovering `src/main/index.ts:3:1` in the output showed the link hint;
+     * Ctrl/Cmd+click opened it at line 3; Ctrl/Cmd+F in that editor then opened
+     * Monaco's find, not the terminal's.
+     */
+    readonly link: { readonly hinted: boolean; readonly opened: boolean; readonly editorKept: boolean };
 }
 
 export interface SmokeResult {
@@ -137,8 +145,18 @@ const RENDERER_PROBE = `(async () => {
         } catch (error) {
             debugRefused &&= /Restricted Mode/.test(String(error));
         }
+        // #284: nor a push, pull, fetch, stash or branch deletion.
+        let remoteRefused = true;
+        for (const attempt of [() => window.codexr.git.remote('fetch'), () => window.codexr.git.stash(false), () => window.codexr.git.deleteBranch('smoke', false)]) {
+            try {
+                await attempt();
+                remoteRefused = false;
+            } catch (error) {
+                remoteRefused &&= /Restricted Mode/.test(String(error));
+            }
+        }
         const after = await window.codexr.workspace.setTrust('folder');
-        trust = { before: before.state, shieldShown, restrictedGit, tasksRefused, debugRefused, after: after.state };
+        trust = { before: before.state, shieldShown, restrictedGit, tasksRefused, debugRefused, remoteRefused, after: after.state };
     } catch (error) {
         trust = { error: String(error) };
     }
@@ -270,11 +288,13 @@ const RENDERER_PROBE = `(async () => {
         const activeAfter = document.querySelector('[data-testid="editor-tabs"] .editor-tab[aria-selected="true"]')?.getAttribute('data-path');
         tabsProbe.cycled = activeAfter === order[(order.indexOf('README.md') + 1) % order.length];
         await new Promise((r) => setTimeout(r, 450));
-        const sessionEntry = Object.keys(localStorage).find((key) => key.startsWith('codexr.tabs:'));
-        try {
-            const saved = JSON.parse(localStorage.getItem(sessionEntry ?? '') ?? '{}');
-            tabsProbe.sessionSaved = Array.isArray(saved.tabs) && saved.tabs.some((tab) => tab.path === 'tsconfig.json') && saved.preview === 'README.md';
-        } catch { tabsProbe.sessionSaved = false; }
+        // The smoke's user-data folder can hold other folders' sessions (another checkout ran it): any entry may be this one.
+        tabsProbe.sessionSaved = Object.keys(localStorage).filter((key) => key.startsWith('codexr.tabs:')).some((key) => {
+            try {
+                const saved = JSON.parse(localStorage.getItem(key) ?? '{}');
+                return Array.isArray(saved.tabs) && saved.tabs.some((tab) => tab.path === 'tsconfig.json') && saved.preview === 'README.md';
+            } catch { return false; }
+        });
         const confirmBefore = window.confirm;
         window.confirm = () => true;
         tabOf('README.md')?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 40 }));
@@ -441,8 +461,61 @@ const TERMINAL_PROBE = `(async () => {
         type('\\r');
         echoed = await wait(() => lines().some((line) => line.trim() === 'codexr-smoke'), 20000);
     }
+    // #286: find in the scrollback, through the workbench's key handler (the terminal has focus).
+    const isMac = navigator.userAgent.includes('Macintosh');
+    const find = { opened: false, count: '', closed: false };
+    if (echoed) {
+        textarea().focus();
+        textarea().dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', ctrlKey: !isMac, metaKey: isMac, bubbles: true, cancelable: true }));
+        const widget = document.querySelector('[data-testid="terminal-find"]');
+        const input = document.querySelector('[data-testid="terminal-find-input"]');
+        find.opened = !!widget && !widget.hidden && document.activeElement === input;
+        if (find.opened) {
+            input.value = 'codexr-smoke';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            await wait(() => / of /.test(document.querySelector('[data-testid="terminal-find-count"]')?.textContent ?? ''), 5000);
+            find.count = document.querySelector('[data-testid="terminal-find-count"]')?.textContent ?? '';
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+            find.closed = widget.hidden && document.activeElement === textarea();
+        }
+    }
+    // #286: a file link in the output, hovered then Ctrl/Cmd+clicked where xterm drew it.
+    const link = { hinted: false, opened: false, editorKept: false };
+    if (echoed) {
+        const target = 'src/main/index.ts:3:1';
+        const type = (data) => textarea().dispatchEvent(new InputEvent('input', { data, inputType: 'insertText', bubbles: true }));
+        textarea().focus();
+        type('echo ' + target);
+        type('\\r');
+        await wait(() => lines().some((line) => line.trim() === target), 20000);
+        const rows = [...document.querySelectorAll('.terminal-host:not([hidden]) .xterm-rows > div')];
+        const row = rows.find((element) => element.textContent.replace(/\\u00a0/g, ' ').trim() === target);
+        const screen = document.querySelector('.terminal-host:not([hidden]) .xterm-screen');
+        if (row && screen) {
+            const rowBox = row.getBoundingClientRect();
+            const screenBox = screen.getBoundingClientRect();
+            const point = { clientX: screenBox.left + 3, clientY: rowBox.top + rowBox.height / 2, bubbles: true, cancelable: true };
+            const host = screen.closest('.terminal-host');
+            screen.dispatchEvent(new MouseEvent('mousemove', point));
+            link.hinted = await wait(() => (host.getAttribute('title') ?? '').startsWith('Follow link'), 5000);
+            const modifier = { ctrlKey: !isMac, metaKey: isMac };
+            screen.dispatchEvent(new MouseEvent('mousedown', { ...point, ...modifier, button: 0 }));
+            screen.dispatchEvent(new MouseEvent('mouseup', { ...point, ...modifier, button: 0 }));
+            link.opened = await wait(() => {
+                const tab = document.querySelector('[data-testid="editor-tabs"] .editor-tab[aria-selected="true"]');
+                return tab?.getAttribute('data-path') === 'src/main/index.ts' && /^Ln 3,/.test(document.querySelector('[data-testid="editor-status"] .status-item')?.textContent ?? '');
+            }, 15000);
+        }
+        // Ctrl/Cmd+F is the terminal's only while it has focus: in the editor it is Monaco's find.
+        if (link.opened) {
+            const editorInput = document.activeElement;
+            editorInput?.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', keyCode: 70, ctrlKey: !isMac, metaKey: isMac, bubbles: true, cancelable: true }));
+            link.editorKept = await wait(() => !!document.querySelector('.monaco-editor .find-widget.visible'), 5000)
+                && document.querySelector('[data-testid="terminal-find"]').hidden;
+        }
+    }
     const status = document.querySelector('.status-bar .status-message')?.textContent ?? '';
-    return { opened, profile, echoed, screen: lines().filter((line) => line.trim() !== '').slice(-8), status, cspViolations };
+    return { opened, profile, echoed, screen: lines().filter((line) => line.trim() !== '').slice(-8), status, cspViolations, find, link };
 })()`;
 
 /** Pure: turns what was observed into a verdict. */
@@ -466,7 +539,7 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
         if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
         if (probe.gitStatusState === null) { failures.push('git.status did not answer'); }
-        if (probe.trust?.before !== 'unknown' || probe.trust.restrictedGit !== 'restricted' || !probe.trust.tasksRefused || !probe.trust.debugRefused || probe.trust.after !== 'trusted' || !probe.trust.shieldShown) {
+        if (probe.trust?.before !== 'unknown' || probe.trust.restrictedGit !== 'restricted' || !probe.trust.tasksRefused || !probe.trust.debugRefused || !probe.trust.remoteRefused || probe.trust.after !== 'trusted' || !probe.trust.shieldShown) {
             failures.push(`workspace trust did not gate Git, tasks or debugging, or did not take the answer (got ${JSON.stringify(probe.trust)})`);
         }
         if (!probe.gitTraversalRefused) { failures.push('git.headContent followed a path out of the folder'); }
@@ -497,6 +570,14 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
             failures.push(`the terminal (${terminal.profile ?? '?'}) did not print the output of echo: ${JSON.stringify(terminal.screen)}`);
         }
         if (terminal.cspViolations.length > 0) { failures.push(`CSP violations in the terminal: ${terminal.cspViolations.join(', ')}`); }
+        if (terminal.echoed && (!terminal.find.opened || !/^\d+ of \d+/.test(terminal.find.count) || !terminal.find.closed)) {
+            failures.push(`Ctrl/Cmd+F did not find in the terminal (${JSON.stringify(terminal.find)})`);
+        }
+        if (terminal.echoed && (!terminal.link.hinted || !terminal.link.opened)) {
+            failures.push(`a file link in the terminal did not open at its line (${JSON.stringify(terminal.link)})`);
+        } else if (terminal.echoed && !terminal.link.editorKept) {
+            failures.push(`Ctrl/Cmd+F in the editor did not open the editor's find (${JSON.stringify(terminal.link)})`);
+        }
     }
     if (!navigationBlocked) { failures.push('navigation to an external URL was not blocked'); }
     return { ok: failures.length === 0, failures, probe, terminal, navigationBlocked, platform };

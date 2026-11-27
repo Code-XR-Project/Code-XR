@@ -156,6 +156,13 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
         await shell.openExternal(url);
     });
     handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
+    // #285: copy and move check both ends inside the folder by real path; reveal shows the checked real path.
+    // Like create, rename and trash, they work in Restricted Mode (#177): they edit files, they run nothing.
+    handle(IPC_CHANNELS.workspaceCopyEntry, (event, path, toFolder) => workspaceOf(event.sender).copyEntry(path, toFolder));
+    handle(IPC_CHANNELS.workspaceMoveEntry, (event, path, toFolder) => workspaceOf(event.sender).moveEntry(path, toFolder));
+    handle(IPC_CHANNELS.workspaceRevealInOs, async (event, path) => {
+        shell.showItemInFolder(await workspaceOf(event.sender).revealablePath(path));
+    });
     handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
     handle(IPC_CHANNELS.workspaceOpenRecent, (event, folder) => openRecentFolder(event.sender, folder));
 
@@ -233,7 +240,9 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.terminalSetDefaultProfile, (_event, id) => terminal.setDefaultProfile(id));
     handle(IPC_CHANNELS.terminalAddCustomProfile, (event, args) => terminal.addCustomProfile(event.sender, args));
     handle(IPC_CHANNELS.terminalRemoveCustomProfile, (_event, id) => terminal.removeCustomProfile(id));
-    handle(IPC_CHANNELS.terminalCreate, (event, profileId, cols, rows) => terminal.create(event.sender, profileId, cols, rows));
+    // #285: "Open in Integrated Terminal" names a workspace path; the cwd is its real path, checked inside the folder.
+    handle(IPC_CHANNELS.terminalCreate, async (event, profileId, cols, rows, folder) =>
+        terminal.create(event.sender, profileId, cols, rows, folder === null || folder === undefined ? undefined : await workspaceOf(event.sender).terminalFolder(folder)));
     handle(IPC_CHANNELS.terminalInput, (event, id, data) => terminal.input(event.sender, id, data));
     handle(IPC_CHANNELS.terminalResize, (event, id, cols, rows) => terminal.resize(event.sender, id, cols, rows));
     handle(IPC_CHANNELS.terminalKill, (event, id) => terminal.kill(event.sender, id));
