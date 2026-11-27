@@ -479,9 +479,11 @@ export interface CodeXRApi {
         /**
          * #179: an image of the open folder as a `data:` URL, for the Markdown
          * preview (the CSP lets the window load nothing else). Null for a file
-         * that is not a PNG, JPEG, GIF, WebP or BMP image, or over 8 MB.
+         * that is not a PNG, JPEG, GIF, WebP, BMP, ICO or AVIF image, or over 8 MB.
          */
         readImage(path: string): Promise<string | null>;
+        /** #256: a PDF of the open folder as bytes, for the PDF viewer tab; null for another file or one over 64 MB. */
+        readDocument(path: string): Promise<Uint8Array | null>;
         /** #179: opens an http(s) or mailto link in the system's browser or mail app; any other URL is refused. */
         openExternalLink(url: string): Promise<void>;
         /** Recently opened folders, most recent first (absolute paths, for display and `openRecent`). */
@@ -617,6 +619,7 @@ export const IPC_CHANNELS = {
     workspaceRename: 'codexr:workspace:rename',
     workspaceCopyPath: 'codexr:workspace:copy-path',
     workspaceReadImage: 'codexr:workspace:read-image',
+    workspaceReadDocument: 'codexr:workspace:read-document',
     workspaceTrust: 'codexr:workspace:trust',
     workspaceSetTrust: 'codexr:workspace:set-trust',
     workspaceOpenExternalLink: 'codexr:workspace:open-external-link',

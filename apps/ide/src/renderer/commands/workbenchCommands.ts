@@ -18,6 +18,8 @@ export interface WorkbenchCommandTargets {
     quickOpen(): void;
     goToSymbol(): void;
     hasActiveEditor(): boolean;
+    /** #256: any tab is active, a text editor or a custom one (a PDF, an image). */
+    hasActiveTab(): boolean;
     changeIndentation(): void;
     changeEndOfLine(): void;
     changeLanguageMode(): void;
@@ -97,22 +99,22 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'file.newFolder', category: 'File', title: 'New Folder…', enabled: targets.hasFolder, run: targets.newFolder },
         { id: 'file.save', category: 'File', title: 'Save', ...menu('file.save'), enabled: targets.hasActiveEditor, run: targets.save },
         { id: 'file.saveAll', category: 'File', title: 'Save All', ...menu('file.saveAll'), run: targets.saveAll },
-        { id: 'editor.close', category: 'View', title: 'Close Editor', ...menu('editor.close'), enabled: targets.hasActiveEditor, run: targets.closeEditor },
-        { id: 'editor.closeOthers', category: 'View', title: 'Close Other Editors', enabled: targets.hasActiveEditor, run: () => targets.closeEditors('others') },
-        { id: 'editor.closeToTheRight', category: 'View', title: 'Close Editors to the Right', enabled: targets.hasActiveEditor, run: () => targets.closeEditors('right') },
+        { id: 'editor.close', category: 'View', title: 'Close Editor', ...menu('editor.close'), enabled: targets.hasActiveTab, run: targets.closeEditor },
+        { id: 'editor.closeOthers', category: 'View', title: 'Close Other Editors', enabled: targets.hasActiveTab, run: () => targets.closeEditors('others') },
+        { id: 'editor.closeToTheRight', category: 'View', title: 'Close Editors to the Right', enabled: targets.hasActiveTab, run: () => targets.closeEditors('right') },
         { id: 'editor.closeSaved', category: 'View', title: 'Close Saved Editors', keybinding: 'CmdOrCtrl+K U', enabled: targets.hasEditors, run: () => targets.closeEditors('saved') },
         { id: 'editor.closeAll', category: 'View', title: 'Close All Editors', keybinding: 'CmdOrCtrl+K W', enabled: targets.hasEditors, run: () => targets.closeEditors('all') },
         { id: 'editor.next', category: 'View', title: 'Open Next Editor', keybinding: 'Ctrl+PageDown', secondaryKeybindings: ['Ctrl+Tab'], enabled: targets.hasEditors, recordRecent: false, run: () => targets.cycleEditor(1) },
         { id: 'editor.previous', category: 'View', title: 'Open Previous Editor', keybinding: 'Ctrl+PageUp', secondaryKeybindings: ['Ctrl+Shift+Tab'], enabled: targets.hasEditors, recordRecent: false, run: () => targets.cycleEditor(-1) },
-        { id: 'editor.splitRight', category: 'View', title: 'Split Editor Right', keybinding: 'CmdOrCtrl+\\', enabled: targets.hasActiveEditor, run: targets.splitEditor },
+        { id: 'editor.splitRight', category: 'View', title: 'Split Editor Right', keybinding: 'CmdOrCtrl+\\', enabled: targets.hasActiveTab, run: targets.splitEditor },
         { id: 'workbench.focusFirstEditorGroup', category: 'View', title: 'Focus First Editor Group', keybinding: 'CmdOrCtrl+1', recordRecent: false, run: () => { targets.focusEditorGroup(0); } },
         { id: 'workbench.focusSecondEditorGroup', category: 'View', title: 'Focus Second Editor Group', keybinding: 'CmdOrCtrl+2', recordRecent: false, run: () => { if (!targets.focusEditorGroup(1)) { targets.splitEditor(); } } },
         { id: 'workbench.trust.manage', category: 'Workspaces', title: 'Manage Workspace Trust', enabled: targets.hasFolder, run: targets.manageWorkspaceTrust },
         { id: 'markdown.showPreviewToSide', category: 'Markdown', title: 'Open Preview to the Side', keybinding: 'CmdOrCtrl+K V', enabled: targets.canPreviewMarkdown, run: targets.openMarkdownPreview },
-        { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveEditor, run: targets.keepEditor },
-        { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('absolute') },
-        { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('relative') },
-        { id: 'file.revealInExplorer', category: 'File', title: 'Reveal Active File in Explorer', enabled: targets.hasActiveEditor, run: targets.revealActiveFile },
+        { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveTab, run: targets.keepEditor },
+        { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveTab, run: () => targets.copyActivePath('absolute') },
+        { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveTab, run: () => targets.copyActivePath('relative') },
+        { id: 'file.revealInExplorer', category: 'File', title: 'Reveal Active File in Explorer', enabled: targets.hasActiveTab, run: targets.revealActiveFile },
         { id: 'workbench.action.tasks.runTask', category: 'Tasks', title: 'Run Task', enabled: targets.hasFolder, run: targets.runTask },
         { id: 'workbench.action.tasks.configureTaskRunner', category: 'Tasks', title: 'Configure Tasks', enabled: targets.hasFolder, run: targets.configureTasks },
         { id: 'workbench.action.runCurrentFile', category: 'Run', title: 'Run Current File', keybinding: 'CmdOrCtrl+F5', enabled: targets.hasActiveEditor, run: targets.runCurrentFile },

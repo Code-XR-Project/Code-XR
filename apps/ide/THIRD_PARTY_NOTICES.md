@@ -94,3 +94,26 @@ Usage in this package:
 
 - Bundled by Vite into the Code-XR MCP server (`out/codexrMcp/index.cjs`, AF10, `src/codexrMcp/`) that external agents run to query the project's analysis. Only that bundle carries it; the main process has its own small MCP client (`src/main/agents/mcp/`).
 - The bundle also carries the SDK's own dependencies: `zod` (4.6.7, MIT, https://github.com/colinhacks/zod), `zod-to-json-schema` (3.25.2, ISC, https://github.com/StefanTerdell/zod-to-json-schema), `ajv` (8.20.0, MIT, https://github.com/ajv-validator/ajv), `ajv-formats` (3.0.1, MIT), `fast-deep-equal` (3.1.3, MIT), `json-schema-traverse` (1.0.0, MIT) and `fast-uri` (3.0.6, BSD-3-Clause, https://github.com/fastify/fast-uri).
+
+## PDF.js (PDF viewer)
+
+- Project: `pdfjs-dist` on npm, 6.5.438, by Mozilla and the PDF.js contributors
+- Source: https://github.com/mozilla/pdf.js
+- License: Apache-2.0
+
+Usage in this package:
+
+- Bundled into the renderer by Vite: draws PDFs in the PDF viewer tab (#256, `src/renderer/viewers/pdfViewer.ts`). The library is a chunk loaded on the first PDF only.
+- Its worker (`pdfjs-dist/build/pdf.worker.mjs`) is bundled the same way and served from the app's origin, so the CSP's `worker-src 'self'` covers it.
+- The text-layer rules in `src/renderer/viewers/viewers.css` are a trimmed copy of the `.textLayer` block of its `web/pdf_viewer.css`.
+- The optional `@napi-rs/canvas` dependency is only used by PDF.js under Node and is not bundled.
+
+## Agent Client Protocol TypeScript SDK (agent chats)
+
+- Project: `@agentclientprotocol/sdk` on npm, 2.12.0, by Zed Industries and the Agent Client Protocol contributors
+- Source: https://github.com/agentclientprotocol/typescript-sdk
+- License: Apache-2.0
+
+Usage in this package:
+
+- Bundled by Vite into the main process: speaks the Agent Client Protocol with the coding agents a chat runs (Claude Code, Codex, Gemini CLI; AF1, `src/main/agentSessions/acpConnection.ts`). The agents themselves are separate programs installed by the person and are not part of this package.
