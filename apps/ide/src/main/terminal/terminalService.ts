@@ -111,20 +111,30 @@ export class TerminalService {
         return this.start(owner, null, cols, rows, cwd, args, hooks);
     }
 
-    private async start(owner: TerminalOwner, profileId: unknown, cols: unknown, rows: unknown, cwd: string, args: (profile: TerminalProfile) => readonly string[], hooks: CommandHooks): Promise<TerminalCreated> {
+    /**
+     * #297: a terminal that runs one program directly, with no shell between
+     * (an agent's own login): `env` is its whole environment and `name` the
+     * terminal's title. It ends with the program, like a task.
+     */
+    createProgram(owner: TerminalOwner, program: { readonly file: string; readonly args: readonly string[]; readonly env: Readonly<Record<string, string>>; readonly name: string }, cols: unknown, rows: unknown, cwd: string, hooks: CommandHooks): Promise<TerminalCreated> {
+        const profile: TerminalProfile = { id: 'program', name: program.name, path: program.file, args: [...program.args], source: 'custom' };
+        return this.start(owner, null, cols, rows, cwd, () => program.args, hooks, { profile, env: program.env });
+    }
+
+    private async start(owner: TerminalOwner, profileId: unknown, cols: unknown, rows: unknown, cwd: string, args: (profile: TerminalProfile) => readonly string[], hooks: CommandHooks, program?: { readonly profile: TerminalProfile; readonly env: Readonly<Record<string, string>> }): Promise<TerminalCreated> {
         if (!isDimension(cols) || !isDimension(rows)) {
             throw new Error('Invalid terminal size.');
         }
         if (this.countOf(owner.id) >= MAX_TERMINALS_PER_WINDOW) {
             throw new Error(`At most ${MAX_TERMINALS_PER_WINDOW} terminals per window.`);
         }
-        const profile = await this.options.resolveProfile(profileId);
+        const profile = program ? program.profile : await this.options.resolveProfile(profileId);
         const pty = await this.options.spawn(profile.path, args(profile), {
             name: 'xterm-256color',
             cols,
             rows,
             cwd,
-            env: terminalEnvironment(this.options.env),
+            env: program ? { ...program.env } : terminalEnvironment(this.options.env),
         });
         const id = this.nextId++;
         let markGone: () => void = () => undefined;

@@ -11,6 +11,7 @@ import {
     type CreateTerminalRequest,
     type CreateTerminalResponse,
     type InitializeResponse,
+    type ListSessionsResponse,
     type KillTerminalRequest,
     type LoadSessionResponse,
     type McpServer,
@@ -225,12 +226,35 @@ export class AcpConnection {
         }));
     }
 
+    /**
+     * #297: `auth/status` (an ACP draft that Claude Code and Codex answer when
+     * they advertise `agentCapabilities.auth.status`): whether the agent is
+     * signed in, and as whom. Unknown when the answer has another shape.
+     */
+    async authStatus(): Promise<{ readonly state: 'authenticated' | 'unauthenticated' | 'unknown'; readonly account?: string }> {
+        const response = await this.explain(this.connection.agent.request<unknown>('auth/status', {}));
+        const record = response && typeof response === 'object' ? (response as Record<string, unknown>) : {};
+        const state = record['state'];
+        if (state !== 'authenticated' && state !== 'unauthenticated') {
+            return { state: 'unknown' };
+        }
+        const accounts = Array.isArray(record['accounts']) ? (record['accounts'] as unknown[]) : [];
+        const first = accounts.find((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+        const label = first ? [first['email'], first['label']].find((value): value is string => typeof value === 'string' && value.trim() !== '') : undefined;
+        return label ? { state, account: label.slice(0, 200) } : { state };
+    }
+
     authenticate(methodId: string): Promise<unknown> {
         return this.explain(this.connection.agent.request(methods.agent.authenticate, { methodId }));
     }
 
     newSession(cwd: string, mcpServers: readonly McpServer[]): Promise<NewSessionResponse> {
         return this.explain(this.connection.agent.request(methods.agent.session.new, { cwd, mcpServers: [...mcpServers] }));
+    }
+
+    /** #298: one page of the agent's own history for `cwd` (ACP `session/list`). */
+    listSessions(cwd: string, cursor?: string): Promise<ListSessionsResponse> {
+        return this.explain(this.connection.agent.request(methods.agent.session.list, { cwd, ...(cursor ? { cursor } : {}) }));
     }
 
     loadSession(sessionId: string, cwd: string, mcpServers: readonly McpServer[]): Promise<LoadSessionResponse> {

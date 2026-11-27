@@ -236,6 +236,25 @@ function cmdQuote(part: string): string {
     return /[\s&|<>^()]/.test(part) || part === '' ? `"${part}"` : part;
 }
 
+/**
+ * #297: the program a terminal login method runs, started directly in a
+ * terminal with no shell between. The `terminal-auth` hint names its own
+ * command; otherwise the agent's own launch runs with the method's arguments.
+ * A `cmd.exe /d /s /c "..."` launch (a custom agent's .cmd shim on Windows)
+ * cannot be passed to a terminal unchanged, so its login is refused with how
+ * to run it by hand.
+ */
+export function loginProgram(launch: AgentLaunch, spec: Pick<AuthMethodSpec, 'args' | 'command'>): { command: string; args: string[] } {
+    const extra = spec.args ?? [];
+    if (spec.command) {
+        return { command: spec.command, args: [...extra] };
+    }
+    if (launch.verbatimArguments) {
+        throw new Error(`Run this agent's login yourself in a terminal: its command with ${extra.join(' ') || 'its login arguments'}.`);
+    }
+    return { command: launch.command, args: [...launch.args, ...extra] };
+}
+
 export class AgentCatalog {
     private readonly options: CatalogOptions;
     private readonly probe: FileProbe;
