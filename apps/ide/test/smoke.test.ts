@@ -44,6 +44,8 @@ const terminal: TerminalProbe = {
     screen: ['$ echo codexr-smoke', 'codexr-smoke', '$'],
     status: 'Code-XR IDE 0.1.0',
     cspViolations: [],
+    find: { opened: true, count: '1 of 2', closed: true },
+    link: { hinted: true, opened: true, editorKept: true },
 };
 
 describe('evaluateSmoke', () => {
@@ -103,6 +105,11 @@ describe('evaluateSmoke', () => {
         ['no terminal opened', { opened: false, status: 'Could not start a terminal: boom' }, /did not open a terminal.*boom/],
         ['echo printed nothing', { echoed: false }, /did not print the output of echo/],
         ['the terminal violated the CSP', { cspViolations: ['script-src inline'] }, /CSP violations in the terminal/],
+        // #286
+        ['Ctrl+F did not open the terminal find widget', { find: { opened: false, count: '', closed: false } }, /did not find in the terminal/],
+        ['the find widget counted nothing', { find: { opened: true, count: 'No results', closed: true } }, /did not find in the terminal/],
+        ['a file link did not open', { link: { hinted: true, opened: false, editorKept: false } }, /file link in the terminal did not open/],
+        ['the terminal took Ctrl+F from the editor', { link: { hinted: true, opened: true, editorKept: false } }, /in the editor did not open the editor's find/],
     ];
     for (const [name, change, message] of terminalBreakages) {
         it(`fails when ${name}`, () => {

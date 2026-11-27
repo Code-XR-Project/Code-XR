@@ -96,3 +96,26 @@ Usage in this package:
 - Its worker (`pdfjs-dist/build/pdf.worker.mjs`) is bundled the same way and served from the app's origin, so the CSP's `worker-src 'self'` covers it.
 - The text-layer rules in `src/renderer/viewers/viewers.css` are a trimmed copy of the `.textLayer` block of its `web/pdf_viewer.css`.
 - The optional `@napi-rs/canvas` dependency is only used by PDF.js under Node and is not bundled.
+
+## xterm.js search and web-links addons (terminal find and links)
+
+- Project: `@xterm/addon-search` 0.16.0 and `@xterm/addon-web-links` 0.12.0 on npm, by the xterm.js authors (released with `@xterm/xterm` 6.0.0)
+- Source: https://github.com/xtermjs/xterm.js
+- License: MIT
+
+Usage in this package:
+
+- Bundled into the renderer by Vite, in the terminal's chunk (`src/renderer/terminal/xtermView.ts`), which loads with the first terminal (#286).
+- The search addon finds text in a terminal's scrollback and counts the matches for the find widget; the web-links addon detects http(s) URLs, which open through `workspace.openExternalLink` (the main process checks the scheme).
+
+Licence text:
+
+```
+Copyright (c) 2017, The xterm.js authors (https://github.com/xtermjs/xterm.js)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
