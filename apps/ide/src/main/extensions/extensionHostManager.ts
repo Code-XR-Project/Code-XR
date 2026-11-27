@@ -18,7 +18,9 @@ import { isOpenableExternalLink } from '../security.ts';
 import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { addFolderChangeListener, workspaceOrNull } from '../workspace/workspaceWindows.ts';
 import { matchGlob } from '../../extensionHost/glob.ts';
+import { parseViewRequest } from '../../shared/extensionViewsProtocol.ts';
 import { DocumentMirror, FolderPaths } from './documentMirror.ts';
+import { inlineTreeIcons } from './viewIcons.ts';
 import { ExtensionSettingsStore } from './extensionSettings.ts';
 import type { ActivationSource, ExtensionsService } from './extensionsService.ts';
 import type { LoadedExtension } from './extensionStore.ts';
@@ -72,6 +74,8 @@ export class ExtensionHostManager implements ActivationSource {
     private readonly machineId: string;
     private readonly sessionId = crypto.randomUUID();
     private nextUiId = 1;
+    /** #261: tree icons read from disk, by absolute path. */
+    private readonly iconCache = new Map<string, string | null>();
 
     constructor(options: { service: ExtensionsService; hostScript: string; isDevelopment: boolean }) {
         this.service = options.service;
@@ -581,6 +585,23 @@ export class ExtensionHostManager implements ActivationSource {
             const result = await connection.rpc.request(HOST_METHODS.provide, inward);
             return paths.outward(result);
         });
+        handle(EXTENSION_IPC_CHANNELS.extensionsView, async (event, raw) => {
+            const request = parseViewRequest(raw);
+            const connection = this.hosts.get(event.sender.id);
+            if (!request || !connection) {
+                return null;
+            }
+            await connection.ready;
+            const result = await connection.rpc.request(HOST_METHODS.view, request);
+            if (request.kind !== 'treeChildren') {
+                return null;
+            }
+            // Icons first (their files lie outside the folder, where `outward` would drop them), then the resources.
+            const paths = this.folderPaths(event.sender);
+            const roots = [...this.service.enabled().map((extension) => extension.location), ...(paths ? [paths.root] : [])];
+            const inlined = inlineTreeIcons(result, roots, this.iconCache);
+            return paths ? paths.outward(inlined) : stripResources(inlined);
+        });
         handle(EXTENSION_IPC_CHANNELS.extensionsHostReply, (event, id, result) => {
             const connection = this.hosts.get(event.sender.id);
             const resolve = typeof id === 'number' ? connection?.pendingUi.get(id) : undefined;
@@ -595,6 +616,14 @@ export class ExtensionHostManager implements ActivationSource {
     async stopAll(): Promise<void> {
         await Promise.all([...this.hosts.keys()].map((id) => this.stop(id)));
     }
+}
+
+/** Without a folder no resource has a workspace path: keep only their names. */
+function stripResources(result: unknown): unknown {
+    if (typeof result !== 'object' || result === null || !Array.isArray((result as { items?: unknown }).items)) {
+        return result;
+    }
+    return { ...(result as object), items: (result as { items: Record<string, unknown>[] }).items.map((item) => ({ ...item, resource: null })) };
 }
 
 function readOrCreateMachineId(file: string): string {

@@ -21,7 +21,7 @@ export interface ContributionsController {
     previewTheme(themeId: string | null): Promise<void>;
 }
 
-const EMPTY: ExtensionContributions = { themes: [], languages: [], grammars: [], snippets: [], commands: [] };
+const EMPTY: ExtensionContributions = { themes: [], languages: [], grammars: [], snippets: [], commands: [], viewContainers: [], views: [], viewsWelcome: [], menus: [] };
 
 export function createContributionsController(api: ExtensionsApi, onError: (message: string) => void): ContributionsController {
     let contributions = EMPTY;
@@ -61,6 +61,8 @@ export function createContributionsController(api: ExtensionsApi, onError: (mess
             }
         }
         root.dataset.extensionTheme = theme ? theme.id : '';
+        // #261: which of an extension's light/dark icons to draw.
+        root.dataset.extensionThemeKind = theme ? (theme.uiTheme === 'vs' || theme.uiTheme === 'hc-light' ? 'light' : 'dark') : '';
         if (theme || monacoPart) {
             (await loadMonaco()).applyEditorTheme(theme);
         }

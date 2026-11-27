@@ -869,6 +869,9 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
         onDidChangeActiveTerminal: windowEvents.onDidChangeActiveTerminal.event,
         onDidChangeTerminalState: windowEvents.onDidChangeTerminalState.event,
         tabGroups: host.documentsAndEditors.tabGroups,
+        // #261: tree views.
+        createTreeView: (viewId: string, options: { treeDataProvider?: unknown; showCollapseAll?: boolean; canSelectMany?: boolean; manageCheckboxStateManually?: boolean }) => host.treeViews.create(extensionId, viewId, options),
+        registerTreeDataProvider: (viewId: string, provider: unknown) => host.treeViews.register(extensionId, viewId, provider),
     }, report);
 
     /* ------------------------------ env ------------------------------ */

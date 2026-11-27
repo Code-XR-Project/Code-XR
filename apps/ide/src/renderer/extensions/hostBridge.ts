@@ -5,6 +5,9 @@ import { pickListView, type PickItem } from '../commands/paletteModel.ts';
 import type { QuickInputProvider } from '../commands/quickInput.ts';
 import { el } from '../dom.ts';
 import type { NotificationCenter } from '../notifications.ts';
+import type { ViewNotification } from '../../shared/extensionViewsProtocol.ts';
+import { whenHolds } from '../../shared/whenClause.ts';
+import type { ContextKeys } from './contextKeys.ts';
 import { builtinCommandFor, statusText } from './hostBridgeModel.ts';
 
 /**
@@ -31,12 +34,18 @@ export interface HostBridgeDeps {
     languageNotification(notification: Extract<UiNotification, { kind: 'diagnostics' | 'providerRegistered' | 'providerUnregistered' | 'providersReset' }>): void;
     /** #260: the host's edits and saves of the editor's documents. */
     languageRequest(request: Extract<UiRequest, { kind: 'applyEdit' | 'saveFile' | 'insertSnippet' }>): Promise<unknown>;
+    /** #261: the `setContext` keys go here (for `when` clauses). */
+    readonly contextKeys: ContextKeys;
+    /** #261: the extensions' tree views. */
+    viewNotification(notification: ViewNotification): void;
+    /** #261: a workbench command the views answer (`<view>.focus`, `workbench.view.extension.<id>`); false when it is not one. */
+    viewCommand(id: string): boolean;
 }
 
 export interface HostBridge {
     /** The palette's commands of the extensions that may run in this window. */
     setCommands(commands: readonly ContributedCommand[], installed: readonly InstalledExtension[]): void;
-    /** The `setContext` keys extensions set (for `when` clauses). */
+    /** The context keys (`setContext` and the workbench's), for `when` clauses. */
     contextKey(key: string): unknown;
     dispose(): void;
 }
@@ -55,7 +64,7 @@ function once(resolve: (value: unknown) => void): (value: unknown) => void {
 export function createHostBridge(deps: HostBridgeDeps): HostBridge {
     const { extensions } = deps;
     const items = new Map<string, { data: StatusBarItemData; element: HTMLButtonElement }>();
-    const context = new Map<string, unknown>();
+    const context = deps.contextKeys;
     let commandDisposers: (() => void)[] = [];
     let statusTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -159,6 +168,9 @@ export function createHostBridge(deps: HostBridgeDeps): HostBridge {
                 }
                 return null;
             case 'unknown':
+                if (deps.viewCommand(id)) {
+                    return null;
+                }
                 throw new Error(`command '${id}' not found`);
         }
     }
@@ -220,6 +232,13 @@ export function createHostBridge(deps: HostBridgeDeps): HostBridge {
             case 'providerUnregistered':
             case 'providersReset':
                 deps.languageNotification(notification);
+                if (notification.kind === 'providersReset') {
+                    // A host started or stopped: what the previous one set is gone.
+                    context.clear();
+                }
+                return;
+            case 'view':
+                deps.viewNotification(notification.notification);
                 return;
             case 'hostStopped':
                 deps.notifications.notify('error', notification.reason, {
@@ -255,11 +274,14 @@ export function createHostBridge(deps: HostBridgeDeps): HostBridge {
                 if (command.hiddenFromPalette || !runnable.has(command.extensionId) || deps.registry.get(command.command)) {
                     continue;
                 }
+                const paletteWhen = command.paletteWhen;
                 commandDisposers.push(deps.registry.register({
                     id: command.command,
                     title: command.title,
                     ...(command.category ? { category: command.category } : {}),
                     source: 'extension',
+                    // #261: `menus.commandPalette`'s `when`.
+                    ...(paletteWhen ? { enabled: () => whenHolds(paletteWhen, context.lookup()) } : {}),
                     run: () => runExtensionCommand(command.command),
                 }));
             }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { EXTENSION_THEME_PREFIX, type ContributedGrammar, type ContributedLanguage, type ContributedSnippet, type ContributedCommand, type ContributedTheme, type ExtensionContributions, type GrammarContent, type ResolvedTheme, type ThemeTokenRule } from '../../shared/extensions.ts';
+import { codiconName, type IconData } from '../../shared/extensionViewsProtocol.ts';
+import { EXTENSION_THEME_PREFIX, type ContributedGrammar, type ContributedLanguage, type ContributedMenuItem, type ContributedSnippet, type ContributedCommand, type ContributedTheme, type ContributedView, type ContributedViewContainer, type ContributedViewWelcome, type ExtensionContributions, type GrammarContent, type ResolvedTheme, type ThemeTokenRule } from '../../shared/extensions.ts';
 import { readJsonc, resolveInExtension, type LoadedExtension } from './extensionStore.ts';
 import { parsePlist, type PlistValue } from './plist.ts';
 
@@ -55,6 +56,62 @@ function contributionFile(extension: LoadedExtension, relative: unknown): string
     }
 }
 
+const IMAGE_TYPES: Readonly<Record<string, string>> = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
+/** Icons are small; anything bigger is not drawn (a 256 KB data URL is already generous for a 16px icon). */
+export const MAX_ICON_FILE = 256 * 1024;
+
+/** An image file as a `data:` URL, or null (not an image, too big, unreadable). Callers check where it is first. */
+export function imageDataUrl(file: string): string | null {
+    const type = IMAGE_TYPES[path.extname(file).toLowerCase()];
+    if (!type) {
+        return null;
+    }
+    try {
+        const stat = fs.statSync(file);
+        if (!stat.isFile() || stat.size > MAX_ICON_FILE) {
+            return null;
+        }
+        return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`;
+    } catch {
+        return null;
+    }
+}
+
+/** #261: an icon of the manifest: `$(codicon)`, a path inside the extension, or `{ light, dark }` paths. */
+export function manifestIcon(extension: LoadedExtension, value: unknown): IconData | null {
+    if (typeof value === 'string') {
+        const name = codiconName(value);
+        if (name) {
+            return { kind: 'codicon', name };
+        }
+        const file = contributionFile(extension, value);
+        const url = file ? imageDataUrl(file) : null;
+        return url ? { kind: 'image', light: url, dark: url } : null;
+    }
+    const pair = record(value);
+    const lightFile = contributionFile(extension, pair['light']);
+    const darkFile = contributionFile(extension, pair['dark']);
+    const light = lightFile ? imageDataUrl(lightFile) : null;
+    const dark = darkFile ? imageDataUrl(darkFile) : null;
+    return light || dark ? { kind: 'image', light: (light ?? dark) as string, dark: (dark ?? light) as string } : null;
+}
+
+/** `"navigation@2"` -> group `navigation`, order 2. */
+export function menuGroup(value: unknown): { group: string; order: number } {
+    const text = typeof value === 'string' ? value : '';
+    const at = text.lastIndexOf('@');
+    if (at < 0) {
+        return { group: text, order: 0 };
+    }
+    const order = Number(text.slice(at + 1));
+    return { group: text.slice(0, at), order: Number.isFinite(order) ? order : 0 };
+}
+
+/** The menus #261 draws; the others (`scm/title`, `debug/toolbar`, ...) are not read. */
+export const SUPPORTED_MENUS: ReadonlySet<string> = new Set(['view/title', 'view/item/context', 'editor/title', 'editor/title/context', 'editor/context', 'explorer/context']);
+
+const BUILTIN_CONTAINERS: ReadonlySet<string> = new Set(['explorer', 'scm', 'debug']);
+
 export class ContributionIndex {
     private readonly extensions: readonly LoadedExtension[];
     private readonly grammarFiles = new Map<string, string>();
@@ -74,6 +131,11 @@ export class ContributionIndex {
         const grammars: ContributedGrammar[] = [];
         const snippets: ContributedSnippet[] = [];
         const commands: ContributedCommand[] = [];
+        const viewContainers: ContributedViewContainer[] = [];
+        const views: ContributedView[] = [];
+        const viewsWelcome: ContributedViewWelcome[] = [];
+        const menus: ContributedMenuItem[] = [];
+        const containerIds = new Set<string>();
         for (const extension of this.extensions) {
             const c = extension.manifest.contributes;
             const extensionId = extension.manifest.id;
@@ -147,7 +209,9 @@ export class ContributionIndex {
             }
             // #259: the palette's commands, for the extensions whose code can run them.
             if (extension.manifest.main) {
-                const hidden = new Set(list(record(c.menus)['commandPalette']).filter((entry) => entry.when === 'false' || entry.when === false).map((entry) => str(entry.command)));
+                const palette = list(record(c.menus)['commandPalette']);
+                const hidden = new Set(palette.filter((entry) => entry.when === 'false' || entry.when === false).map((entry) => str(entry.command)));
+                const paletteWhen = new Map(palette.filter((entry) => typeof entry.when === 'string' && entry.when !== 'false').map((entry) => [str(entry.command), entry.when as string]));
                 for (const command of list(c.commands)) {
                     const id = str(command.command);
                     const title = typeof command.title === 'string' ? command.title : str(record(command.title)['value']);
@@ -155,11 +219,77 @@ export class ContributionIndex {
                         continue;
                     }
                     const category = typeof command.category === 'string' ? command.category : str(record(command.category)['value']);
-                    commands.push({ extensionId, command: id, title, category: category ?? null, hiddenFromPalette: hidden.has(id) });
+                    commands.push({
+                        extensionId, command: id, title, category: category ?? null, hiddenFromPalette: hidden.has(id),
+                        paletteWhen: paletteWhen.get(id) ?? null,
+                        enablement: str(command.enablement),
+                        icon: command.icon === undefined ? null : manifestIcon(extension, command.icon),
+                    });
+                }
+                // #261: the menus #261 draws. They run code, so only for extensions that have some.
+                for (const [menu, entries] of Object.entries(record(c.menus))) {
+                    if (!SUPPORTED_MENUS.has(menu)) {
+                        continue;
+                    }
+                    for (const entry of list(entries)) {
+                        const command = str(entry.command);
+                        if (!command) {
+                            continue; // A submenu reference: not drawn.
+                        }
+                        menus.push({ extensionId, menu, command, when: str(entry.when), ...menuGroup(entry.group) });
+                    }
+                }
+            }
+            // #261: view containers and views.
+            const containers = record(c.viewsContainers);
+            for (const location of ['activitybar', 'panel']) {
+                for (const container of list(containers[location])) {
+                    const id = str(container.id);
+                    const title = str(container.title);
+                    if (!id || !title || !/^[\w.-]+$/.test(id) || containerIds.has(id) || BUILTIN_CONTAINERS.has(id)) {
+                        if (id) {
+                            this.onWarning(`${extensionId}: view container "${id}" was skipped (bad or repeated id, or no title).`);
+                        }
+                        continue;
+                    }
+                    containerIds.add(id);
+                    viewContainers.push({ id, extensionId, title, icon: manifestIcon(extension, container.icon) });
+                }
+            }
+            for (const [container, entries] of Object.entries(record(c.views))) {
+                for (const view of list(entries)) {
+                    const id = str(view.id);
+                    const name = str(view.name) ?? id;
+                    if (!id || !name) {
+                        continue;
+                    }
+                    views.push({
+                        id, extensionId, container, name,
+                        when: str(view.when),
+                        type: view.type === 'webview' ? 'webview' : 'tree',
+                        collapsed: view.visibility === 'collapsed',
+                    });
+                }
+            }
+            for (const welcome of list(c.viewsWelcome)) {
+                const view = str(welcome.view);
+                const contents = str(welcome.contents);
+                if (view && contents) {
+                    viewsWelcome.push({ extensionId, view, contents, when: str(welcome.when) });
                 }
             }
         }
-        return { themes, languages, grammars, snippets, commands };
+        // A view in a container nobody contributed (another extension's that is disabled, `test`, a panel
+        // id this IDE has not got) would be invisible: VS Code drops those too, but say so.
+        const known = new Set([...BUILTIN_CONTAINERS, ...containerIds]);
+        const placed = views.filter((view) => {
+            if (known.has(view.container)) {
+                return true;
+            }
+            this.onWarning(`${view.extensionId}: view "${view.id}" is in the container "${view.container}", which this IDE does not show.`);
+            return false;
+        });
+        return { themes, languages, grammars, snippets, commands, viewContainers, views: placed, viewsWelcome, menus };
     }
 
     grammarContent(ref: string): GrammarContent | null {
