@@ -12,6 +12,9 @@ import { describePythonEnv, setUpDisclosure, type PythonFacts } from './pythonSt
 
 const log = channelLog('python');
 
+/** #180: the Python debug adapter, pinned like the analysis packages. */
+export const DEBUGPY_REQUIREMENT = 'debugpy==1.8.22';
+
 const PACKAGES: readonly PythonPackageInfo[] = CODEXR_PYTHON_PACKAGES.map((pkg) => ({ name: pkg.distribution, version: pkg.version, purpose: pkg.purpose }));
 
 /**
@@ -160,6 +163,44 @@ export class PythonEnvironmentService {
                 }
             });
         });
+    }
+
+    /**
+     * #180: the command that starts the Python debug adapter (debugpy) from
+     * the IDE's environment: `missing-env` when the environment is not set
+     * up, `missing-debugpy` when debugpy is not in it yet (installed only
+     * after the person agrees, see `installDebugpy`).
+     */
+    async debugAdapterCommand(): Promise<{ executable: string; args: string[] } | 'missing-env' | 'missing-debugpy'> {
+        if (this.busy || !this.venv.getEnvironmentStatus().isValid) {
+            return 'missing-env';
+        }
+        const probe = PythonEnvUtils.getVenvPythonCommand(this.venvFolder, ['-c', 'import debugpy']);
+        const present = await new Promise<boolean>((resolve) => {
+            execFile(probe.executable, probe.args, { timeout: 30_000, windowsHide: true }, (error) => resolve(!error));
+        });
+        if (!present) {
+            return 'missing-debugpy';
+        }
+        const command = PythonEnvUtils.getVenvPythonCommand(this.venvFolder, ['-m', 'debugpy.adapter']);
+        return { executable: command.executable, args: [...command.args] };
+    }
+
+    /** #180: installs the pinned debugpy into the IDE's environment (the window asked first); true when it is there after. */
+    async installDebugpy(): Promise<boolean> {
+        if (this.busy || !this.venv.getEnvironmentStatus().isValid) {
+            return false;
+        }
+        log.info(`Installing ${DEBUGPY_REQUIREMENT} into the IDE's Python environment (${this.venvFolder}) for the debugger.`);
+        this.busy = { message: `Installing ${DEBUGPY_REQUIREMENT}…`, percent: 0 };
+        this.publish(describePythonEnv({ ...this.lastFacts(), busy: this.busy }));
+        try {
+            await this.venv.installPackage(DEBUGPY_REQUIREMENT);
+        } finally {
+            this.busy = null;
+            await this.status();
+        }
+        return typeof (await this.debugAdapterCommand()) === 'object';
     }
 
     async remove(): Promise<PythonEnvStatus> {

@@ -12,7 +12,7 @@ const MAXIMIZE = 'M6 15l6-6 6 6M5 4h14';
 const RESTORE = 'M6 9l6 6 6-6M5 20h14';
 const CLOSE = 'M6 6l12 12M18 6L6 18';
 
-export type PanelViewId = 'terminal' | 'output' | 'problems';
+export type PanelViewId = 'terminal' | 'output' | 'problems' | 'debug';
 
 export interface PanelView {
     readonly id: PanelViewId;
