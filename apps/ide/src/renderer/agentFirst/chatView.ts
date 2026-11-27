@@ -7,6 +7,8 @@ import { metricDeltaFileLines, metricDeltaHeadline, restorePrompt } from './chan
 import { renderMarkdown } from '../agents/chatMarkdown.ts';
 import { createAttachmentBar, type AttachmentSources } from '../agents/chatAttachments.ts';
 import { el, icon } from '../dom.ts';
+import { createWorktreeBar } from './worktreeBar.ts';
+import { branchLabel, branchTitle } from './worktreeModel.ts';
 import {
     changeCounts, composerAction, diffLinesForCard, displayPath, formatTokens, lastUserIndex, slashSuggestions, TOOL_ICONS, toolStatusLabel, turnChanges,
 } from './chatModel.ts';
@@ -64,6 +66,7 @@ const ICONS = {
     restore: 'M4 12a8 8 0 1 0 3-6.2M4 4v5h5',
     copy: 'M8 8h11v12H8zM5 16V4h11',
     chevron: 'M9 6l6 6-6 6',
+    branch: 'M6 3v12M6 15a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM18 9a3 3 0 1 0 0-6a3 3 0 1 0 0 6zM18 9c0 4-4 5-12 6',
 } as const;
 
 export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView {
@@ -84,9 +87,18 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         }
     });
     const usageMeter = el('span', { className: 'af-usage muted', attrs: { hidden: '', 'data-testid': 'af-chat-usage' } });
+    // AF12: the branch of a chat that runs in its own worktree, and its Worktree bar.
+    const branchBadge = el('span', { className: 'af-badge af-branch', attrs: { hidden: '', 'data-testid': 'af-chat-branch' } });
+    const worktreeBar = createWorktreeBar(sessionId, { api: deps.api, onStatus: deps.onStatus });
+    const worktreeButton = el('button', { className: 'af-header-button is-quiet', attrs: { type: 'button', hidden: '', 'aria-expanded': 'false', 'data-testid': 'af-chat-worktree' } }, [icon(ICONS.branch), el('span', { text: 'Worktree' })]);
+    worktreeButton.addEventListener('click', () => {
+        worktreeBar.toggle();
+        worktreeButton.setAttribute('aria-expanded', String(worktreeBar.isOpen));
+    });
     const header = el('header', { className: 'af-chat-header' }, [
-        el('div', { className: 'af-chat-heading' }, [title, el('div', { className: 'af-chat-sub' }, [agentLabel, statusPill])]),
+        el('div', { className: 'af-chat-heading' }, [title, el('div', { className: 'af-chat-sub' }, [agentLabel, branchBadge, statusPill])]),
         usageMeter,
+        worktreeButton,
         changesButton,
     ]);
 
@@ -124,7 +136,7 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         el('div', { className: 'af-composer-row' }, [bar.attachButton, modeSelect, optionsSlot, el('span', { className: 'af-spacer' }), sendButton]),
     ]);
 
-    const element = el('section', { className: 'af-chat', attrs: { 'data-testid': 'af-chat', 'data-session': sessionId } }, [header, transcript, plan, composer]);
+    const element = el('section', { className: 'af-chat', attrs: { 'data-testid': 'af-chat', 'data-session': sessionId } }, [header, worktreeBar.element, transcript, plan, composer]);
 
     // ---- Rendering ---------------------------------------------------------
     function schedule(): void {
@@ -151,6 +163,14 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         if (state.usage) {
             usageMeter.textContent = `Context ${formatTokens(state.usage.used, state.usage.size)}`;
             usageMeter.title = `${state.usage.used.toLocaleString()} of ${state.usage.size.toLocaleString()} tokens of context used`;
+        }
+        const worktree = state.worktree;
+        branchBadge.hidden = !worktree;
+        worktreeButton.hidden = !worktree;
+        if (worktree) {
+            branchBadge.textContent = worktree.removed ? `${branchLabel(worktree)} (discarded)` : branchLabel(worktree);
+            branchBadge.title = branchTitle(worktree);
+            worktreeBar.update(state);
         }
         renderItems(state);
         markStreaming(state);
@@ -258,12 +278,12 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
             icon(ICONS.chevron, 'af-tool-chevron'),
             icon(TOOL_ICONS[item.toolKind], 'af-tool-icon'),
             el('span', { className: 'af-tool-title', text: item.title }),
-            ...(location ? [fileLink(location.path, location.line, current.workspaceRoot)] : []),
+            ...(location ? [fileLink(location.path, location.line, workRootOf(current))] : []),
             el('span', { className: 'af-tool-status', text: toolStatusLabel(item.status), attrs: { 'data-status': item.status } }),
         ]);
         const body = el('div', { className: 'af-tool-body' });
         for (const block of item.content) {
-            body.append(renderToolContent(block, current.workspaceRoot));
+            body.append(renderToolContent(block, workRootOf(current)));
         }
         if (item.rawInput && item.content.length === 0) {
             body.append(el('pre', { className: 'af-tool-raw', text: item.rawInput }));
@@ -348,7 +368,7 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
                 el('span', { className: 'muted', text: `${changed.length} file${changed.length === 1 ? '' : 's'} changed:` }),
                 ...changed.map((change) => {
                     const counts = changeCounts(change.oldText, change.newText);
-                    return el('span', { className: 'af-turn-file' }, [fileLink(change.path, undefined, current.workspaceRoot), el('span', { className: 'is-add', text: ` +${counts.added}` }), el('span', { className: 'is-remove', text: ` -${counts.removed}` })]);
+                    return el('span', { className: 'af-turn-file' }, [fileLink(change.path, undefined, workRootOf(current)), el('span', { className: 'is-add', text: ` +${counts.added}` }), el('span', { className: 'is-remove', text: ` -${counts.removed}` })]);
                 }),
             ]));
         }
@@ -422,6 +442,11 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         link.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
+            if (state?.worktree) {
+                // AF12: the file is in the chat's worktree; the editor shows the project's own copy.
+                deps.onStatus(`${label} is in this chat's worktree (${state.worktree.path}). The editor shows the main project; merge the branch to bring it in.`);
+                return;
+            }
             deps.openFile(path, line);
         });
         return link;
@@ -678,6 +703,11 @@ const STOP_TEXT: Readonly<Record<Extract<TranscriptItem, { kind: 'turn-end' }>['
     cancelled: 'Stopped.',
     error: 'The turn failed.',
 };
+
+/** AF12: the folder the agent's paths are relative to: its worktree, or the project. */
+function workRootOf(state: AgentSessionState): string | null {
+    return state.worktree ? state.worktree.cwd : state.workspaceRoot;
+}
 
 function statusText(state: AgentSessionState): string {
     switch (state.status) {

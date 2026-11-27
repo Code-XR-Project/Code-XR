@@ -297,3 +297,26 @@
 .af-changes-diff-note[hidden] { display: none; }
 .af-changes-diff-host { flex: 1; min-height: 0; }
 @media (prefers-color-scheme: light) { .af-changes-status[data-status='added'] { color: #1a7f37; } }
+
+/* ---- Worktree chats (AF12) ------------------------------------------------ */
+.af-new-worktree { display: flex; align-items: center; gap: 6px; margin: -2px 12px 0; font-size: 12px; color: var(--muted); cursor: pointer; }
+.af-new-worktree[hidden] { display: none; }
+.af-new-worktree input { margin: 0; }
+.af-branch { max-width: 160px; overflow: hidden; text-overflow: ellipsis; color: var(--accent); border-color: var(--accent); }
+.af-branch[hidden] { display: none; }
+.af-branch.is-removed { color: var(--muted); border-color: var(--line); text-decoration: line-through; }
+.af-header-button.is-quiet { border-color: var(--line); }
+.af-confirm.has-worktree { flex-wrap: wrap; }
+.af-confirm-worktree { flex-basis: 100%; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.af-confirm-worktree input { margin: 0; }
+.af-worktree { display: grid; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 12px; }
+.af-worktree[hidden], .af-worktree [hidden] { display: none; }
+.af-worktree-summary { margin: 0; }
+.af-worktree-files { margin: 0; padding-left: 16px; font-family: var(--mono, monospace); font-size: 11px; overflow-wrap: anywhere; }
+.af-worktree-files:empty { display: none; }
+.af-worktree-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.af-worktree-message { flex: 1 1 200px; min-width: 0; }
+.af-worktree-hint { font-size: 11px; }
+.af-worktree-confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 8px; border: 1px solid var(--crit); border-radius: 4px; }
+.af-worktree-confirm span { flex: 1 1 200px; }
+.af-worktree-error { margin: 0; padding: 6px 8px; border-left: 3px solid var(--crit); background: var(--editor); overflow-wrap: anywhere; }

@@ -2,6 +2,7 @@ import type { AgentSessionMessage, AgentSessionsApi, AgentView, ProjectSessions,
 import { el, icon } from '../dom.ts';
 import { attentionCounts, availabilityLabel, defaultAgent, filterProjects, shortTime, statusLabel } from './sessionsModel.ts';
 import { agentActions, type AgentSetupDeps } from './agentSetup.ts';
+import { branchLabel, branchTitle, parseWorktreeChoice } from './worktreeModel.ts';
 
 /**
  * The left column of the agent-first workbench (AF7, #272): the person's
@@ -54,6 +55,8 @@ export interface SessionsView {
 }
 
 const LAST_AGENT_KEY = 'codexr.agentFirst.lastAgent';
+/** AF12: the last state of "Separate worktree". */
+const WORKTREE_CHOICE_KEY = 'codexr.agentFirst.separateWorktree';
 const ICONS = {
     plus: 'M12 5v14M5 12h14',
     trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
@@ -86,6 +89,21 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
         }
     };
 
+    const storedWorktreeChoice = (): boolean => {
+        try {
+            return parseWorktreeChoice(localStorage.getItem(WORKTREE_CHOICE_KEY));
+        } catch {
+            return false;
+        }
+    };
+    const rememberWorktreeChoice = (on: boolean): void => {
+        try {
+            localStorage.setItem(WORKTREE_CHOICE_KEY, on ? '1' : '0');
+        } catch {
+            // Storage is a convenience only.
+        }
+    };
+
     // ---- Mode switch (AF4) -------------------------------------------------
     const agentModeButton = el('button', { className: 'af-mode-button', text: 'Agent', attrs: { type: 'button', 'data-mode': 'agent', title: 'Agent layout: chats, work area and live analysis (Ctrl+Alt+M)' } });
     const classicModeButton = el('button', { className: 'af-mode-button', text: 'Classic', attrs: { type: 'button', 'data-mode': 'classic', title: 'Classic layout: the VS Code-like workbench (Ctrl+Alt+M)' } });
@@ -110,6 +128,36 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
     const newChatButton = el('button', { className: 'primary-button af-new-chat', attrs: { type: 'button', 'data-testid': 'af-new-chat' } }, [icon(ICONS.plus), el('span', { text: 'New chat' })]);
     newChatButton.addEventListener('click', () => void newChat(agentSelect.value || undefined));
 
+    // AF12: "Separate worktree", offered only when the window's folder can have one; the choice is remembered.
+    const worktreeBox = el('input', { attrs: { type: 'checkbox', 'data-testid': 'af-new-worktree' } });
+    worktreeBox.checked = storedWorktreeChoice();
+    worktreeBox.addEventListener('change', () => rememberWorktreeChoice(worktreeBox.checked));
+    const worktreeOption = el('label', {
+        className: 'af-new-worktree',
+        attrs: { hidden: '', title: 'Run the new chat\'s agent in its own git worktree and branch, outside the project, so several agents can work in parallel. Merge or discard its work from the chat\'s Worktree bar.' },
+    }, [worktreeBox, el('span', { text: 'Separate worktree' })]);
+    /** The folder the availability was read for, so it is read again only when the folder changes. */
+    let worktreeRoot: string | null | undefined;
+    let worktreeAvailable = false;
+    async function refreshWorktreeAvailability(root: string | null): Promise<void> {
+        if (root === worktreeRoot) {
+            return;
+        }
+        worktreeRoot = root;
+        const availability = root ? await deps.api.worktreeAvailability().catch(() => ({ ok: false, message: null })) : { ok: false, message: null };
+        if (worktreeRoot !== root) {
+            return;
+        }
+        worktreeAvailable = availability.ok;
+        worktreeOption.hidden = !availability.ok;
+    }
+    // Trust or the repository (a first commit) may change while the folder stays: read it again on focus.
+    window.addEventListener('focus', () => {
+        const root = worktreeRoot;
+        worktreeRoot = undefined;
+        void refreshWorktreeAvailability(root ?? null);
+    });
+
     const search = el('input', { className: 'agents-input af-search', attrs: { type: 'search', placeholder: 'Search chats', 'aria-label': 'Search chats', 'data-testid': 'af-search' } });
     search.addEventListener('input', () => {
         query = search.value;
@@ -129,6 +177,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
     container.replaceChildren(el('div', { className: 'af-sessions' }, [
         modeSwitch,
         el('div', { className: 'af-new-row' }, [newChatButton, agentSelect]),
+        worktreeOption,
         search,
         el('h3', { className: 'af-section-title', text: 'Projects' }),
         projectList,
@@ -240,6 +289,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
                 el('span', { className: 'af-session-title', text: session.title }),
                 el('span', { className: 'af-session-sub muted', text: [session.agentName, statusLabel(session), shortTime(session.updatedAt, now)].filter(Boolean).join(' · ') }),
             ]),
+            ...(session.worktree ? [el('span', { className: `af-badge af-branch${session.worktree.removed ? ' is-removed' : ''}`, text: branchLabel(session.worktree), attrs: { title: branchTitle(session.worktree), 'data-testid': 'af-session-branch' } })] : []),
             ...(session.pendingChanges > 0 ? [el('span', { className: 'af-badge af-pending', text: String(session.pendingChanges), attrs: { title: `${session.pendingChanges} changed file(s) to review` } })] : []),
             el('span', { className: 'af-session-actions' }, [
                 iconButton('Rename', ICONS.edit, () => rename(session)),
@@ -311,11 +361,20 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
         }
         const yes = el('button', { className: 'secondary-button is-danger af-small-button', text: 'Delete', attrs: { type: 'button' } });
         const no = el('button', { className: 'secondary-button af-small-button', text: 'Cancel', attrs: { type: 'button' } });
-        const confirm = el('li', { className: 'af-confirm' }, [el('span', { text: `Delete "${session.title}"?` }), yes, no]);
+        // AF12: a chat with a live worktree asks whether its worktree and branch go too (on by default).
+        const hasWorktree = !!session.worktree && !session.worktree.removed;
+        const alsoWorktree = el('input', { attrs: { type: 'checkbox', 'data-testid': 'af-delete-worktree' } });
+        alsoWorktree.checked = true;
+        const confirm = el('li', { className: `af-confirm${hasWorktree ? ' has-worktree' : ''}` }, [
+            el('span', { text: `Delete "${session.title}"?` }),
+            ...(hasWorktree && session.worktree ? [el('label', { className: 'af-confirm-worktree', attrs: { title: `Remove the worktree folder and delete the branch ${session.worktree.branch}. Unchecked, both are kept.` } }, [alsoWorktree, el('span', { text: `Also remove its worktree and branch ${branchLabel(session.worktree)}` })])] : []),
+            yes,
+            no,
+        ]);
         row.replaceWith(confirm);
         yes.focus();
         yes.addEventListener('click', () => {
-            deps.api.remove(session.id).then(() => {
+            deps.api.remove(session.id, { removeWorktree: hasWorktree && alsoWorktree.checked }).then(() => {
                 deps.onRemoved?.(session.id);
                 return refresh();
             }).catch((error: unknown) => deps.onStatus(errorText(error)));
@@ -339,6 +398,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
     async function refresh(): Promise<void> {
         projects = await deps.api.listProjects();
         renderProjects();
+        void refreshWorktreeAvailability(projects.find((project) => project.current)?.root ?? null);
         deps.onAttention?.(attentionCounts(projects));
     }
 
@@ -360,7 +420,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
         }
         rememberAgent(ref);
         try {
-            const session = await deps.api.create(ref);
+            const session = await deps.api.create(ref, { worktree: worktreeAvailable && worktreeBox.checked });
             await refresh();
             deps.openChat(session.id);
         } catch (error) {
