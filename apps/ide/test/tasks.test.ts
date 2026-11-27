@@ -133,7 +133,7 @@ describe('Problem matchers (#176)', () => {
             '/work/proj/src/b.js',
             '  4:1  error  Parsing error: Unexpected token',
             '',
-            '✖ 3 problems (2 errors, 1 warning)',
+            '\u2716 3 problems (2 errors, 1 warning)',
         ].join('\n');
         const problems = matchProblems(output, ['eslint'], root, 'linux');
         assert.deepEqual(problems.map((p) => [p.path, p.startLine, p.startColumn, p.severity, p.code]), [

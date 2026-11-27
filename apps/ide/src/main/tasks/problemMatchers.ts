@@ -58,7 +58,7 @@ export function matchProblems(rawOutput: string, matchers: readonly ProblemMatch
             if (row && file !== null) {
                 const [, at = '1', column = '1', kind = 'error', message = '', rule] = row;
                 add(file, Number(at), Number(column), kind === 'error' ? 'error' : 'warning', message, 'eslint', rule);
-            } else if (!/^\s/.test(line) && !/^[✖×!]|problems? \(/.test(line)) {
+            } else if (!/^\s/.test(line) && !/^[\u2716\u00d7!]|problems? \(/.test(line)) {
                 // Stylish prints the file on its own line, unindented, before its rows.
                 file = line.trim();
             }
