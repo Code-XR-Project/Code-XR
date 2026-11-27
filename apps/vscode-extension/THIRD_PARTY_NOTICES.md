@@ -12,7 +12,7 @@ This project uses third-party software components. This file lists key third-par
 
 Usage in this project:
 - Loaded in XR/DOM templates from the official A-Frame CDN releases (1.7.1).
-- Loaded by the bundled example scenes in `examples/charts/*` from the same CDN (1.0.4).
+- Loaded by the bundled example scenes in `examples/charts/*` from the same CDN (1.7.1, the version the analysis scenes use).
 
 ### 2) aframe-babia-components (BabiaXR components)
 - Project: aframe-babia-components
@@ -22,7 +22,7 @@ Usage in this project:
 
 Usage in this project:
 - Loaded in XR/DOM templates from unpkg CDN (1.3.4).
-- Loaded by the bundled example scenes in `examples/charts/*` from unpkg CDN (unpinned).
+- Loaded by the bundled example scenes in `examples/charts/*` from unpkg CDN (1.3.4, the version the analysis scenes use).
 - Credited in-product: the `About BabiaXR` entry in the BABIA EXAMPLES view opens a dialog with these libraries, their licenses and links.
 
 ### 3) Lizard
@@ -65,7 +65,7 @@ Usage in this project:
 - License: MIT
 
 Usage in this project:
-- Loaded by the bundled example scenes in `examples/charts/*` from unpkg CDN (1.0.0), to provide the scene backdrop.
+- Loaded by the bundled example scenes in `examples/charts/*` from unpkg CDN (1.5.0), to provide the scene backdrop.
 
 ### 7) aframe-extras
 - Project: aframe-extras
@@ -74,7 +74,7 @@ Usage in this project:
 - License: MIT
 
 Usage in this project:
-- Loaded by the bundled example scenes in `examples/charts/*` from the jsDelivr CDN (v6.1.0), for movement and animation controls.
+- Loaded by the bundled example scenes in `examples/charts/*` from the jsDelivr CDN (7.5.4), for movement and animation controls.
 
 ### 6) Cloudflare STUN
 - Service: Cloudflare Realtime STUN
@@ -92,10 +92,10 @@ Usage in this project:
 - License: MIT
 
 Usage in this project:
-- Installed at a pinned version inside the CodeXR-managed Python virtual environment.
+- Installed at a pinned version inside the Code-XR-managed Python virtual environment.
 - Provides structured parsers used by the dependency-analysis adapters.
 - CodeXR retains explicit language fallbacks and reports when structured parsing is unavailable.
-- The package and its parsers are installed once per CodeXR environment, not once per analysis.
+- The package and its parsers are installed once per Code-XR environment, not once per analysis.
 
 ### 8) qrcode-generator
 - Project: qrcode-generator, by Kazuhiko Arase

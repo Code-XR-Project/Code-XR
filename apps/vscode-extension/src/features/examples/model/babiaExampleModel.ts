@@ -44,7 +44,7 @@ export const BABIA_EXAMPLE_LIBRARIES = [
     {
         label: 'BabiaXR',
         name: 'aframe-babia-components',
-        version: 'latest (unpinned)',
+        version: '1.3.4',
         license: 'GPL-3.0',
         licenseUrl: 'https://www.gnu.org/licenses/gpl-3.0.html',
         website: 'https://babiaxr.gitlab.io/aframe-babia-components/',
@@ -53,7 +53,7 @@ export const BABIA_EXAMPLE_LIBRARIES = [
     {
         label: 'A-Frame',
         name: 'aframe',
-        version: '1.0.4',
+        version: '1.7.1',
         license: 'MIT',
         licenseUrl: 'https://github.com/aframevr/aframe/blob/master/LICENSE',
         website: 'https://aframe.io/',
@@ -62,7 +62,7 @@ export const BABIA_EXAMPLE_LIBRARIES = [
     {
         label: 'Environment',
         name: 'aframe-environment-component',
-        version: '1.0.0',
+        version: '1.5.0',
         license: 'MIT',
         licenseUrl: 'https://github.com/supermedium/aframe-environment-component/blob/master/LICENSE',
         website: 'https://github.com/supermedium/aframe-environment-component',
@@ -71,7 +71,7 @@ export const BABIA_EXAMPLE_LIBRARIES = [
     {
         label: 'Extras',
         name: 'aframe-extras',
-        version: '6.1.0',
+        version: '7.5.4',
         license: 'MIT',
         licenseUrl: 'https://github.com/c-frame/aframe-extras/blob/master/LICENSE',
         website: 'https://github.com/c-frame/aframe-extras',

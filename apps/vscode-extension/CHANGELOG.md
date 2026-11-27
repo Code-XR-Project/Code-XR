@@ -15,6 +15,7 @@
 - **Reveal in XR Scene** jumps from a file in VS Code to its element in a running scene, and *Open in editor* goes the other way from the dependency graph.
 - **Open a scene on a standalone headset** from ACTIVE SERVERS, with a QR code.
 - **A preview of what is next**: a new AI AGENTS section in the sidebar announces AI agents that will chat about your code and its analyses (coming in a later version).
+- **The BabiaXR examples render again**, pinned to the same libraries as the analysis scenes.
 - **Dozens of fixes** in the XR room, the Git analyses, the local servers and the Python environment, and a **smaller download** (6.45 MB to 3.24 MB).
 
 #### Added
@@ -73,6 +74,7 @@
 
 #### Fixed
 
+- **The BabiaXR examples render again.** They loaded A-Frame 1.0.4 together with an unpinned BabiaXR release that needs a newer A-Frame, and three of them (Bars Map, Pie and the population doughnut) fetched their data from a path the example server does not serve, so their scene was empty. Every example now uses the same library versions as the analysis scenes (A-Frame 1.7.1, BabiaXR 1.3.4), carries its data inline, opens with the whole chart in view, uses one light, readable look with English titles, and logs no errors. The "About BabiaXR" credits list the new versions.
 - **A scene opened in VS Code's side panel and the same scene in a browser or on a headset now share one collaboration room.** A page that opened at the same moment as its server (the side panel) joined a room named after the port, while every client that came later joined the room named after the server, so they never saw each other. Every client of one server now joins the same room, whenever it opens.
 - **Cyclomatic complexity was wrong for some constructs in 13 languages** (part of the change of analyzer above). Python counted `finally` and ignored `match`/`case`; GDScript and TTCN-3 counted `else`, and GDScript ignored `match` branches; TypeScript and PHP counted the `?` of an optional parameter or nullable type; JavaScript, TypeScript and PHP counted `??` twice; Perl counted every `:`; Erlang counted `not`; Ruby ignored `unless`; Zig counted the `else =>` prong and Scala the `case _` arm; C# ignored `foreach` and switch-expression arms; Swift ignored `??`; Fortran counted `select case` and `case default`; PHP counted a `match` once instead of once per arm; and in Lua, the length operator `#` hid every `and`/`or` after it on the same line.
 - **The progress of setting up the Python environment matches what it is doing.** The set-up reported its steps as running totals (20, 55, 70...) while VS Code adds each value to the bar, so the bar filled long before the end; deleting the environment and installing a package did the same. Each step now reports only how far it moved, and the packages and language parsers share the last part of the bar one by one.
