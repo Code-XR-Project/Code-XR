@@ -109,7 +109,7 @@ export async function probeVsix(file: string, options: ProbeOptions): Promise<Pr
         const result = await runHost(extension, installed, folder, scratch, options);
         return { ...described, ...result, milliseconds: Date.now() - started };
     } finally {
-        fs.rmSync(scratch, { recursive: true, force: true });
+        fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     }
 }
 
@@ -127,7 +127,6 @@ async function runHost(
         execArgv: [...(options.execArgv ?? [])],
         stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
         serialization: 'advanced',
-        cwd: scratch,
     });
     child.stderr?.on('data', (chunk: Buffer) => {
         const text = chunk.toString().trim();
@@ -214,9 +213,11 @@ async function runHost(
     } catch (error) {
         return { outcome: 'failed', missingApi, errors, registeredCommands: 0, detail: error instanceof Error ? error.message : String(error) };
     } finally {
-        if (child.exitCode === null) {
+        if (child.exitCode === null && child.signalCode === null) {
             await withTimeout(main.request(HOST_METHODS.shutdown).catch(() => undefined), 3000);
             child.kill();
+            // Windows keeps the files the process opened locked until it has exited: wait, so the scratch folder can go.
+            await withTimeout(exited, 5000);
         }
         main.dispose();
     }
