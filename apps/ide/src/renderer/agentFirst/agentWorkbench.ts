@@ -55,6 +55,8 @@ export interface AgentWorkbench {
     newChat(agentRef?: string): Promise<void>;
     setMode(mode: LayoutMode): void;
     readonly mode: LayoutMode;
+    /** Turns a saved tab id into a chat tab; main.ts registers it on the editor group. */
+    resolveCustomEditor(id: string): CustomEditorInput | null;
     /** The folder of the window changed: chats of the old folder close, the list reloads. */
     folderChanged(): void;
 }
@@ -158,12 +160,12 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         };
     }
 
-    void options.editorGroup().then((group) => {
-        group.registerCustomEditor((id) => {
-            const sessionId = chatIdOf(id);
-            return sessionId ? chatInput(sessionId) : null;
-        });
-    });
+    // Registered by main.ts when the editor group is created (it loads Monaco,
+    // so it must not be created here at startup): restored chat tabs resolve through it.
+    function resolveCustomEditor(id: string): CustomEditorInput | null {
+        const sessionId = chatIdOf(id);
+        return sessionId ? chatInput(sessionId) : null;
+    }
 
     async function openChat(sessionId: string): Promise<void> {
         const group = await options.editorGroup();
@@ -284,6 +286,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         openChat,
         newChat: (agentRef?: string) => sessions.newChat(agentRef),
         setMode,
+        resolveCustomEditor,
         get mode() {
             return mode;
         },

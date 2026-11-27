@@ -128,6 +128,8 @@ function editorGroup(): Promise<EditorGroup> {
         editors.setSceneShown(!workbench.sceneArea.hidden);
         // #256: PDFs and images open in viewer tabs.
         editors.registerCustomEditor(fileViewerResolver(api.workspace));
+        // Epic #265 (AF3): chats are editor tabs too.
+        editors.registerCustomEditor((id) => agentWorkbench.resolveCustomEditor(id));
         outline = createOutlineController({
             editors,
             view: outlineView,
