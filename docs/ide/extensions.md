@@ -13,7 +13,8 @@ Epic #251. Decision: [ADR 0002](../../adr/0002-vscode-extensions-in-the-ide.md).
 | Languages, `language-configuration.json`, TextMate grammars (with injections and embedded languages), snippets | Done | #258 |
 | Extensions with code: the extension host, commands in the palette, messages, quick picks and input boxes, progress, status bar items, output channels, configuration, state and secrets, files and `findFiles` | Done | #259 |
 | Documents of the editor, the active editor, diagnostics, language features (completion, hover, definitions, references, symbols, signature help, formatting, code actions, code lenses, rename, folding, inlay hints, links), `applyEdit`, language clients (`vscode-languageclient`) | Done | #260 |
-| Tree views, view containers, webviews | Planned | #261 |
+| Tree views, view containers, `viewsWelcome`, menus (`view/title`, `view/item/context`, `editor/title`, `editor/context`, `explorer/context`), `when` clauses and `setContext` | Done | #261 |
+| Webviews (panels and webview views) | Planned | #261 |
 | The Code-XR extension itself | Planned | #262 |
 | File icon themes, product icon themes | Not yet: listed in the details page | — |
 | Language packs | Install, no visible effect (the IDE does not use VS Code's UI strings) | #264 |
@@ -81,6 +82,16 @@ Monaco model (codexr-file:/src/a.py)      main process                      exte
 - **Language clients.** Extensions built on `vscode-languageclient` (most language extensions) start their server as a child process of the host and work through the above: checked with Microsoft's *lsp-sample* (pull diagnostics while typing, completion).
 - **Paths.** The renderer only ever names workspace paths; the main process turns them into absolute paths for the host and every `path` in the host's answers back, dropping whatever points outside the folder.
 - **Not yet.** Decorations (`setDecorations`), semantic tokens (the TextMate grammars colour the code), call and type hierarchies, inline completions, colour pickers, selection ranges, linked editing and workspace symbols are accepted and reported in the *Extensions* output as missing; `when` clauses do not filter code actions.
+
+## Views, menus and `when` clauses (#261)
+
+- **View containers.** `viewsContainers.activitybar` and `.panel` add an item to the activity bar (before Settings) with the container's icon drawn in the workbench's colour; views placed in `explorer`, `scm` or `debug` appear as sections under the IDE's own pane. A view in an unknown container is dropped with a warning in the *Extensions* output.
+- **Tree views.** `window.createTreeView` and `registerTreeDataProvider`: lazy children, `TreeItem` labels with highlights, descriptions, tooltips, icons (`ThemeIcon` codicons with theme colours, files and `{ light, dark }` images, `resourceUri` file and folder icons), checkboxes, `canSelectMany`, `reveal`, `onDidChangeTreeData` (whole tree or some elements), `onDidChangeSelection`/`Visibility`/`ExpandElement`/`CollapseElement`, `title`, `description`, `message` and `badge` (shown on the activity item), and `resolveTreeItem`. Elements stay in the host: the workbench only sees opaque handles and plain data. Icon files are inlined by the main process as data URLs, and only from an enabled extension's folder or the workspace (at most 256 KB each).
+- **Welcome content.** `viewsWelcome` shows when a view has no items and its `when` holds; `[label](command:id)` lines are buttons, links in text open http(s) outside after the usual check.
+- **Menus.** `view/title` (the `navigation` group as buttons, the rest in a `...` menu, plus *Collapse All* when asked), `view/item/context` (`inline` as row buttons, the rest on right click; `viewItem` is the item's `contextValue`), `editor/title` (buttons beside the tabs), `editor/title/context`, `editor/context` (Monaco's context menu) and `explorer/context`. The command's `enablement` greys an entry out; `commandPalette` entries hide a command from the palette when their `when` does not hold. Submenus are not supported yet.
+- **`when` clauses.** VS Code's grammar (`!`, `&&`, `||`, parentheses, `==`, `!=`, `<`, `<=`, `>`, `>=`, `=~ /regex/`, `in`, `not in`) over the keys of `setContext` and the workbench's own: `view`, `viewItem`, `focusedView`, `resource*` (`resourceFilename`, `resourceExtname`, `resourceLangId`...), `explorerResourceIsFolder`, `editorLangId`, `activeEditor`, `isWorkspaceTrusted`, `workspaceFolderCount`, `workbenchState`, `isLinux`/`isMac`/`isWindows`, `config.<setting>`. An unparsable clause hides its entry.
+- **Commands.** `<view>.focus`, `workbench.view.extension.<container>` and `workbench.actions.treeView.<view>.collapseAll`/`.refresh` work through `executeCommand`.
+- Checked with a sample extension: a container with two views (one gated on a `setContext` key, one placed in the explorer), welcome content, every supported menu, inline actions that edit the file and refresh the tree.
 
 ## Security
 

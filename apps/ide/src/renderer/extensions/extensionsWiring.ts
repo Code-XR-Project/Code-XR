@@ -6,7 +6,10 @@ import type { QuickInputProvider } from '../commands/quickInput.ts';
 import type { NotificationCenter } from '../notifications.ts';
 import { createContributionsController, type ContributionsController } from './contributionsController.ts';
 import { createExtensionsView, type ExtensionsView } from './extensionsView.ts';
+import { ContextKeys } from './contextKeys.ts';
 import { createHostBridge } from './hostBridge.ts';
+import { fileUriOf, type MenuGroup } from './menuModel.ts';
+import { createViewsController, type ViewsWorkbench } from './viewsController.ts';
 import type { DocumentSync } from './documentSync.ts';
 import type { LanguageBridge } from './languageBridge.ts';
 import './extensions.css';
@@ -30,6 +33,12 @@ export interface ExtensionsWorkbench {
     watchEditorLanguages(): void;
     /** #260: the editor group saved `path`. */
     documentSaved(path: string): void;
+    /** #261: the context keys of `when` clauses (the workbench adds its own providers). */
+    readonly contextKeys: ContextKeys;
+    /** #261: an extension menu's entries in a context (`explorer/context`, `editor/title`, ...). */
+    menu(menu: string, extra: Readonly<Record<string, unknown>>): MenuGroup[];
+    /** #261: runs an extension's command, reporting a failure. */
+    runCommand(command: string, args?: readonly unknown[]): void;
 }
 
 export interface ExtensionsWorkbenchDeps {
@@ -51,6 +60,9 @@ export interface ExtensionsWorkbenchDeps {
     openFile(path: string, line?: number, column?: number): Promise<void>;
     /** #260: saves an open file of the folder (an extension's `TextDocument.save()`). */
     saveFile(path: string): Promise<boolean>;
+    /** #261: where extensions' views go. */
+    readonly views: ViewsWorkbench;
+    readonly storage: Storage | null;
 }
 
 export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWorkbench {
@@ -105,8 +117,28 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
         }
     };
 
+    // #261: context keys and the extensions' views.
+    const contextKeys = new ContextKeys();
+    const runCommand = (command: string, args: readonly unknown[] = []): void => {
+        api.extensions.executeCommand(command, args).catch((error: unknown) => {
+            deps.notify('error', `Command '${command}' failed: ${error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(error)}`);
+        });
+    };
+    const views = createViewsController({
+        extensions: api.extensions,
+        workbench: deps.views,
+        contextKeys,
+        storage: deps.storage,
+        runCommand,
+        openExternalLink: (url) => void api.workspace.openExternalLink(url).catch((error: unknown) => deps.notify('error', String(error))),
+        onError: (message) => deps.notify('error', message),
+    });
+
     // #259: the extension host's requests, status bar items and the palette's commands.
     const bridge = createHostBridge({
+        contextKeys,
+        viewNotification: (notification) => views.notification(notification),
+        viewCommand: (id) => views.command(id),
         extensions: api.extensions,
         registry: deps.registry,
         notifications: deps.notifications,
@@ -120,6 +152,9 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
             view.focusSearch(query);
         },
         languageNotification(notification) {
+            if (notification.kind === 'providersReset') {
+                views.reset();
+            }
             if (languages) {
                 languageNotification(notification, languages.bridge);
             } else if (notification.kind === 'providersReset') {
@@ -147,6 +182,10 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
     const refresh = async (): Promise<void> => {
         await contributions.reload();
         bridge.setCommands(contributions.current().commands, installed);
+        const runnable = new Set(installed.filter((extension) => extension.state === 'enabled' && extension.hasCode).map((extension) => extension.id));
+        views.setContributions(contributions.current(), runnable);
+        // Menus depend on the contributions too: whatever draws them listens for this.
+        contextKeys.changed();
     };
     api.extensions.onDidChange((event) => {
         installed = event.installed;
@@ -192,11 +231,18 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
             if (languages) {
                 return;
             }
-            void Promise.all([import('./documentSync.ts'), import('./languageBridge.ts')]).then(([syncModule, bridgeModule]) => {
+            void Promise.all([import('./documentSync.ts'), import('./languageBridge.ts'), import('./editorMenus.ts')]).then(([syncModule, bridgeModule, menusModule]) => {
                 if (languages) {
                     return;
                 }
                 const sync = syncModule.installDocumentSync(api.extensions);
+                // #261: the extensions' entries in the editor's context menu.
+                menusModule.installEditorMenus({
+                    contextKeys,
+                    menu: (menu, extra) => views.menu(menu, extra),
+                    pathOf: (model) => sync.pathOf(model),
+                    run: (command, path) => void api.workspace.current().then((workspace) => runCommand(command, workspace ? [{ $uri: fileUriOf(workspace.root, path) }] : [])),
+                });
                 const languageBridge = bridgeModule.createLanguageBridge({
                     extensions: api.extensions,
                     sync,
@@ -216,5 +262,8 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
         documentSaved(path) {
             languages?.sync.saved(path);
         },
+        contextKeys,
+        menu: (menu, extra) => views.menu(menu, extra),
+        runCommand,
     };
 }

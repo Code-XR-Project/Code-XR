@@ -11,6 +11,7 @@
 
 import type { HostUiEvent } from './extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from './extensionLanguageProtocol.ts';
+import type { IconData, ViewRequest } from './extensionViewsProtocol.ts';
 
 /** `publisher.name`, lower-cased: VS Code compares extension ids without case. */
 export type ExtensionId = string;
@@ -223,6 +224,53 @@ export interface ContributedCommand {
     readonly category: string | null;
     /** `menus.commandPalette` hides it (`"when": "false"`): it runs, but the palette does not list it. */
     readonly hiddenFromPalette: boolean;
+    /** #261: `menus.commandPalette`'s other `when` clause: the palette lists it only while that holds. */
+    readonly paletteWhen: string | null;
+    /** #261: `enablement`: menus show it disabled while that does not hold. */
+    readonly enablement: string | null;
+    /** #261: its icon, for menus that show icons (`view/title`, inline item actions, `editor/title`). */
+    readonly icon: IconData | null;
+}
+
+/** #261: `contributes.viewsContainers`: an activity bar item of its own (panel containers are shown there too). */
+export interface ContributedViewContainer {
+    readonly id: string;
+    readonly extensionId: ExtensionId;
+    readonly title: string;
+    readonly icon: IconData | null;
+}
+
+/** #261: a view of `contributes.views`. */
+export interface ContributedView {
+    readonly id: string;
+    readonly extensionId: ExtensionId;
+    /** `explorer`, `scm`, `debug` or a contributed container's id. */
+    readonly container: string;
+    readonly name: string;
+    readonly when: string | null;
+    readonly type: 'tree' | 'webview';
+    /** `visibility: "collapsed"`: the section starts folded. */
+    readonly collapsed: boolean;
+}
+
+/** #261: `contributes.viewsWelcome`: what an empty view shows. */
+export interface ContributedViewWelcome {
+    readonly extensionId: ExtensionId;
+    readonly view: string;
+    readonly contents: string;
+    readonly when: string | null;
+}
+
+/** #261: an entry of `contributes.menus`. */
+export interface ContributedMenuItem {
+    readonly extensionId: ExtensionId;
+    /** `view/title`, `view/item/context`, `editor/title`, `editor/context`, `explorer/context`, `editor/title/context`. */
+    readonly menu: string;
+    readonly command: string;
+    readonly when: string | null;
+    /** `navigation`, `inline`, `1_modification@2`...: the part before `@` groups, the number orders. */
+    readonly group: string;
+    readonly order: number;
 }
 
 /** Everything declarative the workbench applies from the enabled extensions. */
@@ -232,6 +280,11 @@ export interface ExtensionContributions {
     readonly grammars: readonly ContributedGrammar[];
     readonly snippets: readonly ContributedSnippet[];
     readonly commands: readonly ContributedCommand[];
+    /** #261: views, their containers, their welcome content and the menus. */
+    readonly viewContainers: readonly ContributedViewContainer[];
+    readonly views: readonly ContributedView[];
+    readonly viewsWelcome: readonly ContributedViewWelcome[];
+    readonly menus: readonly ContributedMenuItem[];
 }
 
 export interface ExtensionsChangedEvent {
@@ -283,6 +336,8 @@ export interface ExtensionsApi {
     documentEvents(events: readonly DocumentEvent[]): Promise<void>;
     /** #260: asks an extension's language feature provider; the answer is plain data (extensionLanguageProtocol.ts). */
     provide(request: ProvideRequest): Promise<unknown>;
+    /** #261: the extensions' views (tree children, clicks, menu commands, visibility); see extensionViewsProtocol.ts. */
+    view(request: ViewRequest): Promise<unknown>;
 }
 
 /** Activation events the renderer may fire (the others are the main process's or the host's own). */
@@ -311,6 +366,7 @@ export const EXTENSION_IPC_CHANNELS = {
     extensionsHostReply: 'codexr:extensions:host-reply',
     extensionsDocuments: 'codexr:extensions:documents',
     extensionsProvide: 'codexr:extensions:provide',
+    extensionsView: 'codexr:extensions:view',
 } as const;
 
 export const EXTENSION_IPC_EVENTS = {
