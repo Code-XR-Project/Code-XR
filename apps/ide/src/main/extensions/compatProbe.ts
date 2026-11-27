@@ -130,7 +130,8 @@ async function runHost(
     });
     child.stderr?.on('data', (chunk: Buffer) => {
         const text = chunk.toString().trim();
-        if (text) {
+        // Node's deprecation warnings (often from a language server the extension started) say nothing about the IDE.
+        if (text && !/DeprecationWarning|--trace-deprecation/.test(text)) {
             errors.push(`[stderr] ${text.slice(0, 400)}`);
         }
     });

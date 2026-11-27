@@ -37,6 +37,23 @@ describe('the compatibility probe (#264)', () => {
         assert.deepEqual(result.missingApi, []);
     });
 
+    it('runs an extension shipped as an ES module that imports vscode, as popular ones do', async () => {
+        const source = [
+            "import * as vscode from 'vscode';",
+            "import api from 'vscode';",
+            'export function activate(context) {',
+            '  const nls = JSON.parse(process.env.VSCODE_NLS_CONFIG);',
+            '  const kinds = [vscode.TestRunProfileKind.Run, vscode.QuickInputButtonLocation.Input, api.ViewColumn.One];',
+            "  context.subscriptions.push(vscode.commands.registerCommand('esm.hi', () => [nls.locale, ...kinds]));",
+            '}',
+        ].join('\n');
+        const file = write('esm.vsix', vsix(manifest('esm', { type: 'module', main: 'index.js', activationEvents: ['*'] }), { 'index.js': source }));
+        const result = await probeVsix(file, OPTIONS);
+        assert.equal(result.outcome, 'activated', result.detail ?? '');
+        assert.equal(result.registeredCommands, 1);
+        assert.deepEqual(result.missingApi, []);
+    });
+
     it('names the vscode API an extension reached for that the host lacks', async () => {
         const file = write('gap.vsix', vsix(manifest('gap', { main: 'index.js', activationEvents: ['onStartupFinished'] }), {
             'index.js': "exports.activate = () => { require('vscode').window.registerCustomEditorProvider('gap.editor', {}); };",

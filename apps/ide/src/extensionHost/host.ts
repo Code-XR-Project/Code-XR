@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import Module from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
     activationMatches, MAIN_METHODS, type HostActivationEvent, type HostExtensionDescription, type HostInitData, type HostLogLine, type HostPassiveExtension, type RpcEndpoint, type UiNotification, type UiRequest,
 } from '../shared/extensionHostProtocol.ts';
@@ -58,6 +59,28 @@ interface RegisteredCommand {
 
 type ModuleWithLoad = typeof Module & { _load(request: string, parent: { filename?: string } | null | undefined, isMain: boolean): unknown };
 
+/** `module.registerHooks` (Node 22.15+, Electron's Node 24): synchronous, in-thread module hooks. Not in this @types/node yet. */
+interface SyncModuleHooks {
+    resolve(specifier: string, context: { parentURL?: string | undefined }, next: (specifier: string, context: unknown) => unknown): unknown;
+    load(url: string, context: unknown, next: (url: string, context: unknown) => unknown): unknown;
+}
+type ModuleWithHooks = typeof Module & { registerHooks?: (hooks: SyncModuleHooks) => unknown };
+
+/** The URL an ES module's `import 'vscode'` resolves to; the importing module's URL follows, encoded. */
+const ESM_VSCODE_URL = 'codexr-vscode:';
+/** Where the generated `vscode` ES module finds the API for the file that imported it. */
+const ESM_VSCODE_GLOBAL = Symbol.for('codexr.vscodeFor');
+
+/** The source of the ES module `vscode` for one importer: a default export and one named export per member of the API. */
+export function esmVscodeSource(file: string, names: readonly string[]): string {
+    const exported = names.filter((name) => name !== 'default' && /^[A-Za-z_$][\w$]*$/.test(name));
+    return [
+        `const api = globalThis[Symbol.for('codexr.vscodeFor')](${JSON.stringify(file)});`,
+        'export default api;',
+        ...exported.map((name, index) => `const _${index} = api[${JSON.stringify(name)}];\nexport { _${index} as ${name} };`),
+    ].join('\n');
+}
+
 export class ExtensionHost {
     readonly rpc: RpcEndpoint;
     data!: HostInitData;
@@ -106,6 +129,8 @@ export class ExtensionHost {
         for (const json of [...data.extensions, ...data.passive].map((ext) => ext.packageJSON)) {
             this.learnLanguages(json);
         }
+        // VS Code always sets it; some extensions JSON.parse it unguarded (yzhang.markdown-all-in-one).
+        process.env['VSCODE_NLS_CONFIG'] ??= JSON.stringify({ locale: data.env.language, osLocale: data.env.language, availableLanguages: {} });
         this.hookRequire();
         // The editor's state before any extension activates, so `*` extensions see the open files.
         this.documentsAndEditors.accept([
@@ -213,6 +238,15 @@ export class ExtensionHost {
         return record.api;
     }
 
+    /** The API for code in `file`: its extension's, or the first extension's for code outside every extension folder (a shared dependency hoisted elsewhere). */
+    private apiForFile(file: string | undefined): unknown {
+        const record = this.extensionOfFile(file) ?? this.records.values().next().value;
+        if (!record) {
+            throw new Error('Cannot find module \'vscode\'');
+        }
+        return this.apiFor(record);
+    }
+
     private hookRequire(): void {
         if (this.moduleHooked) {
             return;
@@ -220,21 +254,27 @@ export class ExtensionHost {
         this.moduleHooked = true;
         const loader = Module as ModuleWithLoad;
         const original = loader._load.bind(loader);
-        loader._load = (request, parent, isMain) => {
-            if (request === 'vscode') {
-                const record = this.extensionOfFile(parent?.filename);
-                if (!record) {
-                    // Code outside every extension (a shared dependency hoisted elsewhere): the first extension's view is the best guess.
-                    const first = this.records.values().next().value;
-                    if (!first) {
-                        throw new Error('Cannot find module \'vscode\'');
-                    }
-                    return this.apiFor(first);
+        loader._load = (request, parent, isMain) => (request === 'vscode' ? this.apiForFile(parent?.filename) : original(request, parent, isMain));
+        // #264: extensions shipped as ES modules (esbenp.prettier-vscode) `import ... from 'vscode'`, which `_load` never sees.
+        const registerHooks = (Module as ModuleWithHooks).registerHooks;
+        if (typeof registerHooks !== 'function') {
+            return;
+        }
+        (globalThis as Record<symbol, unknown>)[ESM_VSCODE_GLOBAL] = (file: string) => this.apiForFile(file || undefined);
+        registerHooks.call(Module, {
+            resolve: (specifier, context, next) => (specifier === 'vscode'
+                ? { url: `${ESM_VSCODE_URL}${encodeURIComponent(context.parentURL ?? '')}`, shortCircuit: true }
+                : next(specifier, context)),
+            load: (url, context, next) => {
+                if (!url.startsWith(ESM_VSCODE_URL)) {
+                    return next(url, context);
                 }
-                return this.apiFor(record);
-            }
-            return original(request, parent, isMain);
-        };
+                const parent = decodeURIComponent(url.slice(ESM_VSCODE_URL.length));
+                const file = parent.startsWith('file:') ? fileURLToPath(parent) : '';
+                const api = this.apiForFile(file || undefined) as object;
+                return { format: 'module', source: esmVscodeSource(file, Object.keys(api)), shortCircuit: true };
+            },
+        });
     }
 
     /* ------------------------------ activation ------------------------------ */
