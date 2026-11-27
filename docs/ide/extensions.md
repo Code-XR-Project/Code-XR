@@ -15,7 +15,7 @@ Epic #251. Decision: [ADR 0002](../../adr/0002-vscode-extensions-in-the-ide.md).
 | Documents of the editor, the active editor, diagnostics, language features (completion, hover, definitions, references, symbols, signature help, formatting, code actions, code lenses, rename, folding, inlay hints, links), `applyEdit`, language clients (`vscode-languageclient`) | Done | #260 |
 | Tree views, view containers, `viewsWelcome`, menus (`view/title`, `view/item/context`, `editor/title`, `editor/context`, `explorer/context`), `when` clauses and `setContext` | Done | #261 |
 | Webviews: `createWebviewPanel`, `registerWebviewViewProvider`, `asWebviewUri`, messages, `getState`/`setState`, theme variables, `command:` links | Done | #261 |
-| The Code-XR extension itself | Planned | #262 |
+| The Code-XR extension itself (`code-xr-<version>.vsix`): its activity bar container and tree, its Python environment, file and folder analyses as LivePanel (in a webview panel or the browser) and in XR, servers and examples | Done, checked in CI | #262 |
 | File icon themes, product icon themes | Not yet: listed in the details page | — |
 | Language packs | Install, no visible effect (the IDE does not use VS Code's UI strings) | #264 |
 
@@ -110,6 +110,14 @@ extension host                     main process                                 
 - **Isolation.** The frame is sandboxed (`allow-scripts` only when `enableScripts`, `allow-forms` only when `enableForms`, no popups, no top navigation), cannot reach `window.codexr` (no preload in frames), the workbench's DOM or another webview, and gets no permission (camera, microphone...). The workbench CSP allows frames from `codexr-webview:` only, and the main process stops any frame navigation that leaves that scheme.
 - **Not yet.** Panels are not restored after a restart (`registerWebviewPanelSerializer` is accepted and reported), custom editors (`registerCustomEditorProvider`) and `enableFindWidget` are missing.
 - Checked with a sample extension (*Cat Coding*): a panel with a script and an image from `localResourceRoots`, a message loop, `setState`, an allowed and a refused `command:` link, a popup that stays blocked, a file outside the roots that answers 404, and a webview view in its own container.
+
+## The Code-XR extension in the IDE (#262)
+
+The extension's own `.vsix` installs from file (*Extensions* view, `...` > *Install from VSIX...*) and runs in the IDE's extension host unchanged: one code base serves VS Code and the IDE.
+
+- **What works.** The *Code-XR* activity bar container with its whole tree (servers, active servers and collaboration, Babia examples, data visualisation, analysis settings, project structure, files by language, Python environment, help), its title buttons and inline actions; creating its Python environment; analysing a file or a folder as a LivePanel, which opens in the browser or, with *Open Mode: Lateral Panel*, in a webview tab that embeds the local server; analysing in XR; the servers list, stopping servers and the examples. No `vscode` API it calls at start-up is missing from the host.
+- **Checked in CI.** The *Code-XR extension in the IDE* job takes the `.vsix` the *package* job built, installs it in the built IDE with Playwright (`apps/ide/scripts/vsixE2e.mjs`), and fails if the extension does not activate, its tree has no *Servers* or *Analysis* section, or the *Extensions* output reports an API the host does not implement. Locally: `npm run package:vsix`, `npm run ide:build`, then `node apps/ide/scripts/vsixE2e.mjs apps/vscode-extension/artifacts/code-xr-<version>.vsix` (under `xvfb-run -a` on a Linux machine without a display).
+- **Known gaps.** An XR scene shown in a webview tab loads A-Frame and BabiaXR from their CDNs, as in VS Code, so it needs the network; the IDE's own scene view (#16) serves vendored copies instead. *Enter VR* inside a webview gets no XR permission (no webview gets any permission): use *Open in browser* or the IDE's scene view. `ViewColumn.Beside` opens the panel in the active group. The extension's own Python environment is separate from the IDE's (each lives in its own storage folder).
 
 ## Security
 
