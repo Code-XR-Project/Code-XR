@@ -5,12 +5,16 @@ import type { AgentView, InstallDescription, InstallProgress } from '../../share
  * (AF2, #267) and the first-run guide (AF13, #278). No DOM.
  */
 
-export type SetupAction = 'install' | 'update' | 'remove' | 'login' | 'check' | 'import';
+export type SetupAction = 'install' | 'update' | 'remove' | 'login' | 'check' | 'import' | 'edit-local' | 'remove-local';
 
 /** What an agent row offers: install a missing preset; update or remove one the IDE installed; sign in and check; import its chats once ready. */
 export function setupActions(agent: AgentView): SetupAction[] {
     if (agent.kind !== 'acp') {
         return [];
+    }
+    if (agent.local) {
+        // #313: a local model has no sign-in and no history of its own; it is edited and removed here.
+        return agent.availability === 'missing' ? ['edit-local', 'remove-local'] : ['check', 'edit-local', 'remove-local'];
     }
     if (agent.availability === 'missing') {
         return agent.preset ? ['install'] : [];
@@ -124,12 +128,12 @@ export function onboardingSteps(input: OnboardingInput): OnboardingStep[] {
             id: 'agent',
             title: 'Pick a coding agent',
             text: agent
-                ? `${agent.name} is ${agent.availability === 'ready' ? 'ready' : 'installed'}.`
+                ? `${agent.name} is ${agent.availability === 'ready' ? 'ready' : agent.local ? 'added' : 'installed'}.`
                 : needsLogin
                     ? 'Sign in to an agent with its own login: your subscription or API key stays with the vendor\'s tool.'
                     : installed
                         ? 'Check an agent to see whether it is ready.'
-                        : 'Install Claude Code, Codex or Gemini CLI. Nothing is downloaded until you confirm.',
+                        : 'Install Claude Code, Codex or Gemini CLI (nothing is downloaded until you confirm), or use a model of your own with Add local model under Agents.',
         },
         {
             id: 'chat',

@@ -5,6 +5,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": [],
     "paths": {
+      "@codexr/local-models/*": ["../../packages/local-models/src/*"],
       "@codexr/core/metrics/*": ["./.core-types/core/metrics/*"],
       "@codexr/core/xr/*": ["./.core-types/core/xr/*"]
     }

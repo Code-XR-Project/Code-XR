@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { detectLocalServers, listLocalModels, type FetchFn } from '@codexr/local-models/discovery.ts';
+import { isLocalServerId, normalizeLocalBaseUrl } from '@codexr/local-models/servers.ts';
 import type {
     InitializeResponse,
     McpServer,
@@ -38,6 +40,8 @@ import {
     type WorktreeCommitView,
     type WorktreeMergeView,
     type WorktreeStatusView,
+    type DetectedLocalServer,
+    type LocalModelList,
 } from '../../shared/agentSession.ts';
 import { normalizeProjectPath } from '../checkpoints/checkpointStore.ts';
 import { isSameOrInside } from '../trust/trustModel.ts';
@@ -96,6 +100,8 @@ export interface KeyValueStore {
 
 export interface AgentSessionServiceOptions {
     readonly catalog: AgentCatalog;
+    /** #311/#314: how local model servers are asked for their models (Node's fetch by default; tests inject one). */
+    readonly localFetch?: FetchFn;
     /** AF2: installs presets' adapters on request; absent in the smoke run (no download may happen). */
     readonly installer?: AgentInstaller;
     readonly store: SessionStore;
@@ -346,6 +352,48 @@ export class AgentSessionService {
         this.remember(window);
         await this.options.catalog.removeCustom(id);
         this.broadcast({ kind: 'agents-changed' });
+    }
+
+    /** #313: local models run the IDE's own agent bundle, so no command line needs confirming. */
+    async saveLocalModel(window: WindowPort, input: unknown, id: unknown): Promise<AgentView> {
+        this.remember(window);
+        const definition = await this.options.catalog.saveLocal(input, id);
+        this.broadcast({ kind: 'agents-changed' });
+        return this.options.catalog.view(definition);
+    }
+
+    async removeLocalModel(window: WindowPort, id: unknown): Promise<void> {
+        this.remember(window);
+        await this.options.catalog.removeLocal(id);
+        this.broadcast({ kind: 'agents-changed' });
+    }
+
+    private localFetch(): FetchFn {
+        return this.options.localFetch ?? ((input, init) => fetch(input, init));
+    }
+
+    /** #311: the models a local server offers; a saved model's stored key is used when none is typed. */
+    async listLocalModels(window: WindowPort, server: unknown, baseUrl: unknown, apiKey: unknown, id: unknown): Promise<LocalModelList> {
+        this.remember(window);
+        if (!isLocalServerId(server)) {
+            return { ok: false, error: 'Pick the server that runs the model.' };
+        }
+        let url: string;
+        try {
+            url = normalizeLocalBaseUrl(typeof baseUrl === 'string' && baseUrl.length <= 2048 ? baseUrl : '');
+        } catch (error) {
+            return { ok: false, error: errorMessage(error) };
+        }
+        const typed = typeof apiKey === 'string' && apiKey.trim() && apiKey.length <= 4096 ? apiKey.trim() : undefined;
+        const stored = !typed && typeof id === 'string' ? this.options.catalog.localKey(id) : undefined;
+        return listLocalModels(url, { fetch: this.localFetch(), apiKey: typed ?? stored, serverId: server });
+    }
+
+    /** #314: probes the known servers' default ports on this machine, only now that the person asked. */
+    async detectLocalServers(window: WindowPort): Promise<DetectedLocalServer[]> {
+        this.remember(window);
+        const found = await detectLocalServers(this.localFetch());
+        return found.map((entry) => ({ server: entry.serverId, label: entry.label, baseUrl: entry.baseUrl, models: entry.models }));
     }
 
     async login(window: WindowPort, ref: unknown, methodId: unknown, cols?: unknown, rows?: unknown): Promise<LoginTerminal | null> {

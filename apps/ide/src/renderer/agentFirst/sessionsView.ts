@@ -4,6 +4,7 @@ import { el, icon } from '../dom.ts';
 import { attentionCounts, availabilityLabel, defaultAgent, filterProjects, shortTime, statusLabel } from './sessionsModel.ts';
 import { agentActions, type AgentSetupDeps } from './agentSetup.ts';
 import { branchLabel, branchTitle, parseWorktreeChoice } from './worktreeModel.ts';
+import { localModelForm } from './localModelForm.ts';
 
 /**
  * The left column of the agent-first workbench (AF7, #272): the person's
@@ -169,10 +170,34 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
     const projectList = el('div', { className: 'af-projects', attrs: { 'data-testid': 'af-projects' } });
     const agentList = el('ul', { className: 'af-agent-list', attrs: { 'data-testid': 'af-agents' } });
     const agentsRefresh = iconButton('Check the agents again', ICONS.refresh, () => void refreshAgents(true));
+    // #313: local models are added below the list, in a form that opens in place.
+    const localSlot = el('div', { className: 'af-local-slot', attrs: { 'data-testid': 'af-local-slot' } });
+    const addLocalButton = el('button', { className: 'secondary-button af-small-button af-add-local', text: 'Add local model', attrs: { type: 'button', 'data-testid': 'af-add-local', title: 'Use a model served by Ollama, LM Studio, llama.cpp, vLLM, Jan or any OpenAI-compatible server' } });
+    const closeLocalForm = (): void => {
+        localSlot.replaceChildren();
+        addLocalButton.hidden = false;
+    };
+    const openLocalForm = (editing: AgentView | null): void => {
+        addLocalButton.hidden = true;
+        const form = localModelForm(editing, {
+            api: deps.api,
+            onStatus: deps.onStatus,
+            onSaved: () => {
+                closeLocalForm();
+                void refreshAgents(false);
+            },
+            onClose: closeLocalForm,
+        });
+        localSlot.replaceChildren(form);
+        form.querySelector<HTMLElement>(editing ? 'input[data-testid="af-local-model"]' : 'button[data-testid="af-local-detect"]')?.focus();
+    };
+    addLocalButton.addEventListener('click', () => openLocalForm(null));
     const agentsSection = el('details', { className: 'af-agents', attrs: { open: '' } }, [
         el('summary', { className: 'af-section-title' }, [el('span', { text: 'Agents' }), agentsRefresh]),
         agentList,
-        el('p', { className: 'muted af-agents-note', text: 'Claude Code, Codex and Gemini CLI run with their own sign-in: your subscription or API key stays with the vendor\'s tool, and Code-XR never sees its tokens.' }),
+        el('div', { className: 'af-local-add-row' }, [addLocalButton]),
+        localSlot,
+        el('p', { className: 'muted af-agents-note', text: 'Claude Code, Codex and Gemini CLI run with their own sign-in: your subscription or API key stays with the vendor\'s tool, and Code-XR never sees its tokens. Local models run on your own machine.' }),
     ]);
 
     container.replaceChildren(el('div', { className: 'af-sessions' }, [
@@ -193,6 +218,7 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
         onStatus: deps.onStatus,
         ...(deps.runInTerminal ? { runInTerminal: deps.runInTerminal } : {}),
         refresh: (probe) => refreshAgents(probe),
+        editLocal: (agent) => openLocalForm(agent),
         replace: (view) => {
             agents = agents.map((other) => (other.ref === view.ref ? view : other));
             renderAgents();

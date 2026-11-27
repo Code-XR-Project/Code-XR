@@ -11,6 +11,8 @@ import { terminalEnvironment } from '../terminal/terminalService.ts';
 import { isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { addFolderChangeListener, currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
 import { AgentCatalog } from './agentCatalog.ts';
+import { KeyVault } from '../agents/keyVault.ts';
+import { electronCipher } from '../agents/electronCipher.ts';
 import { AgentInstaller, consentDetail } from './agentInstaller.ts';
 import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
 import { SessionStore } from './sessionStore.ts';
@@ -93,6 +95,10 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
         platform: process.platform,
         execPath: process.execPath,
         builtinProfiles: () => options.profiles.list(),
+        // #312: the IDE's own local-model agent, run like the Code-XR MCP server (ELECTRON_RUN_AS_NODE).
+        localAgentScript: path.join(app.getAppPath(), 'out', 'localAgent', 'index.cjs'),
+        // #313: local models' keys (most need none) in the OS secret store, beside the chats.
+        localKeys: new KeyVault(path.join(dir, 'local-model-keys.json'), electronCipher()),
     });
 
     const ports = new Map<number, WindowPort>();

@@ -6,7 +6,7 @@ import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
 import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo, type WorkspaceTrustInfo } from '../shared/api.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
-import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AcpAgentDefinition, type AgentSessionMessage, type ImportableSession, type PromptAttachment } from '../shared/agentSession.ts';
+import { AGENT_SESSION_CHANNELS, AGENT_SESSION_EVENTS, type AcpAgentDefinition, type AgentSessionMessage, type ImportableSession, type LocalModelInput, type PromptAttachment } from '../shared/agentSession.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
 import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
@@ -77,6 +77,10 @@ const api: CodeXRApi = Object.freeze({
         probeAgent: (ref: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.probeAgent, ref),
         saveCustomAgent: (input: Omit<AcpAgentDefinition, 'id' | 'preset'>, id?: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.saveCustomAgent, input, id),
         removeCustomAgent: (id: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.removeCustomAgent, id),
+        saveLocalModel: (input: LocalModelInput, id?: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.saveLocalModel, input, id),
+        removeLocalModel: (id: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.removeLocalModel, id),
+        listLocalModels: (server: string, baseUrl: string, apiKey?: string, id?: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listLocalModels, server, baseUrl, apiKey, id),
+        detectLocalServers: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.detectLocalServers),
         login: (ref: string, methodId: string, cols?: number, rows?: number) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.login, ref, methodId, cols, rows),
         listProjects: () => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.listProjects),
         get: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.get, sessionId),

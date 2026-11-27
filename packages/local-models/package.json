@@ -1,0 +1,11 @@
+{
+  "name": "@codexr/local-models",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local models (Ollama, LM Studio, llama.cpp, vLLM, Jan, LocalAI, any OpenAI-compatible server) as Code-XR agents: presets, endpoint rules, discovery and the host-neutral agent loop. Shared by the Code-XR IDE and the VS Code extension.",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*"
+  }
+}

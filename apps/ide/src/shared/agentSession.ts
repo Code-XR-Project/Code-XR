@@ -30,6 +30,46 @@ export interface AcpAgentDefinition {
     readonly preset?: AgentPresetId;
     /** One line: what the agent is and how it bills ("Uses your Claude subscription or an API key"). */
     readonly description: string;
+    /** #313: a local model (epic #310), run by the IDE's own local agent; `command`/`args` are unused then. */
+    readonly local?: LocalModelSettings;
+}
+
+/** #313: where a local model is served. `server` is a preset id of packages/local-models (servers.ts). */
+export interface LocalModelSettings {
+    readonly server: string;
+    /** The OpenAI-compatible base URL, normalised (ends in /v1 for the known servers). */
+    readonly baseUrl: string;
+    readonly model: string;
+}
+
+/** #313: what the add-local-model form sends. `apiKey` absent keeps the stored key, '' removes it. */
+export interface LocalModelInput {
+    readonly name: string;
+    readonly server: string;
+    readonly baseUrl: string;
+    readonly model: string;
+    readonly apiKey?: string;
+}
+
+/** #311: one model a local server offers. */
+export interface LocalModelEntry {
+    readonly id: string;
+    /** Bytes on disk, when the server says (Ollama). */
+    readonly size?: number;
+    /** e.g. "7.6B", when the server says (Ollama). */
+    readonly parameters?: string;
+}
+
+export type LocalModelList =
+    | { readonly ok: true; readonly models: readonly LocalModelEntry[] }
+    | { readonly ok: false; readonly error: string };
+
+/** #314: a local server that answered "Detect". */
+export interface DetectedLocalServer {
+    readonly server: string;
+    readonly label: string;
+    readonly baseUrl: string;
+    readonly models: readonly LocalModelEntry[];
 }
 
 export type AgentAvailability =
@@ -58,6 +98,8 @@ export interface AgentView {
     readonly authMethods?: readonly AuthMethodView[];
     /** AF2: the version of a preset the IDE installed itself (under its own folder); absent otherwise. */
     readonly installedVersion?: string;
+    /** #313: a local model's server and model; `hasKey` says an API key is stored (never the key). */
+    readonly local?: LocalModelSettings & { readonly hasKey: boolean };
 }
 
 /**
@@ -639,6 +681,10 @@ export const AGENT_SESSION_CHANNELS = {
     probeAgent: 'codexr:agent-sessions:probe-agent',
     saveCustomAgent: 'codexr:agent-sessions:save-custom-agent',
     removeCustomAgent: 'codexr:agent-sessions:remove-custom-agent',
+    saveLocalModel: 'codexr:agent-sessions:save-local-model',
+    removeLocalModel: 'codexr:agent-sessions:remove-local-model',
+    listLocalModels: 'codexr:agent-sessions:list-local-models',
+    detectLocalServers: 'codexr:agent-sessions:detect-local-servers',
     login: 'codexr:agent-sessions:login',
     listProjects: 'codexr:agent-sessions:list-projects',
     get: 'codexr:agent-sessions:get',
@@ -690,6 +736,16 @@ export interface AgentSessionsApi {
     probeAgent(ref: string): Promise<AgentView>;
     saveCustomAgent(input: Omit<AcpAgentDefinition, 'id' | 'preset'>, id?: string): Promise<AgentView>;
     removeCustomAgent(id: string): Promise<void>;
+    /** #313: adds (no `id`) or edits a local model; the key, if any, goes to the OS secret store. */
+    saveLocalModel(input: LocalModelInput, id?: string): Promise<AgentView>;
+    removeLocalModel(id: string): Promise<void>;
+    /**
+     * #311: the models a local server offers. Without `apiKey`, a saved local
+     * model's stored key (`id`) is used, if it has one.
+     */
+    listLocalModels(server: string, baseUrl: string, apiKey?: string, id?: string): Promise<LocalModelList>;
+    /** #314: probes the known servers' default ports on this machine, once, now. */
+    detectLocalServers(): Promise<readonly DetectedLocalServer[]>;
     /**
      * Runs one of the agent's login methods. An `agent` method resolves once
      * the agent finished its own login (it may open the browser). A `terminal`

@@ -23,6 +23,8 @@ export interface AgentSetupDeps {
     refresh(probe: boolean): Promise<void>;
     /** One agent's new view, after a check. */
     replace(view: AgentView): void;
+    /** #313: opens the local-model form on this local model. */
+    editLocal?(agent: AgentView): void;
 }
 
 /** The buttons of an agent and, below them, the slot where an install description opens. */
@@ -116,6 +118,24 @@ export function agentActions(agent: AgentView, deps: AgentSetupDeps): HTMLElemen
                         showError(panel, `Could not read what ${agent.name} would install: ${errorText(error)}`);
                     });
             }, action === 'install' ? ' af-install-button' : '');
+        } else if (action === 'edit-local') {
+            if (deps.editLocal) {
+                button('Edit', `Change the server, model or key of ${agent.name}`, () => deps.editLocal?.(agent));
+            }
+        } else if (action === 'remove-local') {
+            button('Remove', `Remove ${agent.name} from the agent list (the model stays on your server)`, (self) => {
+                const id = agent.ref.startsWith('acp:local-') ? agent.ref.slice(4) : '';
+                self.disabled = true;
+                deps.api.removeLocalModel(id)
+                    .then(() => {
+                        deps.onStatus(`${agent.name} was removed from the list.`);
+                        return deps.refresh(false);
+                    })
+                    .catch((error: unknown) => showError(panel, `Could not remove ${agent.name}: ${errorText(error)}`))
+                    .finally(() => {
+                        self.disabled = false;
+                    });
+            }, ' is-danger');
         } else if (action === 'remove') {
             button('Remove', `Remove ${agent.name} (${agent.installedVersion ?? ''}) from the IDE's folder`, (self) => {
                 if (!agent.preset) {

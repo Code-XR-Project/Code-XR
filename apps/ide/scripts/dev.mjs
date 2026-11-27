@@ -45,8 +45,8 @@ function restartElectron() {
 
 // Watch main, both preloads (the window's and the scene view's, #16), the
 // MCP server (AF10) and the extension host (#259); restart Electron after each successful rebuild.
-const pending = new Set(['main', 'preload', 'scenePreload', 'codexrMcp', 'extensionHost']);
-for (const target of /** @type {const} */ (['main', 'preload', 'scenePreload', 'codexrMcp', 'extensionHost'])) {
+const pending = new Set(['main', 'preload', 'scenePreload', 'codexrMcp', 'extensionHost', 'localAgent']);
+for (const target of /** @type {const} */ (['main', 'preload', 'scenePreload', 'codexrMcp', 'extensionHost', 'localAgent'])) {
     const config = nodeTargetConfig(target, { dev: true });
     config.build.watch = {};
     const watcher = /** @type {import('vite').Rollup.RollupWatcher} */ (await build(config));
