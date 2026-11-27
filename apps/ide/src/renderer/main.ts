@@ -55,6 +55,8 @@ if (!root) {
 const api = window.codexr;
 /** Whether this window has a folder open (#18: commands that need one are hidden without it). */
 let folderIsOpen = false;
+/** The open folder's absolute path, for the terminal's file links (#286). */
+let workspaceRoot: string | null = null;
 /** The active editor's file, for quick open's recent list (#164). */
 let activeFile: string | null = null;
 // #169: the layout is remembered in the renderer's storage (inside the IDE's user-data folder).
@@ -198,6 +200,7 @@ function scheduleSessionSave(): void {
 window.addEventListener('beforeunload', saveSession);
 /** The tabs follow the folder: the old folder's session is saved, the new one's restored. */
 function switchTabsFolder(root: string | null): void {
+    workspaceRoot = root;
     // #180: the folder's breakpoints come back with it; a session of the old one ends.
     debug.setFolder(root);
     if (root === sessionRoot && root !== null) {
@@ -562,6 +565,15 @@ api.problems.functionMetrics().then((snapshot) => { if (snapshot) { receiveMetri
 const output = createOutputView(panelHost, api.output, { onError: (message) => workbench.setStatus(message) });
 const terminal = createTerminalPanel(panelHost, api.terminal, appInfo.then((info) => info.platform, () => 'linux'), {
     onError: (message) => workbench.setStatus(message),
+    // #286: Ctrl/Cmd+click on a URL or a file of the folder in the output.
+    links: {
+        workspaceRoot: () => workspaceRoot,
+        listDirectory: (path) => api.workspace.listDirectory(path),
+        openFile: (path, line, column) => void editorGroup().then((group) => (line === undefined ? group.open(path) : group.openAt(path, line, column ?? 1, 0))),
+        openUrl: (url) => {
+            api.workspace.openExternalLink(url).catch((error: unknown) => workbench.setStatus(`Could not open the link: ${String(error)}`));
+        },
+    },
 });
 // #180: the debugger: its view in the side bar, the Debug Console in the panel, breakpoints in the editors.
 const debug = createDebugController({
@@ -791,6 +803,8 @@ registerWorkbenchCommands(registry, {
     toggleTerminal: () => terminal.toggle(),
     newTerminal: () => void terminal.newTerminal(),
     closeTerminalPanel: () => terminal.hide(),
+    findInTerminal: () => terminal.find(),
+    terminalHasFocus: () => terminal.hasFocus(),
     showOutput: () => output.show(),
     showProblems: () => problemsView.focusFilter(),
     showView: (view) => workbench.showView(view),
