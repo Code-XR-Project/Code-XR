@@ -24,6 +24,8 @@ export interface ProblemsView {
     setEditorProblems(problems: readonly Problem[]): void;
     /** The metric problems of the last analysis; `measured` false while none has run. */
     setMetricProblems(problems: readonly Problem[], measured: boolean): void;
+    /** #176: the problems a task's last run reported (replaces that task's previous ones). */
+    setTaskProblems(task: string, problems: readonly Problem[]): void;
     /** Moves the focus into the filter (View: Focus Problems). */
     focusFilter(): void;
     /** #178: shows the panel filtered to these words (a lens's function). */
@@ -40,6 +42,8 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
     let editorProblems: readonly Problem[] = [];
     let metricProblems: readonly Problem[] = [];
     let measured = false;
+    /** #176: what each task's problem matchers found on its last run, by task. */
+    const taskProblems = new Map<string, readonly Problem[]>();
     const severities = new Set<ProblemSeverity>(PROBLEM_SEVERITIES);
     let origin: ProblemOrigin | 'all' = 'all';
     const collapsed = new Set<string>();
@@ -69,6 +73,7 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
         el('option', { text: 'All sources', attrs: { value: 'all' } }),
         el('option', { text: 'Code-XR metrics', attrs: { value: 'metrics' } }),
         el('option', { text: 'Editor', attrs: { value: 'editor' } }),
+        el('option', { text: 'Tasks', attrs: { value: 'task' } }),
     ]);
     const collapseButton = el('button', { className: 'icon-button', attrs: { type: 'button', title: 'Collapse All', 'aria-label': 'Collapse All', 'data-testid': 'problems-collapse' } }, [icon(COLLAPSE)]);
     const list = el('div', { className: 'problems-list', attrs: { role: 'tree', 'aria-label': 'Problems', 'data-testid': 'problems-list' } });
@@ -84,7 +89,7 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
     });
 
     function all(): Problem[] {
-        return [...editorProblems, ...metricProblems];
+        return [...editorProblems, ...metricProblems, ...[...taskProblems.values()].flat()];
     }
 
     function schedule(): void {
@@ -229,6 +234,14 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
         setMetricProblems(problems: readonly Problem[], wasMeasured: boolean): void {
             metricProblems = problems;
             measured = wasMeasured;
+            schedule();
+        },
+        setTaskProblems(task: string, problems: readonly Problem[]): void {
+            if (problems.length === 0) {
+                taskProblems.delete(task);
+            } else {
+                taskProblems.set(task, problems);
+            }
             schedule();
         },
         focusFilter(): void {

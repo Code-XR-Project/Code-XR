@@ -11,7 +11,7 @@
 export type ProblemSeverity = 'error' | 'warning' | 'info';
 
 /** Where a problem comes from, for the source filter. */
-export type ProblemOrigin = 'editor' | 'metrics';
+export type ProblemOrigin = 'editor' | 'metrics' | 'task';
 
 export interface Problem {
     /** Workspace-relative path, with forward slashes. */

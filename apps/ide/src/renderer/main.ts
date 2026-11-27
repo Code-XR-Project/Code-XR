@@ -5,6 +5,7 @@ import { createAnalysisRunView } from './analysisRunView.ts';
 import { createScenePanel } from './scenePanel.ts';
 import { createNotificationCenter, type NotificationAction } from './notifications.ts';
 import { createWorkspaceTrustView } from './trustView.ts';
+import { createTaskRunner } from './taskRunner.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import { createTerminalPanel } from './terminal/terminalPanel.ts';
 import { createOutputView } from './outputPanel/outputView.ts';
@@ -587,6 +588,23 @@ const editorStatus = createEditorStatus(workbench.editorStatus, {
     pickEndOfLine,
     pickLanguage,
 });
+// #176: tasks and Run Current File, each run in a terminal of its own; the main process gates them on trust.
+const tasks = createTaskRunner({
+    api: api.tasks,
+    notifications,
+    pick: (label, items, apply) => pick(label, items.map((item) => ({ ...item, value: item.id })), apply),
+    runInTerminal: (label, start) => terminal.runTask(label, start),
+    activeFile: () => activeFile,
+    saveActiveIfDirty: async () => {
+        if (editors && activeFile && editors.dirtyPaths().includes(activeFile)) {
+            await editors.save();
+        }
+    },
+    openFile: (path) => void editorGroup().then((group) => group.open(path)),
+    manageTrust: () => workspaceTrust.manage(),
+    showProblems: (task, problems) => problemsView.setTaskProblems(task, problems),
+    setStatus: (message) => workbench.setStatus(message),
+});
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {
     openCommandPalette: () => quickInput.open(COMMAND_PREFIX),
@@ -611,6 +629,9 @@ registerWorkbenchCommands(registry, {
     splitEditor: () => editors?.split(),
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
     openMarkdownPreview: () => { editors?.openMarkdownPreview(); },
+    runTask: () => tasks.runTask(),
+    runCurrentFile: () => tasks.runCurrentFile(),
+    configureTasks: () => tasks.configure(),
     canPreviewMarkdown: () => editors?.canPreviewMarkdown() ?? false,
     toggleTerminal: () => terminal.toggle(),
     newTerminal: () => void terminal.newTerminal(),

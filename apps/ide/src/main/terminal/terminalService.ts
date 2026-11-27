@@ -47,6 +47,11 @@ export interface TerminalServiceOptions {
     readonly flushDelayMs?: number;
 }
 
+export interface CommandHooks {
+    onData?(data: string): void;
+    onExit?(id: number, exitCode: number): void;
+}
+
 export const MAX_TERMINALS_PER_WINDOW = 20;
 export const MAX_INPUT_LENGTH = 1_000_000;
 const MAX_DIMENSION = 1000;
@@ -93,6 +98,20 @@ export class TerminalService {
     }
 
     async create(owner: TerminalOwner, profileId: unknown, cols: unknown, rows: unknown, cwd: string): Promise<TerminalCreated> {
+        return this.start(owner, profileId, cols, rows, cwd, (profile) => profile.args, {});
+    }
+
+    /**
+     * #176: a terminal that runs one command line with the default profile's
+     * shell (`args` builds the shell's arguments from its profile) and ends
+     * with it. `hooks` hear its output and its exit code, for the problem
+     * matchers and the task's result; the window hears them as usual.
+     */
+    createCommand(owner: TerminalOwner, cols: unknown, rows: unknown, cwd: string, args: (profile: TerminalProfile) => readonly string[], hooks: CommandHooks): Promise<TerminalCreated> {
+        return this.start(owner, null, cols, rows, cwd, args, hooks);
+    }
+
+    private async start(owner: TerminalOwner, profileId: unknown, cols: unknown, rows: unknown, cwd: string, args: (profile: TerminalProfile) => readonly string[], hooks: CommandHooks): Promise<TerminalCreated> {
         if (!isDimension(cols) || !isDimension(rows)) {
             throw new Error('Invalid terminal size.');
         }
@@ -100,7 +119,7 @@ export class TerminalService {
             throw new Error(`At most ${MAX_TERMINALS_PER_WINDOW} terminals per window.`);
         }
         const profile = await this.options.resolveProfile(profileId);
-        const pty = await this.options.spawn(profile.path, profile.args, {
+        const pty = await this.options.spawn(profile.path, args(profile), {
             name: 'xterm-256color',
             cols,
             rows,
@@ -114,7 +133,10 @@ export class TerminalService {
         });
         const running: Running = { owner, pty, pending: '', timer: undefined, exited: false, gone };
         this.terminals.set(id, running);
-        pty.onData((data) => this.queue(id, running, data));
+        pty.onData((data) => {
+            hooks.onData?.(data);
+            this.queue(id, running, data);
+        });
         pty.onExit(({ exitCode }) => {
             markGone();
             running.exited = true;
@@ -123,6 +145,7 @@ export class TerminalService {
             if (!owner.isDestroyed()) {
                 owner.send(this.options.exitChannel, { id, exitCode });
             }
+            hooks.onExit?.(id, exitCode);
         });
         return { id, profile, cwd };
     }

@@ -70,6 +70,10 @@ export interface WorkbenchCommandTargets {
     /** #179: the Markdown preview beside the editor, on the active file. */
     openMarkdownPreview(): void;
     canPreviewMarkdown(): boolean;
+    /** #176: the folder's tasks, the active file with its interpreter, and the user tasks file. */
+    runTask(): void;
+    runCurrentFile(): void;
+    configureTasks(): void;
 }
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
@@ -107,6 +111,9 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('absolute') },
         { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('relative') },
         { id: 'file.revealInExplorer', category: 'File', title: 'Reveal Active File in Explorer', enabled: targets.hasActiveEditor, run: targets.revealActiveFile },
+        { id: 'workbench.action.tasks.runTask', category: 'Tasks', title: 'Run Task', enabled: targets.hasFolder, run: targets.runTask },
+        { id: 'workbench.action.tasks.configureTaskRunner', category: 'Tasks', title: 'Configure Tasks', enabled: targets.hasFolder, run: targets.configureTasks },
+        { id: 'workbench.action.runCurrentFile', category: 'Run', title: 'Run Current File', keybinding: 'CmdOrCtrl+F5', enabled: targets.hasActiveEditor, run: targets.runCurrentFile },
         { id: 'terminal.toggle', category: 'View', title: 'Toggle Terminal', ...menu('terminal.toggle'), run: targets.toggleTerminal },
         { id: 'terminal.new', category: 'Terminal', title: 'Create New Terminal', ...menu('terminal.new'), run: targets.newTerminal },
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },

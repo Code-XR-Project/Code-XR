@@ -10,8 +10,8 @@ import { log } from '../log.ts';
 import { currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
 import { memoryStore, ProfileRegistry } from './profileRegistry.ts';
 import { splitArgs } from './shellProfiles.ts';
-import { ptyCommandRunner, type CommandRunner } from '../agents/tools/commandTool.ts';
-import { TerminalService, type PtyProcess, type SpawnOptions } from './terminalService.ts';
+import { ptyCommandRunner, shellInvocation, type CommandRunner } from '../agents/tools/commandTool.ts';
+import { TerminalService, type CommandHooks, type PtyProcess, type SpawnOptions } from './terminalService.ts';
 
 /**
  * Wires the terminal (#137) into Electron: node-pty, the settings file, the
@@ -29,6 +29,10 @@ export interface TerminalHost {
     resize(contents: WebContents, id: unknown, cols: unknown, rows: unknown): void;
     kill(contents: WebContents, id: unknown): void;
     killAll(): Promise<void>;
+    /** #176: a terminal of this window that runs one command line in `cwd`, with the default profile's shell. */
+    runCommand(contents: WebContents, command: string, cwd: string, cols: unknown, rows: unknown, hooks: CommandHooks): Promise<TerminalCreated>;
+    /** The default profile's shell, which task command lines are quoted for. */
+    defaultShellPath(): Promise<string>;
     /** Runs agents' commands (epic #189, A9) with the default profile's shell. */
     readonly commandRunner: CommandRunner;
 }
@@ -154,6 +158,13 @@ export function createTerminalHost(options: { readonly isSmoke: boolean }): Term
             log.info(`Terminal ${created.id}: ${created.profile.name} in ${cwd}`);
             return created;
         },
+        async runCommand(contents, command, cwd, cols, rows, hooks) {
+            track(contents);
+            const created = await service.createCommand(contents, cols, rows, cwd, (profile) => shellInvocation(profile.path, command), hooks);
+            log.info(`Terminal ${created.id}: task with ${created.profile.name} in ${cwd}`);
+            return created;
+        },
+        defaultShellPath: async () => (await registry.resolve(null)).path,
         input: (contents, id, data) => service.input(contents, id, data),
         resize: (contents, id, cols, rows) => service.resize(contents, id, cols, rows),
         kill: (contents, id) => service.kill(contents, id),

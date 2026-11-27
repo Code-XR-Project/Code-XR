@@ -182,7 +182,25 @@ Running as root (containers, some CI images) requires `--no-sandbox`, which the 
 
 A folder can bring things that run: Git reads the repository's own hooks, filters and configuration, pyright runs the interpreter a project's config names, and tasks (#176) are commands the folder defines. So the first time a folder opens, a notification asks whether you trust its authors: **Trust Folder**, **Trust All in** its parent folder (every folder below a trusted one is trusted), or **Restricted Mode**. Until it is answered the folder is restricted, and a **Restricted Mode** shield sits at the start of the status bar; clicking it, or **Manage Workspace Trust** in the palette, changes the answer later. A folder can be put in Restricted Mode even inside a trusted parent.
 
-In Restricted Mode the main process runs no Git in the folder (Source Control says why), starts no Python language server, and will refuse tasks. Reading, editing, search, the terminal you open yourself, the IDE's own TypeScript server and the Code-XR analysis (it parses files, it never runs them) work either way. The decisions are stored in `workspace-trust.json` in the IDE's user-data folder, never in the project, so a folder cannot trust itself; paths compare without case on Windows and macOS (`main/trust/`, `renderer/trustView.ts`). The smoke run checks that a new folder starts restricted with Git off, and that trusting it turns Git on.
+In Restricted Mode the main process runs no Git in the folder (Source Control says why), starts no Python language server, and refuses tasks (Run Task and Run Current File say why and offer Manage Workspace Trust). Reading, editing, search, the terminal you open yourself, the IDE's own TypeScript server and the Code-XR analysis (it parses files, it never runs them) work either way. The decisions are stored in `workspace-trust.json` in the IDE's user-data folder, never in the project, so a folder cannot trust itself; paths compare without case on Windows and macOS (`main/trust/`, `renderer/trustView.ts`). The smoke run checks that a new folder starts restricted with Git off, and that trusting it turns Git on.
+
+## Tasks and Run Current File (#176)
+
+**Tasks: Run Task** (palette) lists what the open folder offers to run: the `scripts` of its root `package.json` (run with the package manager its lock file names: npm, pnpm, yarn or bun; `pre`/`post` hooks are not listed, the package manager runs them), the targets of its root `Makefile`, and the tasks you write in `.codexr/tasks.json` (**Tasks: Configure Tasks** creates it with an example; comments and trailing commas are allowed):
+
+```jsonc
+{
+    "tasks": [
+        { "label": "Typecheck", "command": "npx tsc --noEmit", "problemMatchers": ["tsc"] }
+    ]
+}
+```
+
+Each run gets a terminal tab of its own, in the folder, started with the shell of the default terminal profile (#137) and headed by the command line. The tab stays after the task ends and shows its exit code; a failure is also a notification. **Problem matchers** read the output once the task ends and send what they find to the Problems panel (source **Tasks**), replacing that task's previous problems: `tsc` (plain and `--pretty` lines) and `eslint` (its default report). A `package.json` script or a user task that runs `tsc` or `eslint` gets the matcher by itself; `problemMatchers` in `tasks.json` sets them explicitly (`[]` turns them off).
+
+**Run: Run Current File** (`Ctrl/Cmd+F5`) saves the active file and runs it with its interpreter: `.py` with **Python Interpreter** (`run.pythonInterpreter`; empty means `python3`, or `python` on Windows), `.js`/`.mjs`/`.cjs`/`.ts` with **Node Interpreter** (`run.nodeInterpreter`; `node`, which runs TypeScript itself from Node 22.18), and `.sh`, `.ps1`, `.rb`, `.pl`, `.php`, `.lua`, `.R`, `.go` (`go run`), `.java`, `.dart`, `.jl` with the usual program. The interpreter is looked up on `PATH` (with `PATHEXT` on Windows) before anything starts, so a missing one is a clear message rather than a shell error.
+
+The renderer names a task only by the id the main process listed, or a file by its workspace path; the main process re-reads the folder, builds the command line (quoted for bash/zsh/fish, PowerShell or cmd), checks the trust and starts the terminal (`shared/tasks.ts`, pure and unit-tested; `main/tasks/`; `renderer/taskRunner.ts`). The smoke run checks that a task is refused in an untrusted folder.
 
 ## Problems panel (#173)
 
