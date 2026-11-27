@@ -6,6 +6,8 @@ import {
 } from '../shared/extensionHostProtocol.ts';
 import type { ExtensionActivation, ExtensionId } from '../shared/extensions.ts';
 import { createVscodeApi } from './api.ts';
+import { DocumentsAndEditors } from './documents.ts';
+import { LanguageFeatures } from './languageFeatures.ts';
 import { ConfigurationModel } from './configuration.ts';
 import { FileMemento } from './memento.ts';
 import type { TextDocumentModel } from './textDocument.ts';
@@ -69,6 +71,9 @@ export class ExtensionHost {
     readonly onDidGrantWorkspaceTrust = new EventEmitter<void>();
     readonly onDidChangeExtensions = new EventEmitter<void>();
     readonly contentProviders = new Map<string, { provideTextDocumentContent(uri: Uri, token: unknown): unknown }>();
+    /** #260: the editor's documents and active editor, and the extensions' language features. */
+    readonly documentsAndEditors: DocumentsAndEditors;
+    readonly languageFeatures: LanguageFeatures;
     private readonly reported = new Set<string>();
     private readonly firedEvents = new Set<string>();
     private moduleHooked = false;
@@ -77,6 +82,8 @@ export class ExtensionHost {
 
     constructor(rpc: RpcEndpoint) {
         this.rpc = rpc;
+        this.documentsAndEditors = new DocumentsAndEditors(this);
+        this.languageFeatures = new LanguageFeatures(this);
         this.configuration = new ConfigurationModel((key, value, target) => this.rpc.request(MAIN_METHODS.updateConfiguration, key, toWire(value), target).then(() => undefined));
     }
 
@@ -93,6 +100,11 @@ export class ExtensionHost {
             this.learnLanguages(json);
         }
         this.hookRequire();
+        // The editor's state before any extension activates, so `*` extensions see the open files.
+        this.documentsAndEditors.accept([
+            ...(data.documents ?? []).map((document) => ({ kind: 'open' as const, ...document })),
+            { kind: 'editor' as const, editor: data.activeEditor ?? null },
+        ]);
         this.log({ level: 'info', extensionId: null, message: `Extension host started (pid ${process.pid}) with ${data.extensions.length} extension(s) with code.` });
     }
 
@@ -480,6 +492,11 @@ export class ExtensionHost {
         }
         const command = this.commands.get(id);
         if (!command) {
+            // #260: a code action or lens may run a built-in `vscode.*` command (never a workbench one: that would loop back).
+            const builtin = await this.builtinCommand(id, fromWire(args) as unknown[]);
+            if (builtin.handled) {
+                return toWire(builtin.result);
+            }
             throw new Error(`command '${id}' not found`);
         }
         const result: unknown = await command.callback.apply(command.thisArg, (fromWire(args) as unknown[]));

@@ -273,6 +273,8 @@ export function createEditorGroup(
         showFunctionProblems?(path: string, name: string): void;
         /** #172: a tab's text matches the disk again (saved, reloaded, or undone back): its outline may be measured again. */
         onFileClean?(path: string): void;
+        /** #260: a file was written to disk (extensions hear `onDidSaveTextDocument`). */
+        onDidSave?(path: string): void;
         /** #178: "Reveal in XR Scene" from the editor's context menu, on the active file. */
         revealInScene?(path: string): void;
         /** #175: the files' text at HEAD and their blame, from the main process (null when Git has nothing to say). */
@@ -949,6 +951,7 @@ export function createEditorGroup(
             doc.mtimeMs = result.mtimeMs;
             doc.diskState = 'same';
             refreshDoc(doc);
+            callbacks.onDidSave?.(doc.path);
             if (reason === 'explicit') {
                 callbacks.onStatus(`Saved ${doc.path}`);
             }

@@ -792,12 +792,12 @@ export class ColorPresentation {
 
 export class InlayHint {
     position: Position;
-    label: string;
+    label: string | InlayHintLabelPart[];
     kind?: InlayHintKind;
     tooltip?: string | MarkdownString;
     paddingLeft?: boolean;
     paddingRight?: boolean;
-    constructor(position: Position, label: string, kind?: InlayHintKind) {
+    constructor(position: Position, label: string | InlayHintLabelPart[], kind?: InlayHintKind) {
         this.position = position;
         this.label = label;
         if (kind !== undefined) {
@@ -818,6 +818,201 @@ export class SelectionRange {
         }
     }
 }
+
+/* ------- hierarchies, inline values and completions: the classes vscode-languageclient extends at load ------- */
+
+export class CallHierarchyItem {
+    kind: SymbolKind;
+    name: string;
+    detail?: string;
+    uri: Uri;
+    range: Range;
+    selectionRange: Range;
+    tags?: SymbolTag[];
+    constructor(kind: SymbolKind, name: string, detail: string, uriValue: Uri, range: Range, selectionRange: Range) {
+        this.kind = kind;
+        this.name = name;
+        this.detail = detail;
+        this.uri = uriValue;
+        this.range = range;
+        this.selectionRange = selectionRange;
+    }
+}
+export class CallHierarchyIncomingCall {
+    from: CallHierarchyItem;
+    fromRanges: Range[];
+    constructor(from: CallHierarchyItem, fromRanges: Range[]) {
+        this.from = from;
+        this.fromRanges = fromRanges;
+    }
+}
+export class CallHierarchyOutgoingCall {
+    to: CallHierarchyItem;
+    fromRanges: Range[];
+    constructor(to: CallHierarchyItem, fromRanges: Range[]) {
+        this.to = to;
+        this.fromRanges = fromRanges;
+    }
+}
+export class TypeHierarchyItem {
+    kind: SymbolKind;
+    name: string;
+    detail?: string;
+    uri: Uri;
+    range: Range;
+    selectionRange: Range;
+    tags?: SymbolTag[];
+    constructor(kind: SymbolKind, name: string, detail: string, uriValue: Uri, range: Range, selectionRange: Range) {
+        this.kind = kind;
+        this.name = name;
+        this.detail = detail;
+        this.uri = uriValue;
+        this.range = range;
+        this.selectionRange = selectionRange;
+    }
+}
+export class InlayHintLabelPart {
+    value: string;
+    tooltip?: string | MarkdownString;
+    location?: Location;
+    command?: Command;
+    constructor(value: string) {
+        this.value = value;
+    }
+}
+export class InlineCompletionItem {
+    insertText: string | SnippetString;
+    filterText?: string;
+    range?: Range;
+    command?: Command;
+    constructor(insertText: string | SnippetString, range?: Range, command?: Command) {
+        this.insertText = insertText;
+        if (range) {
+            this.range = range;
+        }
+        if (command) {
+            this.command = command;
+        }
+    }
+}
+export class InlineCompletionList {
+    items: InlineCompletionItem[];
+    constructor(items: InlineCompletionItem[]) {
+        this.items = items;
+    }
+}
+export class InlineValueText {
+    readonly range: Range;
+    readonly text: string;
+    constructor(range: Range, text: string) {
+        this.range = range;
+        this.text = text;
+    }
+}
+export class InlineValueVariableLookup {
+    readonly range: Range;
+    readonly variableName?: string;
+    readonly caseSensitiveLookup: boolean;
+    constructor(range: Range, variableName?: string, caseSensitiveLookup = true) {
+        this.range = range;
+        if (variableName !== undefined) {
+            this.variableName = variableName;
+        }
+        this.caseSensitiveLookup = caseSensitiveLookup;
+    }
+}
+export class InlineValueEvaluatableExpression {
+    readonly range: Range;
+    readonly expression?: string;
+    constructor(range: Range, expression?: string) {
+        this.range = range;
+        if (expression !== undefined) {
+            this.expression = expression;
+        }
+    }
+}
+export class EvaluatableExpression {
+    readonly range: Range;
+    readonly expression?: string;
+    constructor(range: Range, expression?: string) {
+        this.range = range;
+        if (expression !== undefined) {
+            this.expression = expression;
+        }
+    }
+}
+export class LinkedEditingRanges {
+    readonly ranges: Range[];
+    readonly wordPattern?: RegExp;
+    constructor(ranges: Range[], wordPattern?: RegExp) {
+        this.ranges = ranges;
+        if (wordPattern) {
+            this.wordPattern = wordPattern;
+        }
+    }
+}
+export class SemanticTokensEdit {
+    readonly start: number;
+    readonly deleteCount: number;
+    readonly data?: Uint32Array;
+    constructor(start: number, deleteCount: number, data?: Uint32Array) {
+        this.start = start;
+        this.deleteCount = deleteCount;
+        if (data) {
+            this.data = data;
+        }
+    }
+}
+export class SemanticTokensEdits {
+    readonly resultId?: string;
+    readonly edits: SemanticTokensEdit[];
+    constructor(edits: SemanticTokensEdit[], resultId?: string) {
+        this.edits = edits;
+        if (resultId !== undefined) {
+            this.resultId = resultId;
+        }
+    }
+}
+
+/* ------------------------------ tabs (window.tabGroups) ------------------------------ */
+
+export class TabInputText {
+    readonly uri: Uri;
+    constructor(uriValue: Uri) {
+        this.uri = uriValue;
+    }
+}
+export class TabInputTextDiff {
+    readonly original: Uri;
+    readonly modified: Uri;
+    constructor(original: Uri, modified: Uri) {
+        this.original = original;
+        this.modified = modified;
+    }
+}
+export class TabInputCustom {
+    readonly uri: Uri;
+    readonly viewType: string;
+    constructor(uriValue: Uri, viewType: string) {
+        this.uri = uriValue;
+        this.viewType = viewType;
+    }
+}
+export class TabInputWebview {
+    readonly viewType: string;
+    constructor(viewType: string) {
+        this.viewType = viewType;
+    }
+}
+export class TabInputNotebook {
+    readonly uri: Uri;
+    readonly notebookType: string;
+    constructor(uriValue: Uri, notebookType: string) {
+        this.uri = uriValue;
+        this.notebookType = notebookType;
+    }
+}
+export class TabInputTerminal {}
 
 export class SemanticTokensLegend {
     readonly tokenTypes: string[];

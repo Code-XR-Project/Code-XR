@@ -8,6 +8,7 @@ import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
 import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
+import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
 import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, type ExtensionsChangedEvent, type ExtensionLogEvent, type GalleryQuery } from '../shared/extensions.ts';
 import { DEBUG_IPC_CHANNELS, DEBUG_IPC_EVENTS, type DebugEvent, type DebugStepKind } from '../shared/debug.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
@@ -139,6 +140,8 @@ const api: CodeXRApi = Object.freeze({
         activateByEvent: (event: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsActivateByEvent, event),
         hostReply: (id: number, result: unknown) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsHostReply, id, result),
         onHostUi: (listener: (event: HostUiEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsHostUi, listener),
+        documentEvents: (events: readonly DocumentEvent[]) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsDocuments, events),
+        provide: (request: ProvideRequest) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsProvide, request),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),

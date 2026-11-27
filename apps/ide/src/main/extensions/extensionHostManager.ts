@@ -8,6 +8,7 @@ import {
     activationEventsOf, HOST_METHODS, MAIN_METHODS, RpcEndpoint,
     type DialogRequest, type HostActivationEvent, type HostInitData, type HostLogLine, type HostUiEvent, type UiNotification, type UiRequest,
 } from '../../shared/extensionHostProtocol.ts';
+import { isProviderKind, type DiagnosticsUpdate, type ProvideRequest, type ProviderRegistration, type WorkspaceEditData } from '../../shared/extensionLanguageProtocol.ts';
 import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, isWorkbenchActivationEvent, type ExtensionActivation, type ExtensionId } from '../../shared/extensions.ts';
 import { KeyVault } from '../agents/keyVault.ts';
 import { electronCipher } from '../agents/electronCipher.ts';
@@ -17,6 +18,7 @@ import { isOpenableExternalLink } from '../security.ts';
 import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { addFolderChangeListener, workspaceOrNull } from '../workspace/workspaceWindows.ts';
 import { matchGlob } from '../../extensionHost/glob.ts';
+import { DocumentMirror, FolderPaths } from './documentMirror.ts';
 import { ExtensionSettingsStore } from './extensionSettings.ts';
 import type { ActivationSource, ExtensionsService } from './extensionsService.ts';
 import type { LoadedExtension } from './extensionStore.ts';
@@ -63,6 +65,8 @@ export class ExtensionHostManager implements ActivationSource {
     /** Windows whose workbench said it is ready: only they get a host (and its UI requests). */
     private readonly readyWindows = new Set<number>();
     private readonly crashes = new Map<number, number[]>();
+    /** #260: each window's editor documents, so a host that starts later gets them too. */
+    private readonly mirrors = new Map<number, DocumentMirror>();
     private readonly settingsStore: ExtensionSettingsStore;
     private readonly secrets: KeyVault;
     private readonly machineId: string;
@@ -80,6 +84,8 @@ export class ExtensionHostManager implements ActivationSource {
         this.service.setActivationSource(this);
         this.service.onDidChange(() => this.restartAll('the installed extensions changed'));
         addFolderChangeListener((contents) => {
+            // The editor closes every tab of the old folder; its open events follow for the new one.
+            this.mirrors.get(contents.id)?.reset();
             if (this.readyWindows.has(contents.id)) {
                 void this.restart(contents, 'the folder changed');
             }
@@ -157,6 +163,8 @@ export class ExtensionHostManager implements ActivationSource {
         };
         this.hosts.set(contents.id, connection);
         this.wire(connection);
+        // A new host has none of the previous one's providers or diagnostics.
+        this.sendUi(contents, { type: 'notify', notification: { kind: 'providersReset' } });
         child.on('message', (message) => rpc.receive(message));
         for (const stream of [child.stdout, child.stderr]) {
             if (stream) {
@@ -212,6 +220,7 @@ export class ExtensionHostManager implements ActivationSource {
                 version: app.getVersion(),
             },
             isDevelopment: this.isDevelopment,
+            ...(folder ? this.mirror(contents).snapshot(new FolderPaths(folder)) : { documents: [], activeEditor: null }),
         };
     }
 
@@ -286,6 +295,9 @@ export class ExtensionHostManager implements ActivationSource {
         for (const resolve of connection.pendingUi.values()) {
             resolve(null);
         }
+        if (!connection.contents.isDestroyed()) {
+            this.sendUi(connection.contents, { type: 'notify', notification: { kind: 'providersReset' } });
+        }
     }
 
     async restart(contents: WebContents, reason: string): Promise<void> {
@@ -309,8 +321,24 @@ export class ExtensionHostManager implements ActivationSource {
         }
     }
 
+    private mirror(contents: WebContents): DocumentMirror {
+        let mirror = this.mirrors.get(contents.id);
+        if (!mirror) {
+            mirror = new DocumentMirror();
+            this.mirrors.set(contents.id, mirror);
+            contents.once('destroyed', () => this.mirrors.delete(contents.id));
+        }
+        return mirror;
+    }
+
+    private folderPaths(contents: WebContents): FolderPaths | null {
+        const root = workspaceOrNull(contents)?.root;
+        return root ? new FolderPaths(root) : null;
+    }
+
     private exited(connection: HostConnection, code: number | null, signal: string | null): void {
         connection.rpc.dispose();
+        this.sendUi(connection.contents, { type: 'notify', notification: { kind: 'providersReset' } });
         for (const resolve of connection.pendingUi.values()) {
             resolve(null);
         }
@@ -433,6 +461,22 @@ export class ExtensionHostManager implements ActivationSource {
                 const { response } = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
                 return response < request.items.length ? response : null;
             }
+            if (request.kind === 'applyEdit') {
+                // Every file of the edit must be in the folder, or none of it is applied.
+                const paths = this.folderPaths(contents);
+                const edits = request.edit.edits;
+                const relative = paths ? edits.map((entry) => ({ path: paths.toWorkspace(entry.path), edits: entry.edits })) : [];
+                if (!paths || relative.some((entry) => entry.path === null)) {
+                    extLog.warn('An extension tried to edit a file outside the folder; the edit was not applied.');
+                    return false;
+                }
+                const edit: WorkspaceEditData = { edits: relative as { path: string; edits: WorkspaceEditData['edits'][number]['edits'] }[] };
+                return this.askRenderer(connection, { kind: 'applyEdit', edit });
+            }
+            if (request.kind === 'saveFile' || request.kind === 'insertSnippet') {
+                const workspacePath = this.folderPaths(contents)?.toWorkspace(request.path) ?? null;
+                return workspacePath === null ? false : this.askRenderer(connection, { ...request, path: workspacePath });
+            }
             if (request.kind === 'openFile') {
                 const folder = workspaceOrNull(contents)?.root;
                 if (!folder || !(request.path === folder || request.path.startsWith(folder + path.sep))) {
@@ -444,6 +488,25 @@ export class ExtensionHostManager implements ActivationSource {
             return this.askRenderer(connection, request);
         });
         rpc.handle(MAIN_METHODS.uiNotify, (notification) => this.sendUi(contents, { type: 'notify', notification: notification as UiNotification }));
+        rpc.handle(MAIN_METHODS.diagnostics, (raw) => {
+            const paths = this.folderPaths(contents);
+            const update = raw as DiagnosticsUpdate;
+            if (!paths || typeof update?.owner !== 'string') {
+                return;
+            }
+            this.sendUi(contents, { type: 'notify', notification: { kind: 'diagnostics', update: paths.outward(update) as DiagnosticsUpdate } });
+        });
+        rpc.handle(MAIN_METHODS.registerProvider, (raw) => {
+            const registration = raw as ProviderRegistration;
+            if (typeof registration?.handle === 'number' && isProviderKind(registration.kind)) {
+                this.sendUi(contents, { type: 'notify', notification: { kind: 'providerRegistered', registration } });
+            }
+        });
+        rpc.handle(MAIN_METHODS.unregisterProvider, (handle) => {
+            if (typeof handle === 'number') {
+                this.sendUi(contents, { type: 'notify', notification: { kind: 'providerUnregistered', handle } });
+            }
+        });
     }
 
     private broadcastConfiguration(): void {
@@ -493,6 +556,30 @@ export class ExtensionHostManager implements ActivationSource {
                 await connection.ready;
                 await connection.rpc.request(HOST_METHODS.activateByEvent, activationEvent);
             }
+        });
+        handle(EXTENSION_IPC_CHANNELS.extensionsDocuments, (event, events) => {
+            const paths = this.folderPaths(event.sender);
+            if (!paths) {
+                return;
+            }
+            const accepted = this.mirror(event.sender).accept(events, paths);
+            // Forwarded at once, so the host has a change before any request the renderer sends after it.
+            if (accepted.length > 0) {
+                this.hosts.get(event.sender.id)?.rpc.notify(HOST_METHODS.documents, accepted);
+            }
+        });
+        handle(EXTENSION_IPC_CHANNELS.extensionsProvide, async (event, raw) => {
+            const request = raw as ProvideRequest;
+            const paths = this.folderPaths(event.sender);
+            const connection = this.hosts.get(event.sender.id);
+            const kindOk = isProviderKind(request?.kind) || request?.kind === 'resolveCompletion' || request?.kind === 'resolveCodeLens' || request?.kind === 'prepareRename';
+            if (!paths || !connection || !kindOk || typeof request.handle !== 'number' || typeof request.args !== 'object' || request.args === null) {
+                return null;
+            }
+            const inward: ProvideRequest = { handle: request.handle, kind: request.kind, path: paths.toAbsolute(request.path), args: paths.inward(request.args) as ProvideRequest['args'] };
+            await connection.ready;
+            const result = await connection.rpc.request(HOST_METHODS.provide, inward);
+            return paths.outward(result);
         });
         handle(EXTENSION_IPC_CHANNELS.extensionsHostReply, (event, id, result) => {
             const connection = this.hosts.get(event.sender.id);

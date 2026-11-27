@@ -124,6 +124,7 @@ function editorGroup(): Promise<EditorGroup> {
             onMarkersChange: () => problemsView.setEditorProblems(editors?.editorProblems() ?? []),
             showFunctionProblems: (path, name) => problemsView.filterTo(`'${name}' ${path}`),
             onFileClean: (path) => outline?.fileClean(path),
+            onDidSave: (path) => extensions.documentSaved(path),
             revealInScene: (path) => revealInScene(path),
         });
         editors.setSceneShown(!workbench.sceneArea.hidden);
@@ -719,6 +720,12 @@ const extensions = installExtensions({
     statusRight: workbench.extensionStatusRight,
     openQuickInput: (value, provider) => quickInput.open(value, provider),
     openFile: (path, line, column) => editorGroup().then((group) => (line === undefined ? group.open(path) : group.openAt(path, line, column ?? 1, 0))),
+    saveFile: async (path) => {
+        const group = await editorGroup();
+        await group.open(path);
+        await group.save();
+        return !group.dirtyPaths().includes(path);
+    },
 });
 registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
