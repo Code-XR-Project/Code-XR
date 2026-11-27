@@ -247,7 +247,9 @@ function lensData(lens: Record<string, unknown>): CodeLensData | null {
 }
 
 /** A `DocumentSelector` as plain filters (patterns become globs over the workspace path). */
-export function selectorData(selector: unknown, workspaceRoot: string | null): DocumentFilterData[] {
+export function selectorData(selector: unknown, rawRoot: string | null): DocumentFilterData[] {
+    // Compared in `Uri.fsPath`'s spelling (a lower-case drive letter on Windows), the one of the bases.
+    const workspaceRoot = rawRoot ? Uri.file(rawRoot).fsPath : null;
     const list = Array.isArray(selector) ? selector as unknown[] : [selector];
     const result: DocumentFilterData[] = [];
     for (const item of list) {
