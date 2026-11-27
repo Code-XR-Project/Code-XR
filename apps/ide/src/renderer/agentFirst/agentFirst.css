@@ -252,3 +252,8 @@
 .af-guide-agent { display: grid; gap: 4px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
 .af-guide-agent-main { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .af-guide-agent-main input:disabled + .af-agent-name { color: var(--muted); }
+
+/* Plan markers drawn in CSS (sources stay free of symbol characters). */
+.af-plan-mark::before { content: '\25CB'; }
+.af-plan-mark[data-status="in_progress"]::before { content: '\25B8'; }
+.af-plan-mark[data-status="completed"]::before { content: '\2713'; }
