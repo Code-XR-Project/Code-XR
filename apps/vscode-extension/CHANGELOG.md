@@ -4,208 +4,94 @@
 
 ### Code-XR 1.2.1: Sharper Metrics, Same Code-XR
 
-**A maintenance release with a few welcome additions.** Everything you could do in 1.2.0 works the same way in 1.2.1. Under the hood the extension was audited end to end and cleaned up, and Code-XR now computes code metrics with its own analyzer instead of Lizard, which made some complexity, nesting-depth and function values correct where they used to be wrong. The new analyzer also brought three new metrics and five new languages.
+A maintenance release with a few additions. Everything from 1.2.0 works the same way.
+
+Code-XR no longer uses Lizard: metrics are now computed by Code-XR's own analysis engine. This makes Code-XR independent of an external library, makes it possible to add new programming languages, and fixes several errors that Lizard had.
+
+Some new features have been added: three new metrics and five new programming languages.
 
 **Highlights**
 
-- **Code-XR's own metrics analyzer** replaces Lizard: more accurate cyclomatic complexity and nesting depth across 28 languages, with nothing extra to install.
-- **Five new languages**: Rust, Dart, Shell (Bash), PowerShell and R.
-- **Three new metrics** for every function: cognitive complexity, Halstead metrics and the maintainability index.
-- **Metrics where you write code**: functions over a limit appear in the Problems view, and a CodeLens above each function shows its complexity, lines and parameters.
-- **Reveal in XR Scene** jumps from a file in VS Code to its element in a running scene, and *Open in editor* goes the other way from the dependency graph.
-- **Open a scene on a standalone headset** from ACTIVE SERVERS, with a QR code.
-- **A preview of what is next**: a new AI AGENTS section in the sidebar announces AI agents that will chat about your code and its analyses (coming in a later version).
-- **The BabiaXR examples render again**, pinned to the same libraries as the analysis scenes.
-- **Dozens of fixes** in the XR room, the Git analyses, the local servers and the Python environment, and a **smaller download** (6.45 MB to 3.24 MB).
+- Code-XR's own metrics engine replaces Lizard.
+- Five new languages: Rust, Dart, Shell (Bash), PowerShell and R.
+- Three new metrics: cognitive complexity, Halstead metrics and the maintainability index.
+- Reveal in XR Scene, and Open in editor from the dependency graph.
+- Open a scene on a standalone headset, with a QR code.
+- The BabiaXR examples render again.
+- Many fixes in the XR room, the Git analyses, the local servers and the Python environment.
+- A smaller download: 6.45 MB to 3.24 MB.
 
 #### Added
 
-- **Function metrics in the editor and in Problems.** After a folder or project analysis, every function over a limit shows up as a Code-XR warning in the Problems view ("'route' has a cyclomatic complexity of 18 (limit 10)."). Every measured function also gets a CodeLens with its complexity, lines of code and parameters, and the functions the XR scene draws as high or critical complexity are marked beside the code and in the overview ruler. Saving a file measures it again; while it has unsaved changes its lens says the numbers are out of date. The limits and the lenses are settings (`codeXR.problems.metrics.maxComplexity`, `maxFunctionLines`, `maxParameters`, `showInEditor`); a limit of 0 turns that check off.
-- **Three new code metrics, for every function in every language.** They appear in the LivePanel tables and cards, in the chart control panel of the XR scene (on any numeric axis, like the existing metrics). All existing fields are unchanged; the new ones are added next to them, so older exports keep loading.
-  - **Cognitive complexity** (`cognitiveComplexity`): how hard a function's control flow is to *read*. Cyclomatic complexity counts the paths you need to test; cognitive complexity charges more for each `if`, loop or `catch` the deeper it is nested, and charges once for a chain of `&&`/`||`. Two functions with the same cyclomatic complexity can differ a lot here: the one with deep nesting is the harder one to understand. It follows SonarSource's definition (G. Ann Campbell, 2017).
-  - **Halstead metrics** (`halsteadVolume`, `halsteadDifficulty`, `halsteadEffort`, `halsteadBugs`): the size and density of a function measured by its vocabulary of operators and operands. Volume is how much information the code carries, difficulty how error-prone it is to write or read, effort the product of both, and *estimated bugs* (volume / 3000) a rough count of defects to expect.
-  - **Maintainability index** (`maintainabilityIndex`, 0-100): one score that combines Halstead volume, cyclomatic complexity and lines of code, the formula Visual Studio uses. Higher is easier to maintain; below about 20 a function is hard to maintain, 20-50 moderate, above 50 good.
-  - Directory analyses get the per-file summaries: average and maximum cognitive complexity, average and minimum maintainability index, total Halstead volume and total estimated bugs.
-  - A function without any control flow has a cognitive complexity of 0, so it does not appear on chart axes that need a positive value (pie size, cylinder radius, building area), exactly like a function with 0 parameters today.
-- **Five new languages: Rust, Dart, Shell (Bash), PowerShell and R.** Files ending in `.rs`, `.dart`, `.sh`, `.bash`, `.ps1`, `.psm1` and `.r` are listed in Files by Language and analyzed like any other language: functions, lines, cyclomatic and cognitive complexity, parameters, nesting depth, Halstead, maintainability index, comment lines, classes (where the language has them) and dependencies in the dependency graph. The rules for each language (for example, a shell function's parameters are the positional arguments it reads, and an R `switch()` counts one decision per alternative) are in `docs/lizard-replacement/SPEC.md` of the source repository.
-- **The chart control panel never offers a text field on a numeric axis.** A chart whose numeric axis has no numeric field to show is left out of the panel instead of being drawn with text values.
-- **Reveal in XR Scene.** While an analysis server runs, **Code-XR: Reveal in XR Scene** on a file (editor, editor tab and explorer context menus, or the Command Palette) marks it in every running scene whose analysed folder holds it: in the classic analysis a marker over the file's element and its legend for eight seconds, in the dependency graph its node's card pinned (or the card of the folder that holds it). Only pages on this machine react, so a guest's view never moves. It is the other direction of the scene's "Open in editor".
-
-#### Internal improvements
-
-- **The whole codebase was audited before anything was touched.** Every module was measured (real cyclomatic complexity, duplicated code, modules nothing imports, commands nothing can reach) and each finding was checked twice by independent reviewers before being accepted. The result is a ranked, evidence-backed cleanup plan instead of a hunch.
-- **A much larger safety net.** The automated suite went from 554 to 1,064 checks on the extension side and from 29 to 73 on the Python analysis backend, and a large part of it now *executes* the plugin's code instead of only reading it. New checks cover the command surface against `package.json`, the logger, the language tables, the XR scene assets, the collaboration avatars, the offline historical comparison and the dependency engine, whose full output is now pinned by golden snapshots.
-- **Proof, not promises, that nothing was lost.** The shipped bundle is built deterministically and fingerprinted, so an internal change can be shown to leave it byte-for-byte identical. Code-health metrics (complexity, unused modules, leftover debug logging, loose typing) are measured automatically and can only improve from here: a change that makes any of them worse fails the build.
-- **Tests that cannot give a false green.** The test build now starts from a clean slate, refuses to run against stale output, and measures the per-language analysis fixtures with exactly the analyzer version the extension installs for you.
-- **Continuous integration.** The same gates a developer runs locally now run on Windows and Linux for every pull request.
-- **The browser tests of the XR scenes now run on every pull request, offline.** The five browser harnesses (table containment, chart bounds, the analysis-mode cycle, AR/VR semantics and project-evolution playback) used to load A-Frame and BabiaXR from public CDNs, so they only ran by hand. The exact library builds the scenes use are now kept in the test folder with their licences, the harnesses never reach the network, and a CI job runs all of them. The shipped extension and its scenes are unchanged.
-- **A repository ready to grow.** The source repository is now organized as a monorepo: the extension and its Python analysis backend live side by side, and continuous integration also runs on macOS. The packaged extension is the same: no file was added to or removed from it.
-- **Changed (internal): `src/` reorganized feature-first; no behaviour change.** Each sidebar section's commands, tree and services now sit together in one folder, the shared engine (analysis, servers, charts, history, export) in another, and the host plumbing in a third, with every folder named the same way; a check now keeps it that way. Only files moved: the compiled modules were compared one by one before and after, and the packaged extension holds the same files.
-
-#### Removed
-
-- **Eleven hidden settings commands that nothing could run.** `codeXR.analysis.setAnalysisFileModeXR`, `setAnalysisFileModeHivePanel`, `setViewThemeDark`, `setViewThemeLight`, `enableAutoAnalysis`, `disableAutoAnalysis` and the five `setAutoAnalysisDelay…` variants were registered but never appeared in the Command Palette, a menu or the sidebar. The sidebar rows that change these settings (`toggleAnalysisFileMode`, `toggleViewTheme`, `toggleAutoAnalysisEnabled`, `selectAutoAnalysisDelay`) work exactly as before.
-- **Two hidden Files-by-Language commands that were never wired up.** `codeXR.analysis.refreshFilesByLanguage` and `codeXR.analysis.openFileFromLanguageGroup` had no sidebar row, menu entry or palette entry. Clicking a file in the Files by Language list still opens and analyzes it (`runAndAnalyzeFile`), and the list still refreshes on its own.
-- **The hidden `codeXR.analysis.cleanAnalysis` command.** Nothing in the sidebar, the menus or the Command Palette could run it. The automatic cleanup of stale analysis files when the extension starts is unchanged.
-- **The hidden `codeXR.visualizeData.debugState` command.** A troubleshooting command that printed the Visualize Data state to the developer console; nothing in the sidebar, the menus or the Command Palette could run it.
-- **The two hidden theme debugging commands** `codexr.debug.themeConfiguration` and `codexr.debug.themeWorkflow`, together with the diagnostics module behind them. They only wrote to the developer console and nothing could run them. Theme settings are unaffected.
-- **The "Hello World" command** (`Code-XR.helloWorld`), a leftover from the extension template that showed a greeting and nothing else. It no longer appears in the Command Palette.
-- **Four unused sample datasets** under `examples/data/` (`gdp.json`, `simple_sales.json`, `temperatures.json`, `test_functions.json`) that no BabiaXR example ever loaded. Every example in the BabiaXR Examples view opens and renders exactly as before.
+- **Three new metrics for every function, in every language.** Shown in the LivePanel and in the XR chart control panel. Existing fields are unchanged, so older exports keep loading.
+  - **Cognitive complexity** (`cognitiveComplexity`): how hard the control flow is to read (SonarSource's definition).
+  - **Halstead metrics** (`halsteadVolume`, `halsteadDifficulty`, `halsteadEffort`, `halsteadBugs`): size and density from operators and operands.
+  - **Maintainability index** (`maintainabilityIndex`, 0-100): higher is easier to maintain.
+  - Directory analyses add per-file summaries (average and maximum cognitive complexity, average and minimum maintainability index, total Halstead volume and estimated bugs).
+- **Five new languages: Rust, Dart, Shell (Bash), PowerShell and R** (`.rs`, `.dart`, `.sh`, `.bash`, `.ps1`, `.psm1`, `.r`), with every metric and the dependency graph.
+- **Reveal in XR Scene.** From the editor, a tab or the explorer, marks the file in every running scene that holds it.
+- **Open in editor from the dependency graph.** A file or symbol card opens that file in VS Code, at the symbol's line. Only on your own machine, never for guests.
+- **Open a scene on a standalone headset.** ACTIVE SERVERS shows the address and a QR code for Quest and similar headsets.
+- **AI AGENTS section (coming soon).** A sidebar row announcing AI agents that will chat about your code and its analyses. No command and no network call.
 
 #### Changed
 
-- **The extension is called Code-XR everywhere.** Command Palette entries now read *Code-XR: …*, and so do the sidebar, the output channel, notifications and the texts inside the XR scenes. Command IDs and setting names are unchanged, so your keybindings and settings keep working.
-- **Code metrics now come from Code-XR's own analyzer, and Lizard is no longer installed.** Cyclomatic complexity, nesting depth, parameters, lines of code and the function list of every supported language are computed by a pure-Python analyzer that ships inside the extension. It needs no download and works offline, and the managed Python environment now installs one package (tree-sitter-language-pack) instead of two. The JSON the analyses produce has exactly the same fields. The values are the same wherever Lizard was right; where it was wrong they change, and each difference is listed and justified in `docs/lizard-replacement/SPEC.md` of the source repository:
-  - **Nesting depth is now the real depth** of `if`/loop/`switch`/`try` blocks in every language. Lizard's value moved with `&&`, `?` and `case` and went down with `;`, so most functions show a different, correct, depth.
-  - **Complexity follows the standard rule everywhere** (one per decision plus one, with `&&`/`||` counted, and `else`, `default` and `finally` not counted). This changes the value only in the cases listed under *Fixed*.
-  - **More functions are found**: files ending in `.pyw`, `.pyi`, `.rbw`, `.sc`, `.ttcn3`, `.mm` and `.php3`-`.php5` are analyzed with their own language's rules. C# properties and expression-bodied members, Kotlin/Scala expression-bodied functions, TypeScript generic functions and arrow functions, Solidity constructors and modifiers, Swift `init` and Fortran main programs are now reported. Functions Lizard invented (`if`, `for`, `>`, `void`) are gone.
-  - **Names and line ranges are fixed** where Lizard broke them: Lua methods (`Box:compute` instead of `Box`), Erlang functions (their real lines instead of line 1), Perl package names, and TypeScript/Scala/Ruby functions whose end line ran into the next member.
-  - **Parameter counts are fixed** for PHP (Lizard always said 1), Go named results and destructured JavaScript/TypeScript parameters, and Perl subs that read `shift`.
-
-- **Smaller package.** The extension download shrinks from 6.45 MB to 3.24 MB (360 to 219 files): the scene templates and chart examples are no longer packaged twice, the `docs/` guides are no longer packaged (the README links them online, as before), a duplicate copy of the icon is gone, the extension icon is served at 256 x 256 instead of 1024 x 1024 (1 MB to 50 KB), and the other large icons were losslessly recompressed (pixel-identical). Every saved analysis folder also carries a 1 MB lighter page icon. Nothing you see or use changes.
-- **"Code-XR: Debug Python Environment Failure" is no longer offered in the Command Palette.** It is a developer tool that deliberately breaks and deletes the extension's Python environment, with no confirmation. The command still exists for development use; it simply cannot be picked by accident anymore.
-- **Diagnostics now go to the "Code-XR" output channel instead of the developer console.** Open *View → Output* and pick **Code-XR** to read them. Warnings and errors are always written there; step-by-step detail (which includes file paths) is written only when `codeXR.debug.verboseLogs` is on, as that setting already promised. Messages logged while the extension is still starting are no longer lost: they appear in the channel as soon as it opens. The generated XR and DOM scenes and the directory LivePanel page also stop printing their routine loading and live-reload messages to the browser console; their warnings and errors are still printed there.
-
-- **Open a scene on a standalone headset.** Each server in ACTIVE SERVERS has an *Open on a headset* entry that shows the address a headset's browser opens (Quest and similar), with a QR code to scan: the Cloudflare invitation link while the server is shared, else its local network address when it is served over HTTPS. A plain HTTP server is asked to start remote access first, since WebXR needs a secure address.
-
-- **Open a file of the dependency graph in VS Code.** A file or symbol card in the XR dependency graph now has an *Open in editor* button, which opens that file in VS Code (at the symbol's line). The button only appears in a browser on your own machine. A guest who joined through a Cloudflare link or the local network does not see it, and the server refuses the request from them anyway.
-
-- **A new AI AGENTS section in the sidebar says what is coming.** It holds a single "coming soon" row: AI agents that chat about your code and its Code-XR analyses, with your own provider keys. It has no command and makes no network call.
+- **The extension is called Code-XR everywhere.** Command IDs and setting names are unchanged.
+- **Metrics come from Code-XR's own engine; Lizard is no longer installed.**
+  - Nesting depth is the real depth.
+  - Complexity follows the standard rule in every language.
+  - More functions are found, with correct names, line ranges and parameter counts.
+- **Smaller package**: 6.45 MB to 3.24 MB (360 to 219 files). The extension icon is now 256 x 256.
+- **Diagnostics go to the "Code-XR" output channel** (*View > Output*) instead of the developer console.
+- **"Code-XR: Debug Python Environment Failure" is no longer in the Command Palette.**
+- **Internal quality.** The codebase was audited end to end and cleaned up, and the automated test suite roughly doubled.
 
 #### Fixed
 
-- **The BabiaXR examples render again.** They loaded A-Frame 1.0.4 together with an unpinned BabiaXR release that needs a newer A-Frame, and three of them (Bars Map, Pie and the population doughnut) fetched their data from a path the example server does not serve, so their scene was empty. Every example now uses the same library versions as the analysis scenes (A-Frame 1.7.1, BabiaXR 1.3.4), carries its data inline, opens with the whole chart in view, uses one light, readable look with English titles, and logs no errors. The "About BabiaXR" credits list the new versions.
-- **A scene opened in VS Code's side panel and the same scene in a browser or on a headset now share one collaboration room.** A page that opened at the same moment as its server (the side panel) joined a room named after the port, while every client that came later joined the room named after the server, so they never saw each other. Every client of one server now joins the same room, whenever it opens.
-- **Cyclomatic complexity was wrong for some constructs in 13 languages** (part of the change of analyzer above). Python counted `finally` and ignored `match`/`case`; GDScript and TTCN-3 counted `else`, and GDScript ignored `match` branches; TypeScript and PHP counted the `?` of an optional parameter or nullable type; JavaScript, TypeScript and PHP counted `??` twice; Perl counted every `:`; Erlang counted `not`; Ruby ignored `unless`; Zig counted the `else =>` prong and Scala the `case _` arm; C# ignored `foreach` and switch-expression arms; Swift ignored `??`; Fortran counted `select case` and `case default`; PHP counted a `match` once instead of once per arm; and in Lua, the length operator `#` hid every `and`/`or` after it on the same line.
-- **The progress of setting up the Python environment matches what it is doing.** The set-up reported its steps as running totals (20, 55, 70...) while VS Code adds each value to the bar, so the bar filled long before the end; deleting the environment and installing a package did the same. Each step now reports only how far it moved, and the packages and language parsers share the last part of the bar one by one.
-- **A Cloudflare link reaches the scene on Windows.** cloudflared was pointed at `http://localhost:<port>`, which Windows resolves to the IPv6 loopback first, where the server does not listen (it listens on IPv4). The tunnel now forwards to `127.0.0.1`. When cloudflared fails to publish a link, its error message now also shows its last lines of output, so the cause is visible.
-- **Checking the Python environment no longer downloads anything.** Since tree-sitter-language-pack 1.x, the call the extension used to confirm the package worked (`get_parser("python")`) fetched the Python grammar from GitHub the first time, so a simple check made a network request nobody had agreed to. Offline it failed instead, and the extension then reinstalled packages that were already there. The check now only imports the package.
-- **A dependency analysis never downloads anything.** tree-sitter-language-pack 1.x fetched each language's parser from GitHub the first time a dependency graph met that language, in the middle of an analysis. Setting up the Python environment now downloads the parsers for the supported languages into the environment (parsers already there are not fetched again), and the analysis only uses parsers that are already present: a language whose parser could not be fetched falls back to pattern matching, as it did offline before.
-- **The analysis switcher in the XR scene no longer gets stuck.** One analysis that never finished opening (a dependency or comparison file that never arrived over a slow tunnel, for example) froze the switcher for the rest of the session: every later pick, Normal analysis included, waited behind it until the page was reloaded. Several related problems are fixed:
-  - A new pick now cancels the analysis that is still opening and starts at once, and an analysis that takes longer than 45 s to open (90 s for project evolution) is reported as failed.
-  - When an analysis cannot open, the selector says why, and its option reads "Retry: …". Before, the message went to a panel that is hidden while the selector is up, so nothing seemed to happen. The failed analysis is no longer reopened by the "Analyses" button or by the room's echo of the pick, and the other participants are sent back to the selector instead of staying in the failed analysis.
-  - Dependency data that cannot be loaded (a server error, a stale link after a restart) now fails visibly instead of leaving an empty table whose panel says "ready", and the error stays on the dependency panel.
-  - Picking an analysis right after opening the selector no longer snaps you, and everyone in the room, back to the empty selector a second later.
-  - Opening the dependency graph shows its progress on the selector; a second click says it is still opening; a long first analysis is no longer reported as "did not respond" after 20 s while it is still progressing; picking it while a refresh runs joins that refresh instead of being refused; and the start request stops retrying after 20 s without a connection, with a message.
-  - Re-entering project evolution after a frame that failed half-way no longer throws and bounces to the selector every time.
-  - A chart that was hidden while its fit animation ran no longer reappears on the empty selector when the animation ends.
-  - In collaboration, one part of the scene that fails to apply a room update no longer silently drops the rest of it (the analysis shown is applied last and the failure is logged), a page that rejoins a restarted session follows the room again, a late-loading page keeps waiting for the room instead of giving up after 3 s, and reconnecting backs off up to 15 s instead of retrying every 0.9 s.
-- **Panels in the XR scene no longer show the content behind them.** Opening an element's info card in front of a virtual screen or the guide mixed the text of both: the card skipped the depth test, and the scene draws see-through surfaces in page order rather than by distance, so screens farther away were painted over it. Info cards, the dependency-graph path chip, virtual screens, the guide, the controller panel, the "Virtual screens" list, the comparison card and the evolution overlay now have opaque, depth-tested backings. Clicking an info card no longer passes through it to whatever is behind (it could start a screen share), and a virtual screen's idle message now wraps inside the screen instead of spilling past its edges.
-- **XR scenes keep updating after the connection to VS Code drops.** After any network error the scene reconnected with a connection that listened to nothing, so it silently stopped following re-analyses until the page was reloaded. It now reconnects with every handler in place, leaves the browser's own retry alone and backs off up to 30 s when the server is gone. A refresh also no longer breaks the chart's row-limited data source (it was pointed at the page itself), keeps the other parameters of a data URL such as a comparison's revision, and repairs a data URL that had been corrupted to `url: url: ./data.json` at startup. The DOM visualization no longer reloads the page every 3 s while the server is unreachable; it reloads once, when the connection is back.
-- **Historical comparison and project evolution no longer refuse a folder opened through a link.** When the analyzed folder was reached through a symbolic link, a junction, or a shortened Windows path (`C:\Users\JOHNDO~1\...`), Code-XR compared it with the repository path Git reports and wrongly concluded the folder was outside the repository, so the Git-based analyses were unavailable. Both paths are now resolved to their real location before they are compared.
-- **The installed extension only ever runs the Python analysis scripts it ships with.** If its bundled copy of an analysis script was missing (a damaged or partially deleted install), Code-XR fell back to a developer location two folders above the extension, which in an installed copy is your home folder, and could have run a file found there. That fallback is now limited to development builds; an installed extension reports the missing script instead.
-- **The analysis backend loads again on Python 3.8 and 3.9.** One type annotation in the line-metrics module used syntax that only exists from Python 3.10, so on 3.8 or 3.9 every analysis failed as soon as the backend loaded, although the extension asks only for Python 3.7 or newer. The annotation now uses the older spelling; results on newer Python versions are unchanged.
-- **Local servers are reported on the port they actually listen on, and stopping them frees the port.** Several issues in how XR scenes are served are fixed:
-  - When the requested port was taken, an HTTPS server could pick a different port from the one shown in the Active Servers list and the opened URL. The launcher now reports the port the server really bound.
-  - "Force stop" removed a server from the list without closing it, so the port stayed busy until VS Code restarted. It now closes the listener and its open connections.
-  - When the requested port is busy, the next 100 ports are tried. Before, the search stopped at 8080, so a busy port of 8080 or higher made every launch fail.
-  - A port held on `localhost` only is no longer reported free (on macOS and Windows the browser could reach the other program instead of the scene).
-  - A server that started but could not be added to the list is shut down, and the launch is reported as failed instead of leaving an unreachable server running.
-  - "Stop all servers" counts only running servers in its prompt and shows one summary instead of one notification per server, saying how many did not shut down cleanly.
-- **Charts stay on the analysis table.** Bar, cylinder and map charts could end with their axis hanging up to 2.6 m past the table edge, or squeezed into a thin sliver at one end of a long empty axis, while the scene reported the chart as fitted:
-  - BabiaXR resizes an axis with an animation that A-Frame 1.7.1 never applies, so an axis kept the length of its first build. Axis lines are now written directly, and a resized axis triggers a new fit.
-  - The table fit checked the chart's size but not its position: centring the bars could push the axis off one side. The axes are now kept on the table, and a chart that still sticks out is no longer reported as fitted.
-  - The fit could measure a cached, outdated size of a line that had just changed. Sizes are now re-read when the geometry changes.
-  - Generated scenes first built every chart over all files and only then switched to the top 20/30 shown. They now build once, from the files that are shown.
-- **Launching an analysis is one transaction that can be stopped.** Every analysis kind (XR, LivePanel, DOM visualization) now runs through the same launcher, and several problems it had are fixed:
-  - Closing an analysis while it is still analysing stops it: the Python analysis is killed and no server or file watcher is started afterwards. Before, the launch went on and left a server and a watcher running that nothing could reach.
-  - If the server cannot start, the file watcher is not left running, and you get one error message instead of two. The server now starts before the watcher for every kind.
-  - A launch that takes more than 10 minutes is stopped and reported instead of waiting forever.
-  - Two quick launches of the same file, or the same file spelled differently (`C:\proj\a.ts` and `c:\proj\a.ts` on Windows, a trailing slash on a folder), no longer create two sessions.
-  - Two analyses of the same file no longer share one live-reload channel, and closing one analysis no longer stops the server of another whose path merely contains the same text.
-  - Startup cleanup now removes the old generated files of file, folder and DOM analyses. It used to clean a folder nothing wrote to, so the real ones grew without limit.
-  - Analysis output with non-ASCII characters (accented file names, for example) is read correctly on Windows.
-  - Internally, the analysis types and launch kinds are declared once and the tables that repeated them are derived; `docs/adding-an-analysis-type.md` explains how to add one.
-- **Charts no longer flash oversized, grow into towers or leave the table while they are rebuilt.** Every way a chart is (re)built now follows the same rules: it reads the row-limited data, stays hidden until it has been fitted to the table, and only then appears.
-  - Switching chart type drew the new chart at the previous chart's scale for a moment, up to 75 m wide. It is now hidden until fitted.
-  - Bar and cylinder charts grew up from the floor on their first build, reaching 26-32 m before the fit caught up. BabiaXR's grow animation is now off for them.
-  - The project evolution movie built every frame from all of its files (a 160-file frame gave a wall of 138 bars that sat oversized for almost 4 s). Frames now use the same top 20/30 as the classic analysis, a frame that would overflow is hidden until it is fitted, and frames no longer wait for an animation that never ran.
-  - Each side of a historical comparison now shows the top files of its own revision instead of all of them, and starts from the chart's own scale instead of a fixed one that squashed pie, donut and bubble charts.
-  - Changing which field labels the bars no longer leaves "ghost" bars from the previous mapping behind.
-  - A mapping with no files to show says "No files to show for this mapping." instead of blaming the mapping or showing "still rebuilding" forever.
-  - Bubble charts rested their smallest bubble on the table and sank their axes up to 0.6 m into it. The lowest of the bubbles and the axes now rests on the table.
-  - Pie and donut charts stand up to 2 m tall (they were about 1.3 m), so their sectors and labels are readable from the controller position.
-  - A live re-analysis no longer undoes a remap you made while the charts were refreshing, and a second chart change made in project evolution while the first is applied is no longer ignored.
-- **Long analyses can be cancelled, time out, and no longer block a mode for the rest of the session.** Project evolution, historical comparison and the dependency graph now run as jobs that can be stopped:
-  - A movie or a comparison that is generating can be stopped with **Cancel** (the Clear movie / Compare button while it runs). The Git and Python processes it started are killed, its result is discarded, and the previous movie or comparison is kept.
-  - **Clear movie** no longer races a generation: a running generation is cancelled and waited for, so a movie can no longer reappear right after it was cleared.
-  - **Leaving project evolution no longer deletes the movie** or stops a generation started by someone else in the room; only Cancel does.
-  - A revision whose analysis hangs is stopped after 5 minutes and left out of the movie; a single Git command is stopped after 3 minutes; a whole movie after 30 minutes, a comparison after 15 and a dependency analysis after 10. Before, one stuck revision kept the mode "already running" until VS Code was reloaded.
-  - A double click on Generate or Compare, or two participants starting at once, no longer shows an error to everyone while the first job runs: "already running" goes only to the person who asked. A participant who joins mid-job sees it running.
-  - A cancelled analysis is no longer recorded as "this revision has no data", which hid that commit from both Git pickers until the session ended.
-  - Git-history exports no longer wait forever on one file: a file analysis is stopped after 2 minutes and retried once, and a Python worker that is slow to start (antivirus on Windows) reduces the number of workers instead of failing the export.
-- **Panels in the XR room no longer land on top of each other or on the table.**
-  - Two screens added with **+ Add screen** used to appear in exactly the same spot, one hidden inside the other. An added or brought screen (**+ Add screen**, **Bring**) now goes to the nearest free spot beside the one in front of you: to the right, to the left, then above.
-  - Screens now keep clear of the analysis table and the space its charts stand in, the project evolution playback banner, and the dependency graph's card stack, as well as of walls and other screens.
-  - A screen set to **follow** you now stops at walls and other screens like a dragged one, instead of passing through them.
-  - Two screens turned toward you at an angle could still pass through each other while you dragged or followed them. The collision check now compares the whole panel, not a few points on it.
-  - Added screens now use the scene's screen settings (sizes, distance in front of you, collision) instead of built-in defaults, and their idle label shows the screen's name ("vscreen 2") instead of an internal id.
-  - Dependency graph cards now have a close button (**X**, at the top-right corner of a pinned card). The stack stays at most two rows high and grows sideways, so six pinned cards no longer climb through the ceiling.
-- **Screens never hide each other or leave the room.**
-  - **Bring** the default screen, then **Bring** the guide: the guide used to land 0.2 m in front of the default screen and cover it completely. A screen placed in front of (or behind) another screen or panel, as seen from where you stand, now counts as blocked and goes to the nearest free spot, even when the two do not touch.
-  - **Bring** while standing next to a wall no longer puts the screen inside or beyond the wall. Every spot tried is kept inside the room, and when no free spot is found the screen is placed in front of you but still inside the room.
-  - The project evolution playback banner no longer sits at a fixed spot in the middle of the charts: each time it appears it goes to the nearest free spot above or beside them, clear of the screens and inside the room. The field-mapping controller still sits at the nearest corner of the table, but moves aside instead of overlapping a screen or a panel.
-- **Project evolution is more reliable.**
-  - Two people moving through the movie at the same time no longer get errors that stop playback for the whole room, or a frame shown under another frame's title. Each frame is now loaded from its own file instead of being copied over a shared one, and a frame that cannot be shown is reported only to the person who asked for it.
-  - A movie whose first frame could not be built (a component slow to load on a headset, for example) no longer makes the mode impossible to open again until a new movie is generated. The half-built frame is removed and rebuilt, and slow components get 4 s instead of 1.2 s.
-  - The progress bar now counts finished revisions, so it only moves forward and reaches the end. Before, it jumped back and forth between parallel analyses.
-  - Generating a movie no longer opens one VS Code notification per revision, and each revision's temporary copy of the project is deleted as soon as it is analyzed instead of staying on disk (up to about 100 MB each) until VS Code closed.
-  - Only the current movie is kept on disk. Before, every movie generated stayed, **Clear movie** removed only the newest one, and a later export could ship an older movie that had been replaced and cleared.
-  - **Play** on the last frame starts the movie over instead of stopping at once, and reconnecting to the room keeps the frame you were on instead of jumping back to frame 1.
-  - Manual movies always play from oldest to newest, as exported movies already did, whatever order the commits were picked in. A 25th pick is refused with a message instead of being dropped without notice.
-  - The commit picker no longer lists the remote's default-branch alias as a branch named "origin".
-- **Project evolution follows the history you have checked out.**
-  - The movie is now the history of the current branch from its first commit (first parent: a merge counts as one step). Before, it was every commit of every branch, so a `git stash` or a `git notes` entry could appear as a frame, and on an older checkout or a feature branch the movie played newer commits of other branches and then jumped back.
-  - Long histories start at the beginning. Before, only the newest 240 commits were considered, so a project with a long history never showed its first versions.
-  - A range now works with any branch, tag or commit the picker offers, in either order. Before, a tag older than the newest 240 commits failed with "project-evolution-range-not-found". Two ends on diverging branches start from their common ancestor.
-  - Tags that point at a file or a folder instead of a commit are no longer offered: they could not be used.
-  - Export: the Git timeline is the history of the checked-out branch, and the prompt says so. "Only the latest N commits" exports exactly N; before, N was silently cut to 1000, and a very large history could fail with "git timeline could not be listed".
-- **Historical comparison stays correct while you keep working.**
-  - A comparison against your working copy whose refresh fails is retried twice, then the room and LivePanel are told why, and it stops following your edits until you compare again. Before, it retried three times a second for the rest of the session, said nothing, and kept the "Resolving Git references..." text on screen.
-  - A commit you picked stays usable after newer commits push it out of the picker list. Before, it failed with "unknown-comparison-source" after enough new commits. The picker now offers the 200 most recent commits instead of 50.
-  - Coming back to History after another participant compared other revisions now redraws both sides, their nameplates and the change table. Before, only the working-copy side was updated, so the other side kept showing the old revision under a stale name. A comparison received while you left the mode mid-load is no longer lost.
-  - A shallow analysis copies only the files it reads. Before, it copied every nested file of the revision, which was slow and failed on large repositories with "comparison-snapshot-file-limit" even though the files were never analyzed.
-  - Old comparison files are deleted (the current and the previous one are kept), and deleting temporary files retries when Windows holds them locked.
-  - Error messages say what happened: a deleted branch, a revision too large to copy, or a step that took too long. Before, a deleted branch was reported as "requires a local Git repository" and everything else as "Please try again". "Loading comparison datasets..." no longer stays on screen after the comparison is drawn.
-  - A Python analysis that crashed or was stopped no longer hides that commit from both pickers for the rest of the session.
-- **A historical comparison can be cancelled from the LivePanel, and the panel always shows its real state.**
-  - The LivePanel's History section has a Cancel button while a comparison runs. It stops the comparison the same way Cancel does in the XR scene (its Git and Python processes are killed) and frees it for the next Compare at once. Before, the only way out was to wait up to 15 minutes, with every Compare answered "Another comparison is already running."
-  - Leaving History cancels a comparison that has no result yet: the room switching to another analysis in the XR scene, or closing the LivePanel page that started it. The live refresh of a comparison already on screen is left to finish.
-  - The LivePanel reads the comparison's state (idle, running, done or failed) when it opens and every time its live connection comes back. Before, a result or an error sent while the connection was down was lost, and the button stayed on "Comparing..." for good.
-- **The dependency graph shows correct numbers and stays usable on large projects.**
-  - Folder cards describe the folder: fan-in and fan-out count the distinct boxes its drawn edges reach, and "In cycles" counts its files that sit in a dependency cycle. Before, every file's numbers were added up, so a 7-file folder could read "Cycle 416" and a fan-out in the thousands. Cards also show how many files the folder holds. A file card's "Cycle" is now labelled "Cycle size".
-  - A call that names no project file (`this(`, `constructor(`, `super(`, `String(`, a local helper, a `def f(` definition) is no longer reported as an external package, and neither is the word after "with" in a comment or in Python's `with open(...)`. On the extension's own source the external packages went from about 2,450 to 30, which are now real ones (`vscode`, `fs`, `ws`...).
-  - `import './util'` resolves to the `util` next to the importing file, not to the first `util` anywhere in the project, and Python `from .models import X` resolves inside its package. `import type { T } from './t'` no longer creates a package called "type", and `import React from 'react'` counts `react` once.
-  - The same project gives the same graph on every run. Before, which file an ambiguous name resolved to depended on Python's hash seed, so edges could jump between files after a save with no code change.
-  - Two files whose names differ only in case (`Util.ts`, `util.ts`) are two nodes.
-  - The table no longer comes up empty after drilling into a file and back, on a reload, on another headset or for a participant who joined later: the room always carries the dataset that matches the folder or file being shown.
-  - A view larger than 600 nodes or 2,000 relations keeps the best-connected ones, folds the rest into one "N more" node and says so on the panel. Before, showing external packages could put thousands of entities on the table with no warning.
-  - The `force-3d` layout now spreads nodes over the whole table and keeps connected nodes close. Before, every node past the 16th sat on the same circle.
-  - Opening the graph no longer leaks a background thread each time, and a layout failure is reported on the panel instead of freezing the table.
-  - Re-opening a file after editing it shows its current symbols, not the ones from before the edit.
-  - A live session no longer piles up a copy of the dependency data on every save: only the two newest revisions of the project graph and of the opened file stay on disk, and they are written without indentation. Before, every refresh added a few MB that stayed until the session closed, and every export copied all of them.
-- **The Git analyses work on Windows with accented paths and on other drives, and never download on their own.**
-  - Export with History or Evolution no longer fails every revision when your Windows user folder has an accent (`C:\Users\Adrián`). The background Python worker received the path in the wrong encoding and reported "input missing".
-  - A working copy on another drive (for example `D:\projects\app`) keeps the full relative path of each file in a historical comparison, an evolution frame and an export. Before, it collapsed to the file name, so `core/a.ts` and `ui/a.ts` collided and every file looked removed and added.
-  - In a partial clone (`git clone --filter=blob:none`), Code-XR no longer makes Git download missing files from the remote one by one, and Git can no longer stop to ask for a password. A revision whose files are not on your computer is reported as such ("not on this computer (partial clone)") and left out. With recent Git versions such a file used to be skipped without a word, so the revision was analyzed as if the file did not exist.
-  - The historical comparison panel (in the scene and in the LivePanel) says up front when the repository is a partial clone, so you know older revisions may be missing before you pick one.
-- **A historical comparison keeps both revisions on every chart switch (#107).** Switching the comparison to Babia Boats used to leave both halves of the table empty, and switching from Boats back to a flat chart showed the normal analysis twice under the LEFT and RIGHT plates. Each half now reads its own revision under every chart type, in both directions. The two comparison charts also no longer copy the scene chart's internal markers, which in some scenes made the Normal analysis treat them as its own and hide them when you came back to the comparison.
+- **BabiaXR examples**: they render again, use the same library versions as the analysis scenes (A-Frame 1.7.1, BabiaXR 1.3.4) and carry their own data.
+- **Metric values**: cyclomatic complexity was wrong for some constructs in 13 languages.
+- **Collaboration**: a scene in VS Code's side panel and the same scene in a browser or headset share one room.
+- **XR scenes**
+  - The analysis switcher no longer gets stuck, can retry, and says why an analysis could not open.
+  - Panels no longer show the content behind them.
+  - Scenes keep updating after the connection to VS Code drops.
+  - Charts stay on the analysis table, and no longer flash oversized or grow into towers while rebuilt.
+  - Panels and screens no longer overlap each other, the table or the walls.
+  - Smaller failures no longer leave a chart, a mode or a folder in a bad state.
+- **Local servers**
+  - Reported on the port they really listen on; stopping one frees its port.
+  - A busy port is skipped correctly, including a port a local dev server holds on `localhost`.
+  - A Cloudflare link reaches the scene on Windows.
+- **Launching analyses**
+  - Closing an analysis while it runs stops it; a launch that takes over 10 minutes is stopped and reported.
+  - Duplicate launches of the same file are merged.
+  - Non-ASCII output (accented file names) is read correctly on Windows.
+- **Long analyses** (project evolution, historical comparison, dependency graph) can be cancelled, time out, and no longer block a mode for the rest of the session.
+- **Project evolution**
+  - Follows the history of the checked-out branch, from its first commit.
+  - More reliable with several participants, and its progress bar only moves forward.
+  - Reads old revisions much faster.
+- **Historical comparison**
+  - Stays correct while you keep editing, and can be cancelled from the LivePanel.
+  - Keeps both revisions on every chart switch.
+- **Dependency graph**
+  - Correct folder numbers, imports and calls; the same project gives the same graph on every run.
+  - No more fake external packages.
+  - Large projects stay usable: views over 600 nodes fold the rest into one "N more" node.
+- **Git**
+  - Works on Windows with accented user folders and on other drives.
+  - Partial clones work, including with Git 2.43, and Git never downloads on its own.
+  - Folders opened through a link or a short Windows path are accepted.
+- **Python environment**
+  - Checking it and running a dependency analysis never download anything.
+  - The setup progress bar matches what it is doing.
+  - The backend loads again on Python 3.8 and 3.9.
+  - The installed extension only runs the analysis scripts it ships with.
 
-- **Smaller failures in the XR room no longer leave a chart, a mode or a folder in a bad state.** (#109)
-  - Hovering a slice of a pie or donut chart while it is rebuilt (a re-analysis, or a switch between pie and donut) no longer throws an error when the cursor moves away.
-  - A folder whose name contains `;` no longer breaks the chart title, and parts of a chart that are hidden no longer count towards its size on the table.
-  - If an evolution frame or a chart change fails half-way, the chart is shown and fitted to the table again instead of staying hidden.
-  - Returning to Normal analysis shows the chart even when its data could not be confirmed ready; the failure is logged instead of being lost.
-  - The dependency graph says "Busy, please wait..." when you press a control during a re-analysis, instead of ignoring the click with no feedback. When the dependency graph or the room connection cannot be set up, the browser console now says so once.
-  - Historical comparison files left behind by a crashed session are removed at the next start, and a closed session no longer leaves an empty folder behind.
-- **Project evolution handles the same commit picked twice.** Picking a tag (or a branch) together with the commit it points to, in a manual movie, analysed that commit twice at once over one shared snapshot folder, and the first analysis to finish deleted the folder under the second. One frame could come out built from only part of the files, without a word, or the commit was discarded as "no data records" and hidden from both pickers for the rest of the session. A commit is now analysed once however many picks name it: both frames show the same complete data, its snapshot is deleted only after that one analysis, and a commit that does fail is reported under each pick's own name. (#104)
-- A source file of the XR chart-mapping runtime contained a raw control character typed into a string. Behaviour was correct, but the file was invisible to code search and review tools. It now uses the equivalent escape sequence; the runtime value is identical.
-- **Code-XR no longer picks a port a local dev server is already using, even in the rare fallback path.** When the usual port search fails, Code-XR scans ports one by one; that scan only checked the "all interfaces" address, which on macOS and Windows can look free while another app (a Vite or Next dev server on `localhost:3000`, for example) owns it, so the browser opened that app instead of the scene. The scan now checks the same three addresses as the main search (all interfaces, `127.0.0.1` and `::1`), and so does the HTTPS server's own port check.
+#### Removed
 
-- **The dependency graph no longer shows fake external packages.** Class and interface declarations were read loosely, so the graph grew "external" nodes that are not packages at all: `pass` from a Python `class X: pass`, `string>`, `any` or `object` from a generic constraint such as `class Runner<T extends object>`, `scheme` from a comment that says "object with scheme", `public` from a C++ `class A : public B`, and `|` from a type like `'import' | 'require'`. Only the declared base types now appear (`extends Base`, `implements Shape`, `class Dog : Animal`). Saved dependency caches are rebuilt once so the old entries go away. A dependency graph opened again on a session folder that already holds data files now continues their numbering, so the newest file is never deleted by mistake.
-
-- **Partial clones work with Git 2.43 (the Ubuntu 24.04 default).** In a partial clone, the first file missing from your computer made Git 2.43 stop reading altogether, so every revision was left out of historical comparison and project evolution, the current commit included, with a cryptic "git-cat-file-check-closed (128)" reason. Now only the revisions that need a missing file are left out, each with the reason "not on this computer (partial clone)", and every complete revision stays available. Code-XR still downloads nothing, also on Git versions older than 2.44 that cannot be told to skip the download (#105).
-- **Project evolution and deep historical comparison read old revisions much faster.** Each file of a revision used to be copied out of Git by its own `git show`, about 4 to 9 ms per file: roughly 4 to 8 seconds per frame for a 1,000-file project before any analysis started. A revision is now read through a single Git process, and a file that has not changed between frames (or between the two sides of a comparison) is copied once and reused. Partial clones behave as before: nothing is downloaded (#106).
+- Hidden commands that nothing could run: eleven settings commands, two Files by Language commands, `cleanAnalysis`, `visualizeData.debugState`, two theme debugging commands and "Hello World".
+- Four unused sample datasets under `examples/data/`.
 
 ## [1.2.0] - 2026-07-30
 
