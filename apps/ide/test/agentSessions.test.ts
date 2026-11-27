@@ -216,7 +216,7 @@ describe('AgentCatalog', () => {
         const byRef = new Map(views.map((view) => [view.ref, view]));
         assert.equal(byRef.get('acp:codex')?.availability, 'available');
         assert.equal(byRef.get('acp:claude')?.availability, 'missing');
-        assert.match(byRef.get('acp:claude')?.detail ?? '', /npm install -g @agentclientprotocol\/claude-agent-acp/);
+        assert.match(byRef.get('acp:claude')?.detail ?? '', /Press Install, or install it yourself with: npm install -g @agentclientprotocol\/claude-agent-acp/);
         assert.deepEqual(byRef.get('builtin:p1'), { ref: 'builtin:p1', name: 'Assistant', kind: 'builtin', description: byRef.get('builtin:p1')?.description, availability: 'available' });
         const codex = catalog.definition('acp:codex');
         assert.ok(codex);

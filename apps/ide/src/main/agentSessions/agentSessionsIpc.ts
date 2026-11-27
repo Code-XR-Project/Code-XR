@@ -30,4 +30,8 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.rename, (event, id, title) => service.rename(portOf(event.sender), id, title));
     handle(C.remove, (event, id) => service.remove(portOf(event.sender), id));
     handle(C.markRead, (event, id) => service.markRead(portOf(event.sender), id));
+    // AF2: the registry is read only on request; installing and removing ask natively first.
+    handle(C.describeInstall, (event, presetId) => service.describeInstall(portOf(event.sender), presetId));
+    handle(C.install, (event, presetId) => service.installAgent(portOf(event.sender), presetId, (description) => runtime.confirmInstall(event.sender, description)));
+    handle(C.uninstall, (event, presetId) => service.uninstallAgent(portOf(event.sender), presetId, (packageName, version) => runtime.confirmUninstall(event.sender, packageName, version)));
 }

@@ -1,4 +1,4 @@
-import type { AgentSessionMessage, AgentSessionsApi, AgentSessionState } from '../../shared/agentSession.ts';
+import type { AgentSessionMessage, AgentSessionsApi, AgentSessionState, InstallProgress } from '../../shared/agentSession.ts';
 import type { AttachmentSources } from '../agents/chatAttachments.ts';
 import type { CommandRegistry } from '../commands/commandRegistry.ts';
 import type { CustomEditorInput } from '../editor/customEditor.ts';
@@ -10,6 +10,9 @@ import { createChatView, type ChatView, type ChatViewDeps } from './chatView.ts'
 import { createSessionsView, type SessionsView } from './sessionsView.ts';
 import { createInstructionsView, type InstructionsViewDeps } from './instructionsView.ts';
 import { chatIdOf, chatTabId, parseLayoutMode, type LayoutMode } from './agentWorkbenchModel.ts';
+import { createGettingStartedView, type GettingStartedView } from './gettingStartedView.ts';
+import { ONBOARDED_KEY, progressTitle, shouldShowOnboarding } from './agentSetupModel.ts';
+import { errorText as setupErrorText } from './agentSetup.ts';
 import './agentFirst.css';
 
 /**
@@ -24,6 +27,10 @@ import './agentFirst.css';
  * - AF3 (#268): every chat is an editor tab (`chat:<sessionId>`) through the
  *   editor group's custom-editor seam, so chats sit next to files, split and
  *   come back after a restart.
+ * - AF2 (#267): installs and removals of agents report as progress
+ *   notifications.
+ * - AF13 (#278): the first-run guide, in the editor area's welcome view on a
+ *   first run, or as a tab (`guide:getting-started`) from the command palette.
  */
 
 export interface AgentWorkbenchOptions {
@@ -43,6 +50,8 @@ export interface AgentWorkbenchOptions {
     analyseProject(): void;
     /** Whether a folder is open in this window. */
     hasFolder(): boolean;
+    /** Asks for a folder to open in this window (File > Open Folder). */
+    openFolder(): void;
     /** The workspace calls the project instructions section needs (AF11). */
     readonly instructions: Omit<InstructionsViewDeps, 'openFile' | 'hasFolder' | 'onStatus'>;
     /** Optional hooks of later stories. */
@@ -60,6 +69,7 @@ export interface AgentWorkbench {
 }
 
 const MODE_KEY = 'codexr.layout.mode';
+const GUIDE_TAB_ID = 'guide:getting-started';
 const DOCK_ART = 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5';
 
 export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWorkbench {
@@ -160,6 +170,9 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
 
     void options.editorGroup().then((group) => {
         group.registerCustomEditor((id) => {
+            if (id === GUIDE_TAB_ID) {
+                return guideInput();
+            }
             const sessionId = chatIdOf(id);
             return sessionId ? chatInput(sessionId) : null;
         });
@@ -214,11 +227,136 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
     // ---- Messages from the main process -------------------------------------
     const lastSeen = new Map<string, AgentSessionState['status']>();
     api.onMessage((message: AgentSessionMessage) => {
+        if (message.kind === 'install-progress') {
+            installProgress(message);
+            return;
+        }
         for (const view of views) {
             view.handle(message);
         }
         sessions.handle(message);
         notifyIfHidden(message);
+        if (message.kind === 'sessions-changed') {
+            refreshHasChat();
+        }
+    });
+
+    // ---- Installing agents (AF2) --------------------------------------------
+    function installProgress(progress: InstallProgress): void {
+        const name = sessions.agents().find((agent) => agent.preset === progress.presetId)?.name ?? progress.presetId;
+        const key = `agent-install-${progress.presetId}`;
+        if (!progress.done) {
+            options.notifications.progress(key, { title: progressTitle(progress, name), message: progress.line });
+            return;
+        }
+        options.notifications.endProgress(key);
+        if (progress.error) {
+            options.notifications.notify('error', progress.action === 'install' ? `${name} could not be installed.` : `${name} could not be removed.`, { detail: progress.error });
+        } else {
+            options.notifications.notify('info', progress.action === 'install' ? `${name} is installed. Sign in or start a chat.` : `${name} was removed.`);
+        }
+    }
+
+    // ---- First run (AF13) ---------------------------------------------------
+    const guides = new Set<GettingStartedView>();
+    let hasChat = false;
+    let inlineGuide: GettingStartedView | null = null;
+    let closeGuideTab: (() => void) | null = null;
+    const readOnboarded = (): string | null => {
+        try {
+            return localStorage.getItem(ONBOARDED_KEY);
+        } catch {
+            return null;
+        }
+    };
+    function finishGuide(): void {
+        try {
+            localStorage.setItem(ONBOARDED_KEY, 'true');
+        } catch {
+            // Without storage the guide may show again; nothing else depends on it.
+        }
+        inlineGuide?.element.remove();
+        if (inlineGuide) {
+            guides.delete(inlineGuide);
+            inlineGuide = null;
+        }
+        closeGuideTab?.();
+    }
+    function createGuide(): GettingStartedView {
+        return createGettingStartedView({
+            setup: {
+                api,
+                onStatus: options.onStatus,
+                showTerminal: options.showTerminal,
+                refresh: (probe) => sessions.refreshAgents(probe),
+                replace: () => void sessions.refreshAgents(false),
+            },
+            hasFolder: options.hasFolder,
+            hasChat: () => hasChat,
+            agents: () => sessions.agents(),
+            openFolder: options.openFolder,
+            startChat: async (ref) => {
+                const before = hasChat;
+                await sessions.newChat(ref);
+                await refreshHasChat();
+                if (hasChat && !before) {
+                    finishGuide();
+                }
+            },
+            skip: finishGuide,
+        });
+    }
+    function guideInput(): CustomEditorInput {
+        return {
+            id: GUIDE_TAB_ID,
+            title: 'Getting Started',
+            iconName: 'guide.md',
+            create(context) {
+                const guide = createGuide();
+                guides.add(guide);
+                closeGuideTab = () => context.close();
+                return {
+                    element: el('div', { className: 'af-guide-tab' }, [guide.element]),
+                    onShow: () => guide.render(),
+                    dispose: () => {
+                        guides.delete(guide);
+                        closeGuideTab = null;
+                    },
+                };
+            },
+        };
+    }
+    function renderGuides(): void {
+        for (const guide of guides) {
+            guide.render();
+        }
+    }
+    async function refreshHasChat(): Promise<void> {
+        try {
+            hasChat = (await api.listProjects()).some((project) => project.sessions.length > 0);
+        } catch {
+            // Keeps the last answer.
+        }
+        renderGuides();
+    }
+    async function showGettingStarted(): Promise<void> {
+        const group = await options.editorGroup();
+        group.openCustom(guideInput(), { preview: false });
+    }
+    sessions.onAgentsChange(() => renderGuides());
+    // The guide opens on its own only on a first run: never once done or skipped, never for someone with chats.
+    void refreshHasChat().then(() => {
+        if (!shouldShowOnboarding(readOnboarded(), hasChat)) {
+            return;
+        }
+        const welcome = workbench.editorArea.querySelector<HTMLElement>('[data-testid="welcome"]');
+        if (welcome?.isConnected) {
+            inlineGuide = createGuide();
+            guides.add(inlineGuide);
+            welcome.append(inlineGuide.element);
+        } else {
+            void showGettingStarted();
+        }
     });
 
     function notifyIfHidden(message: AgentSessionMessage): void {
@@ -266,6 +404,9 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
     options.registry.register({ id: 'layout.agentMode', category: 'View', title: 'Agent Layout (Chats, Work Area, Live Analysis)', run: () => setMode('agent') });
     options.registry.register({ id: 'layout.classicMode', category: 'View', title: 'Classic Layout', run: () => setMode('classic') });
     options.registry.register({ id: 'chat.new', category: 'Chat', title: 'New Chat', keybinding: 'CmdOrCtrl+Shift+L', run: () => void sessions.newChat() });
+    options.registry.register({ id: 'chat.showGettingStarted', category: 'Chat', title: 'Show Getting Started', run: () => {
+        showGettingStarted().catch((error: unknown) => options.onStatus(setupErrorText(error)));
+    } });
     options.registry.register({ id: 'chat.showChats', category: 'Chat', title: 'Show Chats', run: () => workbench.showView('chats') });
     options.registry.register({ id: 'chat.searchChats', category: 'Chat', title: 'Search Chats', run: () => {
         workbench.showView('chats');
@@ -289,6 +430,7 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
         },
         folderChanged(): void {
             renderDock();
+            renderGuides();
             if (mode === 'agent') {
                 workbench.showView('chats');
             }

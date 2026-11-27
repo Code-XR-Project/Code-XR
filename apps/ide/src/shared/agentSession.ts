@@ -54,6 +54,50 @@ export interface AgentView {
     readonly preset?: AgentPresetId;
     /** The login methods the agent advertised (ACP `authMethods`), shown with the vendor's wording. */
     readonly authMethods?: readonly AuthMethodView[];
+    /** AF2: the version of a preset the IDE installed itself (under its own folder); absent otherwise. */
+    readonly installedVersion?: string;
+}
+
+/**
+ * AF2: what installing a preset's ACP adapter means, read from the npm
+ * registry only when the person asks to install it, and shown before anything
+ * is downloaded.
+ */
+export interface InstallDescription {
+    readonly presetId: AgentPresetId;
+    readonly agentName: string;
+    readonly packageName: string;
+    readonly version: string;
+    readonly license: string | null;
+    /** The package's own unpacked size, bytes (null when the registry does not say). */
+    readonly unpackedSize: number | null;
+    /** Its dependencies' sizes for this platform that could be read, bytes (a lower bound). */
+    readonly dependenciesSize: number | null;
+    readonly repository: string | null;
+    readonly homepage: string | null;
+    /** When this version was published (ISO), when the registry says. */
+    readonly published: string | null;
+    readonly registry: string;
+    /** Direct dependencies, `name@spec`. */
+    readonly dependencies: readonly string[];
+    /** Platform-specific packages (native binaries) npm will pick one of, with their size here when known. */
+    readonly nativeBinaries: readonly { readonly name: string; readonly size: number | null }[];
+    /** Packages among the adapter and its direct dependencies that run install scripts. */
+    readonly installScripts: readonly string[];
+    /** The folder it goes to, and the command that installs it. */
+    readonly targetDir: string;
+    readonly command: string;
+    /** The version installed by the IDE now, if any (an update). */
+    readonly installedVersion: string | null;
+}
+
+/** AF2: a line of an install's output, or its end. */
+export interface InstallProgress {
+    readonly presetId: AgentPresetId;
+    readonly action: 'install' | 'uninstall';
+    readonly line?: string;
+    readonly done?: boolean;
+    readonly error?: string;
 }
 
 export interface AuthMethodView {
@@ -244,7 +288,8 @@ export type SessionEvent =
 export type AgentSessionMessage =
     | { readonly kind: 'event'; readonly sessionId: string; readonly event: SessionEvent; readonly updatedAt: string }
     | { readonly kind: 'sessions-changed' }
-    | { readonly kind: 'agents-changed' };
+    | { readonly kind: 'agents-changed' }
+    | ({ readonly kind: 'install-progress' } & InstallProgress);
 
 // ---- Reducer ---------------------------------------------------------------
 
@@ -462,6 +507,9 @@ export const AGENT_SESSION_CHANNELS = {
     rename: 'codexr:agent-sessions:rename',
     remove: 'codexr:agent-sessions:remove',
     markRead: 'codexr:agent-sessions:mark-read',
+    describeInstall: 'codexr:agent-sessions:describe-install',
+    install: 'codexr:agent-sessions:install',
+    uninstall: 'codexr:agent-sessions:uninstall',
 } as const;
 
 export const AGENT_SESSION_EVENTS = {
@@ -506,5 +554,18 @@ export interface AgentSessionsApi {
     rename(sessionId: string, title: string): Promise<SessionSummary>;
     remove(sessionId: string): Promise<void>;
     markRead(sessionId: string): Promise<void>;
+    /**
+     * AF2: reads from the npm registry what installing a preset's adapter
+     * would download (the only network call, made because the person asked).
+     */
+    describeInstall(presetId: string): Promise<InstallDescription>;
+    /**
+     * AF2: installs (or updates to the latest version) a preset's adapter into
+     * the IDE's own folder, after the person confirms in a native dialog.
+     * Output streams as `install-progress`; resolves false when declined.
+     */
+    install(presetId: string): Promise<boolean>;
+    /** AF2: removes an adapter the IDE installed, after a native confirmation. */
+    uninstall(presetId: string): Promise<boolean>;
     onMessage(listener: (message: AgentSessionMessage) => void): () => void;
 }

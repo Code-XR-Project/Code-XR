@@ -14,7 +14,8 @@ import type { AuthMethodSpec } from './acpMapping.ts';
  * A preset is found, in order, as a package the IDE installed under
  * `<userData>/agent-packages` (its bin script run by Electron's own Node,
  * `ELECTRON_RUN_AS_NODE=1`, so no system Node is needed), or as its command
- * on PATH. Nothing is downloaded here: a missing agent says how to install it.
+ * on PATH. Nothing is downloaded here: a missing agent says how to install it,
+ * and agentInstaller.ts installs it on the person's request.
  *
  * Agents get a minimal environment: the variables a CLI needs to find its
  * home, its config and the network, the vendor's own key variables for a
@@ -304,7 +305,7 @@ export class AgentCatalog {
             return {
                 found: false,
                 detail: preset
-                    ? `${preset.name} is not installed. Install it with: npm install -g ${preset.packageName}`
+                    ? `${preset.name} is not installed. Press Install, or install it yourself with: npm install -g ${preset.packageName}`
                     : `${definition.command} was not found. Check the command, or use an absolute path.`,
             };
         }
@@ -322,11 +323,36 @@ export class AgentCatalog {
         return { found: true, via: found, launch: { command: found, args: [...definition.args], env: agentEnv() } };
     }
 
+    /** AF2: the version of a preset the IDE installed under its own folder, or null. */
+    async installedVersion(presetId: AgentPresetId): Promise<string | null> {
+        const preset = PRESETS.find((candidate) => candidate.id === presetId);
+        if (!preset) {
+            return null;
+        }
+        const text = await this.probe.readText(path.join(this.options.packagesDir, 'node_modules', ...preset.packageName.split('/'), 'package.json'));
+        if (text === null) {
+            return null;
+        }
+        try {
+            const version = (JSON.parse(text) as { version?: unknown }).version;
+            return typeof version === 'string' && /^\d+\.\d+\.\d+/.test(version) ? version.slice(0, 64) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /** Forgets what probes learned about an agent (after it was installed, updated or removed). */
+    forget(ref: string): void {
+        this.states.delete(ref);
+    }
+
     async view(definition: AcpAgentDefinition): Promise<AgentView> {
         const ref = `acp:${definition.id}`;
         const resolution = await this.resolve(definition);
         const state = this.states.get(ref);
+        const installedVersion = definition.preset ? await this.installedVersion(definition.preset) : null;
         const base = {
+            ...(installedVersion ? { installedVersion } : {}),
             ref,
             name: definition.name,
             kind: 'acp' as const,

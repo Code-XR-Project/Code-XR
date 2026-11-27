@@ -84,6 +84,9 @@ const api: CodeXRApi = Object.freeze({
         rename: (sessionId: string, title: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.rename, sessionId, title),
         remove: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.remove, sessionId),
         markRead: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.markRead, sessionId),
+        describeInstall: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.describeInstall, presetId),
+        install: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.install, presetId),
+        uninstall: (presetId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.uninstall, presetId),
         onMessage: (listener: (message: AgentSessionMessage) => void) => subscribe(AGENT_SESSION_EVENTS.message, listener),
     }),
     // #17: only workspace-relative paths and branch names cross; main validates each one.
