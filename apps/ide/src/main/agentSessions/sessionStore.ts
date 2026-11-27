@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { summarize, type AgentSessionState, type ProjectSessions, type SessionSummary } from '../../shared/agentSession.ts';
+import { summarize, type AgentSessionState, type ProjectSessions, type SessionSummary, type SessionWorktree } from '../../shared/agentSession.ts';
 
 /**
  * AF1/AF7: the chats, on disk. One JSON file per chat under
@@ -61,10 +61,26 @@ function isState(value: unknown): value is AgentSessionState {
     return isSessionId(state.id) && typeof state.title === 'string' && typeof state.agentRef === 'string' && Array.isArray(state.items) && typeof state.updatedAt === 'string';
 }
 
+/** AF12: a stored worktree record, or undefined when it is missing or malformed. */
+function worktreeOf(value: unknown): SessionWorktree | undefined {
+    if (!value || typeof value !== 'object') {
+        return undefined;
+    }
+    const record = value as Partial<Record<keyof SessionWorktree, unknown>>;
+    const { branch, path: top, cwd, baseCommit, repoRoot } = record;
+    if (typeof branch !== 'string' || typeof top !== 'string' || typeof cwd !== 'string' || typeof baseCommit !== 'string' || typeof repoRoot !== 'string') {
+        return undefined;
+    }
+    return { branch, path: top, cwd, baseCommit, repoRoot, ...(record.removed === true ? { removed: true } : {}) };
+}
+
 /** Fills fields an older file may lack, so the reducer never meets `undefined`. */
 function normalize(state: AgentSessionState): AgentSessionState {
+    const { worktree: storedWorktree, ...rest } = state;
+    const worktree = worktreeOf(storedWorktree);
     return settled({
-        ...state,
+        ...rest,
+        ...(worktree ? { worktree } : {}),
         agentName: typeof state.agentName === 'string' ? state.agentName : state.agentRef,
         workspaceRoot: typeof state.workspaceRoot === 'string' ? state.workspaceRoot : null,
         createdAt: typeof state.createdAt === 'string' ? state.createdAt : state.updatedAt,

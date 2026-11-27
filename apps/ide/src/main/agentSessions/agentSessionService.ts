@@ -32,6 +32,11 @@ import {
     type SessionSummary,
     type ToolKind,
     type TurnMetricDeltaView,
+    type SessionWorktree,
+    type WorktreeAvailabilityView,
+    type WorktreeCommitView,
+    type WorktreeMergeView,
+    type WorktreeStatusView,
 } from '../../shared/agentSession.ts';
 import { normalizeProjectPath } from '../checkpoints/checkpointStore.ts';
 import { isSameOrInside } from '../trust/trustModel.ts';
@@ -56,6 +61,8 @@ import type { AgentCatalog } from './agentCatalog.ts';
 import { parsePresetId, type AgentInstaller } from './agentInstaller.ts';
 import { AgentTerminals } from './agentTerminals.ts';
 import { isSessionId, type SessionStore } from './sessionStore.ts';
+import { canUseWorktrees, commitAll, createWorktree, mergeIntoCurrent, removeWorktree, worktreeStatus, WorktreeError, type WorktreeInfo } from '../worktrees/worktreeManager.ts';
+import { runWorktreeGit } from '../worktrees/worktreeGit.ts';
 
 /**
  * AF1: the agent-first chat in the main process. It owns the authoritative
@@ -114,6 +121,11 @@ export interface AgentSessionServiceOptions {
      * turn-end item, for `attachMetricDelta` (AF9).
      */
     readonly afterTurn?: (sessionId: string, workspaceRoot: string, turnId: string) => Promise<number | null>;
+    /**
+     * AF12: the IDE's own folder for chat worktrees (`<userData>/worktrees`),
+     * outside every project; absent, a chat cannot have a worktree.
+     */
+    readonly worktreeStorageDir?: string;
     /** The review of a chat's changes and its checkpoints (AF5, AF6); absent, the review calls refuse. */
     readonly review?: ChangeReview;
     /** Starts an agent (tests connect to an in-process agent instead). */
@@ -219,6 +231,20 @@ function requireString(value: unknown, what: string, max = 4096): string {
     return value;
 }
 
+async function isDirectory(dir: string): Promise<boolean> {
+    return (await fs.promises.stat(dir).catch(() => null))?.isDirectory() === true;
+}
+
+/** AF12: the project's current branch (where a merge lands), or null when detached or unknown. */
+async function currentBranch(repoRoot: string): Promise<string | null> {
+    try {
+        const result = await runWorktreeGit(repoRoot, ['symbolic-ref', '-q', '--short', 'HEAD'], { okExitCodes: [1] });
+        return result.exitCode === 0 ? result.stdout.trim() || null : null;
+    } catch {
+        return null;
+    }
+}
+
 /** A handler set that refuses everything: probes and logins never run a turn. */
 const REFUSING_HANDLERS: AcpClientHandlers = {
     onUpdate: () => undefined,
@@ -242,6 +268,7 @@ export class AgentSessionService {
     private readonly now: () => string;
     private sessionsChangedTimer: ReturnType<typeof setTimeout> | null = null;
     private stopped = false;
+    private storageReal: string | null | undefined = undefined;
 
     constructor(options: AgentSessionServiceOptions) {
         this.options = options;
@@ -483,7 +510,7 @@ export class AgentSessionService {
         return live.state;
     }
 
-    async create(window: WindowPort, agentRef: unknown): Promise<AgentSessionState> {
+    async create(window: WindowPort, agentRef: unknown, createOptions?: unknown): Promise<AgentSessionState> {
         this.remember(window);
         const ref = requireString(agentRef, 'agent', 200);
         if (ref.startsWith('builtin:')) {
@@ -497,10 +524,26 @@ export class AgentSessionService {
         if (!definition) {
             throw new Error('Unknown agent.');
         }
+        const wantsWorktree = !!createOptions && typeof createOptions === 'object' && (createOptions as { worktree?: unknown }).worktree === true;
+        const id = randomUUID();
+        let worktree: SessionWorktree | null = null;
+        let dirty = false;
+        if (wantsWorktree) {
+            // AF12: git creates the worktree with no hook of the repository; still, only a trusted folder gets one.
+            if (!this.options.isTrusted(window)) {
+                throw new Error('This folder is in Restricted Mode. Trust it to start a chat in its own worktree.');
+            }
+            const created = await this.worktreeCall(() => createWorktree({ projectRoot: root, storageDir: this.requireWorktreeStorage(), sessionId: id, label: definition.name }));
+            worktree = { branch: created.branch, path: created.path, cwd: created.cwd, baseCommit: created.baseCommit, repoRoot: created.repoRoot };
+            dirty = created.dirty;
+        }
         const at = this.now();
-        const state = emptySession({ id: randomUUID(), title: 'New chat', agentRef: ref, agentName: definition.name, workspaceRoot: root, createdAt: at, updatedAt: at });
+        const state = emptySession({ id, title: 'New chat', agentRef: ref, agentName: definition.name, workspaceRoot: root, createdAt: at, updatedAt: at, ...(worktree ? { worktree } : {}) });
         const live = this.track(state, root, window.id);
-        await this.options.store.saveNow(state);
+        if (worktree && dirty) {
+            this.emit(live, { type: 'notice', id: randomUUID(), level: 'info', text: `This chat works on the branch ${worktree.branch}, started from the project's last commit. Your uncommitted changes in the project are not in its worktree.` });
+        }
+        await this.options.store.saveNow(live.state);
         this.sessionsChanged();
         // The agent starts now, so its modes, models and commands are there before the first message.
         if (this.options.spawnAllowed && this.options.isTrusted(window)) {
@@ -524,13 +567,13 @@ export class AgentSessionService {
         let resolved: ResolvedAttachment[];
         let labels: string[];
         try {
-            ({ resolved, labels } = await this.resolveAttachments(live.root, attachments));
+            ({ resolved, labels } = await this.resolveAttachments(this.workRoot(live), attachments));
         } catch (error) {
             live.turnActive = false;
             throw error;
         }
         try {
-            const checkpoint = await this.hook('beforePrompt', () => this.options.beforePrompt?.(live.state.id, live.root)).then((result) => result?.checkpointId ?? null);
+            const checkpoint = await this.hook('beforePrompt', () => this.options.beforePrompt?.(live.state.id, this.workRoot(live))).then((result) => result?.checkpointId ?? null);
             const firstMessage = !live.state.items.some((item) => item.kind === 'user');
             this.emit(live, { type: 'user', id: randomUUID(), text, at: this.now(), ...(labels.length ? { attachments: labels } : {}), ...(checkpoint ? { checkpoint } : {}) });
             if (firstMessage && live.state.title === 'New chat') {
@@ -645,9 +688,19 @@ export class AgentSessionService {
         return summarize(live.state);
     }
 
-    async remove(window: WindowPort, sessionId: unknown): Promise<void> {
+    async remove(window: WindowPort, sessionId: unknown, removeOptions?: unknown): Promise<void> {
         this.remember(window);
         const live = await this.open(window, sessionId);
+        const removeWorktreeToo = !!removeOptions && typeof removeOptions === 'object' && (removeOptions as { removeWorktree?: unknown }).removeWorktree === true;
+        const worktree = live.state.worktree;
+        if (removeWorktreeToo && worktree && !worktree.removed) {
+            // AF12: the worktree goes first, so a refusal keeps the chat that names it.
+            if (this.options.rootOf(window) !== live.root) {
+                throw new Error(`This chat belongs to ${live.root}; open that folder to remove its worktree.`);
+            }
+            this.stopAgent(live);
+            await this.worktreeCall(() => removeWorktree(this.worktreeInfo(live), { deleteBranch: true }));
+        }
         this.stopAgent(live);
         this.live.delete(live.state.id);
         await this.options.store.remove(live.root, live.state.id);
@@ -675,30 +728,30 @@ export class AgentSessionService {
     async changeDiff(window: WindowPort, sessionId: unknown, filePath: unknown): Promise<ChangeDiffView> {
         const { live, review } = await this.reviewOf(window, sessionId, false);
         const relative = normalizeProjectPath(requireString(filePath, 'file path'));
-        const { oldText, newText } = await review.diff(live.state.id, live.root, relative);
+        const { oldText, newText } = await review.diff(live.state.id, this.workRoot(live), relative);
         return { path: relative, oldText, newText };
     }
 
     async keepChanges(window: WindowPort, sessionId: unknown, paths: unknown): Promise<ChatChanges> {
         const { live, review } = await this.reviewOf(window, sessionId, true);
-        await review.keep(live.state.id, live.root, reviewPaths(paths));
+        await review.keep(live.state.id, this.workRoot(live), reviewPaths(paths));
         return this.refreshChanges(live, review);
     }
 
     async undoChanges(window: WindowPort, sessionId: unknown, paths: unknown): Promise<ChatChanges> {
         const { live, review } = await this.reviewOf(window, sessionId, true);
-        await review.undo(live.state.id, live.root, reviewPaths(paths));
+        await review.undo(live.state.id, this.workRoot(live), reviewPaths(paths));
         return this.refreshChanges(live, review);
     }
 
     async previewRestore(window: WindowPort, sessionId: unknown, checkpointId: unknown): Promise<readonly string[]> {
         const { live, review } = await this.reviewOf(window, sessionId, false);
-        return review.previewRestore(live.root, this.checkpointOf(live, checkpointId));
+        return review.previewRestore(this.workRoot(live), this.checkpointOf(live, checkpointId));
     }
 
     async restoreCheckpoint(window: WindowPort, sessionId: unknown, checkpointId: unknown): Promise<readonly string[]> {
         const { live, review } = await this.reviewOf(window, sessionId, true);
-        const written = await review.restoreCheckpoint(live.root, this.checkpointOf(live, checkpointId));
+        const written = await review.restoreCheckpoint(this.workRoot(live), this.checkpointOf(live, checkpointId));
         await this.refreshChanges(live, review).catch((error: unknown) => this.options.log?.(`Could not refresh the changes of ${live.state.id}: ${errorMessage(error)}`));
         return written;
     }
@@ -719,6 +772,167 @@ export class AgentSessionService {
             throw new Error('That checkpoint is not part of this chat.');
         }
         return id;
+    }
+
+    // ---- Worktrees (AF12) -------------------------------------------------------
+
+    /** Whether a new chat of the window's folder can have its own worktree. */
+    async worktreeAvailability(window: WindowPort): Promise<WorktreeAvailabilityView> {
+        this.remember(window);
+        const root = this.options.rootOf(window);
+        if (!root) {
+            return { ok: false, message: 'Open a folder to start a chat in a worktree.' };
+        }
+        if (!this.options.worktreeStorageDir) {
+            return { ok: false, message: 'Worktrees are not available here.' };
+        }
+        if (!this.options.isTrusted(window)) {
+            return { ok: false, message: 'Trust this folder to start chats in their own worktree.' };
+        }
+        const availability = await canUseWorktrees(root);
+        return availability.ok ? { ok: true, message: null } : { ok: false, message: availability.message };
+    }
+
+    async worktreeStatus(window: WindowPort, sessionId: unknown): Promise<WorktreeStatusView> {
+        const { live, worktree } = await this.worktreeOf(window, sessionId);
+        const into = await currentBranch(worktree.repoRoot);
+        if (worktree.removed) {
+            return { branch: worktree.branch, into, exists: false, removed: true, files: [], ahead: 0, behind: 0, hasUncommitted: false };
+        }
+        const status = await this.worktreeCall(() => worktreeStatus(this.worktreeInfo(live)));
+        return {
+            branch: worktree.branch,
+            into,
+            exists: status.exists,
+            removed: false,
+            files: status.files.map((file) => ({ path: file.path, status: file.status, committed: file.committed, uncommitted: file.uncommitted })),
+            ahead: status.ahead,
+            behind: status.behind,
+            hasUncommitted: status.hasUncommitted,
+        };
+    }
+
+    async worktreeCommit(window: WindowPort, sessionId: unknown, message: unknown): Promise<WorktreeCommitView> {
+        const { live } = await this.worktreeOf(window, sessionId, true);
+        const text = typeof message === 'string' ? message.trim() : '';
+        if (!text || text.length > 10_000 || text.includes('\0')) {
+            throw new Error('A commit needs a message of at most 10,000 characters.');
+        }
+        const result = await this.worktreeCall(() => commitAll(this.worktreeInfo(live), text));
+        return { commit: result?.commit ?? null, fileCount: result?.fileCount ?? 0 };
+    }
+
+    async worktreeMerge(window: WindowPort, sessionId: unknown, strategy: unknown): Promise<WorktreeMergeView> {
+        const { live } = await this.worktreeOf(window, sessionId, true);
+        if (strategy !== 'merge' && strategy !== 'squash') {
+            throw new Error('Unknown merge strategy.');
+        }
+        // The merge into the person's branch runs their hooks: only in a trusted folder.
+        if (!this.options.isTrusted(window)) {
+            throw new Error('This folder is in Restricted Mode. Trust it to merge an agent\'s branch into it.');
+        }
+        const message = strategy === 'squash' ? live.state.title : undefined;
+        const result = await this.worktreeCall(() => mergeIntoCurrent(this.worktreeInfo(live), { strategy, message }));
+        return { strategy: result.strategy, into: result.into, commit: result.commit, nothingToMerge: result.nothingToMerge };
+    }
+
+    /** Removes the chat's worktree and deletes its branch; the chat stays, read-only. */
+    async worktreeDiscard(window: WindowPort, sessionId: unknown): Promise<void> {
+        const { live, worktree } = await this.worktreeOf(window, sessionId, true);
+        this.stopAgent(live);
+        await this.worktreeCall(() => removeWorktree(this.worktreeInfo(live), { deleteBranch: true }));
+        this.emit(live, { type: 'worktree', worktree: { ...worktree, removed: true } });
+        this.setPendingCount(live, 0);
+        await this.hook('review.forget', () => this.options.review?.forget?.(live.state.id));
+        await this.options.store.saveNow(live.state);
+        this.sessionsChanged();
+    }
+
+    /** The chat and its worktree, for a worktree call of a window that has the chat's folder open. */
+    private async worktreeOf(window: WindowPort, sessionId: unknown, mutating = false): Promise<{ live: Live; worktree: SessionWorktree }> {
+        this.remember(window);
+        const live = await this.open(window, sessionId);
+        if (this.options.rootOf(window) !== live.root) {
+            throw new Error(`This chat belongs to ${live.root}; open that folder to manage its worktree.`);
+        }
+        const worktree = live.state.worktree;
+        if (!worktree) {
+            throw new Error('This chat does not have a worktree.');
+        }
+        if (mutating) {
+            if (worktree.removed) {
+                throw new Error('The worktree of this chat was discarded.');
+            }
+            if (live.turnActive) {
+                throw new Error('The agent is still working. Stop it or wait for it to finish, then try again.');
+            }
+        }
+        this.checkWorktreeLocation(worktree);
+        return { live, worktree };
+    }
+
+    /** What worktreeManager needs, rebuilt from the chat's stored record (never from the page). */
+    private worktreeInfo(live: Live): WorktreeInfo {
+        const worktree = live.state.worktree;
+        if (!worktree) {
+            throw new Error('This chat does not have a worktree.');
+        }
+        this.checkWorktreeLocation(worktree);
+        return { sessionId: live.state.id, label: live.state.title, repoRoot: worktree.repoRoot, path: worktree.path, cwd: worktree.cwd, branch: worktree.branch, baseCommit: worktree.baseCommit, createdAt: 0 };
+    }
+
+    /** A worktree record is only acted on when it lies in the IDE's own worktree folder. */
+    private checkWorktreeLocation(worktree: SessionWorktree): void {
+        const storage = this.options.worktreeStorageDir;
+        const inside = (dir: string): boolean => isSameOrInside(dir, worktree.path, this.platform) && path.resolve(worktree.path) !== path.resolve(dir);
+        if (!storage || !(inside(path.resolve(storage)) || inside(this.realStorageDir(storage))) || !isSameOrInside(worktree.path, worktree.cwd, this.platform)) {
+            throw new Error('The worktree of this chat is not one the IDE created.');
+        }
+    }
+
+    private realStorageDir(storage: string): string {
+        if (this.storageReal === undefined) {
+            try {
+                this.storageReal = fs.realpathSync.native(storage);
+            } catch {
+                // Not created yet: try again next time.
+                return path.resolve(storage);
+            }
+        }
+        return this.storageReal ?? path.resolve(storage);
+    }
+
+    private requireWorktreeStorage(): string {
+        if (!this.options.worktreeStorageDir) {
+            throw new Error('Worktrees are not available here.');
+        }
+        return this.options.worktreeStorageDir;
+    }
+
+    /** Runs a worktreeManager call; its refusals reach the page as plain errors with the files involved. */
+    private async worktreeCall<T>(run: () => Promise<T>): Promise<T> {
+        try {
+            return await run();
+        } catch (error) {
+            if (error instanceof WorktreeError) {
+                const files = error.files.length === 0 ? '' : ` Files: ${error.files.slice(0, 8).join(', ')}${error.files.length > 8 ? ` and ${error.files.length - 8} more` : ''}.`;
+                throw new Error(`${error.message}${files}`);
+            }
+            throw new Error(errorMessage(error));
+        }
+    }
+
+    /** The folder the chat's agent works in: its worktree (AF12), or the project. */
+    private workRoot(live: Live): string {
+        const worktree = live.state.worktree;
+        if (!worktree) {
+            return live.root;
+        }
+        if (worktree.removed) {
+            throw new Error('The worktree of this chat was discarded, so it cannot continue. Start a new chat.');
+        }
+        this.checkWorktreeLocation(worktree);
+        return worktree.cwd;
     }
 
     // ---- Windows and shutdown -------------------------------------------------
@@ -805,6 +1019,9 @@ export class AgentSessionService {
         if (this.options.rootOf(window) !== live.root) {
             throw new Error(`This chat belongs to ${live.root}; open that folder to continue it.`);
         }
+        if (live.state.worktree?.removed) {
+            throw new Error('The worktree of this chat was discarded, so it cannot continue. Start a new chat.');
+        }
     }
 
     private emit(live: Live, event: SessionEvent): void {
@@ -872,13 +1089,18 @@ export class AgentSessionService {
         if (!resolution.found) {
             throw new Error(resolution.detail);
         }
+        // AF12: a worktree chat's agent works, reads, writes and runs commands in its worktree only.
+        const workRoot = this.workRoot(live);
+        if (live.state.worktree && !(await isDirectory(workRoot))) {
+            throw new Error(`The worktree of this chat is missing (${workRoot}). Discard it from the Worktree bar and start a new chat.`);
+        }
         const terminals = new AgentTerminals({
-            root: live.root,
+            root: workRoot,
             env: this.options.terminalEnv,
             isInside: (root, candidate) => isSameOrInside(root, candidate, this.platform),
             events: { onOutput: (terminalId, chunk, exitCode, truncated) => this.queueTerminalOutput(live, terminalId, chunk, exitCode, truncated) },
         });
-        const connection = this.connectAgent(resolution.launch, live.root, this.handlersFor(live, terminals));
+        const connection = this.connectAgent(resolution.launch, workRoot, this.handlersFor(live, terminals));
         connection.onClose((error) => {
             terminals.disposeAll();
             if (live.agent?.connection === connection) {
@@ -894,13 +1116,14 @@ export class AgentSessionService {
             const init = await withTimeout(connection.initialize(), timeout, 'The agent did not answer initialize in time.');
             const authMethods = mapAuthMethods(init.authMethods ?? []);
             catalog.setState(agentRef, { availability: catalog.state(agentRef)?.availability ?? 'available', authMethods });
+            // AF12: the analysis follows the project, not a chat's worktree, so the MCP server gets the project.
             const mcpServers = [...((await this.hook('mcpServers', () => this.options.mcpServers?.(live.root))) ?? [])];
             const previous = live.state.agentSessionId;
             let sessionId: string | null = null;
             if (previous && init.agentCapabilities?.loadSession) {
                 live.replaying = true;
                 try {
-                    const loaded = await withTimeout(connection.loadSession(previous, live.root, mcpServers), timeout, 'The agent did not reopen the chat in time.');
+                    const loaded = await withTimeout(connection.loadSession(previous, workRoot, mcpServers), timeout, 'The agent did not reopen the chat in time.');
                     sessionId = previous;
                     this.applySessionSetup(live, loaded.modes, loaded.configOptions);
                 } catch (error) {
@@ -913,7 +1136,7 @@ export class AgentSessionService {
                 }
             }
             if (!sessionId) {
-                const created = await withTimeout(connection.newSession(live.root, mcpServers), timeout, 'The agent did not open a session in time.');
+                const created = await withTimeout(connection.newSession(workRoot, mcpServers), timeout, 'The agent did not open a session in time.');
                 sessionId = created.sessionId;
                 const hadHistory = live.state.items.some((item) => item.kind === 'turn-end');
                 if (hadHistory && !(previous && init.agentCapabilities?.loadSession)) {
@@ -1050,8 +1273,9 @@ export class AgentSessionService {
             throw new Error(`Paths must be absolute: ${requested}`);
         }
         const target = api.resolve(requested);
-        const refuse = (): Error => new Error(`${requested} is outside the project folder ${live.root}; agents only read and write inside it.`);
-        if (!isSameOrInside(live.root, target, this.platform)) {
+        const root = this.workRoot(live);
+        const refuse = (): Error => new Error(`${requested} is outside the ${live.state.worktree ? 'chat\'s worktree' : 'project folder'} ${root}; agents only read and write inside it.`);
+        if (!isSameOrInside(root, target, this.platform)) {
             throw refuse();
         }
         // A link inside the project must not lead outside it: check the real path of the nearest existing ancestor.
@@ -1059,7 +1283,7 @@ export class AgentSessionService {
         for (;;) {
             try {
                 const real = await fs.promises.realpath(existing);
-                const realRoot = await fs.promises.realpath(live.root).catch(() => live.root);
+                const realRoot = await fs.promises.realpath(root).catch(() => root);
                 if (!isSameOrInside(realRoot, real, this.platform)) {
                     throw refuse();
                 }
@@ -1180,7 +1404,7 @@ export class AgentSessionService {
     }
 
     private async reportPendingChanges(live: Live, turnId: string): Promise<void> {
-        const count = await this.hook('afterTurn', () => this.options.afterTurn?.(live.state.id, live.root, turnId));
+        const count = await this.hook('afterTurn', () => this.options.afterTurn?.(live.state.id, this.workRoot(live), turnId));
         this.setPendingCount(live, count);
     }
 
@@ -1207,7 +1431,7 @@ export class AgentSessionService {
 
     /** Refreshes the chat's pending count after a review action and returns the list. */
     private async refreshChanges(live: Live, review: ChangeReview): Promise<ChatChanges> {
-        const changes = await review.pending(live.state.id, live.root);
+        const changes = await review.pending(live.state.id, this.workRoot(live));
         if (changes.disabledReason === null) {
             this.setPendingCount(live, changes.files.length);
         }

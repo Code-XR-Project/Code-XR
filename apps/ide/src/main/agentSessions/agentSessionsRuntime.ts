@@ -216,6 +216,8 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
             const analysisDir = owner ? (options.analysisOutput?.(owner) ?? null) : null;
             return [codexrMcpServerSpec({ execPath: process.execPath, appPath: app.getAppPath(), root, analysisDir, isPackaged: app.isPackaged })];
         },
+        // AF12: chats started in a worktree get it here, outside every project.
+        worktreeStorageDir: path.join(userData, 'worktrees'),
         spawnAllowed: !options.isSmoke,
         probeDir: path.join(dir, 'probe'),
         homeDir: os.homedir(),

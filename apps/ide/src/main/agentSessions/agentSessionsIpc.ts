@@ -21,14 +21,14 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.login, (event, ref, methodId) => service.login(portOf(event.sender), ref, methodId));
     handle(C.listProjects, (event) => service.listProjects(portOf(event.sender)));
     handle(C.get, (event, id) => service.get(portOf(event.sender), id));
-    handle(C.create, (event, ref) => service.create(portOf(event.sender), ref));
+    handle(C.create, (event, ref, options) => service.create(portOf(event.sender), ref, options));
     handle(C.prompt, (event, id, text, attachments) => service.prompt(portOf(event.sender), id, text, attachments));
     handle(C.cancel, (event, id) => service.cancel(portOf(event.sender), id));
     handle(C.respondPermission, (event, id, requestId, optionId) => service.respondPermission(portOf(event.sender), id, requestId, optionId));
     handle(C.setMode, (event, id, modeId) => service.setMode(portOf(event.sender), id, modeId));
     handle(C.setConfigOption, (event, id, optionId, valueId) => service.setConfigOption(portOf(event.sender), id, optionId, valueId));
     handle(C.rename, (event, id, title) => service.rename(portOf(event.sender), id, title));
-    handle(C.remove, (event, id) => service.remove(portOf(event.sender), id));
+    handle(C.remove, (event, id, options) => service.remove(portOf(event.sender), id, options));
     handle(C.markRead, (event, id) => service.markRead(portOf(event.sender), id));
     handle(C.changes, (event, id) => service.changes(portOf(event.sender), id));
     handle(C.changeDiff, (event, id, filePath) => service.changeDiff(portOf(event.sender), id, filePath));
@@ -36,6 +36,12 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.undoChanges, (event, id, paths) => service.undoChanges(portOf(event.sender), id, paths));
     handle(C.previewRestore, (event, id, checkpointId) => service.previewRestore(portOf(event.sender), id, checkpointId));
     handle(C.restoreCheckpoint, (event, id, checkpointId) => service.restoreCheckpoint(portOf(event.sender), id, checkpointId));
+    // AF12: the worktree is looked up from the chat id in main; no path from the page is used.
+    handle(C.worktreeAvailability, (event) => service.worktreeAvailability(portOf(event.sender)));
+    handle(C.worktreeStatus, (event, id) => service.worktreeStatus(portOf(event.sender), id));
+    handle(C.worktreeCommit, (event, id, message) => service.worktreeCommit(portOf(event.sender), id, message));
+    handle(C.worktreeMerge, (event, id, strategy) => service.worktreeMerge(portOf(event.sender), id, strategy));
+    handle(C.worktreeDiscard, (event, id) => service.worktreeDiscard(portOf(event.sender), id));
     // AF2: the registry is read only on request; installing and removing ask natively first.
     handle(C.describeInstall, (event, presetId) => service.describeInstall(portOf(event.sender), presetId));
     handle(C.install, (event, presetId) => service.installAgent(portOf(event.sender), presetId, (description) => runtime.confirmInstall(event.sender, description)));
