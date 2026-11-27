@@ -17,6 +17,10 @@
 // Unsigned: see the "Installers" section of the README for what that means
 // on each OS.
 const EXTENSION = '../vscode-extension';
+// The installer icon is the IDE's own 512x512 copy: electron-builder refuses
+// anything smaller on macOS, and the extension's icon.png is 256x256 since
+// 1.2.1 (the Marketplace listing does not need more).
+const INSTALLER_ICON = 'build-resources/icon.png';
 // The installed Electron (package.json holds a range; the binaries are per release).
 const { version: electronVersion } = require(require.resolve('electron/package.json'));
 
@@ -51,16 +55,16 @@ module.exports = {
     linux: {
         target: ['AppImage', 'deb'],
         category: 'Development',
-        icon: `${EXTENSION}/resources/icon.png`,
+        icon: INSTALLER_ICON,
         maintainer: 'Code-XR Project',
     },
     deb: { packageName: 'code-xr-ide', artifactName: '${name}_${version}_${arch}.${ext}' },
-    win: { target: ['nsis'], icon: `${EXTENSION}/resources/icon.png` },
+    win: { target: ['nsis'], icon: INSTALLER_ICON },
     nsis: { artifactName: 'Code-XR-IDE-Setup-${version}.${ext}', oneClick: false, allowToChangeInstallationDirectory: true, perMachine: false },
     mac: {
         target: ['dmg'],
         category: 'public.app-category.developer-tools',
-        icon: `${EXTENSION}/resources/icon.png`,
+        icon: INSTALLER_ICON,
         // Not signed with a developer certificate nor notarised (thesis
         // prototype). '-' signs ad hoc, which Apple silicon requires for any
         // app to start at all; Gatekeeper still asks on first open (README).
