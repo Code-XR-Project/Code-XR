@@ -47,11 +47,50 @@ Microsoft's [extension samples](https://github.com/microsoft/vscode-extension-sa
 | vscode.theme-monokai | 10.0.0 | no code | — | Colour theme |
 | vscode.theme-solarized-light | 10.0.0 | no code | — | Colour theme |
 
-### Popular extensions from Open VSX
+### Popular extensions from Open VSX (2026-11-27)
 
-Measured by the CI job; see the table below once filled in, or the job summary of any recent pull request for the current numbers.
+Thirty popular extensions, latest Open VSX release, measured by the CI job (Linux, no folder content, nothing else installed). **23 activate, 4 have no code (themes, the Docker pack, the Spanish language pack), 2 fail and 1 does not answer within 30 s.**
 
-<!-- compat:popular -->
+The first measurement had five failures. Three were fixed in the host from what the probe reported: extensions shipped as ES modules could not `import 'vscode'` (Prettier), enums of unimplemented areas were missing and reading them at start-up threw (`TestRunProfileKind`: Python; `QuickInputButtonLocation`: GitLens), and `VSCODE_NLS_CONFIG` was not set (Markdown All in One). What remains:
+
+- **vue.volar** reads `extensions.getExtension('vscode.typescript-language-features').isActive`: it is built on VS Code's built-in TypeScript extension, which the IDE does not have.
+- **yzhang.markdown-all-in-one** gets past its `VSCODE_NLS_CONFIG` read now, then fails building its completion provider (`Object.entries` of undefined); it relies on VS Code's built-in Markdown support.
+- **golang.go** does not finish activating within 30 s without the Go toolchain installed; it was not investigated further.
+
+"Missing vscode API" is what the extension touched and got a stub for: it keeps running without that feature (for example GitLens without its custom editors and terminal integration, Python without its test explorer and terminals). Error lines about a language server that could not start (rust-analyzer, Java) come from the runner having no such toolchain, not from the IDE.
+
+| Extension | Version | Result | Missing vscode API at start-up | Notes |
+|---|---|---|---|---|
+| redhat.vscode-yaml | 2.1.2026112008 | activated | languages.registerSelectionRangeProvider | 1 commands registered; 1 error line(s): (node:2379) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs ar... |
+| esbenp.prettier-vscode | 12.4.0 | activated | none | 3 commands registered |
+| dbaeumer.vscode-eslint | 3.0.34 | activated | none | 6 commands registered |
+| eamodio.gitlens | 2026.11.260409 | activated | workspace.registerFileSystemProvider, window.registerWebviewPanelSerializer (panels are not restored after a restart), window.onDidChangeTerminalShellIntegration, window.registerCustomEditorProvider, window.registerFileDecorationProvider, window.registerTerminalLinkProvider | 799 commands registered; 2 error line(s): TypeError: Cannot read properties of undefined (reading 'fsPath')   [   57 →    8a] GitProviderService.registrationComplete — failed [1ms] |
+| ms-python.python | 2026.10.0 | activated | tests.createTestController, window.onDidWriteTerminalData, window.createTerminal, window.onDidStartTerminalShellExecution, window.registerTerminalLinkProvider, lm.registerTool | 33 commands registered; 1 error line(s): Dir "/tmp/codexr-compat-EMtJbf/workspace/.pixi/envs" is not watchable (directory does not exist) |
+| rust-lang.rust-analyzer | 0.4.3134 | activated | none | 58 commands registered; 3 error line(s): /tmp/codexr-compat-J7VwN8/extensions/rust-lang.rust-analyzer-0.4.3134/server/rust-analyzer --version: {   stdout: '',   stderr: '',   status: undefined,   error: Error: spawn /... |
+| golang.go | 0.58.0 | timeout | window.registerWebviewPanelSerializer (panels are not restored after a restart) | No answer within 30000 ms. |
+| streetsidesoftware.code-spell-checker | 4.10.0 | activated | window.onDidChangeActiveNotebookEditor, window.registerTerminalProfileProvider, languages.registerInlineCompletionItemProvider | 79 commands registered |
+| usernamehw.errorlens | 3.30.0 | activated | none | 20 commands registered |
+| pkief.material-icon-theme | 5.40.0 | activated | none | 11 commands registered |
+| vscodevim.vim | 1.32.4 | activated | none | 70 commands registered; 2 error line(s): Unhandled promise rejection in an extension: Error: ENOENT: no such file or directory, open '/tmp/codexr-compat-XoLvQb/storage/global/vscodevim.vim/.registers' |
+| christian-kohler.path-intellisense | 2.8.0 | activated | none |  |
+| editorconfig.editorconfig | 0.18.2 | activated | none | 2 commands registered |
+| yzhang.markdown-all-in-one | 3.6.2 | failed | none | 29 commands registered; Cannot convert undefined or null to object; 1 error line(s): Failed to activate: TypeError: Cannot convert undefined or null to object     at Object.entries (<anonymous>)     at new MdCompletio... |
+| gruntfuggly.todo-tree | 0.0.215 | activated | none |  |
+| mechatroner.rainbow-csv | 3.24.1 | activated | languages.registerDocumentRangeSemanticTokensProvider | 25 commands registered |
+| formulahendry.code-runner | 0.12.2 | activated | none | 4 commands registered |
+| dracula-theme.theme-dracula | 2.25.1 | no-code | none |  |
+| github.github-vscode-theme | 6.3.5 | no-code | none |  |
+| llvm-vs-code-extensions.vscode-clangd | 0.6.0 | activated | none | 3 commands registered |
+| vue.volar | 3.3.14 | failed | none | Cannot read properties of undefined (reading 'isActive'); 1 error line(s): Failed to activate: TypeError: Cannot read properties of undefined (reading 'isActive')     at Gr (/tmp/codexr-compat-EuPd4O/extensions/vue.vo... |
+| svelte.svelte-vscode | 110.3.2 | activated | none | 10 commands registered |
+| bradlc.vscode-tailwindcss | 0.16.0 | activated | none | 2 commands registered |
+| hashicorp.terraform | 2.40.1 | activated | lm.registerMcpServerDefinitionProvider | 32 commands registered |
+| tamasfe.even-better-toml | 0.21.2 | activated | languages.registerDocumentSemanticTokensProvider | 5 commands registered |
+| james-yu.latex-workshop | 10.20.1 | activated | window.registerWebviewPanelSerializer (panels are not restored after a restart), window.registerCustomEditorProvider, languages.registerWorkspaceSymbolProvider, languages.registerColorProvider, languages.registerSelectionRangeProvider | 71 commands registered |
+| oderwat.indent-rainbow | 8.3.1 | activated | none |  |
+| ms-azuretools.vscode-docker | 2.0.0 | no-code | none |  |
+| redhat.java | 1.59.2026112708 | activated | window.registerCustomEditorProvider | 29 commands registered; 5 error line(s): Language Support for Java (Syntax Server) client: couldn't create connection to server. Launching server using command /tmp/codexr-compat-hggjk7/extensions/redhat.java-1.59.202... |
+| ms-ceintl.vscode-language-pack-es | 1.131.0 | no-code | none |  |
 
 ## Known limits
 
