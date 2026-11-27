@@ -65,6 +65,9 @@ export interface WorkbenchCommandTargets {
     splitEditor(): void;
     /** #168: focuses group 0 or 1; returns false when that group does not exist. */
     focusEditorGroup(index: number): boolean;
+    /** #179: the Markdown preview beside the editor, on the active file. */
+    openMarkdownPreview(): void;
+    canPreviewMarkdown(): boolean;
 }
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
@@ -96,6 +99,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'editor.splitRight', category: 'View', title: 'Split Editor Right', keybinding: 'CmdOrCtrl+\\', enabled: targets.hasActiveEditor, run: targets.splitEditor },
         { id: 'workbench.focusFirstEditorGroup', category: 'View', title: 'Focus First Editor Group', keybinding: 'CmdOrCtrl+1', recordRecent: false, run: () => { targets.focusEditorGroup(0); } },
         { id: 'workbench.focusSecondEditorGroup', category: 'View', title: 'Focus Second Editor Group', keybinding: 'CmdOrCtrl+2', recordRecent: false, run: () => { if (!targets.focusEditorGroup(1)) { targets.splitEditor(); } } },
+        { id: 'markdown.showPreviewToSide', category: 'Markdown', title: 'Open Preview to the Side', keybinding: 'CmdOrCtrl+K V', enabled: targets.canPreviewMarkdown, run: targets.openMarkdownPreview },
         { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveEditor, run: targets.keepEditor },
         { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('absolute') },
         { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('relative') },

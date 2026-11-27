@@ -63,3 +63,23 @@ THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 Usage in this package:
 
 - Bundled into the renderer by Vite, through the extension's shared core: the QR code a standalone headset scans to open a shared scene (#19, `apps/vscode-extension/src/core/xr/headsetQr.ts`). Declared as a dependency of the extension workspace, like the rest of the core's. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+
+## marked (Markdown parser)
+
+- Project: `marked` on npm, 14.0.0, by Christopher Jeffrey and the marked contributors
+- Source: https://github.com/markedjs/marked
+- License: MIT
+
+Usage in this package:
+
+- Bundled into the renderer by Vite: parses the Markdown preview (#179, `src/renderer/editor/markdownModel.ts`). The same version Monaco already depends on.
+
+## DOMPurify (HTML sanitiser)
+
+- Project: `dompurify` on npm, 3.4.15, by Cure53 and contributors
+- Source: https://github.com/cure53/DOMPurify
+- License: Apache-2.0 or MPL-2.0 (dual licensed; used here under Apache-2.0)
+
+Usage in this package:
+
+- Bundled into the renderer by Vite: sanitises the Markdown preview's HTML before it reaches the page (#179, `src/renderer/editor/markdownPreview.ts`). The same version Monaco already depends on.

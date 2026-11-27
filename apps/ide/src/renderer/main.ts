@@ -35,6 +35,7 @@ import { createKeybindingsView } from './settings/keybindingsView.ts';
 import { menuAccelerators } from './settings/keybindingsModel.ts';
 import { COLOR_THEME_SETTING, isColorTheme, settingOf, type ColorTheme } from '../shared/settings.ts';
 import { themeChoices } from './settings/settingsModel.ts';
+import { isMarkdownPath } from './editor/markdownPath.ts';
 import type { IdeCommand, KeybindingsReport, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -222,6 +223,12 @@ async function revealInExplorer(path: string): Promise<void> {
     }
 }
 /** #178: marks the file in this window's scene (the extension's "Reveal in XR Scene" runs the same core call). */
+/** #179: the tab menu's "Open Preview to the Side" previews that tab's file. */
+async function openPreviewOf(path: string): Promise<void> {
+    const group = await editorGroup();
+    await group.open(path);
+    group.openMarkdownPreview();
+}
 function revealInScene(path: string): void {
     api.analysis.revealInScene(path).then(
         (shown) => workbench.setStatus(shown ? `Marked ${path} in the XR scene` : `The XR scene does not show ${path}.`),
@@ -243,6 +250,7 @@ function showTabMenu(path: string, x: number, y: number): void {
         { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
         { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
         { separator: true },
+        ...(isMarkdownPath(path) ? [{ label: 'Open Preview to the Side', keybinding: key('markdown.showPreviewToSide'), run: () => void openPreviewOf(path), testId: 'tab-menu-markdown-preview' }] : []),
         { label: 'Split Right', keybinding: key('editor.splitRight'), run: () => editors?.split(path), testId: 'tab-menu-split-right' },
         { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
         { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
@@ -582,6 +590,8 @@ registerWorkbenchCommands(registry, {
     closeEditor: () => editors?.closeActive(),
     splitEditor: () => editors?.split(),
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
+    openMarkdownPreview: () => { editors?.openMarkdownPreview(); },
+    canPreviewMarkdown: () => editors?.canPreviewMarkdown() ?? false,
     toggleTerminal: () => terminal.toggle(),
     newTerminal: () => void terminal.newTerminal(),
     closeTerminalPanel: () => terminal.hide(),

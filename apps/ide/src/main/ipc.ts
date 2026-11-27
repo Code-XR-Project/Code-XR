@@ -8,7 +8,7 @@ import { registerGitHandlers } from './git/gitIpc.ts';
 import type { LspHost } from './lsp/lspHost.ts';
 import { registerLspHandlers } from './lsp/lspIpc.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
-import { isTrustedIpcCall } from './security.ts';
+import { isOpenableExternalLink, isTrustedIpcCall } from './security.ts';
 import { log } from './log.ts';
 import { setSceneBounds, windowOfScene } from './analysis/sceneView.ts';
 import { SCENE_OPEN_IN_EDITOR_CHANNEL, toSceneEditorTarget } from '../shared/sceneBridge.ts';
@@ -136,6 +136,14 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     // #167: the path is checked against the folder before anything reaches the clipboard.
     handle(IPC_CHANNELS.workspaceCopyPath, (event, path, kind) => {
         clipboard.writeText(workspaceOf(event.sender).displayPath(path, kind));
+    });
+    // #179: the Markdown preview's images and links; the path and the URL are checked here.
+    handle(IPC_CHANNELS.workspaceReadImage, (event, path) => workspaceOf(event.sender).readImage(path));
+    handle(IPC_CHANNELS.workspaceOpenExternalLink, async (_event, url) => {
+        if (!isOpenableExternalLink(url)) {
+            throw new Error('Only http, https and mailto links open outside the IDE.');
+        }
+        await shell.openExternal(url);
     });
     handle(IPC_CHANNELS.workspaceTrash, (event, path) => workspaceOf(event.sender).trash(path, (absolute) => shell.trashItem(absolute)));
     handle(IPC_CHANNELS.workspaceRecentFolders, () => recentFolderList());
