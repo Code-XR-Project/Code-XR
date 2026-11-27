@@ -1,5 +1,6 @@
 import type { CodeXRApi, DirEntry, WorkspaceInfo } from '../shared/api.ts';
 import { el, fileIcon, icon } from './dom.ts';
+import type { ExplorerGitDecoration } from '../shared/gitGutter.ts';
 
 /**
  * The explorer (#14): the open folder as a tree that loads each folder's
@@ -31,6 +32,8 @@ export interface Explorer {
     newFolder(): Promise<void>;
     /** #167: expands the folders down to `path`, selects its row and shows the explorer's focus on it. */
     reveal(path: string): Promise<boolean>;
+    /** #175: the Git state of the changed files and of the folders above them (colour, and a letter on files). */
+    setGitDecorations(decorations: ReadonlyMap<string, ExplorerGitDecoration>): void;
 }
 
 interface TreeNode {
@@ -142,6 +145,33 @@ export function createExplorer(
         group.replaceChildren(...items);
     }
 
+    // #175: rows follow the last Git status; a row rendered later picks its state up in renderItem.
+    let gitDecorations: ReadonlyMap<string, ExplorerGitDecoration> = new Map();
+    function decorate(row: HTMLElement, path: string): void {
+        const decoration = gitDecorations.get(path);
+        const state = decoration?.state ?? '';
+        if ((row.dataset['git'] ?? '') === state && (row.querySelector('.tree-git-letter')?.textContent ?? '') === (decoration?.letter ?? '')) {
+            return;
+        }
+        if (state) {
+            row.dataset['git'] = state;
+        } else {
+            delete row.dataset['git'];
+        }
+        row.querySelector('.tree-git-letter')?.remove();
+        if (decoration?.letter) {
+            row.append(el('span', { className: 'tree-git-letter', text: decoration.letter, attrs: { 'aria-hidden': 'true' } }));
+        }
+        const base = row.title.replace(/ \((modified|added|deleted|untracked|renamed|conflict)\)$/, '');
+        row.title = state ? `${base} (${state})` : base;
+    }
+    function setGitDecorations(decorations: ReadonlyMap<string, ExplorerGitDecoration>): void {
+        gitDecorations = decorations;
+        for (const node of nodes.values()) {
+            decorate(node.row, node.entry.path);
+        }
+    }
+
     function forget(item: HTMLElement): void {
         for (const row of item.querySelectorAll<HTMLElement>('[role="treeitem"]')) {
             nodes.delete(row);
@@ -176,6 +206,7 @@ export function createExplorer(
         row.style.paddingLeft = `${4 + (level - 1) * 12}px`;
         const item = el('li', { attrs: { role: 'none' } }, [row]);
         nodes.set(row, { entry, row, item, group: null, expanded: false });
+        decorate(row, entry.path);
         return item;
     }
 
@@ -505,7 +536,7 @@ export function createExplorer(
         }
     }
 
-    return { show, openFolder, expandedFolders, refresh, newFile: () => createEntry('file'), newFolder: () => createEntry('directory'), reveal };
+    return { show, openFolder, expandedFolders, refresh, newFile: () => createEntry('file'), newFolder: () => createEntry('directory'), reveal, setGitDecorations };
 }
 
 /** The message of an IPC rejection, without Electron's "Error invoking remote method" prefix. */

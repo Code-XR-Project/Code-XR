@@ -213,10 +213,14 @@ export class GitService {
      * working-tree file. Lines not committed yet carry `commit.uncommitted`.
      * Rejects for a file git does not track.
      */
-    async blame(file: unknown): Promise<BlameLine[]> {
+    async blame(file: unknown, contents?: string): Promise<BlameLine[]> {
         const relative = await resolveGitPath(this.root, this.realRoot, file);
         await this.requireRepository();
-        const { stdout } = await this.run(this.root, ['blame', '--porcelain', '--no-textconv', '--', relative], { timeoutMs: 60_000 });
+        // #175: with `contents`, the editor's text is blamed (its unsaved lines come back uncommitted).
+        const args = contents === undefined
+            ? ['blame', '--porcelain', '--no-textconv', '--', relative]
+            : ['blame', '--porcelain', '--no-textconv', '--contents', '-', '--', relative];
+        const { stdout } = await this.run(this.root, args, { timeoutMs: 60_000, input: contents });
         return parseBlamePorcelain(stdout);
     }
 

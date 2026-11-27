@@ -11,6 +11,7 @@
  * like the workspace API. The main process resolves each one inside the
  * folder and refuses anything else; it never trusts a path from the page.
  */
+import type { GitBlameLine } from './gitGutter.ts';
 
 /**
  * The letter a change shows, as in VS Code: Added, Modified, Deleted,
@@ -91,6 +92,17 @@ export interface GitApi {
     createBranch(name: string): Promise<GitStatus>;
     /** A file's text at HEAD, for the diff view; null when HEAD has no such file. */
     headContent(path: string): Promise<string | null>;
+    /**
+     * #175: what the editor's gutter compares a file with: its text at HEAD.
+     * Null, never a rejection, when there is nothing to compare with (no Git,
+     * not a repository, Restricted Mode, a file HEAD does not have).
+     */
+    baseline(path: string): Promise<string | null>;
+    /**
+     * #175: `git blame` of the editor's text of a tracked file, one entry per
+     * line. Null, never a rejection, when blame is not available.
+     */
+    blame(path: string, contents: string): Promise<readonly GitBlameLine[] | null>;
     /** Fires when the repository changed on disk (index, HEAD, refs), from the IDE or outside it. */
     onDidChange(listener: () => void): () => void;
 }
@@ -106,6 +118,8 @@ export const GIT_IPC_CHANNELS = {
     gitSwitchBranch: 'codexr:git:switch-branch',
     gitCreateBranch: 'codexr:git:create-branch',
     gitHeadContent: 'codexr:git:head-content',
+    gitBaseline: 'codexr:git:baseline',
+    gitBlame: 'codexr:git:blame',
 } as const;
 
 /** Main -> renderer events of Source Control; api.ts merges them into IPC_EVENTS. */

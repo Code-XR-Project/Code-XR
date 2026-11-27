@@ -281,13 +281,21 @@ The view refreshes when the repository changes on disk (the main process watches
 |---|---|
 | `status()` | `GitStatus` (`shared/git.ts`): `state` (`ok`, `no-git`, `not-repo`, `error`), branch, abbreviated HEAD, upstream, ahead/behind, `staged`/`changes`/`untracked` lists of `{ path, letter, origPath? }`. Never throws for a missing git or a non-repository. |
 | `diff(file)` | The unified diff (`git diff HEAD -- file`) of HEAD against the working tree, staged and unstaged changes together; an untracked file, or any file before the first commit, against nothing (`--no-index /dev/null`). `''` when unchanged. |
-| `blame(file)` | `BlameLine[]` (`main/git/blameParser.ts`), one per line of the working-tree file: `line`, `originalLine`, `originalPath`, `content` and a shared, frozen `commit` (`hash`, `author`, `authorMail`, `authorTime` in epoch seconds, `authorTz`, `committer`, `committerTime`, `summary`, `boundary`, `uncommitted` for lines not committed yet). Rejects for a file git does not track. |
+| `blame(file, contents?)` | `BlameLine[]` (`main/git/blameParser.ts`), one per line of the working-tree file, or of `contents` when given (`--contents -`, written to git's stdin: the editor's unsaved text): `line`, `originalLine`, `originalPath`, `content` and a shared, frozen `commit` (`hash`, `author`, `authorMail`, `authorTime` in epoch seconds, `authorTz`, `committer`, `committerTime`, `summary`, `boundary`, `uncommitted` for lines not committed yet). Rejects for a file git does not track. |
 | `headContent(file)` | The file's text at HEAD, or null (no HEAD, or not in HEAD). |
 | `stage(paths)`, `stageAll()`, `unstage(paths)`, `restore(file)`, `discardPlan(file)`, `commit(message)`, `branches()`, `switchBranch(name)`, `createBranch(name)`, `repository()` | What the view uses; `repository()` gives the folder's prefix in the work tree and the absolute git directory. |
 
-The parsers (`statusParser.ts`, `blameParser.ts`) are pure and unit-tested on strings; `test/scm.test.ts` also runs `GitService` against a real temporary repository (initial commit, globs in names, a subfolder of the work tree, branches, diff and blame). Inline blame and gutter markers (#175) are meant to build on `diff` and `blame`.
+The parsers (`statusParser.ts`, `blameParser.ts`) are pure and unit-tested on strings; `test/scm.test.ts` also runs `GitService` against a real temporary repository (initial commit, globs in names, a subfolder of the work tree, branches, diff and blame). Inline blame and the gutter markers (#175, below) build on `blame` and `headContent`.
 
 **Not yet:** push, pull, fetch, stash, merge-conflict tooling, staging hunks; the diff of a staged-only row is HEAD against the working tree, not against the index.
+
+### Git in the editor and the explorer (#175)
+
+- **Change markers.** Each open file is compared with its text at HEAD as you type (`shared/gitGutter.ts`, on the agents' `lineDiff`), and the gutter marks added lines (green), changed lines (blue) and where lines were deleted (red), also in the overview ruler. They sit beside the metric strip of #178. Saving does not clear them, committing does: a commit moves HEAD, the repository watcher fires, and every open file is compared again.
+- **Peek and Revert.** Clicking a marker opens, under the change, what HEAD had there with **Revert** (one edit, undone with `Ctrl/Cmd+Z`) and **Close**. It is a view zone that makes room plus an overlay widget on top of it, because a view zone alone sits under the text and gets no clicks.
+- **Inline blame.** The cursor line ends with who last changed it, when and the commit's summary ("Ada, 3 days ago - Fix the parser"); hovering it shows the e-mail, the date and the hash. It blames the editor's text, so a line you have not committed says "You, uncommitted changes". **Git: Toggle Inline Blame** or the **Inline Blame** setting (`git.blame.inline`) turns it off.
+- **Explorer.** Changed files are coloured with their letter (`M`, `A`, `D`, `U`, `R`, `!`) and each folder above them takes the strongest colour below it; `.gitignore`d entries stay dimmed as before. It follows each status Source Control computes.
+- **Nothing to say, nothing shown.** The two calls the editor makes (`git.baseline`, `git.blame`) answer null, never an error, without Git, outside a repository, in Restricted Mode (#177) and for an untracked file.
 
 ### Adding a capability to the renderer
 

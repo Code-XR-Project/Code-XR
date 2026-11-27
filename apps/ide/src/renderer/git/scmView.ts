@@ -46,6 +46,8 @@ export interface ScmViewHooks {
     notify(severity: 'info' | 'error', message: string): void;
     /** Files of the folder changed on disk (the workspace watcher's events). */
     onDidChangeFiles(listener: () => void): void;
+    /** #175: every new status, for the explorer's decorations. */
+    onStatus?(status: GitStatus): void;
 }
 
 const ICONS = {
@@ -211,6 +213,7 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
         try {
             status = await action();
             render();
+            hooks.onStatus?.(status);
         } catch (error) {
             hooks.notify('error', cleanError(error));
             await refresh();
@@ -256,6 +259,7 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
                     status = emptyGitStatus('error', cleanError(error));
                 }
                 render();
+                hooks.onStatus?.(status);
             } while (again);
         })().finally(() => {
             running = null;
