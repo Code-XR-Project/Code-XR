@@ -7,6 +7,7 @@ import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAn
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
+import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, type ExtensionsChangedEvent, type ExtensionLogEvent, type GalleryQuery } from '../shared/extensions.ts';
 import { DEBUG_IPC_CHANNELS, DEBUG_IPC_EVENTS, type DebugEvent, type DebugStepKind } from '../shared/debug.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
 
@@ -112,6 +113,24 @@ const api: CodeXRApi = Object.freeze({
         didClose: (uri: string) => ipcRenderer.invoke(LSP_IPC_CHANNELS.lspDidClose, uri),
         request: (method: LspRequestMethod, params: unknown) => ipcRenderer.invoke(LSP_IPC_CHANNELS.lspRequest, method, params),
         onDiagnostics: (listener: (event: LspDiagnosticsEvent) => void) => subscribe(LSP_IPC_EVENTS.lspDiagnostics, listener),
+    }),
+    // #251: extensions by id; main asks natively before anything is installed or removed.
+    extensions: Object.freeze({
+        list: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsList),
+        search: (query: GalleryQuery) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsSearch, query),
+        galleryDetails: (id: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsGalleryDetails, id),
+        galleryIcon: (url: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsGalleryIcon, url),
+        install: (id: string, version?: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsInstall, id, version),
+        installVsix: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsInstallVsix),
+        uninstall: (id: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsUninstall, id),
+        setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsSetEnabled, id, enabled),
+        disableAll: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsDisableAll),
+        details: (id: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsDetails, id),
+        contributions: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsContributions),
+        theme: (themeId: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsTheme, themeId),
+        grammarContent: (ref: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsGrammarContent, ref),
+        onDidChange: (listener: (event: ExtensionsChangedEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsChanged, listener),
+        onLog: (listener: (event: ExtensionLogEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsLog, listener),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),

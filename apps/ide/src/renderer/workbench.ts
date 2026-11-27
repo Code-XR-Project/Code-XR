@@ -32,12 +32,14 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'xr', label: 'XR scene', icon: 'M2 8h20v9h-6l-2-3h-4l-2 3H2z' },
     // The AI agent hub (agents/agentsView.ts).
     { id: 'agents', label: 'Agents', icon: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
+    // #255: VS Code extensions from Open VSX (extensions/extensionsView.ts).
+    { id: 'extensions', label: 'Extensions', icon: 'M4 4h7v7H4zM4 13h7v7H4zM13 13h7v7h-7zM16.5 3l4.5 4.5L16.5 12 12 7.5z' },
     // #18: the Settings view, at the foot of the activity bar as in VS Code.
     { id: 'settings', label: 'Settings', icon: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', bottom: true },
 ];
 
 /** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
-export type ViewId = 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
+export type ViewId = 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'extensions' | 'settings' | 'keybindings';
 
 export interface Workbench {
     /** The explorer's part of its side-bar pane (the file tree). */
@@ -60,6 +62,8 @@ export interface Workbench {
     readonly analysisView: HTMLElement;
     /** The Agents view's pane of the side bar (AI agent hub). */
     readonly agentsView: HTMLElement;
+    /** The Extensions view's pane of the side bar (#255, extensions/extensionsView.ts). */
+    readonly extensionsView: HTMLElement;
     /** The Settings view's pane of the side bar (#18, settings/settingsView.ts). */
     readonly settingsView: HTMLElement;
     /** The Keyboard Shortcuts pane (#18, part 3, settings/keybindingsView.ts), shown under the Settings item. */
@@ -123,10 +127,11 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         el('p', { className: 'muted side-note', text: 'Run an analysis from the Analysis view: its XR scene opens beside the code.' }),
     ]);
     const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
+    const extensionsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'extensions', 'data-testid': 'extensions-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['debug', debugView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [explorerPane, searchView, scmView, debugView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['debug', debugView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['extensions', extensionsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [explorerPane, searchView, scmView, debugView, analysisView, xrView, agentsView, extensionsView, settingsView, keybindingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -201,6 +206,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         isViewVisible: (id: ViewId) => !panes.get(id)?.hidden && layout.sideBarVisible && !layout.zen,
         analysisView,
         agentsView,
+        extensionsView,
         settingsView,
         keybindingsView,
         showView: (id: ViewId) => showView(id),

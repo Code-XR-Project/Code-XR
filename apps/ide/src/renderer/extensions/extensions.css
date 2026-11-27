@@ -1,0 +1,55 @@
+/* #255: the Extensions view and the details page of an extension. Colours are the workbench tokens only. */
+
+.side-pane[data-view='extensions']:not([hidden]) { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.extensions-search-row { display: flex; padding: 0 8px 8px 12px; }
+.extensions-scroll { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
+.extensions-section { display: flex; flex-direction: column; }
+.extensions-section[hidden] { display: none; }
+.extensions-section-title { margin: 6px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.extensions-section .side-note { margin: 2px 12px 8px; }
+.extensions-list { list-style: none; margin: 0; padding: 0; }
+.extensions-more { margin: 6px 12px; align-self: flex-start; }
+.extensions-more[hidden] { display: none; }
+
+.extension-row { display: flex; gap: 10px; padding: 8px 10px 8px 12px; cursor: pointer; border-left: 2px solid transparent; min-width: 0; }
+.extension-row:hover { background: var(--hover); }
+.extension-row:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.extension-icon { flex: none; width: 36px; height: 36px; border-radius: 4px; object-fit: contain; }
+.extension-icon.is-placeholder { background: var(--hover); }
+.extension-icon.is-large { width: 96px; height: 96px; }
+.extension-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.extension-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.extension-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.extension-meta { flex: none; font-size: 11px; margin-left: auto; }
+.extension-description { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.extension-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; }
+.extension-publisher { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); }
+.extension-verified svg { width: 13px; height: 13px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; }
+.extension-state { color: var(--accent); }
+.extension-actions { display: inline-flex; gap: 4px; margin-left: auto; }
+.extension-action { margin: 0; width: auto; padding: 2px 8px; font-size: 12px; }
+.extension-busy, .extension-installed-mark { font-size: 12px; }
+
+.extension-details { grid-area: editor; z-index: 39; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--editor); overflow: auto; }
+.extension-details:focus { outline: none; }
+.extension-details-loading { margin: 24px; }
+.extension-details-head { display: flex; gap: 20px; align-items: flex-start; padding: 20px 24px 16px; border-bottom: 1px solid var(--line); }
+.extension-details-title { flex: 1; min-width: 0; }
+.extension-details-title h2 { margin: 0 0 4px; font-size: 22px; font-weight: 600; overflow-wrap: anywhere; }
+.extension-details-publisher { display: flex; align-items: center; gap: 4px; margin: 0 0 6px; color: var(--muted); }
+.extension-details-description { margin: 0 0 10px; }
+.extension-details-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.extension-details-actions .extension-action { padding: 4px 12px; font-size: 13px; }
+.extension-details-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 280px); gap: 24px; padding: 16px 24px 24px; min-height: 0; }
+.extension-details-readme { min-width: 0; }
+.extension-details-readme .markdown-preview { border: 0; height: auto; }
+.extension-details-readme .markdown-preview-header { display: none; }
+.extension-details-readme .markdown-preview-body { overflow: visible; padding: 0; }
+.extension-details-side { min-width: 0; }
+.extension-details-side h3 { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.extension-details-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; font-size: 12px; }
+.extension-details-facts dt { color: var(--muted); }
+.extension-details-facts dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .extension-details-body { grid-template-columns: minmax(0, 1fr); }
+}

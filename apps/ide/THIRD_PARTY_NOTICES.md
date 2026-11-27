@@ -84,6 +84,77 @@ Usage in this package:
 
 - Bundled into the renderer by Vite: sanitises the Markdown preview's HTML before it reaches the page (#179, `src/renderer/editor/markdownPreview.ts`). The same version Monaco already depends on.
 
+## vscode-textmate (TextMate grammars of extensions)
+
+- Project: `vscode-textmate` on npm, 9.3.2, by Microsoft Corporation
+- Source: https://github.com/microsoft/vscode-textmate
+- License: MIT
+
+Usage in this package:
+
+- Bundled into the renderer by Vite: tokenizes files with the TextMate grammars that VS Code extensions contribute (#258, `src/renderer/extensions/textmate.ts`).
+
+## vscode-oniguruma (regular expressions of TextMate grammars)
+
+- Project: `vscode-oniguruma` on npm, 2.0.1, by Microsoft Corporation; WebAssembly build of Oniguruma 6.9.5 by K.Kosako
+- Source: https://github.com/microsoft/vscode-oniguruma, https://github.com/kkos/oniguruma
+- License: MIT (bindings); BSD-2-Clause (Oniguruma)
+
+Usage in this package:
+
+- Bundled into the renderer by Vite, with its `onig.wasm` served from the app (#258). It is why the CSP allows `'wasm-unsafe-eval'`.
+
+Oniguruma's licence text, as `vscode-oniguruma` ships it:
+
+```
+Oniguruma LICENSE
+-----------------
+
+Copyright (c) 2002-2020  K.Kosako  <kkosako0@gmail.com>
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+```
+
+## yauzl (reading .vsix archives)
+
+- Project: `yauzl` on npm, 3.4.0, by Josh Wolfe
+- Source: https://github.com/thejoshwolfe/yauzl
+- License: MIT
+
+Usage in this package:
+
+- Bundled into the main process by Vite: reads the `.vsix` (zip) files of extensions before they are unpacked (#254, `src/main/extensions/vsix.ts`).
+
+## jsonc-parser (JSON with comments)
+
+- Project: `jsonc-parser` on npm, 3.3.1, by Microsoft Corporation
+- Source: https://github.com/microsoft/node-jsonc-parser
+- License: MIT
+
+Usage in this package:
+
+- Bundled into the main process by Vite: reads extension manifests, colour themes, language configurations and snippets, which VS Code allows to contain comments (#254).
+
 ## PDF.js (PDF viewer)
 
 - Project: `pdfjs-dist` on npm, 6.5.438, by Mozilla and the PDF.js contributors

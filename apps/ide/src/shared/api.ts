@@ -18,6 +18,7 @@ import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentsApi } from './agents.t
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS, type GitApi } from './git.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspApi } from './lsp.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TasksApi } from './tasks.ts';
+import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, type ExtensionsApi } from './extensions.ts';
 import { DEBUG_IPC_CHANNELS, DEBUG_IPC_EVENTS, type DebugApi } from './debug.ts';
 
 /** Facts about the running IDE, shown on the welcome screen and in About. */
@@ -357,6 +358,8 @@ export interface CodeXRApi {
     readonly debug: DebugApi;
     /** #21: language servers for Monaco (contract in lsp.ts). */
     readonly lsp: LspApi;
+    /** #251: VS Code extensions (shared/extensions.ts). */
+    readonly extensions: ExtensionsApi;
     readonly app: {
         getInfo(): Promise<AppInfo>;
         /** Messages from the core (environment set up, a server stopped ...). */
@@ -666,6 +669,7 @@ export const IPC_CHANNELS = {
     ...LSP_IPC_CHANNELS,
     // #176: tasks keep their own channel list in tasks.ts.
     ...TASK_IPC_CHANNELS,
+    ...EXTENSION_IPC_CHANNELS,
     // #180: the debugger keeps its own channel list in debug.ts.
     ...DEBUG_IPC_CHANNELS,
 } as const;
@@ -699,6 +703,7 @@ export const IPC_EVENTS = {
     ...GIT_IPC_EVENTS,
     ...LSP_IPC_EVENTS,
     ...TASK_IPC_EVENTS,
+    ...EXTENSION_IPC_EVENTS,
     ...DEBUG_IPC_EVENTS,
 } as const;
 

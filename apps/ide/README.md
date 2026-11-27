@@ -176,6 +176,8 @@ Following Electron's [security checklist](https://www.electronjs.org/docs/latest
 | Git runs without a shell, on paths checked inside the open folder; discard asks natively and trashes untracked files | `src/main/git/` (`runGit`, `resolveGitPath`, `gitIpc.ts`) | Unit tests (`..`, absolute paths, symlinks out, globs, option-like branch names); smoke refuses `git.headContent('../package.json')`. |
 | The renderer cannot start or address a language server: it names documents by `codexr-file:` URI inside the open folder and sends only allow-listed requests with rebuilt parameters | `src/main/lsp/` (`lspUri.ts`, `lspProtocol.ts`), `LSP_REQUEST_METHODS` in `src/shared/lsp.ts` | Unit tests (`test/lsp.test.ts`: `..`, encoded separators, other schemes, refused methods, forged completion data). |
 | No network request unless the person asks: the update check runs from Help > Check for Updates…, or at start-up only if `update.checkOnStartup` is turned on (off by default); it reads the public GitHub releases list, downloads nothing and only opens the release page in the browser | `src/main/updates/` (`updateRelease.ts` pure, `updateCheck.ts`) | Unit tests (`test/updateCheck.test.ts`: tags, drafts, pre-releases, versions); never run in the smoke run. |
+| Extensions (#251) are unpacked only from checked archives: entries under `extension/` only, no `..`, absolute paths, drive letters or links, size limits; an Open VSX download must match the registry's SHA-256; a native dialog shows publisher, verification, licence and whether it runs code before anything is installed; nothing goes online unless the person searches or installs | `src/main/extensions/` (`vsix.ts`, `openVsx.ts`, `extensionsService.ts`) | Unit tests (`test/extensions.test.ts`: zip-slip, symlink and garbage archives, wrong and missing checksums, http downloads, tampered `extensions.json`). |
+| The renderer may compile WebAssembly (`'wasm-unsafe-eval'`) for the TextMate regex engine of extension grammars (#258); `eval` stays blocked | `buildContentSecurityPolicy` | Unit tests; smoke checks `eval` throws. |
 | The dev server URL is ignored in a packaged build | `src/main/index.ts` (`app.isPackaged`) | Code review. |
 
 Running as root (containers, some CI images) requires `--no-sandbox`, which the scripts add only in that case. It turns off Chromium's OS-level sandbox and `app.enableSandbox()`; the per-window `sandbox: true` preference and its assertion stay.
@@ -357,6 +359,10 @@ The parsers (`statusParser.ts`, `blameParser.ts`) are pure and unit-tested on st
 2. Expose it in `src/preload/index.ts`, one member per channel. Never expose `ipcRenderer` or a generic `invoke`.
 3. Register the handler in `src/main/ipc.ts` through `handle()`, which already rejects untrusted frames. Validate every argument: the renderer is untrusted.
 4. Add a unit test for any pure logic, and extend the smoke probe if the capability is security-relevant.
+
+## VS Code extensions (stream `ide-extensions`, epic #251)
+
+The Extensions view (activity bar, puzzle icon, `Ctrl/Cmd+Shift+X`) installs VS Code extensions from **Open VSX** (never the Visual Studio Marketplace, whose terms only allow Microsoft products; ADR [0002](../../adr/0002-vscode-extensions-in-the-ide.md)) or from a `.vsix` file, and enables, disables and uninstalls them. Colour themes, languages, TextMate grammars and snippets apply at once; extensions with code run in the extension host (#259, in progress). Design, state and how to try it: [`docs/ide/extensions.md`](../../docs/ide/extensions.md).
 
 ## AI agent hub (stream `ai-agents`)
 
