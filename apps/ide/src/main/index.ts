@@ -19,6 +19,7 @@ import { checkForUpdates } from './updates/updateCheck.ts';
 import { canRepair, describeDependencies, formatDependencies } from './dependencies/dependencyReport.ts';
 import { createMainWindow } from './window.ts';
 import { runSmoke, SMOKE_FLAG, SMOKE_RESULT_PREFIX } from './smoke.ts';
+import { probeProgramInput } from './smokeProgramInput.ts';
 import { initWorkspaceTrust } from './trust/workspaceTrust.ts';
 import { JsonKeyValueStore } from './core/jsonStore.ts';
 import { APP_ORIGIN, trustedOrigins } from './security.ts';
@@ -187,7 +188,10 @@ async function start(): Promise<void> {
     }
 
     if (isSmoke) {
-        const result = await runSmoke(win, origins);
+        const smoke = await runSmoke(win, origins);
+        const programInput = await probeProgramInput(terminalHost, win.webContents, app.getPath('temp'));
+        const inputFailures = programInput.filter((run) => !run.answered).map((run) => `typing did not reach a program run in a terminal (${run.name}): ${JSON.stringify(run)}`);
+        const result = { ...smoke, ok: smoke.ok && inputFailures.length === 0, failures: [...smoke.failures, ...inputFailures], programInput };
         process.stdout.write(`${SMOKE_RESULT_PREFIX}${JSON.stringify(result)}\n`);
         await terminalHost.killAll();
         await lsp.stopAll();
