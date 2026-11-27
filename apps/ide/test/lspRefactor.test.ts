@@ -169,8 +169,9 @@ describe('refactoring against typescript-language-server (#287)', { timeout: 120
 
     after(async () => {
         await Promise.all([harness.server.stop(), outside.server.stop()]);
-        fs.rmSync(harness.root, { recursive: true, force: true });
-        fs.rmSync(path.dirname(outside.root), { recursive: true, force: true });
+        // On Windows the stopped server's tsserver child can hold its folder for a moment after exit (EPERM).
+        fs.rmSync(harness.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+        fs.rmSync(path.dirname(outside.root), { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     });
 
     it('finds references in a file that is not open', async () => {
@@ -264,7 +265,7 @@ describe('refactoring against the Python language server (#287)', { timeout: 120
 
     after(async () => {
         await harness.server.stop();
-        fs.rmSync(harness.root, { recursive: true, force: true });
+        fs.rmSync(harness.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     });
 
     it(`finds references and renames across files with ${command.name}, one of them not open`, async () => {
