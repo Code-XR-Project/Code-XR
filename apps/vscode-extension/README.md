@@ -114,6 +114,8 @@ Find a file in the 3D scene without searching for it.
 
 The entry only appears while an analysis server is running. Every running scene that shows the file reacts; guests' views never move.
 
+![Reveal in XR Scene: a marker and the legend of dependency_analysis_engine.py over its building in the classic analysis](https://raw.githubusercontent.com/Code-XR-Project/Code-XR/v1.2.1/media/v1.2.1/reveal-in-xr-scene.png)
+
 ### Open in editor: from the scene to the code
 
 The other direction, from the dependency graph back to VS Code.
@@ -123,6 +125,8 @@ The other direction, from the dependency graph back to VS Code.
 3. Press **Open in editor**. VS Code opens the file, at the symbol's line for a symbol.
 
 The button only appears on your own machine. Guests who joined through a Cloudflare link or the local network do not see it, and the server refuses the request from them.
+
+![Open in editor: the card of brace_parser.py in the dependency graph, with its Open in editor button](https://raw.githubusercontent.com/Code-XR-Project/Code-XR/v1.2.1/media/v1.2.1/open-in-editor.png)
 
 ### Open a scene on a standalone headset
 
