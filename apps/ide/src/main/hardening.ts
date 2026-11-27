@@ -1,4 +1,4 @@
-import { app, session, type WebContents } from 'electron';
+import { app, session, type WebContents, type WebFrameMain } from 'electron';
 import { buildContentSecurityPolicy, isAllowedNavigation } from './security.ts';
 import { log } from './log.ts';
 
@@ -77,7 +77,31 @@ function guardWebContents(contents: WebContents, origins: ReadonlySet<string>): 
         }
     };
     contents.on('will-navigate', blockNavigation);
-    contents.on('will-redirect', blockNavigation);
+    // #261: a frame of the workbench (an extension's webview) stays on webview pages; its links go
+    // through the workbench. Frames inside a webview (a page it embeds itself, such as a local
+    // server's) are the webview's business, as in VS Code.
+    const frameAllowed = (frame: WebFrameMain | null | undefined, url: string): boolean => {
+        const workbenchChild = frame?.parent?.parent === null && isAllowedNavigation(contents.getURL(), origins);
+        return !workbenchChild || url.startsWith('codexr-webview://') || url === 'about:blank' || url === 'about:srcdoc';
+    };
+    const blockFrame = (event: { preventDefault(): void }, frame: WebFrameMain | null | undefined, url: string): void => {
+        if (!frameAllowed(frame, url)) {
+            event.preventDefault();
+            log.warn(`Blocked a frame navigation to ${url}`);
+        }
+    };
+    contents.on('will-redirect', (event) => {
+        if (event.isMainFrame) {
+            blockNavigation(event, event.url);
+        } else {
+            blockFrame(event, event.frame, event.url);
+        }
+    });
+    contents.on('will-frame-navigate', (event) => {
+        if (!event.isMainFrame) {
+            blockFrame(event, event.frame, event.url);
+        }
+    });
 
     contents.setWindowOpenHandler(({ url }) => {
         log.warn(`Blocked window.open(${url})`);

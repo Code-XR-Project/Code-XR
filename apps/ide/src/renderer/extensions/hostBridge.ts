@@ -6,6 +6,7 @@ import type { QuickInputProvider } from '../commands/quickInput.ts';
 import { el } from '../dom.ts';
 import type { NotificationCenter } from '../notifications.ts';
 import type { ViewNotification } from '../../shared/extensionViewsProtocol.ts';
+import type { WebviewUiEvent } from '../../shared/extensionWebviewProtocol.ts';
 import { whenHolds } from '../../shared/whenClause.ts';
 import type { ContextKeys } from './contextKeys.ts';
 import { builtinCommandFor, statusText } from './hostBridgeModel.ts';
@@ -38,6 +39,8 @@ export interface HostBridgeDeps {
     readonly contextKeys: ContextKeys;
     /** #261: the extensions' tree views. */
     viewNotification(notification: ViewNotification): void;
+    /** #261: a webview was created, changed or disposed. */
+    webviewEvent(event: WebviewUiEvent): void;
     /** #261: a workbench command the views answer (`<view>.focus`, `workbench.view.extension.<id>`); false when it is not one. */
     viewCommand(id: string): boolean;
 }
@@ -236,6 +239,9 @@ export function createHostBridge(deps: HostBridgeDeps): HostBridge {
                     // A host started or stopped: what the previous one set is gone.
                     context.clear();
                 }
+                return;
+            case 'webview':
+                deps.webviewEvent(notification.event);
                 return;
             case 'view':
                 deps.viewNotification(notification.notification);

@@ -10,6 +10,8 @@ import { ContextKeys } from './contextKeys.ts';
 import { createHostBridge } from './hostBridge.ts';
 import { fileUriOf, type MenuGroup } from './menuModel.ts';
 import { createViewsController, type ViewsWorkbench } from './viewsController.ts';
+import { createWebviewHost } from './webviewHost.ts';
+import type { CustomEditorInput } from '../editor/customEditor.ts';
 import type { DocumentSync } from './documentSync.ts';
 import type { LanguageBridge } from './languageBridge.ts';
 import './extensions.css';
@@ -63,6 +65,8 @@ export interface ExtensionsWorkbenchDeps {
     /** #261: where extensions' views go. */
     readonly views: ViewsWorkbench;
     readonly storage: Storage | null;
+    /** #261: opens a webview panel as an editor tab. */
+    openCustom(input: CustomEditorInput, options: { preview: boolean; preserveFocus: boolean; beside: boolean }): void;
 }
 
 export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWorkbench {
@@ -124,7 +128,15 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
             deps.notify('error', `Command '${command}' failed: ${error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(error)}`);
         });
     };
+    const webviews = createWebviewHost({
+        send: (event) => api.extensions.webview(event),
+        openCustom: (input, options) => deps.openCustom(input, options),
+        openExternalLink: (url) => void api.workspace.openExternalLink(url).catch((error: unknown) => deps.notify('error', String(error))),
+        forwardKey: (init) => document.dispatchEvent(new KeyboardEvent('keydown', init)),
+        onError: (message) => deps.notify('error', message),
+    });
     const views = createViewsController({
+        webviews,
         extensions: api.extensions,
         workbench: deps.views,
         contextKeys,
@@ -138,6 +150,7 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
     const bridge = createHostBridge({
         contextKeys,
         viewNotification: (notification) => views.notification(notification),
+        webviewEvent: (event) => webviews.event(event),
         viewCommand: (id) => views.command(id),
         extensions: api.extensions,
         registry: deps.registry,
@@ -154,6 +167,7 @@ export function installExtensions(deps: ExtensionsWorkbenchDeps): ExtensionsWork
         languageNotification(notification) {
             if (notification.kind === 'providersReset') {
                 views.reset();
+                webviews.reset();
             }
             if (languages) {
                 languageNotification(notification, languages.bridge);

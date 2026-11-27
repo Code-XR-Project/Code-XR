@@ -12,6 +12,7 @@
 import type { HostUiEvent } from './extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from './extensionLanguageProtocol.ts';
 import type { IconData, ViewRequest } from './extensionViewsProtocol.ts';
+import type { WebviewWorkbenchEvent } from './extensionWebviewProtocol.ts';
 
 /** `publisher.name`, lower-cased: VS Code compares extension ids without case. */
 export type ExtensionId = string;
@@ -338,6 +339,8 @@ export interface ExtensionsApi {
     provide(request: ProvideRequest): Promise<unknown>;
     /** #261: the extensions' views (tree children, clicks, menu commands, visibility); see extensionViewsProtocol.ts. */
     view(request: ViewRequest): Promise<unknown>;
+    /** #261: what a webview did (a message, closing, its visibility, a `command:` link); see extensionWebviewProtocol.ts. */
+    webview(event: WebviewWorkbenchEvent): Promise<unknown>;
 }
 
 /** Activation events the renderer may fire (the others are the main process's or the host's own). */
@@ -367,6 +370,7 @@ export const EXTENSION_IPC_CHANNELS = {
     extensionsDocuments: 'codexr:extensions:documents',
     extensionsProvide: 'codexr:extensions:provide',
     extensionsView: 'codexr:extensions:view',
+    extensionsWebview: 'codexr:extensions:webview',
 } as const;
 
 export const EXTENSION_IPC_EVENTS = {

@@ -2,6 +2,7 @@ import { net, protocol } from 'electron';
 import { pathToFileURL } from 'node:url';
 import { APP_HOST, APP_SCHEME, buildContentSecurityPolicy } from './security.ts';
 import { resolveRendererAsset } from './assetPath.ts';
+import { WEBVIEW_SCHEME_PRIVILEGES } from './extensions/webviewServer.ts';
 
 /**
  * The packaged renderer is served from `codexr://app/` instead of `file://`.
@@ -17,6 +18,8 @@ export function registerAppSchemeAsPrivileged(): void {
             scheme: APP_SCHEME,
             privileges: { standard: true, secure: true, supportFetchAPI: true },
         },
+        // #261: extensions' webviews, each on an origin of its own (Electron keeps only one list, so both go here).
+        WEBVIEW_SCHEME_PRIVILEGES,
     ]);
 }
 
