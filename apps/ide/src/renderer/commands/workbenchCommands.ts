@@ -61,6 +61,10 @@ export interface WorkbenchCommandTargets {
     revealActiveFile(): void;
     revealActiveFileInScene(): void;
     hasEditors(): boolean;
+    /** #168: opens the active file in the other editor group, creating it on first use. */
+    splitEditor(): void;
+    /** #168: focuses group 0 or 1; returns false when that group does not exist. */
+    focusEditorGroup(index: number): boolean;
 }
 
 export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefinition[] {
@@ -89,6 +93,9 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'editor.closeAll', category: 'View', title: 'Close All Editors', keybinding: 'CmdOrCtrl+K W', enabled: targets.hasEditors, run: () => targets.closeEditors('all') },
         { id: 'editor.next', category: 'View', title: 'Open Next Editor', keybinding: 'Ctrl+PageDown', secondaryKeybindings: ['Ctrl+Tab'], enabled: targets.hasEditors, recordRecent: false, run: () => targets.cycleEditor(1) },
         { id: 'editor.previous', category: 'View', title: 'Open Previous Editor', keybinding: 'Ctrl+PageUp', secondaryKeybindings: ['Ctrl+Shift+Tab'], enabled: targets.hasEditors, recordRecent: false, run: () => targets.cycleEditor(-1) },
+        { id: 'editor.splitRight', category: 'View', title: 'Split Editor Right', keybinding: 'CmdOrCtrl+\\', enabled: targets.hasActiveEditor, run: targets.splitEditor },
+        { id: 'workbench.focusFirstEditorGroup', category: 'View', title: 'Focus First Editor Group', keybinding: 'CmdOrCtrl+1', recordRecent: false, run: () => { targets.focusEditorGroup(0); } },
+        { id: 'workbench.focusSecondEditorGroup', category: 'View', title: 'Focus Second Editor Group', keybinding: 'CmdOrCtrl+2', recordRecent: false, run: () => { if (!targets.focusEditorGroup(1)) { targets.splitEditor(); } } },
         { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveEditor, run: targets.keepEditor },
         { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('absolute') },
         { id: 'file.copyRelativePath', category: 'File', title: 'Copy Relative Path of Active File', enabled: targets.hasActiveEditor, run: () => targets.copyActivePath('relative') },
