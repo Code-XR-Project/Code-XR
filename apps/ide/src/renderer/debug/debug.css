@@ -1,0 +1,177 @@
+/* #180: the debugger: Run and Debug view, toolbar, Debug Console, editor marks. */
+
+.debug-launch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 12px 8px;
+}
+.debug-config {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--editor);
+  color: var(--fg);
+  font: inherit;
+}
+.debug-start svg { fill: #3fb950; stroke: #3fb950; }
+.debug-status { margin: 0 12px 8px; font-size: 12px; }
+.debug-status[hidden] { display: none; }
+.debug-status.is-warning { color: var(--warn); }
+.debug-status.is-error { color: var(--crit); }
+
+.debug-section { border-top: 1px solid var(--line); }
+.debug-section-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.debug-section-title > span:first-of-type { flex: 1; }
+.debug-section-actions { display: flex; gap: 2px; }
+.debug-section-body { padding-bottom: 6px; }
+.debug-empty { margin: 4px 12px; font-size: 12px; }
+.debug-thread { margin: 2px 12px; font-size: 12px; }
+
+.debug-tree { list-style: none; margin: 0; padding: 0; }
+.debug-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 22px;
+  padding: 0 8px;
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+.debug-row:hover { background: var(--hover); }
+.debug-twisty { flex: none; width: 14px; text-align: center; color: var(--muted); }
+.debug-twisty::before { content: '\203A'; display: inline-block; transition: transform 0.1s; }
+.debug-node[aria-expanded='true'] > .debug-row .debug-twisty::before { transform: rotate(90deg); }
+.debug-twisty.is-leaf::before { content: ''; }
+.debug-node.is-scope > .debug-row .debug-var-name { font-family: system-ui, sans-serif; font-weight: 600; }
+.debug-var-name { color: var(--symbol); flex: none; }
+.debug-var-sep { flex: none; color: var(--muted); }
+.debug-var-value { overflow: hidden; text-overflow: ellipsis; }
+.debug-var-value.is-error { color: var(--crit); }
+.debug-row-action { margin-left: auto; visibility: hidden; flex: none; }
+.debug-row:hover .debug-row-action, .debug-row:focus-within .debug-row-action { visibility: visible; }
+.debug-watch-input {
+  display: block;
+  box-sizing: border-box;
+  width: calc(100% - 24px);
+  margin: 4px 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--editor);
+  color: var(--fg);
+  font: 12px ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+}
+.debug-watch-input[hidden] { display: none; }
+
+.debug-frame { justify-content: space-between; gap: 8px; font-family: inherit; }
+.debug-frame.is-selected { background: var(--hover); box-shadow: inset 2px 0 0 var(--accent); }
+.debug-frame.is-subtle { opacity: 0.6; }
+.debug-frame-name { overflow: hidden; text-overflow: ellipsis; }
+.debug-frame-where { flex: none; font-size: 11px; }
+.debug-breakpoint-row { gap: 6px; font-family: inherit; }
+.debug-breakpoint-row .debug-frame-where { margin-left: auto; }
+.debug-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #e51400; }
+.debug-dot.is-unverified { background: none; border: 1px solid #848484; }
+
+/* The floating toolbar, centred over the editors while a session runs. */
+.debug-toolbar {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--chrome);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.debug-toolbar[hidden] { display: none; }
+.debug-toolbar .icon-button[hidden] { display: none; }
+.debug-toolbar .icon-button:disabled { opacity: 0.4; cursor: default; }
+.debug-toolbar [data-testid='debug-continue'] svg { stroke: #3fb950; }
+.debug-toolbar [data-testid='debug-stop'] svg { stroke: var(--crit); }
+.debug-toolbar [data-testid='debug-restart'] svg { stroke: #3fb950; }
+
+/* The status bar turns orange while debugging, as in VS Code. */
+body.is-debugging .status-bar { background: #b8541b; }
+
+/* The Debug Console. */
+.debug-console { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.debug-console[hidden] { display: none; }
+.debug-console-lines {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 12px;
+  font: 12px/1.45 ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.debug-console-line.is-stderr, .debug-console-line.is-error { color: var(--crit); }
+.debug-console-line.is-console, .debug-console-line.is-important { color: var(--accent); }
+.debug-console-line.is-input { color: var(--muted); }
+.debug-console-row { display: flex; align-items: center; gap: 6px; padding: 2px 12px 4px; border-top: 1px solid var(--line); }
+.debug-console-prompt { color: var(--accent); font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; }
+.debug-console-input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--fg);
+  font: 12px ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+}
+
+/* The editor: breakpoints in the glyph margin, the paused line. */
+.monaco-editor .debug-breakpoint::before,
+.monaco-editor .debug-breakpoint-hint::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: #e51400;
+}
+.monaco-editor .debug-breakpoint.is-unverified::before { background: none; border: 1px solid #848484; box-sizing: border-box; }
+.monaco-editor .debug-breakpoint-hint::before { background: rgba(229, 20, 0, 0.4); }
+.monaco-editor .debug-current-line { background: rgba(255, 238, 0, 0.18); }
+.monaco-editor .debug-frame-line { background: rgba(80, 200, 120, 0.15); }
+.monaco-editor .debug-current-arrow::after,
+.monaco-editor .debug-frame-arrow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -5px 0 0 -3px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid #ffcc00;
+}
+.monaco-editor .debug-frame-arrow::after { border-left-color: #3fb950; }
+.monaco-editor .debug-breakpoint, .monaco-editor .debug-breakpoint-hint,
+.monaco-editor .debug-current-arrow, .monaco-editor .debug-frame-arrow { position: relative; cursor: pointer; }

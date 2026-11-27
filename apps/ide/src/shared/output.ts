@@ -12,6 +12,8 @@ export const OUTPUT_CHANNELS = [
     { id: 'servers', label: 'Servers and tunnel' },
     // #21: the language servers (TypeScript, Python): start, stop, crashes, their own messages.
     { id: 'lsp', label: 'Language servers' },
+    // #180: the debug adapters: what each session ran, how it ended, an adapter's errors.
+    { id: 'debug', label: 'Debugger' },
 ] as const;
 
 export type OutputChannelId = (typeof OUTPUT_CHANNELS)[number]['id'];

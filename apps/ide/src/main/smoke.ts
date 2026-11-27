@@ -31,7 +31,7 @@ export interface SmokeProbe {
     readonly gitStatusState: string | null;
     readonly gitTraversalRefused: boolean;
     /** #177: the folder's trust before and after the smoke run trusted it, and Git while it was not trusted. */
-    readonly trust: { readonly before?: string; readonly shieldShown?: boolean; readonly restrictedGit?: string; readonly tasksRefused?: boolean; readonly after?: string; readonly error?: string } | null;
+    readonly trust: { readonly before?: string; readonly shieldShown?: boolean; readonly restrictedGit?: string; readonly tasksRefused?: boolean; readonly debugRefused?: boolean; readonly after?: string; readonly error?: string } | null;
     /** #14: package.json opened from the explorer in a Monaco tab, with no CSP violation on the way. */
     readonly editorOpened: boolean;
     /** #138: file icons in the explorer and the tabs, and those that failed to load from the app. */
@@ -127,8 +127,16 @@ const RENDERER_PROBE = `(async () => {
         } catch (error) {
             tasksRefused &&= /Restricted Mode/.test(String(error));
         }
+        // #180: nor does anything run under the debugger.
+        let debugRefused = (await window.codexr.debug.configurations()).trusted === false;
+        try {
+            await window.codexr.debug.start(null, 'scripts/smoke.mjs');
+            debugRefused = false;
+        } catch (error) {
+            debugRefused &&= /Restricted Mode/.test(String(error));
+        }
         const after = await window.codexr.workspace.setTrust('folder');
-        trust = { before: before.state, shieldShown, restrictedGit, tasksRefused, after: after.state };
+        trust = { before: before.state, shieldShown, restrictedGit, tasksRefused, debugRefused, after: after.state };
     } catch (error) {
         trust = { error: String(error) };
     }
@@ -453,8 +461,8 @@ export function evaluateSmoke(probe: SmokeProbe | null, navigationBlocked: boole
         if (probe.readFileKind !== 'text') { failures.push(`workspace.readFile failed (got ${String(probe.readFileKind)})`); }
         if (!probe.traversalRefused) { failures.push('workspace.readFile followed a path out of the folder'); }
         if (probe.gitStatusState === null) { failures.push('git.status did not answer'); }
-        if (probe.trust?.before !== 'unknown' || probe.trust.restrictedGit !== 'restricted' || !probe.trust.tasksRefused || probe.trust.after !== 'trusted' || !probe.trust.shieldShown) {
-            failures.push(`workspace trust did not gate Git or tasks, or did not take the answer (got ${JSON.stringify(probe.trust)})`);
+        if (probe.trust?.before !== 'unknown' || probe.trust.restrictedGit !== 'restricted' || !probe.trust.tasksRefused || !probe.trust.debugRefused || probe.trust.after !== 'trusted' || !probe.trust.shieldShown) {
+            failures.push(`workspace trust did not gate Git, tasks or debugging, or did not take the answer (got ${JSON.stringify(probe.trust)})`);
         }
         if (!probe.gitTraversalRefused) { failures.push('git.headContent followed a path out of the folder'); }
         if (!probe.editorOpened) { failures.push('package.json did not open in a Monaco editor tab'); }

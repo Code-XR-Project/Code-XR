@@ -202,6 +202,28 @@ Each run gets a terminal tab of its own, in the folder, started with the shell o
 
 The renderer names a task only by the id the main process listed, or a file by its workspace path; the main process re-reads the folder, builds the command line (quoted for bash/zsh/fish, PowerShell or cmd), checks the trust and starts the terminal (`shared/tasks.ts`, pure and unit-tested; `main/tasks/`; `renderer/taskRunner.ts`). The smoke run checks that a task is refused in an untrusted folder.
 
+## Debugger (#180)
+
+**Run and Debug** (activity bar, `Ctrl/Cmd+Shift+D`) debugs Python and Node.js programs over the Debug Adapter Protocol. Click left of a line number (or press `F9`) to set a breakpoint; breakpoints follow the text as you edit, are listed in the view and are kept per folder. **F5** starts the configuration picked in the view, by default the active file with its language's debugger, and continues once paused. While paused, the line is highlighted, and the view shows **Variables** (expanded on demand, open nodes stay open from one stop to the next), **Watch** expressions, the **Call Stack** (click a frame to inspect it) and **Breakpoints**. A floating toolbar over the editors and the usual keys drive it: Continue `F5`, Pause `F6`, Step Over `F10`, Step Into `F11`, Step Out `Shift+F11`, Restart `Ctrl/Cmd+Shift+F5`, Stop `Shift+F5`. The **Debug Console** (panel, `Ctrl/Cmd+Shift+Y`) shows the program's output and evaluates expressions in the selected frame. The status bar turns orange while a session runs.
+
+Configurations live in `.codexr/launch.json` (the gear in the view creates it with an example), in VS Code's format with comments allowed:
+
+```jsonc
+{
+    "configurations": [
+        { "name": "App", "type": "python", "request": "launch", "program": "${workspaceFolder}/app.py", "args": ["--verbose"], "justMyCode": true },
+        { "name": "Server", "type": "node", "request": "launch", "program": "server.js", "cwd": "${workspaceFolder}/web", "env": { "PORT": "8080" } }
+    ]
+}
+```
+
+`type` is `python` (or `debugpy`) or `node` (or `pwa-node`); only `launch` requests. `program`, `args`, `cwd` and `env` may use `${workspaceFolder}`, `${file}`, `${relativeFile}`, `${fileBasename}`, `${fileBasenameNoExtension}`, `${fileDirname}`, `${fileExtname}` and `${env:NAME}`; `python` / `runtimeExecutable` name the interpreter, which otherwise comes from the **Python Interpreter** / **Node Interpreter** settings of Run Current File (#176) and `PATH`.
+
+- **Python** runs under [debugpy](https://github.com/microsoft/debugpy), started from the IDE's own Python environment (#15) so the project's interpreter needs nothing installed. debugpy is not part of that environment until you need it: the first Python session explains what is missing and installs the pinned `debugpy==1.8.22` only when you press **Install debugpy** (it comes from PyPI). Your program runs with your interpreter.
+- **Node.js** runs under the IDE's own adapter (`main/debug/nodeAdapter.ts`): it starts `node --inspect-brk` on a free local port and speaks the inspector protocol over Node's WebSocket, so nothing is installed. CommonJS and ES modules, the main thread only (worker threads and child processes are not followed).
+- **Trust.** Running a folder's code under the debugger is running it, so it is refused in Restricted Mode (#177); the smoke run checks it.
+- **How it is built.** The renderer names a configuration, or the active file, and nothing else; the main process reads `launch.json`, resolves every path and interpreter, starts the adapter and keeps one session per window (`shared/debug.ts`: configurations, variables and DAP framing, pure and unit-tested; `main/debug/dapClient.ts`, `debugSession.ts`, `debugHost.ts`; `renderer/debug/` and `renderer/editor/debugDecorations.ts`). The unit tests debug a real Node.js program end to end, and a Python one when debugpy is installed.
+
 ## Problems panel (#173)
 
 **Problems** (`Ctrl/Cmd+Shift+M`, or the counts at the left of the status bar) lists, grouped by file, what the editor's languages report on the open files (Monaco's markers: syntax errors for TypeScript and JavaScript, whose semantic checks wait for the language servers of #21, and JSON, CSS and HTML validation) and the **Code-XR metric checks**: after an analysis of the folder, every function above a limit is a warning on its first line ("'route' has a cyclomatic complexity of 18 (limit 10)."), shown in the list and as a squiggle in the editor. Clicking a row opens the file there. The limits are settings, per user or per folder: **Max Cyclomatic Complexity** (`problems.metrics.maxComplexity`, 10, Code-XR's own "high complexity" band), **Max Function Lines** (`problems.metrics.maxFunctionLines`, 50, lines of code) and **Max Parameters** (`problems.metrics.maxParameters`, 5); 0 turns a check off. The panel has a text filter (words that must all appear; `!word` excludes), a toggle per severity with its count, a source picker (all, Code-XR metrics, editor) and Collapse All. The header adapts to the panel's own width (a container query: an open scene halves it): a narrow panel drops the source picker, then the severity toggles, whose counts stay in the status bar; the filter always stays. Core messages reach the status bar and the notifications without VS Code's `$(icon)` syntax (`plainCoreText`, `shared/output.ts`).
