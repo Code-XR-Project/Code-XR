@@ -41,6 +41,7 @@ import { createEditorStatus } from './editor/editorStatus.ts';
 import { eolChoices, indentationChoices, languageChoices, type Choice } from './editor/editorStatusModel.ts';
 import { parseSession, serializeSession, sessionKey } from './editor/tabsModel.ts';
 import { showContextMenu, type ContextMenuItem } from './contextMenu.ts';
+import { el, icon } from './dom.ts';
 import { createSettingsView } from './settings/settingsView.ts';
 import { createKeybindingsView } from './settings/keybindingsView.ts';
 import { menuAccelerators } from './settings/keybindingsModel.ts';
@@ -48,6 +49,10 @@ import { COLOR_THEME_SETTING, isColorTheme, settingOf, type ColorTheme } from '.
 import { themeChoices } from './settings/settingsModel.ts';
 import { isMarkdownPath } from './editor/markdownPath.ts';
 import { installExtensions } from './extensions/extensionsWiring.ts';
+import { platformContext } from './extensions/contextKeys.ts';
+import { fileUriOf, guessLanguageId, resourceContext, splitActions, type MenuAction } from './extensions/menuModel.ts';
+import { extensionIcon } from './extensions/extensionIcons.ts';
+import { contextMenuItems } from './extensions/viewsController.ts';
 import type { ContributedTheme } from '../shared/extensions.ts';
 const EXTENSION_THEME_SETTING = 'workbench.colorThemeExtension';
 import type { IdeCommand, KeybindingsReport, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
@@ -62,6 +67,8 @@ const api = window.codexr;
 let folderIsOpen = false;
 /** The open folder's absolute path, for the terminal's file links (#286). */
 let workspaceRoot: string | null = null;
+/** #261: something extensions' `when` clauses read changed (trust, folder, settings, active file). */
+let workbenchContextChanged = (): void => undefined;
 /** The active editor's file, for quick open's recent list (#164). */
 let activeFile: string | null = null;
 // #169: the layout is remembered in the renderer's storage (inside the IDE's user-data folder).
@@ -141,6 +148,7 @@ function editorGroup(): Promise<EditorGroup> {
             onFileClean: (path) => outline?.fileClean(path),
             onDidSave: (path) => extensions.documentSaved(path),
             revealInScene: (path) => revealInScene(path),
+            titleActions: (tabId) => editorTitleButtons(tabId),
         });
         editors.setSceneShown(!workbench.sceneArea.hidden);
         // #256: PDFs and images open in viewer tabs.
@@ -320,6 +328,7 @@ function showTabMenu(path: string, x: number, y: number): void {
         ...(isMarkdownPath(path) ? [{ label: 'Open Preview to the Side', keybinding: key('markdown.showPreviewToSide'), run: () => void openPreviewOf(path), testId: 'tab-menu-markdown-preview' }] : []),
         { label: 'Split Right', keybinding: key('editor.splitRight'), run: () => editors?.split(path), testId: 'tab-menu-split-right' },
         { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
+        ...extensionMenuItems('editor/title/context', path),
         { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
         ...(workbench.sceneArea.hidden ? [] : [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'tab-menu-reveal-in-scene' }]),
         { separator: true },
@@ -329,6 +338,55 @@ function showTabMenu(path: string, x: number, y: number): void {
         label: `Actions for ${path}`,
         rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
     });
+}
+
+/** #261: a file's language id: its editor's when it is open, else a guess from its name. */
+function languageOfFile(path: string): string | null {
+    const open = editors?.activeModel();
+    return open && open.path === path ? open.model.getLanguageId() : guessLanguageId(path);
+}
+
+/** #261: the entries extensions add to a file's menu (`explorer/context`, `editor/title/context`), with the file as argument. */
+function extensionMenuItems(menu: string, path: string): ContextMenuItem[] {
+    const groups = extensions.menu(menu, resourceContext(path, languageOfFile(path)));
+    const items = contextMenuItems(groups, (action) => void api.workspace.current().then((workspace) => {
+        // A `vscode.Uri` in the host's wire format.
+        extensions.runCommand(action.command, workspace ? [{ $uri: fileUriOf(workspace.root, path) }] : []);
+    }));
+    return items.length > 0 ? [{ separator: true }, ...items] : [];
+}
+
+/** #261: the buttons extensions put in an editor's title (`editor/title`): `navigation` as icons, the rest under `...`. */
+function editorTitleButtons(tabId: string | null): HTMLElement[] {
+    if (tabId === null || isSchemeId(tabId)) {
+        return [];
+    }
+    const { primary, secondary } = splitActions(extensions.menu('editor/title', { ...resourceContext(tabId, languageOfFile(tabId)), activeEditor: 'workbench.editors.files.textFileEditor' }), 'navigation');
+    const run = (action: MenuAction): void => void api.workspace.current().then((workspace) => {
+        extensions.runCommand(action.command, workspace ? [{ $uri: fileUriOf(workspace.root, tabId) }] : []);
+    });
+    const buttons: HTMLElement[] = primary.map((action) => {
+        const button = el('button', { className: 'icon-button ext-action', attrs: { type: 'button', title: action.title, 'aria-label': action.title, 'data-testid': `editor-title-${action.command}` } });
+        const glyph = extensionIcon(action.icon, { monochrome: true });
+        if (glyph) {
+            button.append(glyph);
+        } else {
+            button.textContent = action.title;
+            button.classList.add('is-text');
+        }
+        button.disabled = !action.enabled;
+        button.addEventListener('click', () => run(action));
+        return button;
+    });
+    if (secondary.some((group) => group.actions.length > 0)) {
+        const more = el('button', { className: 'icon-button ext-action', attrs: { type: 'button', title: 'More Actions...', 'aria-label': 'More Actions...', 'aria-haspopup': 'menu' } }, [icon('M5 12h.01M12 12h.01M19 12h.01')]);
+        more.addEventListener('click', () => {
+            const rect = more.getBoundingClientRect();
+            showContextMenu(contextMenuItems(secondary, run), rect.left, rect.bottom, { label: 'Editor actions' });
+        });
+        buttons.push(more);
+    }
+    return buttons;
 }
 
 /** #16: the analyses of one file, as the extension's explorer menu offers them. */
@@ -375,6 +433,7 @@ function showExplorerMenu(path: string, kind: 'file' | 'directory', x: number, y
         ]),
         ...(isFile && !workbench.sceneArea.hidden ? [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }] : []),
         ...(isFile ? [{ separator: true } as const, ...fileAnalysisItems(path, 'explorer-menu')] : []),
+        ...extensionMenuItems('explorer/context', path),
     ];
     showContextMenu(items, x, y, {
         label: `Actions for ${path || 'the folder'}`,
@@ -423,6 +482,7 @@ const workspaceTrust = createWorkspaceTrustView({
     pick: (label, items, apply) => pick(label, items.map((item) => ({ ...item, value: item.id })), apply),
     onError: (message) => notifications.notify('error', message),
     onChange: () => {
+        workbenchContextChanged();
         debug.reloadConfigurations();
         // The main process restarted this window's language servers; send the open documents again.
         if (editorsLoading) {
@@ -434,6 +494,7 @@ const workspaceTrust = createWorkspaceTrustView({
 /** #139: the main process stops the old folder's scene; the panel follows, and the new folder may be analysed. */
 function folderOpened(root: string): void {
     folderIsOpen = true;
+    workbenchContextChanged();
     void workspaceTrust.refresh();
     quickOpenFiles.reset();
     workspaceSymbols.reset();
@@ -450,6 +511,7 @@ api.workspace.onDidChange((workspace) => {
         folderOpened(workspace.root);
     } else {
         folderIsOpen = false;
+        workbenchContextChanged();
         quickOpenFiles.reset();
         workspaceSymbols.reset();
         searchView.reset();
@@ -517,6 +579,7 @@ api.git.onDidChange(() => editors?.gitChanged());
 let settingsReport: SettingsReport | null = null;
 function applySettings(report: SettingsReport): void {
     settingsReport = report;
+    workbenchContextChanged();
     settingsView.show(report);
     editors?.applySettings(report.effective);
     terminal.setFontSize(settingOf<number>(report, 'terminal.integrated.fontSize'));
@@ -808,9 +871,30 @@ const extensions = installExtensions({
         await group.save();
         return !group.dirtyPaths().includes(path);
     },
+    views: workbench,
+    storage: layoutStorage(),
+    // #261: a webview panel opens in the active group (`ViewColumn.Beside` is not honoured yet).
+    openCustom: (input, options) => void editorGroup().then((group) => group.openCustom(input, { preview: options.preview, focus: !options.preserveFocus })),
 });
 // #284: Source Control's remote, stash and branch commands, under VS Code's ids.
 registerGitCommands(registry, scmView);
+// #261: the workbench's context keys for extensions' `when` clauses.
+extensions.contextKeys.addProvider((key) => platformContext(platform)(key));
+extensions.contextKeys.addProvider((key) => {
+    switch (key) {
+        case 'isWorkspaceTrusted': return workspaceTrust.current()?.state === 'trusted';
+        case 'workspaceFolderCount': return folderIsOpen ? 1 : 0;
+        case 'workbenchState': return folderIsOpen ? 'folder' : 'empty';
+        case 'virtualWorkspace': return false;
+        case 'remoteName': return '';
+        case 'activeEditor': return activeFile === null ? undefined : 'workbench.editors.files.textFileEditor';
+        case 'editorLangId': return activeFile === null ? undefined : languageOfFile(activeFile);
+        default:
+            return key.startsWith('config.') && settingsReport ? settingsReport.effective[key.slice('config.'.length)] : undefined;
+    }
+});
+workbenchContextChanged = () => extensions.contextKeys.changed();
+extensions.contextKeys.onDidChange(() => editors?.refreshTitleActions());
 registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {

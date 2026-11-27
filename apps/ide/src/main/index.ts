@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
+import { serveWebviews } from './extensions/webviewServer.ts';
 import { registerIpcHandlers } from './ipc.ts';
 import { ExtensionHostManager } from './extensions/extensionHostManager.ts';
 import { ExtensionsService } from './extensions/extensionsService.ts';
@@ -102,6 +103,8 @@ async function start(): Promise<void> {
     if (!isDevelopment) {
         serveRenderer(RENDERER_DIR);
     }
+    // #261: extensions' webviews, in development too (the dev server serves only the workbench).
+    serveWebviews();
     const terminalHost = createTerminalHost({ isSmoke });
     terminals = terminalHost;
     setScenePreloadPath(SCENE_PRELOAD_PATH);

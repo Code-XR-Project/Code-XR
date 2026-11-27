@@ -251,3 +251,42 @@ jobs:
             vsix-listing.txt
           retention-days: 14
           if-no-files-found: error
+
+  vsix-in-ide:
+    name: Code-XR extension in the IDE (ubuntu-latest)
+    # #262: the .vsix the package job built installs from file in the built
+    # IDE, activates, and shows its Code-XR tree (apps/ide/scripts/vsixE2e.mjs,
+    # Playwright against the real window); any vscode API it uses at start-up
+    # that the IDE's extension host lacks fails the job.
+    needs: package
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Download the VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: code-xr-vsix
+          path: vsix
+
+      - name: Allow the Chromium sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Build the IDE
+        run: npm run ide:build
+
+      - name: Install and run the extension (virtual display)
+        run: xvfb-run -a node apps/ide/scripts/vsixE2e.mjs "$(ls vsix/apps/vscode-extension/artifacts/*.vsix | head -n 1)"

@@ -12,6 +12,8 @@
  */
 
 import type { DiagnosticsUpdate, EditorStateData, ProviderRegistration, RangeData, WorkspaceEditData } from './extensionLanguageProtocol.ts';
+import type { ViewNotification } from './extensionViewsProtocol.ts';
+import type { WebviewUiEvent } from './extensionWebviewProtocol.ts';
 import type { ExtensionActivation, ExtensionId } from './extensions.ts';
 
 export type RpcMessage =
@@ -232,6 +234,10 @@ export const HOST_METHODS = {
     documents: 'documents',
     /** #260 (ProvideRequest) -> the provider's answer as plain data (extensionLanguageProtocol.ts). */
     provide: 'provide',
+    /** #261 (ViewRequest) -> answer (extensionViewsProtocol.ts); tree resources are absolute paths. */
+    view: 'view',
+    /** #261 (WebviewWorkbenchEvent) -> answer (extensionWebviewProtocol.ts). */
+    webview: 'webview',
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -282,6 +288,8 @@ export const MAIN_METHODS = {
     ui: 'ui',
     /** (UiNotification) notification: status bar items, progress, status messages. */
     uiNotify: 'uiNotify',
+    /** #261 (WebviewHostEvent) notification: a webview was created, changed or disposed. */
+    webview: 'webview',
     /** #260 (DiagnosticsUpdate) notification, absolute paths. */
     diagnostics: 'diagnostics',
     /** #260 (ProviderRegistration) notification. */
@@ -360,7 +368,11 @@ export type UiNotification =
     | { readonly kind: 'providerRegistered'; readonly registration: ProviderRegistration }
     | { readonly kind: 'providerUnregistered'; readonly handle: number }
     /** A host started or stopped: every provider and diagnostic of the previous one is gone. */
-    | { readonly kind: 'providersReset' };
+    | { readonly kind: 'providersReset' }
+    /** #261: the extensions' tree views (no paths). */
+    | { readonly kind: 'view'; readonly notification: ViewNotification }
+    /** #261: a webview was created, changed or disposed (the HTML stays in the main process). */
+    | { readonly kind: 'webview'; readonly event: WebviewUiEvent };
 
 /** Main -> renderer: one UI request of the host (answer with `extensionsHostReply`), or a notification. */
 export type HostUiEvent =

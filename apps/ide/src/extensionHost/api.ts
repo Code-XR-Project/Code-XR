@@ -869,6 +869,16 @@ export function createVscodeApi(record: ExtensionRecord, host: ExtensionHost): u
         onDidChangeActiveTerminal: windowEvents.onDidChangeActiveTerminal.event,
         onDidChangeTerminalState: windowEvents.onDidChangeTerminalState.event,
         tabGroups: host.documentsAndEditors.tabGroups,
+        // #261: tree views.
+        createTreeView: (viewId: string, options: { treeDataProvider?: unknown; showCollapseAll?: boolean; canSelectMany?: boolean; manageCheckboxStateManually?: boolean }) => host.treeViews.create(extensionId, viewId, options),
+        registerTreeDataProvider: (viewId: string, provider: unknown) => host.treeViews.register(extensionId, viewId, provider),
+        // #261: webviews. Panels are not restored after a restart: serializers are accepted and never called.
+        createWebviewPanel: (viewType: string, title: string, showOptions: unknown, options?: Record<string, unknown>) => host.webviews.createPanel(extensionId, viewType, title, showOptions, options),
+        registerWebviewViewProvider: (viewId: string, provider: unknown) => host.webviews.registerViewProvider(extensionId, viewId, provider),
+        registerWebviewPanelSerializer: () => {
+            report('window.registerWebviewPanelSerializer (panels are not restored after a restart)');
+            return new Disposable(() => undefined);
+        },
     }, report);
 
     /* ------------------------------ env ------------------------------ */

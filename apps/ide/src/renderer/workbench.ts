@@ -40,8 +40,17 @@ const ACTIVITY: readonly ActivityItem[] = [
     { id: 'settings', label: 'Settings', icon: 'M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', bottom: true },
 ];
 
-/** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
-export type ViewId = 'chats' | 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'extensions' | 'settings' | 'keybindings';
+/** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). `ext:<id>`: an extension's view container (#261). */
+export type ViewId = 'chats' | 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'extensions' | 'settings' | 'keybindings' | `ext:${string}`;
+
+/** #261: an extension's view container in the activity bar. */
+export interface ExtensionViewContainer {
+    /** The side-bar pane its views go in. */
+    readonly pane: HTMLElement;
+    /** The activity item's badge (a tree view's `badge`); 0 hides it. */
+    setBadge(value: number, tooltip: string): void;
+    dispose(): void;
+}
 
 export interface Workbench {
     /** The explorer's part of its side-bar pane (the file tree). */
@@ -104,6 +113,12 @@ export interface Workbench {
     readonly extensionStatusRight: HTMLElement;
     /** Sizes and visibility of the side bar, panel and scene column (#169, layout/layout.ts). */
     readonly layout: WorkbenchLayout;
+    /** #261: adds an extension's view container (an activity item and its pane), before Settings. */
+    addViewContainer(id: string, title: string, icon: Element | null): ExtensionViewContainer;
+    /** #261: where extensions' views go in the built-in Explorer, Source Control and Run and Debug views. */
+    readonly extensionSections: Readonly<Record<'explorer' | 'scm' | 'debug', HTMLElement>>;
+    /** #261: listens for the shown side-bar view changing (or the side bar hiding: null). */
+    onDidChangeView(listener: (id: ViewId | null) => void): () => void;
 }
 
 export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null = null): Workbench {
@@ -129,10 +144,19 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     // #172: the explorer pane holds the file tree and, under it, the Outline section.
     const sideBar = el('div', { className: 'explorer-section' });
     const outlineView = el('section', { attrs: { 'aria-label': 'Outline', 'data-testid': 'outline-section' } });
-    const explorerPane = el('div', { className: 'side-pane explorer-pane', attrs: { 'data-view': 'explorer' } }, [sideBar, outlineView]);
+    // #261: extensions' views go under the file tree, and under the Source Control and Run and Debug views.
+    const extensionSections = {
+        explorer: el('div', { className: 'ext-sections', attrs: { 'data-testid': 'ext-sections-explorer' } }),
+        scm: el('div', { className: 'ext-sections', attrs: { 'data-testid': 'ext-sections-scm' } }),
+        debug: el('div', { className: 'ext-sections', attrs: { 'data-testid': 'ext-sections-debug' } }),
+    };
+    const explorerPane = el('div', { className: 'side-pane explorer-pane', attrs: { 'data-view': 'explorer' } }, [sideBar, extensionSections.explorer, outlineView]);
     const searchView = el('div', { className: 'side-pane', attrs: { 'data-view': 'search', 'data-testid': 'search-view' } });
-    const scmView = el('div', { className: 'side-pane', attrs: { 'data-view': 'scm', 'data-testid': 'scm-view' } });
-    const debugView = el('div', { className: 'side-pane', attrs: { 'data-view': 'debug', 'data-testid': 'debug-view' } });
+    // The views fill their own element (replaceChildren), so the sections sit beside it in the pane.
+    const scmView = el('div', { className: 'side-pane-main', attrs: { 'data-testid': 'scm-view' } });
+    const debugView = el('div', { className: 'side-pane-main', attrs: { 'data-testid': 'debug-view' } });
+    const scmPane = el('div', { className: 'side-pane has-sections', attrs: { 'data-view': 'scm' } }, [scmView, extensionSections.scm]);
+    const debugPane = el('div', { className: 'side-pane has-sections', attrs: { 'data-view': 'debug' } }, [debugView, extensionSections.debug]);
     const chatsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'chats', 'data-testid': 'chats-view' } });
     const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
     const xrView = el('div', { className: 'side-pane', attrs: { 'data-view': 'xr' } }, [
@@ -143,10 +167,22 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const extensionsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'extensions', 'data-testid': 'extensions-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['chats', chatsView], ['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['debug', debugView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['extensions', extensionsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [chatsView, explorerPane, searchView, scmView, debugView, analysisView, xrView, agentsView, extensionsView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['chats', chatsView], ['explorer', explorerPane], ['search', searchView], ['scm', scmPane], ['debug', debugPane], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['extensions', extensionsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [chatsView, explorerPane, searchView, scmPane, debugPane, analysisView, xrView, agentsView, extensionsView, settingsView, keybindingsView]);
+    const labels = new Map<ViewId, string>(ACTIVITY.map((item) => [item.id as ViewId, item.label]));
+    const viewListeners = new Set<(id: ViewId | null) => void>();
+    let shownView: ViewId | null = null;
+    const announceView = (): void => {
+        const id = layout.sideBarVisible && !layout.zen ? shownView : null;
+        for (const listener of viewListeners) {
+            listener(id);
+        }
+    };
 
     function showView(id: ViewId, reveal = true): void {
+        if (!panes.has(id)) {
+            return;
+        }
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
             layout.setSideBarVisible(true);
         }
@@ -157,7 +193,49 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
             button?.classList.toggle('is-active', viewId === activity);
             button?.setAttribute('aria-pressed', String(viewId === activity));
         }
-        sideBarFrame.setAttribute('aria-label', id === 'keybindings' ? 'Keyboard Shortcuts' : ACTIVITY.find((item) => item.id === id)?.label ?? id);
+        sideBarFrame.setAttribute('aria-label', id === 'keybindings' ? 'Keyboard Shortcuts' : labels.get(id) ?? id);
+        shownView = id;
+        announceView();
+    }
+
+    function addViewContainer(id: string, title: string, image: Element | null): ExtensionViewContainer {
+        const viewId: ViewId = `ext:${id}`;
+        const badge = el('span', { className: 'activity-badge', attrs: { hidden: '' } });
+        const button = el('button', {
+            className: 'activity-item',
+            attrs: { type: 'button', title, 'aria-label': title, 'aria-pressed': 'false', 'data-view': viewId },
+        }, [image ?? el('span', { className: 'activity-letter', text: title.slice(0, 1).toUpperCase() }), badge]);
+        button.addEventListener('click', () => {
+            if (button.classList.contains('is-active') && layout.sideBarVisible && !layout.zen) {
+                layout.setSideBarVisible(false);
+            } else {
+                showView(viewId);
+            }
+        });
+        const pane = el('div', { className: 'side-pane ext-container-pane', attrs: { 'data-view': viewId, hidden: '' } });
+        activityBar.insertBefore(button, buttons.get('settings') ?? null);
+        sideBarFrame.append(pane);
+        buttons.set(viewId, button);
+        panes.set(viewId, pane);
+        labels.set(viewId, title);
+        return {
+            pane,
+            setBadge(value, tooltip) {
+                badge.hidden = value <= 0;
+                badge.textContent = value > 99 ? '99+' : String(value);
+                button.title = value > 0 && tooltip ? `${title} - ${tooltip}` : title;
+            },
+            dispose() {
+                if (shownView === viewId) {
+                    showView('explorer', false);
+                }
+                button.remove();
+                pane.remove();
+                buttons.delete(viewId);
+                panes.delete(viewId);
+                labels.delete(viewId);
+            },
+        };
     }
 
     const infoList = el('dl', { className: 'info-list' });
@@ -212,6 +290,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     root.replaceChildren(shell);
     const layout = createLayout({ shell, sideBar: sideBarFrame, panel, sceneArea }, storage);
     showView('explorer', false);
+    layout.onDidChange(announceView);
 
     return {
         sideBar,
@@ -254,6 +333,12 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         extensionStatusLeft,
         extensionStatusRight,
         layout,
+        addViewContainer,
+        extensionSections,
+        onDidChangeView(listener) {
+            viewListeners.add(listener);
+            return () => viewListeners.delete(listener);
+        },
         setStatus(message: string): void {
             statusLeft.textContent = message;
         },

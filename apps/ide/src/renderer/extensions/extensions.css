@@ -53,3 +53,74 @@
 @media (max-width: 900px) {
   .extension-details-body { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* #261: what extensions draw in the workbench: product icons, their view containers, views, trees and menu buttons. */
+.codicon-glyph { flex: none; display: inline-block; width: 16px; font: normal normal normal 16px/1 codicon; text-align: center; text-decoration: none; text-rendering: auto; -webkit-font-smoothing: antialiased; user-select: none; }
+.ext-icon-image { flex: none; display: inline-block; width: 16px; height: 16px; background: center / contain no-repeat; }
+.ext-icon-mask { flex: none; display: inline-block; width: 16px; height: 16px; background: currentColor; -webkit-mask: var(--ext-icon-url) center / contain no-repeat; mask: var(--ext-icon-url) center / contain no-repeat; }
+
+.activity-item { position: relative; }
+.activity-item > .codicon-glyph { width: 24px; font-size: 24px; }
+.activity-item > .ext-icon-mask { width: 24px; height: 24px; }
+.activity-letter { font-weight: 600; font-size: 16px; }
+.activity-badge { position: absolute; right: 6px; bottom: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: var(--status-fg); font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; }
+.activity-badge[hidden] { display: none; }
+
+/* The Source Control and Run and Debug panes hold their view and, under it, extensions' views. */
+.side-pane.has-sections:not([hidden]) { display: flex; flex-direction: column; min-height: 100%; }
+.side-pane-main { flex: none; }
+.ext-sections { display: flex; flex-direction: column; min-height: 0; }
+.ext-sections:empty { display: none; }
+.explorer-pane > .ext-sections { flex: 0 1 auto; max-height: 50%; overflow: auto; }
+.ext-container-pane:not([hidden]) { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+.ext-view { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--line); }
+.ext-view[hidden] { display: none; }
+.ext-container-pane > .ext-view:first-child { border-top: 0; }
+.ext-container-pane > .ext-view:not(.is-collapsed) { flex: 1 1 0; }
+.ext-container-pane > .ext-view.is-collapsed { flex: none; }
+.ext-view-header { flex: none; }
+.ext-view-toggle[aria-expanded='true'] > .tree-chevron { transform: rotate(90deg); }
+.ext-view-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ext-view-description { margin-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.ext-view-actions { flex: none; display: flex; align-items: center; gap: 2px; padding-right: 6px; opacity: 0; }
+.ext-view:hover .ext-view-actions, .ext-view:focus-within .ext-view-actions { opacity: 1; }
+.ext-view-body { flex: 1; min-height: 0; overflow: auto; padding-bottom: 6px; }
+.ext-view-body[hidden] { display: none; }
+.ext-view-message { margin: 4px 12px 6px; }
+.ext-view-message[hidden] { display: none; }
+
+.ext-action.is-text { width: auto; padding: 0 6px; font: inherit; font-size: 12px; }
+.ext-action:disabled { opacity: 0.4; cursor: default; }
+
+.ext-tree-row { gap: 4px; }
+.ext-tree-row > .ext-icon, .ext-tree-row > .file-icon { flex: none; }
+.tree-description { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 0.92em; }
+.tree-highlight { background: none; color: var(--accent); font-weight: 600; }
+.ext-tree-checkbox { flex: none; margin: 0 2px 0 0; }
+.ext-tree-actions { margin-left: auto; display: none; align-items: center; gap: 2px; }
+.ext-tree-row:hover > .ext-tree-actions, .ext-tree-row:focus > .ext-tree-actions, .ext-tree-row[aria-selected='true'] > .ext-tree-actions { display: flex; }
+.ext-tree-actions > .ext-action { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 3px; background: none; color: var(--muted); cursor: pointer; }
+.ext-tree-actions > .ext-action:hover { background: var(--hover); color: var(--fg); }
+
+.ext-welcome { padding: 6px 0 8px; }
+.ext-welcome[hidden] { display: none; }
+.ext-welcome-text { margin: 4px 12px 8px; color: var(--muted); overflow-wrap: anywhere; }
+.ext-welcome-button { display: block; margin-bottom: 8px; }
+.ext-welcome-link { color: var(--accent); text-decoration: none; }
+.ext-welcome-link:hover { text-decoration: underline; }
+
+/* The buttons extensions add to an editor's title, at the right end of its tab strip. */
+.editor-group { position: relative; }
+.editor-title-actions { position: absolute; top: 0; right: 0; height: 35px; display: flex; align-items: center; gap: 2px; padding: 0 6px; background: var(--chrome); border-bottom: 1px solid var(--line); }
+.editor-title-actions[hidden] { display: none; }
+
+/* #261: extensions' webviews. Frames live in one layer over the workbench, laid over their slot. */
+.webview-layer { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+.webview-wrapper { position: absolute; pointer-events: auto; overflow: hidden; background: var(--editor); }
+.webview-wrapper[hidden] { display: none; }
+.webview-frame { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
+.webview-slot { flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; }
+.ext-view-body:has(> .ext-webview-slot) { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.ext-webview-slot { flex: 1 1 auto; height: auto; min-height: 160px; }
+.webview-elsewhere { padding: 16px; }

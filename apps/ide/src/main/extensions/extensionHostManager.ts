@@ -18,7 +18,11 @@ import { isOpenableExternalLink } from '../security.ts';
 import { addTrustChangeListener, isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { addFolderChangeListener, workspaceOrNull } from '../workspace/workspaceWindows.ts';
 import { matchGlob } from '../../extensionHost/glob.ts';
+import { parseViewRequest } from '../../shared/extensionViewsProtocol.ts';
 import { DocumentMirror, FolderPaths } from './documentMirror.ts';
+import { commandUriAllowed, parseWebviewHostEvent, parseWebviewWorkbenchEvent } from '../../shared/extensionWebviewProtocol.ts';
+import { webviewServer } from './webviewRegistry.ts';
+import { inlineTreeIcons } from './viewIcons.ts';
 import { ExtensionSettingsStore } from './extensionSettings.ts';
 import type { ActivationSource, ExtensionsService } from './extensionsService.ts';
 import type { LoadedExtension } from './extensionStore.ts';
@@ -72,6 +76,8 @@ export class ExtensionHostManager implements ActivationSource {
     private readonly machineId: string;
     private readonly sessionId = crypto.randomUUID();
     private nextUiId = 1;
+    /** #261: tree icons read from disk, by absolute path. */
+    private readonly iconCache = new Map<string, string | null>();
 
     constructor(options: { service: ExtensionsService; hostScript: string; isDevelopment: boolean }) {
         this.service = options.service;
@@ -173,7 +179,10 @@ export class ExtensionHostManager implements ActivationSource {
         }
         child.on('exit', (code, signal) => this.exited(connection, code, signal));
         child.on('error', (error) => extLog.error(`The extension host could not start: ${error.message}`));
-        contents.once('destroyed', () => void this.stop(contents.id));
+        contents.once('destroyed', () => {
+            webviewServer.disposeOwner(contents.id);
+            void this.stop(contents.id);
+        });
 
         try {
             await rpc.request(HOST_METHODS.init, this.initData(contents, runnable, folder));
@@ -367,6 +376,10 @@ export class ExtensionHostManager implements ActivationSource {
     /* ------------------------------ host -> main ------------------------------ */
 
     private sendUi(contents: WebContents, event: HostUiEvent): void {
+        if (event.type === 'notify' && event.notification.kind === 'providersReset') {
+            // #261: the host that owned this window's webviews is gone; the workbench closes them.
+            webviewServer.disposeOwner(contents.id);
+        }
         if (!contents.isDestroyed()) {
             contents.send(EXTENSION_IPC_EVENTS.extensionsHostUi, event);
         }
@@ -487,6 +500,31 @@ export class ExtensionHostManager implements ActivationSource {
             }
             return this.askRenderer(connection, request);
         });
+        rpc.handle(MAIN_METHODS.webview, (raw) => {
+            const event = parseWebviewHostEvent(raw);
+            if (!event) {
+                return;
+            }
+            const owner = contents.id;
+            if (event.kind === 'create') {
+                webviewServer.create(owner, event.id, event.options);
+            } else if (event.kind === 'html') {
+                const version = webviewServer.setHtml(owner, event.id, event.html);
+                if (version !== null) {
+                    this.sendUi(contents, { type: 'notify', notification: { kind: 'webview', event: { kind: 'html', id: event.id, version } } });
+                }
+                return;
+            } else if (event.kind === 'options') {
+                if (!webviewServer.setOptions(owner, event.id, event.options)) {
+                    return;
+                }
+            } else if (event.kind === 'dispose') {
+                webviewServer.dispose(owner, event.id);
+            } else if (webviewServer.options(owner, event.id) === null) {
+                return;
+            }
+            this.sendUi(contents, { type: 'notify', notification: { kind: 'webview', event } });
+        });
         rpc.handle(MAIN_METHODS.uiNotify, (notification) => this.sendUi(contents, { type: 'notify', notification: notification as UiNotification }));
         rpc.handle(MAIN_METHODS.diagnostics, (raw) => {
             const paths = this.folderPaths(contents);
@@ -581,6 +619,42 @@ export class ExtensionHostManager implements ActivationSource {
             const result = await connection.rpc.request(HOST_METHODS.provide, inward);
             return paths.outward(result);
         });
+        handle(EXTENSION_IPC_CHANNELS.extensionsView, async (event, raw) => {
+            const request = parseViewRequest(raw);
+            const connection = this.hosts.get(event.sender.id);
+            if (!request || !connection) {
+                return null;
+            }
+            await connection.ready;
+            const result = await connection.rpc.request(HOST_METHODS.view, request);
+            if (request.kind !== 'treeChildren') {
+                return null;
+            }
+            // Icons first (their files lie outside the folder, where `outward` would drop them), then the resources.
+            const paths = this.folderPaths(event.sender);
+            const roots = [...this.service.enabled().map((extension) => extension.location), ...(paths ? [paths.root] : [])];
+            const inlined = inlineTreeIcons(result, roots, this.iconCache);
+            return paths ? paths.outward(inlined) : stripResources(inlined);
+        });
+        handle(EXTENSION_IPC_CHANNELS.extensionsWebview, async (event, raw) => {
+            const request = parseWebviewWorkbenchEvent(raw);
+            const connection = this.hosts.get(event.sender.id);
+            if (!request || !connection) {
+                return null;
+            }
+            if (request.kind !== 'resolveView') {
+                const options = webviewServer.options(event.sender.id, request.id);
+                if (!options) {
+                    return null;
+                }
+                if (request.kind === 'command' && !commandUriAllowed(options, request.command)) {
+                    extLog.warn(`A webview asked to run '${request.command}', which its options do not allow (enableCommandUris).`);
+                    return null;
+                }
+            }
+            await connection.ready;
+            return connection.rpc.request(HOST_METHODS.webview, request);
+        });
         handle(EXTENSION_IPC_CHANNELS.extensionsHostReply, (event, id, result) => {
             const connection = this.hosts.get(event.sender.id);
             const resolve = typeof id === 'number' ? connection?.pendingUi.get(id) : undefined;
@@ -595,6 +669,14 @@ export class ExtensionHostManager implements ActivationSource {
     async stopAll(): Promise<void> {
         await Promise.all([...this.hosts.keys()].map((id) => this.stop(id)));
     }
+}
+
+/** Without a folder no resource has a workspace path: keep only their names. */
+function stripResources(result: unknown): unknown {
+    if (typeof result !== 'object' || result === null || !Array.isArray((result as { items?: unknown }).items)) {
+        return result;
+    }
+    return { ...(result as object), items: (result as { items: Record<string, unknown>[] }).items.map((item) => ({ ...item, resource: null })) };
 }
 
 function readOrCreateMachineId(file: string): string {

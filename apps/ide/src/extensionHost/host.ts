@@ -13,6 +13,8 @@ import { FileMemento } from './memento.ts';
 import type { TextDocumentModel } from './textDocument.ts';
 import { BUILTIN_LANGUAGES } from './textDocument.ts';
 import { Disposable, EventEmitter, Uri } from './types.ts';
+import { TreeViews } from './treeViews.ts';
+import { Webviews } from './webviews.ts';
 import { fromWire, toWire } from './wire.ts';
 
 /**
@@ -74,6 +76,9 @@ export class ExtensionHost {
     /** #260: the editor's documents and active editor, and the extensions' language features. */
     readonly documentsAndEditors: DocumentsAndEditors;
     readonly languageFeatures: LanguageFeatures;
+    /** #261: the extensions' tree views. */
+    readonly treeViews: TreeViews;
+    readonly webviews: Webviews;
     private readonly reported = new Set<string>();
     private readonly firedEvents = new Set<string>();
     private moduleHooked = false;
@@ -84,6 +89,8 @@ export class ExtensionHost {
         this.rpc = rpc;
         this.documentsAndEditors = new DocumentsAndEditors(this);
         this.languageFeatures = new LanguageFeatures(this);
+        this.treeViews = new TreeViews(this);
+        this.webviews = new Webviews(this);
         this.configuration = new ConfigurationModel((key, value, target) => this.rpc.request(MAIN_METHODS.updateConfiguration, key, toWire(value), target).then(() => undefined));
     }
 

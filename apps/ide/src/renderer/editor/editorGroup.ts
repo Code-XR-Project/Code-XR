@@ -106,6 +106,8 @@ interface Group {
     readonly placeholder: HTMLElement;
     /** #256: where the active custom tab's element goes, in place of the editor. */
     readonly customHost: HTMLElement;
+    /** #261: the buttons extensions add to the title (`editor/title`), at the strip's right end. */
+    readonly titleActions: HTMLElement;
     readonly editor: monaco.editor.IStandaloneCodeEditor;
     readonly sceneShown: monaco.editor.IContextKey<boolean>;
     readonly tabs: Map<string, Tab>;
@@ -261,6 +263,8 @@ export interface EditorGroup {
     breakpointsChanged(path: string | null): void;
     /** #180: the line a paused debug session is on (null: running or ended). */
     setExecutionPoint(point: { readonly path: string; readonly line: number; readonly top: boolean } | null): void;
+    /** #261: draws every group's title buttons again (the extensions' menus or context keys changed). */
+    refreshTitleActions(): void;
 }
 
 export function createEditorGroup(
@@ -296,6 +300,8 @@ export function createEditorGroup(
         git?: GitDecorationsHooks;
         /** #180: the breakpoints in the glyph margin, owned by the debugger. */
         debug?: DebugDecorationsHooks;
+        /** #261: the title buttons for a group's active tab (its path or custom id; null without one). */
+        titleActions?(tabId: string | null): HTMLElement[];
     },
 ): EditorGroup {
     const groupsRow = el('div', { className: 'editor-groups', attrs: { 'data-testid': 'editor-groups' } });
@@ -432,6 +438,14 @@ export function createEditorGroup(
             callbacks.onMarkersChange?.();
         }
     });
+    // Drawn after the activation settles (the active tab is set at its end).
+    const renderTitleActionsSoon = (group: Group): void => {
+        queueMicrotask(() => {
+            if (groups.includes(group)) {
+                renderTitleActions(group);
+            }
+        });
+    };
     /** A group's tabs in order: its strip's DOM order. */
     const ordered = (group: Group): Tab[] => [...group.strip.children].flatMap((element) => {
         const tab = group.tabs.get((element as HTMLElement).dataset['path'] ?? '');
@@ -541,7 +555,16 @@ export function createEditorGroup(
         shown.remove();
     }
 
+    /** #261: the group's `editor/title` buttons, for its active tab; the strip leaves them room. */
+    function renderTitleActions(group: Group): void {
+        const buttons = callbacks.titleActions?.(group.active?.doc.path ?? null) ?? [];
+        group.titleActions.replaceChildren(...buttons);
+        group.titleActions.hidden = buttons.length === 0;
+        group.strip.style.paddingRight = buttons.length === 0 ? '' : `${buttons.length * 26 + 8}px`;
+    }
+
     function activate(group: Group, tab: Tab | null, focus = true): void {
+        renderTitleActionsSoon(group);
         const previous = group.active;
         if (previous && previous !== tab) {
             if (!previous.view) {
@@ -1062,10 +1085,11 @@ export function createEditorGroup(
         const host = el('div', { className: 'editor-host', attrs: { 'data-testid': 'editor-host' } });
         const placeholder = el('div', { className: 'editor-placeholder muted' });
         const customHost = el('div', { className: 'editor-custom-host', attrs: { 'data-testid': 'editor-custom-host', hidden: '' } });
-        const root = el('div', { className: 'editor-group', attrs: { 'data-testid': 'editor-group' } }, [strip, host, customHost, placeholder]);
+        const titleActions = el('div', { className: 'editor-title-actions', attrs: { 'data-testid': 'editor-title-actions', hidden: '' } });
+        const root = el('div', { className: 'editor-group', attrs: { 'data-testid': 'editor-group' } }, [strip, titleActions, host, customHost, placeholder]);
         const editor = monaco.editor.create(host, { ...editorOptions, model: null });
         const sceneShown = editor.createContextKey<boolean>('codexrSceneShown', sceneIsShown);
-        const group: Group = { root, strip, host, placeholder, customHost, editor, sceneShown, tabs: new Map(), active: null, disposables: [] };
+        const group: Group = { root, strip, host, placeholder, customHost, titleActions, editor, sceneShown, tabs: new Map(), active: null, disposables: [] };
         const ifCurrent = (listener: () => void) => () => { if (current === group) { listener(); } };
         group.disposables.push(
             editor.onDidChangeCursorSelection(ifCurrent(scheduleStatus)),
@@ -1812,6 +1836,11 @@ export function createEditorGroup(
                     endColumn: marker.endColumn,
                 }];
             });
+        },
+        refreshTitleActions(): void {
+            for (const group of groups) {
+                renderTitleActions(group);
+            }
         },
         gitChanged(): void {
             gitDecorations?.repositoryChanged();

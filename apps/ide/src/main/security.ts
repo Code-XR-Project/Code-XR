@@ -114,7 +114,8 @@ export function buildContentSecurityPolicy(options: CspOptions = {}): string {
         ['base-uri', ["'none'"]],
         ['form-action', ["'none'"]],
         ['frame-ancestors', ["'none'"]],
-        ['frame-src', ["'none'"]],
+        // #261: extensions' webviews only, each in a sandboxed frame on its own origin.
+        ['frame-src', ['codexr-webview:']],
         ['object-src', ["'none'"]],
     ];
     return directives.map(([name, values]) => `${name} ${values.join(' ')}`).join('; ');

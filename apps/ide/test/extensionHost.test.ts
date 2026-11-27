@@ -289,9 +289,8 @@ exports.activate = async function activate(context) {
     }));
     context.subscriptions.push(vscode.commands.registerCommand('demo.workbench', () => vscode.commands.executeCommand('workbench.action.files.save', 1)));
     context.subscriptions.push(vscode.commands.registerCommand('demo.missing', () => {
-        const panel = vscode.window.createWebviewPanel('demo', 'Demo', vscode.ViewColumn.One, {});
-        panel.webview.html = '<p>x</p>';
-        return typeof panel.dispose;
+        const registration = vscode.window.registerCustomEditorProvider('demo.editor', {});
+        return typeof registration.dispose;
     }));
     context.subscriptions.push(vscode.commands.registerCommand('demo.state', () => ({ last: context.globalState.get('lastAnswer'), storage: context.globalStorageUri.fsPath })));
     context.subscriptions.push(vscode.commands.registerCommand('demo.update', async () => {
@@ -467,7 +466,7 @@ describe('the extension host process (#259)', () => {
 
     it('reports unimplemented API and keeps the extension running', async () => {
         assert.equal(await main.request(HOST_METHODS.executeCommand, 'demo.missing', []), 'function');
-        assert.deepEqual(missing, ['window.createWebviewPanel']);
+        assert.deepEqual(missing, ['window.registerCustomEditorProvider']);
     });
 
     it('finds and opens workspace files, skipping node_modules', async () => {
