@@ -262,8 +262,9 @@ async function debugRoundTrip(adapter: DebugAdapter, type: 'python' | 'node', pr
 }
 
 describe('Debug sessions, end to end (#180)', () => {
-    it('debugs a Node.js program through the IDE\'s own adapter', async () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-debug-node-'));
+    it('debugs a Node.js program through the IDE\'s own adapter', { timeout: 60_000 }, async () => {
+        // The real path: macOS's temp folder is a symlink, and the debuggers report real paths.
+        const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-debug-node-')));
         const program = path.join(dir, 'prog.js');
         fs.writeFileSync(program, 'function sum(list) {\n    let total = 0;\n    for (const item of list) {\n        const add = item;\n        total += add;\n    }\n    return total;\n}\nconsole.log("result", sum([1, 2, 3]));\n');
         try {
@@ -290,8 +291,8 @@ describe('Debug sessions, end to end (#180)', () => {
     } catch {
         hasDebugpy = false;
     }
-    it('debugs a Python program through debugpy', { skip: hasDebugpy ? false : 'debugpy is not installed for this Python' }, async () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-debug-python-'));
+    it('debugs a Python program through debugpy', { skip: hasDebugpy ? false : 'debugpy is not installed for this Python', timeout: 60_000 }, async () => {
+        const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'codexr-debug-python-')));
         const program = path.join(dir, 'prog.py');
         fs.writeFileSync(program, 'def sum_all(values):\n    total = 0\n    for item in values:\n        add = item\n        total += add\n    return total\n\nprint("result", sum_all([1, 2, 3]))\n');
         const child = spawn(python, ['-m', 'debugpy.adapter'], { stdio: ['pipe', 'pipe', 'pipe'] });
