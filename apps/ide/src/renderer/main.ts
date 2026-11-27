@@ -680,6 +680,7 @@ registerWorkbenchCommands(registry, {
     splitEditor: () => editors?.split(),
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
     openMarkdownPreview: () => { editors?.openMarkdownPreview(); },
+    openMarkdownPreviewTab: () => { editors?.openMarkdownPreviewTab(); },
     runTask: () => tasks.runTask(),
     toggleInlineBlame: () => {
         const on = settingsReport ? settingOf<boolean>(settingsReport, 'git.blame.inline') : true;

@@ -52,6 +52,8 @@ import { FORMAT_TIMEOUT_MS, indentationOf, saveRules, whitespaceEdits, type Auto
 
 const CLOSE = 'M6 6l12 12M18 6L6 18';
 const BOM = '﻿';
+/** #253: the id prefix of a Markdown preview tab (`markdown-preview:docs/a.md`). */
+const MARKDOWN_PREVIEW_PREFIX = 'markdown-preview:';
 /** #168: at most two groups, side by side. */
 const MAX_GROUPS = 2;
 
@@ -203,6 +205,8 @@ export interface EditorGroup {
     groupCount(): number;
     /** #179: opens the Markdown preview beside the groups on the active file; false when it is not Markdown. */
     openMarkdownPreview(): boolean;
+    /** #253: opens the active Markdown file's preview as a tab of its own (Ctrl+Shift+V); false when it is not Markdown. */
+    openMarkdownPreviewTab(): boolean;
     closeMarkdownPreview(): void;
     canPreviewMarkdown(): boolean;
     markdownPreviewOpen(): boolean;
@@ -324,6 +328,15 @@ export function createEditorGroup(
         return doc?.custom ? null : doc;
     };
     const customEditors = new CustomEditorRegistry<CustomEditorInput>();
+    // #253: a Markdown file's preview as a tab of its own; it follows the open file's text, or the disk.
+    customEditors.register((id) => {
+        if (!id.startsWith(MARKDOWN_PREVIEW_PREFIX)) {
+            return null;
+        }
+        const path = id.slice(MARKDOWN_PREVIEW_PREFIX.length);
+        const name = path.slice(path.lastIndexOf('/') + 1);
+        return { id, title: `Preview ${name}`, iconName: name, filePath: path, create: (context) => markdownPreviewTab(path, context) };
+    });
     const tabsOf = (doc: Doc): Tab[] => groups.flatMap((group) => {
         const tab = group.tabs.get(doc.path);
         return tab?.doc === doc ? [tab] : [];
@@ -1260,6 +1273,52 @@ export function createEditorGroup(
         }
     }
 
+    /** #253: the view of a Markdown preview tab: the open file's live text, else the file on disk. */
+    function markdownPreviewTab(path: string, context: CustomEditorContext): CustomEditorView {
+        const view = createMarkdownPreview({
+            readImage: (image) => api.readImage(image),
+            openExternalLink: (url) => api.openExternalLink(url),
+            openFile: (target) => void openIn(current, target),
+            onStatus: (message) => callbacks.onStatus(message),
+            onClose: () => context.close(),
+        });
+        view.element.classList.add('is-tab');
+        let subscription: monaco.IDisposable | null = null;
+        let disposed = false;
+        const follow = async (): Promise<void> => {
+            const doc = docs.get(path);
+            if (doc && !doc.custom) {
+                if (!subscription) {
+                    subscription = doc.model.onDidChangeContent(() => view.update(doc.model.getValue()));
+                    doc.model.onWillDispose(() => { subscription?.dispose(); subscription = null; });
+                }
+                view.show(path, doc.model.getValue());
+                return;
+            }
+            try {
+                const content = await api.readFile(path);
+                if (!disposed) {
+                    view.show(path, content.kind === 'text' ? content.text : `*${path} cannot be previewed (${content.kind}).*`);
+                }
+            } catch {
+                if (!disposed) {
+                    view.show(path, `*${path} is gone.*`);
+                }
+            }
+        };
+        void follow();
+        return {
+            element: view.element,
+            onShow: () => void follow(),
+            fileChanged: () => { if (!subscription) { void follow(); } },
+            dispose: () => {
+                disposed = true;
+                subscription?.dispose();
+                view.dispose();
+            },
+        };
+    }
+
     function openPreview(): boolean {
         const doc = activeDoc();
         if (!doc || !isMarkdownDoc(doc)) {
@@ -1509,6 +1568,15 @@ export function createEditorGroup(
         },
         registerCustomEditor: (resolver: CustomEditorResolver) => customEditors.register(resolver),
         openMarkdownPreview: () => openPreview(),
+        openMarkdownPreviewTab: () => {
+            const doc = activeDoc();
+            const input = doc && isMarkdownDoc(doc) ? customEditors.resolve(`${MARKDOWN_PREVIEW_PREFIX}${doc.path}`) : null;
+            if (!input) {
+                return false;
+            }
+            showDoc(current, docs.get(input.id) ?? createCustomDoc(input));
+            return true;
+        },
         closeMarkdownPreview: () => closePreview(),
         canPreviewMarkdown: () => {
             const doc = activeDoc();
@@ -1698,7 +1766,7 @@ export function createEditorGroup(
             callbacks.onOpenFilesChange?.();
         },
         dirtyPaths: () => [...docs.values()].filter(isDirty).map((doc) => doc.path),
-        openPaths: () => [...docs.values()].filter((doc) => !doc.custom || doc.custom.filePath !== undefined).map((doc) => doc.path),
+        openPaths: () => [...new Set([...docs.values()].flatMap((doc) => (doc.custom ? (doc.custom.filePath === undefined ? [] : [doc.custom.filePath]) : [doc.path])))],
         async entryMoved(from: string, to: string | null): Promise<void> {
             const affected = [...docs.values()].filter((doc) => doc.path === from || doc.path.startsWith(`${from}/`));
             const reopen: { group: Group; path: string; active: boolean }[] = [];
@@ -1739,7 +1807,7 @@ export function createEditorGroup(
                 editorConfigs = new Map();
                 await Promise.all([...docs.values()].filter((doc) => !doc.custom).map(applyEditorConfig));
             }
-            await Promise.all([...docs.values()].filter((doc) => changed.has(doc.path)).map(followDisk));
+            await Promise.all([...docs.values()].filter((doc) => changed.has(doc.custom?.filePath ?? doc.path)).map(followDisk));
         },
     };
 }
