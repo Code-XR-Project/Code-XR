@@ -10,7 +10,8 @@ import { installDebugDecorations, type DebugDecorationsHooks } from './debugDeco
 import { createMarkdownPreview, type MarkdownPreview } from './markdownPreview.ts';
 import { isMarkdownPath } from './markdownPath.ts';
 import type { CustomEditorContext, CustomEditorInput, CustomEditorResolver, CustomEditorView } from './customEditor.ts';
-import { CustomEditorRegistry } from './customEditorRegistry.ts';
+import { compareFilesId, compareSavedId, CustomEditorRegistry, parseCompareId } from './customEditorRegistry.ts';
+import { createCompareView, type CompareSide } from './compareTab.ts';
 import {
     clampSplit, closeTargets, cycleTab, DEFAULT_SPLIT, discardQuestion, moveTab,
     type CloseKind, type GroupSession, type TabSession,
@@ -207,6 +208,12 @@ export interface EditorGroup {
     openMarkdownPreview(): boolean;
     /** #253: opens the active Markdown file's preview as a tab of its own (Ctrl+Shift+V); false when it is not Markdown. */
     openMarkdownPreviewTab(): boolean;
+    /** #256: the id of the active group's active tab (a file path, or a custom id such as `chat:...`); null without one. */
+    activeTabId(): string | null;
+    /** #288: compares the active file (or `path`) with its text on disk; false without a text file. */
+    compareWithSaved(path?: string): boolean;
+    /** #288: compares two workspace files in a tab, `left` as the original. */
+    compareFiles(left: string, right: string): void;
     closeMarkdownPreview(): void;
     canPreviewMarkdown(): boolean;
     markdownPreviewOpen(): boolean;
@@ -336,6 +343,39 @@ export function createEditorGroup(
         const path = id.slice(MARKDOWN_PREVIEW_PREFIX.length);
         const name = path.slice(path.lastIndexOf('/') + 1);
         return { id, title: `Preview ${name}`, iconName: name, filePath: path, create: (context) => markdownPreviewTab(path, context) };
+    });
+    // #288: comparisons (Compare with Saved, Compare with Selected) on the diff editor.
+    customEditors.register((id) => {
+        const target = parseCompareId(id);
+        if (!target) {
+            return null;
+        }
+        const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
+        const diskText = (path: string) => async (): Promise<string | null> => {
+            const content = await api.readFile(path);
+            return content.kind === 'text' ? content.text : null;
+        };
+        /** A side over an open file follows its model; otherwise its text on disk. */
+        const side = (path: string, live: boolean): CompareSide => {
+            const doc = docs.get(path);
+            return live && doc && !doc.custom ? { path, model: doc.model, read: diskText(path) } : { path, read: diskText(path) };
+        };
+        const create = (original: CompareSide, modified: CompareSide) => (context: CustomEditorContext): CustomEditorView => createCompareView({
+            original, modified, editorOptions,
+            onLiveModelGone: () => context.close(),
+            onStatus: (message) => callbacks.onStatus(message),
+        });
+        if (target.kind === 'saved') {
+            const name = nameOf(target.path);
+            return {
+                id, title: `${name} (Saved) \u2194 ${name}`, iconName: name, filePath: target.path,
+                create: (context) => create(side(target.path, false), side(target.path, true))(context),
+            };
+        }
+        return {
+            id, title: `${nameOf(target.left)} \u2194 ${nameOf(target.right)}`, iconName: nameOf(target.right), filePath: target.right, alsoWatches: [target.left],
+            create: (context) => create(side(target.left, true), side(target.right, true))(context),
+        };
     });
     const tabsOf = (doc: Doc): Tab[] => groups.flatMap((group) => {
         const tab = group.tabs.get(doc.path);
@@ -575,6 +615,14 @@ export function createEditorGroup(
         debugDecorations?.attach(model, doc.path);
         callbacks.onOpenFilesChange?.();
         return doc;
+    }
+
+    /** The workspace files a document follows on disk: its own path, or what its custom input names. */
+    function watchedPaths(doc: Doc): string[] {
+        if (!doc.custom) {
+            return [doc.path];
+        }
+        return [...(doc.custom.filePath === undefined ? [] : [doc.custom.filePath]), ...(doc.custom.alsoWatches ?? [])];
     }
 
     /** #256: a custom tab's document: an empty placeholder model under its own scheme, never shown or saved. */
@@ -1568,6 +1616,24 @@ export function createEditorGroup(
         },
         registerCustomEditor: (resolver: CustomEditorResolver) => customEditors.register(resolver),
         openMarkdownPreview: () => openPreview(),
+        activeTabId: () => current.active?.doc.path ?? null,
+        compareWithSaved(path?: string): boolean {
+            const doc = path === undefined ? activeDoc() : docs.get(path) ?? null;
+            if (!doc || doc.custom) {
+                return false;
+            }
+            const input = customEditors.resolve(compareSavedId(doc.path));
+            if (input) {
+                showDoc(current, docs.get(input.id) ?? createCustomDoc(input));
+            }
+            return input !== null;
+        },
+        compareFiles(left: string, right: string): void {
+            const input = customEditors.resolve(compareFilesId(left, right));
+            if (input) {
+                showDoc(current, docs.get(input.id) ?? createCustomDoc(input));
+            }
+        },
         openMarkdownPreviewTab: () => {
             const doc = activeDoc();
             const input = doc && isMarkdownDoc(doc) ? customEditors.resolve(`${MARKDOWN_PREVIEW_PREFIX}${doc.path}`) : null;
@@ -1766,7 +1832,7 @@ export function createEditorGroup(
             callbacks.onOpenFilesChange?.();
         },
         dirtyPaths: () => [...docs.values()].filter(isDirty).map((doc) => doc.path),
-        openPaths: () => [...new Set([...docs.values()].flatMap((doc) => (doc.custom ? (doc.custom.filePath === undefined ? [] : [doc.custom.filePath]) : [doc.path])))],
+        openPaths: () => [...new Set([...docs.values()].flatMap(watchedPaths))],
         async entryMoved(from: string, to: string | null): Promise<void> {
             const affected = [...docs.values()].filter((doc) => doc.path === from || doc.path.startsWith(`${from}/`));
             const reopen: { group: Group; path: string; active: boolean }[] = [];
@@ -1807,7 +1873,7 @@ export function createEditorGroup(
                 editorConfigs = new Map();
                 await Promise.all([...docs.values()].filter((doc) => !doc.custom).map(applyEditorConfig));
             }
-            await Promise.all([...docs.values()].filter((doc) => changed.has(doc.custom?.filePath ?? doc.path)).map(followDisk));
+            await Promise.all([...docs.values()].filter((doc) => watchedPaths(doc).some((path) => changed.has(path))).map(followDisk));
         },
     };
 }

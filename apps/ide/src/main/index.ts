@@ -3,6 +3,7 @@ import path from 'node:path';
 import { applyProcessHardening } from './hardening.ts';
 import { registerAppSchemeAsPrivileged, serveRenderer } from './appProtocol.ts';
 import { registerIpcHandlers } from './ipc.ts';
+import { ExtensionsService } from './extensions/extensionsService.ts';
 import { fileStorage, memoryStorage, SettingsService } from './settings/settingsService.ts';
 import { KeybindingsService } from './settings/keybindingsService.ts';
 import { KEYBINDINGS_FILE_NAME } from '../shared/keybindings.ts';
@@ -129,7 +130,13 @@ async function start(): Promise<void> {
     });
     const lsp = createLspHost();
     languageServers = lsp;
-    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp, agentSessions);
+    // #251: VS Code extensions, in the user-data folder (a throwaway one in the smoke run).
+    const extensions = new ExtensionsService({
+        root: isSmoke ? path.join(app.getPath('temp'), `codexr-smoke-extensions-${process.pid}`) : path.join(app.getPath('userData'), 'extensions'),
+        settings,
+        disableExtensions: process.argv.includes('--disable-extensions'),
+    });
+    registerIpcHandlers(origins, isDevelopment, core, terminalHost, settings, keybindings, output, agentServices, lsp, agentSessions, extensions);
     // #171: the stored theme, before the first window paints.
     applyColorTheme((await settings.snapshot(null)).effective[COLOR_THEME_SETTING]);
     installApplicationMenu(isDevelopment);

@@ -30,12 +30,25 @@ for (const defaults of [monaco.typescript.typescriptDefaults, monaco.typescript.
     defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
 }
 
-/** Light or dark, following the operating system like the rest of the workbench. */
+/** #257: a colour theme of an extension, defined by extensions/themeController.ts; it wins over the OS scheme. */
+let themeOverride: string | null = null;
+const systemQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const applyTheme = (): void => monaco.editor.setTheme(themeOverride ?? (systemQuery.matches ? 'vs-dark' : 'vs'));
+let following = false;
+
+/** Light or dark, following the operating system like the rest of the workbench (or an extension's theme, #257). */
 export function followSystemTheme(): void {
-    const query = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = (): void => monaco.editor.setTheme(query.matches ? 'vs-dark' : 'vs');
-    apply();
-    query.addEventListener('change', apply);
+    applyTheme();
+    if (!following) {
+        following = true;
+        systemQuery.addEventListener('change', applyTheme);
+    }
+}
+
+/** #257: uses a theme defined with `monaco.editor.defineTheme`, or null to follow the OS again. */
+export function setThemeOverride(name: string | null): void {
+    themeOverride = name;
+    applyTheme();
 }
 
 export { monaco };

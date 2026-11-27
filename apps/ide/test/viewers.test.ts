@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { clampZoom, dataUrlBytes, findInPages, fitZoom, formatBytes, itemsInRange, MAX_FIND_MATCHES, MAX_ZOOM, MIN_ZOOM, stepZoom, zoomLabel } from '../src/renderer/viewers/viewerModel.ts';
-import { CustomEditorRegistry, extensionOf, isSchemeId, VIEWER_IMAGE_EXTENSIONS } from '../src/renderer/editor/customEditorRegistry.ts';
+import { compareFilesId, compareSavedId, CustomEditorRegistry, extensionOf, isSchemeId, parseCompareId, VIEWER_IMAGE_EXTENSIONS } from '../src/renderer/editor/customEditorRegistry.ts';
 import { imageMimeType, MAX_DOCUMENT_BYTES, Workspace } from '../src/main/workspace/workspace.ts';
 
 describe('Viewer model (#256)', () => {
@@ -75,6 +75,23 @@ describe('Custom editor seam (#256)', () => {
         assert.equal(isSchemeId('chat:42'), true);
         assert.equal(isSchemeId('docs/a.pdf'), false);
         assert.equal(isSchemeId('C-1.pdf'), false);
+    });
+});
+
+describe('Comparison tab ids (#288)', () => {
+    it('round-trips both kinds, whatever the names hold', () => {
+        assert.deepEqual(parseCompareId(compareSavedId('src/a.ts')), { kind: 'saved', path: 'src/a.ts' });
+        assert.deepEqual(parseCompareId(compareFilesId('a|b.ts', 'dir/c d.ts')), { kind: 'files', left: 'a|b.ts', right: 'dir/c d.ts' });
+        assert.equal(isSchemeId(compareSavedId('a.ts')), true, 'never taken for a file path');
+        assert.equal(isSchemeId(compareFilesId('a.ts', 'b.ts')), true);
+    });
+
+    it('rejects malformed ids', () => {
+        assert.equal(parseCompareId('compare-saved:'), null);
+        assert.equal(parseCompareId('compare:onlyone'), null);
+        assert.equal(parseCompareId('compare:a|b|c'), null);
+        assert.equal(parseCompareId('compare:%E0%A4%A|b'), null, 'bad escape');
+        assert.equal(parseCompareId('src/a.ts'), null);
     });
 });
 

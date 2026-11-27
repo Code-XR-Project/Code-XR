@@ -1,4 +1,5 @@
 import { renderWorkbench } from './workbench.ts';
+import { isSchemeId } from './editor/customEditorRegistry.ts';
 import { createExplorer } from './explorer.ts';
 import { createPythonView, pythonStatusText } from './pythonView.ts';
 import { createAnalysisRunView } from './analysisRunView.ts';
@@ -15,7 +16,6 @@ import { createPanelHost } from './panel/panelHost.ts';
 import { createAgentsView } from './agents/agentsView.ts';
 import { installAgentWorkbench } from './agentFirst/agentWorkbench.ts';
 import { displayPath } from './agentFirst/chatModel.ts';
-import { isSchemeId } from './editor/customEditorRegistry.ts';
 import { createEditReviewer } from './agents/editReview.ts';
 import { registerAgentCommands } from './agents/agentCommands.ts';
 import { createProblemsView } from './problems/problemsView.ts';
@@ -43,6 +43,9 @@ import { menuAccelerators } from './settings/keybindingsModel.ts';
 import { COLOR_THEME_SETTING, isColorTheme, settingOf, type ColorTheme } from '../shared/settings.ts';
 import { themeChoices } from './settings/settingsModel.ts';
 import { isMarkdownPath } from './editor/markdownPath.ts';
+import { installExtensions } from './extensions/extensionsWiring.ts';
+import type { ContributedTheme } from '../shared/extensions.ts';
+const EXTENSION_THEME_SETTING = 'workbench.colorThemeExtension';
 import type { IdeCommand, KeybindingsReport, PythonEnvStatus, SettingsReport, WatchedEntry } from '../shared/api.ts';
 
 const root = document.getElementById('app');
@@ -254,20 +257,46 @@ function revealInScene(path: string): void {
         (error: unknown) => workbench.setStatus(`Could not reveal the file in the XR scene: ${String(error)}`),
     );
 }
+/** #288: the file picked with "Select for Compare", until "Compare with Selected" uses it. */
+let compareSelection: string | null = null;
+
 function showTabMenu(path: string, x: number, y: number): void {
     const key = (id: string): string => {
         const binding = registry.keybindings(id)[0];
         return binding ? formatKeybinding(binding, platform) : '';
     };
+    // #256: a tab that is not a workspace file (a comparison, a preview, a chat) gets the tab entries only.
+    const isFile = !isSchemeId(path);
+    const fileItems: ContextMenuItem[] = isFile ? [
+        { separator: true },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
+        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
+        { separator: true },
+        { label: 'Compare with Saved', keybinding: key('workbench.files.action.compareWithSaved'), run: () => editors?.compareWithSaved(path), testId: 'tab-menu-compare-saved' },
+        { label: 'Select for Compare', run: () => { compareSelection = path; workbench.setStatus(`Selected ${path} for comparison`); }, testId: 'tab-menu-select-compare' },
+        ...(compareSelection !== null && compareSelection !== path
+            ? [{ label: `Compare with ${compareSelection.slice(compareSelection.lastIndexOf('/') + 1)}`, run: () => { if (compareSelection) { editors?.compareFiles(compareSelection, path); } }, testId: 'tab-menu-compare-selected' }]
+            : []),
+    ] : [];
+    if (!isFile) {
+        showContextMenu([
+            { label: 'Close', keybinding: key('editor.close'), run: () => editors?.closeActive(), testId: 'tab-menu-close' },
+            { label: 'Close Others', run: () => editors?.closeGroup('others', path), testId: 'tab-menu-close-others' },
+            { label: 'Close to the Right', run: () => editors?.closeGroup('right', path), testId: 'tab-menu-close-right' },
+            { label: 'Close All', keybinding: key('editor.closeAll'), run: () => editors?.closeGroup('all', path), testId: 'tab-menu-close-all' },
+            { separator: true },
+            { label: 'Split Right', keybinding: key('editor.splitRight'), run: () => editors?.split(path), testId: 'tab-menu-split-right' },
+            { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
+        ], x, y, { label: 'Tab actions', rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width) });
+        return;
+    }
     const items: ContextMenuItem[] = [
         { label: 'Close', keybinding: key('editor.close'), run: () => editors?.closeActive(), testId: 'tab-menu-close' },
         { label: 'Close Others', run: () => editors?.closeGroup('others', path), testId: 'tab-menu-close-others' },
         { label: 'Close to the Right', run: () => editors?.closeGroup('right', path), testId: 'tab-menu-close-right' },
         { label: 'Close Saved', keybinding: key('editor.closeSaved'), run: () => editors?.closeGroup('saved', path), testId: 'tab-menu-close-saved' },
         { label: 'Close All', keybinding: key('editor.closeAll'), run: () => editors?.closeGroup('all', path), testId: 'tab-menu-close-all' },
-        { separator: true },
-        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'tab-menu-copy-path' },
-        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'tab-menu-copy-relative-path' },
+        ...fileItems,
         { separator: true },
         ...(isMarkdownPath(path) ? [{ label: 'Open Preview to the Side', keybinding: key('markdown.showPreviewToSide'), run: () => void openPreviewOf(path), testId: 'tab-menu-markdown-preview' }] : []),
         { label: 'Split Right', keybinding: key('editor.splitRight'), run: () => editors?.split(path), testId: 'tab-menu-split-right' },
@@ -447,7 +476,14 @@ function applySettings(report: SettingsReport): void {
     outlineView.setSort(settingOf<string>(report, 'outline.sortBy') === 'name' ? 'name' : 'position');
     outline?.setBreadcrumbsEnabled(settingOf<boolean>(report, 'breadcrumbs.enabled'));
     refreshMetricProblems();
+    // #257: a colour theme of an extension, over the light/dark base the Color Theme setting picks.
+    const extensionTheme = settingOf<string>(report, EXTENSION_THEME_SETTING);
+    if (extensionTheme !== appliedExtensionTheme) {
+        appliedExtensionTheme = extensionTheme;
+        void extensions.contributions.setTheme(extensionTheme);
+    }
 }
+let appliedExtensionTheme = '';
 function loadSettings(): Promise<void> {
     return api.settings.get().then(applySettings, (error: unknown) => workbench.setStatus(`Could not read the settings: ${String(error)}`));
 }
@@ -587,19 +623,30 @@ function pick<T>(label: string, choices: readonly Choice<T>[], apply: (value: T)
  * Enter stores it in the user's settings, Escape goes back to the stored one.
  */
 function selectColorTheme(): void {
-    const current = settingsReport ? settingOf<ColorTheme>(settingsReport, COLOR_THEME_SETTING) : 'system';
-    const choices = themeChoices(isColorTheme(current) ? current : 'system');
-    const items: PickItem[] = choices.map(({ id, label, description }) => ({ id, label, ...(description ? { description } : {}) }));
+    const base = settingsReport ? settingOf<ColorTheme>(settingsReport, COLOR_THEME_SETTING) : 'system';
+    const extensionTheme = settingsReport ? settingOf<string>(settingsReport, EXTENSION_THEME_SETTING) : '';
+    const contributed = extensions.themes();
+    const current = extensionTheme !== '' && contributed.some((theme) => theme.id === extensionTheme) ? extensionTheme : (isColorTheme(base) ? base : 'system');
+    const choices = themeChoices(isColorTheme(base) && extensionTheme === '' ? base : 'system').map((choice) => (extensionTheme !== '' && choice.description ? { id: choice.id, label: choice.label } : choice));
+    // #257: the themes of the enabled extensions, after the built-in ones.
+    const items: PickItem[] = [
+        ...choices.map(({ id, label, description }) => ({ id, label, ...(description ? { description } : {}) })),
+        ...contributed.map((theme) => ({ id: theme.id, label: theme.label, description: theme.id === current ? `current · ${theme.extensionId}` : theme.extensionId })),
+    ];
+    const baseOf = (theme: ContributedTheme): ColorTheme => (theme.uiTheme === 'vs' || theme.uiTheme === 'hc-light' ? 'light' : 'dark');
     let previewed: string | undefined = current;
-    const preview = (theme: ColorTheme | null): void => {
-        api.settings.previewTheme(theme).catch((error: unknown) => workbench.setStatus(`Could not preview the theme: ${String(error)}`));
+    const preview = (id: string | null): void => {
+        const theme = id === null ? undefined : contributed.find((candidate) => candidate.id === id);
+        const os: ColorTheme | null = id === null ? null : theme ? baseOf(theme) : isColorTheme(id) ? id : null;
+        api.settings.previewTheme(os).catch((error: unknown) => workbench.setStatus(`Could not preview the theme: ${String(error)}`));
+        void extensions.contributions.previewTheme(id === null ? null : theme ? theme.id : '');
     };
     quickInput.open('', {
         label: 'Select color theme',
         initialId: current,
         view: (value) => pickListView(items, value),
         onActive: (id) => {
-            if (isColorTheme(id) && id !== previewed) {
+            if (id !== undefined && id !== previewed && (isColorTheme(id) || contributed.some((theme) => theme.id === id))) {
                 previewed = id;
                 preview(id);
             }
@@ -610,13 +657,20 @@ function selectColorTheme(): void {
             }
         },
         accept: (action) => {
-            if (action.kind !== 'pick' || !isColorTheme(action.id)) {
+            if (action.kind !== 'pick') {
                 return;
             }
-            api.settings.update('user', COLOR_THEME_SETTING, action.id === 'system' ? null : action.id).then(applySettings, (error: unknown) => {
-                preview(null);
-                notifications.notify('error', `Could not change the theme: ${String(error)}`);
-            });
+            const theme = contributed.find((candidate) => candidate.id === action.id);
+            if (!theme && !isColorTheme(action.id)) {
+                return;
+            }
+            const baseValue = theme ? baseOf(theme) : action.id;
+            api.settings.update('user', COLOR_THEME_SETTING, baseValue === 'system' ? null : baseValue)
+                .then(() => api.settings.update('user', EXTENSION_THEME_SETTING, theme ? theme.id : null))
+                .then(applySettings, (error: unknown) => {
+                    preview(null);
+                    notifications.notify('error', `Could not change the theme: ${String(error)}`);
+                });
         },
     });
 }
@@ -656,6 +710,17 @@ const tasks = createTaskRunner({
     showProblems: (task, problems) => problemsView.setTaskProblems(task, problems),
     setStatus: (message) => workbench.setStatus(message),
 });
+// #251: VS Code extensions: the Extensions view, their themes, languages and snippets.
+const extensions = installExtensions({
+    api,
+    registry,
+    viewContainer: workbench.extensionsView,
+    detailsHost: workbench.editorArea.parentElement ?? document.body,
+    showView: () => workbench.showView('extensions'),
+    onStatus: (message) => workbench.setStatus(message),
+    notify: (kind, message) => notifications.notify(kind, message),
+    selectColorTheme: () => selectColorTheme(),
+});
 registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {
@@ -667,7 +732,7 @@ registerWorkbenchCommands(registry, {
     },
     goToSymbol: () => editors?.showSymbols(),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
-    hasActiveTab: () => activeFile !== null,
+    hasActiveTab: () => (editors?.activeTabId() ?? null) !== null,
     changeIndentation: pickIndentation,
     changeEndOfLine: pickEndOfLine,
     changeLanguageMode: pickLanguage,
@@ -683,6 +748,7 @@ registerWorkbenchCommands(registry, {
     focusEditorGroup: (index) => editors?.focusGroup(index) ?? false,
     openMarkdownPreview: () => { editors?.openMarkdownPreview(); },
     openMarkdownPreviewTab: () => { editors?.openMarkdownPreviewTab(); },
+    compareWithSaved: () => { editors?.compareWithSaved(); },
     runTask: () => tasks.runTask(),
     toggleInlineBlame: () => {
         const on = settingsReport ? settingOf<boolean>(settingsReport, 'git.blame.inline') : true;

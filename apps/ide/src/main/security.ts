@@ -95,12 +95,17 @@ export interface CspOptions {
  * `img-src` and `font-src` stay on the app, so injected CSS cannot load or
  * send anything off it. Development additionally allows the dev server's HMR
  * websocket.
+ *
+ * #258: `'wasm-unsafe-eval'` lets the page compile WebAssembly, which the
+ * Oniguruma regex engine of TextMate grammars is (vscode-oniguruma, fetched
+ * from the app itself). It does not allow `eval` or `new Function`; VS Code
+ * ships the same source.
  */
 export function buildContentSecurityPolicy(options: CspOptions = {}): string {
     const dev = options.devServerOrigin;
     const directives: Array<[string, string[]]> = [
         ['default-src', ["'none'"]],
-        ['script-src', ["'self'"]],
+        ['script-src', ["'self'", "'wasm-unsafe-eval'"]],
         ['style-src', ["'self'", "'unsafe-inline'"]],
         ['img-src', ["'self'", 'data:']],
         ['font-src', ["'self'"]],

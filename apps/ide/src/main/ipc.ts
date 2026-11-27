@@ -10,6 +10,7 @@ import { registerGitHandlers } from './git/gitIpc.ts';
 import type { LspHost } from './lsp/lspHost.ts';
 import { registerLspHandlers } from './lsp/lspIpc.ts';
 import { registerTaskHandlers } from './tasks/taskHost.ts';
+import type { ExtensionsService } from './extensions/extensionsService.ts';
 import { registerDebugHandlers } from './debug/debugHost.ts';
 import { reportUnsaved } from './unsavedGuard.ts';
 import { isOpenableExternalLink, isTrustedIpcCall } from './security.ts';
@@ -34,7 +35,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices, lsp: LspHost, agentSessions: AgentSessionsRuntime): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices, lsp: LspHost, agentSessions: AgentSessionsRuntime, extensions: ExtensionsService): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -247,6 +248,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     registerLspHandlers(handle, lsp);
     // #176: tasks and Run Current File (tasks/taskHost.ts), in trusted folders only.
     registerTaskHandlers(handle, terminal, settings);
+    // #251: VS Code extensions (extensions/extensionsService.ts).
+    extensions.register(handle);
     // #180: the debugger (debug/debugHost.ts), in trusted folders only.
     registerDebugHandlers(handle, settings, () => core.python);
 

@@ -55,7 +55,7 @@ describe('content security policy', () => {
     it('production allows only the app itself and never eval or inline scripts', () => {
         const csp = parseCsp(buildContentSecurityPolicy());
         assert.deepEqual(csp.get('default-src'), ["'none'"]);
-        assert.deepEqual(csp.get('script-src'), ["'self'"]);
+        assert.deepEqual(csp.get('script-src'), ["'self'", "'wasm-unsafe-eval'"]);
         // Monaco (#14) injects <style> elements and style attributes; styles only.
         assert.deepEqual(csp.get('style-src'), ["'self'", "'unsafe-inline'"]);
         assert.deepEqual(csp.get('img-src'), ["'self'", 'data:']);
@@ -65,14 +65,14 @@ describe('content security policy', () => {
         assert.deepEqual(csp.get('object-src'), ["'none'"]);
         assert.deepEqual(csp.get('base-uri'), ["'none'"]);
         assert.deepEqual(csp.get('frame-ancestors'), ["'none'"]);
-        assert.doesNotMatch(buildContentSecurityPolicy(), /unsafe-eval|\*/);
+        assert.doesNotMatch(buildContentSecurityPolicy(), /'unsafe-eval'|\*/);
         const unsafeInline = [...csp.entries()].filter(([, values]) => values.includes("'unsafe-inline'")).map(([name]) => name);
         assert.deepEqual(unsafeInline, ['style-src'], 'unsafe-inline may only relax styles');
     });
 
     it('development adds only the HMR socket, never script relaxations', () => {
         const csp = parseCsp(buildContentSecurityPolicy({ devServerOrigin: 'http://127.0.0.1:5174' }));
-        assert.deepEqual(csp.get('script-src'), ["'self'"]);
+        assert.deepEqual(csp.get('script-src'), ["'self'", "'wasm-unsafe-eval'"]);
         assert.deepEqual(csp.get('connect-src'), ["'self'", 'ws://127.0.0.1:5174']);
         assert.deepEqual(csp.get('style-src'), ["'self'", "'unsafe-inline'"]);
     });

@@ -77,6 +77,10 @@ export const SETTINGS: readonly SettingDefinition[] = [
     // #176: Run Current File. Empty means the usual name on PATH (python3, or python on Windows; node).
     { key: 'run.pythonInterpreter', category: 'Run', title: 'Python Interpreter', description: 'What Run Current File runs a .py file with: a name on PATH or a full path (a virtual environment\'s python, for example). Empty uses python3, or python on Windows.', type: 'string', maxLength: 1000, default: '' },
     { key: 'run.nodeInterpreter', category: 'Run', title: 'Node Interpreter', description: 'What Run Current File runs a .js or .ts file with: a name on PATH or a full path. Empty uses node (TypeScript needs Node 22.18 or later).', type: 'string', maxLength: 1000, default: '' },
+    // #254: where the Extensions view searches and installs from (an Open VSX registry; never the Visual Studio Marketplace).
+    { key: 'extensions.gallery.serviceUrl', category: 'Extensions', title: 'Registry', description: 'The Open VSX registry the Extensions view searches and installs from: https, or http on this machine. Change it to use your organisation\'s own registry.', type: 'string', maxLength: 300, default: 'https://open-vsx.org', userOnly: true },
+    // #257: a colour theme contributed by an installed extension; empty uses Color Theme above.
+    { key: 'workbench.colorThemeExtension', category: 'Workbench', title: 'Extension Color Theme', description: 'A colour theme from an installed extension (pick it with Preferences: Color Theme). Empty uses the Color Theme setting.', type: 'string', maxLength: 300, default: '', userOnly: true },
     { key: 'terminal.integrated.fontSize', category: 'Terminal', title: 'Font Size', description: 'The terminal font size, in pixels.', type: 'number', min: 6, max: 72, integer: true, default: 13 },
 ] as const;
 
