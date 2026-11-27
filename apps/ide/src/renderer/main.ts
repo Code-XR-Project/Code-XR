@@ -27,6 +27,7 @@ import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteMode
 import { createQuickOpenFiles } from './quickOpenFiles.ts';
 import { createSearchView } from './search/searchView.ts';
 import { createScmView } from './git/scmView.ts';
+import { registerGitCommands } from './git/gitCommands.ts';
 import { createQuickInput } from './commands/quickInput.ts';
 import { registerWorkbenchCommands } from './commands/workbenchCommands.ts';
 import { pickListView, type PickItem } from './commands/paletteModel.ts';
@@ -412,7 +413,11 @@ const scmView = createScmView(workbench.scmView, api.git, {
     openQuickInput: (provider) => quickInput.open('', provider),
     isVisible: () => workbench.isViewVisible('scm'),
     showView: () => workbench.showView('scm'),
-    notify: (severity, message) => notifications.notify(severity, message),
+    notify: (severity, message, showOutput) => notifications.notify(severity, message, showOutput ? { actions: [showOutputAction('git')] } : {}),
+    // #284: a push, pull or fetch runs under a progress notification whose Cancel stops it.
+    showProgress: (title, cancel) => notifications.progress('git-remote', { title, onCancel: cancel }),
+    hideProgress: () => notifications.endProgress('git-remote'),
+    confirm: (message) => window.confirm(message),
     onDidChangeFiles: (listener) => void api.workspace.onDidChangeFiles(listener),
     // #175: the explorer's colours and letters follow each status.
     onStatus: (status) => explorer.setGitDecorations(explorerDecorations(status)),
@@ -647,6 +652,8 @@ const tasks = createTaskRunner({
     showProblems: (task, problems) => problemsView.setTaskProblems(task, problems),
     setStatus: (message) => workbench.setStatus(message),
 });
+// #284: Source Control's remote, stash and branch commands, under VS Code's ids.
+registerGitCommands(registry, scmView);
 registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });
 registerWorkbenchCommands(registry, {

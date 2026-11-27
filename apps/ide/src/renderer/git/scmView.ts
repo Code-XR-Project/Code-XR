@@ -1,8 +1,13 @@
 import type { CodeXRApi } from '../../shared/api.ts';
-import { emptyGitStatus, type GitChange, type GitStatus } from '../../shared/git.ts';
+import { emptyGitStatus, type GitChange, type GitRemoteOperation, type GitStatus } from '../../shared/git.ts';
 import type { QuickInputProvider } from '../commands/quickInput.ts';
+import { showContextMenu, type ContextMenuItem } from '../contextMenu.ts';
 import { el, fileIcon, icon } from '../dom.ts';
-import { branchLabel, branchPickerView, changeCount, letterTitle, parseBranchAction, scmGroups, splitPath, type ScmGroup } from './scmModel.ts';
+import { gitCommandEntries, type GitActions } from './gitCommands.ts';
+import {
+    branchLabel, branchPickerView, changeCount, deleteBranchPickerView, letterTitle, parseBranchAction, parseStashPick,
+    remoteProgressTitle, scmGroups, splitPath, stashPickerView, syncItem, type ScmGroup,
+} from './scmModel.ts';
 import './scm.css';
 
 /**
@@ -17,9 +22,14 @@ import './scm.css';
  * It refreshes when the repository changes on disk (main watches the index,
  * HEAD and branches), when files of the folder change, when the window gets
  * focus, and every few seconds while it is the view on screen.
+ *
+ * #284: the "..." menu, the palette's Git commands and the sync item beside
+ * the branch run push, pull, fetch, sync, the stash commands and Delete
+ * Branch (`GitActions`). A remote operation shows a progress notification
+ * whose Cancel stops git; its failure carries Show Output (the Git channel).
  */
 
-export interface ScmView {
+export interface ScmView extends GitActions {
     /** Recomputes the status now (coalesced with one already running). */
     refresh(): Promise<void>;
     /** Another folder opened, or none: start over. */
@@ -43,7 +53,13 @@ export interface ScmViewHooks {
     /** True while this view is the one shown in the side bar. */
     isVisible(): boolean;
     showView(): void;
-    notify(severity: 'info' | 'error', message: string): void;
+    /** `showOutput` adds a Show Output button on the Git channel (#284). */
+    notify(severity: 'info' | 'error', message: string, showOutput?: boolean): void;
+    /** #284: the progress notification of a remote operation, with its Cancel. */
+    showProgress(title: string, cancel: () => void): void;
+    hideProgress(): void;
+    /** #284: asks a yes/no question (deleting an unmerged branch, dropping a stash). */
+    confirm(message: string): boolean;
     /** Files of the folder changed on disk (the workspace watcher's events). */
     onDidChangeFiles(listener: () => void): void;
     /** #175: every new status, for the explorer's decorations. */
@@ -60,6 +76,9 @@ const ICONS = {
     diff: 'M8 4v12M4 12l4 4 4-4M16 20V8M12 12l4-4 4 4',
     branch: 'M6 3v12M6 15a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM18 9a3 3 0 1 0 0-6a3 3 0 1 0 0 6zM18 9c0 6-12 3-12 6',
     close: 'M6 6l12 12M18 6L6 18',
+    more: 'M5 12h.01M12 12h.01M19 12h.01',
+    sync: 'M20 11a8 8 0 0 0-14.3-4.9M4 4v5h5M4 13a8 8 0 0 0 14.3 4.9M20 20v-5h-5',
+    publish: 'M12 16V6M7 11l5-5 5 5M5 20h14',
 };
 
 /** How often the view re-reads the status while it is on screen and the window has focus. */
@@ -70,6 +89,8 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
     let running: Promise<void> | null = null;
     let again = false;
     let busy = false;
+    /** #284: the remote operation running, if any (one at a time). */
+    let remoteRunning: GitRemoteOperation | null = null;
     /** What the list shows now, so an unchanged status (the poll, a focus) does not rebuild it. */
     let rendered = '';
 
@@ -81,6 +102,20 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
         });
         return button;
     };
+
+    // #284: the "..." menu, VS Code's: remote operations, stashes, branches.
+    function moreButton(): HTMLButtonElement {
+        const button = iconButton('More Actions...', ICONS.more, 'scm-more', () => {
+            const rect = button.getBoundingClientRect();
+            const ok = status.state === 'ok';
+            const items: ContextMenuItem[] = gitCommandEntries(actions).map((entry) => (entry === null
+                ? { separator: true }
+                : { label: entry.title, run: entry.run, enabled: ok, testId: `scm-menu-${entry.id}` }));
+            showContextMenu(items, rect.left, rect.bottom + 2, { label: 'Source Control actions' });
+        });
+        button.setAttribute('aria-haspopup', 'menu');
+        return button;
+    }
 
     const message = el('textarea', {
         className: 'scm-message',
@@ -95,6 +130,7 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
         el('div', { className: 'side-bar-actions' }, [
             iconButton('Commit', ICONS.commit, 'scm-commit-action', () => void commit()),
             iconButton('Refresh', ICONS.refresh, 'scm-refresh', () => void refresh()),
+            moreButton(),
         ]),
     ]);
     container.replaceChildren(header, empty, commitBox, list);
@@ -104,7 +140,15 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
 
     const branchButton = el('button', { className: 'status-item scm-branch', attrs: { type: 'button', 'data-testid': 'scm-branch', hidden: '' } }, [icon(ICONS.branch), el('span')]);
     branchButton.addEventListener('click', () => pickBranch());
-    hooks.branchStatus.replaceChildren(branchButton);
+    // #284: ahead/behind beside the branch; a click syncs (or publishes a branch with no upstream).
+    const syncButton = el('button', { className: 'status-item scm-sync', attrs: { type: 'button', 'data-testid': 'scm-sync', hidden: '' } }, [icon(ICONS.sync), el('span')]);
+    syncButton.addEventListener('click', () => {
+        const item = syncItem(status);
+        if (item) {
+            remote(item.operation);
+        }
+    });
+    hooks.branchStatus.replaceChildren(branchButton, syncButton);
 
     message.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
@@ -115,7 +159,7 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
     commitButton.addEventListener('click', () => void commit());
 
     function render(): void {
-        const key = JSON.stringify([status, busy]);
+        const key = JSON.stringify([status, busy, remoteRunning]);
         if (key === rendered) {
             return;
         }
@@ -150,6 +194,15 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
         }
         branchButton.title = label === null ? '' : `${label} - Switch or create a branch`;
         branchButton.setAttribute('aria-label', label === null ? 'Branch' : `Branch ${label}, switch or create a branch`);
+
+        const sync = syncItem(status);
+        syncButton.hidden = sync === null;
+        syncButton.disabled = remoteRunning !== null;
+        syncButton.classList.toggle('is-running', remoteRunning !== null);
+        syncButton.replaceChildren(icon(sync?.operation === 'push' ? ICONS.publish : ICONS.sync), el('span', { text: sync?.text ?? '' }));
+        const syncTitle = remoteRunning !== null ? remoteProgressTitle(remoteRunning, status) : sync?.title ?? '';
+        syncButton.title = syncTitle;
+        syncButton.setAttribute('aria-label', syncTitle === '' ? 'Synchronize Changes' : syncTitle);
     }
 
     function renderGroup(group: ScmGroup): HTMLElement {
@@ -287,6 +340,118 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
         }, (error: unknown) => hooks.notify('error', cleanError(error)));
     }
 
+    // #284: push, pull, fetch and sync. One at a time; the progress notification's Cancel stops git.
+    function remote(operation: GitRemoteOperation): void {
+        if (remoteRunning !== null) {
+            hooks.notify('info', 'A Git push, pull or fetch is already running.');
+            return;
+        }
+        if (status.state !== 'ok') {
+            hooks.notify('error', status.message ?? 'Source Control is not available.');
+            return;
+        }
+        remoteRunning = operation;
+        render();
+        hooks.showProgress(`Git: ${remoteProgressTitle(operation, status)}`, () => void api.cancelRemote());
+        void api.remote(operation).then((result) => {
+            status = result.status;
+            render();
+            hooks.onStatus?.(status);
+            if (result.done) {
+                hooks.notify('info', remoteDoneMessage(operation, status));
+            }
+        }, (error: unknown) => {
+            const text = cleanError(error);
+            if (/ was cancelled\.$/.test(text)) {
+                hooks.notify('info', `Git: ${operation} cancelled.`);
+            } else {
+                hooks.notify('error', text, true);
+            }
+        }).finally(() => {
+            remoteRunning = null;
+            hooks.hideProgress();
+            void refresh();
+        });
+    }
+
+    function stash(includeUntracked: boolean): void {
+        const before = changeCount(status);
+        void run(() => api.stash(includeUntracked)).then(() => {
+            if (status.state === 'ok' && changeCount(status) < before) {
+                hooks.notify('info', includeUntracked ? 'Stashed the changes and the untracked files.' : 'Stashed the changes.');
+            }
+        });
+    }
+
+    function stashAction(action: 'apply' | 'pop' | 'drop'): void {
+        void api.stashes().then((stashes) => {
+            if (stashes.length === 0) {
+                hooks.notify('info', 'There are no stashes.');
+                return;
+            }
+            hooks.openQuickInput({
+                label: `Pick a stash to ${action}`,
+                view: (value) => stashPickerView(stashes, value),
+                accept: (picked) => {
+                    const index = picked.kind === 'pick' ? parseStashPick(picked.id) : null;
+                    const entry = stashes.find((candidate) => candidate.index === index);
+                    if (index === null || !entry) {
+                        return;
+                    }
+                    if (action === 'drop' && !hooks.confirm(`Drop the stash "${entry.label}"? This cannot be undone.`)) {
+                        return;
+                    }
+                    void run(() => (action === 'apply' ? api.stashApply(index) : action === 'pop' ? api.stashPop(index) : api.stashDrop(index)));
+                },
+            });
+        }, (error: unknown) => hooks.notify('error', cleanError(error)));
+    }
+
+    function deleteBranch(): void {
+        void api.branches().then(({ branches, current }) => {
+            hooks.openQuickInput({
+                label: 'Select a branch to delete',
+                view: (value) => deleteBranchPickerView(branches, current, value),
+                accept: (picked) => {
+                    const name = picked.kind === 'pick' && picked.id.startsWith('delete:') ? picked.id.slice('delete:'.length) : null;
+                    if (name !== null) {
+                        void removeBranch(name);
+                    }
+                },
+            });
+        }, (error: unknown) => hooks.notify('error', cleanError(error)));
+    }
+
+    // #284: -d first; an unmerged branch is forced (-D) only after the person agrees.
+    async function removeBranch(name: string): Promise<void> {
+        try {
+            let result = await api.deleteBranch(name, false);
+            if (result.notMerged) {
+                if (!hooks.confirm(`The branch "${name}" is not fully merged. Its commits may be lost.\n\nDelete it anyway?`)) {
+                    return;
+                }
+                result = await api.deleteBranch(name, true);
+            }
+            status = result.status;
+            render();
+            hooks.onStatus?.(status);
+            if (result.deleted) {
+                hooks.notify('info', `Deleted the branch ${name}.`);
+            }
+        } catch (error) {
+            hooks.notify('error', cleanError(error));
+            await refresh();
+        }
+    }
+
+    const actions: GitActions = {
+        hasRepository: () => status.state === 'ok',
+        remote,
+        stash,
+        stashAction,
+        deleteBranch,
+    };
+
     // The diff view: Monaco's diff editor over the editor area, HEAD on the left, the working tree on the right.
     let diff: { dispose(): void } | null = null;
     async function openDiff(change: GitChange): Promise<void> {
@@ -328,11 +493,23 @@ export function createScmView(container: HTMLElement, api: CodeXRApi['git'], hoo
             void refresh();
         },
         pickBranch,
+        ...actions,
         focus(): void {
             hooks.showView();
             message.focus();
         },
     };
+}
+
+/** #284: the info toast after a remote operation succeeded. */
+function remoteDoneMessage(operation: GitRemoteOperation, status: GitStatus): string {
+    const where = status.upstream ?? 'the remote';
+    switch (operation) {
+        case 'push': return `Pushed ${status.branch ?? 'the branch'} to ${where}.`;
+        case 'pull': return `Pulled from ${where}.`;
+        case 'fetch': return status.upstream && status.behind > 0 ? `Fetched: ${status.behind} incoming commit${status.behind === 1 ? '' : 's'} on ${where}.` : 'Fetched.';
+        case 'sync': return `Synchronized with ${where}.`;
+    }
 }
 
 /** IPC errors arrive as "Error invoking remote method '...': Error: <message>"; keep the message. */
