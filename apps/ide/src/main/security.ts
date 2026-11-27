@@ -168,3 +168,15 @@ export function isTrustedIpcCall(
     const origin = originOf(senderFrameUrl);
     return origin !== null && origins.has(origin);
 }
+
+/** #179: the only links the renderer may hand to the operating system: http, https and mailto. */
+export function isOpenableExternalLink(url: unknown): url is string {
+    if (typeof url !== 'string' || url.length > 8192) {
+        return false;
+    }
+    try {
+        return ['http:', 'https:', 'mailto:'].includes(new URL(url).protocol);
+    } catch {
+        return false;
+    }
+}

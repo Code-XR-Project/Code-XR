@@ -12,6 +12,18 @@ import { replaceInText, type CompiledQuery } from '../../shared/searchText.ts';
 export const MAX_EDITOR_FILE_BYTES = 5 * 1024 * 1024;
 /** A NUL byte in the first chunk marks a file as binary, as git does. */
 const BINARY_SNIFF_BYTES = 8000;
+/** #179: the largest image the Markdown preview inlines. */
+export const MAX_PREVIEW_IMAGE_BYTES = 8 * 1024 * 1024;
+/**
+ * Raster images only: an SVG is a document that can carry script and
+ * external references, and the preview has no reason to take that on.
+ */
+const IMAGE_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' };
+
+export function imageMimeType(path: string): string | null {
+    const dot = path.lastIndexOf('.');
+    return dot > path.lastIndexOf('/') ? IMAGE_TYPES[path.slice(dot + 1).toLowerCase()] ?? null : null;
+}
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -133,6 +145,20 @@ export class Workspace {
             return { kind: 'binary', path: entryPath, size: stat.size };
         }
         return { kind: 'text', path: entryPath, text: bytes.toString('utf8'), mtimeMs: stat.mtimeMs };
+    }
+
+    /** #179: an image of the folder as a data: URL (the renderer's CSP allows data: images only). */
+    async readImage(relativePath: unknown): Promise<string | null> {
+        const mime = imageMimeType(parseWorkspacePath(relativePath).join('/'));
+        if (!mime) {
+            return null;
+        }
+        const absolute = await this.realPathInside(relativePath);
+        const stat = await fs.stat(absolute);
+        if (!stat.isFile() || stat.size > MAX_PREVIEW_IMAGE_BYTES) {
+            return null;
+        }
+        return `data:${mime};base64,${(await fs.readFile(absolute)).toString('base64')}`;
     }
 
     /**

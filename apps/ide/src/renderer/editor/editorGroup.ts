@@ -5,6 +5,8 @@ import { languageName, type EditorStatusState, type EndOfLine, type Indentation,
 import { settingOf, type SettingValues } from '../../shared/settings.ts';
 import type { FileFunctionMetrics, MetricThresholds, Problem, ProblemSeverity } from '../../shared/problems.ts';
 import { installMetricLens } from './metricLens.ts';
+import { createMarkdownPreview, type MarkdownPreview } from './markdownPreview.ts';
+import { isMarkdownPath } from './markdownPath.ts';
 import {
     clampSplit, closeTargets, cycleTab, DEFAULT_SPLIT, discardQuestion, moveTab,
     type CloseKind, type GroupSession, type TabSession,
@@ -184,6 +186,11 @@ export interface EditorGroup {
     focusGroup(index: number): boolean;
     /** #168: how many groups are open (1 or 2). */
     groupCount(): number;
+    /** #179: opens the Markdown preview beside the groups on the active file; false when it is not Markdown. */
+    openMarkdownPreview(): boolean;
+    closeMarkdownPreview(): void;
+    canPreviewMarkdown(): boolean;
+    markdownPreviewOpen(): boolean;
     /** #18: applies the editor settings in force. */
     applySettings(settings: SettingValues): void;
     /** #170: formats the active file with its language's formatter; false when it has none. */
@@ -236,6 +243,14 @@ export function createEditorGroup(
             title: 'Drag to resize, double-click to reset', 'data-testid': 'sash-editor-split', hidden: '',
         },
     });
+    // #179: the Markdown preview, a pane to the right of the groups with its own sash.
+    const previewSash = el('div', {
+        className: 'editor-split-sash',
+        attrs: {
+            role: 'separator', tabindex: '0', 'aria-orientation': 'vertical', 'aria-label': 'Resize the Markdown preview',
+            title: 'Drag to resize, double-click to reset', 'data-testid': 'sash-markdown-preview',
+        },
+    });
     container.replaceChildren(groupsRow);
     container.classList.add('has-editors');
 
@@ -258,6 +273,10 @@ export function createEditorGroup(
     const groups: Group[] = [];
     let current!: Group;
     let split = DEFAULT_SPLIT;
+    let preview: MarkdownPreview | null = null;
+    /** The document the preview follows: the last Markdown file made active while it is open. */
+    let previewDoc: Doc | null = null;
+    let previewShare = DEFAULT_SPLIT;
 
     /** The active tab of the active group. */
     const activeTab = (): Tab | null => current.active;
@@ -424,6 +443,7 @@ export function createEditorGroup(
             group.editor.focus();
         }
         callbacks.onActiveChange(tab.doc.path);
+        followPreview(tab.doc);
         if (!wasCurrent) {
             scheduleStatus();
             sessionChanged();
@@ -453,6 +473,9 @@ export function createEditorGroup(
                 if (isDirty(doc)) {
                     for (const tab of tabsOf(doc)) { setPreview(tab, false); }
                 }
+                if (previewDoc === doc) {
+                    preview?.update(doc.model.getValue());
+                }
             }),
         };
         docs.set(doc.path, doc);
@@ -467,6 +490,9 @@ export function createEditorGroup(
         clearTimeout(doc.autoSaveTimer);
         docs.delete(doc.path);
         doc.listener.dispose();
+        if (previewDoc === doc) {
+            previewDoc = null; // the preview keeps its last rendering until another Markdown file is active
+        }
         monaco.editor.setModelMarkers(doc.model, METRIC_OWNER, []);
         metricLens.forget(doc.model);
         doc.model.dispose();
@@ -819,6 +845,7 @@ export function createEditorGroup(
             editor.onDidChangeModelLanguage(ifCurrent(scheduleStatus)),
             editor.onDidChangeModelContent((event) => { if (event.eol && current === group) { scheduleStatus(); } }),
             editor.onDidFocusEditorWidget(() => focusGroupInternal(group)),
+            editor.onDidScrollChange((event) => { if (event.scrollTopChanged) { syncPreview(group); } }),
             editor.onDidBlurEditorText(() => saveOnFocusChange(group.active ? [group.active.doc] : [])),
             // #178: the context menu entry follows the scene (Monaco hides an action whose precondition is false).
             editor.addAction({
@@ -974,10 +1001,19 @@ export function createEditorGroup(
         splitSash.hidden = !second;
         container.classList.toggle('is-split', Boolean(second));
         if (first) {
-            first.root.style.flex = second ? `0 1 ${(split * 100).toFixed(3)}%` : '1 1 auto';
+            // With the preview open, the groups share what it leaves.
+            const groupsShare = preview ? 1 - previewShare : 1;
+            first.root.style.flex = second ? `0 1 ${(split * groupsShare * 100).toFixed(3)}%` : '1 1 auto';
         }
         if (second) {
             second.root.style.flex = '1 1 0';
+        }
+        if (preview) {
+            preview.element.style.flex = `0 1 ${(previewShare * 100).toFixed(3)}%`;
+            if (first && !second) {
+                first.root.style.flex = '1 1 0';
+            }
+            previewSash.setAttribute('aria-valuenow', String(Math.round((1 - previewShare) * 100)));
         }
         splitSash.setAttribute('aria-valuenow', String(Math.round(split * 100)));
         splitSash.setAttribute('aria-valuemin', '15');
@@ -994,8 +1030,9 @@ export function createEditorGroup(
         splitSash.setPointerCapture(event.pointerId);
         const rect = groupsRow.getBoundingClientRect();
         const move = (moveEvent: PointerEvent): void => {
-            if (rect.width > 0) {
-                setSplit((moveEvent.clientX - rect.left) / rect.width);
+            const width = rect.width * (preview ? 1 - previewShare : 1);
+            if (width > 0) {
+                setSplit((moveEvent.clientX - rect.left) / width);
             }
         };
         const up = (): void => {
@@ -1015,6 +1052,92 @@ export function createEditorGroup(
             event.preventDefault();
         }
     });
+
+    function setPreviewShare(value: number): void {
+        previewShare = clampSplit(value);
+        layoutGroups();
+    }
+    previewSash.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        previewSash.setPointerCapture(event.pointerId);
+        const rect = groupsRow.getBoundingClientRect();
+        const move = (moveEvent: PointerEvent): void => {
+            if (rect.width > 0) {
+                setPreviewShare((rect.right - moveEvent.clientX) / rect.width);
+            }
+        };
+        const up = (): void => {
+            previewSash.removeEventListener('pointermove', move);
+            previewSash.removeEventListener('pointerup', up);
+            previewSash.removeEventListener('pointercancel', up);
+        };
+        previewSash.addEventListener('pointermove', move);
+        previewSash.addEventListener('pointerup', up);
+        previewSash.addEventListener('pointercancel', up);
+    });
+    previewSash.addEventListener('dblclick', () => setPreviewShare(DEFAULT_SPLIT));
+    previewSash.addEventListener('keydown', (event) => {
+        const step = event.key === 'ArrowLeft' ? 0.02 : event.key === 'ArrowRight' ? -0.02 : 0;
+        if (step !== 0) {
+            setPreviewShare(previewShare + step);
+            event.preventDefault();
+        }
+    });
+
+    /** #179: the preview takes the active Markdown file; another kind of file leaves it on the last one. */
+    function followPreview(doc: Doc): void {
+        if (!preview || previewDoc === doc || !isMarkdownDoc(doc)) {
+            return;
+        }
+        previewDoc = doc;
+        preview.show(doc.path, doc.model.getValue());
+        const group = groups.find((candidate) => candidate.active?.doc === doc);
+        if (group) {
+            syncPreview(group);
+        }
+    }
+    const isMarkdownDoc = (doc: Doc): boolean => doc.model.getLanguageId() === 'markdown' || isMarkdownPath(doc.path);
+
+    function syncPreview(group: Group): void {
+        if (preview && previewDoc && group.active?.doc === previewDoc) {
+            preview.scrollToLine(group.editor.getVisibleRanges()[0]?.startLineNumber ?? 1);
+        }
+    }
+
+    function openPreview(): boolean {
+        const doc = activeDoc();
+        if (!doc || !isMarkdownDoc(doc)) {
+            return false;
+        }
+        if (!preview) {
+            preview = createMarkdownPreview({
+                readImage: (path) => api.readImage(path),
+                openExternalLink: (url) => api.openExternalLink(url),
+                openFile: (path) => void openIn(current, path),
+                onStatus: (message) => callbacks.onStatus(message),
+                onClose: () => closePreview(),
+            });
+            groupsRow.append(previewSash, preview.element);
+            container.classList.add('has-preview');
+        }
+        previewDoc = null;
+        followPreview(doc);
+        layoutGroups();
+        return true;
+    }
+
+    function closePreview(): void {
+        if (!preview) {
+            return;
+        }
+        preview.dispose();
+        previewSash.remove();
+        preview = null;
+        previewDoc = null;
+        container.classList.remove('has-preview');
+        layoutGroups();
+        current.editor.focus();
+    }
 
     /** Opens `path` in `group`: the document if it is already open (in either group), else read from disk. */
     async function openIn(group: Group, path: string, options: OpenOptions & { viewState?: monaco.editor.ICodeEditorViewState | null; focus?: boolean } = {}): Promise<Tab | null> {
@@ -1220,6 +1343,13 @@ export function createEditorGroup(
             return true;
         },
         groupCount: () => groups.length,
+        openMarkdownPreview: () => openPreview(),
+        closeMarkdownPreview: () => closePreview(),
+        canPreviewMarkdown: () => {
+            const doc = activeDoc();
+            return doc !== null && isMarkdownDoc(doc);
+        },
+        markdownPreviewOpen: () => preview !== null,
         closeGroup(kind: CloseKind, path?: string): void {
             const group = current;
             const order = ordered(group);
@@ -1371,6 +1501,7 @@ export function createEditorGroup(
             }
         },
         reset(): void {
+            closePreview();
             for (const group of [...groups].reverse()) {
                 for (const tab of group.tabs.values()) {
                     tab.element.remove();

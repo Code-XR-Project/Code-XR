@@ -453,6 +453,14 @@ export interface CodeXRApi {
         trash(path: string): Promise<void>;
         /** #167: copies an entry's path to the clipboard, absolute or relative to the folder, with the OS's separators. */
         copyPath(path: string, kind: 'absolute' | 'relative'): Promise<void>;
+        /**
+         * #179: an image of the open folder as a `data:` URL, for the Markdown
+         * preview (the CSP lets the window load nothing else). Null for a file
+         * that is not a PNG, JPEG, GIF, WebP or BMP image, or over 8 MB.
+         */
+        readImage(path: string): Promise<string | null>;
+        /** #179: opens an http(s) or mailto link in the system's browser or mail app; any other URL is refused. */
+        openExternalLink(url: string): Promise<void>;
         /** Recently opened folders, most recent first (absolute paths, for display and `openRecent`). */
         recentFolders(): Promise<readonly string[]>;
         /** Opens a folder from `recentFolders()`; any other path is refused. */
@@ -576,6 +584,8 @@ export const IPC_CHANNELS = {
     workspaceCreateEntry: 'codexr:workspace:create-entry',
     workspaceRename: 'codexr:workspace:rename',
     workspaceCopyPath: 'codexr:workspace:copy-path',
+    workspaceReadImage: 'codexr:workspace:read-image',
+    workspaceOpenExternalLink: 'codexr:workspace:open-external-link',
     settingsGet: 'codexr:settings:get',
     settingsUpdate: 'codexr:settings:update',
     settingsFolderFile: 'codexr:settings:folder-file',
