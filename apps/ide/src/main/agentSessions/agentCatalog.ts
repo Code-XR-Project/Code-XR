@@ -255,6 +255,52 @@ export function loginProgram(launch: AgentLaunch, spec: Pick<AuthMethodSpec, 'ar
     return { command: launch.command, args: [...launch.args, ...extra] };
 }
 
+/**
+ * #297: Claude Code's adapter signs in by re-running itself with `--cli`, so
+ * the IDE's own executable (Electron as Node) would sit between the terminal
+ * and the Claude CLI. On Windows that executable is a GUI program: under the
+ * terminal's pseudo console the CLI's prompts and the person's typing do not
+ * cross it. When the adapter ships its native CLI (the SDK's platform package,
+ * as the adapter itself resolves it), the login runs that console program
+ * directly, with the same arguments. Anything else is returned unchanged.
+ */
+export async function nativeLoginProgram(
+    program: { command: string; args: string[] },
+    options: { readonly platform: NodeJS.Platform; readonly arch: string; readonly env: Readonly<Record<string, string | undefined>>; readonly exists: (file: string) => Promise<boolean> },
+): Promise<{ command: string; args: string[] }> {
+    const cliIndex = program.args.indexOf('--cli');
+    const script = program.args[0];
+    if (cliIndex < 1 || !script || !/\.[cm]?js$/i.test(script)) {
+        return program;
+    }
+    const api = options.platform === 'win32' ? path.win32 : path.posix;
+    const cliArgs = program.args.slice(cliIndex + 1).filter((arg) => arg !== '--hide-claude-auth');
+    const override = options.env['CLAUDE_CODE_EXECUTABLE'];
+    if (override && (await options.exists(override))) {
+        return { command: override, args: cliArgs };
+    }
+    const ext = options.platform === 'win32' ? '.exe' : '';
+    const names = options.platform === 'linux'
+        ? [`claude-agent-sdk-linux-${options.arch}`, `claude-agent-sdk-linux-${options.arch}-musl`]
+        : [`claude-agent-sdk-${options.platform}-${options.arch}`];
+    // From the adapter's folder up, as Node resolves packages.
+    let dir = api.dirname(script);
+    for (let depth = 0; depth < 12; depth += 1) {
+        for (const name of names) {
+            const candidate = api.join(dir, 'node_modules', '@anthropic-ai', name, `claude${ext}`);
+            if (await options.exists(candidate)) {
+                return { command: candidate, args: cliArgs };
+            }
+        }
+        const parent = api.dirname(dir);
+        if (parent === dir) {
+            break;
+        }
+        dir = parent;
+    }
+    return program;
+}
+
 export class AgentCatalog {
     private readonly options: CatalogOptions;
     private readonly probe: FileProbe;

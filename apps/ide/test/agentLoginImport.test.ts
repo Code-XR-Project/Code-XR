@@ -7,7 +7,7 @@ import { agent, methods, type AgentContext } from '@agentclientprotocol/sdk';
 import { applySessionEvent, emptySession, type AgentSessionMessage } from '../src/shared/agentSession.ts';
 import { JsonKeyValueStore } from '../src/main/core/jsonStore.ts';
 import { AcpConnection } from '../src/main/agentSessions/acpConnection.ts';
-import { AgentCatalog, loginProgram } from '../src/main/agentSessions/agentCatalog.ts';
+import { AgentCatalog, loginProgram, nativeLoginProgram } from '../src/main/agentSessions/agentCatalog.ts';
 import { AgentSessionService, type WindowPort } from '../src/main/agentSessions/agentSessionService.ts';
 import { SessionStore } from '../src/main/agentSessions/sessionStore.ts';
 import { importedWhen, setupActions } from '../src/renderer/agentFirst/agentSetupModel.ts';
@@ -136,6 +136,33 @@ describe('agent sign-in (#297)', () => {
         assert.deepEqual(loginProgram(launch, {}), { command: '/ide/electron', args: ['/pkgs/adapter/dist/index.js'] });
         // A cmd.exe launch cannot be handed to a terminal unchanged.
         assert.throws(() => loginProgram({ command: 'cmd.exe', args: ['/d', '/s', '/c', '"agent.cmd"'], env: {}, verbatimArguments: true }, { args: ['--login'] }), /yourself in a terminal/);
+    });
+
+    it('runs Claude Code\'s native CLI directly instead of the adapter script (#297, Windows console)', async () => {
+        const adapter = '/pk/node_modules/@agentclientprotocol/claude-agent-acp/dist/index.js';
+        const hint = { command: '/ide/electron', args: [adapter, '--cli', 'auth', 'login', '--claudeai', '--hide-claude-auth'] };
+        const linuxCli = '/pk/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude';
+        const files = (...list: string[]) => async (file: string) => list.includes(file);
+        assert.deepEqual(
+            await nativeLoginProgram(hint, { platform: 'linux', arch: 'x64', env: {}, exists: files(linuxCli) }),
+            { command: linuxCli, args: ['auth', 'login', '--claudeai'] },
+        );
+        const winAdapter = 'C:\\pk\\node_modules\\@agentclientprotocol\\claude-agent-acp\\dist\\index.js';
+        const winCli = 'C:\\pk\\node_modules\\@anthropic-ai\\claude-agent-sdk-win32-x64\\claude.exe';
+        assert.deepEqual(
+            await nativeLoginProgram({ command: 'C:\\ide\\Code-XR IDE.exe', args: [winAdapter, '--cli', 'auth', 'login', '--console'] }, { platform: 'win32', arch: 'x64', env: {}, exists: files(winCli) }),
+            { command: winCli, args: ['auth', 'login', '--console'] },
+        );
+        assert.deepEqual(
+            await nativeLoginProgram(hint, { platform: 'linux', arch: 'x64', env: { CLAUDE_CODE_EXECUTABLE: '/opt/claude' }, exists: files('/opt/claude', linuxCli) }),
+            { command: '/opt/claude', args: ['auth', 'login', '--claudeai'] },
+        );
+        // Not found, or not an adapter --cli hint: unchanged.
+        assert.deepEqual(await nativeLoginProgram(hint, { platform: 'linux', arch: 'x64', env: {}, exists: files() }), hint);
+        const other = { command: '/ide/electron', args: [adapter, '--login'] };
+        assert.deepEqual(await nativeLoginProgram(other, { platform: 'linux', arch: 'x64', env: {}, exists: files(linuxCli) }), other);
+        const binary = { command: '/usr/bin/agent', args: ['--cli', 'login'] };
+        assert.deepEqual(await nativeLoginProgram(binary, { platform: 'linux', arch: 'x64', env: {}, exists: files(linuxCli) }), binary);
     });
 
     it('starts the terminal sign-in as a program, sized as the panel asked, with the agent\'s environment', async () => {
