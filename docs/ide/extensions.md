@@ -18,6 +18,7 @@ Epic #251. Decision: [ADR 0002](../../adr/0002-vscode-extensions-in-the-ide.md).
 | The Code-XR extension itself (`code-xr-<version>.vsix`): its activity bar container and tree, its Python environment, file and folder analyses as LivePanel (in a webview panel or the browser) and in XR, servers and examples | Done, checked in CI | #262 |
 | File icon themes, product icon themes | Not yet: listed in the details page | — |
 | Language packs | Install, no visible effect (the IDE does not use VS Code's UI strings) | #264 |
+| Compatibility measured: a probe installs a `.vsix` and runs it in the real host, reporting activation and missing API; CI runs it on ~30 popular Open VSX extensions | Done: [extensions-compatibility.md](extensions-compatibility.md) | #264 |
 
 ## Processes and files
 

@@ -290,3 +290,48 @@ jobs:
 
       - name: Install and run the extension (virtual display)
         run: xvfb-run -a node apps/ide/scripts/vsixE2e.mjs "$(ls vsix/apps/vscode-extension/artifacts/*.vsix | head -n 1)"
+
+  extensions-compat:
+    name: Popular extensions in the extension host (ubuntu-latest)
+    # #264: downloads popular extensions from Open VSX and runs each one in
+    # the IDE's extension host (apps/ide/scripts/extensionCompat.mjs): did it
+    # activate, and which vscode APIs did it use that the host lacks. A
+    # measurement for docs/ide/extensions-compatibility.md, not a gate: a
+    # third-party release must not turn the build red, so it never fails it.
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Probe the extensions
+        working-directory: apps/ide
+        run: |
+          node --experimental-strip-types --no-warnings scripts/extensionCompat.mjs --markdown --json compat.json --open-vsx \
+            redhat.vscode-yaml esbenp.prettier-vscode dbaeumer.vscode-eslint eamodio.gitlens ms-python.python \
+            rust-lang.rust-analyzer golang.Go streetsidesoftware.code-spell-checker usernamehw.errorlens \
+            PKief.material-icon-theme vscodevim.vim christian-kohler.path-intellisense EditorConfig.EditorConfig \
+            yzhang.markdown-all-in-one Gruntfuggly.todo-tree mechatroner.rainbow-csv formulahendry.code-runner \
+            dracula-theme.theme-dracula GitHub.github-vscode-theme llvm-vs-code-extensions.vscode-clangd \
+            Vue.volar svelte.svelte-vscode bradlc.vscode-tailwindcss hashicorp.terraform tamasfe.even-better-toml \
+            James-Yu.latex-workshop oderwat.indent-rainbow ms-azuretools.vscode-docker redhat.java \
+            MS-CEINTL.vscode-language-pack-es > compat.md || true
+          cat compat.md >> "$GITHUB_STEP_SUMMARY"
+          cat compat.md
+
+      - name: Keep the results
+        uses: actions/upload-artifact@v4
+        with:
+          name: extensions-compat
+          path: apps/ide/compat.json
+          if-no-files-found: ignore
