@@ -83,3 +83,14 @@ Usage in this package:
 Usage in this package:
 
 - Bundled into the renderer by Vite: sanitises the Markdown preview's HTML before it reaches the page (#179, `src/renderer/editor/markdownPreview.ts`). The same version Monaco already depends on.
+
+## MCP TypeScript SDK (the Code-XR MCP server)
+
+- Project: `@modelcontextprotocol/sdk` on npm, 1.32.2, by Anthropic, PBC and the Model Context Protocol contributors
+- Source: https://github.com/modelcontextprotocol/typescript-sdk
+- License: MIT
+
+Usage in this package:
+
+- Bundled by Vite into the Code-XR MCP server (`out/codexrMcp/index.cjs`, AF10, `src/codexrMcp/`) that external agents run to query the project's analysis. Only that bundle carries it; the main process has its own small MCP client (`src/main/agents/mcp/`).
+- The bundle also carries the SDK's own dependencies: `zod` (4.6.7, MIT, https://github.com/colinhacks/zod), `zod-to-json-schema` (3.25.2, ISC, https://github.com/StefanTerdell/zod-to-json-schema), `ajv` (8.20.0, MIT, https://github.com/ajv-validator/ajv), `ajv-formats` (3.0.1, MIT), `fast-deep-equal` (3.1.3, MIT), `json-schema-traverse` (1.0.0, MIT) and `fast-uri` (3.0.6, BSD-3-Clause, https://github.com/fastify/fast-uri).
