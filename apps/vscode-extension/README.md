@@ -76,7 +76,7 @@ Every video on the channel, with its GIF and duration, is listed in [media/v1.2.
 
 ## What's New in v1.2.1
 
-Version 1.2.1 brings Code-XR's own metrics analyzer, five new languages, three new metrics, metrics in the Problems view and many fixes: see the [CHANGELOG](CHANGELOG.md) for the full list.
+Version 1.2.1 brings Code-XR's own metrics engine, five new languages, three new metrics and many fixes: see the [CHANGELOG](CHANGELOG.md) for the full list.
 
 ## What's New in v1.2.0: "Threads, Timelines & Global Networks"
 
