@@ -146,6 +146,7 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     handle(IPC_CHANNELS.workspaceTrust, (event) => trustInfoOf(event.sender));
     handle(IPC_CHANNELS.workspaceSetTrust, (event, choice) => setWorkspaceTrust(event.sender, choice));
     handle(IPC_CHANNELS.workspaceReadImage, (event, path) => workspaceOf(event.sender).readImage(path));
+    handle(IPC_CHANNELS.workspaceReadDocument, (event, path) => workspaceOf(event.sender).readDocument(path));
     handle(IPC_CHANNELS.workspaceOpenExternalLink, async (_event, url) => {
         if (!isOpenableExternalLink(url)) {
             throw new Error('Only http, https and mailto links open outside the IDE.');

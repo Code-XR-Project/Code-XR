@@ -18,7 +18,14 @@ export const MAX_PREVIEW_IMAGE_BYTES = 8 * 1024 * 1024;
  * Raster images only: an SVG is a document that can carry script and
  * external references, and the preview has no reason to take that on.
  */
-const IMAGE_TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' };
+const IMAGE_TYPES: Record<string, string> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp',
+    ico: 'image/x-icon', avif: 'image/avif',
+};
+/** #256: the largest document the PDF viewer reads (pdf.js keeps it in memory). */
+export const MAX_DOCUMENT_BYTES = 64 * 1024 * 1024;
+/** #256: the documents a viewer tab may read whole, by extension. */
+const DOCUMENT_TYPES = new Set(['pdf']);
 
 export function imageMimeType(path: string): string | null {
     const dot = path.lastIndexOf('.');
@@ -171,6 +178,24 @@ export class Workspace {
             return null;
         }
         return `data:${mime};base64,${(await fs.readFile(absolute)).toString('base64')}`;
+    }
+
+    /**
+     * #256: a document of the folder (a PDF) as bytes, for a viewer tab. Null
+     * for another kind of file or one over `MAX_DOCUMENT_BYTES`.
+     */
+    async readDocument(relativePath: unknown): Promise<Uint8Array | null> {
+        const name = parseWorkspacePath(relativePath).join('/');
+        const dot = name.lastIndexOf('.');
+        if (dot <= name.lastIndexOf('/') || !DOCUMENT_TYPES.has(name.slice(dot + 1).toLowerCase())) {
+            return null;
+        }
+        const absolute = await this.realPathInside(relativePath);
+        const stat = await fs.stat(absolute);
+        if (!stat.isFile() || stat.size > MAX_DOCUMENT_BYTES) {
+            return null;
+        }
+        return new Uint8Array(await fs.readFile(absolute));
     }
 
     /**

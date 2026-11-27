@@ -88,7 +88,9 @@ const outlineView = createOutlineView(workbench.outlineView, {
 let outline: OutlineController | null = null;
 let outlineLanguage: string | null = null;
 function editorGroup(): Promise<EditorGroup> {
-    editorsLoading ??= Promise.all([import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts')]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }]) => {
+    editorsLoading ??= Promise.all([
+        import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts'), import('./viewers/fileViewers.ts'),
+    ]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }, { fileViewerResolver }]) => {
         // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
         installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
@@ -122,6 +124,8 @@ function editorGroup(): Promise<EditorGroup> {
             revealInScene: (path) => revealInScene(path),
         });
         editors.setSceneShown(!workbench.sceneArea.hidden);
+        // #256: PDFs and images open in viewer tabs.
+        editors.registerCustomEditor(fileViewerResolver(api.workspace));
         outline = createOutlineController({
             editors,
             view: outlineView,
@@ -693,6 +697,7 @@ registerWorkbenchCommands(registry, {
     },
     goToSymbol: () => editors?.showSymbols(),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
+    hasActiveTab: () => activeFile !== null,
     changeIndentation: pickIndentation,
     changeEndOfLine: pickEndOfLine,
     changeLanguageMode: pickLanguage,

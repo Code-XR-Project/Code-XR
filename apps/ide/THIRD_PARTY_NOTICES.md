@@ -154,3 +154,16 @@ Usage in this package:
 Usage in this package:
 
 - Bundled into the main process by Vite: reads extension manifests, colour themes, language configurations and snippets, which VS Code allows to contain comments (#254).
+
+## PDF.js (PDF viewer)
+
+- Project: `pdfjs-dist` on npm, 6.5.438, by Mozilla and the PDF.js contributors
+- Source: https://github.com/mozilla/pdf.js
+- License: Apache-2.0
+
+Usage in this package:
+
+- Bundled into the renderer by Vite: draws PDFs in the PDF viewer tab (#256, `src/renderer/viewers/pdfViewer.ts`). The library is a chunk loaded on the first PDF only.
+- Its worker (`pdfjs-dist/build/pdf.worker.mjs`) is bundled the same way and served from the app's origin, so the CSP's `worker-src 'self'` covers it.
+- The text-layer rules in `src/renderer/viewers/viewers.css` are a trimmed copy of the `.textLayer` block of its `web/pdf_viewer.css`.
+- The optional `@napi-rs/canvas` dependency is only used by PDF.js under Node and is not bundled.
