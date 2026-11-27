@@ -279,7 +279,7 @@ describe('agent setup model', () => {
         const missing = [agent({ availability: 'missing' }), agent({ ref: 'acp:codex', name: 'Codex', preset: 'codex', availability: 'missing' })];
         let steps = onboardingSteps({ hasFolder: false, agents: missing, chosen: null, hasChat: false });
         assert.deepEqual(steps.map((step) => step.state), ['current', 'todo', 'todo']);
-        assert.match(steps[1]?.text ?? '', /Nothing is downloaded until you confirm/);
+        assert.match(steps[1]?.text ?? '', /nothing is downloaded until you confirm.*Add local model/);
 
         steps = onboardingSteps({ hasFolder: true, agents: missing, chosen: null, hasChat: false });
         assert.deepEqual(steps.map((step) => step.state), ['done', 'current', 'todo']);

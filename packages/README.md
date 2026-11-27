@@ -1,6 +1,12 @@
-# Shared packages (planned)
+# Shared packages
 
-`packages/*` is a workspace glob in the root `package.json`. It is empty today, by design.
+`packages/*` is a workspace glob in the root `package.json`.
+
+| Package | Contains | Used by |
+|---|---|---|
+| [`local-models`](local-models/) | Local models as agents (epic #310): server presets, endpoint rules, discovery, the agent loop and the coding tools. Plain TypeScript, no host imports. | Code-XR IDE (`@codexr/local-models/*` alias); VS Code extension in 1.3.0 (#315) |
+
+The two larger extractions below are still planned.
 
 The target is two packages that both apps (the VS Code extension and the future IDE) depend on:
 

@@ -7,6 +7,7 @@
 //   out/codexrMcp/index.cjs the Code-XR MCP server for external agents (AF10;
 //                           a separate process run with ELECTRON_RUN_AS_NODE)
 //   out/extensionHost/index.cjs  extension host (#259: a Node child process on Electron's own Node)
+//   out/localAgent/index.cjs     the local-model ACP agent (#312: a child process per chat, ELECTRON_RUN_AS_NODE)
 import { builtinModules } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,8 @@ export const OUT_DIR = path.join(IDE_ROOT, 'out');
 export const CORE_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'core');
 /** #174: the core's logging (its sink) lives beside it, in the extension's platform layer. */
 export const LOGGING_SRC = path.resolve(IDE_ROOT, '..', 'vscode-extension', 'src', 'platform', 'logging');
+/** #311: local models (presets, discovery, agent loop), shared with the VS Code extension. Pure TypeScript, bundled from source. */
+export const LOCAL_MODELS_SRC = path.resolve(IDE_ROOT, '..', '..', 'packages', 'local-models', 'src');
 
 const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
 /**
@@ -30,7 +33,7 @@ const NODE_EXTERNALS = ['electron', /^electron\//, ...builtinModules, ...builtin
  */
 const MAIN_NATIVE_EXTERNALS = ['node-pty'];
 
-/** @param {'main' | 'preload' | 'scenePreload' | 'codexrMcp' | 'extensionHost'} target @param {{ dev?: boolean }} [opts] */
+/** @param {'main' | 'preload' | 'scenePreload' | 'codexrMcp' | 'extensionHost' | 'localAgent'} target @param {{ dev?: boolean }} [opts] */
 export function nodeTargetConfig(target, opts = {}) {
     return {
         configFile: false,
@@ -53,7 +56,7 @@ export function nodeTargetConfig(target, opts = {}) {
             },
         },
         ssr: { noExternal: true },
-        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }, { find: /^@codexr\/logging\//, replacement: `${LOGGING_SRC}/` }] },
+        resolve: { alias: [{ find: /^@codexr\/core\//, replacement: `${CORE_SRC}/` }, { find: /^@codexr\/logging\//, replacement: `${LOGGING_SRC}/` }, { find: /^@codexr\/local-models\//, replacement: `${LOCAL_MODELS_SRC}/` }] },
     };
 }
 
@@ -75,6 +78,8 @@ export function rendererConfig(opts = {}) {
         // #173/#178: the pure, dependency-free metric logic of the core is
         // shared with the VS Code extension; the rest of the core stays in main.
         resolve: { alias: [
+            // #311: the local-model presets and endpoint rules, for the add-local-model form.
+            { find: /^@codexr\/local-models\//, replacement: `${LOCAL_MODELS_SRC}/` },
             { find: /^@codexr\/core\/metrics\//, replacement: `${CORE_SRC}/metrics/` },
             // #19: the QR code of the headset address, shared with the extension.
             { find: /^@codexr\/core\/xr\//, replacement: `${CORE_SRC}/xr/` },

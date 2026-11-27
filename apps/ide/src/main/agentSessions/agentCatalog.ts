@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { AGENT_PRESET_IDS, type AcpAgentDefinition, type AgentAvailability, type AgentPresetId, type AgentView } from '../../shared/agentSession.ts';
+import { AGENT_PRESET_IDS, type AcpAgentDefinition, type AgentAvailability, type AgentPresetId, type AgentView, type LocalModelSettings } from '../../shared/agentSession.ts';
+import { isLocalServerId, LOCAL_SERVER_PRESETS, normalizeLocalBaseUrl } from '@codexr/local-models/servers.ts';
 import type { AgentLaunch } from './acpConnection.ts';
 import { API_KEY_ENV, type AuthMethodSpec } from './acpMapping.ts';
 
@@ -173,6 +174,57 @@ export interface CatalogOptions {
     readonly builtinProfiles: () => Promise<readonly { readonly id: string; readonly name: string }[]>;
     /** #297: where API keys given to an agent are kept (the OS secret store); none means keys cannot be given. */
     readonly secrets?: AgentSecrets;
+    /** #312: the IDE's local-model agent bundle (out/localAgent/index.cjs); local models are missing without it. */
+    readonly localAgentScript?: string;
+    /** #313: where local models' API keys are kept (the OS secret store); without it no key can be saved. */
+    readonly localKeys?: LocalKeyStore;
+}
+
+/** The part of the key vault local models use (agents/keyVault.ts fits). */
+export interface LocalKeyStore {
+    get(id: string): string | undefined;
+    set(id: string, key: string): Promise<unknown>;
+    delete(id: string): Promise<void>;
+}
+
+const LOCAL_KEY = 'localModels';
+const LOCAL_ID = /^local-[a-f0-9]{8}$/;
+
+/** A local model from the renderer (#313), checked field by field. */
+export function parseLocalModel(input: unknown): { name: string; local: LocalModelSettings; apiKey: string | undefined } {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+        throw new Error('Invalid local model.');
+    }
+    const value = input as Record<string, unknown>;
+    const name = typeof value['name'] === 'string' ? value['name'].trim() : '';
+    if (!name || name.length > 80) {
+        throw new Error('A local model needs a name of at most 80 characters.');
+    }
+    const server = value['server'];
+    if (!isLocalServerId(server)) {
+        throw new Error('Pick the server that runs the model.');
+    }
+    const baseUrl = normalizeLocalBaseUrl(typeof value['baseUrl'] === 'string' && value['baseUrl'].length <= 2048 ? value['baseUrl'] : '');
+    const model = typeof value['model'] === 'string' ? value['model'].trim() : '';
+    if (!model || model.length > 300 || /[\0\r\n]/.test(model)) {
+        throw new Error('Pick a model, or type its name as the server knows it.');
+    }
+    const rawKey = value['apiKey'];
+    if (rawKey !== undefined && (typeof rawKey !== 'string' || rawKey.length > 4096 || /[\0\r\n]/.test(rawKey))) {
+        throw new Error('Invalid API key.');
+    }
+    return { name, local: { server, baseUrl, model }, apiKey: typeof rawKey === 'string' ? rawKey.trim() : undefined };
+}
+
+function localDescription(local: LocalModelSettings): string {
+    const label = isLocalServerId(local.server) ? LOCAL_SERVER_PRESETS[local.server].label : 'Local server';
+    let host = local.baseUrl;
+    try {
+        host = new URL(local.baseUrl).host;
+    } catch {
+        // Keep the URL.
+    }
+    return `${local.model} on ${label} (${host}). Runs on your own machine: no account, nothing leaves it.`;
 }
 
 /** #297: the slice of `KeyVault` the catalog needs. */
@@ -229,6 +281,15 @@ export function parseCustomAgent(input: unknown): Omit<AcpAgentDefinition, 'id' 
         ...(envEntries.length ? { env: Object.fromEntries(envEntries) as Record<string, string> } : {}),
         description,
     };
+}
+
+function isLocalDefinition(value: unknown): value is AcpAgentDefinition & { local: LocalModelSettings } {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const definition = value as AcpAgentDefinition;
+    const local = definition.local;
+    return typeof definition.id === 'string' && LOCAL_ID.test(definition.id) && typeof definition.name === 'string' && !!local && typeof local.baseUrl === 'string' && typeof local.model === 'string' && typeof local.server === 'string';
 }
 
 function isDefinition(value: unknown): value is AcpAgentDefinition {
@@ -359,7 +420,18 @@ export class AgentCatalog {
         if (preset) {
             return { id: preset.id, name: preset.name, command: preset.bin, args: preset.args, preset: preset.id, description: preset.description };
         }
-        return this.customAgents().find((agent) => agent.id === id) ?? null;
+        return this.customAgents().find((agent) => agent.id === id) ?? this.localModels().find((agent) => agent.id === id) ?? null;
+    }
+
+    /** #313: a local model's stored API key, for listing its server's models; undefined when none. */
+    localKey(id: string): string | undefined {
+        return LOCAL_ID.test(id) ? this.options.localKeys?.get(id) : undefined;
+    }
+
+    /** #313: the person's local models, as agent definitions run by the IDE's local agent. */
+    localModels(): AcpAgentDefinition[] {
+        const raw = this.options.store.get<unknown>(LOCAL_KEY);
+        return Array.isArray(raw) ? raw.filter(isLocalDefinition).map((definition) => ({ ...definition, description: localDescription(definition.local) })) : [];
     }
 
     state(ref: string): AgentState | undefined {
@@ -383,6 +455,31 @@ export class AgentCatalog {
             via,
             launch: { command: execPath, args: [script, ...definition.args], env: agentEnv({ ELECTRON_RUN_AS_NODE: '1' }) },
         });
+
+        if (definition.local) {
+            const script = this.options.localAgentScript;
+            if (!script || (await this.probe.readText(script)) === null) {
+                return { found: false, detail: 'The local-model agent of this IDE build is missing (out/localAgent). Rebuild the IDE.' };
+            }
+            const key = this.options.localKeys?.get(definition.id);
+            return {
+                found: true,
+                via: 'Code-XR local agent',
+                launch: {
+                    command: execPath,
+                    args: [script],
+                    // The key travels in the environment only, never on the command line.
+                    env: agentEnvironment(env, null, {
+                        ELECTRON_RUN_AS_NODE: '1',
+                        CODEXR_LOCAL_AGENT_NAME: definition.name,
+                        CODEXR_LOCAL_BASE_URL: definition.local.baseUrl,
+                        CODEXR_LOCAL_MODEL: definition.local.model,
+                        CODEXR_LOCAL_SERVER: definition.local.server,
+                        ...(key ? { CODEXR_LOCAL_API_KEY: key } : {}),
+                    }),
+                },
+            };
+        }
 
         if (preset) {
             const installed = await packageBin(path.join(packagesDir, 'node_modules', ...preset.packageName.split('/')), preset.bin, this.probe);
@@ -508,6 +605,7 @@ export class AgentCatalog {
             kind: 'acp' as const,
             description: definition.description,
             ...(definition.preset ? { preset: definition.preset } : {}),
+            ...(definition.local ? { local: { ...definition.local, hasKey: !!this.options.localKeys?.get(definition.id) } } : {}),
             ...(state?.authMethods?.length ? { authMethods: state.authMethods.map((method) => method.view) } : {}),
             ...(this.keyProvider(ref) ? { keySaved: true } : {}),
         };
@@ -519,7 +617,7 @@ export class AgentCatalog {
 
     /** Every agent for the picker: presets, custom agents, then the built-in agent's profiles. */
     async list(): Promise<AgentView[]> {
-        const acp = [...AGENT_PRESET_IDS.map((id) => this.definition(`acp:${id}`)), ...this.customAgents()].filter((definition): definition is AcpAgentDefinition => definition !== null);
+        const acp = [...AGENT_PRESET_IDS.map((id) => this.definition(`acp:${id}`)), ...this.customAgents(), ...this.localModels()].filter((definition): definition is AcpAgentDefinition => definition !== null);
         const views = await Promise.all(acp.map((definition) => this.view(definition)));
         let profiles: readonly { readonly id: string; readonly name: string }[] = [];
         try {
@@ -554,6 +652,45 @@ export class AgentCatalog {
         await this.options.store.update(CUSTOM_KEY, next);
         this.states.delete(`acp:${definition.id}`);
         return definition;
+    }
+
+    /** #313: adds or edits a local model. `apiKey` undefined keeps the stored key, '' removes it. */
+    async saveLocal(input: unknown, id?: unknown): Promise<AcpAgentDefinition> {
+        const parsed = parseLocalModel(input);
+        const models = this.localModels();
+        if (id !== undefined && id !== null && (typeof id !== 'string' || !models.some((agent) => agent.id === id))) {
+            throw new Error('That local model no longer exists.');
+        }
+        if (parsed.apiKey && !this.options.localKeys) {
+            throw new Error('API keys cannot be stored here.');
+        }
+        const definition: AcpAgentDefinition = {
+            id: typeof id === 'string' ? id : `local-${randomUUID().replace(/-/g, '').slice(0, 8)}`,
+            name: parsed.name,
+            command: 'code-xr-local-agent',
+            args: [],
+            description: localDescription(parsed.local),
+            local: parsed.local,
+        };
+        if (parsed.apiKey) {
+            await this.options.localKeys?.set(definition.id, parsed.apiKey);
+        } else if (parsed.apiKey === '') {
+            await this.options.localKeys?.delete(definition.id);
+        }
+        const stored = (agent: AcpAgentDefinition): AcpAgentDefinition => ({ id: agent.id, name: agent.name, command: agent.command, args: [], description: '', ...(agent.local ? { local: agent.local } : {}) });
+        const next = typeof id === 'string' ? models.map((agent) => stored(agent.id === id ? definition : agent)) : [...models.map(stored), stored(definition)];
+        await this.options.store.update(LOCAL_KEY, next);
+        this.states.delete(`acp:${definition.id}`);
+        return definition;
+    }
+
+    async removeLocal(id: unknown): Promise<void> {
+        if (typeof id !== 'string' || !LOCAL_ID.test(id)) {
+            throw new Error('Only a local model can be removed here.');
+        }
+        await this.options.store.update(LOCAL_KEY, this.localModels().filter((agent) => agent.id !== id).map((agent) => ({ id: agent.id, name: agent.name, command: agent.command, args: [], description: '', ...(agent.local ? { local: agent.local } : {}) })));
+        await this.options.localKeys?.delete(id);
+        this.states.delete(`acp:${id}`);
     }
 
     async removeCustom(id: unknown): Promise<void> {

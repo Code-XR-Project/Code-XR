@@ -95,6 +95,10 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
         platform: process.platform,
         execPath: process.execPath,
         builtinProfiles: () => options.profiles.list(),
+        // #312: the IDE's own local-model agent, run like the Code-XR MCP server (ELECTRON_RUN_AS_NODE).
+        localAgentScript: path.join(app.getAppPath(), 'out', 'localAgent', 'index.cjs'),
+        // #313: local models' keys (most need none) in the OS secret store, beside the chats.
+        localKeys: new KeyVault(path.join(dir, 'local-model-keys.json'), electronCipher()),
         // #297: API keys given to one agent, encrypted by the OS secret store like the built-in agent's keys.
         secrets: new KeyVault(path.join(dir, 'agent-keys.json'), electronCipher()),
     });

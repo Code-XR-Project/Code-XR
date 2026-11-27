@@ -90,7 +90,8 @@ export function availabilityLabel(agent: AgentView): string {
         case 'missing':
             return 'Not installed';
         case 'available':
-            return 'Installed';
+            // #313: a local model is not installed by the IDE; it is known, and checked by starting it.
+            return agent.local ? 'Added' : 'Installed';
         case 'ready':
             return 'Ready';
         case 'needs-login':

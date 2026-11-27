@@ -356,3 +356,22 @@
     flex: 0 0 auto;
     font-size: var(--fs-xs);
 }
+
+/* #313/#314: local models (epic #310) in the Agents section. */
+.af-local-add-row { display: flex; padding: 8px 12px 0; }
+.af-local-add-row:has(.af-add-local[hidden]) { display: none; }
+.af-local-slot:empty { display: none; }
+.af-local-form { margin: 8px 12px 4px; }
+.af-local-model-row { display: flex; gap: 6px; align-items: center; }
+.af-local-model-row .agents-input { flex: 1; min-width: 0; }
+.af-local-check { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--muted); }
+.af-local-check[hidden] { display: none; }
+.af-local-status { margin: 0; overflow-wrap: anywhere; }
+.af-local-status:empty { display: none; }
+.af-local-found { display: grid; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.af-local-found[hidden] { display: none; }
+.af-local-found-server { display: grid; gap: 6px; }
+.af-local-server { justify-self: start; padding: 0; border: 0; background: none; color: var(--fg); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.af-local-server:hover { text-decoration: underline; }
+.af-local-models { display: flex; flex-wrap: wrap; gap: 6px; }
+.af-local-model-choice { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
