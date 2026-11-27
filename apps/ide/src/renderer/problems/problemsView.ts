@@ -1,12 +1,14 @@
 import { filterProblems, groupProblems, PROBLEM_SEVERITIES, problemCounts, type Problem, type ProblemOrigin, type ProblemSeverity } from '../../shared/problems.ts';
-import { el, fileIcon, icon } from '../dom.ts';
+import { copyText, el, fileIcon, icon } from '../dom.ts';
 import type { PanelHost } from '../panel/panelHost.ts';
+import { showContextMenu } from '../contextMenu.ts';
 
 /**
  * The Problems view of the bottom panel (#173): what the editor's languages
  * report on the open files and the Code-XR metric checks of the analysed
  * functions, in one list grouped by file. A row opens its file at the
- * problem. The list (shared/problems.ts) is pure; this view only draws it.
+ * problem; its context menu (#287) offers the language server's quick fixes
+ * there. The list (shared/problems.ts) is pure; this view only draws it.
  */
 
 export const PROBLEM_ICONS: Record<ProblemSeverity, string> = {
@@ -34,6 +36,10 @@ export interface ProblemsView {
 
 export interface ProblemsHooks {
     open(problem: Problem): void;
+    /** #287: opens the problem's file at its range and shows the quick fixes there (Monaco's Ctrl+. menu). */
+    quickFix?(problem: Problem): void;
+    /** Width taken by the scene column on the right, for the context menu. */
+    rightInset?(): number;
     /** The totals changed (the status bar's counts). */
     onCounts(counts: Record<ProblemSeverity, number>): void;
 }
@@ -172,8 +178,16 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
         ]);
         row.setAttribute('aria-label', `${problem.severity}: ${problem.message} ${origin} ${where}`);
         row.addEventListener('click', () => hooks.open(problem));
+        row.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            showProblemMenu(problem, event.clientX, event.clientY);
+        });
         row.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
+            if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+                event.preventDefault();
+                const box = row.getBoundingClientRect();
+                showProblemMenu(problem, box.left + 24, box.bottom);
+            } else if (event.key === 'Enter') {
                 event.preventDefault();
                 hooks.open(problem);
             } else if (event.key === 'ArrowLeft') {
@@ -184,6 +198,17 @@ export function createProblemsView(host: PanelHost, hooks: ProblemsHooks): Probl
             }
         });
         return row;
+    }
+
+    /** #287: a problem's context menu. The metric checks are Code-XR's own and have no fixes. */
+    function showProblemMenu(problem: Problem, x: number, y: number): void {
+        const quickFix = hooks.quickFix;
+        showContextMenu([
+            { label: 'Go to Problem', run: () => hooks.open(problem), testId: 'problems-menu-open' },
+            { label: 'Quick Fix...', run: () => quickFix?.(problem), enabled: quickFix !== undefined && problem.origin !== 'metrics', testId: 'problems-menu-quick-fix' },
+            { separator: true },
+            { label: 'Copy Message', run: () => copyText(problem.message), testId: 'problems-menu-copy' },
+        ], x, y, { label: 'Problem', ...(hooks.rightInset ? { rightInset: hooks.rightInset } : {}) });
     }
 
     // Up and down move between rows, as in a tree.

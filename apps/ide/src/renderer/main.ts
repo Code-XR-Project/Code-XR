@@ -24,8 +24,11 @@ import { createOutlineView } from './outline/outlineView.ts';
 import { createCommandRegistry } from './commands/commandRegistry.ts';
 import { installKeybindings } from './commands/keybindingService.ts';
 import { formatKeybinding } from './commands/keybindings.ts';
-import { COMMAND_PREFIX, LINE_PREFIX, paletteView } from './commands/paletteModel.ts';
+import { COMMAND_PREFIX, LINE_PREFIX, paletteView, WORKSPACE_SYMBOL_PREFIX } from './commands/paletteModel.ts';
 import { createQuickOpenFiles } from './quickOpenFiles.ts';
+import { createWorkspaceSymbolSearch } from './workspaceSymbols.ts';
+import { toWorkspaceSymbolItems } from './lsp/lspConvert.ts';
+import { clientUriPath } from './lsp/lspEdits.ts';
 import { createSearchView } from './search/searchView.ts';
 import { createScmView } from './git/scmView.ts';
 import { registerGitCommands } from './git/gitCommands.ts';
@@ -96,7 +99,12 @@ function editorGroup(): Promise<EditorGroup> {
         import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts'), import('./viewers/fileViewers.ts'),
     ]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }, { fileViewerResolver }]) => {
         // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
-        installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
+        installLanguageClient(api.lsp, {
+            openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)),
+            // #287: rename and code actions, applied by the editor group.
+            applyEdit: (files) => editorGroup().then((group) => group.applyWorkspaceEdit(files)),
+            setStatus: (message) => workbench.setStatus(message),
+        });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
             onStatus: (message) => workbench.setStatus(message),
             git: { baseline: (path) => api.git.baseline(path), blame: (path, contents) => api.git.blame(path, contents) },
@@ -419,6 +427,7 @@ function folderOpened(root: string): void {
     folderIsOpen = true;
     void workspaceTrust.refresh();
     quickOpenFiles.reset();
+    workspaceSymbols.reset();
     searchView.reset();
     scmView.reset();
     scenePanel.close();
@@ -432,6 +441,7 @@ api.workspace.onDidChange((workspace) => {
     } else {
         folderIsOpen = false;
         quickOpenFiles.reset();
+        workspaceSymbols.reset();
         searchView.reset();
         scmView.reset();
         scenePanel.close();
@@ -538,6 +548,13 @@ workbench.layout.onDidChange(() => panelHost.setMaximized(workbench.layout.panel
 // #173: the Problems view: the languages' markers and the Code-XR metric checks of the last analysis.
 const problemsView = createProblemsView(panelHost, {
     open: (problem) => void editorGroup().then((group) => group.openAt(problem.path, problem.startLine, problem.startColumn, 0)),
+    // #287: the problem's range selected, then Monaco's quick fix menu there.
+    quickFix: (problem) => void editorGroup().then(async (group) => {
+        const length = problem.endLine === problem.startLine ? Math.max(0, problem.endColumn - problem.startColumn) : 0;
+        await group.openAt(problem.path, problem.startLine, problem.startColumn, length);
+        group.quickFix();
+    }),
+    rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
     onCounts: (counts) => workbench.setProblemCounts(counts.error, counts.warning),
 });
 workbench.onProblemsClick(() => (panelHost.isShowing('problems') ? panelHost.hide() : problemsView.show()));
@@ -610,8 +627,13 @@ const registry = createCommandRegistry((id, error) => notifications.notify('erro
 // #164: the workspace's files, listed by the main process each time quick
 // open opens (a stale list is shown meanwhile), and the recently opened ones.
 const quickOpenFiles = createQuickOpenFiles(() => api.workspace.listFiles(), () => quickInput.refresh());
+// #287: "#" asks the language servers for the workspace's symbols.
+const workspaceSymbols = createWorkspaceSymbolSearch(
+    (query) => api.lsp.request('workspace/symbol', { query }).then((result) => toWorkspaceSymbolItems(result, clientUriPath)),
+    () => quickInput.refresh(),
+);
 const quickInput = createQuickInput(document.body, {
-    label: 'Search files by name (> for commands, : for a line, @ for symbols)',
+    label: 'Search files by name (> for commands, : for a line, @ for symbols, # for workspace symbols)',
     view: (value) => {
         if (folderIsOpen && quickOpenFiles.files() === null) {
             // Typing a file name after opening the box as the palette: list the files now.
@@ -629,6 +651,7 @@ const quickInput = createQuickInput(document.body, {
         filesTruncated: quickOpenFiles.truncated(),
         recentFiles: quickOpenFiles.recent(),
         activeFile,
+        ...(value.startsWith(WORKSPACE_SYMBOL_PREFIX) && folderIsOpen ? { workspaceSymbols: workspaceSymbols.state(value.slice(WORKSPACE_SYMBOL_PREFIX.length).trim()) } : {}),
         });
     },
     accept: (action) => {
@@ -640,6 +663,8 @@ const quickInput = createQuickInput(document.body, {
             void editorGroup().then((group) => group.open(action.path));
         } else if (action.kind === 'symbols') {
             editors?.showSymbols();
+        } else if (action.kind === 'symbol') {
+            void editorGroup().then((group) => group.openAt(action.path, action.line, action.column, action.length));
         }
     },
     rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
@@ -774,6 +799,7 @@ registerWorkbenchCommands(registry, {
         quickInput.open('');
     },
     goToSymbol: () => editors?.showSymbols(),
+    showAllSymbols: () => quickInput.open(WORKSPACE_SYMBOL_PREFIX),
     hasActiveEditor: () => (editors?.activeLineCount() ?? null) !== null,
     hasActiveTab: () => (editors?.activeTabId() ?? null) !== null,
     changeIndentation: pickIndentation,

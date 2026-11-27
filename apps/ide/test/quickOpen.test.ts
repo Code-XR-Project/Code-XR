@@ -106,7 +106,7 @@ describe('quick open (#164)', () => {
 
     it('lists recently opened files first while empty, without the active one, then the prefixes', () => {
         const view = paletteView('', context({ recentFiles: ['package.json', 'src/renderer/explorer.ts'], activeFile: 'package.json' }));
-        assert.deepEqual(view.entries.map((entry) => entry.id), ['src/renderer/explorer.ts', 'help.commands', 'help.line', 'help.symbols']);
+        assert.deepEqual(view.entries.map((entry) => entry.id), ['src/renderer/explorer.ts', 'help.commands', 'help.line', 'help.symbols', 'help.workspaceSymbols']);
         assert.equal(view.entries[0]?.group, 'recently opened');
     });
 

@@ -17,6 +17,8 @@ export interface WorkbenchCommandTargets {
     goToLine(): void;
     quickOpen(): void;
     goToSymbol(): void;
+    /** #287: quick open on "#", the workspace's symbols from the language servers. */
+    showAllSymbols(): void;
     hasActiveEditor(): boolean;
     /** #256: any tab is active, a text editor or a custom one (a PDF, an image). */
     hasActiveTab(): boolean;
@@ -96,6 +98,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.commandPalette', category: 'View', title: 'Command Palette…', ...menu('workbench.commandPalette'), secondaryKeybindings: ['F1'], recordRecent: false, run: targets.openCommandPalette },
         { id: 'workbench.quickOpen', category: 'Go', title: 'Go to File…', ...menu('workbench.quickOpen'), recordRecent: false, run: targets.quickOpen },
         { id: 'editor.goToSymbol', category: 'Go', title: 'Go to Symbol in Editor…', ...menu('editor.goToSymbol'), enabled: targets.hasActiveEditor, run: targets.goToSymbol },
+        { id: 'workbench.action.showAllSymbols', category: 'Go', title: 'Go to Symbol in Workspace…', keybinding: 'CmdOrCtrl+T', enabled: targets.hasFolder, recordRecent: false, run: targets.showAllSymbols },
         { id: 'editor.goToLine', category: 'Go', title: 'Go to Line/Column…', ...menu('editor.goToLine'), enabled: targets.hasActiveEditor, run: targets.goToLine },
         { id: 'editor.formatDocument', category: 'Editor', title: 'Format Document', keybinding: 'Shift+Alt+F', enabled: targets.hasActiveEditor, run: targets.formatDocument },
         { id: 'editor.changeIndentation', category: 'Editor', title: 'Indent Using…', enabled: targets.hasActiveEditor, run: targets.changeIndentation },
