@@ -471,6 +471,16 @@ export interface CodeXRApi {
         rename(path: string, newName: string): Promise<string>;
         /** Moves an entry to the operating system's trash (never deletes outright). */
         trash(path: string): Promise<void>;
+        /**
+         * #285: copies a file or a folder into the folder `toFolder` and resolves
+         * with the copy's path; a taken name gets " copy" / " copy 2" before the
+         * extension. Capped in size and count; never into itself.
+         */
+        copyEntry(path: string, toFolder: string): Promise<string>;
+        /** #285: moves a file or a folder into `toFolder` (cut and paste); refuses a taken name. */
+        moveEntry(path: string, toFolder: string): Promise<string>;
+        /** #285: shows the entry in the system's file manager (File Explorer, Finder...). */
+        revealInOs(path: string): Promise<void>;
         /** #167: copies an entry's path to the clipboard, absolute or relative to the folder, with the OS's separators. */
         copyPath(path: string, kind: 'absolute' | 'relative'): Promise<void>;
         /**
@@ -516,8 +526,11 @@ export interface CodeXRApi {
          */
         addCustomProfile(args: string): Promise<TerminalProfileList>;
         removeCustomProfile(profileId: string): Promise<TerminalProfileList>;
-        /** Starts a terminal from a listed profile (null: the default) in the open folder. */
-        create(profileId: string | null, cols: number, rows: number): Promise<TerminalCreated>;
+        /**
+         * Starts a terminal from a listed profile (null: the default) in the open
+         * folder, or (#285) in `folder`, a workspace path (a file starts in its folder).
+         */
+        create(profileId: string | null, cols: number, rows: number, folder?: string): Promise<TerminalCreated>;
         input(id: number, data: string): Promise<void>;
         resize(id: number, cols: number, rows: number): Promise<void>;
         kill(id: number): Promise<void>;
@@ -632,6 +645,9 @@ export const IPC_CHANNELS = {
     keybindingsUpdate: 'codexr:keybindings:update',
     keybindingsSetMenu: 'codexr:keybindings:set-menu',
     workspaceTrash: 'codexr:workspace:trash',
+    workspaceCopyEntry: 'codexr:workspace:copy-entry',
+    workspaceMoveEntry: 'codexr:workspace:move-entry',
+    workspaceRevealInOs: 'codexr:workspace:reveal-in-os',
     workspaceRecentFolders: 'codexr:workspace:recent-folders',
     workspaceOpenRecent: 'codexr:workspace:open-recent',
     pythonStatus: 'codexr:python:status',

@@ -216,7 +216,7 @@ describe('Workspace', () => {
         const trashItem = async (absolute: string): Promise<void> => { trashed.push(absolute); };
         await workspace.trash('bin/old.txt', trashItem);
         assert.deepEqual(trashed, [path.join(fs.realpathSync.native(root), 'bin', 'old.txt')]);
-        await assert.rejects(() => workspace.trash('', trashItem), /cannot be renamed or deleted/);
+        await assert.rejects(() => workspace.trash('', trashItem), /cannot be renamed/);
         await assert.rejects(() => workspace.trash('../secret/key.txt', trashItem));
         await assert.rejects(() => workspace.trash('bin/missing.txt', trashItem));
         assert.equal(trashed.length, 1);

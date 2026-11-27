@@ -24,7 +24,8 @@ export interface TerminalHost {
     setDefaultProfile(id: unknown): Promise<TerminalProfileList>;
     addCustomProfile(contents: WebContents, args: unknown): Promise<TerminalProfileList>;
     removeCustomProfile(id: unknown): Promise<TerminalProfileList>;
-    create(contents: WebContents, profileId: unknown, cols: unknown, rows: unknown): Promise<TerminalCreated>;
+    /** In the open folder (or the home folder without one), or in `cwd`, a folder already checked inside it (#285). */
+    create(contents: WebContents, profileId: unknown, cols: unknown, rows: unknown, cwd?: string): Promise<TerminalCreated>;
     input(contents: WebContents, id: unknown, data: unknown): void;
     resize(contents: WebContents, id: unknown, cols: unknown, rows: unknown): void;
     kill(contents: WebContents, id: unknown): void;
@@ -151,9 +152,9 @@ export function createTerminalHost(options: { readonly isSmoke: boolean }): Term
             log.info(`Saved terminal profile ${commandLine}`);
             return registry.addCustom(file, args);
         },
-        async create(contents, profileId, cols, rows) {
+        async create(contents, profileId, cols, rows, folder) {
             track(contents);
-            const cwd = currentWorkspaceInfo(contents)?.root ?? os.homedir();
+            const cwd = folder ?? currentWorkspaceInfo(contents)?.root ?? os.homedir();
             const created = await service.create(contents, profileId, cols, rows, cwd);
             log.info(`Terminal ${created.id}: ${created.profile.name} in ${cwd}`);
             return created;

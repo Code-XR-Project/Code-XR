@@ -287,6 +287,8 @@ body {
 .tree-row[aria-selected='true'] { background: var(--hover); outline: 1px solid var(--accent); outline-offset: -1px; }
 .tree-row:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
 .tree-row.is-ignored { color: var(--muted); }
+/* #285: an entry cut to the explorer's clipboard, until it is pasted. */
+.tree-row.is-cut { opacity: 0.5; }
 .tree-label { overflow: hidden; text-overflow: ellipsis; }
 .tree-chevron {
   flex: none;
