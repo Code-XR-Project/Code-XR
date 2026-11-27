@@ -1,8 +1,9 @@
 import type { ChatAttachment } from '../../shared/agents.ts';
 import {
     applySessionEvent, type AgentSessionMessage, type AgentSessionState, type AgentSessionsApi, type ConfigOptionView,
-    type PlanEntryView, type PromptAttachment, type ToolContentView, type TranscriptItem,
+    type PlanEntryView, type PromptAttachment, type ToolContentView, type TranscriptItem, type TurnMetricDeltaView,
 } from '../../shared/agentSession.ts';
+import { metricDeltaFileLines, metricDeltaHeadline, restorePrompt } from './changesModel.ts';
 import { renderMarkdown } from '../agents/chatMarkdown.ts';
 import { createAttachmentBar, type AttachmentSources } from '../agents/chatAttachments.ts';
 import { el, icon } from '../dom.ts';
@@ -35,6 +36,8 @@ export interface ChatViewDeps {
     onDidChange?(state: AgentSessionState): void;
     /** AF6: puts the project's files back as they were before a message. */
     restoreCheckpoint?(state: AgentSessionState, checkpointId: string): Promise<void>;
+    /** AF6: the files a restore would write, for the inline confirmation (without it, the restore runs at once). */
+    previewRestore?(state: AgentSessionState, checkpointId: string): Promise<readonly string[]>;
     /** AF5: opens the review of the chat's pending changes. */
     openChanges?(state: AgentSessionState): void;
     /** AF9: lets the analysis add its line under a finished turn. */
@@ -208,12 +211,16 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
                 if (item.checkpoint && deps.restoreCheckpoint) {
                     const restore = el('button', { className: 'af-link-button', attrs: { type: 'button', title: 'Put the project\'s files back as they were before this message. The conversation is kept; effects of commands (network, databases) are not undone.', 'data-testid': 'af-restore' } }, [icon(ICONS.restore), el('span', { text: 'Restore files to here' })]);
                     const checkpoint = item.checkpoint;
+                    const confirmBox = el('div', { className: 'af-restore-confirm', attrs: { hidden: '', role: 'group', 'aria-label': 'Restore files', 'data-testid': 'af-restore-confirm' } });
                     restore.addEventListener('click', () => {
                         if (state) {
-                            deps.restoreCheckpoint?.(state, checkpoint).catch((error: unknown) => deps.onStatus(errorText(error)));
+                            restore.disabled = true;
+                            confirmRestore(state, checkpoint, confirmBox).finally(() => {
+                                restore.disabled = false;
+                            });
                         }
                     });
-                    actions.append(restore);
+                    actions.append(restore, confirmBox);
                 }
                 const chips = item.attachments?.length
                     ? el('div', { className: 'chat-chips is-static' }, item.attachments.map((label) => el('span', { className: 'chat-chip', attrs: { title: label } }, [el('span', { className: 'chat-chip-label', text: label })])))
@@ -349,8 +356,64 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         if (reason) {
             footer.append(el('p', { className: `af-stop muted${item.stopReason === 'error' ? ' is-error' : ''}`, text: reason }));
         }
+        if (item.metricDelta) {
+            footer.append(renderMetricDelta(item.metricDelta));
+        }
         deps.decorateTurn?.(current, start, footer);
         return footer;
+    }
+
+    /** AF9: "Complexity max 9 -> 1, LOC -6", the per-file detail folded under it. */
+    function renderMetricDelta(delta: TurnMetricDeltaView): HTMLElement {
+        const lines = metricDeltaFileLines(delta);
+        return el('details', { className: 'af-metric-delta', attrs: { 'data-testid': 'af-metric-delta' } }, [
+            el('summary', { attrs: { title: delta.summary } }, [el('span', { className: 'af-metric-delta-label', text: 'Metrics' }), el('span', { text: ` ${metricDeltaHeadline(delta)}` })]),
+            el('p', { className: 'muted', text: delta.summary }),
+            ...(lines.length > 0 ? [el('ul', { className: 'af-metric-delta-files' }, lines.map((line) => el('li', { text: line })))] : []),
+        ]);
+    }
+
+    /** AF6: lists what a restore would write, inline under the message, and restores on confirmation. */
+    async function confirmRestore(current: AgentSessionState, checkpoint: string, box: HTMLElement): Promise<void> {
+        if (!deps.previewRestore) {
+            await deps.restoreCheckpoint?.(current, checkpoint).catch((error: unknown) => deps.onStatus(errorText(error)));
+            return;
+        }
+        let paths: readonly string[];
+        try {
+            paths = await deps.previewRestore(current, checkpoint);
+        } catch (error) {
+            deps.onStatus(errorText(error));
+            return;
+        }
+        const close = (): void => {
+            box.hidden = true;
+            box.replaceChildren();
+        };
+        const cancel = el('button', { className: 'secondary-button', text: paths.length === 0 ? 'Close' : 'Cancel', attrs: { type: 'button' } });
+        cancel.addEventListener('click', close);
+        const confirm = el('button', { className: 'primary-button', text: `Restore ${paths.length} file${paths.length === 1 ? '' : 's'}`, attrs: { type: 'button', 'data-testid': 'af-restore-apply' } });
+        confirm.addEventListener('click', () => {
+            confirm.disabled = true;
+            cancel.disabled = true;
+            (deps.restoreCheckpoint?.(current, checkpoint) ?? Promise.resolve())
+                .then(close, (error: unknown) => {
+                    deps.onStatus(errorText(error));
+                    confirm.disabled = false;
+                    cancel.disabled = false;
+                });
+        });
+        const shown = paths.slice(0, 20);
+        box.replaceChildren(
+            el('p', { text: restorePrompt(paths) }),
+            ...(shown.length > 0 ? [el('ul', { className: 'af-restore-files' }, [
+                ...shown.map((path) => el('li', { text: path })),
+                ...(paths.length > shown.length ? [el('li', { className: 'muted', text: `and ${paths.length - shown.length} more` })] : []),
+            ])] : []),
+            el('div', { className: 'af-restore-actions' }, paths.length === 0 ? [cancel] : [confirm, cancel]),
+        );
+        box.hidden = false;
+        (paths.length === 0 ? cancel : confirm).focus();
     }
 
     function fileLink(path: string, line: number | undefined, root: string | null): HTMLElement {

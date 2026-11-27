@@ -7,6 +7,9 @@ import {
 } from '../src/renderer/agentFirst/chatModel.ts';
 import { attentionCounts, defaultAgent, filterProjects, shortTime, statusLabel } from '../src/renderer/agentFirst/sessionsModel.ts';
 import { chatIdOf, chatTabId, parseLayoutMode } from '../src/renderer/agentFirst/agentWorkbenchModel.ts';
+import {
+    changesIdOf, changesSummary, changesTabId, formatMetricChange, metricDeltaFileLines, metricDeltaHeadline, nextSelection, restorePrompt, statusLetter,
+} from '../src/renderer/agentFirst/changesModel.ts';
 
 function summary(overrides: Partial<SessionSummary> = {}): SessionSummary {
     return {
@@ -164,5 +167,52 @@ describe('instructions model', async () => {
     it('splits a workspace path', () => {
         assert.deepEqual(splitWorkspacePath('.github/copilot-instructions.md'), { parent: '.github', name: 'copilot-instructions.md' });
         assert.deepEqual(splitWorkspacePath('AGENTS.md'), { parent: '', name: 'AGENTS.md' });
+    });
+});
+
+describe('changes model (AF5, AF6, AF9)', () => {
+    const file = (path: string, status: 'added' | 'modified' | 'deleted' = 'modified', additions = 1, deletions = 0) => ({ path, status, additions, deletions, binary: false });
+
+    it('names Changes tabs apart from chat tabs', () => {
+        assert.equal(changesTabId('s1'), 'chat-changes:s1');
+        assert.equal(changesIdOf('chat-changes:s1'), 's1');
+        assert.equal(changesIdOf('chat-changes:'), null);
+        assert.equal(changesIdOf('chat:s1'), null);
+        assert.equal(chatIdOf(changesTabId('s1')), null, 'a Changes tab is not a chat tab');
+    });
+
+    it('summarises the list and keeps the selection sensible as files go', () => {
+        assert.equal(changesSummary([]), 'No pending changes.');
+        assert.equal(changesSummary([file('a', 'modified', 3, 1), file('b', 'added', 2, 0)]), '2 files, +5 -1');
+        assert.equal(changesSummary([file('a')]), '1 file, +1 -0');
+        assert.deepEqual(['added', 'modified', 'deleted'].map((status) => statusLetter(status as 'added')), ['A', 'M', 'D']);
+        const files = [file('a'), file('b'), file('c')];
+        assert.equal(nextSelection(files, 'b', 1), 'b');
+        assert.equal(nextSelection([file('a'), file('c')], 'b', 1), 'c', 'the next file takes the place of the one kept');
+        assert.equal(nextSelection([file('a')], 'c', 2), 'a');
+        assert.equal(nextSelection(files, null), 'a');
+        assert.equal(nextSelection([], 'a'), null);
+    });
+
+    it('words the restore confirmation', () => {
+        assert.match(restorePrompt(['a.ts', 'b.ts']), /^Restore 2 files /);
+        assert.match(restorePrompt(['a.ts']), /^Restore 1 file /);
+        assert.match(restorePrompt([]), /already as they were/);
+    });
+
+    it('formats a metric delta compactly, levels as before -> after and counts as a difference', () => {
+        assert.equal(formatMetricChange({ metric: 'maxComplexity', before: 9, after: 1 }), 'Complexity max 9 -> 1');
+        assert.equal(formatMetricChange({ metric: 'codeLines', before: 20, after: 14 }), 'LOC -6');
+        assert.equal(formatMetricChange({ metric: 'functionCount', before: 2, after: 3 }), 'Functions +1');
+        assert.equal(formatMetricChange({ metric: 'codeLines', before: null, after: 10 }), 'LOC - -> 10');
+        const delta = {
+            summary: '2 files (1 changed, 1 added)',
+            totals: [{ metric: 'maxComplexity', before: 9, after: 1 }, { metric: 'codeLines', before: 20, after: 14 }, { metric: 'functionCount', before: 2, after: 3 }, { metric: 'classCount', before: 0, after: 1 }],
+            files: [{ path: 'src/a.ts', status: 'changed', changes: [{ metric: 'maxComplexity', before: 9, after: 1 }] }, { path: 'src/b.ts', status: 'added', changes: [] }],
+            moreFiles: 2,
+        };
+        assert.equal(metricDeltaHeadline(delta), 'Complexity max 9 -> 1, LOC -6, Functions +1');
+        assert.equal(metricDeltaHeadline({ ...delta, totals: [] }), delta.summary);
+        assert.deepEqual(metricDeltaFileLines(delta), ['src/a.ts (changed): Complexity max 9 -> 1', 'src/b.ts (added)', 'and 2 more files']);
     });
 });

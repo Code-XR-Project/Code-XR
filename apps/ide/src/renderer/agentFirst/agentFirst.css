@@ -216,3 +216,43 @@
 .af-plan-mark::before { content: '\25CB'; }
 .af-plan-mark[data-status="in_progress"]::before { content: '\25B8'; }
 .af-plan-mark[data-status="completed"]::before { content: '\2713'; }
+
+/* ---- Restore, metric delta and the Changes tab (AF5, AF6, AF9) ------------- */
+.af-message-actions { flex-wrap: wrap; }
+.af-restore-confirm { flex-basis: 100%; display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.af-restore-confirm[hidden] { display: none; }
+.af-restore-confirm p { margin: 0; }
+.af-restore-files { margin: 0; padding-left: 18px; max-height: 140px; overflow: auto; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; }
+.af-restore-actions { display: flex; gap: 8px; }
+.af-metric-delta summary { cursor: pointer; color: var(--muted); }
+.af-metric-delta-label { font-weight: 600; color: var(--fg); }
+.af-metric-delta p { margin: 4px 0; }
+.af-metric-delta-files { margin: 0; padding-left: 18px; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; font-size: 11px; }
+.af-link-button.is-danger { color: var(--crit); }
+.af-link-button:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
+
+.af-changes { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--editor); }
+.af-changes-header { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+.af-changes-summary { font-size: 12px; }
+.af-changes-notice { margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.af-changes-notice[hidden] { display: none; }
+.af-changes-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(220px, 32%) minmax(0, 1fr); }
+.af-changes-list { margin: 0; padding: 4px 0; list-style: none; overflow: auto; border-right: 1px solid var(--line); }
+.af-changes-row { display: flex; align-items: center; gap: 6px; padding: 3px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.af-changes-row:hover { background: var(--hover); }
+.af-changes-row.is-selected { background: var(--hover); box-shadow: inset 2px 0 var(--accent); }
+.af-changes-row:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.af-changes-status { flex: none; width: 12px; font-size: 11px; font-weight: 700; text-align: center; color: var(--warn); }
+.af-changes-status[data-status='added'] { color: #3fb950; }
+.af-changes-status[data-status='deleted'] { color: var(--crit); }
+.af-changes-name { overflow: hidden; text-overflow: ellipsis; }
+.af-changes-folder { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+.af-changes-actions { display: none; gap: 8px; font-size: 12px; }
+.af-changes-row:hover .af-changes-actions, .af-changes-row.is-selected .af-changes-actions, .af-changes-row:focus-within .af-changes-actions { display: inline-flex; }
+.af-changes-diff { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.af-changes-diff-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.af-changes-diff-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace; }
+.af-changes-diff-note { margin: 0; padding: 8px 12px; font-size: 12px; }
+.af-changes-diff-note[hidden] { display: none; }
+.af-changes-diff-host { flex: 1; min-height: 0; }
+@media (prefers-color-scheme: light) { .af-changes-status[data-status='added'] { color: #1a7f37; } }

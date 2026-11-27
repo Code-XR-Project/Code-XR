@@ -10,6 +10,8 @@ import { createChatView, type ChatView, type ChatViewDeps } from './chatView.ts'
 import { createSessionsView, type SessionsView } from './sessionsView.ts';
 import { createInstructionsView, type InstructionsViewDeps } from './instructionsView.ts';
 import { chatIdOf, chatTabId, parseLayoutMode, type LayoutMode } from './agentWorkbenchModel.ts';
+import { createChangesView, type ChangesView } from './changesView.ts';
+import { changesIdOf, changesTabId } from './changesModel.ts';
 import './agentFirst.css';
 
 /**
@@ -46,7 +48,7 @@ export interface AgentWorkbenchOptions {
     /** The workspace calls the project instructions section needs (AF11). */
     readonly instructions: Omit<InstructionsViewDeps, 'openFile' | 'hasFolder' | 'onStatus'>;
     /** Optional hooks of later stories. */
-    readonly chatHooks?: Pick<ChatViewDeps, 'restoreCheckpoint' | 'openChanges' | 'decorateTurn'>;
+    readonly chatHooks?: Pick<ChatViewDeps, 'restoreCheckpoint' | 'previewRestore' | 'openChanges' | 'decorateTurn'>;
 }
 
 export interface AgentWorkbench {
@@ -114,8 +116,59 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
                     }
                 }
             },
+            // AF5/AF6: the review of the chat's changes and its checkpoints.
+            openChanges: (state) => void openChanges(state.id, state.title),
+            previewRestore: (state, checkpointId) => api.previewRestore(state.id, checkpointId),
+            restoreCheckpoint: async (state, checkpointId) => {
+                const written = await api.restoreCheckpoint(state.id, checkpointId);
+                options.onStatus(written.length === 0 ? 'Nothing to restore.' : `Restored ${written.length} file${written.length === 1 ? '' : 's'}.`);
+                refreshChanges(state.id);
+            },
             ...options.chatHooks,
         };
+    }
+
+    // ---- Changes tabs (AF5) --------------------------------------------------
+    const changesViews = new Map<string, Set<ChangesView>>();
+    function refreshChanges(sessionId: string): void {
+        for (const view of changesViews.get(sessionId) ?? []) {
+            view.refresh().catch(() => undefined);
+        }
+    }
+
+    function changesInput(sessionId: string, chatTitle = 'Chat'): CustomEditorInput {
+        return {
+            id: changesTabId(sessionId),
+            title: `Changes: ${chatTitle}`,
+            iconName: 'changes.diff',
+            create(context) {
+                const view = createChangesView(sessionId, { api, openFile: (path) => options.openFile(path), onStatus: options.onStatus });
+                const set = changesViews.get(sessionId) ?? new Set<ChangesView>();
+                set.add(view);
+                changesViews.set(sessionId, set);
+                api.get(sessionId).then((state) => context.setTitle(`Changes: ${state.title}`), (error: unknown) => {
+                    if (/That chat no longer exists/.test(errorText(error))) {
+                        context.close();
+                    }
+                });
+                return {
+                    element: view.element,
+                    onShow: () => void view.refresh(),
+                    dispose: () => {
+                        view.dispose();
+                        set.delete(view);
+                        if (set.size === 0) {
+                            changesViews.delete(sessionId);
+                        }
+                    },
+                };
+            },
+        };
+    }
+
+    async function openChanges(sessionId: string, chatTitle?: string): Promise<void> {
+        const group = await options.editorGroup();
+        await group.openCustom(changesInput(sessionId, chatTitle), { preview: false });
     }
     const titleSetters = new WeakMap<ChatView, (title: string) => void>();
     const tabClosers = new Map<string, () => void>();
@@ -164,7 +217,11 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
     // so it must not be created here at startup): restored chat tabs resolve through it.
     function resolveCustomEditor(id: string): CustomEditorInput | null {
         const sessionId = chatIdOf(id);
-        return sessionId ? chatInput(sessionId) : null;
+        if (sessionId) {
+            return chatInput(sessionId);
+        }
+        const changesOf = changesIdOf(id);
+        return changesOf ? changesInput(changesOf) : null;
     }
 
     async function openChat(sessionId: string): Promise<void> {
@@ -218,6 +275,9 @@ export function installAgentWorkbench(options: AgentWorkbenchOptions): AgentWork
     api.onMessage((message: AgentSessionMessage) => {
         for (const view of views) {
             view.handle(message);
+        }
+        if (message.kind === 'event' && (message.event.type === 'pending-changes' || message.event.type === 'turn-end')) {
+            refreshChanges(message.sessionId);
         }
         sessions.handle(message);
         notifyIfHidden(message);
