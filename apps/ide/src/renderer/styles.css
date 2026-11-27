@@ -382,6 +382,19 @@ body {
 .editor-tab.is-conflict .tab-label { color: var(--accent); }
 .editor-tab.is-deleted .tab-label { color: var(--crit); text-decoration: line-through; }
 .tab-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+/* #168: one or two editor groups side by side, with a sash between them. */
+.editor-groups { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: row; }
+/* Each group keeps half the editor column's minimum (LIMITS.editorMin, 240px): the sash and a narrow window cannot crush one. */
+.editor-group { display: flex; flex-direction: column; min-width: 120px; min-height: 0; }
+.editor-group:only-child { min-width: 0; }
+.editor-split-sash + .editor-group { border-left: 1px solid var(--line); }
+.editor-split-sash { flex: none; position: relative; z-index: 2; width: 6px; margin: 0 -3px; cursor: ew-resize; }
+.editor-split-sash[hidden] { display: none; }
+.editor-split-sash:hover, .editor-split-sash:active, .editor-split-sash:focus-visible { background: var(--accent); opacity: 0.5; outline: none; }
+/* With two groups, only the active one keeps the accent under its selected tab. */
+.editor-area.is-split .editor-group:not(.is-active-group) .editor-tab[aria-selected='true'] { box-shadow: none; color: var(--muted); }
+/* A tab dragged over the other group's strip. */
+.editor-tabs.is-drop-target { background: var(--hover); }
 .editor-host { flex: 1; min-height: 0; }
 .editor-placeholder { flex: 1; display: grid; place-items: center; }
 .editor-host[hidden], .editor-placeholder[hidden] { display: none; }

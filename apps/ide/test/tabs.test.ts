@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    closeTargets, cycleTab, discardQuestion, EMPTY_SESSION, MAX_RESTORED_TABS, moveTab, parseSession, serializeSession, sessionKey,
+    clampSplit, closeTargets, cycleTab, DEFAULT_SPLIT, discardQuestion, EMPTY_SESSION, MAX_RESTORED_TABS, moveTab, parseSession, serializeSession, sessionKey,
 } from '../src/renderer/editor/tabsModel.ts';
 
 const tabs = [
@@ -74,5 +74,35 @@ describe('tab session (#167)', () => {
     it('keeps at most MAX_RESTORED_TABS', () => {
         const many = { tabs: Array.from({ length: MAX_RESTORED_TABS + 5 }, (_, i) => ({ path: `f${i}`, viewState: null })), active: null, preview: null };
         assert.equal(parseSession(serializeSession(many)).tabs.length, MAX_RESTORED_TABS);
+    });
+});
+
+describe('split session (#168)', () => {
+    it('round-trips the second group, the split and the focused group', () => {
+        const session = {
+            tabs: [{ path: 'a.ts', viewState: null }], active: 'a.ts', preview: null,
+            second: { tabs: [{ path: 'a.ts', viewState: null }, { path: 'b.ts', viewState: null }], active: 'b.ts', preview: 'b.ts' },
+            split: 0.3,
+            focus: 1 as const,
+        };
+        assert.deepEqual(parseSession(serializeSession(session)), session);
+    });
+
+    it('drops an empty second group, and reads a session saved before the split as one group', () => {
+        const single = { tabs: [{ path: 'a.ts', viewState: null }], active: 'a.ts', preview: null };
+        const withEmpty = { ...single, second: { tabs: [], active: null, preview: null }, split: 0.4, focus: 1 as const };
+        assert.deepEqual(parseSession(serializeSession(withEmpty)), single);
+        assert.deepEqual(parseSession(JSON.stringify({ version: 1, ...single })), single);
+    });
+
+    it('clamps a damaged split and focus', () => {
+        const text = JSON.stringify({ version: 1, tabs: [], active: null, preview: null, second: { tabs: [{ path: 'b.ts' }, { path: '../x' }] }, split: 7, focus: 'x' });
+        const parsed = parseSession(text);
+        assert.deepEqual(parsed.second?.tabs, [{ path: 'b.ts', viewState: null }]);
+        assert.equal(parsed.split, clampSplit(7));
+        assert.equal(parsed.focus, 0);
+        assert.equal(clampSplit(Number.NaN), DEFAULT_SPLIT);
+        assert.equal(clampSplit(0), 0.15);
+        assert.equal(clampSplit(0.5), 0.5);
     });
 });
