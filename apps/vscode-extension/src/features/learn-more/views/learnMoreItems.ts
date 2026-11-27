@@ -55,7 +55,7 @@ export class LearnMoreModularItemFactory {
                 arguments: []
             },
             new vscode.ThemeIcon('globe', new vscode.ThemeColor('charts.foreground')),
-            'Visit the official CodeXR documentation website for tutorials, guides, and examples',
+            'Visit the official Code-XR documentation website for tutorials, guides, and examples',
             'Official docs & tutorials',
             'learnMoreAction'
         );
@@ -72,7 +72,7 @@ export class LearnMoreModularItemFactory {
                 arguments: []
             },
             new vscode.ThemeIcon('account', new vscode.ThemeColor('charts.foreground')),
-            'Visit the personal website of Adrián Montes Linares, the author of CodeXR',
+            'Visit the personal website of Adrián Montes Linares, the author of Code-XR',
             'About the author',
             'learnMoreAuthorAction'
         );
@@ -80,7 +80,7 @@ export class LearnMoreModularItemFactory {
         items.push(authorItem);
 
         const supportItem = new LearnMoreModularTreeItem(
-            'Support CodeXR (Buy Me a Coffee)',
+            'Support Code-XR (Buy Me a Coffee)',
             vscode.TreeItemCollapsibleState.None,
             'action',
             {
@@ -89,7 +89,7 @@ export class LearnMoreModularItemFactory {
                 arguments: []
             },
             new vscode.ThemeIcon('heart', new vscode.ThemeColor('charts.foreground')),
-            'Support CodeXR development on Buy Me a Coffee',
+            'Support Code-XR development on Buy Me a Coffee',
             'Help sustain development',
             'learnMoreSupportAction'
         );

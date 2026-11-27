@@ -41,7 +41,7 @@ test('a compiled module that imports vscode loads and runs inside the scope', ()
             CodeXRLogger.getLogger('PROBE').warn('loaded under the fake');
         });
 
-        const channel = fake.channels.get('CodeXR');
+        const channel = fake.channels.get('Code-XR');
         assert.ok(channel, 'the module created its output channel through the fake');
         assert.equal(channel.lines.length, 1);
         assert.match(channel.lines[0], /^\[[^\]]+\] \[WARN\] \[PROBE\] loaded under the fake$/);
@@ -129,7 +129,7 @@ test('strict mode still loads a compiled module that does `import * as vscode`',
         context.cleanup();
     }
 
-    assert.match(fake.channels.get('CodeXR').lines[0], /\[ERROR\] \[STRICT\] loaded$/);
+    assert.match(fake.channels.get('Code-XR').lines[0], /\[ERROR\] \[STRICT\] loaded$/);
 });
 
 test('an auto-stub never looks like a promise', async () => {
@@ -265,5 +265,5 @@ test('the log sink is the exception: every scope loads it fresh, so a channel ne
         context.cleanup();
     }
 
-    assert.deepEqual(fake.channels.get('CodeXR').lines, []);
+    assert.deepEqual(fake.channels.get('Code-XR').lines, []);
 });

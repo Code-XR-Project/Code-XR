@@ -190,7 +190,7 @@
     const value = snapshot || collectStatus();
     hudRoot.setAttribute('visible', !isImmersive());
     hudText.setAttribute('value', [
-      'CodeXR diagnostics',
+      'Code-XR diagnostics',
       'FPS ' + value.performance.averageFps + '  P95 ' + value.performance.frameTimeP95 + 'ms',
       'Quality ' + value.performance.quality + '  Detail ' + value.density.effectiveProfile,
       'Nodes ' + value.graph.visibleNodes + '  Edges ' + value.graph.visibleEdges,

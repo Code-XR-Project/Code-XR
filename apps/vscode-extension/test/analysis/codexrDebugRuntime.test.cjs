@@ -94,7 +94,7 @@ test('CodeXRDebug exposes status, monitoring and desktop HUD commands', () => {
   assert.ok(messages.length > 0);
 });
 
-test('CodeXR debug runtime owns the desktop-only immersive guard', () => {
+test('Code-XR debug runtime owns the desktop-only immersive guard', () => {
   assert.match(source, /codexr-desktop-only/);
   assert.match(source, /enter-vr/);
   assert.match(source, /enter-ar/);

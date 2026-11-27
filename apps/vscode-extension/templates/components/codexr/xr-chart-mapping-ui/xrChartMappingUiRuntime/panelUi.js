@@ -336,7 +336,7 @@
     if (applyToEntities && !applyChartTypeToEntities(config, chartId, nextSnapshot.lastKnownGoodMapping || nextSnapshot.selectedByDimension)) {
       config.dimensions = previousDimensions;
       state.activeChartId = previousChartId;
-      setStatusMessage('CodeXR could not switch chart; the previous chart was kept.', 'error', 4800);
+      setStatusMessage('Code-XR could not switch chart; the previous chart was kept.', 'error', 4800);
       return false;
     }
 
@@ -423,7 +423,7 @@
     });
 
     refs.panelTitle = createEntity('a-text', {
-      value: 'CodeXR Field Mapping',
+      value: 'Code-XR Field Mapping',
       align: 'center',
       color: '#eaf4ff',
       width: 7,

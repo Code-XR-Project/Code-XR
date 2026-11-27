@@ -31,7 +31,7 @@ export function assertCodeXrRoomAssetsExist(extensionPath: string): { runtimePat
     const runtimePath = assertRuntimeAssetSourceExists(ROOM_RUNTIME, extensionPath);
     const textureDirectory = assertSourceExists(
         resolveCodeXrRoomTextureSourcePath(extensionPath),
-        'CodeXR room texture directory',
+        'Code-XR room texture directory',
     );
 
     return { runtimePath, textureDirectory };

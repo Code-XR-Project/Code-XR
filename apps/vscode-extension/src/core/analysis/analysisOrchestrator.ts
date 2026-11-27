@@ -84,7 +84,7 @@ export class AnalysisOrchestrator {
                 // Handle session creation errors (e.g., unsupported file types)
                 logger.error(`Session creation failed:`, sessionError);
                 const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
-                void getHost().notifier.notify('error', `CodeXR Analysis Error: ${errorMessage}`);
+                void getHost().notifier.notify('error', `Code-XR Analysis Error: ${errorMessage}`);
                 throw sessionError;
             }
             

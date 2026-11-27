@@ -221,7 +221,7 @@ export class RemoteSessionAuthority {
             codeValid: true,
             displayName: profile.identityMode === 'custom'
                 ? profile.customName
-                : anonymousAlias || 'Usuario anonimo de CodeXR',
+                : anonymousAlias || 'Usuario anonimo de Code-XR',
             remoteAddress: input.remoteAddress,
             installationId: this.normalizeInstallationId(input.installationId),
             profile,

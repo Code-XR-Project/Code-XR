@@ -28,12 +28,12 @@ export function gitOfflineEnvironment(base: NodeJS.ProcessEnv = process.env): No
 
 export const PARTIAL_CLONE_MISSING_MESSAGE =
     'git-object-missing: a file of this revision is not on this computer (partial clone). '
-    + 'CodeXR does not download it; run `git fetch` with the objects you need, or use a full clone.';
+    + 'Code-XR does not download it; run `git fetch` with the objects you need, or use a full clone.';
 
 /** Shown before a comparison when the repository is a partial clone (EVO-10). */
 export const PARTIAL_CLONE_NOTICE =
     'This repository is a partial clone: older revisions may be missing files on this computer. '
-    + 'CodeXR does not download them, so those revisions cannot be compared. '
+    + 'Code-XR does not download them, so those revisions cannot be compared. '
     + 'Run `git fetch --refetch` or use a full clone to compare any revision.';
 
 /**

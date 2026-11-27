@@ -147,7 +147,7 @@ export class DirectoryReAnalyzer {
             await this.sendSSENotification(session);
         }
         getHost().notifier.status(
-            `$(check) CodeXR re-analysis updated ${changedCount} file(s)`,
+            `$(check) Code-XR re-analysis updated ${changedCount} file(s)`,
             2000,
         );
     }

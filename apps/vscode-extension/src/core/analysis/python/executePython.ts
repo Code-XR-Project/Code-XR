@@ -179,7 +179,7 @@ export class ExecutePython {
         }
 
         return await getHost().withProgress(
-            { title: 'CodeXR Analysis', cancellable: false },
+            { title: 'Code-XR Analysis', cancellable: false },
             runAnalysis,
         );
     }

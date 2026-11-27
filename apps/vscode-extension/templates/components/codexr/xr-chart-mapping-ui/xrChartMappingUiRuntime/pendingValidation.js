@@ -56,7 +56,7 @@
       clearPendingValidationTimers();
       scheduleContainmentValidationBursts('mapping-ui-revert');
       setStatusMessage(
-        'The chart did not stabilize inside the table after changing this metric. CodeXR restored the previous mapping.',
+        'The chart did not stabilize inside the table after changing this metric. Code-XR restored the previous mapping.',
         'error',
         4800
       );
@@ -85,7 +85,7 @@
     clearPendingValidationTimers();
     scheduleContainmentValidationBursts('mapping-ui-timeout-revert');
     setStatusMessage(
-      'The chart did not finish rebuilding. CodeXR restored the previous mapping; you can try this field again.',
+      'The chart did not finish rebuilding. Code-XR restored the previous mapping; you can try this field again.',
       'error',
       4800
     );
@@ -157,7 +157,7 @@
       if (selectChart(previousChartId)) {
         setStatusMessage(
           (invalidStatus?.message || 'That chart produced invalid geometry.')
-            + ' CodeXR restored the previous chart.',
+            + ' Code-XR restored the previous chart.',
           'error',
           4800
         );

@@ -14,7 +14,7 @@ function resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath: stri
 function assertCodeXrDomSceneCollaborationRuntimeSourceExists(extensionPath: string): string {
     return assertSourceExists(
         resolveCodeXrDomSceneCollaborationRuntimeSourcePath(extensionPath),
-        'CodeXR DOM scene collaboration runtime',
+        'Code-XR DOM scene collaboration runtime',
     );
 }
 

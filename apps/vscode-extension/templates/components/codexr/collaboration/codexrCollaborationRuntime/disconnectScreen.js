@@ -42,7 +42,7 @@
       });
 
       const badge = doc.createElement('div');
-      badge.textContent = 'CodeXR';
+      badge.textContent = 'Code-XR';
       Object.assign(badge.style, {
         fontSize: '13px',
         fontWeight: '600',

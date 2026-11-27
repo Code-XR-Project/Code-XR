@@ -81,7 +81,7 @@ test('room: nested texture folders are walked with posix output paths', async ()
 
 test('room: a missing runtime is refused first, then a missing texture directory, by every entry point', async () => {
     const missingRoot = path.join(os.tmpdir(), 'codexr-no-such-extension-root');
-    const noRuntime = { message: `CodeXR room runtime not found at ${path.join(missingRoot, 'templates', 'components', 'codexr', 'xr-room', 'codexrRoomRuntime.js')}` };
+    const noRuntime = { message: `Code-XR room runtime not found at ${path.join(missingRoot, 'templates', 'components', 'codexr', 'xr-room', 'codexrRoomRuntime.js')}` };
     assert.throws(() => components.assertCodeXrRoomAssetsExist(missingRoot), noRuntime);
     await assert.rejects(components.copyCodeXrRoomAssetsToOutput(missingRoot, os.tmpdir()), noRuntime);
     await assert.rejects(components.readCodeXrRoomRuntimeContent(missingRoot), noRuntime);
@@ -92,7 +92,7 @@ test('room: a missing runtime is refused first, then a missing texture directory
         const room = path.join(root, 'templates', 'components', 'codexr', 'xr-room');
         fs.mkdirSync(room, { recursive: true });
         fs.writeFileSync(path.join(room, 'codexrRoomRuntime.js'), '// runtime');
-        const noTextures = { message: `CodeXR room texture directory not found at ${path.join(room, 'textures')}` };
+        const noTextures = { message: `Code-XR room texture directory not found at ${path.join(room, 'textures')}` };
         assert.throws(() => components.assertCodeXrRoomAssetsExist(root), noTextures);
         await assert.rejects(components.copyCodeXrRoomAssetsToOutput(root, os.tmpdir()), noTextures);
         await assert.rejects(components.readCodeXrRoomRuntimeContent(root), noTextures);

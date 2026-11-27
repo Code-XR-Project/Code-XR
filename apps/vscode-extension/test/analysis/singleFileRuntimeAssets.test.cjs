@@ -22,25 +22,25 @@ const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetMod
 const ASSETS = [
     {
         outputConstant: 'CODEXR_AVATAR_RUNTIME_OUTPUT_NAME', outputName: 'codexrAvatarRuntime.js',
-        folder: ['templates', 'components', 'codexr', 'avatar'], label: 'CodeXR avatar runtime',
+        folder: ['templates', 'components', 'codexr', 'avatar'], label: 'Code-XR avatar runtime',
         copy: 'copyCodeXrAvatarRuntimeToOutput', read: 'readCodeXrAvatarRuntimeContent',
         resolve: 'resolveCodeXrAvatarRuntimeSourcePath', assertExists: 'assertCodeXrAvatarRuntimeSourceExists',
     },
     {
         outputConstant: 'CODEXR_DEBUG_RUNTIME_OUTPUT_NAME', outputName: 'codexrDebugRuntime.js',
-        folder: ['templates', 'components', 'codexr', 'debug'], label: 'CodeXR debug runtime',
+        folder: ['templates', 'components', 'codexr', 'debug'], label: 'Code-XR debug runtime',
         copy: 'copyCodeXrDebugRuntimeToOutput', read: 'readCodeXrDebugRuntimeContent',
         resolve: 'resolveCodeXrDebugRuntimeSourcePath',
     },
     {
         outputConstant: 'CODEXR_COMMON_RUNTIME_OUTPUT_NAME', outputName: 'codexrCommonRuntime.js',
-        folder: ['templates', 'components', 'common'], label: 'CodeXR common runtime',
+        folder: ['templates', 'components', 'common'], label: 'Code-XR common runtime',
         copy: 'copyCodeXrCommonRuntimeToOutput', read: 'readCodeXrCommonRuntimeContent',
         resolve: 'resolveCodeXrCommonRuntimeSourcePath', assertExists: 'assertCodeXrCommonRuntimeSourceExists',
     },
     {
         outputConstant: 'CODEXR_GIT_REF_PICKER_OUTPUT_NAME', outputName: 'codexrGitRefPickerRuntime.js',
-        folder: ['templates', 'components', 'common'], label: 'CodeXR Git ref picker runtime',
+        folder: ['templates', 'components', 'common'], label: 'Code-XR Git ref picker runtime',
         copy: 'copyCodeXrGitRefPickerToOutput', read: 'readCodeXrGitRefPickerContent',
         resolve: 'resolveCodeXrGitRefPickerSourcePath', assertExists: 'assertCodeXrGitRefPickerSourceExists',
     },
@@ -52,13 +52,13 @@ const ASSETS = [
     },
     {
         outputConstant: 'IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME', outputName: 'codexrImmersiveRigRuntime.js',
-        folder: ['templates', 'components', 'codexr', 'immersive-rig'], label: 'CodeXR immersive-rig runtime',
+        folder: ['templates', 'components', 'codexr', 'immersive-rig'], label: 'Code-XR immersive-rig runtime',
         copy: 'copyImmersiveRigRuntimeToOutput', read: 'readImmersiveRigRuntimeContent',
         resolve: 'resolveImmersiveRigRuntimeSourcePath', assertExists: 'assertImmersiveRigRuntimeSourceExists',
     },
     {
         outputConstant: 'POINTER_POLICY_RUNTIME_OUTPUT_NAME', outputName: 'codexrPointerPolicyRuntime.js',
-        folder: ['templates', 'components', 'codexr', 'pointer-policy'], label: 'CodeXR pointer-policy runtime',
+        folder: ['templates', 'components', 'codexr', 'pointer-policy'], label: 'Code-XR pointer-policy runtime',
         copy: 'copyPointerPolicyRuntimeToOutput', read: 'readPointerPolicyRuntimeContent',
         resolve: 'resolvePointerPolicyRuntimeSourcePath', assertExists: 'assertPointerPolicyRuntimeSourceExists',
     },

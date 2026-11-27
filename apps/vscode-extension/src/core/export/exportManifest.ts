@@ -604,7 +604,7 @@ function historicalComparisonReason(
         return `Offline comparisons: pick any two of the ${exportedSourceCount(gitData)} exported sources.${suffixes.partial}`;
     }
     return artifactReady
-        ? 'Replay only: new comparisons need the live CodeXR session.'
+        ? 'Replay only: new comparisons need the live Code-XR session.'
         : `No comparison was computed before export.${suffixes.missing}`;
 }
 
@@ -621,7 +621,7 @@ function projectEvolutionReason(
         return `Offline movies from the ${exportedSourceCount(gitData)} exported sources (Auto, Range or Manual).${suffixes.partial}`;
     }
     return artifactReady
-        ? 'Replay only: generating a new movie needs the live CodeXR session.'
+        ? 'Replay only: generating a new movie needs the live Code-XR session.'
         : `No evolution movie was generated before export.${suffixes.missing}`;
 }
 
@@ -698,7 +698,7 @@ export async function writeExportReadme(
         `- **${name}**: not available in this export. ${reason}`
     );
     const dependencyLine = manifest.capabilities.dependencyGraph
-        ? '- **Dependency graph**: interactive exploration of the exported dataset; re-analysis requires CodeXR.'
+        ? '- **Dependency graph**: interactive exploration of the exported dataset; re-analysis requires Code-XR.'
         : unavailableLine('Dependency graph', manifest.capabilities.dependencyGraphReason);
     const historicalLine = manifest.capabilities.historicalComparison
         ? (manifest.gitData
@@ -710,9 +710,9 @@ export async function writeExportReadme(
             ? `- **Project evolution**: create and play movies from the exported revisions. ${manifest.capabilities.projectEvolutionReason}`
             : '- **Project evolution**: replay of the movie computed before export.')
         : unavailableLine('Project evolution', manifest.capabilities.projectEvolutionReason);
-    const content = `# CodeXR exported analysis
+    const content = `# Code-XR exported analysis
 
-This folder is a self-contained snapshot of a CodeXR analysis
+This folder is a self-contained snapshot of a Code-XR analysis
 (**${manifest.target.name}**, ${manifest.target.type}, exported ${manifest.exportedAt}).
 
 ## How to open it
@@ -736,8 +736,8 @@ ${dependencyLine}
 ${historicalLine}
 ${evolutionLine}
 
-Live source re-analysis and collaboration require CodeXR. Historical
-comparisons and Project Evolution movies can be created without CodeXR when
+Live source re-analysis and collaboration require Code-XR. Historical
+comparisons and Project Evolution movies can be created without Code-XR when
 their git timeline was selected for this export. An internet connection is
 still required for the A-Frame/BabiaXR CDN scripts the scene loads.
 `;

@@ -33,11 +33,10 @@ function contrastRatio(a, b) {
  * 2026-07-30 against the gallery API), which is what bounced the 1.2.0 upload.
  * `Code-XR` is held by this extension itself, published with 1.1.0.
  *
- * The product rename to "CodeXR" therefore stops at the store title: in-product
- * strings say CodeXR, the listing says Code-XR. That inconsistency is deliberate
- * and this test is where it is recorded, so nobody tidies it up and rediscovers
- * the rejection the hard way. Changing this title means finding a name no other
- * extension holds.
+ * So the product is called Code-XR everywhere (since 1.2.1 the in-product
+ * strings say so too, by the maintainer's decision), and the store title must
+ * never drop the hyphen: that would be the rejection all over again. Changing
+ * this title means finding a name no other extension holds.
  */
 test('the store title is one this publisher can actually publish', () => {
     assert.equal(packageJson.displayName, 'Code-XR');
@@ -58,6 +57,18 @@ test('the store one-liner survives being truncated on the listing card', () => {
         description.length <= 200,
         `the listing card shows roughly 200 characters; this is ${description.length}`,
     );
+});
+
+test('the listing links to the source repository and its issue tracker', () => {
+    assert.equal(packageJson.repository.url, 'https://github.com/Code-XR-Project/Code-XR.git');
+    assert.equal(packageJson.bugs.url, 'https://github.com/Code-XR-Project/Code-XR/issues');
+});
+
+test('the listing calls the product Code-XR, never CodeXR', () => {
+    const visible = [packageJson.displayName, packageJson.description, JSON.stringify(packageJson.contributes)];
+    for (const text of visible) {
+        assert.doesNotMatch(text, /(?<![\w.])CodeXR(?![\w])/, 'the product name has a hyphen');
+    }
 });
 
 test('the listing links to the project site', () => {

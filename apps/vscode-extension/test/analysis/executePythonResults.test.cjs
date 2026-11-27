@@ -102,7 +102,7 @@ test('LivePanel file: argv, result between the markers, reports', async () => {
             { increment: 0, message: 'Starting LivePanel analysis...' },
             { message: 'File analysis completed!' },
         ],
-        titles: ['CodeXR Analysis'],
+        titles: ['Code-XR Analysis'],
     });
 });
 
@@ -177,7 +177,7 @@ test('XR file and directory: argv and reports on the success path', async () => 
             { message: 'Starting XR analysis...' },
             { message: 'XR analysis completed!' },
         ],
-        titles: ['CodeXR Analysis'],
+        titles: ['Code-XR Analysis'],
     });
 
     const directory = await run(session('XR', 'directory'), { script: MAIN, stdout: MARKERS('{"files":[]}') });

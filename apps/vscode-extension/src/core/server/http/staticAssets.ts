@@ -168,7 +168,7 @@ export class StaticAssetServer {
         return `<!DOCTYPE html>
 <html>
 <head>
-    <title>CodeXR Server - File Not Found</title>
+    <title>Code-XR Server - File Not Found</title>
     <style>
         body { font-family: Arial; max-width: 800px; margin: 0 auto; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
         .error { background: #dc2626; color: white; padding: 15px; margin: 20px 0; }
@@ -176,7 +176,7 @@ export class StaticAssetServer {
     </style>
 </head>
 <body>
-    <h1>CodeXR Server - File Not Found</h1>
+    <h1>Code-XR Server - File Not Found</h1>
     <div class="error">
         <h3>Selected HTML File Not Found</h3>
         <p>The HTML file you selected could not be located.</p>

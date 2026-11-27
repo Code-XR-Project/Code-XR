@@ -1485,7 +1485,7 @@
         "message": "Participant — Ada (host)",
         "options": {
           "modal": true,
-          "detail": "Name         Ada (host)\nRole         Host\nAvatar       codexr-blue\n\nClient       CodeXR\nConnection   Local network\nIP address   127.0.0.1\nConnected    <clock> · 2m 5s ago"
+          "detail": "Name         Ada (host)\nRole         Host\nAvatar       codexr-blue\n\nClient       Code-XR\nConnection   Local network\nIP address   127.0.0.1\nConnected    <clock> · 2m 5s ago"
         },
         "items": []
       },
@@ -2209,7 +2209,7 @@
       },
       {
         "kind": "warning",
-        "message": "Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the CodeXR output.",
+        "message": "Stopped 1 of 2 server(s). The others were removed from the list but did not shut down cleanly; see the Code-XR output.",
         "items": []
       },
       {

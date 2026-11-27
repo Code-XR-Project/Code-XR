@@ -272,7 +272,7 @@
 
     if (reason && /no chart data is available yet/i.test(reason)) {
       lines.push('This chart is still loading data for ' + axisLabel + '.');
-      lines.push('CodeXR kept the last valid mapping until the visualization is ready.');
+      lines.push('Code-XR kept the last valid mapping until the visualization is ready.');
       lines.push('Try again once the chart finishes loading.');
       return lines.join('\n');
     }
@@ -284,9 +284,9 @@
     }
 
     if (includeRestoreLine === false) {
-      lines.push('CodeXR blocked this option because Babia failed the last time it was used.');
+      lines.push('Code-XR blocked this option because Babia failed the last time it was used.');
     } else {
-      lines.push('CodeXR restored the last valid mapping to keep the visualization stable.');
+      lines.push('Code-XR restored the last valid mapping to keep the visualization stable.');
     }
 
     lines.push('Try another field for this axis.');

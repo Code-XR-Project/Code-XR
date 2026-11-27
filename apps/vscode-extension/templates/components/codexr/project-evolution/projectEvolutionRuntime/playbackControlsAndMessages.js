@@ -131,7 +131,7 @@
     paintSpeedRow(refs.speedRoot);
     var autoCount = Object.keys(getSuggestedAutoOrderById()).length;
     var info = state.timelineMode === 'auto'
-      ? 'Auto: CodeXR samples ' + (autoCount || 'the') + ' timeline frames.'
+      ? 'Auto: Code-XR samples ' + (autoCount || 'the') + ' timeline frames.'
       : state.timelineMode === 'range'
         ? 'Range: ' + state.rangeSide.toUpperCase() + ' | ' + sourceDescription(findSource(state.startSourceId)) + ' -> ' + sourceDescription(findSource(state.endSourceId))
         : 'Manual: ' + state.manualSourceIds.length + ' selected frames.';
@@ -201,8 +201,8 @@
       var frameCount = state.result?.frames?.length || 0;
       setStatus(
         frameCount
-          ? 'Exported movie: play, pause and seek work here. Generating a new movie needs the live CodeXR session.'
-          : 'No evolution movie was generated before this export: generating one needs the live CodeXR session.',
+          ? 'Exported movie: play, pause and seek work here. Generating a new movie needs the live Code-XR session.'
+          : 'No evolution movie was generated before this export: generating one needs the live Code-XR session.',
         frameCount ? 'info' : 'error'
       );
       return true;
@@ -228,7 +228,7 @@
         startOfflineTimeline();
         return;
       }
-      setStatus('This export replays the movie generated before export: a new movie needs the live CodeXR session.', 'error');
+      setStatus('This export replays the movie generated before export: a new movie needs the live Code-XR session.', 'error');
       return;
     }
     var request = {

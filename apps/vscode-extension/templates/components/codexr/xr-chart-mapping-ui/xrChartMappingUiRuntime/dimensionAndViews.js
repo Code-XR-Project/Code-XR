@@ -203,7 +203,7 @@
   // view), otherwise the generic one. Single source so the header is written
   // once per update instead of generic-then-overwritten.
   function getMappingPanelTitle() {
-    return getActiveMappingCompanion()?.title || 'CodeXR Field Mapping';
+    return getActiveMappingCompanion()?.title || 'Code-XR Field Mapping';
   }
 
   // Companion visibility owner. Sets BOTH the attribute and object3D.visible:

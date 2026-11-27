@@ -34,7 +34,7 @@ export class LearnMoreSectionProvider extends BaseSectionProvider<LearnMoreModul
             'section',
             undefined,
             new vscode.ThemeIcon('book', new vscode.ThemeColor('charts.foreground')),
-            'Access CodeXR documentation, tutorials, examples, and support options',
+            'Access Code-XR documentation, tutorials, examples, and support options',
             'Docs, tutorials & support',
             'learnMoreSection'
         );

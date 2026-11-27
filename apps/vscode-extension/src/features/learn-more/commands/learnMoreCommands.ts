@@ -13,11 +13,11 @@ export class LearnMoreCommands {
             {
                 id: 'codeXR.learnMore',
                 module: 'LEARN_MORE',
-                description: 'Open CodeXR documentation',
+                description: 'Open Code-XR documentation',
                 handler: () => {
                     LearnMoreCommands.handleLearnMore();
                 },
-                errorMessage: 'Failed to open CodeXR documentation'
+                errorMessage: 'Failed to open Code-XR documentation'
             },
             {
                 id: 'codeXR.openAuthorWebsite',
@@ -31,7 +31,7 @@ export class LearnMoreCommands {
             {
                 id: 'codeXR.supportDeveloper',
                 module: 'LEARN_MORE',
-                description: 'Support CodeXR development on Buy Me a Coffee',
+                description: 'Support Code-XR development on Buy Me a Coffee',
                 handler: () => {
                     LearnMoreCommands.handleSupportDeveloper();
                 },
@@ -44,7 +44,7 @@ export class LearnMoreCommands {
         const websiteUrl = CODEXR_WEBSITE_URL;
 
         void vscode.window.showInformationMessage(
-            'Opening CodeXR Documentation Website...',
+            'Opening Code-XR Documentation Website...',
             'Open Website'
         ).then(selection => {
             if (selection === 'Open Website') {
@@ -59,7 +59,7 @@ export class LearnMoreCommands {
         const coffeeUrl = SUPPORT_URL;
 
         void vscode.window.showInformationMessage(
-            'Thank you for supporting CodeXR development! Opening Buy Me a Coffee...',
+            'Thank you for supporting Code-XR development! Opening Buy Me a Coffee...',
             'Open Page'
         ).then(selection => {
             if (selection === 'Open Page') {

@@ -209,7 +209,7 @@
       position: '0 ' + (SCREEN.height / 2 - 0.24) + ' 0.01', width: SCREEN.width, height: 0.44,
       material: 'color: #0b4f6c; opacity: .96; shader: flat'
     }));
-    slotRoot.appendChild(guideText('CodeXR Guide', '0 ' + (SCREEN.height / 2 - 0.24) + ' 0.02', 6, '#eaf4ff', 'center', 30));
+    slotRoot.appendChild(guideText('Code-XR Guide', '0 ' + (SCREEN.height / 2 - 0.24) + ' 0.02', 6, '#eaf4ff', 'center', 30));
 
     // One tab per section, laid out in a centred row under the title.
     var tabsY = SCREEN.height / 2 - 0.66;

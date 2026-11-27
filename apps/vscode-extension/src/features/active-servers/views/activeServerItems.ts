@@ -258,7 +258,7 @@ export class ActiveServerItemFactory {
 
         return participants.map((participant) => {
             const avatar = COLLABORATION_AVATARS.find((candidate) => candidate.id === participant.avatarId);
-            const client = participant.clientKind === 'codexr' ? 'CodeXR' : 'Browser';
+            const client = participant.clientKind === 'codexr' ? 'Code-XR' : 'Browser';
             const scope = participant.connectionScope === 'remote' ? 'Remote' : 'Local';
             const avatarLabel = avatar?.label || participant.avatarId;
             return new ActiveServerTreeItem(

@@ -955,8 +955,8 @@ test('dependency runtime is read-only in a self-contained export', () => {
 
   // start() bails with the read-only notice BEFORE the send-retry loop, which
   // would otherwise spin every 500 ms against a server that does not exist.
-  assert.match(source, /isOfflineExport\?\.\(\)[\s\S]{0,220}read-only: re-analysis needs the live CodeXR session/);
-  const offlineGuardIndex = source.indexOf('read-only: re-analysis needs the live CodeXR session');
+  assert.match(source, /isOfflineExport\?\.\(\)[\s\S]{0,220}read-only: re-analysis needs the live Code-XR session/);
+  const offlineGuardIndex = source.indexOf('read-only: re-analysis needs the live Code-XR session');
   const retryLoopIndex = source.indexOf('retrying dependency-graph-start');
   assert.ok(offlineGuardIndex > -1 && retryLoopIndex > -1 && offlineGuardIndex < retryLoopIndex,
     'the offline guard must sit before the retry loop');

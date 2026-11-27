@@ -20,7 +20,7 @@ const components = require('../helpers/sceneAssetModules.cjs').loadSceneAssetMod
 
 const RUNTIMES = [
     {
-        label: 'CodeXR DOM scene collaboration runtime',
+        label: 'Code-XR DOM scene collaboration runtime',
         folder: ['templates', 'components', 'codexr', 'dom-scene'],
         outputName: 'codexrDomSceneCollaborationRuntime.js',
         copy: 'copyCodeXrDomSceneCollaborationRuntimeToOutput',

@@ -10,7 +10,7 @@
   function showOfflineReplayStatus() {
     var replays = getOfflineReplayList();
     if (replays.length === 0) {
-      setStatus('No comparison was computed before this export: computing one needs the live CodeXR session.', 'error');
+      setStatus('No comparison was computed before this export: computing one needs the live Code-XR session.', 'error');
       return;
     }
     var next = replays[(state.offlineReplayIndex || 0) % replays.length];
@@ -80,7 +80,7 @@
       }
       var replays = getOfflineReplayList();
       if (replays.length === 0) {
-        setStatus('No comparison was computed before this export: computing one needs the live CodeXR session.', 'error');
+        setStatus('No comparison was computed before this export: computing one needs the live Code-XR session.', 'error');
         return;
       }
       var index = (state.offlineReplayIndex || 0) % replays.length;

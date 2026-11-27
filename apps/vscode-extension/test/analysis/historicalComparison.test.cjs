@@ -706,7 +706,7 @@ test('project evolution builds a chronological Git movie and publishes shared XR
     assert.match(runtime, /function selectSourceForTimeline/);
     assert.match(runtime, /refs\.picker\?\.getVisibleSources\?\.\(\)/);
     assert.match(runtime, /suggestedSourceIds/);
-    assert.match(runtime, /Auto: CodeXR samples ' \+ \(autoCount \|\| 'the'\) \+ ' timeline frames\.'/);
+    assert.match(runtime, /Auto: Code-XR samples ' \+ \(autoCount \|\| 'the'\) \+ ' timeline frames\.'/);
     assert.match(runtime, /orderLabel: String\(autoOrder\)/);
     assert.match(runtime, /mode: state\.timelineMode/);
     assert.match(runtime, /startSourceId/);

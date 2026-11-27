@@ -87,7 +87,7 @@ test('Active Analyses command registration injects ExtensionContext into its sin
     );
     assert.doesNotMatch(
         commandSource,
-        /The CodeXR extension context is unavailable/,
+        /The Code-XR extension context is unavailable/,
     );
 });
 

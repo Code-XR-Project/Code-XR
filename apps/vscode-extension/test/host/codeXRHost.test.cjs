@@ -253,7 +253,7 @@ test('cloudflared consent: a modal info question through the host; declining dow
     }
     assert.equal(fake.messages.length, 1);
     assert.equal(fake.messages[0].kind, 'info');
-    assert.match(fake.messages[0].message, /^CodeXR needs cloudflared /);
+    assert.match(fake.messages[0].message, /^Code-XR needs cloudflared /);
     assert.deepEqual(fake.messages[0].items, ['Download cloudflared']);
     assert.equal(fake.progressReports.length, 0, 'nothing was downloaded');
     assert.deepEqual(context.globalState.keys(), [], 'declining is not remembered');

@@ -201,7 +201,7 @@ export function createSectionDefinitions(
                 sectionType: 'learnMore',
                 collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
                 iconPath: new vscode.ThemeIcon('book', new vscode.ThemeColor('charts.foreground')),
-                tooltip: 'Access CodeXR documentation, tutorials, examples, and support options',
+                tooltip: 'Access Code-XR documentation, tutorials, examples, and support options',
                 description: 'Docs, tutorials & support',
                 contextValue: 'learnMoreSection',
             }),

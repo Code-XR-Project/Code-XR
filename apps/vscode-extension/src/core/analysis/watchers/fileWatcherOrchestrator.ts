@@ -208,7 +208,7 @@ export class FileWatcherOrchestrator {
         sessionRegistry.updateSessionStatus(this.session.id, 'monitoring', 100);
         const targetName = path.basename(this.session.targetPath);
         const noun = this.session.analysisMode === 'VisualizeDOM' ? 'HTML visualization' : 'analysis';
-        getHost().notifier.status(`$(check) CodeXR re-analysis updated ${noun} for ${targetName}`, 2000);
+        getHost().notifier.status(`$(check) Code-XR re-analysis updated ${noun} for ${targetName}`, 2000);
         logger.debug(() => `Re-analysis completed for ${targetName}`);
     }
 

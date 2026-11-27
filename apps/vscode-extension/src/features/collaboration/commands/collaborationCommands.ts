@@ -21,7 +21,7 @@ export function getCollaborationCommandRegistrations(
         {
             id: 'codeXR.collaboration.joinRemote',
             module: 'COLLABORATION',
-            description: 'Join a remote CodeXR session',
+            description: 'Join a remote Code-XR session',
             handler: async () => {
                 const remoteAccess = RemoteAccessManager.getInstance()
                     ?? RemoteAccessManager.initialize(context);
@@ -131,7 +131,7 @@ export function getCollaborationCommandRegistrations(
                     ],
                     [
                         ['Status', installed
-                            ? 'Bundled with the CodeXR extension — nothing is downloaded'
+                            ? 'Bundled with the Code-XR extension — nothing is downloaded'
                             : 'Missing from this installation — the procedural avatar is used'],
                     ],
                 ]);

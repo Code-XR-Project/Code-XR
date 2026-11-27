@@ -37,7 +37,7 @@ export class FileAnalysisXRCommands {
             } else {
                 const activeEditor = vscode.window.activeTextEditor;
                 if (!activeEditor) {
-                    void vscode.window.showWarningMessage('CodeXR: No file selected for XR analysis');
+                    void vscode.window.showWarningMessage('Code-XR: No file selected for XR analysis');
                     return;
                 }
                 filePath = activeEditor.document.fileName;
@@ -46,7 +46,7 @@ export class FileAnalysisXRCommands {
             const languageInfo = getLanguageForFile(filePath);
             if (!languageInfo) {
                 void vscode.window.showWarningMessage(
-                    `CodeXR: File "${path.basename(filePath)}" - Language not supported for XR analysis`,
+                    `Code-XR: File "${path.basename(filePath)}" - Language not supported for XR analysis`,
                 );
                 return;
             }
@@ -54,7 +54,7 @@ export class FileAnalysisXRCommands {
             await AnalysisOrchestrator.orchestrateAnalysis(filePath, 'XR', 'file', this.context, false);
         } catch (error) {
             logger.error('Error in XR file analysis:', error);
-            void vscode.window.showErrorMessage(`CodeXR: XR analysis failed - ${error}`);
+            void vscode.window.showErrorMessage(`Code-XR: XR analysis failed - ${error}`);
         }
     }
 }

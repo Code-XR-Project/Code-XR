@@ -51,7 +51,7 @@ export class BabiaExamplesCommands {
                             ] as DetailRow;
                         }),
                         [
-                            ['Examples', `${exampleCount} scene(s) bundled with CodeXR`],
+                            ['Examples', `${exampleCount} scene(s) bundled with Code-XR`],
                             ['Data', 'Sample JSON in examples/data'],
                         ],
                         [
