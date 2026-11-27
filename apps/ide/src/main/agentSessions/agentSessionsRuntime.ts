@@ -1,8 +1,8 @@
-import { app, BrowserWindow, dialog, webContents, type WebContents } from 'electron';
+import { app, BrowserWindow, dialog, net, webContents, type WebContents } from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AGENT_SESSION_EVENTS } from '../../shared/agentSession.ts';
+import { AGENT_SESSION_EVENTS, type InstallDescription } from '../../shared/agentSession.ts';
 import { shellCommand, shellKind } from '../../shared/tasks.ts';
 import { JsonKeyValueStore } from '../core/jsonStore.ts';
 import { log } from '../log.ts';
@@ -12,6 +12,7 @@ import { terminalEnvironment } from '../terminal/terminalService.ts';
 import { isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { addFolderChangeListener, currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
 import { AgentCatalog } from './agentCatalog.ts';
+import { AgentInstaller, consentDetail } from './agentInstaller.ts';
 import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
 import { loginCommandLine } from './agentTerminals.ts';
 import { SessionStore } from './sessionStore.ts';
@@ -34,6 +35,40 @@ export interface AgentSessionsRuntime {
     portOf(contents: WebContents): WindowPort;
     /** Asks the person, in a native dialog the page cannot answer, to confirm a custom agent's command line. */
     confirmCustomAgent(contents: WebContents, commandLine: string): Promise<boolean>;
+    /** AF2: the consent to download and install an adapter, in a native dialog showing exactly what. */
+    confirmInstall(contents: WebContents, description: InstallDescription): Promise<boolean>;
+    /** AF2: the confirmation to remove an adapter the IDE installed. */
+    confirmUninstall(contents: WebContents, packageName: string, version: string): Promise<boolean>;
+}
+
+const MAX_REGISTRY_RESPONSE = 32 * 1024 * 1024;
+
+/**
+ * AF2: one registry GET through Chromium's network stack (`net.fetch`), so the
+ * system's proxy and certificate settings apply as they do in the browser.
+ */
+async function fetchRegistryJson(url: string): Promise<unknown> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
+    try {
+        const response = await net.fetch(url, { signal: controller.signal, headers: { accept: 'application/json' } });
+        if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText}`.trim());
+        }
+        const text = await response.text();
+        if (text.length > MAX_REGISTRY_RESPONSE) {
+            throw new Error('The registry answer is too large.');
+        }
+        return JSON.parse(text) as unknown;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function ask(contents: WebContents, options: Electron.MessageBoxOptions): Promise<number> {
+    const owner = BrowserWindow.fromWebContents(contents);
+    const { response } = owner ? await dialog.showMessageBox(owner, options) : await dialog.showMessageBox(options);
+    return response;
 }
 
 export interface AgentSessionsRuntimeOptions {
@@ -52,8 +87,9 @@ const METRIC_DELTA_TIMEOUT_MS = 30_000;
 export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentSessionsRuntime {
     const userData = options.isSmoke ? path.join(os.tmpdir(), `codexr-ide-smoke-agent-sessions-${process.pid}`) : app.getPath('userData');
     const dir = path.join(userData, 'agent-sessions');
+    const packagesDir = path.join(userData, 'agent-packages');
     const catalog = new AgentCatalog({
-        packagesDir: path.join(userData, 'agent-packages'),
+        packagesDir,
         store: new JsonKeyValueStore(path.join(dir, 'agents.json')),
         env: process.env,
         platform: process.platform,
@@ -134,6 +170,8 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
             return changes.afterTurn(sessionId, root);
         },
         catalog,
+        // The smoke run may not download anything: no installer, so every install call is refused.
+        ...(options.isSmoke ? {} : { installer: new AgentInstaller({ packagesDir, fetchJson: fetchRegistryJson, env: process.env, platform: process.platform, arch: process.arch }) }),
         store: new SessionStore(dir),
         decisions: new JsonKeyValueStore(path.join(dir, 'permissions.json')),
         rootOf: (port) => {
@@ -191,6 +229,35 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
     return {
         service,
         portOf,
+        async confirmInstall(contents, description) {
+            const update = description.installedVersion !== null;
+            const response = await ask(contents, {
+                type: 'question',
+                title: update ? `Update ${description.agentName}` : `Install ${description.agentName}`,
+                message: update
+                    ? `Update ${description.agentName} from ${description.installedVersion ?? '?'} to ${description.version}?`
+                    : `Download and install ${description.agentName} (${description.packageName}@${description.version})?`,
+                detail: consentDetail(description),
+                buttons: [update ? 'Update' : 'Install', 'Cancel'],
+                defaultId: 1,
+                cancelId: 1,
+                noLink: true,
+            });
+            return response === 0;
+        },
+        async confirmUninstall(contents, packageName, version) {
+            const response = await ask(contents, {
+                type: 'warning',
+                title: 'Remove coding agent',
+                message: `Remove ${packageName}@${version}?`,
+                detail: `It is deleted from ${packagesDir}. Your sign-in, settings and chats are kept; you can install it again at any time.`,
+                buttons: ['Remove', 'Cancel'],
+                defaultId: 1,
+                cancelId: 1,
+                noLink: true,
+            });
+            return response === 0;
+        },
         async confirmCustomAgent(contents, commandLine) {
             const owner = BrowserWindow.fromWebContents(contents);
             const confirm: Electron.MessageBoxOptions = {

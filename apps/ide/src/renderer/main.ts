@@ -850,6 +850,9 @@ const agentWorkbench = installAgentWorkbench({
         }
     },
     hasFolder: () => folderIsOpen,
+    openFolder: () => {
+        registry.execute('workspace.openFolder');
+    },
 });
 function agentFolderChanged(root: string | null): void {
     agentRoot = root;

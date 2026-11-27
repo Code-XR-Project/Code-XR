@@ -1,6 +1,7 @@
 import type { AgentSessionMessage, AgentSessionsApi, AgentView, ProjectSessions, SessionSummary } from '../../shared/agentSession.ts';
 import { el, icon } from '../dom.ts';
 import { attentionCounts, availabilityLabel, defaultAgent, filterProjects, shortTime, statusLabel } from './sessionsModel.ts';
+import { agentActions, type AgentSetupDeps } from './agentSetup.ts';
 
 /**
  * The left column of the agent-first workbench (AF7, #272): the person's
@@ -45,6 +46,10 @@ export interface SessionsView {
     /** Redraws the highlight of the active chat. */
     setActive(sessionId: string | null): void;
     agents(): readonly AgentView[];
+    /** Reloads the agents list (and starts each installed one once to check it, when `probe`). */
+    refreshAgents(probe?: boolean): Promise<void>;
+    /** Called whenever the agents list changes (the first-run guide follows it). */
+    onAgentsChange(listener: (agents: readonly AgentView[]) => void): void;
     focusSearch(): void;
 }
 
@@ -132,6 +137,18 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
     ]));
     renderMode();
 
+    const agentListeners: ((list: readonly AgentView[]) => void)[] = [];
+    const setupDeps: AgentSetupDeps = {
+        api: deps.api,
+        onStatus: deps.onStatus,
+        ...(deps.showTerminal ? { showTerminal: deps.showTerminal } : {}),
+        refresh: (probe) => refreshAgents(probe),
+        replace: (view) => {
+            agents = agents.map((other) => (other.ref === view.ref ? view : other));
+            renderAgents();
+        },
+    };
+
     function iconButton(label: string, path: string, onClick: () => void): HTMLButtonElement {
         const button = el('button', { className: 'icon-button', attrs: { type: 'button', title: label, 'aria-label': label } }, [icon(path)]);
         button.addEventListener('click', (event) => {
@@ -163,55 +180,18 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
                 ...(deps.openBuiltinAgents ? [el('span', { className: 'af-agent-actions' }, [open])] : []),
             ]));
         }
-        agentList.replaceChildren(...agents.filter((agent) => agent.kind === 'acp').map((agent) => {
-            const actions = el('span', { className: 'af-agent-actions' });
-            if (agent.kind === 'acp' && agent.availability !== 'missing') {
-                const methods = agent.authMethods ?? [];
-                if (agent.availability === 'needs-login' || methods.length > 0) {
-                    for (const method of methods.slice(0, 3)) {
-                        const button = el('button', { className: 'secondary-button af-small-button', text: method.name, attrs: { type: 'button', title: method.description ?? method.name } });
-                        button.addEventListener('click', () => {
-                            deps.api.login(agent.ref, method.id)
-                                .then(() => {
-                                    if (method.type === 'terminal') {
-                                        deps.showTerminal?.();
-                                        deps.onStatus(`${agent.name}: finish the sign-in in the terminal, then press Check.`);
-                                    } else {
-                                        deps.onStatus(`${agent.name}: signed in.`);
-                                    }
-                                    return refreshAgents(true);
-                                })
-                                .catch((error: unknown) => deps.onStatus(errorText(error)));
-                        });
-                        actions.append(button);
-                    }
-                }
-                const check = el('button', { className: 'secondary-button af-small-button', text: 'Check', attrs: { type: 'button', title: 'Start the agent once to see whether it is ready' } });
-                check.addEventListener('click', () => {
-                    check.disabled = true;
-                    check.textContent = 'Checking...';
-                    deps.api.probeAgent(agent.ref)
-                        .then((view) => {
-                            agents = agents.map((other) => (other.ref === view.ref ? view : other));
-                            renderAgents();
-                        })
-                        .catch((error: unknown) => {
-                            deps.onStatus(errorText(error));
-                            check.disabled = false;
-                            check.textContent = 'Check';
-                        });
-                });
-                actions.append(check);
-            }
-            return el('li', { className: 'af-agent', attrs: { 'data-availability': agent.availability, 'data-ref': agent.ref } }, [
-                el('div', { className: 'af-agent-main' }, [
-                    el('span', { className: 'af-agent-name', text: agent.name }),
-                    el('span', { className: 'af-badge', attrs: { 'data-availability': agent.availability }, text: availabilityLabel(agent) }),
-                ]),
-                el('p', { className: 'muted af-agent-detail', text: agent.detail ?? agent.description }),
-                actions,
-            ]);
-        }), ...builtinRow);
+        agentList.replaceChildren(...agents.filter((agent) => agent.kind === 'acp').map((agent) => el('li', { className: 'af-agent', attrs: { 'data-availability': agent.availability, 'data-ref': agent.ref } }, [
+            el('div', { className: 'af-agent-main' }, [
+                el('span', { className: 'af-agent-name', text: agent.name }),
+                ...(agent.installedVersion ? [el('span', { className: 'af-agent-version muted', text: agent.installedVersion, attrs: { title: 'Installed by Code-XR IDE' } })] : []),
+                el('span', { className: 'af-badge', attrs: { 'data-availability': agent.availability }, text: availabilityLabel(agent) }),
+            ]),
+            el('p', { className: 'muted af-agent-detail', text: agent.detail ?? agent.description }),
+            agentActions(agent, setupDeps),
+        ])), ...builtinRow);
+        for (const listener of agentListeners) {
+            listener(agents);
+        }
     }
 
     function renderProjects(): void {
@@ -402,6 +382,9 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
                 refreshSoon();
                 return;
             }
+            if (message.kind === 'install-progress') {
+                return;
+            }
             const type = message.event.type;
             if (type === 'status' || type === 'turn-end' || type === 'title' || type === 'permission' || type === 'permission-resolved' || type === 'pending-changes' || type === 'user' || type === 'read') {
                 refreshSoon();
@@ -416,6 +399,10 @@ export function createSessionsView(container: HTMLElement, deps: SessionsViewDep
             renderMode();
         },
         agents: () => agents,
+        refreshAgents,
+        onAgentsChange(listener): void {
+            agentListeners.push(listener);
+        },
         focusSearch(): void {
             search.focus();
         },

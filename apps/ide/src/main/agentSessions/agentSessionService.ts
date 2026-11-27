@@ -23,6 +23,7 @@ import {
     type AgentView,
     type ChangeDiffView,
     type ChatChanges,
+    type InstallDescription,
     type LoginTerminal,
     type PermissionOptionView,
     type ProjectSessions,
@@ -52,6 +53,7 @@ import {
     type ResolvedAttachment,
 } from './acpMapping.ts';
 import type { AgentCatalog } from './agentCatalog.ts';
+import { parsePresetId, type AgentInstaller } from './agentInstaller.ts';
 import { AgentTerminals } from './agentTerminals.ts';
 import { isSessionId, type SessionStore } from './sessionStore.ts';
 
@@ -86,6 +88,8 @@ export interface KeyValueStore {
 
 export interface AgentSessionServiceOptions {
     readonly catalog: AgentCatalog;
+    /** AF2: installs presets' adapters on request; absent in the smoke run (no download may happen). */
+    readonly installer?: AgentInstaller;
     readonly store: SessionStore;
     /** Where `allow_always` / `reject_always` answers are kept. */
     readonly decisions: KeyValueStore;
@@ -348,6 +352,84 @@ export class AgentSessionService {
         }
         this.broadcast({ kind: 'agents-changed' });
         return null;
+    }
+
+    // ---- Installing presets (AF2) ------------------------------------------
+
+    private requireInstaller(): AgentInstaller {
+        if (!this.options.installer) {
+            throw new Error('Installing agents is not available in this mode.');
+        }
+        return this.options.installer;
+    }
+
+    /** What installing a preset would download: read from the registry now, because the person asked. */
+    describeInstall(window: WindowPort, presetId: unknown): Promise<InstallDescription> {
+        this.remember(window);
+        const id = parsePresetId(presetId);
+        return this.requireInstaller().describe(id);
+    }
+
+    /**
+     * Installs or updates a preset after `confirm` (a native dialog the page
+     * cannot answer) accepted the description. npm's output streams to every
+     * window as `install-progress`; the agents list hears `agents-changed`.
+     */
+    async installAgent(window: WindowPort, presetIdInput: unknown, confirm: (description: InstallDescription) => Promise<boolean>): Promise<boolean> {
+        this.remember(window);
+        const presetId = parsePresetId(presetIdInput);
+        const installer = this.requireInstaller();
+        const progress = (extra: { line?: string; done?: boolean; error?: string }): void => this.broadcast({ kind: 'install-progress', presetId, action: 'install', ...extra });
+        let started = false;
+        try {
+            const done = await installer.install(presetId, async (description) => {
+                started = await confirm(description);
+                return started;
+            }, (line) => progress({ line }));
+            if (started) {
+                progress({ done: true });
+            }
+            return done;
+        } catch (error) {
+            if (started) {
+                progress({ done: true, error: errorMessage(error) });
+            }
+            throw error;
+        } finally {
+            if (started) {
+                this.options.catalog.forget(`acp:${presetId}`);
+                this.broadcast({ kind: 'agents-changed' });
+            }
+        }
+    }
+
+    /** Removes a preset the IDE installed, after `confirm`. */
+    async uninstallAgent(window: WindowPort, presetIdInput: unknown, confirm: (packageName: string, version: string) => Promise<boolean>): Promise<boolean> {
+        this.remember(window);
+        const presetId = parsePresetId(presetIdInput);
+        const installer = this.requireInstaller();
+        const progress = (extra: { line?: string; done?: boolean; error?: string }): void => this.broadcast({ kind: 'install-progress', presetId, action: 'uninstall', ...extra });
+        let started = false;
+        try {
+            const done = await installer.uninstall(presetId, async (packageName, version) => {
+                started = await confirm(packageName, version);
+                return started;
+            }, (line) => progress({ line }));
+            if (started) {
+                progress({ done: true });
+            }
+            return done;
+        } catch (error) {
+            if (started) {
+                progress({ done: true, error: errorMessage(error) });
+            }
+            throw error;
+        } finally {
+            if (started) {
+                this.options.catalog.forget(`acp:${presetId}`);
+                this.broadcast({ kind: 'agents-changed' });
+            }
+        }
     }
 
     /** Starts an agent in the IDE's own empty folder, initialised and recorded in the catalogue. */

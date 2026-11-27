@@ -36,4 +36,8 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.undoChanges, (event, id, paths) => service.undoChanges(portOf(event.sender), id, paths));
     handle(C.previewRestore, (event, id, checkpointId) => service.previewRestore(portOf(event.sender), id, checkpointId));
     handle(C.restoreCheckpoint, (event, id, checkpointId) => service.restoreCheckpoint(portOf(event.sender), id, checkpointId));
+    // AF2: the registry is read only on request; installing and removing ask natively first.
+    handle(C.describeInstall, (event, presetId) => service.describeInstall(portOf(event.sender), presetId));
+    handle(C.install, (event, presetId) => service.installAgent(portOf(event.sender), presetId, (description) => runtime.confirmInstall(event.sender, description)));
+    handle(C.uninstall, (event, presetId) => service.uninstallAgent(portOf(event.sender), presetId, (packageName, version) => runtime.confirmUninstall(event.sender, packageName, version)));
 }
