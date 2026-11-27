@@ -11,11 +11,19 @@ import type { ExplorerGitDecoration } from '../shared/gitGutter.ts';
  * New Folder create inside the focused folder (or the focused file's folder).
  * Each row shows the icon of its language or type (#138, `fileIcons.ts`);
  * a folder's icon opens and closes with it.
+ *
+ * #285: Cut, Copy and Paste (Ctrl/Cmd+X, C, V while the tree has the focus,
+ * or the context menu) keep their clipboard here, in the page: the entry
+ * named, never its contents; a cut entry is dimmed until it is pasted. The
+ * main process copies or moves inside the folder. The toolbar also collapses
+ * every folder and re-lists the loaded ones.
  */
 
 const CHEVRON = 'M9 6l6 6-6 6';
 const NEW_FILE = 'M6 3h8l4 4v14H6zM12 11v6M9 14h6';
 const NEW_FOLDER = 'M3 6h7l2 2h9v11H3zM12 11v6M9 14h6';
+const REFRESH = 'M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5';
+const COLLAPSE_ALL = 'M4 4h16v16H4zM8 12h8';
 
 const parentOf = (path: string): string => path.split('/').slice(0, -1).join('/');
 
@@ -34,6 +42,20 @@ export interface Explorer {
     reveal(path: string): Promise<boolean>;
     /** #175: the Git state of the changed files and of the folders above them (colour, and a letter on files). */
     setGitDecorations(decorations: ReadonlyMap<string, ExplorerGitDecoration>): void;
+    /** #285: the entry operations of the context menu, on a workspace path (`''` is the top folder). */
+    rename(path: string): void;
+    trash(path: string): void;
+    cut(path: string): void;
+    copy(path: string): void;
+    /** Pastes the clipboard into `path` (a folder) or the folder of `path` (a file). */
+    paste(path: string): Promise<void>;
+    duplicate(path: string): Promise<void>;
+    /** Whether something was cut or copied (Paste is enabled). */
+    canPaste(): boolean;
+    /** Collapses every folder of the tree. */
+    collapseAll(): void;
+    /** Re-lists the top folder and every loaded folder. */
+    refreshAll(): Promise<void>;
 }
 
 interface TreeNode {
@@ -59,12 +81,12 @@ export function createExplorer(
         onExpandedChange?(): void;
         /** An entry was created from the explorer. */
         onCreated?(path: string, kind: DirEntry['kind']): void;
-        /** An entry (and everything below it) was renamed from the explorer. */
+        /** An entry (and everything below it) was renamed, or (#285) moved by cut and paste, from the explorer. */
         onRenamed?(from: string, to: string): void;
         /** An entry (and everything below it) was moved to the trash from the explorer. */
         onTrashed?(path: string): void;
-        /** #16: a right click on a file (the menu with its analyses). */
-        onFileContextMenu?(path: string, x: number, y: number): void;
+        /** #16, #285: a right click (or the context-menu key) on an entry, or on the tree's free space (`''`, the top folder). */
+        onContextMenu?(path: string, kind: DirEntry['kind'], x: number, y: number): void;
         /** A recent folder was opened from the empty explorer. */
         confirmOpenRecent?(): boolean;
     },
@@ -78,6 +100,8 @@ export function createExplorer(
     const actions = el('div', { className: 'side-bar-actions' }, [
         actionButton('New File…', NEW_FILE, 'new-file', () => void createEntry('file')),
         actionButton('New Folder…', NEW_FOLDER, 'new-folder', () => void createEntry('directory')),
+        actionButton('Refresh Explorer', REFRESH, 'explorer-refresh', () => void refreshAll()),
+        actionButton('Collapse Folders in Explorer', COLLAPSE_ALL, 'explorer-collapse-all', () => collapseAll()),
     ]);
     actions.hidden = true;
     const header = el('div', { className: 'side-bar-header' }, [title, actions]);
@@ -86,6 +110,25 @@ export function createExplorer(
 
     const nodes = new Map<HTMLElement, TreeNode>();
     let tree: HTMLUListElement | null = null;
+    /** #285: what Cut or Copy named, until it is pasted (cut) or replaced. */
+    let clipboard: { readonly path: string; readonly mode: 'cut' | 'copy' } | null = null;
+
+    body.addEventListener('contextmenu', (event) => {
+        if (!tree || !callbacks.onContextMenu || (event.target as HTMLElement).tagName === 'INPUT') {
+            return;
+        }
+        const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
+        const node = row ? nodes.get(row) : undefined;
+        event.preventDefault();
+        if (node) {
+            focusRow(node.row);
+            // The context-menu key fires on the focused row without a pointer position.
+            const at = event.clientX === 0 && event.clientY === 0 ? node.row.getBoundingClientRect() : null;
+            callbacks.onContextMenu(node.entry.path, node.entry.kind, at ? at.left + 16 : event.clientX, at ? at.bottom : event.clientY);
+        } else {
+            callbacks.onContextMenu('', 'directory', event.clientX, event.clientY);
+        }
+    });
 
     const openButton = (): HTMLButtonElement => {
         const button = el('button', { className: 'primary-button', text: 'Open Folder…', attrs: { type: 'button', 'data-testid': 'open-folder' } });
@@ -207,6 +250,7 @@ export function createExplorer(
         const item = el('li', { attrs: { role: 'none' } }, [row]);
         nodes.set(row, { entry, row, item, group: null, expanded: false });
         decorate(row, entry.path);
+        row.classList.toggle('is-cut', clipboard?.mode === 'cut' && clipboard.path === entry.path);
         return item;
     }
 
@@ -307,8 +351,19 @@ export function createExplorer(
                 if (!event.metaKey) { return; } // Cmd+Backspace: the macOS delete shortcut
                 void trashEntry(node);
                 break;
-            default:
-                return;
+            default: {
+                // #285: Ctrl+C / X / V (Cmd on macOS) while the tree has the focus.
+                const key = event.key.toLowerCase();
+                if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || !['c', 'x', 'v'].includes(key)) {
+                    return;
+                }
+                if (key === 'v') {
+                    void paste(node.entry.path);
+                } else {
+                    setClipboard(node.entry.path, key === 'x' ? 'cut' : 'copy');
+                }
+                break;
+            }
         }
         event.preventDefault();
     }
@@ -316,6 +371,7 @@ export function createExplorer(
     async function show(workspace: WorkspaceInfo | null): Promise<void> {
         nodes.clear();
         tree = null;
+        clipboard = null;
         actions.hidden = !workspace;
         if (!workspace) {
             title.textContent = 'Explorer';
@@ -341,14 +397,6 @@ export function createExplorer(
             const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
             const node = row ? nodes.get(row) : undefined;
             if (node && node.entry.kind === 'file') { callbacks.onOpenFile(node.entry.path, false); }
-        });
-        root.addEventListener('contextmenu', (event) => {
-            const row = (event.target as HTMLElement).closest<HTMLElement>('[role="treeitem"]');
-            const node = row ? nodes.get(row) : undefined;
-            if (node?.entry.kind === 'file' && callbacks.onFileContextMenu) {
-                event.preventDefault();
-                callbacks.onFileContextMenu(node.entry.path, event.clientX, event.clientY);
-            }
         });
         root.addEventListener('keydown', onKeyDown);
         tree = root;
@@ -483,6 +531,7 @@ export function createExplorer(
             await refresh([parentOf(node.entry.path)]);
             const moved = nodeAt(renamed);
             if (moved) { focusRow(moved.row); }
+            followClipboard(node.entry.path, renamed);
             callbacks.onRenamed?.(node.entry.path, renamed);
         } catch (error) {
             callbacks.onError(`Could not rename ${old}: ${errorText(error)}`);
@@ -504,10 +553,111 @@ export function createExplorer(
             await refresh([parentOf(node.entry.path)]);
             const neighbour = nextPath ? nodeAt(nextPath) : undefined;
             if (neighbour) { focusRow(neighbour.row); }
+            followClipboard(node.entry.path, null);
             callbacks.onTrashed?.(node.entry.path);
         } catch (error) {
             callbacks.onError(`Could not move ${node.entry.name} to the trash: ${errorText(error)}`);
         }
+    }
+
+    /** #285: Cut or Copy names `path`; only a cut entry is dimmed. */
+    function setClipboard(path: string, mode: 'cut' | 'copy'): void {
+        clipboard = { path, mode };
+        markCut();
+    }
+
+    function markCut(): void {
+        for (const node of nodes.values()) {
+            node.row.classList.toggle('is-cut', clipboard?.mode === 'cut' && clipboard.path === node.entry.path);
+        }
+    }
+
+    /** The clipboard follows its entry when it (or a folder above it) is renamed or moved, and is dropped when it is trashed. */
+    function followClipboard(from: string, to: string | null): void {
+        if (!clipboard || (clipboard.path !== from && !clipboard.path.startsWith(`${from}/`))) {
+            return;
+        }
+        clipboard = to === null ? null : { path: to + clipboard.path.slice(from.length), mode: clipboard.mode };
+        markCut();
+    }
+
+    /** The folder a paste on `path` lands in: the folder itself, or a file's folder. */
+    function folderOf(path: string): string {
+        if (path === '') {
+            return '';
+        }
+        return nodeAt(path)?.entry.kind === 'directory' ? path : parentOf(path);
+    }
+
+    async function paste(path: string): Promise<void> {
+        if (!clipboard) {
+            return;
+        }
+        const { path: from, mode } = clipboard;
+        const folder = folderOf(path);
+        const name = from.split('/').pop() ?? from;
+        try {
+            const pasted = mode === 'cut' ? await api.moveEntry(from, folder) : await api.copyEntry(from, folder);
+            if (mode === 'cut') {
+                clipboard = null;
+                markCut();
+            }
+            await refresh(mode === 'cut' ? [parentOf(from), folder] : [folder]);
+            await reveal(pasted);
+            if (mode === 'cut' && pasted !== from) {
+                // Open editors follow, as they do a rename.
+                callbacks.onRenamed?.(from, pasted);
+            }
+        } catch (error) {
+            callbacks.onError(`Could not ${mode === 'cut' ? 'move' : 'copy'} ${name}: ${errorText(error)}`);
+        }
+    }
+
+    async function duplicate(path: string): Promise<void> {
+        const name = path.split('/').pop() ?? path;
+        try {
+            const copied = await api.copyEntry(path, parentOf(path));
+            await refresh([parentOf(path)]);
+            await reveal(copied);
+        } catch (error) {
+            callbacks.onError(`Could not duplicate ${name}: ${errorText(error)}`);
+        }
+    }
+
+    function collapseAll(): void {
+        const selected = selectedNode();
+        let changed = false;
+        for (const node of nodes.values()) {
+            if (!node.expanded) {
+                continue;
+            }
+            node.expanded = false;
+            node.row.setAttribute('aria-expanded', 'false');
+            node.row.querySelector(':scope > .file-icon')?.replaceWith(fileIcon(node.entry.name, 'directory', false));
+            if (node.group) { node.group.hidden = true; }
+            changed = true;
+        }
+        // The selection moves to its top-level entry, the one row of its branch still shown.
+        const top = selected ? nodeAt(selected.entry.path.split('/')[0] ?? '') : undefined;
+        if (top && top !== selected) {
+            focusRow(top.row);
+        }
+        if (changed) {
+            callbacks.onExpandedChange?.();
+        }
+    }
+
+    async function refreshAll(): Promise<void> {
+        if (!tree) {
+            return;
+        }
+        await refresh(['', ...[...nodes.values()].filter((node) => node.group).map((node) => node.entry.path)]);
+    }
+
+    /** Runs `action` on the row of `path`, when the tree shows it. */
+    function onNode(path: string, action: (node: TreeNode) => Promise<void>): void {
+        const node = nodeAt(path);
+        if (node) { void action(node); }
     }
 
     function expandedFolders(): string[] {
@@ -536,7 +686,18 @@ export function createExplorer(
         }
     }
 
-    return { show, openFolder, expandedFolders, refresh, newFile: () => createEntry('file'), newFolder: () => createEntry('directory'), reveal, setGitDecorations };
+    return {
+        show, openFolder, expandedFolders, refresh, newFile: () => createEntry('file'), newFolder: () => createEntry('directory'), reveal, setGitDecorations,
+        rename: (path) => onNode(path, renameEntry),
+        trash: (path) => onNode(path, trashEntry),
+        cut: (path) => setClipboard(path, 'cut'),
+        copy: (path) => setClipboard(path, 'copy'),
+        paste,
+        duplicate,
+        canPaste: () => clipboard !== null,
+        collapseAll,
+        refreshAll,
+    };
 }
 
 /** The message of an IPC rejection, without Electron's "Error invoking remote method" prefix. */

@@ -229,6 +229,10 @@ function copyPath(path: string, kind: 'absolute' | 'relative'): void {
         (error: unknown) => workbench.setStatus(`Could not copy the path: ${String(error)}`),
     );
 }
+/** #285: the main process checks the path inside the folder and opens the system's file manager on it. */
+function revealInOs(path: string): void {
+    api.workspace.revealInOs(path).catch((error: unknown) => workbench.setStatus(`Could not reveal ${path || 'the folder'}: ${String(error)}`));
+}
 async function revealInExplorer(path: string): Promise<void> {
     workbench.showView('explorer');
     if (!(await explorer.reveal(path))) {
@@ -312,17 +316,44 @@ function fileAnalysisItems(path: string, prefix: string): ContextMenuItem[] {
     ];
 }
 
-function showExplorerFileMenu(path: string, x: number, y: number): void {
+/** #285: the system file manager's name, as each OS's own menus say it. */
+function revealInOsLabel(): string {
+    return platform === 'win32' ? 'Reveal in File Explorer' : platform === 'darwin' ? 'Reveal in Finder' : 'Reveal in File Manager';
+}
+
+/**
+ * #16, #285: the explorer's context menu, on a file, a folder or the tree's
+ * free space (`''`, the top folder, which cannot be cut, renamed or deleted).
+ */
+function showExplorerMenu(path: string, kind: 'file' | 'directory', x: number, y: number): void {
+    const isFile = kind === 'file';
+    const isRoot = path === '';
+    const key = (binding: string): string => formatKeybinding(binding, platform);
+    const entryItems: ContextMenuItem[] = isRoot ? [] : [
+        { label: 'Cut', keybinding: key('cmdorctrl+x'), run: () => explorer.cut(path), testId: 'explorer-menu-cut' },
+        { label: 'Copy', keybinding: key('cmdorctrl+c'), run: () => explorer.copy(path), testId: 'explorer-menu-copy' },
+    ];
     const items: ContextMenuItem[] = [
-        { label: 'Open', run: () => void editorGroup().then((group) => group.open(path)), testId: 'explorer-menu-open' },
-        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'explorer-menu-copy-path' },
-        { label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'explorer-menu-copy-relative-path' },
-        ...(workbench.sceneArea.hidden ? [] : [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }]),
+        ...(isFile ? [{ label: 'Open', run: () => void editorGroup().then((group) => group.open(path)), testId: 'explorer-menu-open' }] : []),
+        { label: revealInOsLabel(), run: () => revealInOs(path), testId: 'explorer-menu-reveal-in-os' },
+        { label: 'Open in Integrated Terminal', run: () => void terminal.newTerminal(null, path), testId: 'explorer-menu-open-in-terminal' },
         { separator: true },
-        ...fileAnalysisItems(path, 'explorer-menu'),
+        ...entryItems,
+        { label: 'Paste', keybinding: key('cmdorctrl+v'), enabled: explorer.canPaste(), run: () => void explorer.paste(path), testId: 'explorer-menu-paste' },
+        ...(isRoot ? [] : [{ label: 'Duplicate', run: () => void explorer.duplicate(path), testId: 'explorer-menu-duplicate' }]),
+        { separator: true },
+        { label: 'Copy Path', run: () => copyPath(path, 'absolute'), testId: 'explorer-menu-copy-path' },
+        ...(isRoot ? [] : [{ label: 'Copy Relative Path', run: () => copyPath(path, 'relative'), testId: 'explorer-menu-copy-relative-path' }]),
+        ...(isRoot ? [] : [
+            { separator: true } as const,
+            { label: 'Rename…', keybinding: 'F2', run: () => explorer.rename(path), testId: 'explorer-menu-rename' },
+            { label: 'Delete', keybinding: platform === 'darwin' ? 'Cmd+Backspace' : 'Delete', run: () => explorer.trash(path), testId: 'explorer-menu-delete' },
+        ]),
+        ...(isFile && !workbench.sceneArea.hidden ? [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }] : []),
+        ...(isFile ? [{ separator: true } as const, ...fileAnalysisItems(path, 'explorer-menu')] : []),
     ];
     showContextMenu(items, x, y, {
-        label: `Actions for ${path}`,
+        label: `Actions for ${path || 'the folder'}`,
         rightInset: () => (workbench.sceneArea.hidden ? 0 : workbench.sceneArea.getBoundingClientRect().width),
     });
 }
@@ -339,7 +370,7 @@ const explorer = createExplorer(workbench.sideBar, api.workspace, {
     onCreated: (path, kind) => { if (kind === 'file') { void editorGroup().then((group) => group.open(path)); } },
     onRenamed: (from, to) => void editors?.entryMoved(from, to),
     onTrashed: (path) => void editors?.entryMoved(path, null),
-    onFileContextMenu: showExplorerFileMenu,
+    onContextMenu: showExplorerMenu,
 });
 
 api.workspace.onDidChangeFiles((paths) => {
