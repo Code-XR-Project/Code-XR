@@ -21,6 +21,8 @@ interface ActivityItem {
 }
 
 const ACTIVITY: readonly ActivityItem[] = [
+    // #272 (AF7): the agent-first workbench's chats, grouped by project (agentFirst/sessionsView.ts).
+    { id: 'chats', label: 'Chats', icon: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5' },
     { id: 'explorer', label: 'Explorer', icon: 'M3 6h7l2 2h9v11H3z' },
     // #165: search across the workspace (search/searchView.ts).
     { id: 'search', label: 'Search', icon: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13zM15.5 15.5L21 21' },
@@ -37,7 +39,7 @@ const ACTIVITY: readonly ActivityItem[] = [
 ];
 
 /** `keybindings` has no activity item of its own: it is part of Settings (#18, part 3). */
-export type ViewId = 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
+export type ViewId = 'chats' | 'explorer' | 'search' | 'scm' | 'debug' | 'analysis' | 'xr' | 'agents' | 'settings' | 'keybindings';
 
 export interface Workbench {
     /** The explorer's part of its side-bar pane (the file tree). */
@@ -50,6 +52,13 @@ export interface Workbench {
     readonly scmView: HTMLElement;
     /** #180: the Run and Debug view's pane of the side bar. */
     readonly debugView: HTMLElement;
+    /** #272 (AF7): the Chats view's pane (projects and their agent chats). */
+    readonly chatsView: HTMLElement;
+    /** #269 (AF4): the right-hand dock's placeholder, shown in Agent mode while no scene is open. */
+    readonly dockArea: HTMLElement;
+    /** #269 (AF4): the layout mode; Agent keeps the analysis column on the right even before a scene opens. */
+    readonly layoutMode: 'agent' | 'classic';
+    setLayoutMode(mode: 'agent' | 'classic'): void;
     /** The status bar's slot for the current branch (#17), at its left. */
     readonly branchStatus: HTMLElement;
     /** #177: the Restricted Mode item, at the start of the status bar (trustView.ts fills it). */
@@ -117,6 +126,7 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const searchView = el('div', { className: 'side-pane', attrs: { 'data-view': 'search', 'data-testid': 'search-view' } });
     const scmView = el('div', { className: 'side-pane', attrs: { 'data-view': 'scm', 'data-testid': 'scm-view' } });
     const debugView = el('div', { className: 'side-pane', attrs: { 'data-view': 'debug', 'data-testid': 'debug-view' } });
+    const chatsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'chats', 'data-testid': 'chats-view' } });
     const analysisView = el('div', { className: 'side-pane', attrs: { 'data-view': 'analysis', 'data-testid': 'analysis-view' } });
     const xrView = el('div', { className: 'side-pane', attrs: { 'data-view': 'xr' } }, [
         el('h2', { className: 'side-bar-title', text: 'XR scene' }),
@@ -125,8 +135,8 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     const agentsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'agents', 'data-testid': 'agents-view' } });
     const settingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'settings', 'data-testid': 'settings-view' } });
     const keybindingsView = el('div', { className: 'side-pane', attrs: { 'data-view': 'keybindings', 'data-testid': 'keybindings-view' } });
-    const panes = new Map<ViewId, HTMLElement>([['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['debug', debugView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
-    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [explorerPane, searchView, scmView, debugView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
+    const panes = new Map<ViewId, HTMLElement>([['chats', chatsView], ['explorer', explorerPane], ['search', searchView], ['scm', scmView], ['debug', debugView], ['analysis', analysisView], ['xr', xrView], ['agents', agentsView], ['settings', settingsView], ['keybindings', keybindingsView]]);
+    const sideBarFrame = el('aside', { className: 'side-bar', attrs: { 'aria-label': 'Explorer', 'data-testid': 'side-bar' } }, [chatsView, explorerPane, searchView, scmView, debugView, analysisView, xrView, agentsView, settingsView, keybindingsView]);
 
     function showView(id: ViewId, reveal = true): void {
         if (reveal && (!layout.sideBarVisible || layout.zen)) {
@@ -185,7 +195,10 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
     // #137: the bottom panel (hidden until the terminal opens).
     const panel = el('section', { className: 'panel', attrs: { hidden: '' } });
 
-    const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, panel, sceneArea, statusBar]);
+    // #269 (AF4): in Agent mode the scene column is always there; until a scene opens it holds this placeholder.
+    const dockArea = el('section', { className: 'af-dock', attrs: { 'aria-label': 'Live analysis', 'data-testid': 'af-dock' } });
+    const shell = el('div', { className: 'workbench' }, [activityBar, sideBarFrame, editorArea, panel, sceneArea, dockArea, statusBar]);
+    let layoutMode: 'agent' | 'classic' = 'classic';
     root.replaceChildren(shell);
     const layout = createLayout({ shell, sideBar: sideBarFrame, panel, sceneArea }, storage);
     showView('explorer', false);
@@ -196,6 +209,15 @@ export function renderWorkbench(root: HTMLElement, storage: LayoutStorage | null
         searchView,
         scmView,
         debugView,
+        chatsView,
+        dockArea,
+        get layoutMode() {
+            return layoutMode;
+        },
+        setLayoutMode(mode: 'agent' | 'classic'): void {
+            layoutMode = mode;
+            shell.classList.toggle('mode-agent', mode === 'agent');
+        },
         branchStatus,
         trustStatus,
         isViewVisible: (id: ViewId) => !panes.get(id)?.hidden && layout.sideBarVisible && !layout.zen,
