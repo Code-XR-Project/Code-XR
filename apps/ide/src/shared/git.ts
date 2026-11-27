@@ -33,7 +33,8 @@ export interface GitChange {
  * - `not-repo`: the folder is not inside a Git work tree.
  * - `error`: git ran and failed (`message` says how).
  */
-export type GitRepoState = 'ok' | 'no-folder' | 'no-git' | 'not-repo' | 'error';
+/** #177: `restricted`: the folder is not trusted, so the IDE runs no git in it (hooks, filters and config come with the repository). */
+export type GitRepoState = 'ok' | 'no-folder' | 'no-git' | 'not-repo' | 'restricted' | 'error';
 
 export interface GitStatus {
     readonly state: GitRepoState;

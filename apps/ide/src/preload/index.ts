@@ -3,7 +3,7 @@ import type { ColorTheme, SettingScope, SettingValue } from '../shared/settings.
 import type { UserKeybinding } from '../shared/keybindings.ts';
 import type { OutputChannelId } from '../shared/output.ts';
 import type { FunctionMetricsSnapshot } from '../shared/problems.ts';
-import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo } from '../shared/api.ts';
+import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAnalysisKind, type ProjectAnalysisKind, type CodeXRApi, type HostNotification, type IdeCommand, type KeybindingsReport, type OutputAppended, type ProgressEvent, type PythonEnvStatus, type SceneAddress, type SceneBounds, type SceneFilesEvent, type SceneInfo, type SceneOpenInEditorEvent, type SceneShareEvent, type SearchDoneEvent, type SearchFileEvent, type SearchQuery, type SettingsReport, type TerminalDataEvent, type TerminalExitEvent, type Unsubscribe, type WatchedEntry, type WorkspaceInfo, type WorkspaceTrustInfo } from '../shared/api.ts';
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
@@ -144,6 +144,9 @@ const api: CodeXRApi = Object.freeze({
         rename: (path: string, newName: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceRename, path, newName),
         copyPath: (path: string, kind: 'absolute' | 'relative') => ipcRenderer.invoke(IPC_CHANNELS.workspaceCopyPath, path, kind),
         readImage: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceReadImage, path),
+        trust: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrust),
+        setTrust: (choice: 'folder' | 'parent' | 'restrict') => ipcRenderer.invoke(IPC_CHANNELS.workspaceSetTrust, choice),
+        onDidChangeTrust: (listener: (trust: WorkspaceTrustInfo) => void) => subscribe(IPC_EVENTS.workspaceTrustChanged, listener),
         openExternalLink: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceOpenExternalLink, url),
         trash: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.workspaceTrash, path),
         recentFolders: () => ipcRenderer.invoke(IPC_CHANNELS.workspaceRecentFolders),
