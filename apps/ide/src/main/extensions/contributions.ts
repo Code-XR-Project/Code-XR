@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { EXTENSION_THEME_PREFIX, type ContributedGrammar, type ContributedLanguage, type ContributedSnippet, type ContributedTheme, type ExtensionContributions, type GrammarContent, type ResolvedTheme, type ThemeTokenRule } from '../../shared/extensions.ts';
+import { EXTENSION_THEME_PREFIX, type ContributedGrammar, type ContributedLanguage, type ContributedSnippet, type ContributedCommand, type ContributedTheme, type ExtensionContributions, type GrammarContent, type ResolvedTheme, type ThemeTokenRule } from '../../shared/extensions.ts';
 import { readJsonc, resolveInExtension, type LoadedExtension } from './extensionStore.ts';
 import { parsePlist, type PlistValue } from './plist.ts';
 
@@ -73,6 +73,7 @@ export class ContributionIndex {
         const languages: ContributedLanguage[] = [];
         const grammars: ContributedGrammar[] = [];
         const snippets: ContributedSnippet[] = [];
+        const commands: ContributedCommand[] = [];
         for (const extension of this.extensions) {
             const c = extension.manifest.contributes;
             const extensionId = extension.manifest.id;
@@ -144,8 +145,21 @@ export class ContributionIndex {
                     this.onWarning(`${extensionId}: snippets ${String(entry.path)}: ${(error as Error).message}`);
                 }
             }
+            // #259: the palette's commands, for the extensions whose code can run them.
+            if (extension.manifest.main) {
+                const hidden = new Set(list(record(c.menus)['commandPalette']).filter((entry) => entry.when === 'false' || entry.when === false).map((entry) => str(entry.command)));
+                for (const command of list(c.commands)) {
+                    const id = str(command.command);
+                    const title = typeof command.title === 'string' ? command.title : str(record(command.title)['value']);
+                    if (!id || !title) {
+                        continue;
+                    }
+                    const category = typeof command.category === 'string' ? command.category : str(record(command.category)['value']);
+                    commands.push({ extensionId, command: id, title, category: category ?? null, hiddenFromPalette: hidden.has(id) });
+                }
+            }
         }
-        return { themes, languages, grammars, snippets };
+        return { themes, languages, grammars, snippets, commands };
     }
 
     grammarContent(ref: string): GrammarContent | null {

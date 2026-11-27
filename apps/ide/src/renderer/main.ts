@@ -91,6 +91,8 @@ function editorGroup(): Promise<EditorGroup> {
     editorsLoading ??= Promise.all([
         import('./editor/editorGroup.ts'), import('./lsp/languageClient.ts'), import('./editor/outlineController.ts'), import('./viewers/fileViewers.ts'),
     ]).then(([{ createEditorGroup }, { installLanguageClient }, { createOutlineController }, { fileViewerResolver }]) => {
+        // #259: extensions activate on the languages of the files that open.
+        extensions.watchEditorLanguages();
         // #21: before any model exists (lsp/languageClient.ts); go to definition opens tabs here.
         installLanguageClient(api.lsp, { openAt: (path, line, column, length) => editorGroup().then((group) => group.openAt(path, line, column, length)) });
         editors = createEditorGroup(workbench.editorArea, api.workspace, {
@@ -685,6 +687,11 @@ const extensions = installExtensions({
     onStatus: (message) => workbench.setStatus(message),
     notify: (kind, message) => notifications.notify(kind, message),
     selectColorTheme: () => selectColorTheme(),
+    notifications,
+    statusLeft: workbench.extensionStatusLeft,
+    statusRight: workbench.extensionStatusRight,
+    openQuickInput: (value, provider) => quickInput.open(value, provider),
+    openFile: (path, line, column) => editorGroup().then((group) => (line === undefined ? group.open(path) : group.openAt(path, line, column ?? 1, 0))),
 });
 registerDebugCommands(registry, debug, () => folderIsOpen, () => (editors?.activeLineCount() ?? null) !== null, () => workbench.showView('debug'));
 registerAgentCommands(registry, { showAgents: () => workbench.showView('agents'), addProvider: () => agentsView.addProvider(), newChat: () => void agentsView.newChat() });

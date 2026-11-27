@@ -98,3 +98,18 @@ export function applyEditorTheme(theme: ResolvedTheme | null): void {
     monaco.editor.defineTheme(name, toMonacoTheme(theme) as monaco.editor.IStandaloneThemeData);
     setThemeOverride(name);
 }
+
+/**
+ * #259: calls `fire` with the language of every model, now and as models are
+ * created or change language, so the workbench can send `onLanguage:` events.
+ */
+export function watchModelLanguages(fire: (languageId: string) => void): void {
+    const watch = (model: monaco.editor.ITextModel): void => {
+        fire(model.getLanguageId());
+        model.onDidChangeLanguage((event) => fire(event.newLanguage));
+    };
+    for (const model of monaco.editor.getModels()) {
+        watch(model);
+    }
+    monaco.editor.onDidCreateModel(watch);
+}

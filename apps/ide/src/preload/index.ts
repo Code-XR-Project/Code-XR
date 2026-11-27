@@ -7,6 +7,7 @@ import { IDE_COMMANDS, IPC_CHANNELS, IPC_EVENTS, type AutoStartMode, type FileAn
 import { GIT_IPC_CHANNELS, GIT_IPC_EVENTS } from '../shared/git.ts';
 import { AGENT_IPC_CHANNELS, AGENT_IPC_EVENTS, type AgentChatEvent, type AgentProfileInput, type ApprovalDecision, type EditReviewResult, type ChatAttachment, type McpServerInput, type ModelPrice, type BudgetSettings, type ProviderInput } from '../shared/agents.ts';
 import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared/tasks.ts';
+import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
 import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, type ExtensionsChangedEvent, type ExtensionLogEvent, type GalleryQuery } from '../shared/extensions.ts';
 import { DEBUG_IPC_CHANNELS, DEBUG_IPC_EVENTS, type DebugEvent, type DebugStepKind } from '../shared/debug.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
@@ -131,6 +132,13 @@ const api: CodeXRApi = Object.freeze({
         grammarContent: (ref: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsGrammarContent, ref),
         onDidChange: (listener: (event: ExtensionsChangedEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsChanged, listener),
         onLog: (listener: (event: ExtensionLogEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsLog, listener),
+        // #259: the extension host of this window.
+        hostReady: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsHostReady),
+        restartHost: () => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsRestartHost),
+        executeCommand: (id: string, args?: readonly unknown[]) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsExecuteCommand, id, args ? [...args] : []),
+        activateByEvent: (event: string) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsActivateByEvent, event),
+        hostReply: (id: number, result: unknown) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsHostReply, id, result),
+        onHostUi: (listener: (event: HostUiEvent) => void) => subscribe(EXTENSION_IPC_EVENTS.extensionsHostUi, listener),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),
