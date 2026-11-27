@@ -42,6 +42,8 @@ function repo(name: string): string {
     git(root, 'config', 'user.name', 'Test Person');
     git(root, 'config', 'user.email', 'test@example.invalid');
     git(root, 'config', 'commit.gpgsign', 'false');
+    // Git for Windows checks files out with CRLF by default; the tests compare bytes.
+    git(root, 'config', 'core.autocrlf', 'false');
     fs.writeFileSync(path.join(root, 'a.txt'), 'one\ntwo\nthree\n');
     git(root, 'add', '-A');
     git(root, 'commit', '-q', '-m', 'initial');
@@ -53,7 +55,7 @@ interface AgentLog {
     sessionCwds: string[];
 }
 
-/** A tiny ACP agent: `write <path>`, `read <path>`, `pwd` (a terminal), anything else ends the turn. */
+/** A tiny ACP agent: `write <path>`, `read <path>`, `pwd` (a terminal running Node, so it works on every OS), anything else ends the turn. */
 function fakeAgent(log: AgentLog) {
     let client: AgentContext | null = null;
     const say = (sessionId: string, text: string): Promise<void> => (client as AgentContext).notify(methods.client.session.update, { sessionId, update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text } } });
@@ -78,7 +80,7 @@ function fakeAgent(log: AgentLog) {
                     const result = await ctx.request(methods.client.fs.readTextFile, { sessionId: sid, path: arg ?? '' });
                     await say(sid, `READ:${result.content}`);
                 } else if (command === 'pwd') {
-                    const created = await ctx.request(methods.client.terminal.create, { sessionId: sid, command: 'pwd' });
+                    const created = await ctx.request(methods.client.terminal.create, { sessionId: sid, command: process.execPath, args: ['-e', 'process.stdout.write(process.cwd())'], env: [{ name: 'ELECTRON_RUN_AS_NODE', value: '1' }] });
                     await ctx.request(methods.client.terminal.waitForExit, { sessionId: sid, terminalId: created.terminalId });
                     const output = await ctx.request(methods.client.terminal.output, { sessionId: sid, terminalId: created.terminalId });
                     await ctx.request(methods.client.terminal.release, { sessionId: sid, terminalId: created.terminalId });
@@ -168,7 +170,10 @@ describe('AgentSessionService: chats in their own worktree (AF12)', () => {
         await service.prompt(window, created.id, 'pwd', []);
         assert.deepEqual(log.connectCwds, [worktree.cwd]);
         assert.deepEqual(log.sessionCwds, [worktree.cwd]);
-        assert.equal(lastText(await service.get(window, created.id)), `PWD:${worktree.cwd}`);
+        const printed = lastText(await service.get(window, created.id)) ?? '';
+        assert.ok(printed.startsWith('PWD:'), printed);
+        // Compared as real paths: Windows may print a short (8.3) or differently cased temp path.
+        assert.equal(fs.realpathSync.native(printed.slice(4)), fs.realpathSync.native(worktree.cwd));
 
         // It writes in the worktree only.
         await service.prompt(window, created.id, `write ${path.join(worktree.cwd, 'new.txt')}`, []);
