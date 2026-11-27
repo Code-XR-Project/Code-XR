@@ -51,6 +51,8 @@ export interface CustomEditorInput {
     readonly iconName?: string;
     /** Set for a viewer of a workspace file (the id is then that path): the tab follows the file on disk and is watched. */
     readonly filePath?: string;
+    /** Other workspace files the tab follows on disk (a comparison of two files); `fileChanged` fires for them too. */
+    readonly alsoWatches?: readonly string[];
     create(context: CustomEditorContext): CustomEditorView;
 }
 

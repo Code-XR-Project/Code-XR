@@ -73,6 +73,8 @@ export interface WorkbenchCommandTargets {
     openMarkdownPreview(): void;
     /** #253: the preview as a tab of its own. */
     openMarkdownPreviewTab(): void;
+    /** #288: the active file against its text on disk. */
+    compareWithSaved(): void;
     canPreviewMarkdown(): boolean;
     /** #176: the folder's tasks, the active file with its interpreter, and the user tasks file. */
     runTask(): void;
@@ -113,6 +115,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.focusSecondEditorGroup', category: 'View', title: 'Focus Second Editor Group', keybinding: 'CmdOrCtrl+2', recordRecent: false, run: () => { if (!targets.focusEditorGroup(1)) { targets.splitEditor(); } } },
         { id: 'workbench.trust.manage', category: 'Workspaces', title: 'Manage Workspace Trust', enabled: targets.hasFolder, run: targets.manageWorkspaceTrust },
         { id: 'markdown.showPreviewToSide', category: 'Markdown', title: 'Open Preview to the Side', keybinding: 'CmdOrCtrl+K V', enabled: targets.canPreviewMarkdown, run: targets.openMarkdownPreview },
+        { id: 'workbench.files.action.compareWithSaved', category: 'File', title: 'Compare Active File with Saved', keybinding: 'CmdOrCtrl+K D', enabled: targets.hasActiveEditor, run: targets.compareWithSaved },
         { id: 'markdown.showPreview', category: 'Markdown', title: 'Open Preview', keybinding: 'CmdOrCtrl+Shift+V', enabled: targets.canPreviewMarkdown, run: targets.openMarkdownPreviewTab },
         { id: 'editor.keep', category: 'View', title: 'Keep Editor', keybinding: 'CmdOrCtrl+K Enter', enabled: targets.hasActiveTab, run: targets.keepEditor },
         { id: 'file.copyPath', category: 'File', title: 'Copy Path of Active File', enabled: targets.hasActiveTab, run: () => targets.copyActivePath('absolute') },
