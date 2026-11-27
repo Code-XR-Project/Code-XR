@@ -30,6 +30,7 @@
     "marked": "14.0.0",
     "material-icon-theme": "^5.40.0",
     "monaco-editor": "0.57.0",
+    "pdfjs-dist": "6.5.438",
     "vite": "^8.3.8",
     "vscode-jsonrpc": "9.0.3",
     "vscode-languageserver-types": "3.18.4"
