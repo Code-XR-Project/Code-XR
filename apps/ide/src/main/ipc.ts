@@ -4,6 +4,8 @@ import { ALLOWED_IPC_CHANNELS, AUTO_START_MODES, FILE_ANALYSIS_KINDS, IPC_CHANNE
 import type { TerminalHost } from './terminal/terminalHost.ts';
 import type { AgentServices } from './agents/agentsRuntime.ts';
 import { registerAgentHandlers } from './agents/agentsIpc.ts';
+import { registerAgentSessionHandlers } from './agentSessions/agentSessionsIpc.ts';
+import type { AgentSessionsRuntime } from './agentSessions/agentSessionsRuntime.ts';
 import { registerGitHandlers } from './git/gitIpc.ts';
 import type { LspHost } from './lsp/lspHost.ts';
 import { registerLspHandlers } from './lsp/lspIpc.ts';
@@ -32,7 +34,7 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
  * through `handle`, which refuses calls from frames outside the trusted
  * origins, so a handler never has to check its caller itself.
  */
-export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices, lsp: LspHost): void {
+export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment: boolean, core: CoreServices, terminal: TerminalHost, settings: SettingsService, keybindings: KeybindingsService, output: OutputService, agents: AgentServices, lsp: LspHost, agentSessions: AgentSessionsRuntime): void {
     const registered = new Set<string>();
     const handle = (channel: string, handler: Handler): void => {
         if (!ALLOWED_IPC_CHANNELS.has(channel)) {
@@ -236,6 +238,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
 
     // The AI agent hub (agents/agentsIpc.ts).
     registerAgentHandlers(handle, agents, (contents) => core.analysis.outputDirectory(contents));
+    // Epic #265 (AF1): agent-first chats with ACP agents (agentSessions/agentSessionsIpc.ts).
+    registerAgentSessionHandlers(handle, agentSessions);
     // #17: Source Control (git/gitIpc.ts).
     registerGitHandlers(handle);
     // #21: language servers (lsp/lspIpc.ts).
