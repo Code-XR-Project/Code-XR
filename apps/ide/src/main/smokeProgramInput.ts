@@ -9,6 +9,11 @@ import { terminalEnvironment } from './terminal/terminalService.ts';
  * on every platform, both for a native program and for a JavaScript one run
  * by the IDE's own executable (`ELECTRON_RUN_AS_NODE`, how agents installed
  * by the IDE start).
+ *
+ * On Windows the second case is known to fail (the GUI executable gets no
+ * console: nothing printed, no keyboard; seen on windows-latest), which is
+ * why sign-ins never run that way there (`nativeLoginProgram`,
+ * `consoleLoginProgram`). It is still run and reported, not required.
  */
 export interface ProgramInputCase {
     readonly name: string;

@@ -11,6 +11,8 @@ import { terminalEnvironment } from '../terminal/terminalService.ts';
 import { isWorkspaceTrusted } from '../trust/workspaceTrust.ts';
 import { addFolderChangeListener, currentWorkspaceInfo } from '../workspace/workspaceWindows.ts';
 import { AgentCatalog } from './agentCatalog.ts';
+import { KeyVault } from '../agents/keyVault.ts';
+import { electronCipher } from '../agents/electronCipher.ts';
 import { AgentInstaller, consentDetail } from './agentInstaller.ts';
 import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
 import { SessionStore } from './sessionStore.ts';
@@ -93,6 +95,8 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
         platform: process.platform,
         execPath: process.execPath,
         builtinProfiles: () => options.profiles.list(),
+        // #297: API keys given to one agent, encrypted by the OS secret store like the built-in agent's keys.
+        secrets: new KeyVault(path.join(dir, 'agent-keys.json'), electronCipher()),
     });
 
     const ports = new Map<number, WindowPort>();
