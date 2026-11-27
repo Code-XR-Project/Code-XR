@@ -252,7 +252,8 @@ describe('language features in the extension host (#260)', () => {
     before(async () => {
         workspace = path.join(tmp, 'lang-ws');
         fs.mkdirSync(workspace, { recursive: true });
-        file = path.join(workspace, 'notes.txt');
+        // In `Uri.fsPath`'s spelling (a lower-case drive letter on Windows), the one the host answers with.
+        file = Uri.file(path.join(workspace, 'notes.txt')).fsPath;
         const extensionFolder = path.join(tmp, 'extensions', 'acme.lang-1.0.0');
         fs.mkdirSync(extensionFolder, { recursive: true });
         const packageJSON = { publisher: 'acme', name: 'lang', version: '1.0.0', main: 'index.js', engines: { vscode: '^1.80.0' }, activationEvents: ['*'] };
