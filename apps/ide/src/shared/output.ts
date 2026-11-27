@@ -16,6 +16,8 @@ export const OUTPUT_CHANNELS = [
     { id: 'extensions', label: 'Extensions' },
     // #180: the debug adapters: what each session ran, how it ended, an adapter's errors.
     { id: 'debug', label: 'Debugger' },
+    // #284: Source Control's remote operations (push, pull, fetch, sync): what git ran and answered.
+    { id: 'git', label: 'Git' },
 ] as const;
 
 export type OutputChannelId = (typeof OUTPUT_CHANNELS)[number]['id'];

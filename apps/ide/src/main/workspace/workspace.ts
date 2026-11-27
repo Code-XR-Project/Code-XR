@@ -1,3 +1,4 @@
+import { constants as fsConstants } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { MODIFIED_ON_DISK, type DirEntry, type ReplaceResult, type SearchMatch, type SearchQuery, type FileContent, type SaveResult, type WorkspaceInfo } from '../../shared/api.ts';
@@ -279,6 +280,143 @@ export class Workspace {
     }
 
     /**
+     * #285: copies the entry at `from` (a file, or a folder with everything in
+     * it) into the folder `toFolder` and returns the copy's workspace path.
+     * Both ends are checked by real path; a folder is never pasted into itself
+     * or below itself. A name already taken gets " copy", then " copy 2"...
+     * before the extension, as VS Code does, so nothing is ever overwritten.
+     * The copy is planned whole first and refused over `limits`, so a refused
+     * copy writes nothing.
+     */
+    async copyEntry(from: unknown, toFolder: unknown, limits: CopyLimits = COPY_LIMITS): Promise<string> {
+        const entry = await this.entryPathInside(from);
+        const source = await fs.realpath(entry);
+        if (!isInside(this.realRoot, source)) {
+            throw new Error(`Path leaves the workspace: ${String(from)}`);
+        }
+        const name = path.basename(entry);
+        if (EXCLUDED_NAMES.has(name)) {
+            throw new Error(`${name} is hidden by the explorer; copy it outside the IDE.`);
+        }
+        const folder = await this.folderInside(toFolder);
+        const stat = await fs.stat(source);
+        if (stat.isDirectory() && isInside(source, folder)) {
+            throw new Error('A folder cannot be pasted into itself or a folder inside it.');
+        }
+        const plan = await this.planCopy(source, stat, limits);
+        const copyName = await freeCopyName(folder, name, stat.isDirectory());
+        await writeCopy(plan, path.join(folder, copyName));
+        return childPath(parseWorkspacePath(toFolder).join('/'), copyName);
+    }
+
+    /**
+     * #285: moves the entry at `from` into the folder `toFolder` (cut and
+     * paste) and returns its new workspace path. A symlink moves as a link,
+     * as in `rename`. Refuses the root, a folder moved into itself or below
+     * itself, and a name already taken in `toFolder` (never overwrites).
+     * Moving into the folder it is already in changes nothing.
+     */
+    async moveEntry(from: unknown, toFolder: unknown, limits: CopyLimits = COPY_LIMITS): Promise<string> {
+        const source = await this.entryPathInside(from);
+        const folder = await this.folderInside(toFolder);
+        const name = path.basename(source);
+        const destination = childPath(parseWorkspacePath(toFolder).join('/'), name);
+        if (path.dirname(source) === folder) {
+            return destination;
+        }
+        if (EXCLUDED_NAMES.has(name)) {
+            throw new Error(`${name} is hidden by the explorer; move it outside the IDE.`);
+        }
+        const stat = await fs.lstat(source);
+        if (stat.isDirectory() && isInside(await fs.realpath(source), folder)) {
+            throw new Error('A folder cannot be moved into itself or a folder inside it.');
+        }
+        const target = path.join(folder, name);
+        if (await fs.lstat(target).catch(() => null)) {
+            throw new Error(`${name} already exists in ${parseWorkspacePath(toFolder).join('/') || 'the top folder'}.`);
+        }
+        try {
+            await fs.rename(source, target);
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'EXDEV') {
+                throw error;
+            }
+            // Another disk (behind a symlinked folder): copy, then remove the original.
+            const real = await fs.realpath(source);
+            await writeCopy(await this.planCopy(real, await fs.stat(real), limits), target);
+            await fs.rm(source, { recursive: true });
+        }
+        return destination;
+    }
+
+    /**
+     * #285: the real, absolute path of an entry for the OS file manager
+     * (`shell.showItemInFolder`); refuses anything that leads outside.
+     */
+    revealablePath(relativePath: unknown): Promise<string> {
+        return this.realPathInside(relativePath);
+    }
+
+    /**
+     * #285: the folder a terminal opened on an entry starts in: the folder
+     * itself, or a file's folder. Real path, checked inside the workspace.
+     */
+    async terminalFolder(relativePath: unknown): Promise<string> {
+        const real = await this.realPathInside(relativePath);
+        return (await fs.stat(real)).isDirectory() ? real : path.dirname(real);
+    }
+
+    /**
+     * Walks what a copy will write, before anything is written: every entry
+     * and its size, refused over `limits`. A symlink inside a copied folder is
+     * copied as what it points to when that stays inside the workspace (as the
+     * explorer shows it) and is not a folder above it (a loop); any other link
+     * is left out.
+     */
+    private async planCopy(source: string, stat: { isDirectory(): boolean; isFile(): boolean; size: number }, limits: CopyLimits): Promise<CopyPlan> {
+        const plan: CopyPlan = { items: [], bytes: 0 };
+        const add = (item: CopyItem, size: number): void => {
+            plan.items.push(item);
+            plan.bytes += size;
+            if (plan.items.length > limits.maxEntries) {
+                throw new Error(`The copy would hold more than ${limits.maxEntries} files and folders; copy it outside the IDE.`);
+            }
+            if (plan.bytes > limits.maxBytes) {
+                throw new Error(`The copy would be larger than ${Math.round(limits.maxBytes / (1024 * 1024))} MB; copy it outside the IDE.`);
+            }
+        };
+        if (!stat.isDirectory()) {
+            if (!stat.isFile()) {
+                throw new Error('Only files and folders can be copied.');
+            }
+            add({ relative: [], kind: 'file', source }, stat.size);
+            return plan;
+        }
+        add({ relative: [], kind: 'directory', source }, 0);
+        const walk = async (folder: string, relative: readonly string[], ancestors: readonly string[]): Promise<void> => {
+            for (const dirent of await fs.readdir(folder, { withFileTypes: true })) {
+                let real = path.join(folder, dirent.name);
+                if (dirent.isSymbolicLink()) {
+                    real = await fs.realpath(real).catch(() => '');
+                    if (!real || !isInside(this.realRoot, real) || ancestors.some((ancestor) => isInside(real, ancestor))) {
+                        continue;
+                    }
+                }
+                const entryStat = await fs.stat(real).catch(() => null);
+                const childRelative = [...relative, dirent.name];
+                if (entryStat?.isDirectory()) {
+                    add({ relative: childRelative, kind: 'directory', source: real }, 0);
+                    await walk(real, childRelative, [...ancestors, real]);
+                } else if (entryStat?.isFile()) {
+                    add({ relative: childRelative, kind: 'file', source: real }, entryStat.size);
+                }
+            }
+        };
+        await walk(source, [], [source]);
+        return plan;
+    }
+
+    /**
      * Watches the folders behind `entries` (expanded folders, open files) and
      * calls `onChange` with the workspace paths that changed. Replaces the
      * previous set; the first call decides the listener.
@@ -312,11 +450,20 @@ export class Workspace {
         const segments = parseWorkspacePath(relativePath);
         const name = segments.at(-1);
         if (name === undefined) {
-            throw new Error('The workspace folder itself cannot be renamed or deleted here.');
+            throw new Error('The workspace folder itself cannot be renamed, moved, copied or deleted here.');
         }
         const entry = path.join(await this.realPathInside(parentPath(relativePath)), name);
         await fs.lstat(entry);
         return entry;
+    }
+
+    /** The real path of a workspace folder; refused when it is not a folder. */
+    private async folderInside(relativePath: unknown): Promise<string> {
+        const folder = await this.realPathInside(relativePath);
+        if (!(await fs.stat(folder)).isDirectory()) {
+            throw new Error(`Not a folder: ${String(relativePath)}`);
+        }
+        return folder;
     }
 
     private checkCreatableName(name: unknown): string {
@@ -358,6 +505,63 @@ export class Workspace {
             return null;
         }
     }
+}
+
+/** #285: the most one copy may write, so a paste cannot fill the disk by mistake. */
+export interface CopyLimits {
+    readonly maxEntries: number;
+    readonly maxBytes: number;
+}
+export const COPY_LIMITS: CopyLimits = { maxEntries: 10_000, maxBytes: 512 * 1024 * 1024 };
+
+interface CopyItem {
+    /** Segments below the copied entry (empty for the entry itself). */
+    readonly relative: readonly string[];
+    readonly kind: 'file' | 'directory';
+    /** The real path to read from. */
+    readonly source: string;
+}
+
+interface CopyPlan {
+    readonly items: CopyItem[];
+    bytes: number;
+}
+
+/** Writes a planned copy at `target`, each folder before its contents, never over an existing entry. */
+async function writeCopy(plan: CopyPlan, target: string): Promise<void> {
+    for (const item of plan.items) {
+        const destination = path.join(target, ...item.relative);
+        if (item.kind === 'directory') {
+            await fs.mkdir(destination);
+        } else {
+            await fs.copyFile(item.source, destination, fsConstants.COPYFILE_EXCL);
+        }
+    }
+}
+
+/**
+ * #285: a free name for a copy in `folder`: the name itself, then " copy",
+ * " copy 2", " copy 3"... before a file's extension (`a.txt`, `a copy.txt`,
+ * `a copy 2.txt`), as VS Code names them; a name that already ends in
+ * " copy" or " copy N" counts on from there. A dotfile (`.env`) and a folder
+ * have no extension.
+ */
+export async function freeCopyName(folder: string, name: string, isDirectory: boolean): Promise<string> {
+    const dot = isDirectory ? -1 : name.lastIndexOf('.');
+    const extension = dot > 0 ? name.slice(dot) : '';
+    const base = dot > 0 ? name.slice(0, dot) : name;
+    const counted = /^(.+) copy(?: (\d+))?$/.exec(base);
+    const stem = counted?.[1] ?? base;
+    let next = counted ? Number(counted[2] ?? '1') + 1 : 1;
+    let candidate = name;
+    for (let attempt = 0; attempt < 10_000; attempt++) {
+        if (!(await fs.lstat(path.join(folder, candidate)).catch(() => null))) {
+            return candidate === name ? name : validateEntryName(candidate);
+        }
+        candidate = `${stem} copy${next >= 2 ? ` ${next}` : ''}${extension}`;
+        next++;
+    }
+    throw new Error(`No free name for a copy of ${name}.`);
 }
 
 function existsError(error: NodeJS.ErrnoException, name: string): Error {

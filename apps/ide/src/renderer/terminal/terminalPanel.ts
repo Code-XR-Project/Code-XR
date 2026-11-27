@@ -1,6 +1,8 @@
 import type { CodeXRApi, TerminalCreated, TerminalProfile, TerminalProfileList } from '../../shared/api.ts';
 import { el, icon } from '../dom.ts';
 import type { PanelHost } from '../panel/panelHost.ts';
+import { createTerminalFind } from './terminalFind.ts';
+import { createWorkspaceFileChecker, type ListDirectory } from './terminalLinks.ts';
 import type * as XtermModule from './xtermView.ts';
 import type { XtermView } from './xtermView.ts';
 
@@ -29,16 +31,32 @@ export interface TerminalPanel {
     toggle(): void;
     show(): void;
     hide(): void;
-    /** Starts a terminal from a profile (null: the default) and shows it. */
-    newTerminal(profileId?: string | null): Promise<void>;
+    /** Starts a terminal from a profile (null: the default) and shows it; #285: in `folder` (a workspace path) when given. */
+    newTerminal(profileId?: string | null, folder?: string): Promise<void>;
     /** #176: a task in a terminal of its own; resolves with its terminal id, or null when it did not start. */
     runTask(label: string, start: (cols: number, rows: number) => Promise<TerminalCreated>): Promise<number | null>;
     /** #18: the terminals' font size, for the open ones and the next. */
     setFontSize(size: number): void;
+    /** #286: the focus is in a terminal (or its find widget): the scope of the terminal's Ctrl+F. */
+    hasFocus(): boolean;
+    /** #286: opens the find widget on the active terminal. */
+    find(): void;
 }
 
 export interface TerminalPanelHooks {
     onError(message: string): void;
+    /** #286: links in the terminal's output. */
+    readonly links: TerminalLinkTargets;
+}
+
+export interface TerminalLinkTargets {
+    /** The open folder (absolute), or null: file links need one. */
+    workspaceRoot(): string | null;
+    /** `workspace.listDirectory`: how a file link is checked (the main process keeps it inside the folder). */
+    listDirectory: ListDirectory;
+    openFile(path: string, line?: number, column?: number): void;
+    /** `workspace.openExternalLink`: the main process opens http(s) only. */
+    openUrl(url: string): void;
 }
 
 interface TerminalTab {
@@ -85,6 +103,9 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         onHide: () => closeMenu(),
     });
     host.element.append(menu);
+    // #286: one find widget for the panel, on the active terminal.
+    const find = createTerminalFind(body);
+    let fileChecker: ((path: string) => Promise<string | null>) | null = null;
 
     // Fitting follows the body's size (panel resize, window resize, tab switch).
     let fitFrame = 0;
@@ -111,6 +132,7 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         empty.hidden = tabs.size > 0;
         killButton.disabled = id === null;
         const active = id === null ? undefined : tabs.get(id);
+        find.setTarget(active?.view ?? null);
         if (active) {
             scheduleFit();
             active.view.focus();
@@ -179,8 +201,8 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         removeTab(id);
     }
 
-    async function newTerminal(profileId: string | null = null): Promise<void> {
-        await openTerminal((cols, rows) => api.create(profileId, cols, rows), null);
+    async function newTerminal(profileId: string | null = null, folder?: string): Promise<void> {
+        await openTerminal((cols, rows) => (folder === undefined ? api.create(profileId, cols, rows) : api.create(profileId, cols, rows, folder)), null);
     }
 
     /**
@@ -196,13 +218,24 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
         body.append(host);
         let id: number | null = null;
         let profileName = 'Terminal';
-        const view = createXtermView(host, {
+        const checkFile = fileChecker ??= createWorkspaceFileChecker(hooks.links.listDirectory, os);
+        const view: XtermView = createXtermView(host, {
             platform: os,
             fontSize,
             onInput: (data) => {
                 if (id !== null && !tabs.get(id)?.exited) {
                     void api.input(id, data).catch(() => undefined);
                 }
+            },
+            onFindResults: (index, count) => find.setResults(view, index, count),
+            links: {
+                context: () => {
+                    const root = hooks.links.workspaceRoot();
+                    return root === null ? null : { root, platform: os };
+                },
+                resolveFile: checkFile,
+                openFile: (path, line, column) => hooks.links.openFile(path, line, column),
+                openUrl: (url) => hooks.links.openUrl(url),
             },
         });
         view.fit();
@@ -396,6 +429,13 @@ export function createTerminalPanel(host: PanelHost, api: CodeXRApi['terminal'],
 
     return {
         get visible() { return host.isShowing('terminal'); },
+        hasFocus: () => activeId !== null && body.contains(document.activeElement),
+        find(): void {
+            const active = activeId === null ? undefined : tabs.get(activeId);
+            if (active) {
+                find.open(active.view);
+            }
+        },
         toggle: () => (host.isShowing('terminal') ? hide() : show()),
         show: () => show(),
         hide,

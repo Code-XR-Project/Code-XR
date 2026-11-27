@@ -17,6 +17,8 @@ export interface WorkbenchCommandTargets {
     goToLine(): void;
     quickOpen(): void;
     goToSymbol(): void;
+    /** #287: quick open on "#", the workspace's symbols from the language servers. */
+    showAllSymbols(): void;
     hasActiveEditor(): boolean;
     /** #256: any tab is active, a text editor or a custom one (a PDF, an image). */
     hasActiveTab(): boolean;
@@ -33,6 +35,9 @@ export interface WorkbenchCommandTargets {
     toggleTerminal(): void;
     newTerminal(): void;
     closeTerminalPanel(): void;
+    /** #286: the find widget over the focused terminal. */
+    findInTerminal(): void;
+    terminalHasFocus(): boolean;
     showOutput(): void;
     showProblems(): void;
     showView(view: 'explorer' | 'search' | 'analysis' | 'xr' | 'settings'): void;
@@ -93,6 +98,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'workbench.commandPalette', category: 'View', title: 'Command Palette…', ...menu('workbench.commandPalette'), secondaryKeybindings: ['F1'], recordRecent: false, run: targets.openCommandPalette },
         { id: 'workbench.quickOpen', category: 'Go', title: 'Go to File…', ...menu('workbench.quickOpen'), recordRecent: false, run: targets.quickOpen },
         { id: 'editor.goToSymbol', category: 'Go', title: 'Go to Symbol in Editor…', ...menu('editor.goToSymbol'), enabled: targets.hasActiveEditor, run: targets.goToSymbol },
+        { id: 'workbench.action.showAllSymbols', category: 'Go', title: 'Go to Symbol in Workspace…', keybinding: 'CmdOrCtrl+T', enabled: targets.hasFolder, recordRecent: false, run: targets.showAllSymbols },
         { id: 'editor.goToLine', category: 'Go', title: 'Go to Line/Column…', ...menu('editor.goToLine'), enabled: targets.hasActiveEditor, run: targets.goToLine },
         { id: 'editor.formatDocument', category: 'Editor', title: 'Format Document', keybinding: 'Shift+Alt+F', enabled: targets.hasActiveEditor, run: targets.formatDocument },
         { id: 'editor.changeIndentation', category: 'Editor', title: 'Indent Using…', enabled: targets.hasActiveEditor, run: targets.changeIndentation },
@@ -127,6 +133,8 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'git.blame.toggleInline', category: 'Git', title: 'Toggle Inline Blame', run: targets.toggleInlineBlame },
         { id: 'terminal.toggle', category: 'View', title: 'Toggle Terminal', ...menu('terminal.toggle'), run: targets.toggleTerminal },
         { id: 'terminal.new', category: 'Terminal', title: 'Create New Terminal', ...menu('terminal.new'), run: targets.newTerminal },
+        // #286: Ctrl+F belongs to the terminal only while it has focus; elsewhere the key is left to Monaco's own find.
+        { id: 'terminal.find', category: 'Terminal', title: 'Find in Terminal', keybinding: 'CmdOrCtrl+F', enabled: targets.terminalHasFocus, recordRecent: false, run: targets.findInTerminal },
         { id: 'terminal.closePanel', category: 'Terminal', title: 'Close Terminal Panel', run: targets.closeTerminalPanel },
         { id: 'workbench.problems.show', category: 'View', title: 'Show Problems', keybinding: 'CmdOrCtrl+Shift+M', run: targets.showProblems },
         { id: 'workbench.output.show', category: 'View', title: 'Show Output', keybinding: 'CmdOrCtrl+Shift+U', run: targets.showOutput },

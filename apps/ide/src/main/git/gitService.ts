@@ -1,9 +1,13 @@
 import path from 'node:path';
-import { emptyGitStatus, type GitBranchList, type GitStatus } from '../../shared/git.ts';
+import { emptyGitStatus, type GitBranchList, type GitStash, type GitStatus } from '../../shared/git.ts';
 import { parseBlamePorcelain, type BlameLine } from './blameParser.ts';
 import { resolveGitPath, resolveGitPaths, validateBranchName, validateCommitMessage } from './gitPaths.ts';
-import { GitCommandError, GitNotFoundError, runGit, type GitRunner } from './gitRunner.ts';
+import { GitCommandError, GitNotFoundError, REMOTE_GIT_ENV, runGit, type GitRunner, type GitRunOptions } from './gitRunner.ts';
+import { remoteErrorMessage } from './remoteErrors.ts';
 import { groupChanges, parsePorcelainV2 } from './statusParser.ts';
+
+/** #284: stash takes no pathspec from the IDE, and `-u` needs its own `:/` read as a pathspec (see `literalPathspecs`). */
+const STASH_OPTIONS: GitRunOptions = { literalPathspecs: false };
 
 /** Where the open folder sits in its repository. */
 export interface GitRepoInfo {
@@ -24,6 +28,27 @@ export type DiscardPlan =
     | { readonly kind: 'restore'; readonly path: string }
     | { readonly kind: 'trash'; readonly path: string; readonly absolute: string };
 
+/** #284: how long a push, pull or fetch may take before it is stopped. */
+export const REMOTE_TIMEOUT_MS = 120_000;
+
+/** #284: what a remote operation takes from its caller. */
+export interface RemoteOptions {
+    /** Aborting it kills git (the Cancel of the progress notification). */
+    readonly signal?: AbortSignal | undefined;
+    /**
+     * Asked when a branch with no upstream is pushed and the repository has
+     * several remotes, none named `origin`; null cancels the push.
+     */
+    readonly chooseRemote?: ((remotes: readonly string[]) => Promise<string | null>) | undefined;
+}
+
+/** #284: a branch's upstream, from `branch.<name>.remote` and `.merge`. */
+interface Upstream {
+    readonly remote: string;
+    /** The full ref on the remote (`refs/heads/main`). */
+    readonly ref: string;
+}
+
 /**
  * Git for one open folder (#17), in the main process. Reusable beyond the
  * Source Control view: `diff(file)` and `blame(file)` are the base for
@@ -41,6 +66,8 @@ export class GitService {
     private readonly realRoot: string;
     private readonly run: GitRunner;
     private repoInfo: GitRepoInfo | null = null;
+    /** #284: the limit of each push, pull and fetch (tests shorten it). */
+    remoteTimeoutMs = REMOTE_TIMEOUT_MS;
 
     /** `realRoot` is `root` with symlinks resolved (`fs.realpath`). */
     constructor(root: string, realRoot: string, run: GitRunner = runGit) {
@@ -243,6 +270,181 @@ export class GitService {
         }
     }
 
+    /** #284: the configured remotes, by name. */
+    async remotes(): Promise<string[]> {
+        await this.requireRepository();
+        const { stdout } = await this.run(this.root, ['remote']);
+        return stdout.replace(/\r/g, '').split('\n').filter((name) => name !== '');
+    }
+
+    /**
+     * #284: pushes the current branch to its upstream, or publishes it: with
+     * no upstream it goes to `origin` (or the only remote, or the one
+     * `chooseRemote` picks) under the same name, and becomes its upstream.
+     * Resolves with git's report, or null when the choice was cancelled.
+     */
+    async push(options: RemoteOptions = {}): Promise<string | null> {
+        const branch = await this.currentBranch('push');
+        const upstream = await this.upstreamOf(branch);
+        if (upstream) {
+            return this.runRemote(['push', upstream.remote, `refs/heads/${branch}:${upstream.ref}`], options);
+        }
+        const remotes = await this.remotes();
+        if (remotes.length === 0) {
+            throw new Error('This repository has no remote to push to. Add one with "git remote add <name> <url>" in a terminal.');
+        }
+        const remote = remotes.includes('origin') ? 'origin'
+            : remotes.length === 1 ? remotes[0] ?? null
+                : await options.chooseRemote?.(remotes) ?? null;
+        if (remote === null) {
+            return null;
+        }
+        if (!remotes.includes(remote)) {
+            throw new Error(`There is no remote named ${remote}.`);
+        }
+        return this.runRemote(['push', '--set-upstream', checkRemoteName(remote), `refs/heads/${branch}:refs/heads/${branch}`], options);
+    }
+
+    /**
+     * #284: pulls the current branch from its upstream. Without a pull
+     * strategy in the configuration it merges (`--no-rebase`), as git did
+     * before it started refusing to guess; a configured one is respected.
+     */
+    async pull(options: RemoteOptions = {}): Promise<string> {
+        const branch = await this.currentBranch('pull');
+        const upstream = await this.upstreamOf(branch);
+        if (!upstream) {
+            throw new Error(`The branch ${branch} has no upstream branch to pull from. Push it first to publish it.`);
+        }
+        const configured = await this.configValue('pull.rebase') ?? await this.configValue('pull.ff') ?? await this.configValue(`branch.${branch}.rebase`);
+        return this.runRemote(['pull', '--no-edit', ...(configured === null ? ['--no-rebase'] : [])], options);
+    }
+
+    /** #284: fetches the current branch's remote (or `origin`, the only remote, or all of them), pruning deleted branches. */
+    async fetch(options: RemoteOptions = {}): Promise<string> {
+        const remotes = await this.remotes();
+        if (remotes.length === 0) {
+            throw new Error('This repository has no remote to fetch from.');
+        }
+        const status = await this.status();
+        const upstream = status.branch ? await this.upstreamOf(status.branch) : null;
+        const remote = upstream?.remote ?? (remotes.includes('origin') ? 'origin' : remotes.length === 1 ? remotes[0] : undefined);
+        return this.runRemote(remote === undefined ? ['fetch', '--prune', '--all'] : ['fetch', '--prune', checkRemoteName(remote)], options);
+    }
+
+    /** #284: pull, then push; a branch with no upstream is published instead. */
+    async sync(options: RemoteOptions = {}): Promise<string | null> {
+        const branch = await this.currentBranch('sync');
+        if (!(await this.upstreamOf(branch))) {
+            return this.push(options);
+        }
+        const pulled = await this.pull(options);
+        const pushed = await this.push(options);
+        return [pulled, pushed ?? ''].filter((text) => text !== '').join('\n');
+    }
+
+    /** #284: stashes the changes of the work tree, untracked files too with `includeUntracked`. */
+    async stash(includeUntracked: unknown): Promise<void> {
+        await this.requireRepository();
+        const { stdout } = await this.run(this.root, ['stash', 'push', ...(includeUntracked === true ? ['--include-untracked'] : [])], STASH_OPTIONS);
+        if (/no local changes to save/i.test(stdout)) {
+            throw new Error('There are no local changes to stash.');
+        }
+    }
+
+    /** #284: the stash list, newest first. */
+    async stashes(): Promise<GitStash[]> {
+        await this.requireRepository();
+        const { stdout } = await this.run(this.root, ['stash', 'list', '--format=%gd%x00%gs']);
+        const list: GitStash[] = [];
+        for (const line of stdout.replace(/\r/g, '').split('\n')) {
+            const [ref, label] = line.split('\0');
+            const index = /^stash@\{(\d+)\}$/.exec(ref ?? '')?.[1];
+            if (index !== undefined) {
+                list.push({ index: Number(index), label: label ?? '' });
+            }
+        }
+        return list;
+    }
+
+    /** #284: applies, pops or drops one stash; the index must be one `stashes()` lists. */
+    async stashAction(action: 'apply' | 'pop' | 'drop', index: unknown): Promise<void> {
+        if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) {
+            throw new Error('A stash is named by its index in the stash list.');
+        }
+        const list = await this.stashes();
+        if (!list.some((entry) => entry.index === index)) {
+            throw new Error(`There is no stash number ${index}.`);
+        }
+        await this.run(this.root, ['stash', action, `stash@{${index}}`], STASH_OPTIONS);
+    }
+
+    /**
+     * #284: deletes a local branch other than the checked-out one. Without
+     * `force` git refuses a branch whose commits are not merged: that
+     * resolves with `not-merged`, and the caller asks before forcing.
+     */
+    async deleteBranch(name: unknown, force: boolean): Promise<'deleted' | 'not-merged'> {
+        const branch = validateBranchName(name);
+        const { branches, current } = await this.branches();
+        if (!branches.includes(branch)) {
+            throw new Error(`There is no local branch named ${branch}.`);
+        }
+        if (branch === current) {
+            throw new Error(`${branch} is checked out: switch to another branch before deleting it.`);
+        }
+        try {
+            await this.run(this.root, ['branch', force ? '-D' : '-d', branch]);
+            return 'deleted';
+        } catch (error) {
+            if (!force && error instanceof GitCommandError && /not fully merged/i.test(error.stderr)) {
+                return 'not-merged';
+            }
+            throw error;
+        }
+    }
+
+    /** #284: the checked-out branch, or an error naming the operation when HEAD is detached. */
+    private async currentBranch(operation: string): Promise<string> {
+        await this.requireRepository();
+        const status = await this.status();
+        if (status.state !== 'ok') {
+            throw new Error(status.message ?? 'Source Control is not available.');
+        }
+        if (!status.branch) {
+            throw new Error(`HEAD is detached: check out a branch to ${operation}.`);
+        }
+        return status.branch;
+    }
+
+    private async configValue(key: string): Promise<string | null> {
+        const { stdout, exitCode } = await this.run(this.root, ['config', '--get', key], { okExitCodes: [1] });
+        return exitCode === 0 ? stdout.trim() : null;
+    }
+
+    private async upstreamOf(branch: string): Promise<Upstream | null> {
+        const remote = await this.configValue(`branch.${branch}.remote`);
+        const ref = await this.configValue(`branch.${branch}.merge`);
+        if (!remote || !ref || remote === '.') {
+            return null;
+        }
+        return { remote: checkRemoteName(remote), ref };
+    }
+
+    /** Runs a command that talks to a remote: no prompts, its own timeout, cancellable, readable errors. */
+    private async runRemote(args: readonly string[], options: RemoteOptions): Promise<string> {
+        try {
+            const { stdout, stderr } = await this.run(this.root, args, { env: REMOTE_GIT_ENV, timeoutMs: this.remoteTimeoutMs, signal: options.signal });
+            return [stdout.trim(), stderr.trim()].filter((text) => text !== '').join('\n');
+        } catch (error) {
+            // A timeout keeps its own message; any other failure is explained.
+            if (error instanceof GitCommandError && !/ timed out after /.test(error.message)) {
+                throw new GitCommandError(args, error.exitCode, remoteErrorMessage(error.stderr));
+            }
+            throw error;
+        }
+    }
+
     private async requireRepository(): Promise<GitRepoInfo> {
         const repo = await this.repository();
         if (!repo) {
@@ -275,4 +477,12 @@ export class GitService {
             throw error;
         }
     }
+}
+
+/** #284: a remote name read from the configuration; one that looks like an option is refused before it reaches the command line. */
+function checkRemoteName(remote: string): string {
+    if (remote === '' || remote.startsWith('-') || /[\0\s]/.test(remote)) {
+        throw new Error(`Not a usable remote name: ${JSON.stringify(remote)}`);
+    }
+    return remote;
 }

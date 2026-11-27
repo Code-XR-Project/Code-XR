@@ -18,7 +18,7 @@ const healthy: SmokeProbe = {
     readFileKind: 'text',
     traversalRefused: true,
     gitStatusState: 'ok',
-    trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: true, debugRefused: true, after: 'trusted' },
+    trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: true, debugRefused: true, remoteRefused: true, after: 'trusted' },
     gitTraversalRefused: true,
     editorOpened: true,
     fileIconsShown: 9,
@@ -44,6 +44,8 @@ const terminal: TerminalProbe = {
     screen: ['$ echo codexr-smoke', 'codexr-smoke', '$'],
     status: 'Code-XR IDE 0.1.0',
     cspViolations: [],
+    find: { opened: true, count: '1 of 2', closed: true },
+    link: { hinted: true, opened: true, editorKept: true },
 };
 
 describe('evaluateSmoke', () => {
@@ -71,9 +73,10 @@ describe('evaluateSmoke', () => {
         ['unreadable file', { readFileKind: null }, /readFile failed/],
         ['traversal allowed', { traversalRefused: false }, /out of the folder/],
         ['Source Control silent', { gitStatusState: null }, /git\.status did not answer/],
-        ['Git ran in an untrusted folder (#177)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'ok', tasksRefused: true, debugRefused: true, after: 'trusted' } }, /workspace trust did not gate Git/],
-        ['a task ran in an untrusted folder (#176)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: false, debugRefused: true, after: 'trusted' } }, /workspace trust did not gate Git, tasks or debugging/],
-        ['a debug session started in an untrusted folder (#180)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: true, debugRefused: false, after: 'trusted' } }, /did not gate Git, tasks or debugging/],
+        ['Git ran in an untrusted folder (#177)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'ok', tasksRefused: true, debugRefused: true, remoteRefused: true, after: 'trusted' } }, /workspace trust did not gate Git/],
+        ['a task ran in an untrusted folder (#176)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: false, debugRefused: true, remoteRefused: true, after: 'trusted' } }, /workspace trust did not gate Git, tasks or debugging/],
+        ['a debug session started in an untrusted folder (#180)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: true, debugRefused: false, remoteRefused: true, after: 'trusted' } }, /did not gate Git, tasks or debugging/],
+        ['a push, stash or branch deletion ran in an untrusted folder (#284)', { trust: { before: 'unknown', shieldShown: true, restrictedGit: 'restricted', tasksRefused: true, debugRefused: true, remoteRefused: false, after: 'trusted' } }, /did not gate Git, tasks or debugging/],
         ['trust not taken (#177)', { trust: { error: 'boom' } }, /workspace trust did not gate Git/],
         ['Source Control traversal allowed', { gitTraversalRefused: false }, /git\.headContent followed/],
         ['no editor', { editorOpened: false }, /Monaco/],
@@ -103,6 +106,11 @@ describe('evaluateSmoke', () => {
         ['no terminal opened', { opened: false, status: 'Could not start a terminal: boom' }, /did not open a terminal.*boom/],
         ['echo printed nothing', { echoed: false }, /did not print the output of echo/],
         ['the terminal violated the CSP', { cspViolations: ['script-src inline'] }, /CSP violations in the terminal/],
+        // #286
+        ['Ctrl+F did not open the terminal find widget', { find: { opened: false, count: '', closed: false } }, /did not find in the terminal/],
+        ['the find widget counted nothing', { find: { opened: true, count: 'No results', closed: true } }, /did not find in the terminal/],
+        ['a file link did not open', { link: { hinted: true, opened: false, editorKept: false } }, /file link in the terminal did not open/],
+        ['the terminal took Ctrl+F from the editor', { link: { hinted: true, opened: true, editorKept: false } }, /in the editor did not open the editor's find/],
     ];
     for (const [name, change, message] of terminalBreakages) {
         it(`fails when ${name}`, () => {

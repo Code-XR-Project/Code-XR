@@ -21,6 +21,17 @@ export interface GitRunOptions {
     readonly timeoutMs?: number | undefined;
     /** Written to git's standard input (`blame --contents -`); stdin is closed either way. */
     readonly input?: string | undefined;
+    /** #284: aborting it kills git and rejects with `GitCancelledError` (a remote operation's Cancel). */
+    readonly signal?: AbortSignal | undefined;
+    /** #284: variables added to `gitEnvironment` (the remote operations' `REMOTE_GIT_ENV`). */
+    readonly env?: Readonly<Record<string, string>> | undefined;
+    /**
+     * #284: false leaves `--literal-pathspecs` out, for a command given no
+     * pathspec that runs one internally: `stash --include-untracked` cleans
+     * with the pathspec `:/`, which literally matches nothing, so the
+     * untracked files would be saved but stay in the work tree.
+     */
+    readonly literalPathspecs?: false | undefined;
 }
 
 /** Thrown when no `git` executable is on PATH. */
@@ -40,6 +51,14 @@ export class GitCommandError extends Error {
         this.name = 'GitCommandError';
         this.exitCode = exitCode;
         this.stderr = stderr;
+    }
+}
+
+/** #284: thrown when a run was cancelled through its `signal`. */
+export class GitCancelledError extends Error {
+    constructor(args: readonly string[]) {
+        super(`git ${args[0] ?? ''} was cancelled.`);
+        this.name = 'GitCancelledError';
     }
 }
 
@@ -72,12 +91,31 @@ export function gitEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     return env;
 }
 
+/**
+ * #284: what push, pull and fetch add. Credentials come from git's own
+ * helpers and SSH agent only: no prompt in a terminal (`GIT_TERMINAL_PROMPT`)
+ * nor in Git Credential Manager's window (`GCM_INTERACTIVE`), so a missing
+ * credential fails at once with git's message instead of waiting for input
+ * nobody can give.
+ */
+export const REMOTE_GIT_ENV: Readonly<Record<string, string>> = {
+    GIT_TERMINAL_PROMPT: '0',
+    GCM_INTERACTIVE: 'never',
+};
+
 export const runGit: GitRunner = (cwd, args, options = {}) => new Promise((resolve, reject) => {
-    const fullArgs = [...BASE_ARGS, ...args];
+    const base = options.literalPathspecs === false ? BASE_ARGS.filter((arg) => arg !== '--literal-pathspecs') : BASE_ARGS;
+    const fullArgs = [...base, ...args];
+    const timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
+    if (options.signal?.aborted) {
+        reject(new GitCancelledError(args));
+        return;
+    }
     const child = execFile('git', fullArgs, {
         cwd,
-        env: gitEnvironment(process.env),
-        timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
+        env: { ...gitEnvironment(process.env), ...options.env },
+        timeout: timeoutMs,
+        ...(options.signal ? { signal: options.signal } : {}),
         maxBuffer: MAX_OUTPUT_BYTES,
         windowsHide: true,
         encoding: 'utf8',
@@ -88,13 +126,17 @@ export const runGit: GitRunner = (cwd, args, options = {}) => new Promise((resol
                 reject(new GitNotFoundError());
                 return;
             }
+            if (options.signal?.aborted) {
+                reject(new GitCancelledError(args));
+                return;
+            }
             const exitCode = typeof code === 'number' ? code : -1;
             if ((options.okExitCodes ?? []).includes(exitCode)) {
                 resolve({ stdout, stderr, exitCode });
                 return;
             }
             if ((error as { killed?: boolean }).killed) {
-                reject(new GitCommandError(args, exitCode, `git ${args[0] ?? ''} timed out.`));
+                reject(new GitCommandError(args, exitCode, `git ${args[0] ?? ''} timed out after ${timeoutMs / 1000} s.`));
                 return;
             }
             reject(new GitCommandError(args, exitCode, stderr));

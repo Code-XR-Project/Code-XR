@@ -15,8 +15,16 @@ const MAX_POSITION = 10_000_000;
 /** A completion item sent back for resolving, as JSON. */
 const MAX_RESOLVE_ITEM_CHARS = 200_000;
 
+/** The requests about one document (all but completion resolve and workspace symbols). */
+export type DocumentRequestMethod = Exclude<LspRequestMethod, 'completionItem/resolve' | 'workspace/symbol'>;
+
+/** #287: limits on what a code action request may carry. */
+const MAX_DIAGNOSTICS = 200;
+const MAX_MESSAGE_CHARS = 10_000;
+const MAX_NAME_CHARS = 1_000;
+
 export interface DocumentRequest {
-    readonly method: Exclude<LspRequestMethod, 'completionItem/resolve'>;
+    readonly method: DocumentRequestMethod;
     readonly params: Record<string, unknown>;
     /** The server URI of the document the request is about. */
     readonly serverUri: string;
@@ -67,28 +75,109 @@ function position(value: unknown): { line: number; character: number } {
     return { line: line as number, character: character as number };
 }
 
-function completionContext(value: unknown): { triggerKind: number; triggerCharacter?: string } | undefined {
-    if (value === undefined) {
-        return undefined;
-    }
-    const { triggerKind, triggerCharacter } = record(value, 'completion context');
+export function validRange(value: unknown): { start: { line: number; character: number }; end: { line: number; character: number } } {
+    const { start, end } = record(value, 'range');
+    return { start: position(start), end: position(end) };
+}
+
+function triggerContext(value: unknown, what: string): { triggerKind: number; triggerCharacter?: string } {
+    const { triggerKind, triggerCharacter } = record(value, what);
     if (triggerKind !== 1 && triggerKind !== 2 && triggerKind !== 3) {
-        throw new Error('Invalid completion trigger.');
+        throw new Error(`Invalid ${what} trigger.`);
     }
     if (triggerCharacter === undefined) {
         return { triggerKind };
     }
     if (typeof triggerCharacter !== 'string' || triggerCharacter.length === 0 || triggerCharacter.length > 4) {
-        throw new Error('Invalid completion trigger character.');
+        throw new Error(`Invalid ${what} trigger character.`);
     }
     return { triggerKind, triggerCharacter };
+}
+
+/** #287: signature help's context, without the previous answer (servers do not need it). */
+function signatureHelpContext(value: unknown): { triggerKind: number; triggerCharacter?: string; isRetrigger: boolean } | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    const { isRetrigger } = record(value, 'signature help context');
+    return { ...triggerContext(value, 'signature help'), isRetrigger: isRetrigger === true };
+}
+
+function boundedString(value: unknown, max: number, what: string): string {
+    if (typeof value !== 'string' || value.length > max) {
+        throw new Error(`Invalid ${what}.`);
+    }
+    return value;
+}
+
+/** #287: a diagnostic the editor shows, sent back so the server can offer its fixes; only the fields servers read. */
+function diagnostic(value: unknown): Record<string, unknown> {
+    const input = record(value, 'diagnostic');
+    const result: Record<string, unknown> = { range: validRange(input['range']), message: boundedString(input['message'], MAX_MESSAGE_CHARS, 'diagnostic message') };
+    const { severity, code, source } = input;
+    if (severity !== undefined) {
+        if (severity !== 1 && severity !== 2 && severity !== 3 && severity !== 4) {
+            throw new Error('Invalid diagnostic severity.');
+        }
+        result['severity'] = severity;
+    }
+    if (code !== undefined) {
+        if (!(typeof code === 'number' && Number.isSafeInteger(code)) && !(typeof code === 'string' && code.length <= 200)) {
+            throw new Error('Invalid diagnostic code.');
+        }
+        result['code'] = code;
+    }
+    if (source !== undefined) {
+        result['source'] = boundedString(source, 200, 'diagnostic source');
+    }
+    return result;
+}
+
+/** #287: which diagnostics a code action request is about, and which kinds of action it wants. */
+function codeActionContext(value: unknown): Record<string, unknown> {
+    const { diagnostics, only, triggerKind } = record(value, 'code action context');
+    if (!Array.isArray(diagnostics) || diagnostics.length > MAX_DIAGNOSTICS) {
+        throw new Error('Invalid code action diagnostics.');
+    }
+    const result: Record<string, unknown> = { diagnostics: diagnostics.map(diagnostic) };
+    if (only !== undefined) {
+        if (!Array.isArray(only) || only.length > 20 || !only.every((kind) => typeof kind === 'string' && /^[A-Za-z0-9_.-]{0,100}$/.test(kind))) {
+            throw new Error('Invalid code action kinds.');
+        }
+        result['only'] = [...only] as string[];
+    }
+    if (triggerKind !== undefined) {
+        if (triggerKind !== 1 && triggerKind !== 2) {
+            throw new Error('Invalid code action trigger.');
+        }
+        result['triggerKind'] = triggerKind;
+    }
+    return result;
+}
+
+/** #287: a new name for rename: one line of text. */
+function newName(value: unknown): string {
+    const name = boundedString(value, MAX_NAME_CHARS, 'new name');
+    if (name.trim() === '' || /[\r\n\0]/.test(name)) {
+        throw new Error('Invalid new name.');
+    }
+    return name;
+}
+
+/** #287: `workspace/symbol`'s only parameter. */
+export function buildWorkspaceSymbolRequest(params: unknown): { query: string } {
+    return { query: boundedString(record(params, 'request parameters')['query'], MAX_NAME_CHARS, 'symbol query') };
+}
+
+function completionContext(value: unknown): { triggerKind: number; triggerCharacter?: string } | undefined {
+    return value === undefined ? undefined : triggerContext(value, 'completion');
 }
 
 /**
  * Rebuilds the parameters of a request about one document. `toServerUri`
  * maps the renderer's URI and throws outside the workspace.
  */
-export function buildDocumentRequest(method: Exclude<LspRequestMethod, 'completionItem/resolve'>, params: unknown, toServerUri: (clientUri: unknown) => string): DocumentRequest {
+export function buildDocumentRequest(method: DocumentRequestMethod, params: unknown, toServerUri: (clientUri: unknown) => string): DocumentRequest {
     const input = record(params, 'request parameters');
     const serverUri = toServerUri(record(input['textDocument'], 'document').uri);
     const textDocument = { uri: serverUri };
@@ -101,7 +190,21 @@ export function buildDocumentRequest(method: Exclude<LspRequestMethod, 'completi
         }
         case 'textDocument/hover':
         case 'textDocument/definition':
+        case 'textDocument/prepareRename':
+        case 'textDocument/documentHighlight':
             return { method, params: { textDocument, position: position(input['position']) }, serverUri };
+        case 'textDocument/references': {
+            const { includeDeclaration } = record(input['context'], 'reference context');
+            return { method, params: { textDocument, position: position(input['position']), context: { includeDeclaration: includeDeclaration === true } }, serverUri };
+        }
+        case 'textDocument/rename':
+            return { method, params: { textDocument, position: position(input['position']), newName: newName(input['newName']) }, serverUri };
+        case 'textDocument/signatureHelp': {
+            const context = signatureHelpContext(input['context']);
+            return { method, params: { textDocument, position: position(input['position']), ...(context ? { context } : {}) }, serverUri };
+        }
+        case 'textDocument/codeAction':
+            return { method, params: { textDocument, range: validRange(input['range']), context: codeActionContext(input['context']) }, serverUri };
     }
 }
 

@@ -84,7 +84,7 @@ describe('LSP method allowlist (#21)', () => {
         for (const method of LSP_REQUEST_METHODS) {
             assert.equal(assertRequestMethod(method), method);
         }
-        for (const method of ['workspace/executeCommand', 'workspace/applyEdit', 'textDocument/rename', 'textDocument/formatting', 'shutdown', 'exit', 'initialize', '$/cancelRequest', 'textDocument/hover ', '', null, 7, {}]) {
+        for (const method of ['workspace/executeCommand', 'workspace/applyEdit', 'codeAction/resolve', 'workspace/willRenameFiles', 'textDocument/formatting', 'shutdown', 'exit', 'initialize', '$/cancelRequest', 'textDocument/hover ', '', null, 7, {}]) {
             assert.throws(() => assertRequestMethod(method), /Refused language server request/);
         }
     });
