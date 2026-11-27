@@ -13,7 +13,7 @@ import { contentTypeOf, isLoopbackUrl, vendoredLibraryFor } from './sceneLibrari
  * slot the renderer reserves, one per window.
  *
  * It is a separate page, not an <iframe> in the app's renderer, so the app's
- * CSP stays `frame-src 'none'` and the scene, which is served over the
+ * CSP keeps frames to extensions' webviews (`codexr-webview:`) and the scene, which is served over the
  * network, can never reach `window.codexr`: sandboxed, context isolation,
  * and its own in-memory session (`codexr-scene`) that grants no permission.
  * Its only preload (src/scenePreload) exposes one call, `CodeXRHostBridge.

@@ -10,6 +10,7 @@ import { TASK_IPC_CHANNELS, TASK_IPC_EVENTS, type TaskFinished } from '../shared
 import type { HostUiEvent } from '../shared/extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
 import type { ViewRequest } from '../shared/extensionViewsProtocol.ts';
+import type { WebviewWorkbenchEvent } from '../shared/extensionWebviewProtocol.ts';
 import { EXTENSION_IPC_CHANNELS, EXTENSION_IPC_EVENTS, type ExtensionsChangedEvent, type ExtensionLogEvent, type GalleryQuery } from '../shared/extensions.ts';
 import { DEBUG_IPC_CHANNELS, DEBUG_IPC_EVENTS, type DebugEvent, type DebugStepKind } from '../shared/debug.ts';
 import { LSP_IPC_CHANNELS, LSP_IPC_EVENTS, type LspDiagnosticsEvent, type LspLanguage, type LspRequestMethod } from '../shared/lsp.ts';
@@ -152,6 +153,7 @@ const api: CodeXRApi = Object.freeze({
         documentEvents: (events: readonly DocumentEvent[]) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsDocuments, events),
         provide: (request: ProvideRequest) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsProvide, request),
         view: (request: ViewRequest) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsView, request),
+        webview: (event: WebviewWorkbenchEvent) => ipcRenderer.invoke(EXTENSION_IPC_CHANNELS.extensionsWebview, event),
     }),
     app: Object.freeze({
         getInfo: () => ipcRenderer.invoke(IPC_CHANNELS.appGetInfo),

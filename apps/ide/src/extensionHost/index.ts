@@ -1,6 +1,7 @@
 import { HOST_METHODS, RpcEndpoint, type HostInitData, type RpcMessage } from '../shared/extensionHostProtocol.ts';
 import type { DocumentEvent, ProvideRequest } from '../shared/extensionLanguageProtocol.ts';
 import type { ViewRequest } from '../shared/extensionViewsProtocol.ts';
+import type { WebviewWorkbenchEvent } from '../shared/extensionWebviewProtocol.ts';
 import { ExtensionHost } from './host.ts';
 
 /**
@@ -30,6 +31,7 @@ rpc.handle(HOST_METHODS.trustChanged, (trusted) => host.trustChanged(trusted ===
 rpc.handle(HOST_METHODS.documents, (events) => host.documentsAndEditors.accept(Array.isArray(events) ? events as DocumentEvent[] : []));
 rpc.handle(HOST_METHODS.provide, (request) => host.languageFeatures.provide(request as ProvideRequest));
 rpc.handle(HOST_METHODS.view, (request) => host.treeViews.request(request as ViewRequest));
+rpc.handle(HOST_METHODS.webview, (event) => host.webviews.request(event as WebviewWorkbenchEvent));
 rpc.handle(HOST_METHODS.shutdown, async () => {
     await host.shutdown();
     setTimeout(() => process.exit(0), 50);

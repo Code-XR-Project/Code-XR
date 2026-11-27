@@ -8,6 +8,7 @@ import type { ContextKeys } from './contextKeys.ts';
 import { extensionIcon } from './extensionIcons.ts';
 import { menuGroups, splitActions, type MenuAction, type MenuGroup } from './menuModel.ts';
 import { createTreeView, type ExtensionTreeView } from './treeView.ts';
+import type { WebviewHost } from './webviewHost.ts';
 
 /**
  * #261: the views extensions contribute. Each `viewsContainers` entry gets an
@@ -36,6 +37,8 @@ export interface ViewsControllerDeps {
     runCommand(command: string, args?: readonly unknown[]): void;
     openExternalLink(url: string): void;
     onError(message: string): void;
+    /** #261: shows a `type: "webview"` view's frame over its slot. */
+    readonly webviews: Pick<WebviewHost, 'setViewSlot'>;
 }
 
 export interface ViewsController {
@@ -65,6 +68,8 @@ interface Section {
     readonly body: HTMLElement;
     readonly message: HTMLElement;
     readonly welcome: HTMLElement;
+    /** A `type: "webview"` view's slot, which its frame is laid over. */
+    readonly slot: HTMLElement | null;
     readonly container: string;
     collapsed: boolean;
     visible: boolean;
@@ -181,7 +186,7 @@ export function createViewsController(deps: ViewsControllerDeps): ViewsControlle
 
     function renderWelcome(section: Section): void {
         const tree = trees.get(section.view.id);
-        const showWelcome = !tree || tree.tree.isEmpty();
+        const showWelcome = section.slot === null && (!tree || tree.tree.isEmpty());
         const entries = (contributions?.viewsWelcome ?? []).filter((entry) => entry.view === section.view.id && whenHolds(entry.when, lookup({ view: section.view.id })));
         if (!showWelcome || entries.length === 0) {
             section.welcome.hidden = true;
@@ -260,6 +265,10 @@ export function createViewsController(deps: ViewsControllerDeps): ViewsControlle
             return;
         }
         section.element.dataset['shown'] = String(now);
+        if (section.slot) {
+            deps.webviews.setViewSlot(section.view.id, now ? section.slot : null);
+            return;
+        }
         void request({ kind: 'viewVisibility', viewId: section.view.id, visible: now }).catch(() => undefined);
         const tree = trees.get(section.view.id);
         if (now && tree && !tree.loaded) {
@@ -289,9 +298,10 @@ export function createViewsController(deps: ViewsControllerDeps): ViewsControlle
         const header = el('div', { className: 'outline-header ext-view-header' }, [toggle, actions]);
         const message = el('p', { className: 'muted ext-view-message', attrs: { hidden: '' } });
         const welcome = el('div', { className: 'ext-welcome', attrs: { hidden: '' } });
-        const body = el('div', { className: 'ext-view-body' }, [message, welcome]);
+        const slot = view.type === 'webview' ? el('div', { className: 'webview-slot ext-webview-slot', attrs: { 'data-testid': `ext-webview-slot-${view.id}` } }) : null;
+        const body = el('div', { className: 'ext-view-body' }, slot ? [message, slot] : [message, welcome]);
         const element = el('section', { className: 'ext-view', attrs: { 'aria-label': view.name, 'data-view-id': view.id, 'data-testid': `ext-view-${view.id}` } }, [header, body]);
-        const section: Section = { view, element, header, toggle, titleText, descriptionText, actions, body, message, welcome, container: view.container, collapsed: false, visible: true };
+        const section: Section = { view, element, header, toggle, titleText, descriptionText, actions, body, message, welcome, slot, container: view.container, collapsed: false, visible: true };
         toggle.addEventListener('click', () => setCollapsed(section, !section.collapsed));
         const stored = readFlag(deps.storage, `codexr:extview:${view.id}:collapsed`);
         section.collapsed = stored ?? view.collapsed;
@@ -325,6 +335,9 @@ export function createViewsController(deps: ViewsControllerDeps): ViewsControlle
 
     function clearSections(): void {
         for (const section of sections.values()) {
+            if (section.slot) {
+                deps.webviews.setViewSlot(section.view.id, null);
+            }
             const tree = trees.get(section.view.id);
             tree?.tree.element.remove();
             section.element.remove();

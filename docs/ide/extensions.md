@@ -14,7 +14,7 @@ Epic #251. Decision: [ADR 0002](../../adr/0002-vscode-extensions-in-the-ide.md).
 | Extensions with code: the extension host, commands in the palette, messages, quick picks and input boxes, progress, status bar items, output channels, configuration, state and secrets, files and `findFiles` | Done | #259 |
 | Documents of the editor, the active editor, diagnostics, language features (completion, hover, definitions, references, symbols, signature help, formatting, code actions, code lenses, rename, folding, inlay hints, links), `applyEdit`, language clients (`vscode-languageclient`) | Done | #260 |
 | Tree views, view containers, `viewsWelcome`, menus (`view/title`, `view/item/context`, `editor/title`, `editor/context`, `explorer/context`), `when` clauses and `setContext` | Done | #261 |
-| Webviews (panels and webview views) | Planned | #261 |
+| Webviews: `createWebviewPanel`, `registerWebviewViewProvider`, `asWebviewUri`, messages, `getState`/`setState`, theme variables, `command:` links | Done | #261 |
 | The Code-XR extension itself | Planned | #262 |
 | File icon themes, product icon themes | Not yet: listed in the details page | — |
 | Language packs | Install, no visible effect (the IDE does not use VS Code's UI strings) | #264 |
@@ -93,9 +93,27 @@ Monaco model (codexr-file:/src/a.py)      main process                      exte
 - **Commands.** `<view>.focus`, `workbench.view.extension.<container>` and `workbench.actions.treeView.<view>.collapseAll`/`.refresh` work through `executeCommand`.
 - Checked with a sample extension: a container with two views (one gated on a `setContext` key, one placed in the explorer), welcome content, every supported menu, inline actions that edit the file and refresh the tree.
 
+### Webviews
+
+```
+extension host                     main process                                   workbench (renderer)
+  webviews.ts  -- create/html/post/... -->  webviewRegistry.ts (keeps the HTML)  -- create/html v2/post -->  webviewHost.ts
+                                            webviewServer.ts: codexr-webview://<id>/        <iframe sandbox src=codexr-webview://<id>/index.html>
+  onDidReceiveMessage <-- message/closed/viewState/command (checked) <--------------------  postMessage from the frame
+```
+
+- **Panels and views.** `window.createWebviewPanel` opens an editor tab (in the active group: `ViewColumn.Beside` is not honoured yet); `registerWebviewViewProvider` fills a contributed view of `type: "webview"` the first time it is shown (activating `onView:` first). `title`, `reveal`, `dispose`, `onDidDispose`, `onDidChangeViewState` (panels) and `onDidChangeVisibility` (views) work. A frame keeps running while its tab or view is hidden (as with `retainContextWhenHidden`), so switching tabs never reloads the page.
+- **The page.** Each webview is an `<iframe>` on an origin of its own, `codexr-webview://<32 random hex>/`, served by the main process: the extension's HTML with VS Code's default styles and a small bootstrap first in `<head>`, before the page's own CSP. The bootstrap defines `acquireVsCodeApi()` (once: `postMessage`, `getState`, `setState`), the theme's `--vscode-*` variables and the `vscode-light`/`vscode-dark` body class (updated live when the theme changes), and the workbench shortcuts (Ctrl/Cmd+P, F1...) while the frame has the focus. `cspSource` is the webview's origin.
+- **Resources.** `asWebviewUri` gives `codexr-webview://<id>/file/<path>`; the main process serves a file only when it lies, after following links, inside one of the webview's `localResourceRoots` (by default the extension's folder and the workspace folder), and answers 404 otherwise.
+- **Messages.** `webview.postMessage` and the page's `postMessage` travel as structured clones (a `Uri` as a tagged object), queued until the page has loaded.
+- **Links.** `http`, `https` and `mailto` open outside through the IDE's usual consent; `command:id?args` runs the command only when `enableCommandUris` allows it (checked again in the main process); anything else that would navigate the frame is stopped.
+- **Isolation.** The frame is sandboxed (`allow-scripts` only when `enableScripts`, `allow-forms` only when `enableForms`, no popups, no top navigation), cannot reach `window.codexr` (no preload in frames), the workbench's DOM or another webview, and gets no permission (camera, microphone...). The workbench CSP allows frames from `codexr-webview:` only, and the main process stops any frame navigation that leaves that scheme.
+- **Not yet.** Panels are not restored after a restart (`registerWebviewPanelSerializer` is accepted and reported), custom editors (`registerCustomEditorProvider`) and `enableFindWidget` are missing.
+- Checked with a sample extension (*Cat Coding*): a panel with a script and an image from `localResourceRoots`, a message loop, `setState`, an allowed and a refused `command:` link, a popup that stays blocked, a file outside the roots that answers 404, and a webview view in its own container.
+
 ## Security
 
-- CSP: `script-src 'self' 'wasm-unsafe-eval'` (WebAssembly only; `eval` and `new Function` stay blocked, which the smoke run checks).
+- CSP: `script-src 'self' 'wasm-unsafe-eval'` (WebAssembly only; `eval` and `new Function` stay blocked, which the smoke run checks); `frame-src codexr-webview:` (extensions' webviews only, #261).
 - Nothing an extension declares runs in the renderer: themes and grammars are data; snippets are text.
 - Extensions with code run in the extension host process, never in the renderer or the main process. They have the rights of the person's account, as in VS Code: install only extensions you trust. In a folder in Restricted Mode only the extensions that declare `capabilities.untrustedWorkspaces.supported` run (#263 finishes that story).
 - What the host asks of the main process is checked there: files open only inside the folder, external links only for http, https and mailto, settings keys are bounded, secrets are encrypted by the OS store (`safeStorage`) and kept per extension.

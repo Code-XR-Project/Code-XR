@@ -865,6 +865,8 @@ const extensions = installExtensions({
     },
     views: workbench,
     storage: layoutStorage(),
+    // #261: a webview panel opens in the active group (`ViewColumn.Beside` is not honoured yet).
+    openCustom: (input, options) => void editorGroup().then((group) => group.openCustom(input, { preview: options.preview, focus: !options.preserveFocus })),
 });
 // #284: Source Control's remote, stash and branch commands, under VS Code's ids.
 registerGitCommands(registry, scmView);
