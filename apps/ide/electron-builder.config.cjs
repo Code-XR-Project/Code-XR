@@ -2,7 +2,7 @@
 //
 //   npm run dist --workspace=code-xr-ide          the current OS's installers
 //
-// The app itself is apps/ide/out (main, preloads, renderer: every npm
+// The app itself is apps/ide/out (main, preloads, renderer, extension host: every npm
 // dependency is bundled by Vite except node-pty), plus the three runtime
 // packages that run as files: node-pty (native), and typescript-language-
 // server with TypeScript, which run as a separate process (#21). Those three
@@ -42,6 +42,8 @@ module.exports = {
         '**/node_modules/node-pty/**',
         '**/node_modules/typescript-language-server/**',
         '**/node_modules/typescript/**',
+        // #259: the extension host is forked as a script: a real file, not one inside the archive.
+        'out/extensionHost/**',
     ],
     extraResources: [
         { from: `${EXTENSION}/dist/code_analysis`, to: 'dist/code_analysis' },

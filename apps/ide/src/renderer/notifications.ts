@@ -23,6 +23,8 @@ export interface NotificationOptions {
     readonly actions?: readonly NotificationAction[];
     /** Milliseconds before it closes on its own; 0 keeps it. Defaults: info 6 s, others 0. */
     readonly timeoutMs?: number;
+    /** #259: it closed without an action (its X, or the timeout): an extension waiting on it gets `undefined`. */
+    readonly onDismiss?: () => void;
 }
 
 export interface ProgressUpdate {
@@ -113,11 +115,15 @@ export function createNotificationCenter(host: HTMLElement): NotificationCenter 
                     return button;
                 })));
             }
-            const root = shell(severity, body, () => handle.close());
+            const dismiss = (): void => {
+                handle.close();
+                options.onDismiss?.();
+            };
+            const root = shell(severity, body, dismiss);
             root.dataset['severity'] = severity;
             const timeout = options.timeoutMs ?? (severity === 'info' && !options.actions?.length ? INFO_TIMEOUT_MS : 0);
             if (timeout > 0) {
-                timer = setTimeout(() => handle.close(), timeout);
+                timer = setTimeout(dismiss, timeout);
                 // Reading a toast keeps it.
                 root.addEventListener('mouseenter', () => clearTimeout(timer));
             }

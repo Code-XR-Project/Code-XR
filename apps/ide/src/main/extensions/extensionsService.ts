@@ -98,6 +98,13 @@ export class ExtensionsService {
         return new ContributionIndex(this.enabled(), (message) => extLog.warn(message));
     }
 
+    /** #259: the extension host's IPC handlers, registered with the service's own. */
+    private hostHandlers: ((handle: Handle) => void) | null = null;
+
+    attachHost(register: (handle: Handle) => void): void {
+        this.hostHandlers = register;
+    }
+
     setActivationSource(source: ActivationSource): void {
         this.activations = source;
     }
@@ -326,6 +333,7 @@ export class ExtensionsService {
     }
 
     register(handle: Handle): void {
+        this.hostHandlers?.(handle);
         handle(EXTENSION_IPC_CHANNELS.extensionsList, (event) => this.list(event.sender));
         handle(EXTENSION_IPC_CHANNELS.extensionsSearch, async (_event, query) => {
             const q = (typeof query === 'object' && query !== null ? query : {}) as Partial<GalleryQuery>;
