@@ -21,6 +21,7 @@ export interface AnalysisAvailabilitySnapshot {
     projectEvolution: FeatureAvailability;
     dependencyGraph: FeatureAvailability;
     agentFlow: FeatureAvailability;
+    drillDown: FeatureAvailability;
 }
 
 /** What the collaboration session endpoints need from their host server. */
@@ -104,7 +105,7 @@ export class CollaborationSessionApi {
             ?? this.getDefaultCollaborationConfiguration();
         const session = this.deps.authority.resolveCookie(req.headers.cookie);
         const profile = session?.profile ?? DEFAULT_COLLABORATION_PROFILE;
-        const { historicalComparison, projectEvolution, dependencyGraph, agentFlow } =
+        const { historicalComparison, projectEvolution, dependencyGraph, agentFlow, drillDown } =
             await this.deps.getAnalysisAvailability();
 
         return {
@@ -124,6 +125,8 @@ export class CollaborationSessionApi {
                 dependencyGraphReason: dependencyGraph.reason,
                 agentFlow: agentFlow.enabled,
                 agentFlowReason: agentFlow.reason,
+                drillDown: drillDown.enabled,
+                drillDownReason: drillDown.reason,
             },
             roomSocketPath: '/codexr-room',
             broadcastSocketPath: '/codexr-broadcast',

@@ -11,6 +11,7 @@ import { ProjectEvolutionService } from '../../history/projectEvolutionService';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
 import { DependencyGraphService } from '../../dependencies/dependencyGraphService';
 import { AGENT_FLOW_NOT_ATTACHED, agentFlowAvailability, releaseAgentFlow, wireAgentFlow, type AgentFlowWiringInput } from './agentFlowHostWiring';
+import { DRILL_DOWN_NOT_ATTACHED, drillDownAvailability, releaseDrillDown, wireDrillDown } from './drillDownHostWiring';
 import { AnalysisSourceChangeBatch, AnalysisViewState, AnalysisViewMode, analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../analysis/watchers/sessionWatcherManager';
 import { UnifiedSessionRegistry } from '../../analysis/session/sessionRegistry';
@@ -57,6 +58,7 @@ export class AnalysisFeatureHost {
     public projectEvolutionService: ProjectEvolutionService | null = null;
     public gitAnalysisSourceCatalog: GitAnalysisSourceCatalog | null = null;
     public agentFlow = AGENT_FLOW_NOT_ATTACHED;
+    public drillDown = DRILL_DOWN_NOT_ATTACHED;
 
     private analysisUpdateSubscription: (() => void) | null = null;
     private historicalRefreshTimer: NodeJS.Timeout | null = null;
@@ -142,6 +144,18 @@ export class AnalysisFeatureHost {
                 );
             }
             this.agentFlow = wireAgentFlow(this.agentFlowWiring(capabilities.agentFlow, session, this.config.analysisSessionId, this.config.staticRoot));
+            this.drillDown = wireDrillDown({
+                enabled: capabilities.drillDown,
+                session,
+                sessionId: this.config.analysisSessionId,
+                staticRoot: this.config.staticRoot,
+                context: this.config.extensionContext,
+                disposables: this.refreshCoordinatorDisposables,
+                publish: (entity) => this.hooks.getRoom()?.upsertServerEntity(this.hooks.getRoomId(), { ...entity }),
+                activate: async (mode) => {
+                    await this.activateAnalysisViewMode(mode, mode === 'single' ? 'single.mapping' : 'drill-down');
+                },
+            });
 
             // Shared by every session-bound mode: publish analysis view-state
             // changes over the collaboration channel (no-op without a room).
@@ -263,6 +277,7 @@ export class AnalysisFeatureHost {
                 reason: 'Dependency analysis is not available for this server.',
             },
             agentFlow: agentFlowAvailability(this.agentFlow),
+            drillDown: drillDownAvailability(this.drillDown),
         };
     }
 
@@ -508,5 +523,6 @@ export class AnalysisFeatureHost {
         void this.dependencyGraphService?.dispose();
         this.dependencyGraphService = null;
         this.agentFlow = releaseAgentFlow(this.agentFlow);
+        this.drillDown = releaseDrillDown(this.drillDown);
     }
 }

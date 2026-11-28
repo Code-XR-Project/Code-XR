@@ -408,11 +408,12 @@ test('the host tables derived from the analysis types are unchanged', async () =
             'historical-compare': 'historical.selection',
             'project-evolution': 'project-evolution',
             'agent-flow': 'agent-flow',
+            'drill-down': 'drill-down',
         });
         assert.equal(defaultControllerView('constructor'), 'single.mapping');
 
         const { getServerFeaturesForSurface, ANALYSIS_TYPES } = requireOut('core/analysis/launch/analysisTypes.js');
-        assert.deepEqual([...getServerFeaturesForSurface('XR')].sort(), ['agentFlow', 'dependencyGraph', 'historicalComparison', 'projectEvolution']);
+        assert.deepEqual([...getServerFeaturesForSurface('XR')].sort(), ['agentFlow', 'dependencyGraph', 'drillDown', 'historicalComparison', 'projectEvolution']);
         assert.deepEqual([...getServerFeaturesForSurface('LivePanel')].sort(), ['dependencyGraph', 'historicalComparison']);
         assert.deepEqual([...getServerFeaturesForSurface('VisualizeDOM')], []);
         assert.deepEqual([...getServerFeaturesForSurface(undefined)], []);
@@ -423,7 +424,11 @@ test('the host tables derived from the analysis types are unchanged', async () =
             'historical-compare': 'historical-comparison',
             'project-evolution': 'project-evolution',
             'agent-flow': 'agent-flow',
+            'drill-down': 'drill-down',
         });
+        const drill = ANALYSIS_TYPES.find((t) => t.id === 'drill-down').snapshotProbe;
+        assert.equal(drill.isAvailable({ datasetUrl: '/drilldown/drill-1.json' }), true);
+        assert.equal(drill.isAvailable({ datasetUrl: null }), false);
         const flow = ANALYSIS_TYPES.find((t) => t.id === 'agent-flow').snapshotProbe;
         assert.equal(flow.isAvailable({ datasetUrl: '/agent-flow/agent-flow-1.json' }), true);
         assert.equal(flow.isAvailable({ datasetUrl: null }), false);

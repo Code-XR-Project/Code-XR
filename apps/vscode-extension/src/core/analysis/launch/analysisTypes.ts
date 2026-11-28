@@ -20,7 +20,7 @@
 export type LaunchKindId = 'XR' | 'LivePanel' | 'VisualizeDOM';
 
 /** The server feature an analysis type needs attached (null: none). */
-export type AnalysisServerFeature = 'dependencyGraph' | 'historicalComparison' | 'projectEvolution' | 'agentFlow';
+export type AnalysisServerFeature = 'dependencyGraph' | 'historicalComparison' | 'projectEvolution' | 'agentFlow' | 'drillDown';
 
 export interface AnalysisSnapshotProbe {
     /** The room entity kind that carries this analysis's result. */
@@ -94,6 +94,19 @@ export const ANALYSIS_TYPES: ReadonlyArray<AnalysisTypeDescriptor> = Object.free
         snapshotProbe: {
             entityKind: 'agent-flow',
             isAvailable: (snapshot) => typeof snapshot?.datasetUrl === 'string',
+        },
+    },
+    {
+        // A file or folder of the analysis, opened from the chart in place (docs/features/DRILL_DOWN_XR.md).
+        // Not in the Analyses menu: it is reached from a building or a breadcrumb.
+        id: 'drill-down',
+        label: 'Drill-down',
+        controllerView: 'drill-down',
+        serverFeature: 'drillDown',
+        surfaces: ['XR'],
+        snapshotProbe: {
+            entityKind: 'drill-down',
+            isAvailable: (snapshot) => typeof snapshot?.datasetUrl === 'string' && snapshot.datasetUrl.length > 0,
         },
     },
 ]);

@@ -19,6 +19,7 @@ import { ANALYSIS_MODE_RUNTIME_OUTPUT_NAME, readAnalysisModeRuntimeContent } fro
 import { HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME, readHistoricalComparisonRuntimeContent } from '../scene-assets/historicalComparisonComponentAsset';
 import { PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME, readProjectEvolutionRuntimeContent } from '../scene-assets/projectEvolutionComponentAsset';
 import { AGENT_FLOW_RUNTIME_OUTPUT_NAME, readAgentFlowRuntimeContent } from '../scene-assets/agentFlowComponentAsset';
+import { DRILL_DOWN_RUNTIME_OUTPUT_NAME, readDrillDownRuntimeContent } from '../scene-assets/drillDownComponentAsset';
 import { DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME, readDependencyGraphRuntimeContent } from '../scene-assets/dependencyGraphComponentAsset';
 import { GUIDE_SCREEN_RUNTIME_OUTPUT_NAME, GUIDE_PAGE_OUTPUT_NAME, readGuideScreenRuntimeContent, readGuidePageContent } from '../scene-assets/guideScreenComponentAsset';
 import { LOGO_RUNTIME_OUTPUT_NAME, readLogoRuntimeContent } from '../scene-assets/logoComponentAsset';
@@ -63,6 +64,7 @@ export const DIRECTORY_XR_RUNTIME_ASSETS: ReadonlyArray<readonly [string, (exten
     [DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME, readDependencyVisualBudgetRuntimeContent],
     [DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME, readDependencyGraphRuntimeContent],
     [AGENT_FLOW_RUNTIME_OUTPUT_NAME, readAgentFlowRuntimeContent],
+    [DRILL_DOWN_RUNTIME_OUTPUT_NAME, readDrillDownRuntimeContent],
     [GUIDE_SCREEN_RUNTIME_OUTPUT_NAME, readGuideScreenRuntimeContent],
     [GUIDE_PAGE_OUTPUT_NAME, readGuidePageContent],
     [LOGO_RUNTIME_OUTPUT_NAME, readLogoRuntimeContent],
