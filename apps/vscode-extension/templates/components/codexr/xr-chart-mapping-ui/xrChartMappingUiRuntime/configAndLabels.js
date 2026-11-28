@@ -95,6 +95,11 @@
     statusClearTimer: null,
     suppressSharedPublish: false,
     chartEntityIdsOverride: null,
+    // What the controller drives (setScope) and another kind's schema
+    // swapped in by a feature (setSchemaOverride), with the scene's own kept.
+    scope: null,
+    schemaOverride: null,
+    schemaBase: null,
     activeMappingContextId: 'normal-analysis',
     mappingProfiles: {},
     // Per-context companion sections shown under the mapping view (child

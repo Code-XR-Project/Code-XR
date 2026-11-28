@@ -169,25 +169,28 @@ test('the card lists a building\'s three metrics from the chart\'s own mapping, 
     assert.deepEqual([...t.chartMetrics({ getAttribute: () => null }, { totalLines: 3 })], [], 'not a boats chart');
 });
 
-test('only the legend boats hangs beside a pickable chart is recognised as Babia\'s legend', () => {
+test('a click hides only the legend Babia pinned on that building; hover legends are left alone', () => {
     const { __testing: t } = loadRuntime();
-    const node = (tagName, attributes, parentNode) => ({
-        nodeType: 1, tagName, parentNode, id: attributes.id || '',
-        hasAttribute: (name) => Object.prototype.hasOwnProperty.call(attributes, name),
-    });
-    const parent = { children: [] };
-    parent.children.push(node('A-ENTITY', { id: 'chart', 'babia-boats': '' }, parent));
-    assert.equal(t.isBoatsLegend(node('A-PLANE', { 'babia-lookat': '[camera]' }, parent)), true);
-    assert.equal(t.isBoatsLegend(node('A-PLANE', {}, parent)), false, 'a plain plane');
-    assert.equal(t.isBoatsLegend(node('A-TEXT', { 'babia-lookat': '' }, parent)), false);
-    const barsParent = { children: [] };
-    barsParent.children.push(node('A-ENTITY', { id: 'chart', 'babia-bars': '' }, barsParent));
-    assert.equal(t.isBoatsLegend(node('A-PLANE', { 'babia-lookat': '' }, barsParent)), false, 'another chart keeps its legend');
+    const legend = () => {
+        const attributes = { 'babia-lookat': '[camera]' };
+        return {
+            nodeType: 1, tagName: 'A-PLANE', attributes,
+            hasAttribute: (name) => Object.prototype.hasOwnProperty.call(attributes, name),
+            setAttribute(name, value) { attributes[name] = value; },
+        };
+    };
+    const pinned = legend();
+    assert.equal(t.hidePinnedLegend({ legend: pinned }), true);
+    assert.equal(pinned.attributes.visible, false);
+    assert.equal(pinned.attributes.scale, '0.0001 0.0001 0.0001', 'stays hidden when the classic analysis is shown again');
+    assert.equal(t.hidePinnedLegend({}), false, 'a building with no legend');
+    assert.equal(t.hidePinnedLegend({ legend: { nodeType: 1, tagName: 'A-TEXT', hasAttribute: () => true } }), false, 'not a Babia legend');
 });
 
-test('a drill with the session\'s own schema follows the controller; the functions of a file keep the server\'s mapping', () => {
-    const entity = (kind) => ({ target: { kind, relativePath: 'src' }, homeKind: 'directory', chartId: 'boats', mapping: { height: 'nloc' } });
+test('the controller drives the drilled chart, switching to the file schema the server sends for the functions of a file', () => {
+    const entity = (kind, controllerSchema = null) => ({ target: { kind, relativePath: 'src' }, homeKind: 'directory', chartId: 'boats', mapping: { height: 'nloc' }, controllerSchema });
     const plain = (value) => JSON.parse(JSON.stringify(value));
+    const fileSchema = { chartId: 'boats', targetType: 'file', dimensions: [{ id: 'height' }], availableCharts: [], dimensionsByChart: {}, defaultMappingsByChart: {} };
 
     const alone = loadRuntime().__testing;
     assert.deepEqual(plain(alone.drillChartSpec(entity('directory'))), { chartId: 'boats', mapping: { height: 'nloc' }, controllerDriven: false }, 'no controller in the page');
@@ -195,5 +198,32 @@ test('a drill with the session\'s own schema follows the controller; the functio
     const controller = { chartId: 'bars', lastKnownGoodMapping: { height: 'totalLines', x_axis: 'fileName' } };
     const t = loadRuntime({ mappingUi: { getState: () => controller } }).__testing;
     assert.deepEqual(plain(t.drillChartSpec(entity('directory'))), { chartId: 'bars', mapping: { height: 'totalLines', x_axis: 'fileName' }, controllerDriven: true }, 'a folder of a project');
-    assert.deepEqual(plain(t.drillChartSpec(entity('file'))), { chartId: 'boats', mapping: { height: 'nloc' }, controllerDriven: false }, 'the functions of one file');
+    assert.equal(t.controllerSchemaFor(entity('directory', fileSchema)), null, 'same kind: the controller keeps its own schema');
+    assert.equal(t.controllerSchemaFor(entity('file', fileSchema)), fileSchema, 'a file of a project: the file schema');
+    assert.equal(plain(t.drillChartSpec(entity('file', fileSchema))).controllerDriven, true, 'the controller drives the functions of a file too');
+    assert.deepEqual(plain(t.drillChartSpec(entity('file'))), { chartId: 'boats', mapping: { height: 'nloc' }, controllerDriven: false }, 'an older server without the schema');
+});
+
+test('the controller plate names what the table shows: the drilled target, or the session\'s own', () => {
+    const { __testing: t } = loadRuntime();
+    const entity = {
+        target: { kind: 'file', relativePath: 'src/main.js' },
+        homeKind: 'directory',
+        rootLabel: 'proj',
+        crumbs: [{ label: 'proj' }, { label: 'src' }, { label: 'main.js' }],
+        homeCrumbs: [{ label: 'proj' }, { label: 'src' }],
+    };
+    const plain = (value) => JSON.parse(JSON.stringify(value));
+    assert.deepEqual(plain(t.tableScope(entity, true)), { label: 'main.js', kind: 'file' });
+    assert.deepEqual(plain(t.tableScope(entity, false)), { label: 'src', kind: 'directory' });
+    assert.deepEqual(plain(t.tableScope({ ...entity, homeCrumbs: [] }, false)), { label: 'proj', kind: 'directory' }, 'the root label when there is no crumb');
+    assert.equal(t.tableScope(null, true), null);
+});
+
+test('a shared entity keeps a well-formed controller schema and drops anything else', () => {
+    const { __testing: t } = loadRuntime();
+    const schema = { chartId: 'boats', dimensions: [] };
+    assert.equal(t.normalizeEntity({ controllerSchema: schema }).controllerSchema, schema);
+    assert.equal(t.normalizeEntity({ controllerSchema: { dimensions: 'x' } }).controllerSchema, null);
+    assert.equal(t.normalizeEntity({}).controllerSchema, null);
 });

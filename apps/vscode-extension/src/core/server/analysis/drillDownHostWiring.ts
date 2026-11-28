@@ -20,6 +20,8 @@ import { SHA256Generator } from '../../analysis/utils/sha256Generator';
 import { UnifiedSessionRegistry } from '../../analysis/session/sessionRegistry';
 import { runWithLaunchSignal } from '../../analysis/launch/launchControl';
 import { AnalysisConfigurationStorage } from '../../analysis/configuration/analysisConfigurationStorage';
+import { XRFieldSchemaService } from '../../analysis/python/xrFieldSchemaService';
+import { buildMappingUiSchema } from '../../charts/processing/mappingUiSchema';
 import type { UnifiedAnalysisSession } from '../../analysis/session/analysisSession';
 import { getHost } from '../../host/hostRegistry';
 import type { CoreContext } from '../../host/hostPaths';
@@ -95,13 +97,24 @@ export function createPythonDrillAnalyzer(context: CoreContext): DrillAnalyzer {
     };
 }
 
-/** The chart and mapping configured for file or folder analyses (Analysis settings). */
+/**
+ * The chart and mapping configured for file or folder analyses (Analysis
+ * settings), plus the controller schema of that kind: the charts and fields
+ * the corner controller offers when the table is drilled into the other kind.
+ */
 export function createConfiguredChartResolver(context: CoreContext): DrillChartResolver {
     return async (kind: DrillTargetKind) => {
         const storage = AnalysisConfigurationStorage.getInstance(context);
-        const chartId = kind === 'file' ? await storage.getChartTypeFile() : await storage.getDirectoryChartType();
-        const mapping = kind === 'file' ? await storage.getDimensionMappingFile() : await storage.getDimensionMappingDirectory();
-        return { chartId: String(chartId || 'boats'), mapping: { ...(mapping as Record<string, string>) } };
+        const chartId = String((kind === 'file' ? await storage.getChartTypeFile() : await storage.getDirectoryChartType()) || 'boats');
+        const mapping = { ...((kind === 'file' ? await storage.getDimensionMappingFile() : await storage.getDimensionMappingDirectory()) as Record<string, string>) };
+        let controllerSchema = null;
+        try {
+            const fieldTypeMap = await XRFieldSchemaService.getInstance(context).getFieldTypeMap(kind);
+            controllerSchema = fieldTypeMap ? buildMappingUiSchema(chartId, mapping, kind === 'directory', fieldTypeMap) : null;
+        } catch (error) {
+            logger.warn(`[CodeXR][DrillDown] No controller schema for ${kind}:`, error);
+        }
+        return { chartId, mapping, controllerSchema };
     };
 }
 

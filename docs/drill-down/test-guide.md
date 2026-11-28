@@ -11,19 +11,22 @@ Each step says what to do and what you should see. About 10 minutes.
 
 ## 1. Jump into a folder
 
-1. Click a building first: the card shows *File: <name>*, its path and its three metrics (height, area, colour) above the buttons. BabiaXR's own white legend no longer appears. Close it with X.
-2. Click a district (a green plate) of the city.
-3. A card appears above the city: *Folder: <name>*, its path, and **Analyze folder**.
-4. Press **Analyze folder**. Expected:
+1. Hover a building: BabiaXR's white legend with its three metrics appears, and goes away when you move off it.
+2. Look at the controller at the table's corner: above its title a purple plate names the project folder (what the controller is driving).
+3. Click a building: the card shows *File: <name>*, its path and its three metrics (height, area, colour) above the buttons. The legend of that building goes away, so nothing covers the card. Hovering other buildings still shows their legend. Close the card with X.
+4. Click a district (a green plate) of the city.
+5. A card appears above the city: *Folder: <name>*, its path, and **Analyze folder**.
+6. Press **Analyze folder**. Expected:
    - The table switches in place to the city of that folder only (no page reload; in VR the session stays open). The table changes to a deeper blue.
    - The bar shows `project > ... > folder` and a line such as *53 files: all up to date, nothing analysed.* Every file of a project analysis is reused, so this jump is instant.
-   - The controller at the table's corner is still the analysis controller (chart type and metrics).
-5. In the controller, pick another chart (Bar Chart) or another metric: the drilled city redraws with it, still showing only that folder. Pick Babia Boats again to go on.
+   - The controller at the table's corner is still the analysis controller (chart type and metrics), and its purple plate now names that folder.
+7. In the controller, pick another chart (Bar Chart) or another metric: the drilled city redraws with it, still showing only that folder. Pick Babia Boats again to go on.
 
 ## 2. Jump into a sub-folder, then a file
 
 1. Click a district of the drilled city, **Analyze folder**: the table shows that sub-folder.
-2. Click a building, then **Analyze file**: the table shows the functions of that file (file analysis). The line says *N functions: freshly analysed.* The controller is locked with a note: a file's functions have their own metrics, so go up a level to change them.
+2. Click a building, then **Analyze file**: the table shows the functions of that file (file analysis). The line says *N functions: freshly analysed.* The controller's plate turns green with the file name, and the controller switches to the fields of a file analysis (lines, complexity, parameters...). No yellow note: pick another metric or another chart and the functions redraw with it. Hovering a function shows its legend.
+   - Back to a folder: the plate turns purple again and the controller has the folder metrics you had chosen.
 3. **Open in editor** on the card opens the file in VS Code (local scene only).
 
 ## 3. Go back up

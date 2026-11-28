@@ -4,7 +4,7 @@ import { DrillDatasetBuilder } from './drillDownDatasetBuilder';
 import type { DrillAnalyzer, DrillDataset, DrillSessionSeed } from './drillDownDatasetBuilder';
 import { normalizeBabiaPath } from './drillDownDataset';
 import { DrillHistory } from './drillDownHistory';
-import type { DrillCrumb, DrillDownEntity, DrillTarget, DrillTargetKind } from './drillDownModels';
+import type { DrillControllerSchema, DrillCrumb, DrillDownEntity, DrillTarget, DrillTargetKind } from './drillDownModels';
 import {
     buildCrumbs,
     resolveBoundaryRoot,
@@ -22,8 +22,16 @@ import {
  * runner it is given, file by file, reusing every result whose hash holds.
  */
 
-/** The chart a target kind is drawn with: the user's configured defaults. */
-export type DrillChartResolver = (kind: DrillTargetKind) => Promise<{ chartId: string; mapping: Record<string, string> }>;
+/**
+ * The chart a target kind is drawn with: the user's configured defaults, and
+ * the controller schema of that kind (charts and fields, see DrillDownEntity).
+ */
+export interface DrillChart {
+    readonly chartId: string;
+    readonly mapping: Record<string, string>;
+    readonly controllerSchema?: DrillControllerSchema | null;
+}
+export type DrillChartResolver = (kind: DrillTargetKind) => Promise<DrillChart>;
 
 export interface DrillDownServiceOptions {
     /** The session's own target and kind (the home of the history). */
@@ -275,7 +283,7 @@ export class DrillDownService {
     private async publishReady(
         target: DrillTarget,
         dataset: DrillDataset,
-        chart: { chartId: string; mapping: Record<string, string> },
+        chart: DrillChart,
     ): Promise<void> {
         const datasetUrl = await this.datasets.write(dataset.rows);
         const empty = target.kind === 'file' ? 'No functions were found in this file.' : 'No analysable files in this folder.';
@@ -284,6 +292,8 @@ export class DrillDownService {
             datasetUrl,
             chartId: chart.chartId,
             mapping: chart.mapping,
+            // The controller keeps the session's own schema while the kinds match.
+            controllerSchema: target.kind === this.history.home.kind ? null : chart.controllerSchema ?? null,
             rowCount: dataset.rows.length,
             source: dataset.source,
             analyzed: dataset.analyzed,
@@ -353,6 +363,7 @@ export class DrillDownService {
         datasetUrl: string | null;
         chartId: string;
         mapping: Record<string, string> | Readonly<Record<string, string>>;
+        controllerSchema?: DrillControllerSchema | null;
         rowCount: number;
         source: DrillDownEntity['source'];
         message?: string;
@@ -373,6 +384,7 @@ export class DrillDownService {
             datasetUrl: fields.datasetUrl,
             chartId: fields.chartId,
             mapping: { ...fields.mapping },
+            controllerSchema: fields.controllerSchema ?? null,
             treeField: TREE_FIELD[target.kind],
             rowCount: fields.rowCount,
             analyzedCount: fields.analyzed ?? 0,

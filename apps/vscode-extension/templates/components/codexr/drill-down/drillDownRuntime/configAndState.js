@@ -72,7 +72,10 @@
     disposables: [],
     sceneClickBound: false,
     mappingBound: false,
-    controllerLocked: false
+    // The mapping context of the schema the controller was switched to ('' = its own).
+    schemaKey: '',
+    // What the controller's scope plate shows, to skip unchanged updates.
+    scopeKey: ''
   };
   var refs = {};
 
