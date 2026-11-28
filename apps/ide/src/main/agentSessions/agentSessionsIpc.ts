@@ -37,6 +37,7 @@ export function registerAgentSessionHandlers(handle: Handle, runtime: AgentSessi
     handle(C.rename, (event, id, title) => service.rename(portOf(event.sender), id, title));
     handle(C.remove, (event, id, options) => service.remove(portOf(event.sender), id, options));
     handle(C.markRead, (event, id) => service.markRead(portOf(event.sender), id));
+    handle(C.watchInXr, (event, id) => service.watchInXr(portOf(event.sender), id));
     handle(C.changes, (event, id) => service.changes(portOf(event.sender), id));
     handle(C.changeDiff, (event, id, filePath) => service.changeDiff(portOf(event.sender), id, filePath));
     handle(C.keepChanges, (event, id, paths) => service.keepChanges(portOf(event.sender), id, paths));

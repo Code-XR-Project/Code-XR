@@ -67,6 +67,7 @@ const ICONS = {
     copy: 'M8 8h11v12H8zM5 16V4h11',
     chevron: 'M9 6l6 6-6 6',
     branch: 'M6 3v12M6 15a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM18 9a3 3 0 1 0 0-6a3 3 0 1 0 0 6zM18 9c0 4-4 5-12 6',
+    flow: 'M3 19h18M6 19v-5M10 19V9M14 19v-7M18 19V6M6 14l4-5 4 3 4-6',
 } as const;
 
 export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView {
@@ -95,10 +96,26 @@ export function createChatView(sessionId: string, deps: ChatViewDeps): ChatView 
         worktreeBar.toggle();
         worktreeButton.setAttribute('aria-expanded', String(worktreeBar.isOpen));
     });
+    // Agent Flow (#319): the chat on the table of the project's XR scene.
+    const watchButton = el('button', { className: 'af-header-button is-quiet', attrs: { type: 'button', title: 'Watch this chat on the table of the XR scene (Agent Flow)', 'data-testid': 'af-chat-watch-xr' } }, [icon(ICONS.flow), el('span', { text: 'Watch in XR' })]);
+    watchButton.addEventListener('click', () => {
+        watchButton.disabled = true;
+        deps.api.watchInXr(sessionId)
+            .then(({ scenes }) => {
+                deps.onStatus(scenes > 0
+                    ? 'Agent Flow is following this chat on the XR table.'
+                    : 'Open the XR analysis of this project first, then press Watch in XR again.');
+            })
+            .catch((error: unknown) => deps.onStatus(error instanceof Error ? error.message : String(error)))
+            .finally(() => {
+                watchButton.disabled = false;
+            });
+    });
     const header = el('header', { className: 'af-chat-header' }, [
         el('div', { className: 'af-chat-heading' }, [title, el('div', { className: 'af-chat-sub' }, [agentLabel, branchBadge, statusPill])]),
         usageMeter,
         worktreeButton,
+        watchButton,
         changesButton,
     ]);
 

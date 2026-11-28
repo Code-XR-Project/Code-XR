@@ -95,6 +95,7 @@ const api: CodeXRApi = Object.freeze({
         rename: (sessionId: string, title: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.rename, sessionId, title),
         remove: (sessionId: string, options?: { readonly removeWorktree?: boolean }) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.remove, sessionId, { removeWorktree: options?.removeWorktree === true }),
         markRead: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.markRead, sessionId),
+        watchInXr: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.watchInXr, sessionId),
         // AF5/AF6: review and checkpoints; paths are workspace-relative and checked in main.
         changes: (sessionId: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.changes, sessionId),
         changeDiff: (sessionId: string, path: string) => ipcRenderer.invoke(AGENT_SESSION_CHANNELS.changeDiff, sessionId, path),
