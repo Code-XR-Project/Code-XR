@@ -14,15 +14,7 @@ function liveReloadDebugLog(...args) {
   }
 }
 
-liveReloadDebugLog('Setting up EventSource for HTML live reload...');
-
-let eventSource = null;
 let isXRMode = false;
-let hadConnectionError = false;
-let reconnectDelayMs = 0;
-let reconnectTimer = null;
-const RECONNECT_MIN_DELAY_MS = 1000;
-const RECONNECT_MAX_DELAY_MS = 30000;
 
 function checkXRMode() {
   isXRMode = !!document.querySelector('a-scene');
@@ -52,53 +44,31 @@ function applyBabiaHtmlComponent(entity, htmlContent, distanceLevels) {
 
 document.addEventListener('DOMContentLoaded', checkXRMode);
 
-// Opens the connection and binds every handler to it. An error used to
-// reload the page after 3 s whatever happened: with the server down that
-// replaced the visualization with the browser's error page, and with
-// /events answering 404 the page reloaded forever. Now the browser's own
-// retry is left alone, a connection it gave up on is reopened with back-off,
-// and the page reloads only once a connection is back after an error (to
-// pick up any update missed while it was down).
+// Live updates arrive over the shared live channel (CodeXRLiveChannel,
+// templates/components/live/liveChannel.js, bundled ahead of this script). It
+// reconnects with back-off on its own; when a reconnect shows that an update
+// was missed while the page was offline (or the server restarted), the page
+// reloads once to catch up.
 function connectLiveReload() {
-  reconnectTimer = null;
-  const source = new EventSource('/events');
-  eventSource = source;
-  source.onopen = function () {
-    reconnectDelayMs = 0;
-    liveReloadDebugLog('HTML EventSource connection established');
-    if (hadConnectionError) {
-      hadConnectionError = false;
-      liveReloadDebugLog('Connection restored after an error; reloading to catch up...');
+  if (!window.CodeXRLiveChannel) {
+    console.warn('CodeXR live channel runtime missing; live reload disabled');
+    return null;
+  }
+  return window.CodeXRLiveChannel.connect({
+    onMessage: handleLiveReloadMessage,
+    onStatus: function (status) {
+      liveReloadDebugLog('Live channel status:', status);
+    },
+    onResync: function () {
+      liveReloadDebugLog('Live channel resync after a reconnect; reloading to catch up...');
       location.reload();
-      return;
-    }
-    liveReloadDebugLog('DOM Visualization live reload ready - file changes will update automatically');
-  };
-  source.onerror = function (err) {
-    if (source !== eventSource) {
-      return;
-    }
-    console.error('HTML EventSource error:', err);
-    hadConnectionError = true;
-    if (source.readyState !== 2) {
-      return;
-    }
-    source.close();
-    if (!reconnectTimer) {
-      reconnectDelayMs = reconnectDelayMs
-        ? Math.min(RECONNECT_MAX_DELAY_MS, reconnectDelayMs * 2)
-        : RECONNECT_MIN_DELAY_MS;
-      reconnectTimer = setTimeout(connectLiveReload, reconnectDelayMs);
-    }
-  };
-  source.addEventListener('message', handleLiveReloadMessage);
-  return source;
+    },
+  });
 }
 
-function handleLiveReloadMessage(event) {
+function handleLiveReloadMessage(data) {
     try {
-        const data = JSON.parse(event.data);
-        liveReloadDebugLog('SSE received:', data);
+        liveReloadDebugLog('Live message received:', data);
         
         if (data.type === 'htmlUpdated' && data.action === 'reload-html') {
             liveReloadDebugLog('HTML content updated, updating babia-html component...');
@@ -111,7 +81,7 @@ function handleLiveReloadMessage(event) {
             }
 
             if (!data.htmlContent) {
-                console.warn('No htmlContent received in DOM SSE message; reloading page');
+                console.warn('No htmlContent received in the live DOM message; reloading page');
                 location.reload();
                 return;
             }
@@ -123,7 +93,7 @@ function handleLiveReloadMessage(event) {
             location.reload();
         }
     } catch (error) {
-        console.error('Error parsing SSE message:', error);
+        console.error('Error handling live message:', error);
     }
 }
 

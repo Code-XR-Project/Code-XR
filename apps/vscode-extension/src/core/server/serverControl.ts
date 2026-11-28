@@ -3,7 +3,7 @@ import type { UnifiedAnalysisSession } from '../analysis/session/analysisSession
 import { getActiveServerRegistry } from './registry/activeServerRegistry';
 import { closeServerPanels } from './serverPanels';
 import { fileToServerMap } from './fileToServerMap';
-import { sseManager } from './sse/SSEManager';
+import { liveChannelHub } from './live/liveChannelHub';
 import { UnifiedSessionRegistry } from '../analysis/session/sessionRegistry';
 import { getLogger } from '../../platform/logging/sink';
 import { getHost } from '../host/hostRegistry';
@@ -79,9 +79,9 @@ export class ServerControl {
             if (fileUri) {
                 logger.debug(() => `Found associated analysis file: ${fileUri}`);
                 
-                // Clean up SSE clients for this file
-                logger.debug(() => `DEBUG - Cleaning up SSE clients for ${fileUri}`);
-                sseManager.removeAllClients(fileUri);
+                // Close the live sockets of this analysis
+                logger.debug(() => `DEBUG - Closing live channel for ${fileUri}`);
+                liveChannelHub.closeChannel(fileUri);
                 
                 // Remove the file-to-server mapping
                 logger.debug(() => `DEBUG - Removing file-to-server mapping for ${fileUri}`);

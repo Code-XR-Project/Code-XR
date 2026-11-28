@@ -4,7 +4,7 @@
  * Loads data.json (produced by the Python analysis backend), renders metric
  * tiles, complexity/density summaries, an interactive functions table and
  * SVG charts, and hosts the shared Dependency Summary and Historical
- * Comparison panels. Live updates arrive over SSE (`/events`).
+ * Comparison panels. Live updates arrive over the live channel (`/codexr-live`).
  *
  * Shared components (bundled ahead of this file by the LivePanel parser):
  * DataTable, CodexrDonutChart, CodexrBarChart, CodexrPairedBarChart,
@@ -150,11 +150,11 @@ function showError(message) {
   }
 }
 
-// ── SSE live updates ─────────────────────────────────────────────────────────
+// ── Live updates ───────────────────────────────────────────────────────────────
 
 // The shared client in panelShell.js dispatches every message type.
-function initializeSSE() {
-  createLivePanelSse({
+function initializeLiveUpdates() {
+  createLivePanelLiveChannel({
     label: 'FILE_ANALYSIS',
     // The watcher chain re-analyzed the file; reload data.json.
     onAnalysisUpdated: () => loadAnalysisData(),
@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadAnalysisData();
   loadDependencySummary();
   historicalPanel.initialize();
-  initializeSSE();
+  initializeLiveUpdates();
 });
 
 // Export for debugging

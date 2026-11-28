@@ -8,7 +8,7 @@
  *  - initialize(): GET /api/historical/references → populates both source
  *    selects (or shows why the feature is unavailable, e.g. not a Git repo).
  *  - compare():    POST /api/historical/compare {leftSourceId, rightSourceId}.
- *    The server answers 202 and streams progress over SSE
+ *    The server answers 202 and streams progress over the live channel
  *    (`historical-progress`), then announces the finished revision
  *    (`historical-updated`) — which is also pushed whenever the working-copy
  *    side is re-analyzed by the incremental watcher chain, keeping an open
@@ -17,7 +17,7 @@
  *    cancel as XR's `historical-comparison-cancel` (HIST-7). Closing the page
  *    while this page's job has no result yet cancels it too.
  *  - syncStatus(): GET /api/historical/status (idle/running/done/error) on load
- *    and after every SSE reconnect, so a missed SSE event can never leave the
+ *    and after every live-channel resync, so a missed message can never leave the
  *    button on "Comparing..." (HIST-13).
  *  - loadResult(): fetches the /comparison/revision-N.json artifact plus both
  *    side payloads and renders delta tiles, a left/right metric chart and a
@@ -159,7 +159,7 @@ class CodexrHistoricalPanel {
     return true;
   }
 
-  /** Stops the running comparison; the outcome arrives over SSE, or from the status read. */
+  /** Stops the running comparison; the outcome arrives over the live channel, or from the status read. */
   cancel() {
     const button = document.getElementById('historical-cancel-btn');
     if (button) {
@@ -266,7 +266,7 @@ class CodexrHistoricalPanel {
             throw new Error(body.message || ('HTTP ' + response.status));
           });
         }
-        // Progress and the finished revision arrive over SSE.
+        // Progress and the finished revision arrive over the live channel.
         return response.json().catch(() => ({})).then((body) => {
           this.jobId = (body && body.jobId) || null;
         });
@@ -277,8 +277,8 @@ class CodexrHistoricalPanel {
       });
   }
 
-  /** Route the SSE messages this panel understands (called by the template). */
-  handleSseMessage(message) {
+  /** Route the live messages this panel understands (called by the template). */
+  handleLiveMessage(message) {
     if (message.type === 'historical-progress') {
       if (message.state === 'cancelled') {
         this.setBusy(false);

@@ -22,6 +22,19 @@
   - Also from the editor: **Code-XR: Analyze in XR Scene** on a file or folder (explorer, editor and tab menus) switches the running scenes to it.
 - **Code-XR's own city chart.** Agent Flow draws the project with a new chart modeled on BabiaXR's boats layout, so the agents and their work are part of the chart.
 
+#### Changed
+
+- **One realtime layer: live updates moved from Server-Sent Events to WebSocket.** Every realtime channel of an analysis server is now a WebSocket.
+  - Live reload of XR scenes and DOM pages, and LivePanel updates, use the new live channel (`/codexr-live`). The collaboration room keeps `/codexr-room`.
+  - Live reload now also works through Cloudflare remote access, which does not support SSE.
+  - Pages reconnect on their own with back-off (1 s up to 30 s), and detect a connection that went silent after sleep or a network change.
+  - After a reconnect, a page that missed an update catches up once: the XR scene refreshes its data, a DOM page reloads, the LivePanel reloads its data, dependencies and comparison status.
+  - Same behaviour in the VS Code extension and the Code-XR IDE.
+
+#### Removed
+
+- The SSE endpoint `/events` and its server and browser code.
+
 ## [1.2.1] - 2026-11-27
 
 ### Code-XR 1.2.1: Sharper Metrics, Same Code-XR

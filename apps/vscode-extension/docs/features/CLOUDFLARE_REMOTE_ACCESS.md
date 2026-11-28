@@ -56,9 +56,12 @@ As of June 2026, Cloudflare documents these restrictions:
 - there is no SLA or availability guarantee;
 - the service is expressly aimed at development, demos and testing.
 
-WebSocket does work. CodeXR uses it for collaboration, presence and shared
-historical comparisons. SSE-based live reload remains available on the local
-network, but is not considered available through Quick Tunnel.
+WebSocket does work, and since 1.3.0 every realtime channel of a Code-XR
+server is a WebSocket: the collaboration room (`/codexr-room`: presence, mode
+switches, shared comparisons) and the live channel (`/codexr-live`: live reload
+of scenes and DOM pages, LivePanel updates). Live reload therefore works
+through Quick Tunnel too, behind the same paired-session check as the room.
+Code-XR no longer uses SSE (epic #341).
 
 ## Security: Cloudflare versus CodeXR
 

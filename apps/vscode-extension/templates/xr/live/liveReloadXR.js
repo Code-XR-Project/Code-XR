@@ -21,26 +21,16 @@
     }
 
     const liveReloadDisabled = hasOfflineExportMarker();
-    const disabledEventSource = {
-      close: function () {},
-      addEventListener: function () {},
-      onopen: null,
-      onerror: null,
-      onmessage: null
-    };
-    // The live connection. It is reassigned on every reconnect, so read it
-    // through this variable, never capture it.
-    let eventSource = disabledEventSource;
+    // The live channel (CodeXRLiveChannel, templates/components/live/liveChannel.js,
+    // bundled ahead of this script): one WebSocket to /codexr-live that
+    // reconnects with back-off and reports missed updates (onResync).
+    let liveChannel = null;
     let isXRMode = false;
-    let reconnectDelayMs = 0;
-    let reconnectTimer = null;
-    const RECONNECT_MIN_DELAY_MS = 1000;
-    const RECONNECT_MAX_DELAY_MS = 30000;
 
     if (liveReloadDisabled) {
       liveReloadDebugLog(' Offline export detected: live reload disabled.');
     } else {
-      liveReloadDebugLog(' Setting up EventSource for unified live reload...');
+      liveReloadDebugLog(' Setting up the live channel for unified live reload...');
       // Defensive compatibility for copies produced before the synchronous
       // marker existed. Current exports never open the channel in the first
       // place; older ones still close it as soon as their manifest is found.
@@ -157,60 +147,44 @@
     }
 
     function stopLiveReload() {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
+      if (liveChannel) {
+        liveChannel.close();
+        liveChannel = null;
       }
-      eventSource.close();
-      eventSource = disabledEventSource;
       setLiveReloadStatus('disabled');
     }
 
-    // Opens the connection and binds EVERY handler to it. The previous
-    // reconnect opened a bare `new EventSource('/events')` with no handlers
-    // and closed the one that had them, so after one network drop the scene
-    // silently stopped updating until the page was reloaded.
-    function connectLiveReload() {
-      reconnectTimer = null;
-      const source = new EventSource('/events');
-      eventSource = source;
-      setLiveReloadStatus('connecting');
-      source.onopen = function () {
-        reconnectDelayMs = 0;
-        setLiveReloadStatus('open');
-        liveReloadDebugLog(' EventSource connection established');
-      };
-      source.onerror = function (err) {
-        if (source !== eventSource) {
-          return;
-        }
-        console.error(' EventSource error:', err);
-        // While the browser is retrying on its own (CONNECTING) there is
-        // nothing to do. It only gives up (CLOSED) on a fatal answer such as
-        // a 404, and then a fresh connection is opened with back-off.
-        if (source.readyState !== 2) {
-          setLiveReloadStatus('reconnecting');
-          return;
-        }
-        source.close();
-        scheduleReconnect();
-      };
-      source.addEventListener('analysis-updated', handleAnalysisUpdated);
-      source.addEventListener('dataRefresh', handleDataRefresh);
-      source.onmessage = handleGenericMessage;
-      return source;
+    function handleLiveMessage(message) {
+      switch (message.type) {
+        case 'analysis-updated':
+          handleAnalysisUpdated(message);
+          break;
+        case 'dataRefresh':
+          handleDataRefresh(message);
+          break;
+        default:
+          liveReloadDebugLog(' Live message ignored:', message.type);
+      }
     }
 
-    function scheduleReconnect() {
-      if (liveReloadDisabled || reconnectTimer) {
-        return;
+    // Opens the live channel and binds every handler to it. Reconnects,
+    // back-off and the half-open watchdog belong to the shared runtime; a
+    // reconnect that missed an update refreshes the data once (resync).
+    function connectLiveReload() {
+      if (!window.CodeXRLiveChannel) {
+        console.warn('[CodeXR] live channel runtime missing; live reload disabled');
+        setLiveReloadStatus('disabled');
+        return null;
       }
-      reconnectDelayMs = reconnectDelayMs
-        ? Math.min(RECONNECT_MAX_DELAY_MS, reconnectDelayMs * 2)
-        : RECONNECT_MIN_DELAY_MS;
-      setLiveReloadStatus('reconnecting');
-      liveReloadDebugLog(' Reconnecting in ' + reconnectDelayMs + ' ms...');
-      reconnectTimer = setTimeout(connectLiveReload, reconnectDelayMs);
+      liveChannel = window.CodeXRLiveChannel.connect({
+        onMessage: handleLiveMessage,
+        onStatus: setLiveReloadStatus,
+        onResync: function (greeting) {
+          liveReloadDebugLog(' Live channel resync after a reconnect');
+          handleDataRefresh(greeting);
+        }
+      });
+      return liveChannel;
     }
 
     // --- Data-source cache busting -------------------------------------
@@ -401,22 +375,6 @@
       }
     }
 
-
-    // Handle general reload messages
-    function handleGenericMessage(event) {
-      liveReloadDebugLog('Generic message received:', event.data);
-      
-      // Skip reload if in XR mode
-      if (checkXRMode()) {
-        liveReloadDebugLog(' Blocking page reload in XR mode');
-        return false;
-      }
-      
-      if (event.data === 'reload') {
-        liveReloadDebugLog(' Live reload triggered, refreshing page...');
-        window.location.reload();
-      }
-    }
 
     if (liveReloadDisabled) {
       setLiveReloadStatus('disabled');

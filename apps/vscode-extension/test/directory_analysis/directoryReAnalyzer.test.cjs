@@ -12,7 +12,7 @@ const { createFakeVscode, withFakeVscode } = require(path.join(projectRoot, 'tes
 // data.json for both formats (the XR array and the LivePanel object), which
 // hash-tracker calls it makes, when it emits the update event, notifies the
 // clients and shows the status-bar count. Runs the real class from out/ with
-// its Python runner and SSE notification stubbed.
+// its Python runner and live-channel notification stubbed.
 
 const MODULE = 'core/analysis/watchers/directoryReAnalyzer.js';
 
@@ -43,7 +43,7 @@ async function apply({ data, changeSet, options, reanalysis = (files) => files.m
                     return reanalysis(files);
                 },
             };
-            analyzer.sendSSENotification = async (session) => { calls.push(['sse', session.id]); };
+            analyzer.notifyLiveClients = (session) => { calls.push(['live', session.id]); };
             const hashTracker = {
                 untrackFile: (file) => calls.push(['untrack', path.basename(file)]),
                 trackNewFile: async (file, hash) => calls.push(['track', path.basename(file), hash === '' ? 'empty' : 'hash']),
@@ -92,7 +92,7 @@ test('XR: remove, update and add in one change set, in that order', async () => 
         // c.py is already in data.json, so only d.py is analysed and tracked
         ['reanalyze', ['d.py']],
         ['track', 'd.py', 'empty'],
-        ['sse', 's1'],
+        ['live', 's1'],
     ]);
     assert.deepEqual(outcome.events, [{ sessionId: 's1', targetPath: outcome.events[0].targetPath }]);
     // the count is the length of the change set, not of what actually changed
@@ -115,7 +115,7 @@ test('nothing to change: false, data.json untouched, no event, no notification',
         assert.deepEqual(outcome.written, XR_DATA);
         assert.deepEqual(outcome.events, []);
         assert.deepEqual(outcome.statusMessages, []);
-        assert.equal(outcome.calls.some(([kind]) => kind === 'sse' || kind === 'reanalyze'), false);
+        assert.equal(outcome.calls.some(([kind]) => kind === 'live' || kind === 'reanalyze'), false);
     }
 });
 

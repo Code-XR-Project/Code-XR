@@ -24,13 +24,13 @@
     },
     "catch.consoleOnly": 0,
     "catch.emptyNoComment": 0,
-    "any.total": 83,
+    "any.total": 82,
     "any.byModule": {
       "app": 8,
       "core/analysis": 13,
       "core/charts": 6,
       "core/python-env": 5,
-      "core/server": 10,
+      "core/server": 9,
       "features/active-servers": 1,
       "features/analysis": 10,
       "features/examples": 3,
@@ -74,9 +74,9 @@
     }
   },
   "informational": {
-    "src.files": 339,
-    "src.lines": 56837,
-    "src.functions": 4020,
+    "src.files": 341,
+    "src.lines": 56719,
+    "src.functions": 3983,
     "src.unreachableLines": 253,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
@@ -108,7 +108,6 @@
       "src/core/server/multiServerLauncher.ts": 1,
       "src/core/server/serverFactory.ts": 1,
       "src/core/server/serverSettingsManager.ts": 4,
-      "src/core/server/sse/SSEManager.ts": 1,
       "src/features/active-servers/views/activeServerItems.ts": 1,
       "src/features/analysis/commands/analysisCommandRegistrations.ts": 5,
       "src/features/analysis/commands/dom/uriPathConverter.ts": 1,
@@ -265,7 +264,7 @@
       },
       {
         "file": "src/core/export/exportManifest.ts",
-        "lines": 746
+        "lines": 747
       },
       {
         "file": "src/core/history/gitRepositoryService.ts",
@@ -276,10 +275,6 @@
         "lines": 634
       },
       {
-        "file": "src/core/server/httpServer.ts",
-        "lines": 633
-      },
-      {
         "file": "src/core/remote-access/remoteSessionAuthority.ts",
         "lines": 632
       },
@@ -288,12 +283,16 @@
         "lines": 605
       },
       {
-        "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
-        "lines": 581
+        "file": "src/core/server/httpServer.ts",
+        "lines": 604
       },
       {
-        "file": "src/core/remote-access/remoteAccessManager.ts",
-        "lines": 573
+        "file": "src/core/server/collaboration/collaborationRoomServer.ts",
+        "lines": 599
+      },
+      {
+        "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
+        "lines": 581
       }
     ]
   },

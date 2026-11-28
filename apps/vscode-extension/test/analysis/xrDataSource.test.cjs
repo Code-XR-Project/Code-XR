@@ -317,8 +317,8 @@ test('all XR charts share the containment preset', () => {
     assert.match(templateCharts, /id: 'boats'[\s\S]*name: 'Babia Boats'/);
 });
 
-test('XR live SSE refresh lets Babia rebuild boats from refreshed sources instead of forcing a blind chart rebuild', () => {
-    const source = readProjectFile('templates', 'xr', 'sse', 'live_sse_fileXR.js');
+test('XR live reload lets Babia rebuild boats from refreshed sources instead of forcing a blind chart rebuild', () => {
+    const source = readProjectFile('templates', 'xr', 'live', 'liveReloadXR.js');
 
     assert.match(source, /const CHART_COMPONENT_TYPES = \[/);
     assert.doesNotMatch(source, /'codexr-boats'/);

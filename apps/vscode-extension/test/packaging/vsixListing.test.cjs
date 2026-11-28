@@ -18,7 +18,7 @@ const GOOD_LISTING = [
     'extension/dist/extension.js',
     'extension/dist/code_analysis/python/main.py',
     'extension/resources/icon.png',
-    'extension/templates/xr/sse/live_sse_fileXR.js',
+    'extension/templates/xr/live/liveReloadXR.js',
     'extension/examples/sample.json',
 ];
 
