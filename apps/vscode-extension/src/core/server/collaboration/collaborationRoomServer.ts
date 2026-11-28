@@ -227,7 +227,7 @@ export class CollaborationRoomServer {
         switch (message.type) {
             case 'register':
             case 'room-join':
-                this.joinRoom(peer, message);
+                this.enterRoom(peer, message);
                 return;
             case 'host-transfer':
                 this.transferHost(peer, message.payload || {});
@@ -322,6 +322,18 @@ export class CollaborationRoomServer {
         sharedState.upsertAuthoritativeEntity(this.registry, room, entity, peerId);
     }
 
+    /** A local peer that asks to be a viewer (the IDE's scene pane) joins as one. */
+    private enterRoom(peer: CollaborationPeer, message: CollaborationMessage): void {
+        const asViewer = message.payload?.viewer === true && peer.local;
+        if (!asViewer) {
+            this.joinRoom(peer, message);
+            return;
+        }
+        const roomId = resolveRoomId(message.roomId, peer.roomId);
+        this.leaveRoom(peer);
+        this.joinAsViewer(peer, this.registry.ensureRoom(roomId));
+    }
+
     private joinRoom(peer: CollaborationPeer, message: CollaborationMessage): void {
         const nextRoomId = resolveRoomId(message.roomId, peer.roomId);
         if (peer.joinedRoom && peer.roomId && peer.roomId !== nextRoomId) {
@@ -329,6 +341,7 @@ export class CollaborationRoomServer {
         }
 
         const room = this.registry.ensureRoom(nextRoomId);
+        peer.viewer = false;
         const existingParticipant = room.participants.get(peer.id);
         if (!existingParticipant) {
             peer.anonymousDisplayName = peer.anonymousDisplayName || createAnonymousName(room);
@@ -371,18 +384,7 @@ export class CollaborationRoomServer {
             revision: room.revision,
             payload: { participant },
         });
-        send(peer, {
-            type: 'room-snapshot',
-            peerId: peer.id,
-            roomId: room.id,
-            revision: room.revision,
-            payload: {
-                entities: Array.from(room.entities.values()),
-                presence: Array.from(room.presence.values()),
-                participants: Array.from(room.participants.values()),
-                presenterPeerId: room.presenterPeerId,
-            },
-        });
+        this.sendSnapshot(peer, room);
 
         room.revision += 1;
         this.registry.broadcast(room, {
@@ -471,9 +473,39 @@ export class CollaborationRoomServer {
         this.registry.peers.delete(peer.id);
     }
 
+    /**
+     * The IDE's scene pane beside the code is the same person as the browser
+     * or headset on this machine: it gets the room's state and its updates,
+     * but takes no participant slot, so it neither shows up as a second
+     * avatar nor takes the host role from the person's real view.
+     */
+    private joinAsViewer(peer: CollaborationPeer, room: CollaborationRoomState): void {
+        peer.viewer = true;
+        peer.joinedRoom = true;
+        peer.roomId = room.id;
+        send(peer, { type: 'room-joined', peerId: peer.id, roomId: room.id, revision: room.revision, payload: { viewer: true } });
+        this.sendSnapshot(peer, room);
+    }
+
+    private sendSnapshot(peer: CollaborationPeer, room: CollaborationRoomState): void {
+        send(peer, {
+            type: 'room-snapshot',
+            peerId: peer.id,
+            roomId: room.id,
+            revision: room.revision,
+            payload: {
+                entities: Array.from(room.entities.values()),
+                presence: Array.from(room.presence.values()),
+                participants: Array.from(room.participants.values()),
+                presenterPeerId: room.presenterPeerId,
+            },
+        });
+    }
+
     private leaveRoom(peer: CollaborationPeer): void {
         const room = this.registry.getRoomForPeer(peer);
-        if (!room) {
+        if (!room || peer.viewer) {
+            peer.viewer = false;
             peer.joinedRoom = false;
             peer.roomId = null;
             return;

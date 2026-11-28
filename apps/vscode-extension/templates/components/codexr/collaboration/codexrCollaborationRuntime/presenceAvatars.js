@@ -98,7 +98,7 @@
     }
 
     function sendPresenceUpdate(force) {
-      if (!shared.joinedRoom || !shared.config.presenceEnabled) {
+      if (!shared.joinedRoom || !shared.config.presenceEnabled || shared.viewer) {
         return;
       }
       const now = Date.now();
