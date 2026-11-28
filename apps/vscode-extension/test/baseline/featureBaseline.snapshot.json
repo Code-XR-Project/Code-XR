@@ -557,6 +557,7 @@
     "components/common/codexrCommonRuntime.js",
     "components/common/codexrGitRefPickerRuntime.js",
     "components/common/codexrVisualStyleRuntime.js",
+    "components/live/liveChannel.js",
     "components/livepanel/charts.css",
     "components/livepanel/charts.js",
     "components/livepanel/dataTable.css",
@@ -571,8 +572,8 @@
     "xr/file/xr-visualization.html",
     "xr/html/dom-visualization-template.html",
     "xr/html/htmlLiveReload.js",
-    "xr/sse/live_sse_fileDOM.js",
-    "xr/sse/live_sse_fileXR.js"
+    "xr/live/liveReloadDOM.js",
+    "xr/live/liveReloadXR.js"
   ],
   "exampleFiles": [
     "charts/bar-chart/index.html",

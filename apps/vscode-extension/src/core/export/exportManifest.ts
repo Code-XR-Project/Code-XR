@@ -4,6 +4,7 @@ import { defaultControllerView } from '../analysis/refresh/analysisViewModes';
 import { ExportGitData } from './gitRevisionExportCore';
 import type { ExportSelection } from './exportModeSelection';
 import { resolveTemplatePath } from '../../platform/templatePaths';
+import { readLiveReloadScript } from '../../platform/liveReloadScripts';
 
 /**
  * Self-contained export support.
@@ -674,14 +675,14 @@ export async function refreshRuntimeCopies(
         }
     }
 
-    // The SSE bootstrap ships as main.js; refresh it from the XR source only
+    // The live reload bootstrap ships as main.js; refresh it from the XR source only
     // when the folder is unmistakably an XR scene (a LivePanel folder also has
     // a main.js, and clobbering that one would kill the whole panel).
     const mainJsPath = path.join(destinationPath, 'main.js');
     if (isXrSceneFolder(destinationPath) && fs.existsSync(mainJsPath)) {
-        const sseSource = resolveTemplatePath(extensionPath, 'xr', 'sse', 'live_sse_fileXR.js');
-        if (fs.existsSync(sseSource)) {
-            await fs.promises.copyFile(sseSource, mainJsPath);
+        const liveReloadScript = readLiveReloadScript(extensionPath, 'xr');
+        if (liveReloadScript !== null) {
+            await fs.promises.writeFile(mainJsPath, liveReloadScript, 'utf8');
             refreshed.push('main.js');
         }
     }

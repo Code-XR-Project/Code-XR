@@ -5,6 +5,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { liveReloadPageScriptPath, readLiveReloadScript } from '../../../platform/liveReloadScripts';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { TemplateProcessor } from '../../charts/processing/templateProcessor';
@@ -36,7 +37,6 @@ import { readXrChartDebugRuntimeContent, XR_CHART_DEBUG_RUNTIME_OUTPUT_NAME } fr
 import { readXrChartMappingUiRuntimeContent, XR_CHART_MAPPING_UI_RUNTIME_OUTPUT_NAME } from '../scene-assets/xrChartMappingUiComponentAsset';
 import { readPointerPolicyRuntimeContent, POINTER_POLICY_RUNTIME_OUTPUT_NAME } from '../scene-assets/pointerPolicyComponentAsset';
 import { readImmersiveRigRuntimeContent, IMMERSIVE_RIG_RUNTIME_OUTPUT_NAME } from '../scene-assets/immersiveRigComponentAsset';
-import { resolveTemplatePath } from '../../../platform/templatePaths';
 import type { CoreContext } from '../../host/hostPaths';
 
 /**
@@ -141,15 +141,13 @@ export class DirectoryXRParser {
             const htmlContent = await fs.promises.readFile(tempHtmlPath, 'utf8');
             await fs.promises.rm(tempOutputPath, { recursive: true, force: true });
 
-            const jsFilePath = resolveTemplatePath(context.extensionPath, 'xr', 'sse', 'live_sse_fileXR.js');
-            if (!fs.existsSync(jsFilePath)) {
+            const jsContent = readLiveReloadScript(context.extensionPath, 'xr');
+            if (jsContent === null) {
                 return {
                     success: false,
-                    error: `live_sse_fileXR.js not found at: ${jsFilePath}`,
+                    error: `XR live reload script not found under: ${liveReloadPageScriptPath(context.extensionPath, 'xr')}`,
                 };
             }
-
-            const jsContent = await fs.promises.readFile(jsFilePath, 'utf8');
 
             const generatedFiles = new Map<string, string>();
             generatedFiles.set('index.html', htmlContent);

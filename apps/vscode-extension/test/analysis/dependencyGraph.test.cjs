@@ -582,8 +582,8 @@ test('normal refresh reads the raw declaration form and heals a corrupted url', 
   }
 });
 
-test('XR SSE signals normal analysis readiness after Babia stabilization', () => {
-  const source = read('templates/xr/sse/live_sse_fileXR.js');
+test('XR live reload signals normal analysis readiness after Babia stabilization', () => {
+  const source = read('templates/xr/live/liveReloadXR.js');
   assert.match(source, /CodeXRNormalAnalysisRefreshRuntime/);
   assert.match(source, /waitForChartsStable/);
   assert.match(source, /codexr-normal-analysis-refreshed/);
@@ -639,7 +639,7 @@ test('LivePanel dependency graph summary REST endpoint is thin and reuses the ex
   assert.match(server, /await this\.dependencyGraphService\.analyze\(\)/);
 });
 
-test('LivePanel ties the dependency graph into the re-analysis chain as a background mode and pushes updates over SSE', () => {
+test('LivePanel ties the dependency graph into the re-analysis chain as a background mode and pushes updates over the live channel', () => {
   const server = read('src/core/server/analysis/analysisMessageRouter.ts')
     + read('src/core/server/analysis/dependencyGraphBridge.ts')
     + read('src/core/server/analysis/analysisFeatureHost.ts')
@@ -649,9 +649,9 @@ test('LivePanel ties the dependency graph into the re-analysis chain as a backgr
   assert.match(server, /setBackgroundRefresh\(livePanelSessionId, 'dependency-graph', true\)/);
   assert.match(server, /forceRefreshMode\(livePanelSessionId, 'dependency-graph'\)/);
   assert.match(server, /setBackgroundRefresh\(livePanelSessionId, 'dependency-graph', false\)/);
-  // Delivery to the LivePanel browser (no collaboration room) is via SSE.
+  // Delivery to the LivePanel browser (no collaboration room) is via the live channel.
   assert.match(server, /notifyLivePanelDependencyUpdated\(dataset\.revision\)/);
-  assert.match(server, /sseManager\.sendCustomMessage\(fileUri, \{[\s\S]*type: 'dependency-updated'/);
+  assert.match(server, /liveChannelHub\.publish\(channel, 'dependency-updated', \{/);
 });
 
 test('the refresh coordinator exposes background modes that publishChanges runs while inactive', () => {
@@ -699,7 +699,7 @@ test('directory LivePanel template exposes the Dependency Summary section with n
   assert.match(html, /id="dependency-warnings-list"/);
 });
 
-test('directory LivePanel script loads the dependency artifact same-origin and reacts to the dependency-updated SSE event', () => {
+test('directory LivePanel script loads the dependency artifact same-origin and reacts to the dependency-updated live message', () => {
   const main = read('templates/analysis_livePanel/directory/directoryAnalysismain.js');
   const panel = read('templates/components/livepanel/dependencySummaryPanel.js');
   // No manual POST: the dataset is produced by the re-analysis chain and read as
@@ -707,7 +707,7 @@ test('directory LivePanel script loads the dependency artifact same-origin and r
   assert.match(panel, /fetch\('\.\/dependency-graph\.json/);
   assert.doesNotMatch(main, /\/api\/dependency-graph\/summary/);
   assert.doesNotMatch(panel, /\/api\/dependency-graph\/summary/);
-  // The SSE switch lives in the shared page shell since 1.2.1 (R04); the
+  // The live message switch lives in the shared page shell since 1.2.1 (R04); the
   // template hands it the dependency reload.
   assert.match(main, /onDependencyUpdated: \(\) => loadDependencySummary\(\)/);
   assert.match(main + '\n' + read('templates/components/livepanel/panelShell.js'), /case 'dependency-updated':/);

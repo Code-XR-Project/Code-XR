@@ -8,69 +8,11 @@ const vm = require('node:vm');
 // reload clients injected into every generated XR and DOM scene.
 
 const projectRoot = path.resolve(__dirname, '..', '..');
-const xrSource = fs.readFileSync(path.join(projectRoot, 'templates', 'xr', 'sse', 'live_sse_fileXR.js'), 'utf8');
-const domSource = fs.readFileSync(path.join(projectRoot, 'templates', 'xr', 'sse', 'live_sse_fileDOM.js'), 'utf8');
-
-function createEventSourceClass(registry) {
-    return class FakeEventSource {
-        constructor(url) {
-            this.url = url;
-            this.readyState = 0;
-            this.listeners = {};
-            this.closed = false;
-            registry.push(this);
-        }
-        addEventListener(type, handler) {
-            (this.listeners[type] = this.listeners[type] || []).push(handler);
-        }
-        close() {
-            this.closed = true;
-            this.readyState = 2;
-        }
-        open() {
-            this.readyState = 1;
-            this.onopen?.({});
-        }
-        fail(fatal) {
-            this.readyState = fatal ? 2 : 0;
-            this.onerror?.({ type: 'error' });
-        }
-        dispatch(type, data = '{}') {
-            const event = { type, data };
-            if (type === 'message') {
-                this.onmessage?.(event);
-            }
-            for (const handler of this.listeners[type] || []) {
-                handler(event);
-            }
-        }
-    };
-}
-
-function createTimers() {
-    const pending = [];
-    return {
-        pending,
-        setTimeout(fn, ms) {
-            const timer = { fn, ms, cancelled: false };
-            pending.push(timer);
-            return timer;
-        },
-        clearTimeout(timer) {
-            if (timer) {
-                timer.cancelled = true;
-            }
-        },
-        runAll() {
-            while (pending.length) {
-                const timer = pending.shift();
-                if (!timer.cancelled) {
-                    timer.fn();
-                }
-            }
-        },
-    };
-}
+const { LIVE_CHANNEL_RUNTIME, createFakeWebSocketClass, createTimers, mathWithoutJitter } = require('../helpers/fakeLiveChannel.cjs');
+// What the generated main.js holds: the shared runtime, then the page script (liveReloadScripts.ts).
+const xrSource = `${LIVE_CHANNEL_RUNTIME}\n\n${fs.readFileSync(path.join(projectRoot, 'templates', 'xr', 'live', 'liveReloadXR.js'), 'utf8')}`;
+const domSource = `${LIVE_CHANNEL_RUNTIME}\n\n${fs.readFileSync(path.join(projectRoot, 'templates', 'xr', 'live', 'liveReloadDOM.js'), 'utf8')}`;
+const WATCHDOG_MS = 45000;
 
 function createDataEntity(id, value) {
     const entity = {
@@ -99,7 +41,8 @@ function loadXrClient({ dataEntities = [], offlineExport = false } = {}) {
     const context = {
         console: { log() {}, warn() {}, error() {} },
         URLSearchParams,
-        EventSource: null,
+        Math: mathWithoutJitter(),
+        location: { protocol: 'http:', host: 'localhost:3000' },
         setTimeout: timers.setTimeout,
         clearTimeout: timers.clearTimeout,
         fetch: () => Promise.resolve({ ok: false }),
@@ -130,55 +73,67 @@ function loadXrClient({ dataEntities = [], offlineExport = false } = {}) {
             },
         },
     };
-    context.EventSource = createEventSourceClass(sources);
+    context.WebSocket = createFakeWebSocketClass(sources);
     context.window = context;
-    vm.runInNewContext(xrSource, context, { filename: 'live_sse_fileXR.js' });
+    vm.runInNewContext(xrSource, context, { filename: 'main.js' });
     return { context, sources, timers, statuses };
 }
 
-test('XR live reload: a connection the browser gave up on is reopened with every handler bound', () => {
+test('XR live reload: one WebSocket to /codexr-live on the page origin; a dropped one is reopened with every handler bound', () => {
     const data = createDataEntity('data', { url: './data.json' });
     const { sources, timers, statuses } = loadXrClient({ dataEntities: [data] });
     assert.equal(sources.length, 1);
-    sources[0].open();
+    assert.equal(sources[0].url, 'ws://localhost:3000/codexr-live');
+    sources[0].greet(0);
 
-    sources[0].fail(true);
+    sources[0].drop();
     assert.equal(sources.length, 1, 'no reconnect before the back-off delay');
-    assert.equal(timers.pending.at(-1).ms, 1000);
-    timers.runAll();
+    assert.equal(timers.live(1000).length, 1);
+    timers.fire(1000);
 
     assert.equal(sources.length, 2);
-    sources[1].open();
-    sources[1].dispatch('dataRefresh');
-    assert.match(data.value.url, /^\.\/data\.json\?t=\d+$/, 'the reconnected source still refreshes the data');
-    assert.deepEqual(statuses.slice(0, 4), ['connecting', 'open', 'reconnecting', 'connecting']);
+    sources[1].greet(0);
+    sources[1].receive({ type: 'dataRefresh' });
+    assert.match(data.value.url, /^\.\/data\.json\?t=\d+$/, 'the reconnected socket still refreshes the data');
+    assert.deepEqual(statuses.slice(0, 4), ['connecting', 'open', 'reconnecting', 'open']);
 });
 
-test('XR live reload: the browser\'s own retry is left alone, and back-off doubles up to its cap', () => {
+test('XR live reload: back-off doubles up to its cap and a greeting resets it', () => {
     const { sources, timers } = loadXrClient();
-    sources[0].fail(false);
-    assert.equal(timers.pending.length, 0, 'a CONNECTING source is retried by the browser itself');
-    assert.equal(sources[0].closed, false);
-
     const delays = [];
     for (let attempt = 0; attempt < 7; attempt += 1) {
-        sources.at(-1).fail(true);
-        delays.push(timers.pending.at(-1).ms);
-        timers.runAll();
+        sources.at(-1).drop();
+        const [timer] = timers.live().filter((candidate) => candidate.ms !== WATCHDOG_MS);
+        delays.push(timer.ms);
+        timers.fire(timer.ms);
     }
     assert.deepEqual(delays, [1000, 2000, 4000, 8000, 16000, 30000, 30000]);
-    sources.at(-1).open();
-    sources.at(-1).fail(true);
-    assert.equal(timers.pending.at(-1).ms, 1000, 'a successful connection resets the back-off');
+    sources.at(-1).greet(0);
+    sources.at(-1).drop();
+    assert.equal(timers.live(1000).length, 1, 'a successful connection resets the back-off');
 });
 
 test('XR live reload: events from a replaced connection are ignored', () => {
     const { sources, timers } = loadXrClient();
     const first = sources[0];
-    first.fail(true);
-    timers.runAll();
-    first.fail(true);
-    assert.equal(timers.pending.length, 0);
+    first.drop();
+    timers.fire(1000);
+    first.drop();
+    assert.equal(timers.live().filter((timer) => timer.ms !== WATCHDOG_MS).length, 0);
+});
+
+test('XR live reload: a reconnect that missed an update refreshes the data once (resync)', () => {
+    const data = createDataEntity('data', { url: './data.json' });
+    const { sources, timers } = loadXrClient({ dataEntities: [data] });
+    sources[0].greet(4);
+    sources[0].drop();
+    timers.fire(1000);
+    sources[1].greet(4);
+    assert.equal(data.value.url, './data.json', 'nothing missed: no refresh');
+    sources[1].drop();
+    timers.fire(1000);
+    sources[2].greet(5);
+    assert.match(data.value.url, /^\.\/data\.json\?t=\d+$/, 'one update was published while offline');
 });
 
 test('XR live reload: cache busting keeps query parameters and skips sources without a url', () => {
@@ -189,9 +144,9 @@ test('XR live reload: cache busting keeps query parameters and skips sources wit
     const raw = createDataEntity('raw', 'url: ./tree.json; path: x');
     const poisoned = createDataEntity('poisoned', { url: 'url: url: ./data.json?codexrModeRevision=1' });
     const { sources, timers } = loadXrClient({ dataEntities: [plain, revision, slice, inline, raw, poisoned] });
-    sources[0].open();
-    sources[0].dispatch('analysis-updated');
-    timers.runAll();
+    sources[0].greet(0);
+    sources[0].receive({ type: 'analysis-updated' });
+    timers.runAll([WATCHDOG_MS]);
 
     assert.match(plain.value.url, /^\.\/data\.json\?t=\d+$/);
     assert.equal(plain.value.from, '');
@@ -215,11 +170,11 @@ test('XR live reload: a remap made after the update arrived is not reverted (CHA
         hasPendingMapping: () => pending,
         restoreState: (snapshot) => restored.push(snapshot),
     };
-    sources[0].open();
-    sources[0].dispatch('analysis-updated');
+    sources[0].greet(0);
+    sources[0].receive({ type: 'analysis-updated' });
     // The visitor remaps while the charts rebuild.
     current = { chartId: 'bars', lastKnownGoodMapping: { x_axis: 'fileName', height: 'functionCount' } };
-    timers.runAll();
+    timers.runAll([WATCHDOG_MS]);
     assert.ok(restored.length >= 1);
     for (const snapshot of restored) {
         assert.equal(snapshot.lastKnownGoodMapping.height, 'functionCount', 'the mapping on screen now is the one kept');
@@ -228,8 +183,8 @@ test('XR live reload: a remap made after the update arrived is not reverted (CHA
     // A remap still being validated is left alone entirely.
     restored.length = 0;
     pending = true;
-    sources[0].dispatch('analysis-updated');
-    timers.runAll();
+    sources[0].receive({ type: 'analysis-updated' });
+    timers.runAll([WATCHDOG_MS]);
     assert.deepEqual(restored, []);
 });
 
@@ -239,43 +194,55 @@ test('XR live reload: an offline export never opens a connection', () => {
     assert.deepEqual(statuses, ['disabled']);
 });
 
-function loadDomClient() {
+function loadDomClient({ htmlEntity = null } = {}) {
     const sources = [];
     const timers = createTimers();
     const reloads = [];
     const context = {
         console: { log() {}, warn() {}, error() {} },
+        Math: mathWithoutJitter(),
         setTimeout: timers.setTimeout,
         clearTimeout: timers.clearTimeout,
         requestAnimationFrame: (fn) => fn(),
-        location: { reload: () => reloads.push(Date.now()) },
+        location: { protocol: 'https:', host: 'abc.trycloudflare.com', reload: () => reloads.push(Date.now()) },
         document: {
-            querySelector() { return null; },
+            querySelector(selector) { return selector === '#htmlDOM' ? htmlEntity : null; },
             addEventListener() {},
         },
     };
-    context.EventSource = createEventSourceClass(sources);
+    context.WebSocket = createFakeWebSocketClass(sources);
     context.window = context;
-    vm.runInNewContext(domSource, context, { filename: 'live_sse_fileDOM.js' });
+    vm.runInNewContext(domSource, context, { filename: 'main.js' });
     return { sources, timers, reloads };
 }
 
-test('DOM live reload: errors never reload the page in a loop; one reload once the server is back', () => {
+test('DOM live reload: wss behind HTTPS; drops never reload in a loop; one reload when a reconnect missed an update', () => {
     const { sources, timers, reloads } = loadDomClient();
-    sources[0].open();
+    assert.equal(sources[0].url, 'wss://abc.trycloudflare.com/codexr-live');
+    sources[0].greet(2);
     for (let attempt = 0; attempt < 5; attempt += 1) {
-        sources.at(-1).fail(true);
-        timers.runAll();
+        sources.at(-1).drop();
+        timers.runAll([WATCHDOG_MS]);
     }
     assert.equal(reloads.length, 0, 'no reload while the server is unreachable');
     assert.equal(sources.length, 6);
-    sources.at(-1).open();
-    assert.equal(reloads.length, 1, 'reload once to pick up updates missed while disconnected');
+    sources.at(-1).greet(3);
+    assert.equal(reloads.length, 1, 'reload once to pick up the update missed while disconnected');
 });
 
-test('DOM live reload: a reconnected source still applies HTML updates', () => {
-    const { sources, timers } = loadDomClient();
-    sources[0].fail(true);
-    timers.runAll();
-    assert.equal(sources[1].listeners.message.length, 1);
+test('DOM live reload: a reconnect that missed nothing does not reload; HTML updates still apply', () => {
+    const attributes = [];
+    const htmlEntity = {
+        getAttribute: () => ({ distanceLevels: 0.5 }),
+        removeAttribute() {},
+        setAttribute: (name, value) => attributes.push([name, value]),
+    };
+    const { sources, timers, reloads } = loadDomClient({ htmlEntity });
+    sources[0].greet(1);
+    sources[0].drop();
+    timers.fire(1000);
+    sources[1].greet(1);
+    assert.equal(reloads.length, 0);
+    sources[1].receive({ type: 'htmlUpdated', action: 'reload-html', htmlContent: '<p>new</p>' });
+    assert.deepEqual(JSON.parse(JSON.stringify(attributes)), [['babia-html', { renderHTML: true, renderHTMLOnlyLeafs: true, html: '<p>new</p>', distanceLevels: 0.5 }]]);
 });

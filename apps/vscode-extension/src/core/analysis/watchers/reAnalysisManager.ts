@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { ExecutePython } from '../python/executePython';
-import { SSEManager } from '../../server/sse/SSEManager';
+import { liveChannelHub } from '../../server/live/liveChannelHub';
 import { FileRequirementProcessor } from '../processors/FileRequirementProcessor';
 import { SaveFiles } from '../utils/saveFiles';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
@@ -18,11 +18,9 @@ const logger = getLogger('RE_ANALYSIS_MANAGER');
 
 export class ReAnalysisManager {
     private executePython: ExecutePython;
-    private sseManager: SSEManager;
 
     constructor(private context: CoreContext) {
         this.executePython = new ExecutePython(context);
-        this.sseManager = SSEManager.getInstance();
     }
 
     async executeDataJsonRegeneration(
@@ -52,9 +50,9 @@ export class ReAnalysisManager {
 
             if (options.notifyClients !== false) {
                 if (session.analysisMode === 'XR') {
-                    this.sseManager.sendDataRefresh(session.id);
+                    liveChannelHub.publishDataRefresh(session.id);
                 } else {
-                    this.sseManager.sendUpdate(session.id);
+                    liveChannelHub.publishAnalysisUpdated(session.id);
                 }
             }
 
@@ -94,8 +92,7 @@ export class ReAnalysisManager {
             }
 
             const htmlContent = this.extractVisualizeDOMHtmlContent(session, processedFiles.loadedFiles);
-            this.sseManager.sendCustomMessage(session.id, {
-                type: 'htmlUpdated',
+            liveChannelHub.publish(session.id, 'htmlUpdated', {
                 htmlContent,
                 action: 'reload-html',
                 message: 'HTML DOM content has been updated',

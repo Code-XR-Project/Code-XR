@@ -5,30 +5,28 @@ import {
     CHART_PRESENTATION_PROFILES,
     XR_BOATS_TREE_FIELDS,
 } from '../../chartPresentation';
-import * as fs from 'fs';
 import { getLogger } from '../../../../platform/logging/sink';
-import { resolveTemplatePath } from '../../../../platform/templatePaths';
 import type { CoreContext } from '../../../host/hostPaths';
 
 const logger = getLogger('CREATE_STRUCTURE');
 
 /**
  * Structure Creator Module - Specialized for General Structure Placeholders
- * Handles background, environment, SSE scripts, tree_builder, and other structural elements
+ * Handles background, environment, tree_builder, and other structural elements
  * Part of the modular restructuring for cleaner architecture
  */
 export class CreateStructure {
 
     /**
      * Main method to create structural placeholders for complete XR template
-     * Returns placeholders for background, environment, SSE scripts, etc.
+     * Returns placeholders for background, environment, tree builder, etc.
      */
     public static createStructuralPlaceholders(
         title: string,
         dataSource: string,
         visualizationSettings: TemplateVisualizationSettings,
         analysisType: 'xr' | 'dom' | 'none' = 'none',
-        context: CoreContext,
+        _context: CoreContext,
         chartType?: string,
         isDirectoryAnalysis?: boolean
     ): { success: boolean; placeholders?: Map<string, string>; error?: string } {
@@ -53,10 +51,6 @@ export class CreateStructure {
             placeholders.set('NONCE', nonce);
             placeholders.set('nonce', nonce); // lowercase for template compatibility
 
-            // SSE script with nonce and standard main.js path
-            const sseScriptWithNonce = this.getSSEScriptWithNonce(analysisType, nonce, context);
-            placeholders.set('SSE_SCRIPT', sseScriptWithNonce);
-            
             // Template-specific placeholders for backwards compatibility
             placeholders.set('scriptUri', './main.js');
             placeholders.set('SCRIPT_URI', './main.js');
@@ -97,49 +91,6 @@ export class CreateStructure {
                 success: false, 
                 error: error instanceof Error ? error.message : String(error)
             };
-        }
-    }
-
-    /**
-     * Get appropriate SSE script with nonce and main.js path based on analysis type
-     */
-    private static getSSEScriptWithNonce(analysisType: 'xr' | 'dom' | 'none', nonce: string, context: CoreContext): string {
-        logger.debug(() => `Creating SSE script with nonce for analysis type: ${analysisType}`);
-
-        try {
-            let scriptFileName: string;
-
-            switch (analysisType) {
-                case 'xr':
-                    scriptFileName = 'live_sse_fileXR.js';
-                    break;
-                case 'dom':
-                    scriptFileName = 'live_sse_fileDOM.js';
-                    break;
-                case 'none':
-                default:
-                    // No SSE script needed
-                    return '';
-            }
-
-            const scriptPath = resolveTemplatePath(context.extensionPath, 'xr', 'sse', scriptFileName);
-
-            if (!fs.existsSync(scriptPath)) {
-                logger.warn(`SSE script not found at: ${scriptPath}`);
-                return '';
-            }
-
-            const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-            logger.debug(() => `Loaded SSE script: ${scriptFileName} (${scriptContent.length} chars)`);
-
-            // Add nonce script tag for main.js (standard path for all analyses)
-            const mainJsScript = `<script nonce="${nonce}" src="./main.js"></script>`;
-            
-            return `${scriptContent}\n${mainJsScript}`;
-
-        } catch (error) {
-            logger.error(`Error loading SSE script:`, error);
-            return '';
         }
     }
 
@@ -270,7 +221,7 @@ export class CreateStructure {
     }
 
     /**
-     * Get available analysis types for SSE script selection
+     * Get available analysis types
      */
     public static getAvailableAnalysisTypes(): string[] {
         return ['xr', 'dom', 'none'];

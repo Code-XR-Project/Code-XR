@@ -25,6 +25,7 @@ import {
     XRAnalysisData,
 } from './directoryReanalysisData';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
+import { liveChannelHub } from '../../server/live/liveChannelHub';
 import { getLogger } from '../../../platform/logging/sink';
 import { getHost } from '../../host/hostRegistry';
 
@@ -144,7 +145,7 @@ export class DirectoryReAnalyzer {
             updatedAt: new Date().toISOString(),
         });
         if (options.notifyClients !== false) {
-            await this.sendSSENotification(session);
+            this.notifyLiveClients(session);
         }
         getHost().notifier.status(
             `$(check) Code-XR re-analysis updated ${changedCount} file(s)`,
@@ -260,21 +261,18 @@ export class DirectoryReAnalyzer {
         await new Promise<void>((resolve) => setImmediate(resolve));
     }
 
-    async sendSSENotification(session: UnifiedAnalysisSession): Promise<void> {
-        // SSE channels are keyed by session id, so two sessions on one target
+    notifyLiveClients(session: UnifiedAnalysisSession): void {
+        // Live channels are keyed by session id, so two sessions on one target
         // (two modes, or XR and XR-deep) each refresh only their own page
         // (LAUNCHER-3).
         try {
-            const { SSEManager } = require('../../server/sse/SSEManager');
-            const sseManager = SSEManager.getInstance();
-
             if (session.analysisMode === 'XR') {
-                sseManager.sendDataRefresh(session.id);
+                liveChannelHub.publishDataRefresh(session.id);
             } else {
-                sseManager.sendUpdate(session.id);
+                liveChannelHub.publishAnalysisUpdated(session.id);
             }
-        } catch (sseError) {
-            logger.error('SSE notification failed:', sseError);
+        } catch (error) {
+            logger.error('Live channel notification failed:', error);
         }
     }
 }
