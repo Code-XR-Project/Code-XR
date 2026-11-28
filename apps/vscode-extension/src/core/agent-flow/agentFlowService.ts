@@ -16,7 +16,7 @@ import * as path from 'path';
 import type { AgentFlowDataset, AgentFlowEntity, AgentFlowFileMetrics, AgentTraceEvent, AgentTraceSourceSummary } from './agentFlowModels';
 import { buildAgentFlowDataset } from './agentFlowBuilder';
 import type { CityLayout } from './agentFlowLayout';
-import { AgentTraceSource, DiscoveryOptions, listAgentTraceSources, summarizeSource } from './agentTraceSources';
+import { type AgentTraceSource, type DiscoveryOptions, listAgentTraceSources, summarizeSource } from './agentTraceSources';
 
 export const AGENT_FLOW_FOLDER = 'agent-flow';
 const REBUILD_THROTTLE_MS = 600;
@@ -113,7 +113,12 @@ export class AgentFlowService {
     private lastDataset: AgentFlowDataset | null = null;
     private disposed = false;
 
-    constructor(private readonly options: AgentFlowServiceOptions) {}
+    private readonly options: AgentFlowServiceOptions;
+
+    // Plain assignments (no parameter properties): the IDE loads core with Node's type stripping.
+    constructor(options: AgentFlowServiceOptions) {
+        this.options = options;
+    }
 
     public get root(): string { return this.options.root; }
 

@@ -90,8 +90,15 @@ export class PushAgentTraceSource implements AgentTraceSource {
     private updated = Date.now();
     private title: string;
     private live = true;
+    public readonly id: string;
+    public readonly kind: AgentTraceSourceKind;
+    public readonly agent: string;
 
-    constructor(public readonly id: string, public readonly kind: AgentTraceSourceKind, public readonly agent: string, title: string) {
+    // Plain assignments (no parameter properties): the IDE loads core with Node's type stripping.
+    constructor(id: string, kind: AgentTraceSourceKind, agent: string, title: string) {
+        this.id = id;
+        this.kind = kind;
+        this.agent = agent;
         this.title = title;
     }
 
@@ -123,15 +130,23 @@ interface LineParser {
 
 /** Follows a JSONL file: reads it whole, then only what is appended. */
 export class JsonlFileAgentTraceSource implements AgentTraceSource {
-    constructor(
-        public readonly id: string,
-        public readonly kind: AgentTraceSourceKind,
-        public readonly agent: string,
-        private readonly file: string,
-        private readonly title: string,
-        private readonly createParser: () => LineParser,
-        private readonly pollMs = POLL_MS,
-    ) {}
+    public readonly id: string;
+    public readonly kind: AgentTraceSourceKind;
+    public readonly agent: string;
+    private readonly file: string;
+    private readonly title: string;
+    private readonly createParser: () => LineParser;
+    private readonly pollMs: number;
+
+    constructor(id: string, kind: AgentTraceSourceKind, agent: string, file: string, title: string, createParser: () => LineParser, pollMs = POLL_MS) {
+        this.id = id;
+        this.kind = kind;
+        this.agent = agent;
+        this.file = file;
+        this.title = title;
+        this.createParser = createParser;
+        this.pollMs = pollMs;
+    }
 
     public label(): string { return this.title; }
 

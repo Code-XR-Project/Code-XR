@@ -8,17 +8,17 @@
 import {
     AGENT_FLOW_SCHEMA_VERSION,
     AGENT_FLOW_TABLE,
-    AgentFlowDataset,
-    AgentFlowFile,
-    AgentFlowFileMetrics,
-    AgentFlowMetricDelta,
-    AgentFlowSessionInfo,
-    AgentFlowStep,
-    AgentFlowTurn,
-    AgentStepKind,
-    AgentTraceEvent,
+    type AgentFlowDataset,
+    type AgentFlowFile,
+    type AgentFlowFileMetrics,
+    type AgentFlowMetricDelta,
+    type AgentFlowSessionInfo,
+    type AgentFlowStep,
+    type AgentFlowTurn,
+    type AgentStepKind,
+    type AgentTraceEvent,
 } from './agentFlowModels';
-import { CityLayout, layoutCity } from './agentFlowLayout';
+import { type CityLayout, layoutCity } from './agentFlowLayout';
 
 /** Most buildings a city carries; touched files always make it. */
 export const AGENT_FLOW_FILE_BUDGET = 900;
