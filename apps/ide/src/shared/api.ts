@@ -408,6 +408,12 @@ export interface CodeXRApi {
          * window's scene. Resolves false when no scene shows it.
          */
         revealInScene(path: string): Promise<boolean>;
+        /**
+         * #339: switches this window's scene to the analysis of a file or
+         * folder of the open folder (a workspace path), in place (drill-down,
+         * #333). Resolves false when the scene cannot reach it.
+         */
+        analyzeInScene(path: string): Promise<boolean>;
         /** #16: the scene asked to open a file ("Open in editor", a LivePanel row). */
         onDidRequestOpenInEditor(listener: (event: SceneOpenInEditorEvent) => void): Unsubscribe;
         /**
@@ -669,6 +675,7 @@ export const IPC_CHANNELS = {
     analysisStopSharingScene: 'codexr:analysis:stop-sharing-scene',
     analysisCopySceneAddress: 'codexr:analysis:copy-scene-address',
     analysisRevealInScene: 'codexr:analysis:reveal-in-scene',
+    analysisAnalyzeInScene: 'codexr:analysis:analyze-in-scene',
     analysisEnterXr: 'codexr:analysis:enter-xr',
     analysisOpenSceneInBrowser: 'codexr:analysis:open-scene-in-browser',
     analysisHeadsetLink: 'codexr:analysis:headset-link',

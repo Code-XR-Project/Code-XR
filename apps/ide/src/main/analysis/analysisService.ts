@@ -13,6 +13,7 @@ import type { HostDisposable } from '@codexr/core/host/codeXRHost';
 import { setLaunchNotifier } from '@codexr/core/server/launchNotifier';
 import { RemoteAccessManager } from '@codexr/core/remote-access/remoteAccessManager';
 import { revealInScene } from '@codexr/core/server/analysis/sceneReveal';
+import { drillDownInScenes } from '@codexr/core/server/analysis/sceneDrillDown';
 import { getActiveServerRegistry } from '@codexr/core/server/registry/activeServerRegistry';
 import { ServerControl } from '@codexr/core/server/serverControl';
 import { ServerSettingsManager } from '@codexr/core/server/serverSettingsManager';
@@ -397,6 +398,17 @@ export class AnalysisService {
     revealInScene(contents: WebContents, absolutePath: string): boolean {
         const scene = this.scenes.get(contents.id);
         return scene !== undefined && revealInScene(absolutePath, [scene.serverId]) > 0;
+    }
+
+    /**
+     * #339: switches this window's scene to the analysis of a file or folder,
+     * in place (drill-down, #333; the same core call as the extension's
+     * "Analyze in XR Scene"). False when the window shows no scene, or the
+     * path is outside what its scene can explore.
+     */
+    analyzeInScene(contents: WebContents, absolutePath: string): boolean {
+        const scene = this.scenes.get(contents.id);
+        return scene !== undefined && drillDownInScenes(absolutePath, [scene.serverId]) > 0;
     }
 
     /** Copies an address of the calling window's scene: its local URL, or the tunnel's invitation link. */

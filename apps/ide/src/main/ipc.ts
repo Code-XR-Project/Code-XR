@@ -230,6 +230,8 @@ export function registerIpcHandlers(origins: ReadonlySet<string>, isDevelopment:
     });
     // #178: a workspace path only, resolved inside the calling window's folder.
     handle(IPC_CHANNELS.analysisRevealInScene, (event, path) => core.analysis.revealInScene(event.sender, workspaceOf(event.sender).displayPath(path, 'absolute')));
+    // #339: the same, for a file or a folder: the scene drills into it.
+    handle(IPC_CHANNELS.analysisAnalyzeInScene, (event, path) => core.analysis.analyzeInScene(event.sender, workspaceOf(event.sender).displayPath(path, 'absolute')));
     // #19: XR acts on the calling window's scene only, like sharing.
     handle(IPC_CHANNELS.analysisEnterXr, (event) => core.analysis.enterXr(ownerOf(event)));
     handle(IPC_CHANNELS.analysisOpenSceneInBrowser, (event) => core.analysis.openSceneInBrowser(ownerOf(event), (url) => shell.openExternal(url)));

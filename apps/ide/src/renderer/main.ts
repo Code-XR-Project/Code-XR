@@ -278,6 +278,12 @@ async function openPreviewOf(path: string): Promise<void> {
     await group.open(path);
     group.openMarkdownPreview();
 }
+function analyzeInScene(path: string): void {
+    api.analysis.analyzeInScene(path).then(
+        (started) => workbench.setStatus(started ? `Analyzing ${path} in the XR scene` : `The XR scene cannot analyse ${path}.`),
+        (error: unknown) => workbench.setStatus(`Could not analyse in the XR scene: ${String(error)}`),
+    );
+}
 function revealInScene(path: string): void {
     api.analysis.revealInScene(path).then(
         (shown) => workbench.setStatus(shown ? `Marked ${path} in the XR scene` : `The XR scene does not show ${path}.`),
@@ -330,7 +336,10 @@ function showTabMenu(path: string, x: number, y: number): void {
         { label: 'Keep Open', keybinding: key('editor.keep'), run: () => editors?.keepActive(), testId: 'tab-menu-keep' },
         ...extensionMenuItems('editor/title/context', path),
         { label: 'Reveal in Explorer', run: () => void revealInExplorer(path), testId: 'tab-menu-reveal' },
-        ...(workbench.sceneArea.hidden ? [] : [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'tab-menu-reveal-in-scene' }]),
+        ...(workbench.sceneArea.hidden ? [] : [
+            { label: 'Analyze in XR Scene', run: () => analyzeInScene(path), testId: 'tab-menu-analyze-in-scene' },
+            { label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'tab-menu-reveal-in-scene' },
+        ]),
         { separator: true },
         ...fileAnalysisItems(path, 'tab-menu'),
     ];
@@ -431,6 +440,7 @@ function showExplorerMenu(path: string, kind: 'file' | 'directory', x: number, y
             { label: 'Rename…', keybinding: 'F2', run: () => explorer.rename(path), testId: 'explorer-menu-rename' },
             { label: 'Delete', keybinding: platform === 'darwin' ? 'Cmd+Backspace' : 'Delete', run: () => explorer.trash(path), testId: 'explorer-menu-delete' },
         ]),
+        ...(workbench.sceneArea.hidden ? [] : [{ label: 'Analyze in XR Scene', run: () => analyzeInScene(path), testId: 'explorer-menu-analyze-in-scene' }]),
         ...(isFile && !workbench.sceneArea.hidden ? [{ label: 'Reveal in XR Scene', run: () => revealInScene(path), testId: 'explorer-menu-reveal-in-scene' }] : []),
         ...(isFile ? [{ separator: true } as const, ...fileAnalysisItems(path, 'explorer-menu')] : []),
         ...extensionMenuItems('explorer/context', path),
@@ -993,6 +1003,7 @@ registerWorkbenchCommands(registry, {
     copyActivePath: (kind) => { if (activeFile) { copyPath(activeFile, kind); } },
     revealActiveFile: () => { if (activeFile) { void revealInExplorer(activeFile); } },
     revealActiveFileInScene: () => { if (activeFile) { revealInScene(activeFile); } },
+    analyzeActiveFileInScene: () => { if (activeFile) { analyzeInScene(activeFile); } },
     hasEditors: () => (editors?.openPaths().length ?? 0) > 0,
 });
 api.commands.onCommand((command: IdeCommand) => {
