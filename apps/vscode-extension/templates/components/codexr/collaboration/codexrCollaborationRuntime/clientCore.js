@@ -203,6 +203,10 @@
       return shared.sessionInfoPromise;
     }
 
+    function isHostEmbeddedView() {
+      return !!win.CodeXRHostBridge;
+    }
+
     function send(message) {
       if (!shared.socket || shared.socket.readyState !== win.WebSocket.OPEN) {
         return false;
@@ -288,9 +292,13 @@
         shared.joinedRoom = false;
         shared.snapshotReady = false;
         setError(null);
+        // The Code-XR IDE's scene pane (its preload exposes CodeXRHostBridge)
+        // is the same person as the browser or headset on this machine: it
+        // joins as a viewer, with no avatar and no claim on the host role.
         send({
           type: 'room-join',
           roomId: shared.roomId,
+          payload: isHostEmbeddedView() ? { viewer: true } : undefined,
         });
       };
       socket.onmessage = function (event) {
