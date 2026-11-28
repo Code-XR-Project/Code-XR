@@ -244,7 +244,7 @@ If a comparison is active:
 - rapid events are coordinated to avoid concurrent jobs.
 
 The update travels over the collaboration WebSocket and also works through
-Cloudflare Quick Tunnel. It does not depend on SSE.
+Cloudflare Quick Tunnel.
 
 ## Transactional Field Mapping
 
@@ -312,12 +312,13 @@ The LivePanel has the same controls over REST (no room there):
 - `POST /api/historical/cancel` `{ jobId? }` calls the same service cancel as
   the room message. With `jobId` it stops only that job, which is what the
   page sends (by `sendBeacon`) when it is closed while its comparison has no
-  result yet. The outcome reaches the panel as SSE `historical-progress` with
+  result yet. The outcome reaches the panel as a live-channel `historical-progress` message with
   state `cancelled`.
 - `GET /api/historical/status` answers `{ state, jobId, revision, message }`,
   `state` being `idle`, `running`, `done` or `error` and `revision` the last
-  successful comparison. The panel reads it on load and after every SSE
-  reconnect, and loads `revision` when it is not on screen.
+  successful comparison. The panel reads it on load and after every
+  live-channel resync (a reconnect that missed messages), and loads
+  `revision` when it is not on screen.
 
 ### Live comparison over time (1.2.1)
 

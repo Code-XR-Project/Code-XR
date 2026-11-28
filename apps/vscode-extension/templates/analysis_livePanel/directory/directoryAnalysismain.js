@@ -258,11 +258,11 @@ function loadAnalysisData(data) {
 }
 
 /**
- * Live updates over SSE: the shared client in panelShell.js dispatches every
+ * Live updates over the live channel: the shared client in panelShell.js dispatches every
  * message type; on a re-analysis this panel also shows its update notification.
  */
-function initializeSSE() {
-  createLivePanelSse({
+function initializeLiveUpdates() {
+  createLivePanelLiveChannel({
     label: 'DIRECTORY_ANALYSIS',
     trace: debugLog,
     onAnalysisUpdated: () => {
@@ -275,10 +275,10 @@ function initializeSSE() {
 }
 
 /**
- * Reload analysis data after SSE update notification
+ * Reload analysis data after a live update notification
  */
 function reloadAnalysisData() {
-  debugLog('DIRECTORY_ANALYSIS: Reloading analysis data due to SSE update...');
+  debugLog('DIRECTORY_ANALYSIS: Reloading analysis data due to a live update...');
   
   // Add cache busting to ensure fresh data
   fetch('./data.json?t=' + Date.now())
@@ -289,7 +289,7 @@ function reloadAnalysisData() {
       return response.json();
     })
     .then(data => {
-      debugLog('DIRECTORY_ANALYSIS: Successfully reloaded data.json via SSE');
+      debugLog('DIRECTORY_ANALYSIS: Successfully reloaded data.json after a live update');
       loadAnalysisData(data);
       showReloadNotification();
     })
@@ -320,9 +320,9 @@ function reloadAnalysisData() {
 }
 
 // Add CSS for animations if not already present
-if (!document.getElementById('sse-animations')) {
+if (!document.getElementById('live-animations')) {
   const style = document.createElement('style');
-  style.id = 'sse-animations';
+  style.id = 'live-animations';
   style.textContent = `
     @keyframes slideIn {
       from {
@@ -784,7 +784,7 @@ function createComplexityDistributionChart(distribution) {
 // ============================================================
 // All rendering lives in the shared component
 // (templates/components/livepanel/dependencySummaryPanel.js); this file only
-// wires initial loading and the `dependency-updated` SSE event to it.
+// wires initial loading and the `dependency-updated` live message to it.
 
 const dependencyPanel = new CodexrDependencySummaryPanel();
 
@@ -793,7 +793,7 @@ function loadDependencySummary() {
 }
 
 // Load the current dependency dataset on startup; subsequent updates arrive via
-// the `dependency-updated` SSE event (see handleSSEMessage).
+// the `dependency-updated` live message (see handleLiveMessage).
 function initializeDependencyGraphSummary() {
   loadDependencySummary();
 }
@@ -802,7 +802,7 @@ function initializeDependencyGraphSummary() {
 // Historical Comparison (shared CodexrHistoricalPanel)
 // ============================================================
 // Compare the working copy against any local Git branch/tag/commit. The shared
-// panel owns the whole REST + SSE flow
+// panel owns the whole REST + live-channel flow
 // (templates/components/livepanel/historicalPanel.js).
 
 const historicalPanel = new CodexrHistoricalPanel();
@@ -867,7 +867,7 @@ document.addEventListener('DOMContentLoaded', function() {
     themeToggle.addEventListener('click', toggleTheme);
   }
 
-  // Set up the Dependency Summary (auto-runs on load; SSE-driven afterwards)
+  // Set up the Dependency Summary (auto-runs on load; live-driven afterwards)
   initializeDependencyGraphSummary();
 
   // Set up the Historical Comparison panel (loads Git references, or explains
@@ -888,6 +888,6 @@ document.addEventListener('DOMContentLoaded', function() {
     debugLog('Waiting for analysisDataLoaded event...');
   }
   
-  // Live updates arrive over SSE; the tables re-render themselves on reload.
-  initializeSSE();
+  // Live updates arrive over the live channel; the tables re-render themselves on reload.
+  initializeLiveUpdates();
 });

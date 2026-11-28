@@ -1,10 +1,10 @@
 /**
  * Shared LivePanel page shell styles (companion to panelShell.js).
- * Currently: the fixed live-updates indicator shown by showSSEStatus().
+ * Currently: the fixed live-updates indicator shown by showLiveStatus().
  * Its colors are set inline by panelShell.js per connection state.
  */
 
-.sse-status {
+.live-status {
   position: fixed;
   top: 10px;
   right: 10px;

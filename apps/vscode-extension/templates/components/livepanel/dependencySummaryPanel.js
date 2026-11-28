@@ -5,7 +5,7 @@
  * panel owns the whole section lifecycle:
  *  - load():   fetches the dependency-graph.json artifact produced by the
  *              server's incremental re-analysis chain (404 = still analyzing,
- *              not an error — a `dependency-updated` SSE event follows);
+ *              not an error — a `dependency-updated` live message follows);
  *  - render(): tiles + ranking/external/cycles/confidence/capability tables
  *              (shared DataTable instances, created once, updated in place).
  *

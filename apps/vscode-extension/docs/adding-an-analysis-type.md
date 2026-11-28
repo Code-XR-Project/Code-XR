@@ -69,5 +69,5 @@ Every launch runs as a transaction under `LaunchControl`
 - a failure, the 10-minute deadline or **Close Analysis** aborts the launch,
   kills a running Python analysis, and undoes the started steps newest first,
   exactly once. A closed launch shows nothing; a failed one shows one error;
-- the server's SSE channel and file mapping are keyed by the session id, so
+- the server's live channel and file mapping are keyed by the session id, so
   two sessions on the same file never cross their live reloads.

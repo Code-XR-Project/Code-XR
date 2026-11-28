@@ -28,7 +28,7 @@ export enum ErrorDomain {
     Config = 'CONFIG',
     Template = 'TEMPLATE',
     UI = 'UI',
-    SSE = 'SSE',
+    LiveChannel = 'LIVE_CHANNEL',
     Watcher = 'WATCHER',
     Command = 'COMMAND',
     Visualization = 'VISUALIZATION',

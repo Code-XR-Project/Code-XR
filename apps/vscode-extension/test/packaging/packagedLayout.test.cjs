@@ -133,7 +133,7 @@ const PACKAGED_ROOTS = ['templates', 'examples', 'resources', 'dist'];
 /**
  * Extension-relative paths as the code spells them: a chain of quoted
  * segments handed to path.join / Uri.joinPath or kept in a SEGMENTS array
- * (`'templates', 'xr', 'sse', 'live_sse_fileXR.js'`), or one quoted literal
+ * (`'templates', 'xr', 'live', 'liveReloadXR.js'`), or one quoted literal
  * (`'templates/utils/color-picker.html'`). `resolveTemplatePath(root, …)`
  * (src/platform/templatePaths.ts) reads as a chain that starts with 'templates'.
  * A chain that ends in an expression
@@ -281,7 +281,7 @@ test('the compiled resolvers find what they need in a materialized packaged layo
 test('the reference extractor reads path chains and skips lists of names', () => {
     assert.deepEqual(
         extractPackagedReferences([
-            "path.join(context.extensionPath, 'templates', 'xr', 'sse', 'live_sse_fileXR.js');",
+            "path.join(context.extensionPath, 'templates', 'xr', 'live', 'liveReloadXR.js');",
             "const SEGMENTS = [\n    'templates',\n    'components',\n    NAME,\n] as const;",
             "const TEMPLATE_PATH = 'templates/utils/color-picker.html';",
             "const EXCLUDED = [\n    'node_modules',\n    'dist',\n    'build',\n];",
@@ -290,7 +290,7 @@ test('the reference extractor reads path chains and skips lists of names', () =>
             "resolveTemplatePath(\n    extensionPath,\n    'components',\n    asset.folder,\n);",
         ].join('\n')),
         [
-            'templates/xr/sse/live_sse_fileXR.js',
+            'templates/xr/live/liveReloadXR.js',
             'templates/components',
             'templates/xr/file/xr-visualization.html',
             'templates/components',
