@@ -24,6 +24,8 @@ export interface LiveChannelEndpointOptions {
 export interface LiveChannelEndpoint {
     /** Stops answering upgrades and closes every live socket this server accepted. */
     dispose(): void;
+    /** Closes the live sockets whose upgrade request matches (a removed participant's). */
+    closeWhere(matches: (request: http.IncomingMessage) => boolean): number;
 }
 
 export function attachLiveChannelEndpoint(server: http.Server, options: LiveChannelEndpointOptions): LiveChannelEndpoint {
@@ -41,6 +43,7 @@ export function attachLiveChannelEndpoint(server: http.Server, options: LiveChan
         },
     });
     return {
+        closeWhere: (matches) => endpoint.closeWhere(matches),
         dispose: () => {
             endpoint.detach();
             // Upgraded sockets escape server.closeAllConnections(); a socket

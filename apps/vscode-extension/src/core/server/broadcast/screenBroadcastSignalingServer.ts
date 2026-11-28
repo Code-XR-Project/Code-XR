@@ -41,6 +41,11 @@ export class ScreenBroadcastSignalingServer {
         });
     }
 
+    /** Closes the broadcast sockets whose upgrade request matches (a removed participant's). */
+    public closeWhere(matches: (request: http.IncomingMessage) => boolean): number {
+        return this.endpoint.closeWhere(matches);
+    }
+
     public dispose(): void {
         if (this.disposed) {
             return;

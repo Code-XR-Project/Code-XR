@@ -232,6 +232,80 @@
       });
     }
 
+    /**
+     * A random token this tab keeps for its whole life (sessionStorage
+     * survives reloads of the same tab, not other tabs). Sent with every
+     * room-join so that coming back after a dropped connection restores the
+     * same name, colour and host role instead of a new person (COLLAB-ROOM-2).
+     *
+     * "Duplicate tab" copies sessionStorage, and two live tabs sharing a token
+     * would push each other out of the room. The claim flag tells them apart:
+     * a page sets it while open and clears it on pagehide, so a reload finds
+     * it cleared and keeps the token, and a duplicate finds it set and draws
+     * a new one.
+     */
+    const RESUME_TOKEN_KEY = 'codexr:collab-resume-token';
+    const RESUME_CLAIM_KEY = 'codexr:collab-resume-claimed';
+
+    function readSessionItem(key) {
+      try {
+        return String(win.sessionStorage?.getItem(key) || '');
+      } catch (_error) {
+        return '';
+      }
+    }
+
+    function writeSessionItem(key, value) {
+      try {
+        if (value === null) {
+          win.sessionStorage?.removeItem(key);
+        } else {
+          win.sessionStorage?.setItem(key, value);
+        }
+      } catch (_error) {
+        // Private mode or storage blocked: the token lives as long as this page.
+      }
+    }
+
+    function createResumeToken() {
+      const bytes = new Uint8Array(18);
+      if (win.crypto?.getRandomValues) {
+        win.crypto.getRandomValues(bytes);
+      } else {
+        for (let index = 0; index < bytes.length; index += 1) {
+          bytes[index] = Math.floor(Math.random() * 256);
+        }
+      }
+      return Array.from(bytes, function (value) {
+        return value.toString(16).padStart(2, '0');
+      }).join('');
+    }
+
+    function getResumeToken() {
+      if (shared.resumeToken) {
+        return shared.resumeToken;
+      }
+      let token = readSessionItem(RESUME_TOKEN_KEY);
+      if (!/^[A-Za-z0-9_-]{16,64}$/.test(token) || readSessionItem(RESUME_CLAIM_KEY) === '1') {
+        token = createResumeToken();
+        writeSessionItem(RESUME_TOKEN_KEY, token);
+      }
+      writeSessionItem(RESUME_CLAIM_KEY, '1');
+      win.addEventListener?.('pagehide', function () {
+        writeSessionItem(RESUME_CLAIM_KEY, null);
+      });
+      win.addEventListener?.('pageshow', function () {
+        writeSessionItem(RESUME_CLAIM_KEY, '1');
+      });
+      shared.resumeToken = token;
+      return token;
+    }
+
+    // After this many failed reconnects in a row the room is probably gone
+    // for good (the tunnel restarted under a new address, the host stopped
+    // the server): say so instead of retrying in silence (COLLAB-ROOM-10).
+    const RECONNECT_GIVE_UP_HINT_AFTER = 6;
+
     function scheduleReconnect() {
       if (
         shared.destroyed
@@ -249,6 +323,12 @@
       const baseDelay = shared.config.reconnectDelayMs || DEFAULT_CONFIG.reconnectDelayMs;
       const attempt = shared.reconnectAttempts || 0;
       shared.reconnectAttempts = attempt + 1;
+      if (shared.reconnectAttempts === RECONNECT_GIVE_UP_HINT_AFTER) {
+        setError({
+          code: 'session-unreachable',
+          message: 'Still trying to reach the session. If the host restarted sharing, ask them for the new link.',
+        });
+      }
       const delay = Math.min(RECONNECT_MAX_DELAY_MS, baseDelay * Math.pow(2, attempt));
       const jitter = Math.floor(Math.random() * Math.min(500, delay / 4));
       shared.reconnectTimer = win.setTimeout(function () {
@@ -257,7 +337,23 @@
       }, delay + jitter);
     }
 
-    async function ensureSocket() {
+    /**
+     * Opening the room socket awaits the session info first. Every runtime
+     * calls this during start-up, and each one used to pass the "no socket
+     * yet" check before any socket existed: a page opened ~15 room sockets,
+     * kept them all and joined the room 15 times over the last one
+     * (COLLAB-ROOM-12). Concurrent callers now share one attempt.
+     */
+    function ensureSocket() {
+      if (!shared.socketAttempt) {
+        shared.socketAttempt = openSocket().finally(function () {
+          shared.socketAttempt = null;
+        });
+      }
+      return shared.socketAttempt;
+    }
+
+    async function openSocket() {
       if (
         shared.destroyed
         || shared.kicked
@@ -296,6 +392,7 @@
         send({
           type: 'room-join',
           roomId: shared.roomId,
+          payload: { resumeToken: getResumeToken() },
         });
       };
       socket.onmessage = function (event) {

@@ -4,6 +4,7 @@ import { fileToServerMap } from './fileToServerMap';
 import { NetworkUtils } from './networkUtils';
 import { ScreenBroadcastSignalingServer } from './broadcast/screenBroadcastSignalingServer';
 import { CollaborationApplicationMessageContext, CollaborationMessage, CollaborationRoomServer } from './collaboration/collaborationRoomServer';
+import type { ParticipantRemovalResult } from './collaboration/roomTypes';
 import { CollaborationProfileManager } from '../collaboration/collaborationProfileManager';
 import { ConnectedParticipantSummary } from '../collaboration/connectedParticipant';
 import { RemoteSessionAuthority } from '../remote-access/remoteSessionAuthority';
@@ -296,15 +297,39 @@ export class HttpServer {
             return { removed: false, sessionRevoked: false };
         }
 
+        // The room emits 'participant-removed', which revokes the session and
+        // closes the other sockets (handleParticipantRemoved).
         const result = this.collaborationRoomServer.removeParticipant(
             this.sessionApi.getCollaborationRoomId(),
             peerId,
         );
         const sessionRevoked = result.removed && result.remote && !!result.sessionId
-            ? this.remoteSessionAuthority.revokeSession(result.sessionId)
-            : false;
+            && this.remoteSessionAuthority.resolveCookie(`codexr_session=${result.sessionId}`) === null;
 
         return { removed: result.removed, sessionRevoked };
+    }
+
+    /**
+     * A removed participant (from the host's UI or kicked inside the room)
+     * leaves completely: their screen-broadcast and live sockets close too,
+     * and a remote guest's session is revoked so a reload cannot bring them
+     * back (COLLAB-ROOM-3, COLLAB-SYNC-10).
+     */
+    private handleParticipantRemoved(result: ParticipantRemovalResult): void {
+        if (!result.removed || result.local) {
+            return;
+        }
+        const sessionId = result.sessionId;
+        const matches = sessionId
+            ? (request: http.IncomingMessage) => this.remoteSessionAuthority.resolveCookie(request.headers.cookie)?.sessionId === sessionId
+            : (request: http.IncomingMessage) => !!result.remoteAddress
+                && !isLoopbackAddress(request.socket.remoteAddress)
+                && request.socket.remoteAddress === result.remoteAddress;
+        this.broadcastSignalingServer?.closeWhere(matches);
+        this.liveChannelEndpoint?.closeWhere(matches);
+        if (result.removed && result.remote && !!result.sessionId) {
+            this.remoteSessionAuthority.revokeSession(result.sessionId);
+        }
     }
 
     public onConnectedParticipantsChanged(
@@ -593,6 +618,7 @@ export class HttpServer {
             isLocalRequest: (request) => !this.policy.isRemoteRequest(request) && isLoopbackAddress(request.socket.remoteAddress),
             handleApplicationMessage: (messageContext, message) => this.handleRoomMessage(messageContext, message),
         });
+        this.collaborationRoomServer.onParticipantRemoved((_roomId, result) => this.handleParticipantRemoved(result));
         if (this.config.analysisSessionId) {
             this.analysisHost.publishAnalysisViewState();
         }

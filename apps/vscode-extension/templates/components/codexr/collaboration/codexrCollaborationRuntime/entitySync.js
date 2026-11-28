@@ -144,6 +144,21 @@
     }
 
     function handleSnapshotEntities(entities) {
+      // A reconnect snapshot is the whole room: whatever this client knew
+      // from the room that is not in it was removed while it was offline,
+      // and used to linger here forever (COLLAB-ROOM-11, COLLAB-SYNC-9).
+      const incoming = new Set((Array.isArray(entities) ? entities : []).map(function (entity) {
+        return entity?.entityKind && entity?.entityId ? getEntityKey(entity.entityKind, entity.entityId) : '';
+      }));
+      Array.from(shared.roomEntities.values()).forEach(function (known) {
+        if (known?.entityKind && known?.entityId && !incoming.has(getEntityKey(known.entityKind, known.entityId))) {
+          handleEntityRemoved({
+            type: 'entity-removed',
+            roomId: shared.roomId,
+            payload: { entityKind: known.entityKind, entityId: known.entityId },
+          });
+        }
+      });
       shared.roomEntities.clear();
       // The analysis view goes last, so a mode activates with its data
       // entities (dependency graph, comparison, evolution) already applied.
