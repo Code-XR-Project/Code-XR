@@ -91,6 +91,7 @@ test('protocol: the browser runtime mirrors the server constants and helpers', (
         LIVE_CLIENT_SILENCE_TIMEOUT_MS: protocol.LIVE_CLIENT_SILENCE_TIMEOUT_MS,
         LIVE_RECONNECT_MIN_DELAY_MS: protocol.LIVE_RECONNECT_MIN_DELAY_MS,
         LIVE_RECONNECT_MAX_DELAY_MS: protocol.LIVE_RECONNECT_MAX_DELAY_MS,
+        LIVE_CLOSE_REMOVED: protocol.LIVE_CLOSE_REMOVED,
     });
     for (const [previous, random] of [[0, 0], [0, 0.5], [1000, 0.3], [16000, 0.9], [30000, 0]]) {
         assert.equal(runtime.nextReconnectDelay(previous, random), protocol.nextReconnectDelay(previous, random));

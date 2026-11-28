@@ -192,7 +192,7 @@
       });
     }
     return new Promise(function (resolve, reject) {
-      var requestId = 'frame-' + (++state.frameApplyRequestId) + '-' + Date.now();
+      var requestId = state.frameApplyTag + '-' + (++state.frameApplyRequestId) + '-' + Date.now();
       var timeoutId = root.setTimeout(function () {
         if (
           state.pendingFrameApply?.frameIndex === frameIndex

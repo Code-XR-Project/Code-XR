@@ -31,10 +31,30 @@
   - Pages reconnect on their own with back-off (1 s up to 30 s), and detect a connection that went silent after sleep or a network change.
   - After a reconnect, a page that missed an update catches up once: the XR scene refreshes its data, a DOM page reloads, the LivePanel reloads its data, dependencies and comparison status.
   - Same behaviour in the VS Code extension and the Code-XR IDE.
+- **Collaboration stays in sync with several people, locally, on the LAN and through remote access.**
+  - The shared screen reaches every guest. Guests through remote access no longer wait forever in the wrong room, every relay viewer hears the audio (not only the first), a LAN viewer whose direct connection fails falls back to the relay, and "Switch source" keeps relay viewers live.
+  - A share ends when the sharer leaves, so the next person can share on that screen.
+  - Only the person sharing can stop a share; resizing or moving a screen no longer stops it for everyone.
+  - Relayed audio resumes on the first click or key when the browser started it muted, and its latency stays bounded.
+  - A browser without WebCodecs says so instead of showing a black screen.
+  - Connections stay up through remote access, which closes WebSockets idle for 100 s, and a dead connection is noticed within a minute instead of leaving a frozen avatar.
+  - Coming back after a dropped connection or a reload keeps your name and colour, and a host who drops gets the host role back from the guest who held it meanwhile.
+  - Removing a participant closes every view they have open and all their connections, and revokes a remote guest's access.
+  - After a reconnect the scene drops what was removed while you were away. If the session cannot be reached for a while, the page says so.
+  - One room connection per page (pages used to open about fifteen).
+  - Project evolution: people seeking at the same time end on the same frame. A chart mapping change made while you play the movie is applied when you pause.
+  - Avatars no longer flicker between two views of the same person and turn the short way round.
 
 #### Removed
 
 - The SSE endpoint `/events` and its server and browser code.
+
+#### Security
+
+- Collaboration sockets accept only the scene's own pages: a web page on another site, open in the host's browser, can no longer join the room as the host.
+- Only a direct connection on this machine counts as the host's own; a connection through any other local proxy does not.
+- Guests can no longer change what the server owns (analysis mode, Agent Flow source, drill-down), take over someone else's share, or send oversized messages.
+- Deleting the project evolution movie and cancelling a comparison or a movie are for the host only.
 
 ## [1.2.1] - 2026-11-27
 

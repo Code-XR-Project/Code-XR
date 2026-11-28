@@ -144,6 +144,11 @@
       } else if (enabled && state.statusLevel === 'info') {
         setStatusMessage('', 'info', 0);
       }
+      if (enabled && state.deferredSharedMapping) {
+        var deferred = state.deferredSharedMapping;
+        state.deferredSharedMapping = null;
+        applySharedMappingState(deferred.config, deferred.snapshot);
+      }
       return !state.mappingControlsLocked;
     },
     getControllerState: function () {

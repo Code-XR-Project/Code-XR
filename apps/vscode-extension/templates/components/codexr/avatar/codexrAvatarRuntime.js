@@ -405,12 +405,12 @@
         const previousPosition = bodyPosition.clone();
         bodyPosition.lerp(new global.THREE.Vector3(headPosition.x, headPosition.y, headPosition.z), factor);
 
-        const yaw = Number(this.target.head.rotation?.y || 0);
-        this.bodyRoot.object3D.rotation.y = global.THREE.MathUtils.lerp(
-          this.bodyRoot.object3D.rotation.y,
-          global.THREE.MathUtils.degToRad(yaw),
-          factor,
-        );
+        // Shortest arc: a person turning from 179 to -179 degrees turns two
+        // degrees, not a full circle the wrong way (COLLAB-ROOM-8).
+        const yaw = global.THREE.MathUtils.degToRad(Number(this.target.head.rotation?.y || 0));
+        const current = this.bodyRoot.object3D.rotation.y;
+        const turn = Math.atan2(Math.sin(yaw - current), Math.cos(yaw - current));
+        this.bodyRoot.object3D.rotation.y = current + (turn * factor);
         this.updateHand(this.leftHandEl, this.target.leftHand, factor);
         this.updateHand(this.rightHandEl, this.target.rightHand, factor);
         this.updateLod();

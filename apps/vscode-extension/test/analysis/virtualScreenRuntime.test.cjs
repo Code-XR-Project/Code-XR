@@ -703,7 +703,9 @@ test('relayed media is torn down with the broadcast, on both ends', () => {
 
 test('one encoder serves the whole audience, reconfigured instead of duplicated', () => {
     // A second viewer must never start a second encoding.
-    assert.match(runtimeSource, /function startRelaySender\(message\) \{\s*\n\s*\/\/[\s\S]*?\n\s*if \(refs\.relaySender \|\| state\.streamSourceType !== 'local' \|\| !state\.stream\) \{\s*\n\s*return;/);
+    // A running encoder on the same live track is reused: the newcomer only
+    // gets a keyframe (and the audio config, COLLAB-SCREEN-1).
+    assert.match(runtimeSource, /running\.videoTrack === videoTrack && videoTrack\.readyState === 'live'\) \{[\s\S]*?requestRelayKeyframe\(\);\s*\n\s*return;/);
     // Audience changes retune that same encoder and resync viewers.
     assert.match(runtimeSource, /function updateRelayAudience\(message\)/);
     assert.match(runtimeSource, /sender\.appliedQuality !== sender\.quality/);

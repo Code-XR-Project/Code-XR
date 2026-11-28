@@ -453,7 +453,7 @@ export class AnalysisService {
         if (!localSceneOrigin(scene.url)) {
             throw new Error('This scene is not served locally.');
         }
-        await openExternal(scene.url);
+        await openExternal(authenticatedSceneUrl(scene.serverId, scene.url));
     }
 
     /** #19: the invitation link a standalone headset opens, or null while the scene is not shared. */
@@ -601,7 +601,25 @@ export class AnalysisService {
         if (this.ownerFolder && !isFileKind(this.ownerKind)) {
             this.hooks.sceneOpened?.(win.webContents, this.ownerFolder);
         }
-        await showScene(win, serverUrl);
+        await showScene(win, authenticatedSceneUrl(serverId, serverUrl));
+    }
+}
+
+/**
+ * The scene's address with a one-time token that signs the person in as
+ * themselves (their Code-XR name and colour), the way the extension opens
+ * it. The raw address joined the room under a random name (COLLAB-IDE-3).
+ * The token is single use, so a new one is made for each opening.
+ */
+function authenticatedSceneUrl(serverId: string, url: string): string {
+    const instance = getActiveServerRegistry().getServer(serverId)?.serverInstance;
+    try {
+        return typeof instance?.createAuthenticatedBrowserUrl === 'function'
+            ? instance.createAuthenticatedBrowserUrl(url)
+            : url;
+    } catch (error) {
+        log.warn(`Scene sign-in link failed, opening the plain address: ${String(error)}`);
+        return url;
     }
 }
 

@@ -1,4 +1,5 @@
 import { PortManager } from './portManager';
+import { getServerBindHost } from './serverBindHost';
 import { ServerSettingsManager } from './serverSettingsManager';
 import { LaunchMode, CertMode } from './registry/activeServerModel';
 import { getServerRegistrar } from './registry/serverRegistrar';
@@ -156,8 +157,8 @@ export class MultiServerLauncher {
             const requestedPort = settings.defaultPort;
             const finalPort = await this.findAvailablePortWithLogging(requestedPort);
 
-            // Launch the server - Use 0.0.0.0 to listen on all network interfaces for external access
-            const host = '0.0.0.0';
+            // Every interface (LAN headsets) unless the host restricted it (serverBindHost.ts).
+            const host = getServerBindHost();
             logger.debug(() => `DEBUG - Configuring server to listen on ${host}:${finalPort} for network access`);
             const result = await launchServerByType(
                 this.context,

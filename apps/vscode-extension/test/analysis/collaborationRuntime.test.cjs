@@ -653,7 +653,8 @@ function createSelfViewHarness() {
         CustomEvent: class {},
         addEventListener() {},
         requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
-        setTimeout() { return 0; },
+        // The presence loop runs on a timer (it must keep going in a headset).
+        setTimeout(callback) { frames.push(callback); return frames.length; },
         clearTimeout() {},
         console: { log() {}, warn() {}, error() {} },
     };
@@ -694,6 +695,17 @@ test('a local view sends the camera only when the person moves it, never its sta
     assert.equal(sent[0].payload.look.yaw, 0.75);
     await view.frame();
     assert.equal(view.selfViews(socket).length, 1, 'an unchanged camera is not sent again');
+});
+
+test('an unchanged pose is not sent again every frame (lastSeenAt is not part of the comparison)', async () => {
+    const view = createSelfViewHarness();
+    const socket = await view.connect();
+    view.receive(socket, { type: 'room-joined', peerId: 'guest', roomId: 'r', payload: { localView: false } });
+    for (let index = 0; index < 5; index += 1) {
+        await view.frame();
+    }
+    const updates = socket.sent.filter((message) => message.type === 'presence-update');
+    assert.equal(updates.length, 1);
 });
 
 test('a view follows the camera it is given and never sends it back (no ping-pong)', async () => {
