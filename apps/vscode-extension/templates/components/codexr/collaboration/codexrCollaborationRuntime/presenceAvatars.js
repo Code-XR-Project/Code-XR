@@ -98,7 +98,7 @@
     }
 
     function sendPresenceUpdate(force) {
-      if (!shared.joinedRoom || !shared.config.presenceEnabled || shared.viewer) {
+      if (!shared.joinedRoom || !shared.config.presenceEnabled) {
         return;
       }
       const now = Date.now();
@@ -120,6 +120,7 @@
         shared.presenceLoopActive = false;
         return;
       }
+      syncSelfView();
       sendPresenceUpdate(false);
       (win.requestAnimationFrame || function (callback) { return win.setTimeout(callback, 80); })(updatePresenceLoop);
     }

@@ -6,6 +6,7 @@
     "entitySync.js",
     "disconnectScreen.js",
     "presenceAvatars.js",
+    "selfView.js",
     "publicApi.js"
   ]
 }
