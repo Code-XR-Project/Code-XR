@@ -1,0 +1,11 @@
+{
+  "output": "drillDownRuntime.js",
+  "parts": [
+    "configAndState.js",
+    "targetModel.js",
+    "chartView.js",
+    "inspectorCard.js",
+    "breadcrumbBar.js",
+    "modeLifecycle.js"
+  ]
+}

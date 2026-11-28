@@ -29,6 +29,7 @@ const SCENE_ASSET_MODULES = [
     'projectEvolutionComponentAsset',
     'dependencyGraphComponentAsset',
     'agentFlowComponentAsset',
+    'drillDownComponentAsset',
     'guideScreenComponentAsset',
     'logoComponentAsset',
     'renderBudgetComponentAsset',

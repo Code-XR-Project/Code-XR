@@ -30,6 +30,7 @@ test('the capability table grants LivePanel historical comparison while project 
         historicalComparison: true,
         projectEvolution: false,
         agentFlow: false,
+        drillDown: false,
     });
 });
 

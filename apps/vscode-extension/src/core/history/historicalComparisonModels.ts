@@ -4,7 +4,8 @@ export type AnalysisTableMode =
     | 'historical-compare'
     | 'project-evolution'
     | 'dependency-graph'
-    | 'agent-flow';
+    | 'agent-flow'
+    | 'drill-down';
 
 export type GitReferenceType = 'branch' | 'tag' | 'commit';
 export type GitRevisionType = 'working-copy' | 'branch' | 'tag' | 'commit' | 'merge';

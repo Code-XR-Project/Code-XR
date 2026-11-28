@@ -341,6 +341,22 @@ export class HttpServer {
         return true;
     }
 
+    /**
+     * #339: drills the table into a file or folder the host named, when it is
+     * inside this server's drill-down boundary. The jump runs in the
+     * background; its progress and errors reach the scene through the entity.
+     */
+    public drillDownInScene(absolutePath: string, kind: 'file' | 'directory'): boolean {
+        const service = this.analysisHost.drillDown.service;
+        if (!service?.covers(absolutePath)) {
+            return false;
+        }
+        service.open(absolutePath, kind).catch((error) => {
+            logger.warn('[CodeXR][DrillDown] Host request failed:', error);
+        });
+        return true;
+    }
+
     public createAuthenticatedBrowserUrl(baseUrl: string): string {
         const profileManager = CollaborationProfileManager.getInstance();
         if (!profileManager) {
