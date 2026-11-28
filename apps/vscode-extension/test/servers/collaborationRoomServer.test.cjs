@@ -550,3 +550,66 @@ test('the extension can remove a participant: kick message, 4001 close, list upd
         await new Promise((resolve) => server.close(resolve));
     }
 });
+
+test('the IDE scene pane joins as a viewer: no participant, no avatar, never the host', async () => {
+    const { CollaborationRoomServer } = loadCollaborationRoomServer();
+    const server = http.createServer((_req, res) => {
+        res.writeHead(200);
+        res.end('ok');
+    });
+    const collaboration = new CollaborationRoomServer(server, '/codexr-room', { isLocalRequest: () => true });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const url = `ws://127.0.0.1:${server.address().port}/codexr-room`;
+    const pane = new WebSocket(url);
+    const browser = new WebSocket(url);
+    try {
+        await Promise.all([waitForOpen(pane), waitForOpen(browser)]);
+        const paneJoined = waitForMessage(pane, (payload) => payload.type === 'room-joined');
+        const paneSnapshot = waitForMessage(pane, (payload) => payload.type === 'room-snapshot');
+        pane.send(JSON.stringify({ type: 'room-join', roomId: 'codexr-session:alpha', payload: { viewer: true } }));
+        assert.equal((await paneJoined).payload.viewer, true);
+        assert.deepEqual((await paneSnapshot).payload.participants, []);
+
+        // The person's real view joins after the pane and is still the host,
+        // and the pane hears about it like any member of the room.
+        const paneSeesBrowser = waitForMessage(pane, (payload) => payload.type === 'participant-updated');
+        const { joined, snapshot } = await joinRoom(browser, 'codexr-session:alpha');
+        assert.equal(joined.payload.participant.role, 'host');
+        assert.equal(snapshot.payload.participants.length, 1);
+        assert.equal((await paneSeesBrowser).payload.peerId, joined.peerId);
+
+        // A pane's presence never reaches the room.
+        pane.send(JSON.stringify({ type: 'presence-update', roomId: 'codexr-session:alpha', payload: { head: null } }));
+        browser.send(JSON.stringify({ type: 'presence-update', roomId: 'codexr-session:alpha', payload: { head: null } }));
+        const presence = await waitForMessage(pane, (payload) => payload.type === 'presence-joined');
+        assert.equal(presence.peerId, joined.peerId);
+    } finally {
+        pane.close();
+        browser.close();
+        collaboration.dispose();
+        await new Promise((resolve) => server.close(resolve));
+    }
+});
+
+test('only a peer on this machine may join as a viewer', async () => {
+    const { CollaborationRoomServer } = loadCollaborationRoomServer();
+    const server = http.createServer((_req, res) => {
+        res.writeHead(200);
+        res.end('ok');
+    });
+    const collaboration = new CollaborationRoomServer(server, '/codexr-room', { isLocalRequest: () => false });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const remote = new WebSocket(`ws://127.0.0.1:${server.address().port}/codexr-room`);
+    try {
+        await waitForOpen(remote);
+        const joined = waitForMessage(remote, (payload) => payload.type === 'room-joined');
+        remote.send(JSON.stringify({ type: 'room-join', roomId: 'codexr-session:alpha', payload: { viewer: true } }));
+        const message = await joined;
+        assert.equal(message.payload.viewer, undefined);
+        assert.equal(message.payload.participant.role, 'host');
+    } finally {
+        remote.close();
+        collaboration.dispose();
+        await new Promise((resolve) => server.close(resolve));
+    }
+});

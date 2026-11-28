@@ -13,6 +13,7 @@
           shared.peerId = String(message.peerId || '').trim();
           shared.roomId = String(message.roomId || shared.roomId).trim();
           shared.joinedRoom = true;
+          shared.viewer = message.payload?.viewer === true;
           if (message.payload?.participant) {
             upsertParticipant(message.payload.participant);
           }
