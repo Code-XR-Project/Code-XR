@@ -62,7 +62,9 @@ test('right-click analysis commands are grouped under Code-XR Analysis with one 
             .filter((commandId) => commandId.startsWith('codeXR.analysis.'))
             .filter((commandId) => !commandId.startsWith('codeXR.analysis.runLast.'))
             // #178: marks a file in a running scene; it starts no analysis.
-            .filter((commandId) => commandId !== 'codeXR.analysis.revealInScene');
+            .filter((commandId) => commandId !== 'codeXR.analysis.revealInScene')
+            // #339: switches a running scene to a target (drill-down); it launches no server.
+            .filter((commandId) => commandId !== 'codeXR.analysis.analyzeInScene');
         assert.deepEqual(directAnalysisCommands, [], `${menuId} should not expose flat analysis commands`);
         assert.ok(entries.some((entry) =>
             entry.command === 'codeXR.analysis.runLast.analyzeProjectXRDeep'

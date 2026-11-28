@@ -10,6 +10,7 @@ import { DependencyGraphBridge } from './dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './projectEvolutionBridge';
 import { AgentFlowBridge } from './agentFlowBridge';
+import { DrillDownBridge } from './drillDownBridge';
 import { ANALYSIS_TYPES, AnalysisSnapshotProbe } from '../../analysis/launch/analysisTypes';
 import { getLogger } from '../../../platform/logging/sink';
 
@@ -53,9 +54,11 @@ export class AnalysisMessageRouter {
         private readonly room: AnalysisRouterRoomHooks,
     ) {
         this.agentFlow = new AgentFlowBridge(host);
+        this.drillDown = new DrillDownBridge(() => host.drillDown.service);
     }
 
     private readonly agentFlow: AgentFlowBridge;
+    private readonly drillDown: DrillDownBridge;
 
     private get historicalComparisonService() {
         return this.host.historicalComparisonService;
@@ -69,10 +72,14 @@ export class AnalysisMessageRouter {
         messageContext: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
     ): Promise<boolean> {
-        // Agent Flow owns its whole message namespace (agentFlowBridge.ts).
-        return message.type.startsWith('agent-flow-')
-            ? this.agentFlow.handleMessage(messageContext, message)
-            : this.handleModeMessage(messageContext, message);
+        // Agent Flow and the drill-down own their whole message namespaces.
+        if (message.type.startsWith('agent-flow-')) {
+            return this.agentFlow.handleMessage(messageContext, message);
+        }
+        if (message.type.startsWith('drilldown-')) {
+            return this.drillDown.handleMessage(messageContext, message);
+        }
+        return this.handleModeMessage(messageContext, message);
     }
 
     private async handleModeMessage(

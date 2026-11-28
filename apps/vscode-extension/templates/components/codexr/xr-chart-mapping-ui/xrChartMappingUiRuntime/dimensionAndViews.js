@@ -428,6 +428,9 @@
     if (viewId.indexOf('agent-flow') === 0) {
       return 'agent-flow';
     }
+    if (viewId.indexOf('drill-down') === 0) {
+      return 'drill-down';
+    }
     return 'single';
   }
 

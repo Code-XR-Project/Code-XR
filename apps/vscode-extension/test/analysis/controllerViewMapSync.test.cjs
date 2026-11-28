@@ -71,6 +71,7 @@ const ROUTING_TABLE = Object.freeze({
     'project-evolution.playback': 'project-evolution',
     'project-evolution.mapping': 'mapping',
     'agent-flow': 'agent-flow',
+    'drill-down': 'drill-down',
 });
 
 // 'mapping' is the controller's built-in view; every other panel exists only
@@ -96,6 +97,7 @@ const DEFAULT_VIEW_BY_MODE = Object.freeze({
     'dependency-graph': 'dependency.settings',
     'project-evolution': 'project-evolution',
     'agent-flow': 'agent-flow',
+    'drill-down': 'drill-down',
 });
 const ANALYSIS_MODES = Object.freeze(Object.keys(DEFAULT_VIEW_BY_MODE));
 

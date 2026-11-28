@@ -128,7 +128,7 @@
   };
   root[RUNTIME_GLOBAL_NAME].setMode = function (mode) {
     var nextMode = String(mode || 'single');
-    var validModes = ['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow'];
+    var validModes = ['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow', 'drill-down'];
     if (validModes.indexOf(nextMode) === -1) {
       nextMode = 'single';
     }

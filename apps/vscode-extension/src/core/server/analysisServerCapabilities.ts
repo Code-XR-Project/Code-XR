@@ -32,6 +32,8 @@ export interface AnalysisServerCapabilities {
     projectEvolution: boolean;
     /** Agent Flow: agent session sources and the live trace dataset (XR only). */
     agentFlow: boolean;
+    /** Drill-down: analyse a file or folder of the analysis in place (XR only). */
+    drillDown: boolean;
 }
 
 /**
@@ -52,5 +54,6 @@ export function resolveAnalysisServerCapabilities(
         historicalComparison: features.has('historicalComparison'),
         projectEvolution: features.has('projectEvolution'),
         agentFlow: features.has('agentFlow'),
+        drillDown: features.has('drillDown'),
     };
 }

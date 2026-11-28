@@ -3,7 +3,7 @@ import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_REFRESH_COORDINATOR');
 
-export type AnalysisRefreshMode = 'single' | 'historical-compare' | 'project-evolution' | 'dependency-graph' | 'agent-flow';
+export type AnalysisRefreshMode = 'single' | 'historical-compare' | 'project-evolution' | 'dependency-graph' | 'agent-flow' | 'drill-down';
 export type AnalysisViewMode = AnalysisRefreshMode | 'selection';
 
 export interface AnalysisSourceChangeBatch {
@@ -53,7 +53,7 @@ interface SessionRefreshState {
     backgroundModes: Set<AnalysisRefreshMode>;
 }
 
-const MODES: AnalysisRefreshMode[] = ['single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow'];
+const MODES: AnalysisRefreshMode[] = ['single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow', 'drill-down'];
 
 function emptyPending(): Record<AnalysisRefreshMode, Map<string, PathChangeKind>> {
         return {
@@ -62,6 +62,7 @@ function emptyPending(): Record<AnalysisRefreshMode, Map<string, PathChangeKind>
             'project-evolution': new Map(),
             'dependency-graph': new Map(),
             'agent-flow': new Map(),
+            'drill-down': new Map(),
         };
 }
 
@@ -355,6 +356,7 @@ export class AnalysisRefreshCoordinator {
                     'project-evolution': 'project-evolution',
                     'dependency-graph': 'dependency.settings',
                     'agent-flow': 'agent-flow',
+                    'drill-down': 'drill-down',
                 },
                 viewRevision: 0,
                 sourceRevision: 0,
@@ -364,6 +366,7 @@ export class AnalysisRefreshCoordinator {
                     'project-evolution': 0,
                     'dependency-graph': 0,
                     'agent-flow': 0,
+                    'drill-down': 0,
                 },
                 modeRevision: {
                     single: 0,
@@ -371,6 +374,7 @@ export class AnalysisRefreshCoordinator {
                     'project-evolution': 0,
                     'dependency-graph': 0,
                     'agent-flow': 0,
+                    'drill-down': 0,
                 },
                 snapshotAvailable: {
                     single: true,
@@ -378,6 +382,7 @@ export class AnalysisRefreshCoordinator {
                     'project-evolution': false,
                     'dependency-graph': false,
                     'agent-flow': false,
+                    'drill-down': false,
                 },
                 errors: {},
                 pending: emptyPending(),
@@ -391,6 +396,7 @@ export class AnalysisRefreshCoordinator {
                     'project-evolution': true,
                     'dependency-graph': true,
                     'agent-flow': true,
+                    'drill-down': true,
                 },
                 backgroundModes: new Set(),
             };
