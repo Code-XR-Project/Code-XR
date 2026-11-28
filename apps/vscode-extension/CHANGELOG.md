@@ -20,7 +20,9 @@
   - Shared with the whole room: every participant follows the same view, and anyone can drive it.
   - Saving a file refreshes the drilled view.
   - The table's controller stays the analysis controller: change the chart type or the metrics and the drilled view follows.
-  - The card shows the building's metrics (height, area, colour) above its buttons, in place of BabiaXR's own legend.
+  - Drilled into a file, the controller switches to the file analysis' fields, and back to the folder ones when you go up.
+  - A plate on top of the controller names what is on the table: files in green, folders in purple.
+  - Hovering a building shows BabiaXR's legend; clicking it shows the card with its metrics (height, area, colour) above its buttons instead.
   - Also from the editor: **Code-XR: Analyze in XR Scene** on a file or folder (explorer, editor and tab menus) switches the running scenes to it.
 - **One person, many views.** The XR scene open on your own computer, in a browser tab or in the Code-XR IDE, is one person in the room: one avatar for your guests, and one camera. Move in any view and the others follow; a view opened later starts where you are. Guests through remote access or the LAN stay separate people.
 - **Code-XR's own city chart.** Agent Flow draws the project with a new chart modeled on BabiaXR's boats layout, so the agents and their work are part of the chart.

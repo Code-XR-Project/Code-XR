@@ -73,12 +73,13 @@ test('XR schema consumers support text-only dimensions for categorical chart axe
         'python',
         'xrFieldSchemaService.ts',
     );
+    // The mapping UI model moved out of templateProcessor.ts (#333).
     const templateProcessor = readProjectFile(
         'src',
         'core',
         'charts',
         'processing',
-        'templateProcessor.ts',
+        'mappingUiSchema.ts',
     );
     const templateCharts = readProjectFile(
         'src',

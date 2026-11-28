@@ -66,13 +66,27 @@ the IDE imports it as `@codexr/core/drilldown/*`.
   mapping UI delegates the entity apply in mode `drill-down`, as it does for
   project evolution, and the runtime redraws on `codexr-mapping-confirmed`).
   When the drilled rows do not have the session's schema (the functions of
-  one file in a project analysis) the chart keeps the server's mapping and the
-  controller is locked with the reason. Home restores the classic analysis as
-  it was. Navigation lives on the bar only.
-- **Card metrics, no Babia legend.** A building's card lists its height, area
-  and colour metrics with their values, read from the chart's own mapping.
-  Babia's hover/click legend is hidden (and shrunk) while the card can open,
-  because it covered the card.
+  one file in a project analysis) the entity carries `controllerSchema`: that
+  kind's charts and fields, built by `buildMappingUiSchema`
+  (`src/core/charts/processing/mappingUiSchema.ts`, the same builder the scene
+  generator embeds) from the configured chart and the kind's field types. The
+  runtime hands it to `CodeXRMappingUiRuntime.setSchemaOverride(schema,
+  { contextId: 'drill-down:file' })`, which keeps the scene's own schema
+  aside and restores it with `setSchemaOverride(null)` when the table shows
+  the session's kind again (Back, Home, leaving the mode). Each schema has
+  its own mapping context, so the folder metrics survive a file drill.
+  A server without the field also draws with its own mapping (no lock).
+  Home restores the classic analysis as it was. Navigation lives on the bar only.
+- **Scope plate.** Above the controller's title, `setScope({ label, kind })`
+  names what the table shows: the drilled target while drilled, the session's
+  own target on the classic analysis. Files are green (`#15803d`), folders
+  purple (`#7c3aed`).
+- **Card metrics; hover legend kept.** A building's card lists its height,
+  area and colour metrics with their values, read from the chart's own
+  mapping. Babia's hover legend still shows; a click pins it in place
+  (`element.legend`), so only that legend is hidden (and shrunk, so showing
+  the parked classic analysis again does not re-show it), because the card
+  replaces it.
 
 The `drill-down` entity is passive (COMPONENTS.md): it carries data, never
 intent. The server switches the room's mode through `analysis-view`, and the

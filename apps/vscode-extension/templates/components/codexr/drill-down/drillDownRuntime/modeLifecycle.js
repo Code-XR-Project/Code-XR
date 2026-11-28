@@ -29,6 +29,8 @@
       datasetUrl: typeof snapshot.datasetUrl === 'string' && snapshot.datasetUrl ? snapshot.datasetUrl : null,
       chartId: String(snapshot.chartId || 'boats'),
       mapping: snapshot.mapping && typeof snapshot.mapping === 'object' ? snapshot.mapping : {},
+      controllerSchema: snapshot.controllerSchema && typeof snapshot.controllerSchema === 'object' && Array.isArray(snapshot.controllerSchema.dimensions)
+        ? snapshot.controllerSchema : null,
       treeField: String(snapshot.treeField || 'filePath'),
       rowCount: Number(snapshot.rowCount) || 0,
       analyzedCount: Number(snapshot.analyzedCount) || 0,
@@ -58,8 +60,6 @@
   function activate(activation) {
     if (activation?.token?.isCurrent && !activation.token.isCurrent()) { return false; }
     state.active = true;
-    // The switcher has just re-enabled the controller for this mode.
-    state.controllerLocked = false;
     closeCard();
     if (state.entity?.datasetUrl) {
       showDrilledView();
@@ -214,8 +214,10 @@
       deactivate: deactivate,
       namespaceNodes: namespaceNodes,
       chartMetrics: chartMetrics,
-      isBoatsLegend: isBoatsLegend,
-      drillChartSpec: drillChartSpec
+      hidePinnedLegend: hidePinnedLegend,
+      drillChartSpec: drillChartSpec,
+      controllerSchemaFor: controllerSchemaFor,
+      tableScope: tableScope
     },
     destroy: function () {
       stopLoadingTicker();
