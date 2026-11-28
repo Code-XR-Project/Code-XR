@@ -3,7 +3,8 @@ export type AnalysisTableMode =
     | 'single'
     | 'historical-compare'
     | 'project-evolution'
-    | 'dependency-graph';
+    | 'dependency-graph'
+    | 'agent-flow';
 
 export type GitReferenceType = 'branch' | 'tag' | 'commit';
 export type GitRevisionType = 'working-copy' | 'branch' | 'tag' | 'commit' | 'merge';

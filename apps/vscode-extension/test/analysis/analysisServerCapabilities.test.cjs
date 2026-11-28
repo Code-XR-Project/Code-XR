@@ -40,6 +40,7 @@ test('resolveAnalysisServerCapabilities grants XR every optional analysis servic
         dependencyGraph: true,
         historicalComparison: true,
         projectEvolution: true,
+        agentFlow: true,
     });
 });
 
@@ -50,6 +51,7 @@ test('resolveAnalysisServerCapabilities grants LivePanel the dependency graph an
     assert.equal(capabilities.dependencyGraph, true, 'LivePanel must keep its dependency-graph summary');
     assert.equal(capabilities.historicalComparison, true, 'LivePanel exposes the historical comparison panel (v1.2.0)');
     assert.equal(capabilities.projectEvolution, false, 'project evolution is XR-only and throws for LivePanel');
+    assert.equal(capabilities.agentFlow, false, 'agent flow is XR-only');
 });
 
 test('resolveAnalysisServerCapabilities grants VisualizeDOM no optional services so its shared launch stays clean', () => {
@@ -59,13 +61,14 @@ test('resolveAnalysisServerCapabilities grants VisualizeDOM no optional services
         dependencyGraph: false,
         historicalComparison: false,
         projectEvolution: false,
+        agentFlow: false,
     });
 });
 
 test('resolveAnalysisServerCapabilities defaults unknown or missing modes to no services, so a new analysis type still launches its server', () => {
     const { resolveAnalysisServerCapabilities } = loadCapabilitiesModule();
 
-    const expected = { dependencyGraph: false, historicalComparison: false, projectEvolution: false };
+    const expected = { dependencyGraph: false, historicalComparison: false, projectEvolution: false, agentFlow: false };
     assert.deepEqual(resolveAnalysisServerCapabilities('SomeFutureMode'), expected);
     assert.deepEqual(resolveAnalysisServerCapabilities(undefined), expected);
     assert.deepEqual(resolveAnalysisServerCapabilities(''), expected);

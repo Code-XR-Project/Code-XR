@@ -7,6 +7,7 @@ import { getAnalysisCommandRegistrations } from '../../features/analysis/command
 import { getPythonEnvCommandRegistrations } from '../../features/python-env/commands/pythonEnvCommandRegistrations';
 import { getVisualizationSettingsCommandRegistrations } from '../../features/visualization-settings/commands/visualizationSettingsCommandRegistrations';
 import { getLearnMoreCommandRegistrations } from '../../features/learn-more/commands/learnMoreCommandRegistrations';
+import { getAgentFlowCommandRegistrations } from '../../features/ai-agents/commands/agentFlowCommands';
 import { getGeneralCommandRegistrations } from './generalCommands';
 import { getCollaborationCommandRegistrations } from '../../features/collaboration/commands/collaborationCommands';
 import { ExtensionCommandRegistration, assertUniqueCommandIds } from '../../platform/commands/commandRegistry';
@@ -49,6 +50,7 @@ export function registerAllCommands(
         ...getVisualizationSettingsCommandRegistrations(context),
         ...getCollaborationCommandRegistrations(context, treeDataProvider),
         ...getLearnMoreCommandRegistrations(context),
+        ...getAgentFlowCommandRegistrations(),
     ];
     assertUniqueCommandIds(registrations);
     CommandBuilder.registerAll(context, registrations);

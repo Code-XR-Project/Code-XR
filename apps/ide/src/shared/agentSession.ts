@@ -708,6 +708,7 @@ export const AGENT_SESSION_CHANNELS = {
     rename: 'codexr:agent-sessions:rename',
     remove: 'codexr:agent-sessions:remove',
     markRead: 'codexr:agent-sessions:mark-read',
+    watchInXr: 'codexr:agent-sessions:watch-in-xr',
     changes: 'codexr:agent-sessions:changes',
     changeDiff: 'codexr:agent-sessions:change-diff',
     keepChanges: 'codexr:agent-sessions:keep-changes',
@@ -792,6 +793,8 @@ export interface AgentSessionsApi {
     /** Deletes a chat; with `removeWorktree`, also its worktree and branch (AF12), else they are kept. */
     remove(sessionId: string, options?: { readonly removeWorktree?: boolean }): Promise<void>;
     markRead(sessionId: string): Promise<void>;
+    /** Agent Flow (#319): opens the chat on the table of the project's XR scenes; how many it reached (0: none open). */
+    watchInXr(sessionId: string): Promise<{ readonly scenes: number }>;
     /** AF5: the files the chat changed that still await review. */
     changes(sessionId: string): Promise<ChatChanges>;
     /** AF5: one pending file, as it was at its review base and as it is on disk. */

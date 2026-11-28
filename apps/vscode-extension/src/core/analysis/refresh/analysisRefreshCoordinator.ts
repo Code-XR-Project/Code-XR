@@ -3,7 +3,7 @@ import { getLogger } from '../../../platform/logging/sink';
 
 const logger = getLogger('ANALYSIS_REFRESH_COORDINATOR');
 
-export type AnalysisRefreshMode = 'single' | 'historical-compare' | 'project-evolution' | 'dependency-graph';
+export type AnalysisRefreshMode = 'single' | 'historical-compare' | 'project-evolution' | 'dependency-graph' | 'agent-flow';
 export type AnalysisViewMode = AnalysisRefreshMode | 'selection';
 
 export interface AnalysisSourceChangeBatch {
@@ -53,7 +53,7 @@ interface SessionRefreshState {
     backgroundModes: Set<AnalysisRefreshMode>;
 }
 
-const MODES: AnalysisRefreshMode[] = ['single', 'historical-compare', 'project-evolution', 'dependency-graph'];
+const MODES: AnalysisRefreshMode[] = ['single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow'];
 
 function emptyPending(): Record<AnalysisRefreshMode, Map<string, PathChangeKind>> {
         return {
@@ -61,6 +61,7 @@ function emptyPending(): Record<AnalysisRefreshMode, Map<string, PathChangeKind>
             'historical-compare': new Map(),
             'project-evolution': new Map(),
             'dependency-graph': new Map(),
+            'agent-flow': new Map(),
         };
 }
 
@@ -353,6 +354,7 @@ export class AnalysisRefreshCoordinator {
                     'historical-compare': 'historical.selection',
                     'project-evolution': 'project-evolution',
                     'dependency-graph': 'dependency.settings',
+                    'agent-flow': 'agent-flow',
                 },
                 viewRevision: 0,
                 sourceRevision: 0,
@@ -361,18 +363,21 @@ export class AnalysisRefreshCoordinator {
                     'historical-compare': 0,
                     'project-evolution': 0,
                     'dependency-graph': 0,
+                    'agent-flow': 0,
                 },
                 modeRevision: {
                     single: 0,
                     'historical-compare': 0,
                     'project-evolution': 0,
                     'dependency-graph': 0,
+                    'agent-flow': 0,
                 },
                 snapshotAvailable: {
                     single: true,
                     'historical-compare': false,
                     'project-evolution': false,
                     'dependency-graph': false,
+                    'agent-flow': false,
                 },
                 errors: {},
                 pending: emptyPending(),
@@ -385,6 +390,7 @@ export class AnalysisRefreshCoordinator {
                     'historical-compare': true,
                     'project-evolution': true,
                     'dependency-graph': true,
+                    'agent-flow': true,
                 },
                 backgroundModes: new Set(),
             };

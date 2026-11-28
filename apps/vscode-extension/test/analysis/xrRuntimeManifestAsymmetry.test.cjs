@@ -47,6 +47,7 @@ const FILE_XR_PARSER = 'src/core/analysis/parsers/fileXRParser.ts';
 const DIRECTORY_XR_PARSER = 'src/core/analysis/parsers/directoryXRParser.ts';
 
 const RUNTIME_ASSETS_COPIED_BY_FILE_XR = [
+    'agentFlowRuntime.js',
     'analysisModeRuntime.js',
     'analysisTableRuntime.js',
     'codexrAvatarRuntime.js',

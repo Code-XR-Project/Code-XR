@@ -138,6 +138,16 @@ export interface AgentSessionServiceOptions {
     readonly worktreeStorageDir?: string;
     /** The review of a chat's changes and its checkpoints (AF5, AF6); absent, the review calls refuse. */
     readonly review?: ChangeReview;
+    /**
+     * Agent Flow (#319, AG7): sees every event of every chat (the XR scene's
+     * live trace sources) and opens a chat on the table. Absent, "Watch in XR"
+     * refuses.
+     */
+    readonly agentFlow?: {
+        onEvent(info: { readonly state: AgentSessionState; readonly root: string; readonly workRoot: string }, event: SessionEvent): void;
+        watch(info: { readonly state: AgentSessionState; readonly root: string; readonly workRoot: string }): number;
+        forget(sessionId: string): void;
+    };
     /** Starts an agent (tests connect to an in-process agent instead). */
     readonly connect?: (launch: AgentLaunch, cwd: string, handlers: AcpClientHandlers) => AcpConnection;
     /** False in the smoke run: no agent process may start. */
@@ -979,9 +989,25 @@ export class AgentSessionService {
         }
         this.stopAgent(live);
         this.live.delete(live.state.id);
+        this.options.agentFlow?.forget(live.state.id);
         await this.options.store.remove(live.root, live.state.id);
         await this.hook('review.forget', () => this.options.review?.forget?.(live.state.id));
         this.sessionsChanged();
+    }
+
+    /**
+     * Agent Flow (#319, AG7): opens the chat on the table of the XR scenes of
+     * its project. Resolves with how many scenes it reached (0: no scene of
+     * that project is open).
+     */
+    async watchInXr(window: WindowPort, sessionId: unknown): Promise<{ readonly scenes: number }> {
+        this.remember(window);
+        const feed = this.options.agentFlow;
+        if (!feed) {
+            throw new Error('Agent Flow is not available in this window.');
+        }
+        const live = await this.open(window, sessionId);
+        return { scenes: feed.watch({ state: live.state, root: live.root, workRoot: this.flowRoot(live) }) };
     }
 
     async markRead(window: WindowPort, sessionId: unknown): Promise<void> {
@@ -1312,6 +1338,25 @@ export class AgentSessionService {
         if (event.type === 'title' || event.type === 'status' || event.type === 'permission' || event.type === 'pending-changes') {
             this.sessionsChanged();
         }
+        this.feedAgentFlow(live, event);
+    }
+
+    /** Agent Flow sees the event; a failure there never reaches the chat. */
+    private feedAgentFlow(live: Live, event: SessionEvent): void {
+        const feed = this.options.agentFlow;
+        if (!feed) {
+            return;
+        }
+        try {
+            feed.onEvent({ state: live.state, root: live.root, workRoot: this.flowRoot(live) }, event);
+        } catch {
+            // The scene is a view of the chat, never a reason to fail it.
+        }
+    }
+
+    /** The folder the chat's paths are under; a discarded worktree still names where they were. */
+    private flowRoot(live: Live): string {
+        return live.state.worktree?.cwd ?? live.root;
     }
 
     private broadcast(message: AgentSessionMessage): void {

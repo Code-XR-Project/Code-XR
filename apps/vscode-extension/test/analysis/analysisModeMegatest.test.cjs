@@ -83,12 +83,13 @@ test('XR mode panel exposes one labelled Analyses button and no dependency heade
   assert.doesNotMatch(modeRuntime, /invokeSafely\(lifecycles\[mode\], 'disposeView'/);
   assert.match(historyRuntime, /whenPanelReady\?\.\(function \(\) \{/);
   assert.match(dependencyRuntime, /whenPanelReady\?\.\(function \(\) \{/);
-  assert.match(tableRuntime, /oneOf: \['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph'\]/);
+  assert.match(tableRuntime, /oneOf: \['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow'\]/);
   assert.match(tableRuntime, /selection[\s\S]*#f8fafc/);
   assert.match(tableRuntime, /MODE_THEME_BY_ID = \{/);
   assert.match(tableRuntime, /single: \{[\s\S]*top: 'color: #0e7490/);
   assert.match(tableRuntime, /'historical-compare': \{[\s\S]*top: 'color: #be123c/);
   assert.match(tableRuntime, /'project-evolution': \{[\s\S]*top: 'color: #f59e0b/);
+  assert.match(tableRuntime, /'agent-flow': \{[\s\S]*trim: 'color: #34d399/);
   assert.match(tableRuntime, /setMode = function \(mode\)/);
   // The table rebuilds its geometry only on a real mode change, and only once:
   // setAttribute already drives A-Frame's update() → refreshGeometry(), so the

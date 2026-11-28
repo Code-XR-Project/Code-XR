@@ -16,6 +16,7 @@ import { electronCipher } from '../agents/electronCipher.ts';
 import { AgentInstaller, consentDetail } from './agentInstaller.ts';
 import { AgentSessionService, type WindowPort } from './agentSessionService.ts';
 import { SessionStore } from './sessionStore.ts';
+import { AgentFlowFeed } from './agentFlowFeed.ts';
 import { codexrMcpServerSpec } from './codexrMcpSpec.ts';
 import { SessionChanges } from '../checkpoints/sessionChanges.ts';
 import { toTurnMetricDeltaView } from '../analysis/metricDelta.ts';
@@ -161,8 +162,11 @@ export function startAgentSessions(options: AgentSessionsRuntimeOptions): AgentS
         }
     };
 
+    // Agent Flow (#319): every chat is a live trace source of the XR scene.
+    const agentFlow = new AgentFlowFeed();
     const service: AgentSessionService = new AgentSessionService({
         review: changes,
+        agentFlow,
         beforePrompt: async (sessionId, root) => {
             const checkpoint = await changes.beforePrompt(sessionId, root);
             const owner = options.analysis ? windowOf(root) : null;

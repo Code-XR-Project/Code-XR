@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] 1.3.0
+
+#### Added
+
+- **Agent Flow, the fifth analysis type.** Watch an AI coding agent work on the XR analysis table.
+  - The project is a city: folders are plates, files are buildings.
+  - Every agent is a worker. Sub-agents get their own worker and work in parallel.
+  - Reads scan the building, searches send a radar, edits put up scaffolding and new floors, commands light up a test tower (green or red), permission requests raise a sign.
+  - Hazard marks for files edited without being read, and for the files that import an edited file and were never read.
+  - Timeline with replay, step by step or by turn, and live follow while the agent works.
+  - Session metrics: reads, writes, searches, runs, failures, blind writes, unverified edits, code line and complexity deltas.
+  - Sources: Claude Code and Codex sessions of the workspace, read locally from their transcripts. Nothing leaves your machine.
+  - Open it from the AI Agents section of the sidebar or with **Code-XR: Watch an Agent in XR (Agent Flow)**.
+- **Code-XR's own city chart.** Agent Flow draws the project with a new chart modeled on BabiaXR's boats layout, so the agents and their work are part of the chart.
+
 ## [1.2.1] - 2026-11-27
 
 ### Code-XR 1.2.1: Sharper Metrics, Same Code-XR

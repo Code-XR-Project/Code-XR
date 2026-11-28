@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CodeXR Agent Flow harness</title>
+  <!--
+    Standalone harness for the Agent Flow runtime: the real analysis table and
+    the real agentFlowRuntime.js, with the extension server replaced by small
+    stubs (collaboration client, analysis-mode switcher, analysis surface and
+    the controller's registerPanelView). Run it through
+    `node test/runners/run-agent-flow-harness.cjs` (Playwright, screenshots)
+    or `... --serve` and open the printed URL. Assembled runtimes come from
+    test/manual/assembled/ (node test/manual/buildAssembledRuntimes.cjs).
+  -->
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <script>
+    // Harness-only: headless Chromium renders WebGL through SwiftShader, whose
+    // fwidth() breaks A-Frame's MSDF text (every glyph comes out as a white
+    // box). A plain smoothstep edge reads the same on a real GPU and survives
+    // the software renderer, so screenshots stay legible. Scenes never load this.
+    (function patchMsdfForSoftwareGl() {
+      var shader = window.AFRAME && AFRAME.shaders.msdf && AFRAME.shaders.msdf.Shader.prototype;
+      if (!shader || typeof shader.fragmentShader !== 'string') { return; }
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'float alpha = clamp(sigDist / fwidth(sigDist) + 0.5, 0.0, 1.0);',
+        'float alpha = smoothstep(-0.06, 0.06, sigDist);'
+      );
+    })();
+  </script>
+  <script src="assembled/analysisTableRuntime.js"></script>
+  <script src="assembled/codexrCommonRuntime.js"></script>
+  <style>
+    body { margin: 0; background: #0b1120; color: #d1fae5; font: 13px/1.35 monospace; }
+    #controls {
+      position: fixed; z-index: 20; left: 12px; top: 12px; display: grid; gap: 8px;
+      padding: 10px; width: 380px; background: rgba(5, 15, 30, .88); border: 1px solid #10b981;
+    }
+    #controls.hidden { display: none; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; }
+    button { border: 1px solid #6ee7b7; color: #ecfdf5; background: #065f46; padding: 6px 8px; cursor: pointer; }
+    #status { white-space: pre-wrap; color: #fde68a; max-height: 260px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <strong>Agent Flow harness</strong>
+    <div class="row">
+      <button onclick="CodeXRAgentFlowHarness.openSample()">open sample</button>
+      <button onclick="CodeXRAgentFlowRuntime.togglePlay()">play / pause</button>
+      <button onclick="CodeXRAgentFlowRuntime.stepForward()">step</button>
+      <button onclick="CodeXRAgentFlowHarness.liveAppend()">live append</button>
+    </div>
+    <div class="row">
+      <button onclick="CodeXRAgentFlowRuntime.setToggle('heat', !CodeXRAgentFlowRuntime.getState().toggles.heat)">heat</button>
+      <button onclick="CodeXRAgentFlowRuntime.setToggle('blast', !CodeXRAgentFlowRuntime.getState().toggles.blast)">blast</button>
+      <button onclick="CodeXRAgentFlowRuntime.setToggle('rings', !CodeXRAgentFlowRuntime.getState().toggles.rings)">rings</button>
+      <button onclick="CodeXRAgentFlowHarness.camera('overview')">overview</button>
+      <button onclick="CodeXRAgentFlowHarness.camera('panel')">panel</button>
+    </div>
+    <div id="status" data-testid="agent-flow-harness-status">booting...</div>
+  </div>
+
+  <a-scene id="scene" background="color: #0b1120" renderer="antialias: true; colorManagement: true"
+    vr-mode-ui="enabled: false" loading-screen="enabled: false">
+    <a-entity light="type: ambient; color: #ffffff; intensity: 0.85"></a-entity>
+    <a-entity light="type: hemisphere; color: #e0f2fe; groundColor: #1e293b; intensity: 0.55"></a-entity>
+    <a-entity light="type: directional; color: #ffffff; intensity: 0.75" position="-2 6 3"></a-entity>
+    <a-plane rotation="-90 0 0" position="0 0 -16" width="40" height="40" material="color: #111827; shader: flat"></a-plane>
+    <a-entity id="codexrAnalysisTable"
+      codexr-analysis-table="mode: agent-flow; width: 6.514; depth: 4.118; anchorX: 0; anchorY: 1; anchorZ: -18"></a-entity>
+    <a-entity id="codexrAnalysisSurface" data-codexr-analysis-surface="true">
+      <a-entity id="codexrNormalAnalysisRoot" data-codexr-analysis-root="true" data-codexr-analysis-mode="single" data-codexr-normal-root="true"></a-entity>
+    </a-entity>
+    <a-entity id="rig" position="0 3.2 -13.2" rotation="-24 0 0">
+      <a-entity id="head" camera="fov: 55" look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+    </a-entity>
+    <a-entity id="mouseCursor" cursor="rayOrigin: mouse" raycaster="objects: .babiaxraycasterclass; far: 100"></a-entity>
+  </a-scene>
+
+  <script>
+    // ---- Stubs for the extension server and the controller ------------------
+    (function installAgentFlowHarnessStubs(win) {
+      'use strict';
+      var NOW = Date.now();
+      var SOURCES = [
+        { id: 'sample', kind: 'fixture', agent: 'Claude Code', label: 'Fan-in/fan-out tooltip (sample)', updatedAt: NOW - 4 * 60000, live: false },
+        { id: 'ide-live', kind: 'ide-acp', agent: 'Claude Code (IDE)', label: 'Add CSV export to the LivePanel', updatedAt: NOW - 20000, live: true },
+        { id: 'codex-1', kind: 'codex', agent: 'Codex', label: 'Refactor the evolution player', updatedAt: NOW - 3 * 3600000, live: false },
+        { id: 'cc-2', kind: 'claude-code', agent: 'Claude Code', label: 'Fix the guide pagination', updatedAt: NOW - 2 * 86400000, live: false },
+        { id: 'cc-3', kind: 'claude-code', agent: 'Claude Code', label: 'Dependency graph keyboard focus', updatedAt: NOW - 5 * 86400000, live: false }
+      ];
+      var listeners = {};
+      var entityRuntimes = {};
+      var sent = [];
+      var revision = 0;
+      function deliver(type, payload) {
+        (listeners[type] || []).forEach(function (listener) { listener({ type: type, payload: payload }); });
+      }
+      function publishEntity(entity) {
+        var runtime = entityRuntimes['agent-flow:main'];
+        if (runtime) { runtime.applySharedState(Object.assign({ entityKind: 'agent-flow', entityId: 'main' }, entity), { source: 'room' }); }
+      }
+      var connection = {
+        sendMessage: function (type, payload) {
+          sent.push({ type: type, payload: payload });
+          setTimeout(function () {
+            if (type === 'agent-flow-sources-request') {
+              deliver('agent-flow-sources', { sources: SOURCES, activeSourceId: null });
+            } else if (type === 'agent-flow-open') {
+              revision += 1;
+              publishEntity({ status: 'loading', revision: revision, datasetUrl: null, sourceId: payload.sourceId, live: false });
+              setTimeout(function () {
+                publishEntity({ status: 'ready', revision: revision, datasetUrl: 'agent-flow/sample-dataset.json', sourceId: payload.sourceId, live: false });
+              }, 60);
+            } else if (type === 'agent-flow-close') {
+              publishEntity({ status: 'idle', revision: revision, datasetUrl: null, sourceId: null, live: false });
+            }
+          }, 30);
+          return true;
+        },
+        onMessage: function (type, listener) {
+          (listeners[type] = listeners[type] || []).push(listener);
+          return function () { listeners[type] = (listeners[type] || []).filter(function (l) { return l !== listener; }); };
+        },
+        registerEntityRuntime: function (runtime) { entityRuntimes[runtime.entityKind + ':' + runtime.entityId] = runtime; },
+        getSessionInfoAsync: function () { return Promise.resolve({ capabilities: { agentFlow: true, agentFlowReason: null } }); },
+        isOfflineExport: function () { return false; }
+      };
+      win.CodeXRCollaborationRuntime = { getClient: function () { return connection; } };
+
+      var lifecycles = {};
+      var modeState = { mode: 'selection', transitioning: false, pendingTransitionMode: null };
+      var modeOptions = [];
+      win.CodeXRAnalysisModeRuntime = {
+        register: function (mode, lifecycle) { lifecycles[mode] = lifecycle; return function () { delete lifecycles[mode]; }; },
+        registerModeOption: function (option) { modeOptions.push(option); return function () {}; },
+        getState: function () { return Object.assign({}, modeState); },
+        changeAnalysis: function (mode) {
+          var previous = lifecycles[modeState.mode];
+          modeState.transitioning = true;
+          modeState.pendingTransitionMode = mode;
+          return Promise.resolve(previous && previous.deactivate && previous.deactivate()).then(function () {
+            var table = document.getElementById('codexrAnalysisTable');
+            table && table.setAttribute('codexr-analysis-table', 'mode', mode === 'selection' ? 'selection' : mode);
+            var next = lifecycles[mode];
+            return next && next.activate ? next.activate({ token: { isCurrent: function () { return true; } } }) : null;
+          }).then(function () {
+            modeState.mode = mode;
+            modeState.transitioning = false;
+            modeState.pendingTransitionMode = null;
+          });
+        },
+        setSelectorStatus: function () {}
+      };
+
+      win.CodeXRAnalysisSurfaceRuntime = {
+        mountRoot: function (mode, element) {
+          var surface = document.getElementById('codexrAnalysisSurface');
+          if (element.parentNode !== surface) { surface.appendChild(element); }
+          return element;
+        },
+        setNormalVisible: function () {}
+      };
+
+      // The controller panel, drawn like the real one (6.2 wide, dark slate,
+      // cyan rim, title plate above) at a spot the 'panel' camera looks at.
+      var panelViews = {};
+      win.CodeXRMappingUiRuntime = {
+        isPanelReady: function () { return true; },
+        whenPanelReady: function (callback) { callback(); },
+        registerPanelView: function (options) {
+          var scene = document.querySelector('a-scene');
+          var height = Math.max(2.45, Number(options.panelHeight) || 2.45);
+          var panel = document.createElement('a-entity');
+          panel.setAttribute('id', 'harnessControllerPanel');
+          panel.setAttribute('position', '6.2 1.75 -15.8');
+          panel.setAttribute('rotation', '0 -50 0');
+          panel.setAttribute('scale', '0.2 0.2 0.2');
+          var background = document.createElement('a-plane');
+          background.setAttribute('width', 6.2);
+          background.setAttribute('height', height);
+          background.setAttribute('material', 'color: #0A1628; shader: flat');
+          var border = document.createElement('a-box');
+          border.setAttribute('width', 6.25);
+          border.setAttribute('height', height + 0.05);
+          border.setAttribute('depth', 0.01);
+          border.setAttribute('position', '0 0 -0.01');
+          border.setAttribute('material', 'color: #22d3ee; opacity: 0.5; transparent: true');
+          var titlePlate = document.createElement('a-plane');
+          titlePlate.setAttribute('width', 2.7);
+          titlePlate.setAttribute('height', 0.34);
+          titlePlate.setAttribute('position', '0 ' + (height / 2 + 0.23) + ' 0.02');
+          titlePlate.setAttribute('material', 'color: #0b4f6c; opacity: 0.96; shader: flat');
+          var title = document.createElement('a-text');
+          title.setAttribute('value', options.title || options.id);
+          title.setAttribute('align', 'center');
+          title.setAttribute('width', 7);
+          title.setAttribute('color', '#eaf4ff');
+          title.setAttribute('position', '0 ' + (height / 2 + 0.23) + ' 0.03');
+          [background, border, titlePlate, title, options.content].forEach(function (node) { panel.appendChild(node); });
+          scene.appendChild(panel);
+          panelViews[options.id] = { options: options, el: panel };
+          setTimeout(function () { options.onShow && options.onShow(); }, 50);
+          return function () { panel.parentNode && panel.parentNode.removeChild(panel); delete panelViews[options.id]; };
+        }
+      };
+
+      win.CodeXRAgentFlowHarnessStubs = { sent: sent, modeOptions: modeOptions, lifecycles: lifecycles, modeState: modeState, publishEntity: publishEntity };
+    })(window);
+  </script>
+  <script src="assembled/agentFlowRuntime.js"></script>
+  <script>
+    (function installAgentFlowHarness(win) {
+      'use strict';
+      // Each preset looks from `position` at `target` (world metres; the
+      // table centre is 0 0.935 -18).
+      var CAMERAS = {
+        overview: { position: { x: 0.4, y: 3.55, z: -12.7 }, target: { x: 0, y: 0.75, z: -17.75 } },
+        front: { position: { x: 0, y: 2.6, z: -13.4 }, target: { x: 0, y: 0.9, z: -17.6 } },
+        closeup: { position: { x: 2.0, y: 2.25, z: -16.2 }, target: { x: 0.55, y: 1.15, z: -18.75 } },
+        panel: { position: { x: 4.9, y: 1.75, z: -14.7 }, target: { x: 6.2, y: 1.75, z: -15.8 } },
+        top: { position: { x: 0, y: 6.4, z: -15.6 }, target: { x: 0, y: 0.9, z: -18 } }
+      };
+      function status(message) {
+        var node = document.querySelector('[data-testid="agent-flow-harness-status"]');
+        if (node) { node.textContent = message; }
+      }
+      var harness = {
+        camera: function (name) {
+          var preset = CAMERAS[name] || CAMERAS.overview;
+          harness.lookAt(preset.position, preset.target);
+          return name;
+        },
+        /** Points the camera from `position` at `target` (world metres). */
+        lookAt: function (position, target) {
+          var dx = target.x - position.x;
+          var dy = target.y - position.y;
+          var dz = target.z - position.z;
+          var yaw = Math.atan2(-dx, -dz) * 180 / Math.PI;
+          var pitch = Math.atan2(dy, Math.hypot(dx, dz)) * 180 / Math.PI;
+          var rig = document.getElementById('rig');
+          rig.setAttribute('position', position.x + ' ' + position.y + ' ' + position.z);
+          rig.setAttribute('rotation', pitch + ' ' + yaw + ' 0');
+        },
+        /** Looks at a table-local point from an offset (metres). */
+        lookAtLocal: function (point, offset) {
+          var target = { x: point.x, y: 0.935 + point.y, z: -18 + point.z };
+          harness.lookAt({ x: target.x + offset.x, y: target.y + offset.y, z: target.z + offset.z }, target);
+        },
+        hideControls: function () { document.getElementById('controls').classList.add('hidden'); },
+        activate: function () {
+          return win.CodeXRAnalysisModeRuntime.changeAnalysis('agent-flow');
+        },
+        openSample: function () {
+          return win.CodeXRAgentFlowRuntime.openSource('sample');
+        },
+        /** A newer revision of a LIVE session with three more steps (follow live). */
+        liveAppend: function () {
+          return fetch('agent-flow/sample-dataset.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (dataset) {
+            var current = win.CodeXRAgentFlowRuntime.getState();
+            dataset.revision = current.revision + 1;
+            dataset.session.live = true;
+            var extra = harness.extraSteps || 0;
+            var base = dataset.steps.length;
+            var files = dataset.files;
+            var tooltip = files.findIndex(function (f) { return /tooltipsAndSelection\.js$/.test(f.path); });
+            var core = files.findIndex(function (f) { return /componentCore\.js$/.test(f.path); });
+            var more = [
+              { kind: 'read', tool: 'Read', title: 'Read componentCore.js', files: [core] },
+              { kind: 'write', tool: 'Edit', title: 'Edit tooltipsAndSelection.js', files: [tooltip], added: 4, removed: 1 },
+              { kind: 'execute', tool: 'Bash', title: 'npm run test:unit', files: [], command: 'npm run test:unit', exitCode: 0 }
+            ];
+            harness.extraSteps = extra + more.length;
+            for (var i = 0; i < harness.extraSteps; i += 1) {
+              var step = Object.assign({ status: 'done', turn: 3, at: Date.now() }, more[i % more.length]);
+              step.seq = base + i;
+              dataset.steps.push(step);
+            }
+            dataset.turns.push({ index: 3, prompt: 'Keep going.', startedAt: Date.now(), endedAt: null, stepStart: base, stepEnd: base + harness.extraSteps - 1, reads: 1, writes: 1, searches: 0, executes: 1, filesTouched: 2, delta: null });
+            return win.CodeXRAgentFlowRuntime.applyDataset(dataset);
+          });
+        },
+        snapshot: function () {
+          var state = win.CodeXRAgentFlowRuntime.getState();
+          state.panel = !!document.getElementById('harnessControllerPanel');
+          state.modeOptions = win.CodeXRAgentFlowHarnessStubs.modeOptions.map(function (o) { return { id: o.id, disabled: !!o.disabled, color: o.color }; });
+          state.sent = win.CodeXRAgentFlowHarnessStubs.sent.map(function (m) { return m.type; });
+          status(JSON.stringify(state, null, 1));
+          return state;
+        }
+      };
+      win.CodeXRAgentFlowHarness = harness;
+      var scene = document.querySelector('a-scene');
+      function boot() {
+        harness.activate().then(function () { status('agent-flow active: open the sample'); harness.snapshot(); });
+      }
+      if (scene.hasLoaded) { boot(); } else { scene.addEventListener('loaded', boot, { once: true }); }
+    })(window);
+  </script>
+</body>
+</html>

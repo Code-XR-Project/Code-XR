@@ -380,8 +380,8 @@ test('historical comparison is authoritative, shared per room, and rejects concu
 
     assert.match(server, /message\.type === 'historical-comparison-references-request'/);
     assert.match(server, /message\.type === 'historical-comparison-start'/);
-    assert.match(server, /allowsEmptyShell = mode === 'historical-compare'[\s\S]*\|\| mode === 'project-evolution'/);
-    assert.match(server, /if \(!available && !allowsEmptyShell\)/);
+    assert.match(server, /EMPTY_SHELL_MODES[^=]*= new Set\(\['historical-compare', 'project-evolution', 'agent-flow'\]\)/);
+    assert.match(server, /if \(!available && !EMPTY_SHELL_MODES\.has\(mode\)\)/);
     assert.match(server, /changeAnalysisViewMode\('historical-compare', 'historical.selection'\);/);
     assert.match(server, /updateAnalysisViewIfCurrent\([\s\S]*'historical.mapping'/);
     assert.doesNotMatch(server, /message\.type === 'historical-comparison-reset'/);

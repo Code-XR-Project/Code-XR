@@ -425,6 +425,9 @@
     if (viewId.indexOf('project-evolution') === 0) {
       return 'project-evolution';
     }
+    if (viewId.indexOf('agent-flow') === 0) {
+      return 'agent-flow';
+    }
     return 'single';
   }
 
