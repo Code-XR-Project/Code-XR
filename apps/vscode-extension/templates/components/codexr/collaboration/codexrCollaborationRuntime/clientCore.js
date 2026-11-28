@@ -91,6 +91,9 @@
         // Server-reported failures must be visible: silently stored errors
         // made broken feature requests look like the server never answered.
         win.console?.warn?.('[CodeXR][Collaboration] Server error:', error.code || '', error.message || error);
+        if (isNoticeError(error.code)) {
+          showNotice(error.message);
+        }
       }
       emitStateChanged();
     }
