@@ -48,6 +48,24 @@ function readJsonFile(file: string): unknown {
     return JSON.parse(fs.readFileSync(file, 'utf8')) as unknown;
 }
 
+/** One classic analysis record as city metrics, or null when it names no file. */
+function recordMetrics(item: unknown): AgentFlowFileMetrics | null {
+    if (!item || typeof item !== 'object') { return null; }
+    const record = item as Record<string, unknown>;
+    const rel = typeof record.relativePath === 'string' ? record.relativePath : (typeof record.filePath === 'string' ? record.filePath : null);
+    if (!rel) { return null; }
+    const metrics: AgentFlowFileMetrics = {
+        path: rel.replace(/\\/g, '/').replace(/^\.?\/+/, ''),
+        loc: numberField(record, 'codeLines', 'linesCount', 'totalLines') ?? 0,
+    };
+    const complexity = numberField(record, 'cyclomaticComplexityNumber', 'maxComplexity', 'complexity');
+    if (complexity !== undefined) { metrics.complexity = complexity; }
+    const functions = numberField(record, 'functionCount', 'functionsCount');
+    if (functions !== undefined) { metrics.functions = functions; }
+    if (typeof record.language === 'string') { metrics.language = record.language; }
+    return metrics;
+}
+
 /** The classic analysis records as city metrics. */
 export function readAnalysisMetrics(staticRoot: string): AgentFlowFileMetrics[] {
     let data: unknown;
@@ -59,38 +77,43 @@ export function readAnalysisMetrics(staticRoot: string): AgentFlowFileMetrics[] 
     if (!Array.isArray(data)) { return []; }
     const out: AgentFlowFileMetrics[] = [];
     for (const item of data) {
-        if (!item || typeof item !== 'object') { continue; }
-        const record = item as Record<string, unknown>;
-        const rel = typeof record.relativePath === 'string' ? record.relativePath : (typeof record.filePath === 'string' ? record.filePath : null);
-        if (!rel) { continue; }
-        const metrics: AgentFlowFileMetrics = {
-            path: rel.replace(/\\/g, '/').replace(/^\.?\/+/, ''),
-            loc: numberField(record, 'codeLines', 'linesCount', 'totalLines') ?? 0,
-        };
-        const complexity = numberField(record, 'cyclomaticComplexityNumber', 'maxComplexity', 'complexity');
-        if (complexity !== undefined) { metrics.complexity = complexity; }
-        const functions = numberField(record, 'functionCount', 'functionsCount');
-        if (functions !== undefined) { metrics.functions = functions; }
-        if (typeof record.language === 'string') { metrics.language = record.language; }
-        out.push(metrics);
+        const metrics = recordMetrics(item);
+        if (metrics) { out.push(metrics); }
     }
     return out;
 }
 
-/** `[importer, imported]` file pairs from the scene's dependency graph, when it ran. */
-export function readDependencyEdges(staticRoot: string): Array<[string, string]> | undefined {
+interface DependencyGraphJson {
+    nodes: Array<{ id?: string; relativePath?: string }>;
+    edges: Array<{ source?: string; target?: string }>;
+}
+
+/** The scene's dependency graph file, when it ran and has nodes and edges. */
+function readDependencyGraph(staticRoot: string): DependencyGraphJson | undefined {
     let data: unknown;
     try {
         data = readJsonFile(path.join(staticRoot, 'dependency-graph.json'));
     } catch {
         return undefined;
     }
-    const graph = data as { nodes?: Array<{ id?: string; relativePath?: string }>; edges?: Array<{ source?: string; target?: string }> };
+    const graph = data as Partial<DependencyGraphJson> | null;
     if (!Array.isArray(graph?.nodes) || !Array.isArray(graph?.edges)) { return undefined; }
+    return graph as DependencyGraphJson;
+}
+
+function nodePaths(nodes: DependencyGraphJson['nodes']): Map<string, string> {
     const pathById = new Map<string, string>();
-    for (const node of graph.nodes) {
+    for (const node of nodes) {
         if (node?.id && node.relativePath) { pathById.set(node.id, node.relativePath.replace(/\\/g, '/')); }
     }
+    return pathById;
+}
+
+/** `[importer, imported]` file pairs from the scene's dependency graph, when it ran. */
+export function readDependencyEdges(staticRoot: string): Array<[string, string]> | undefined {
+    const graph = readDependencyGraph(staticRoot);
+    if (!graph) { return undefined; }
+    const pathById = nodePaths(graph.nodes);
     const edges: Array<[string, string]> = [];
     for (const edge of graph.edges) {
         const from = edge?.source ? pathById.get(edge.source) : undefined;

@@ -124,12 +124,12 @@ export class PushAgentTraceSource implements AgentTraceSource {
 
 // ---- Transcript files -------------------------------------------------------
 
-interface LineParser {
+export interface LineParser {
     pushLine(line: string): AgentTraceEvent[];
 }
 
 /** Another transcript of the same session (a sub-agent's), followed with its own parser. */
-interface Companion {
+export interface Companion {
     file: string;
     createParser: () => LineParser;
 }
@@ -163,6 +163,18 @@ export function claudeSubagentTranscripts(sessionFile: string): Companion[] {
     });
 }
 
+export interface JsonlFileSourceOptions {
+    id: string;
+    kind: AgentTraceSourceKind;
+    agent: string;
+    file: string;
+    title: string;
+    createParser: () => LineParser;
+    pollMs?: number;
+    /** Other transcripts of the session to follow too (Claude Code's sub-agents). */
+    companions?: () => Companion[];
+}
+
 /** Follows a JSONL file: reads it whole, then only what is appended. */
 export class JsonlFileAgentTraceSource implements AgentTraceSource {
     public readonly id: string;
@@ -174,15 +186,15 @@ export class JsonlFileAgentTraceSource implements AgentTraceSource {
     private readonly pollMs: number;
     private readonly companions: (() => Companion[]) | undefined;
 
-    constructor(id: string, kind: AgentTraceSourceKind, agent: string, file: string, title: string, createParser: () => LineParser, pollMs = POLL_MS, companions?: () => Companion[]) {
-        this.companions = companions;
-        this.id = id;
-        this.kind = kind;
-        this.agent = agent;
-        this.file = file;
-        this.title = title;
-        this.createParser = createParser;
-        this.pollMs = pollMs;
+    constructor(options: JsonlFileSourceOptions) {
+        this.id = options.id;
+        this.kind = options.kind;
+        this.agent = options.agent;
+        this.file = options.file;
+        this.title = options.title;
+        this.createParser = options.createParser;
+        this.pollMs = options.pollMs ?? POLL_MS;
+        this.companions = options.companions;
     }
 
     public label(): string { return this.title; }
@@ -340,39 +352,49 @@ export function discoverClaudeCodeSessions(root: string, options: DiscoveryOptio
         // The encoded name is lossy (`a-b` and `a/b` collide): confirm with the recorded cwd.
         if (cwd && !isWithinRoot(root, cwd)) { continue; }
         const id = `claude-code:${path.basename(file, '.jsonl')}`;
-        sources.push(new JsonlFileAgentTraceSource(
-            id, 'claude-code', 'Claude Code', file, titleFrom(prompt, 'Claude Code session'),
-            () => new ClaudeCodeTranscriptParser(), POLL_MS, () => claudeSubagentTranscripts(file),
-        ));
+        sources.push(new JsonlFileAgentTraceSource({
+            id, kind: 'claude-code', agent: 'Claude Code', file, title: titleFrom(prompt, 'Claude Code session'),
+            createParser: () => new ClaudeCodeTranscriptParser(), companions: () => claudeSubagentTranscripts(file),
+        }));
     }
     return sources;
+}
+
+/** Numeric sub-folders of `dir` (YYYY, MM or DD), highest first; none when unreadable. */
+function sortedNumericDirs(dir: string): string[] {
+    try { return fs.readdirSync(dir).filter((name) => /^\d+$/.test(name)).sort().reverse().map((name) => path.join(dir, name)); } catch { return []; }
+}
+
+/** The newest day folders of a Codex sessions tree (YYYY/MM/DD), about 60 of them. */
+function newestCodexDays(sessionsDir: string): string[] {
+    const days: string[] = [];
+    for (const year of sortedNumericDirs(sessionsDir)) {
+        for (const month of sortedNumericDirs(year)) {
+            days.push(...sortedNumericDirs(month));
+            if (days.length >= 60) { break; }
+        }
+        if (days.length >= 60) { break; }
+    }
+    return days;
 }
 
 /** Codex sessions recorded with the root (or a folder inside it) as their cwd. */
 export function discoverCodexSessions(root: string, options: DiscoveryOptions = {}): AgentTraceSource[] {
     const home = options.home ?? os.homedir();
     const codexHome = options.codexHome ?? process.env.CODEX_HOME ?? path.join(home, '.codex');
-    const sessionsDir = path.join(codexHome, 'sessions');
     // Newest days first: YYYY/MM/DD folders.
-    const days: string[] = [];
-    const sortedDirs = (dir: string) => {
-        try { return fs.readdirSync(dir).filter((name) => /^\d+$/.test(name)).sort().reverse().map((name) => path.join(dir, name)); } catch { return []; }
-    };
-    for (const year of sortedDirs(sessionsDir)) {
-        for (const month of sortedDirs(year)) {
-            days.push(...sortedDirs(month));
-            if (days.length >= 60) { break; }
-        }
-        if (days.length >= 60) { break; }
-    }
+    const days = newestCodexDays(path.join(codexHome, 'sessions'));
     const candidates = newestFirst(days.flatMap(listJsonl), 200);
+    const limit = options.limit ?? MAX_LIST;
     const sources: AgentTraceSource[] = [];
     for (const file of candidates) {
-        if (sources.length >= (options.limit ?? MAX_LIST)) { break; }
+        if (sources.length >= limit) { break; }
         const { cwd, prompt } = peek(file, () => new CodexRolloutParser());
         if (!cwd || !isWithinRoot(root, cwd)) { continue; }
         const id = `codex:${path.basename(file, '.jsonl')}`;
-        sources.push(new JsonlFileAgentTraceSource(id, 'codex', 'Codex', file, titleFrom(prompt, 'Codex session'), () => new CodexRolloutParser()));
+        sources.push(new JsonlFileAgentTraceSource({
+            id, kind: 'codex', agent: 'Codex', file, title: titleFrom(prompt, 'Codex session'), createParser: () => new CodexRolloutParser(),
+        }));
     }
     return sources;
 }

@@ -32,19 +32,20 @@ function timeOf(entry: Json, fallback: number): number {
     return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/** Claude Code tool names (lower-cased) and the verb each one is on the table. */
+const CLAUDE_TOOL_KINDS = new Map<string, AgentStepKind>([
+    ['read', 'read'], ['notebookread', 'read'],
+    ['edit', 'write'], ['multiedit', 'write'], ['write', 'write'], ['notebookedit', 'write'],
+    ['grep', 'search'], ['glob', 'search'], ['ls', 'search'], ['toolsearch', 'search'],
+    ['bash', 'execute'], ['bashoutput', 'execute'], ['killshell', 'execute'], ['powershell', 'execute'],
+    ['webfetch', 'fetch'], ['websearch', 'fetch'],
+    ['task', 'delegate'], ['agent', 'delegate'],
+    ['todowrite', 'think'], ['exitplanmode', 'think'],
+]);
+
 export function claudeToolKind(name: string): AgentStepKind {
-    const tool = name.toLowerCase();
     if (name.startsWith('mcp__')) { return 'fetch'; }
-    switch (tool) {
-        case 'read': case 'notebookread': return 'read';
-        case 'edit': case 'multiedit': case 'write': case 'notebookedit': return 'write';
-        case 'grep': case 'glob': case 'ls': case 'toolsearch': return 'search';
-        case 'bash': case 'bashoutput': case 'killshell': case 'powershell': return 'execute';
-        case 'webfetch': case 'websearch': return 'fetch';
-        case 'task': case 'agent': return 'delegate';
-        case 'todowrite': case 'exitplanmode': return 'think';
-        default: return 'other';
-    }
+    return CLAUDE_TOOL_KINDS.get(name.toLowerCase()) ?? 'other';
 }
 
 function promptText(content: unknown): string | null {
@@ -72,6 +73,115 @@ function isSyntheticPrompt(text: string): boolean {
 
 function linesOf(value: unknown): number {
     return typeof value === 'string' && value.length > 0 ? value.split(/\r?\n/).length : 0;
+}
+
+type StepEvent = Extract<AgentTraceEvent, { type: 'step' }>;
+
+/** The content blocks of a message that have the given type. */
+function blocksOf(message: Json, type: string): Json[] {
+    const blocks: Json[] = [];
+    for (const raw of Array.isArray(message.content) ? message.content : []) {
+        const block = asObject(raw);
+        if (block?.type === type) { blocks.push(block); }
+    }
+    return blocks;
+}
+
+/** A search's hits, as the result lists them (at most 200). */
+function searchHits(result: Json): AgentTraceLocation[] {
+    const hits = Array.isArray(result.filenames) ? result.filenames.filter((f): f is string => typeof f === 'string') : [];
+    return hits.slice(0, 200).map((path) => ({ path }));
+}
+
+/** An execute step's exit status: a non-zero code or an interruption fails it. */
+function applyExecuteResult(update: StepEvent, result: Json): void {
+    const code = result.exitCode ?? result.returnCode;
+    if (typeof code === 'number') {
+        update.exitCode = code;
+        if (code !== 0) { update.status = 'failed'; }
+    } else if (result.interrupted === true) {
+        update.status = 'failed';
+    }
+}
+
+/** What a tool_result adds to its step, from the entry's `toolUseResult`. */
+function applyToolResult(update: StepEvent, tool: ToolUse, result: Json): void {
+    if (tool.kind === 'search') {
+        const hits = searchHits(result);
+        if (hits.length > 0) { update.locations = hits; }
+    }
+    if (tool.name === 'Write' && result.type === 'create' && str(result.filePath)) {
+        update.created = [String(result.filePath)];
+    }
+    if (tool.kind === 'execute') { applyExecuteResult(update, result); }
+}
+
+/** Lines an Edit, MultiEdit or Write adds and removes, when the input says. */
+function editLineCounts(name: string, input: Json): { added?: number; removed?: number } {
+    if (name === 'Edit') {
+        return { added: linesOf(input.new_string), removed: linesOf(input.old_string) };
+    }
+    if (name === 'MultiEdit' && Array.isArray(input.edits)) {
+        let added = 0;
+        let removed = 0;
+        for (const edit of input.edits) {
+            added += linesOf(asObject(edit)?.new_string);
+            removed += linesOf(asObject(edit)?.old_string);
+        }
+        return { added, removed };
+    }
+    if (name === 'Write') {
+        return { added: linesOf(input.content) };
+    }
+    return {};
+}
+
+/** A tool call as the step starts: its verb, the files it names, its label. */
+interface ToolCallShape {
+    kind: AgentStepKind;
+    locations: AgentTraceLocation[];
+    title: string;
+    command?: string;
+}
+
+/** A shell command: its own label, and a read or search verb when it is one. */
+function applyCommand(shape: ToolCallShape, command: string): void {
+    shape.command = command;
+    const classified = classifyShellCommand(command);
+    if (classified.kind !== 'execute') {
+        shape.kind = classified.kind;
+        for (const path of classified.paths) { shape.locations.push({ path }); }
+    }
+    shape.title = command.length > 80 ? `${command.slice(0, 77)}...` : command;
+}
+
+/** The file a Read, Edit or Write names, and its label. */
+function applyFilePath(shape: ToolCallShape, name: string, input: Json): void {
+    const filePath = str(input.file_path) ?? str(input.notebook_path);
+    if (!filePath) { return; }
+    const line = typeof input.offset === 'number' ? input.offset : undefined;
+    shape.locations.push(line ? { path: filePath, line } : { path: filePath });
+    shape.title = `${name} ${filePath.replace(/^.*[/\\]/, '')}`;
+}
+
+/** A search: its scope folder and its pattern as the label. */
+function applySearch(shape: ToolCallShape, name: string, input: Json): void {
+    const pattern = str(input.pattern) ?? str(input.query) ?? '';
+    const scope = str(input.path);
+    if (scope) { shape.locations.push({ path: scope }); }
+    shape.title = `${name} ${pattern}`.trim();
+}
+
+function toolCallShape(name: string, input: Json): ToolCallShape {
+    const shape: ToolCallShape = { kind: claudeToolKind(name), locations: [], title: name };
+    applyFilePath(shape, name, input);
+    if (shape.kind === 'search') { applySearch(shape, name, input); }
+    const command = shape.kind === 'execute' ? str(input.command) : undefined;
+    if (command) { applyCommand(shape, command); }
+    if ((shape.kind === 'think' || shape.kind === 'delegate') && str(input.description)) {
+        shape.title = `${name}: ${String(input.description)}`;
+    }
+    return shape;
 }
 
 /**
@@ -136,75 +246,76 @@ export class ClaudeCodeTranscriptParser {
             return [];
         }
         const subagent = entry.isSidechain === true || this.actor !== undefined;
-        const events = entry.type === 'user'
-            ? this.userEntry(entry, message, at, subagent)
-            : entry.type === 'assistant' ? this.assistantEntry(message, at, subagent) : [];
+        const events = this.entryEvents(entry, message, at, subagent);
         const actor = this.actorOf(entry);
         if (actor && actor !== MAIN_ACTOR_ID) {
-            for (const event of events) {
-                if (event.type === 'step') {
-                    event.actor = actor;
-                    if (this.actorLabel) { event.actorLabel = this.actorLabel; }
-                }
-            }
+            this.assignActor(events, actor);
         }
         return events;
     }
 
+    private entryEvents(entry: Json, message: Json, at: number, subagent: boolean): AgentTraceEvent[] {
+        if (entry.type === 'user') { return this.userEntry(entry, message, at, subagent); }
+        if (entry.type === 'assistant') { return this.assistantEntry(message, at, subagent); }
+        return [];
+    }
+
+    private assignActor(events: AgentTraceEvent[], actor: string): void {
+        for (const event of events) {
+            if (event.type === 'step') {
+                event.actor = actor;
+                if (this.actorLabel) { event.actorLabel = this.actorLabel; }
+            }
+        }
+    }
+
     private userEntry(entry: Json, message: Json, at: number, subagent: boolean): AgentTraceEvent[] {
-        const events: AgentTraceEvent[] = [];
         const text = promptText(message.content);
         if (text !== null) {
-            if (entry.isMeta === true || subagent || isSyntheticPrompt(text)) {
-                return [];
-            }
-            if (this.turnOpen) {
-                events.push({ type: 'turn-end', at });
-            }
-            this.turnOpen = true;
-            events.push({ type: 'turn-start', at, prompt: text.replace(/\s+/g, ' ').trim().slice(0, PROMPT_LABEL_MAX) });
-            return events;
+            return this.promptEntry(entry, text, at, subagent);
         }
         const result = asObject(entry.toolUseResult);
-        for (const raw of Array.isArray(message.content) ? message.content : []) {
-            const block = asObject(raw);
-            if (block?.type !== 'tool_result') {
-                continue;
-            }
-            const id = str(block.tool_use_id);
-            const tool = id ? this.tools.get(id) : undefined;
-            if (!id || !tool) {
-                continue;
-            }
-            const failed = block.is_error === true;
-            const update: Extract<AgentTraceEvent, { type: 'step' }> = {
-                type: 'step', at, id, kind: tool.kind, tool: tool.name, status: failed ? 'failed' : 'done', subagent,
-            };
-            if (result && tool.kind === 'search') {
-                const hits = Array.isArray(result.filenames) ? result.filenames.filter((f): f is string => typeof f === 'string') : [];
-                if (hits.length > 0) {
-                    update.locations = hits.slice(0, 200).map((path) => ({ path }));
-                }
-            }
-            if (result && tool.kind === 'delegate' && str(result.agentId)) {
-                this.agentCalls.set(String(result.agentId), id);
-            }
-            if (result && tool.name === 'Write' && result.type === 'create' && str(result.filePath)) {
-                update.created = [String(result.filePath)];
-            }
-            if (result && tool.kind === 'execute') {
-                const code = result.exitCode ?? result.returnCode;
-                if (typeof code === 'number') {
-                    update.exitCode = code;
-                    if (code !== 0) { update.status = 'failed'; }
-                } else if (result.interrupted === true) {
-                    update.status = 'failed';
-                }
-            }
-            events.push(update);
-            this.tools.delete(id);
+        const events: AgentTraceEvent[] = [];
+        for (const block of blocksOf(message, 'tool_result')) {
+            const update = this.toolResult(block, result, at, subagent);
+            if (update) { events.push(update); }
         }
         return events;
+    }
+
+    /** A prompt the person typed opens a turn (closing the open one); anything else is skipped. */
+    private promptEntry(entry: Json, text: string, at: number, subagent: boolean): AgentTraceEvent[] {
+        if (entry.isMeta === true || subagent || isSyntheticPrompt(text)) {
+            return [];
+        }
+        const events: AgentTraceEvent[] = [];
+        if (this.turnOpen) {
+            events.push({ type: 'turn-end', at });
+        }
+        this.turnOpen = true;
+        events.push({ type: 'turn-start', at, prompt: text.replace(/\s+/g, ' ').trim().slice(0, PROMPT_LABEL_MAX) });
+        return events;
+    }
+
+    /** A tool_result completes the open call it belongs to; null when none is open. */
+    private toolResult(block: Json, result: Json | null, at: number, subagent: boolean): StepEvent | null {
+        const id = str(block.tool_use_id);
+        const tool = id ? this.tools.get(id) : undefined;
+        if (!id || !tool) {
+            return null;
+        }
+        const failed = block.is_error === true;
+        const update: StepEvent = {
+            type: 'step', at, id, kind: tool.kind, tool: tool.name, status: failed ? 'failed' : 'done', subagent,
+        };
+        if (result) {
+            if (tool.kind === 'delegate' && str(result.agentId)) {
+                this.agentCalls.set(String(result.agentId), id);
+            }
+            applyToolResult(update, tool, result);
+        }
+        this.tools.delete(id);
+        return update;
     }
 
     private assistantEntry(message: Json, at: number, subagent: boolean): AgentTraceEvent[] {
@@ -214,11 +325,7 @@ export class ClaudeCodeTranscriptParser {
             this.turnOpen = true;
             events.push({ type: 'turn-start', at, prompt: '' });
         }
-        for (const raw of Array.isArray(message.content) ? message.content : []) {
-            const block = asObject(raw);
-            if (block?.type !== 'tool_use') {
-                continue;
-            }
+        for (const block of blocksOf(message, 'tool_use')) {
             const id = str(block.id);
             const name = str(block.name) ?? 'tool';
             if (!id) {
@@ -235,52 +342,10 @@ export class ClaudeCodeTranscriptParser {
     }
 
     private toolStep(id: string, name: string, input: Json, at: number, subagent: boolean): AgentTraceEvent {
-        let kind = claudeToolKind(name);
-        const locations: AgentTraceLocation[] = [];
-        const filePath = str(input.file_path) ?? str(input.notebook_path);
-        let title = name;
-        let command: string | undefined;
-        let added: number | undefined;
-        let removed: number | undefined;
-        if (filePath) {
-            const line = typeof input.offset === 'number' ? input.offset : undefined;
-            locations.push(line ? { path: filePath, line } : { path: filePath });
-            title = `${name} ${filePath.replace(/^.*[/\\]/, '')}`;
-        }
-        if (name === 'Edit') {
-            added = linesOf(input.new_string);
-            removed = linesOf(input.old_string);
-        } else if (name === 'MultiEdit' && Array.isArray(input.edits)) {
-            added = 0; removed = 0;
-            for (const edit of input.edits) {
-                added += linesOf(asObject(edit)?.new_string);
-                removed += linesOf(asObject(edit)?.old_string);
-            }
-        } else if (name === 'Write') {
-            added = linesOf(input.content);
-        }
-        if (kind === 'search') {
-            const pattern = str(input.pattern) ?? str(input.query) ?? '';
-            const scope = str(input.path);
-            if (scope) { locations.push({ path: scope }); }
-            title = `${name} ${pattern}`.trim();
-        }
-        if (kind === 'execute') {
-            command = str(input.command);
-            if (command) {
-                const classified = classifyShellCommand(command);
-                if (classified.kind !== 'execute') {
-                    kind = classified.kind;
-                    for (const path of classified.paths) { locations.push({ path }); }
-                }
-                title = command.length > 80 ? `${command.slice(0, 77)}...` : command;
-            }
-        }
-        if ((kind === 'think' || kind === 'delegate') && str(input.description)) {
-            title = `${name}: ${String(input.description)}`;
-        }
+        const { kind, locations, title, command } = toolCallShape(name, input);
+        const { added, removed } = editLineCounts(name, input);
         this.tools.set(id, { name, kind });
-        const step: Extract<AgentTraceEvent, { type: 'step' }> = {
+        const step: StepEvent = {
             type: 'step', at, id, kind, tool: name, title, status: 'running', subagent,
         };
         if (kind === 'delegate') {

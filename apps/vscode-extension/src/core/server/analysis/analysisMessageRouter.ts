@@ -41,6 +41,9 @@ const SNAPSHOT_PROBE_BY_MODE: Readonly<Record<string, AnalysisSnapshotProbe>> = 
  * project-evolution messages require the historical comparison service
  * to be attached to this server.
  */
+/** Modes that open with no data yet: their own picker fills them (a comparison, a movie, an agent session). */
+const EMPTY_SHELL_MODES: ReadonlySet<string> = new Set(['historical-compare', 'project-evolution', 'agent-flow']);
+
 export class AnalysisMessageRouter {
     constructor(
         private readonly host: AnalysisFeatureHost,
@@ -48,8 +51,11 @@ export class AnalysisMessageRouter {
         private readonly historicalComparison: HistoricalComparisonBridge,
         private readonly projectEvolution: ProjectEvolutionBridge,
         private readonly room: AnalysisRouterRoomHooks,
-        private readonly agentFlow: AgentFlowBridge = new AgentFlowBridge(host),
-    ) {}
+    ) {
+        this.agentFlow = new AgentFlowBridge(host);
+    }
+
+    private readonly agentFlow: AgentFlowBridge;
 
     private get historicalComparisonService() {
         return this.host.historicalComparisonService;
@@ -60,6 +66,16 @@ export class AnalysisMessageRouter {
     }
 
     public async handleCollaborationMessage(
+        messageContext: CollaborationApplicationMessageContext,
+        message: CollaborationMessage,
+    ): Promise<boolean> {
+        // Agent Flow owns its whole message namespace (agentFlowBridge.ts).
+        return message.type.startsWith('agent-flow-')
+            ? this.agentFlow.handleMessage(messageContext, message)
+            : this.handleModeMessage(messageContext, message);
+    }
+
+    private async handleModeMessage(
         messageContext: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
     ): Promise<boolean> {
@@ -79,9 +95,6 @@ export class AnalysisMessageRouter {
         if (message.type === 'dependency-graph-start') {
             logger.debug(() => `[Code-XR Fix][Server] dependency-graph-start received (room: ${messageContext.roomId})`);
             return this.dependencyGraph.handleDependencyGraphStartMessage(messageContext, message);
-        }
-        if (message.type.startsWith('agent-flow-')) {
-            return this.agentFlow.handleMessage(messageContext, message);
         }
         if (!this.historicalComparisonService) {
             return false;
@@ -122,10 +135,7 @@ export class AnalysisMessageRouter {
             const snapshot = this.room.getRoom()?.getServerEntity(this.room.getRoomId(), probe.entityKind, 'main');
             const available = probe.isAvailable(snapshot);
             analysisRefreshCoordinator.setSnapshotAvailable(this.host.sessionId, mode as SnapshotMode, available);
-            const allowsEmptyShell = mode === 'historical-compare'
-                || mode === 'project-evolution'
-                || mode === 'agent-flow';
-            if (!available && !allowsEmptyShell) {
+            if (!available && !EMPTY_SHELL_MODES.has(mode)) {
                 this.host.changeAnalysisViewMode('selection', 'visualization-menu');
                 return true;
             }

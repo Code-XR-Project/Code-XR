@@ -20,20 +20,21 @@ export function splitShellWords(command: string): string[] {
     const words: string[] = [];
     let current = '';
     let quote: string | null = null;
+    // A quoted empty string ('') is still a word.
     let has = false;
+    const flush = (): void => {
+        if (has || current) { words.push(current); current = ''; has = false; }
+    };
     for (const ch of command) {
         if (quote) {
             if (ch === quote) { quote = null; } else { current += ch; }
             continue;
         }
         if (ch === '"' || ch === '\'') { quote = ch; has = true; continue; }
-        if (/\s/.test(ch)) {
-            if (has || current) { words.push(current); current = ''; has = false; }
-            continue;
-        }
+        if (/\s/.test(ch)) { flush(); continue; }
         current += ch;
     }
-    if (has || current) { words.push(current); }
+    flush();
     return words;
 }
 

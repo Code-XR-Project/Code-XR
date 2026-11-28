@@ -43,41 +43,51 @@ locally, and the scene is served by the local Code-XR server.
 
 ## 2. Reading the scene
 
-With a session loaded, check each visual verb while it plays:
+Every agent is a small robot worker with a name tag: the main agent in
+emerald, each sub-agent in its own colour. Check each action while it plays:
 
 | What the agent did | What you should see |
 |---|---|
-| Read a file | The probe hops to the building; the roof turns cyan and stays tinted |
-| Searched (grep, glob, find) | Violet rings pulse on the buildings it matched |
-| Edited or created a file | The building turns orange and grows by the added lines; a new file rises from the ground |
-| Ran a command | A pillar rises at the table edge, flashing green (exit 0) or red (failure) |
-| Touched a file outside the analysis | It appears in the strip on the right of the table, in arrival order |
+| Handed a task to a sub-agent (Claude Code's Agent/Task tool) | A beam from the main worker, and a new smaller worker that pops out and works in parallel; when its work ends it flies back and dissolves |
+| Read a file | The worker stands on the roof and sweeps a cyan scanning cone down the facade; the roof stays tinted cyan |
+| Searched (grep, glob, find) | A violet radar ripple on the table, and beacons popping up on the matched buildings |
+| Edited a file | Scaffolding and a small crane on the building, orange floors stacking up by the added lines (a red slice drops off for removed lines) |
+| Created a file | A foundation slab and the building rising from the ground inside the scaffold |
+| Deleted a file | The building leans and sinks with a dust puff |
+| Ran a command | The worker walks to the test tower (front-left corner): its lights chase, then a green check, or a red siren with red tape on the files written in that turn |
+| Waited for your permission (IDE chats) | The worker stops with a pulsing amber "!" sign; red if you rejected it |
+| Edited a file nobody read first | Yellow and black hazard stripes round the building's base |
+| Touched a file outside the analysis | It appears in the strip on the right of the table |
 
-The trail between buildings fades with age. Hover or point at a building to
-see its path and what the agent did to it.
+The city is Code-XR's own chart, modeled on babia-boats: folders are plates
+that rise one level per nesting depth, and the biggest files sit in the
+middle of the spiral. The timeline at the front has one lane per worker.
 
 ## 3. The controller (Agent flow view)
 
 The controller panel shows the session list, the transport, the toggles and
 the session metrics.
 
-1. **Transport**: Play / pause, Back and Next (one step), Prev turn and Next
+1. **Agents**: one chip per worker with its colour and step count; a chip is
+   bright while that worker is busy.
+2. **Transport**: Play / pause, Back and Next (one step), Prev turn and Next
    turn (jump between the person's prompts). The timeline along the table edge
    has one tick per step, coloured by verb, and one band per turn.
-2. **Speed**: 0.5x to 4x.
-3. **Toggles**:
+3. **Speed**: 0.5x to 4x.
+4. **Toggles**:
    - Trail: the path of the probe.
    - Heat: buildings coloured by how often the agent touched them.
    - Blast radius: for each edited file, the files that import it; the
-     dependents the agent never read are amber (this needs the dependency
+     dependents the agent never read get pulsing amber tape and the rest of
+     the city is dimmed (this needs the dependency
      graph of the analysis, so open it once from the dependency mode if the
      toggle shows nothing).
    - Turn rings: one ring per turn around the files it touched.
-4. **Metrics**: turns, reads, writes, searches, runs, read/write ratio,
+5. **Metrics**: turns, reads, writes, searches, runs, read/write ratio,
    revisit rate, blind writes (edits to a file never read first), unverified
    edits (edits with no command run after them), unread dependents, failures,
    and the code-line and complexity deltas.
-5. **Refresh** reloads the session list; **Close** leaves the session.
+6. **Refresh** reloads the session list; **Close** leaves the session.
 
 Expected: stepping back and forward is exact (the same step always shows the
 same scene), and nothing in the browser console is red.

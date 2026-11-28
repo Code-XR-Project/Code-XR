@@ -367,7 +367,6 @@
       {
         "command": "codeXR.agentFlow.watch",
         "title": "Code-XR: Watch an Agent in XR (Agent Flow)",
-        "icon": "$(pulse)",
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {

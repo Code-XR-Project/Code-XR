@@ -138,6 +138,13 @@ The Immersive Analytics book (Marriott et al.) warns that immersion only pays of
 - **Delta caps.** A diverging-color ring on each edited building, showing net ΔLOC or Δcomplexity since the session start.
 - **Dependency overlay (toggle).** Reuses the dependency-graph mode. Edges out of edited files are highlighted to show the **blast radius**, meaning files that depend on what the agent changed but that it never read.
 
+### 4.2.1 As built: our own boats city and agents as workers
+
+Two decisions came from review with the author after the first prototype.
+
+- **Our own city chart.** The base is not a treemap but Code-XR's own city component, `codexr-city`, whose layout ports the spiral of BabiaXR's `babia-boats` (aframe-babia-components 1.3.4, GPL-3.0). It places the heaviest block first and every next one clockwise around everything placed so far. Folders become nested quarters on plates that rise one level per nesting depth. Owning the chart instead of driving `babia-boats` from outside lets the agent layer change buildings directly: scaffolds, new floors, foundations, hazard stripes and demolitions are part of the chart's API.
+- **Agents as workers.** A single abstract probe hides the parallelism of current agents, which delegate to sub-agents (Claude Code writes each sub-agent's transcript to a file of its own). Every agent is therefore a worker figure. The main agent and each sub-agent have their own colour, a delegate step spawns a worker with a beam, and each worker's action lasts until its own next step, so parallel work is visible. Each visual verb of §3.1 becomes an action at the building: a scanning cone (read), a radar ripple with beacons (search), scaffolding with a crane and growing floors (write), a test tower with a green check or red siren (execute), and an amber sign while the agent waits for the person's permission. The construction metaphor extends the code-city metaphor naturally (a city where work is going on) and keeps the verbs distinguishable without text, which matters in a headset (§3.5).
+
 ### 4.3 Time and interaction
 
 - **Timeline scrubber** along the front edge of the table. **Turn markers** separate user prompts; event ticks are colored by `kind`; marks show failures and subagent launches. Above it, a stacked bar per turn (reads, searches, edits, commands) serves as small multiples [43].

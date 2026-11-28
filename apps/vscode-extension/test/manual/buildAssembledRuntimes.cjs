@@ -20,11 +20,13 @@ const HARNESS_RUNTIMES = [
     ['project-evolution', 'projectEvolutionRuntime.js'],
     ['virtual-screen', 'virtualScreenRuntime.js'],
     ['guide-screen', 'guideScreenRuntime.js'],
+    ['agent-flow', 'agentFlowRuntime.js'],
 ];
 
-// Single-file shared runtimes the Git analyses depend on (not manifest-assembled).
+// Single-file shared runtimes the Git analyses (picker) and Agent Flow (tooltips) depend on (not manifest-assembled).
 const HARNESS_SINGLE_FILE_RUNTIMES = [
     ['common', 'codexrGitRefPickerRuntime.js'],
+    ['common', 'codexrCommonRuntime.js'],
 ];
 
 function buildAssembledRuntimes() {

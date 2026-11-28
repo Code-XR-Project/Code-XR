@@ -229,6 +229,89 @@ function centred(rect: LayoutRect, box: { width: number; depth: number }): Layou
     return { x: rect.x + rect.w / 2 - box.width / 2, z: rect.z + rect.d / 2 - box.depth / 2, w: rect.w, d: rect.d };
 }
 
+/** babia's autoscale: x and z are fitted on their own, within a bounded stretch. */
+function fitScale(cityRect: LayoutRect, plan: BoatsNode): { sx: number; sz: number } {
+    let sx = cityRect.w / Math.max(plan.w, 1e-9);
+    let sz = cityRect.d / Math.max(plan.d, 1e-9);
+    if (sx > sz * MAX_STRETCH) { sx = sz * MAX_STRETCH; }
+    if (sz > sx * MAX_STRETCH) { sz = sx * MAX_STRETCH; }
+    return { sx, sz };
+}
+
+/** The analysed files as the boats city inside `cityRect`, written into `files` and `districts`. */
+function layoutBaseCity(
+    base: LayoutInput[],
+    cityRect: LayoutRect,
+    box: { width: number; depth: number },
+    files: CityLayout['files'],
+    districts: CityLayout['districts'],
+): void {
+    const tree = buildTree(base);
+    const maxSide = Math.sqrt(Math.max(1, ...base.map((file) => file.weight)));
+    const units: BoatsUnits = { border: Math.max(1.5, maxSide * 0.06) };
+    const plan = layoutBoats(tree, units);
+    const { sx, sz } = fitScale(cityRect, plan);
+    // babia units -> table metres, centred in the city rect (corner coordinates).
+    const originX = cityRect.x + cityRect.w / 2;
+    const originZ = cityRect.z + cityRect.d / 2;
+    const gap = units.border * 0.35;
+    const place = (laid: BoatsNode, dir: DirNode, cx: number, cy: number): void => {
+        if (dir.depth > 0) {
+            districts.push({
+                path: dir.path, depth: dir.depth,
+                ...centred({ x: originX + (cx - laid.w / 2) * sx, z: originZ - (cy + laid.d / 2) * sz, w: laid.w * sx, d: laid.d * sz }, box),
+                y: (dir.depth - 1) * PLATE_HEIGHT,
+            });
+        }
+        for (const child of laid.children) {
+            const x = cx + child.x;
+            const y = cy + child.y;
+            if (child.node && child.dir) {
+                place(child.node, child.dir, x, y);
+            } else if (child.file) {
+                const side = Math.max(child.side - gap, child.side * 0.55);
+                files.set(child.file.path, {
+                    ...centred({ x: originX + (x - side / 2) * sx, z: originZ - (y + side / 2) * sz, w: side * sx, d: side * sz }, box),
+                    y: dir.depth * PLATE_HEIGHT,
+                });
+            }
+        }
+    };
+    place(plan, tree, 0, 0);
+}
+
+/** The city's share of the table: all of it, or what the reserved strip leaves (none when only the strip is drawn). */
+function cityArea(hasExtra: boolean, hasBase: boolean, box: { width: number; depth: number }): { cityW: number; cityRect: LayoutRect } {
+    const cityW = hasExtra && hasBase ? box.width * (1 - EXTRA_STRIP_RATIO) : box.width;
+    return { cityW, cityRect: { x: 0, z: 0, w: hasExtra && !hasBase ? 0 : cityW, d: box.depth } };
+}
+
+/** The strip on the right of the city, or the whole table when there is no city. */
+function stripArea(hasBase: boolean, cityW: number, box: { width: number; depth: number }): LayoutRect {
+    return hasBase
+        ? { x: cityW, z: 0, w: box.width - cityW, d: box.depth }
+        : { x: 0, z: 0, w: box.width, d: box.depth };
+}
+
+/** The files outside the analysis in `stripRect`; returns the strip, centred. */
+function layoutExtraStrip(
+    extra: LayoutInput[],
+    stripRect: LayoutRect,
+    box: { width: number; depth: number },
+    files: CityLayout['files'],
+): LayoutRect {
+    // A plain grid, in arrival order: a new file must never move an old one.
+    const inner = inset(stripRect, DISTRICT_PADDING);
+    const cell = Math.min(0.22, Math.sqrt((inner.w * inner.d) / Math.max(1, extra.length)) * 0.88);
+    const perColumn = Math.max(1, Math.floor(inner.d / cell));
+    extra.forEach((file, index) => {
+        const column = Math.floor(index / perColumn);
+        const row = index % perColumn;
+        files.set(file.path, centred(inset({ x: inner.x + column * cell, z: inner.z + row * cell, w: cell, d: cell }, FILE_GAP * 2), box));
+    });
+    return centred(stripRect, box);
+}
+
 /**
  * Lays out `base` (the analysed files) in the city and `extra` (files outside
  * the analysis) in the strip on the right. Rects are returned centred on the
@@ -239,62 +322,14 @@ export function layoutCity(base: LayoutInput[], extra: LayoutInput[] = [], box =
     const districts: CityLayout['districts'] = [];
     // Reserving the strip up front is what lets the first outside file arrive without moving the city.
     const hasExtra = extra.length > 0 || reserveStrip;
-    const cityW = hasExtra && base.length > 0 ? box.width * (1 - EXTRA_STRIP_RATIO) : box.width;
-    const cityRect: LayoutRect = { x: 0, z: 0, w: hasExtra && base.length === 0 ? 0 : cityW, d: box.depth };
+    const { cityW, cityRect } = cityArea(hasExtra, base.length > 0, box);
 
     if (base.length > 0 && cityRect.w > 0) {
-        const tree = buildTree(base);
-        const maxSide = Math.sqrt(Math.max(1, ...base.map((file) => file.weight)));
-        const units: BoatsUnits = { border: Math.max(1.5, maxSide * 0.06) };
-        const plan = layoutBoats(tree, units);
-        // babia's autoscale: x and z are fitted on their own, within a bounded stretch.
-        let sx = cityRect.w / Math.max(plan.w, 1e-9);
-        let sz = cityRect.d / Math.max(plan.d, 1e-9);
-        if (sx > sz * MAX_STRETCH) { sx = sz * MAX_STRETCH; }
-        if (sz > sx * MAX_STRETCH) { sz = sx * MAX_STRETCH; }
-        // babia units -> table metres, centred in the city rect (corner coordinates).
-        const originX = cityRect.x + cityRect.w / 2;
-        const originZ = cityRect.z + cityRect.d / 2;
-        const gap = units.border * 0.35;
-        const place = (laid: BoatsNode, dir: DirNode, cx: number, cy: number): void => {
-            if (dir.depth > 0) {
-                districts.push({
-                    path: dir.path, depth: dir.depth,
-                    ...centred({ x: originX + (cx - laid.w / 2) * sx, z: originZ - (cy + laid.d / 2) * sz, w: laid.w * sx, d: laid.d * sz }, box),
-                    y: (dir.depth - 1) * PLATE_HEIGHT,
-                });
-            }
-            for (const child of laid.children) {
-                const x = cx + child.x;
-                const y = cy + child.y;
-                if (child.node && child.dir) {
-                    place(child.node, child.dir, x, y);
-                } else if (child.file) {
-                    const side = Math.max(child.side - gap, child.side * 0.55);
-                    files.set(child.file.path, {
-                        ...centred({ x: originX + (x - side / 2) * sx, z: originZ - (y + side / 2) * sz, w: side * sx, d: side * sz }, box),
-                        y: dir.depth * PLATE_HEIGHT,
-                    });
-                }
-            }
-        };
-        place(plan, tree, 0, 0);
+        layoutBaseCity(base, cityRect, box, files, districts);
     }
     let extraStrip: LayoutRect | null = null;
     if (hasExtra && (extra.length > 0 || base.length > 0)) {
-        const stripRect: LayoutRect = base.length > 0
-            ? { x: cityW, z: 0, w: box.width - cityW, d: box.depth }
-            : { x: 0, z: 0, w: box.width, d: box.depth };
-        extraStrip = centred(stripRect, box);
-        // A plain grid, in arrival order: a new file must never move an old one.
-        const inner = inset(stripRect, DISTRICT_PADDING);
-        const cell = Math.min(0.22, Math.sqrt((inner.w * inner.d) / Math.max(1, extra.length)) * 0.88);
-        const perColumn = Math.max(1, Math.floor(inner.d / cell));
-        extra.forEach((file, index) => {
-            const column = Math.floor(index / perColumn);
-            const row = index % perColumn;
-            files.set(file.path, centred(inset({ x: inner.x + column * cell, z: inner.z + row * cell, w: cell, d: cell }, FILE_GAP * 2), box));
-        });
+        extraStrip = layoutExtraStrip(extra, stripArea(base.length > 0, cityW, box), box, files);
     }
     return { files, districts, extraStrip };
 }

@@ -94,6 +94,61 @@ function change(changes: readonly { metric: string; before: number | null; after
     return (hit.after ?? 0) - (hit.before ?? 0);
 }
 
+type StepEvent = Extract<AgentTraceEvent, { type: 'step' }>;
+type AcpEventOf<T extends string> = Extract<AcpSessionEventLike, { type: T }>;
+
+function metricDeltaEvent(event: AcpEventOf<'metric-delta'>, at: number): AgentTraceEvent {
+    return {
+        type: 'metric-delta',
+        at,
+        files: event.delta.files.map((file) => ({
+            path: file.path,
+            codeLines: change(file.changes, DELTA_CODE_LINES),
+            complexity: change(file.changes, DELTA_COMPLEXITY),
+        })),
+    };
+}
+
+function permissionResolvedEvent(done: AcpEventOf<'permission-resolved'>, at: number): AgentTraceEvent {
+    const rejected = /reject|deny|cancel/i.test(done.outcome);
+    return { type: 'step', at, id: `permission:${done.id}`, kind: 'wait', status: rejected ? 'failed' : 'done' };
+}
+
+/** What a tool's content says: the files a diff names or creates, its line counts. */
+interface ToolContentSummary {
+    kind: AgentStepKind;
+    created: string[];
+    added?: number;
+    removed?: number;
+}
+
+/** The optional fields of a tool step, set only when known (in this order). */
+interface ToolStepFields {
+    status?: AgentStepStatus;
+    title?: string;
+    tool?: string;
+    locations: AgentTraceLocation[];
+    created: string[];
+    deleted: string[];
+    added?: number;
+    removed?: number;
+    command?: string;
+}
+
+function toolStep(id: string, kind: AgentStepKind, at: number, fields: ToolStepFields): StepEvent {
+    const step: StepEvent = { type: 'step', at, id, kind };
+    if (fields.status) { step.status = fields.status; }
+    if (fields.title) { step.title = fields.title; }
+    if (fields.tool) { step.tool = fields.tool; }
+    if (fields.locations.length > 0) { step.locations = fields.locations; }
+    if (fields.created.length > 0) { step.created = fields.created; }
+    if (fields.deleted.length > 0) { step.deleted = fields.deleted; }
+    if (fields.added !== undefined) { step.added = fields.added; }
+    if (fields.removed !== undefined) { step.removed = fields.removed; }
+    if (fields.command) { step.command = fields.command; }
+    return step;
+}
+
 /**
  * Stateful mapper for one chat: remembers each tool's kind so an update that
  * omits it keeps the step's verb, and which terminal belongs to which tool.
@@ -107,82 +162,71 @@ export class AcpSessionEventMapper {
 
     public map(event: AcpSessionEventLike, at: number): AgentTraceEvent[] {
         switch (event.type) {
-            case 'user': {
-                const user = event as Extract<AcpSessionEventLike, { type: 'user' }>;
-                const out: AgentTraceEvent[] = [];
-                if (this.turnOpen) { out.push({ type: 'turn-end', at }); }
-                this.turnOpen = true;
-                out.push({ type: 'turn-start', at, prompt: user.text.replace(/\s+/g, ' ').trim().slice(0, 160) });
-                return out;
-            }
-            case 'tool':
-                return [this.tool(event as Extract<AcpSessionEventLike, { type: 'tool' }>, at)];
-            case 'terminal-output': {
-                const output = event as Extract<AcpSessionEventLike, { type: 'terminal-output' }>;
-                const toolId = this.terminals.get(output.terminalId);
-                if (!toolId || output.exitCode === undefined || output.exitCode === null) { return []; }
-                return [{
-                    type: 'step', at, id: toolId, kind: 'execute', exitCode: output.exitCode,
-                    status: output.exitCode === 0 ? 'done' : 'failed',
-                }];
-            }
-            case 'permission': {
-                const ask = event as Extract<AcpSessionEventLike, { type: 'permission' }>;
-                const step: Extract<AgentTraceEvent, { type: 'step' }> = {
-                    type: 'step', at, id: `permission:${ask.id}`, kind: 'wait', tool: 'permission', title: ask.title, status: 'running',
-                };
-                const locations = ask.toolCallId ? this.locations.get(ask.toolCallId) : undefined;
-                if (locations && locations.length > 0) { step.locations = locations; }
-                return [step];
-            }
-            case 'permission-resolved': {
-                const done = event as Extract<AcpSessionEventLike, { type: 'permission-resolved' }>;
-                const rejected = /reject|deny|cancel/i.test(done.outcome);
-                return [{ type: 'step', at, id: `permission:${done.id}`, kind: 'wait', status: rejected ? 'failed' : 'done' }];
-            }
-            case 'turn-end': {
-                const end = event as Extract<AcpSessionEventLike, { type: 'turn-end' }>;
-                this.turnOpen = false;
-                return [{ type: 'turn-end', at, ...(end.stopReason ? { stopReason: end.stopReason } : {}) }];
-            }
-            case 'metric-delta': {
-                const delta = (event as Extract<AcpSessionEventLike, { type: 'metric-delta' }>).delta;
-                return [{
-                    type: 'metric-delta',
-                    at,
-                    files: delta.files.map((file) => ({
-                        path: file.path,
-                        codeLines: change(file.changes, DELTA_CODE_LINES),
-                        complexity: change(file.changes, DELTA_COMPLEXITY),
-                    })),
-                }];
-            }
-            default:
-                return [];
+            case 'user': return this.user(event as AcpEventOf<'user'>, at);
+            case 'tool': return [this.tool(event as AcpEventOf<'tool'>, at)];
+            case 'terminal-output': return this.terminalOutput(event as AcpEventOf<'terminal-output'>, at);
+            case 'permission': return [this.permission(event as AcpEventOf<'permission'>, at)];
+            case 'permission-resolved': return [permissionResolvedEvent(event as AcpEventOf<'permission-resolved'>, at)];
+            case 'turn-end': return [this.turnEnd(event as AcpEventOf<'turn-end'>, at)];
+            case 'metric-delta': return [metricDeltaEvent(event as AcpEventOf<'metric-delta'>, at)];
+            default: return [];
         }
     }
 
-    private tool(event: Extract<AcpSessionEventLike, { type: 'tool' }>, at: number): AgentTraceEvent {
-        let kind = event.toolKind ? acpKindToStep(event.toolKind) : (this.kinds.get(event.id) ?? 'other');
-        const locations: AgentTraceLocation[] = (event.locations ?? []).map((loc) => (loc.line ? { path: loc.path, line: loc.line } : { path: loc.path }));
-        const created: string[] = [];
-        const deleted: string[] = [];
-        let added: number | undefined;
-        let removed: number | undefined;
+    private user(user: AcpEventOf<'user'>, at: number): AgentTraceEvent[] {
+        const out: AgentTraceEvent[] = [];
+        if (this.turnOpen) { out.push({ type: 'turn-end', at }); }
+        this.turnOpen = true;
+        out.push({ type: 'turn-start', at, prompt: user.text.replace(/\s+/g, ' ').trim().slice(0, 160) });
+        return out;
+    }
+
+    private terminalOutput(output: AcpEventOf<'terminal-output'>, at: number): AgentTraceEvent[] {
+        const toolId = this.terminals.get(output.terminalId);
+        if (!toolId || output.exitCode === undefined || output.exitCode === null) { return []; }
+        return [{
+            type: 'step', at, id: toolId, kind: 'execute', exitCode: output.exitCode,
+            status: output.exitCode === 0 ? 'done' : 'failed',
+        }];
+    }
+
+    private permission(ask: AcpEventOf<'permission'>, at: number): AgentTraceEvent {
+        const step: StepEvent = {
+            type: 'step', at, id: `permission:${ask.id}`, kind: 'wait', tool: 'permission', title: ask.title, status: 'running',
+        };
+        const locations = ask.toolCallId ? this.locations.get(ask.toolCallId) : undefined;
+        if (locations && locations.length > 0) { step.locations = locations; }
+        return step;
+    }
+
+    private turnEnd(end: AcpEventOf<'turn-end'>, at: number): AgentTraceEvent {
+        this.turnOpen = false;
+        return { type: 'turn-end', at, ...(end.stopReason ? { stopReason: end.stopReason } : {}) };
+    }
+
+    /** Reads the tool's diffs into `locations` and remembers which terminal it runs. */
+    private readContent(event: AcpEventOf<'tool'>, initialKind: AgentStepKind, locations: AgentTraceLocation[]): ToolContentSummary {
+        const summary: ToolContentSummary = { kind: initialKind, created: [] };
         for (const content of event.content ?? []) {
             if (content.type === 'diff') {
                 if (!locations.some((loc) => loc.path === content.path)) { locations.push({ path: content.path }); }
-                if (content.oldText === null) { created.push(content.path); }
-                added = (added ?? 0) + lineCount(content.newText);
-                removed = (removed ?? 0) + lineCount(content.oldText);
-                if (kind === 'other') { kind = 'write'; }
+                if (content.oldText === null) { summary.created.push(content.path); }
+                summary.added = (summary.added ?? 0) + lineCount(content.newText);
+                summary.removed = (summary.removed ?? 0) + lineCount(content.oldText);
+                if (summary.kind === 'other') { summary.kind = 'write'; }
             } else if (content.type === 'terminal') {
                 this.terminals.set(content.terminalId, event.id);
             }
         }
-        if (event.toolKind === 'delete') {
-            deleted.push(...locations.map((loc) => loc.path));
-        }
+        return summary;
+    }
+
+    private tool(event: AcpEventOf<'tool'>, at: number): AgentTraceEvent {
+        const initialKind = event.toolKind ? acpKindToStep(event.toolKind) : (this.kinds.get(event.id) ?? 'other');
+        const locations: AgentTraceLocation[] = (event.locations ?? []).map((loc) => (loc.line ? { path: loc.path, line: loc.line } : { path: loc.path }));
+        const content = this.readContent(event, initialKind, locations);
+        let kind = content.kind;
+        const deleted: string[] = event.toolKind === 'delete' ? locations.map((loc) => loc.path) : [];
         const command = kind === 'execute' ? parseRawCommand(event.rawInput) : undefined;
         if (command) {
             const classified = classifyShellCommand(command);
@@ -193,17 +237,16 @@ export class AcpSessionEventMapper {
         }
         this.kinds.set(event.id, kind);
         if (locations.length > 0) { this.locations.set(event.id, locations); }
-        const step: Extract<AgentTraceEvent, { type: 'step' }> = { type: 'step', at, id: event.id, kind };
-        const status = acpStatus(event.status);
-        if (status) { step.status = status; }
-        if (event.title) { step.title = event.title; }
-        if (event.toolKind) { step.tool = event.toolKind; }
-        if (locations.length > 0) { step.locations = locations; }
-        if (created.length > 0) { step.created = created; }
-        if (deleted.length > 0) { step.deleted = deleted; }
-        if (added !== undefined) { step.added = added; }
-        if (removed !== undefined) { step.removed = removed; }
-        if (command) { step.command = command; }
-        return step;
+        return toolStep(event.id, kind, at, {
+            status: acpStatus(event.status),
+            title: event.title,
+            tool: event.toolKind,
+            locations,
+            created: content.created,
+            deleted,
+            added: content.added,
+            removed: content.removed,
+            command,
+        });
     }
 }

@@ -4,7 +4,7 @@
  * Until #55 dissolved it, a re-export barrel (`customComponents/index.ts`)
  * gave the tests this namespace; they look entry points up by name
  * (`components[token]`), so they keep one object, built here from the same
- * 20 modules the barrel re-exported. The folder is named once, in
+ * 20 modules the barrel re-exported (plus Agent Flow's since 1.3.0). The folder is named once, in
  * SCENE_ASSETS_OUT.
  */
 const path = require('node:path');
@@ -28,6 +28,7 @@ const SCENE_ASSET_MODULES = [
     'historicalComparisonComponentAsset',
     'projectEvolutionComponentAsset',
     'dependencyGraphComponentAsset',
+    'agentFlowComponentAsset',
     'guideScreenComponentAsset',
     'logoComponentAsset',
     'renderBudgetComponentAsset',
