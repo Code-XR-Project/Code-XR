@@ -42,9 +42,8 @@ import {
     bindResumeToken,
     forgetResumeToken,
     hasResumable,
-    interimHostOf,
     markInterimHost,
-    rememberLeavingParticipant,
+    noteParticipantLeft,
 } from './roomResume';
 import {
     applyProfileToParticipant,
@@ -583,13 +582,7 @@ export class CollaborationRoomServer {
 
         room.presence.delete(participantId);
         room.participants.delete(participantId);
-        if (participant) {
-            rememberLeavingParticipant(room, participant);
-        }
-        // An interim host who leaves holds the role for nobody any more.
-        if (interimHostOf(room) === null) {
-            markInterimHost(room, null);
-        }
+        noteParticipantLeft(room, participant);
         this.emitParticipantsChanged(room);
 
         sharedState.releaseEntityLocks(this.registry, room, peer.id);

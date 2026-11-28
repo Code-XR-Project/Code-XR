@@ -129,9 +129,13 @@
       return false;
     }
     if (state.mappingControlsLocked) {
+      // Kept, not dropped: someone else's change made while this page plays
+      // the movie lands when playback pauses (COLLAB-SYNC-3).
+      state.deferredSharedMapping = { config: config, snapshot: snapshot };
       setStatusMessage('Playback running - pause to change chart or axes.', 'info', 0);
       return false;
     }
+    state.deferredSharedMapping = null;
 
     state.suppressSharedPublish = true;
     try {

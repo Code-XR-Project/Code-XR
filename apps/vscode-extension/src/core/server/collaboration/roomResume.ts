@@ -101,6 +101,19 @@ export function rememberLeavingParticipant(
     });
 }
 
+/**
+ * After a participant left the room: keeps their identity for their return,
+ * and an interim host who left holds the role for nobody any more.
+ */
+export function noteParticipantLeft(room: CollaborationRoomState, participant: ParticipantState | undefined): void {
+    if (participant) {
+        rememberLeavingParticipant(room, participant);
+    }
+    if (interimHostOf(room) === null) {
+        markInterimHost(room, null);
+    }
+}
+
 /** Takes back the identity kept under this token, once; null when unknown or expired. */
 export function takeResumable(
     room: CollaborationRoomState,

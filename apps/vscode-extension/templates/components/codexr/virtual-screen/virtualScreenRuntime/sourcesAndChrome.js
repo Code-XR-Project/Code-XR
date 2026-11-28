@@ -208,26 +208,6 @@
       refreshUi();
     }
 
-    /**
-     * Relayed audio is played through an AudioContext created when the relay
-     * starts, outside any user gesture, so browsers start it suspended. The
-     * unlock button and the first gesture on the page resume it; nothing used
-     * to, and the button "unlocked" a silent stream (COLLAB-SCREEN-2).
-     */
-    function resumeRelayAudioContext() {
-      const context = refs.relayReceiver?.audioContext;
-      if (!context || context.state !== 'suspended' || typeof context.resume !== 'function') {
-        return;
-      }
-      context.resume().then(function () {
-        state.audioUnlockRequired = false;
-        refreshUi();
-      }).catch(function () {
-        state.audioUnlockRequired = true;
-        refreshUi();
-      });
-    }
-
     function syncRemoteAudioPlayback(stream) {
       const hasRemoteAudio = state.streamSourceType === 'remote'
         && state.hasAudio
