@@ -349,7 +349,7 @@ table. Render quality, animated
 frames, node selection and camera focus remain local.
 
 The same WebSocket is available through Cloudflare Quick Tunnel, so dependency
-mode does not rely on SSE for remote collaboration.
+mode needs nothing else for remote collaboration.
 
 ## Analysis Mode Lifecycle
 
@@ -371,8 +371,8 @@ dependencies does not require another scan unless source changes are pending.
 
 Normal XR refreshes are announced by the authoritative collaboration entity.
 Its per-mode revision forces the existing datasource to reload before the
-original chart becomes visible again. SSE remains available for LivePanel and
-DOM analyses but is not duplicated for XR mode changes.
+original chart becomes visible again. The live channel (`/codexr-live`) carries
+the LivePanel and DOM updates and is not duplicated for XR mode changes.
 
 The previous `group/file` granularity switch was removed. Hierarchical
 `DependencyGraphScope` navigation is now the only projection mechanism. The

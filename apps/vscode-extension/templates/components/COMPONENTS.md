@@ -204,10 +204,24 @@ not interchangeable anyway: avatar takes a fallback, DOM scene returns a zero
 vector and coerces with `Number()`, collaboration and virtual screen return
 `null` and keep only finite numbers. Leave them separate.
 
+## Live channel runtime (`live/`)
+
+`live/liveChannel.js` defines `window.CodeXRLiveChannel`, the only code in a
+page that opens a live WebSocket (`/codexr-live` on the page origin, `wss:`
+behind HTTPS). It reconnects with exponential back-off (1 s to 30 s, +20%
+jitter), replaces a socket silent for three server heartbeats (45 s), and calls
+the page's `onResync` once when the greeting after a reconnect shows a missed
+update (revision) or a restarted server (epoch). Its constants mirror
+`src/core/server/live/liveChannelProtocol.ts`; `test/servers/liveChannelHub.test.cjs`
+keeps them in step. It is not an A-Frame runtime and is not injected through
+`scene-assets`: `src/platform/liveReloadScripts.ts` prepends it to the XR and
+DOM live reload scripts (`templates/xr/live/`) that ship as the scene's
+`main.js`, and `LivePanelParser` bundles it first, ahead of `livepanel/`.
+
 ## Shared LivePanel components (`livepanel/`)
 
-Files under `livepanel/` are bundled by `LivePanelParser` (alphabetical order)
-ahead of each LivePanel template's own script/stylesheet: `charts.js|css`,
+Files under `livepanel/` are bundled by `LivePanelParser` (alphabetical order,
+after the live channel runtime) ahead of each LivePanel template's own script/stylesheet: `charts.js|css`,
 `dataTable.js|css`, `dependencySummaryPanel.js`, `historicalPanel.js|css`, and
-`panelShell.js|css` (theme toggle, the SSE client `createLivePanelLiveChannel` and its
+`panelShell.js|css` (theme toggle, the live client `createLivePanelLiveChannel` and its
 status indicator, notifications, the DataTable registry and shared formatters).
