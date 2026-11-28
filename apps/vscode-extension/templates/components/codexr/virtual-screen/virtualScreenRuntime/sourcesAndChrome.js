@@ -226,6 +226,7 @@
 
       audio.muted = false;
       audio.srcObject = stream;
+      resumeRelayAudioContext();
       const playResult = audio.play();
       if (playResult && typeof playResult.then === 'function') {
         playResult.then(() => {

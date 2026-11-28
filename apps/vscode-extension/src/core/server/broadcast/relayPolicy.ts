@@ -46,9 +46,21 @@ export function promoteViewerToRelay(context: RelayContext, client: BroadcastCli
     }
 
     const wasIdle = screen.relayViewers.size === 0;
-    screen.viewers.delete(client.id);
+    const wasDirect = screen.viewers.delete(client.id);
     screen.relayViewers.add(client.id);
     client.role = 'viewer';
+
+    const broadcasterForLeave = context.clients.get(screen.broadcasterId);
+    if (wasDirect && broadcasterForLeave) {
+        // The direct peer connection is abandoned: let the broadcaster close
+        // it instead of feeding tracks and ICE into it (COLLAB-SCREEN-11).
+        context.send(broadcasterForLeave, {
+            type: 'viewer-left',
+            roomId: screen.roomId,
+            screenId: screen.screenId,
+            viewerId: client.id,
+        });
+    }
 
     context.send(client, {
         type: 'relay-ready',

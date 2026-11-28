@@ -79,3 +79,47 @@
       screen.appendChild(hint);
       doc.body.appendChild(screen);
     }
+
+    // Errors a person must see, not only the console: a refused host-only
+    // action and a session that cannot be reached any more (COLLAB-ROOM-10).
+    function isNoticeError(code) {
+      return code === 'forbidden' || code === 'forbidden-entity' || code === 'session-unreachable';
+    }
+
+    function showNotice(message) {
+      const doc = getDocument();
+      if (!doc?.body || !message) {
+        return;
+      }
+      let notice = doc.getElementById('codexrCollaborationNotice');
+      if (!notice) {
+        notice = doc.createElement('div');
+        notice.id = 'codexrCollaborationNotice';
+        notice.setAttribute('role', 'status');
+        Object.assign(notice.style, {
+          position: 'fixed',
+          left: '50%',
+          bottom: '24px',
+          transform: 'translateX(-50%)',
+          zIndex: '2147483646',
+          maxWidth: 'min(90vw, 520px)',
+          padding: '10px 16px',
+          borderRadius: '10px',
+          background: 'rgba(11, 18, 32, 0.92)',
+          color: '#e2e8f0',
+          font: "14px 'Segoe UI', system-ui, -apple-system, sans-serif",
+          textAlign: 'center',
+          pointerEvents: 'none',
+        });
+        doc.body.appendChild(notice);
+      }
+      notice.textContent = String(message);
+      notice.style.display = 'block';
+      if (shared.noticeTimer) {
+        win.clearTimeout(shared.noticeTimer);
+      }
+      shared.noticeTimer = win.setTimeout(function () {
+        notice.style.display = 'none';
+        shared.noticeTimer = null;
+      }, 6000);
+    }

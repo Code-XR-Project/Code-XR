@@ -92,6 +92,10 @@ export interface ParticipantRemovalResult {
     /** Authenticated session behind the removed peer, when it had one. */
     sessionId: string | null;
     remote: boolean;
+    /** Where the removed person connected from (the LAN address, for a guest with no session). */
+    remoteAddress?: string;
+    /** The removed person was on this machine. */
+    local?: boolean;
 }
 
 export interface CollaborationMessage {
