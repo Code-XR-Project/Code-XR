@@ -104,14 +104,14 @@ function makeService(project, overrides = {}) {
 // ── paths ────────────────────────────────────────────────────────────
 
 test('the boundary root is the deepest workspace folder holding the target, else the target folder', () => {
-    const ws = path.join(path.sep, 'w', 'proj');
-    assert.equal(paths.resolveBoundaryRoot(path.join(ws, 'src'), 'directory', [path.join(path.sep, 'w'), ws]), ws);
-    assert.equal(paths.resolveBoundaryRoot(path.join(path.sep, 'x', 'lib'), 'directory', [ws]), path.join(path.sep, 'x', 'lib'));
-    assert.equal(paths.resolveBoundaryRoot(path.join(path.sep, 'x', 'a.ts'), 'file', []), path.join(path.sep, 'x'));
+    const ws = path.resolve(path.sep, 'w', 'proj');
+    assert.equal(paths.resolveBoundaryRoot(path.join(ws, 'src'), 'directory', [path.resolve(path.sep, 'w'), ws]), ws);
+    assert.equal(paths.resolveBoundaryRoot(path.resolve(path.sep, 'x', 'lib'), 'directory', [ws]), path.resolve(path.sep, 'x', 'lib'));
+    assert.equal(paths.resolveBoundaryRoot(path.resolve(path.sep, 'x', 'a.ts'), 'file', []), path.resolve(path.sep, 'x'));
 });
 
 test('scene paths resolve absolute first, then relative, and never escape the root', () => {
-    const root = path.join(path.sep, 'w', 'proj');
+    const root = path.resolve(path.sep, 'w', 'proj');
     assert.equal(paths.resolveScenePath(root, `${root}/src/a.ts`.replace(/\\/g, '/')), path.join(root, 'src', 'a.ts'));
     assert.equal(paths.resolveScenePath(root, 'src/util'), path.join(root, 'src', 'util'));
     assert.equal(paths.resolveScenePath(root, '../etc/passwd'), null);
