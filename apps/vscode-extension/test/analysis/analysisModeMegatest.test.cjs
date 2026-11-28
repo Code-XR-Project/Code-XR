@@ -953,7 +953,8 @@ test('mapping panel supports per-context companion child sections', () => {
     assert.match(mappingRuntime, /\{ applyToEntities: applyToEntities \}/);
     assert.match(mappingRuntime, /if \(applyToEntities\) \{\s*applyMappingSnapshot\(/);
     assert.match(mappingRuntime, /state\.sceneChartId = state\.runtimeConfig\.chartId \|\| null/);
-    assert.match(modeRuntime, /if \(nextMode !== 'project-evolution'\)/);
+    // The drill-down keeps the classic chart too: the controller drives the drilled chart with it.
+    assert.match(modeRuntime, /if \(nextMode !== 'project-evolution' && nextMode !== 'drill-down'\)/);
     assert.match(modeRuntime, /selectChart\?\.\(sceneChartId, \{ applyToEntities: false \}\)/);
     // Every runtime that discards a chart unsubscribes it from its Babia data
     // producer first; otherwise the discarded chart repaints on the next push.

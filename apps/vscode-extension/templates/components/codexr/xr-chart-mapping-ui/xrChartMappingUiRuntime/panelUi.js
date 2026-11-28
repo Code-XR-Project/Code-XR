@@ -301,8 +301,7 @@
     // its profile and emits the normal confirmation event; the mode runtime
     // then replaces exactly one chart node without temporarily converting the
     // old one in place.
-    var delegatedEntityApply = requestedEntityApply
-      && state.activeMappingContextId === 'project-evolution';
+    var delegatedEntityApply = requestedEntityApply && isDelegatedEntityApply();
     var applyToEntities = requestedEntityApply && !delegatedEntityApply;
     var config = getConfig();
     if (!config || !chartId || chartId === getActiveChartId(config)) {

@@ -10,6 +10,8 @@
   'use strict';
 
   var MODE = 'drill-down';
+  // The controller shows the analysis mapping view while drilled.
+  var CONTROLLER_VIEW = 'single.mapping';
   var ENTITY_KIND = 'drill-down';
   var ENTITY_ID = 'main';
   var RAYCAST_CLASS = 'babiaxraycasterclass';
@@ -32,7 +34,8 @@
   // chart from the rig (eye at y = 1.75, z = -10.75); it leans back a little
   // toward the viewer.
   var BAR = { x: 0, y: 0.62, z: -15.6, tilt: -20, width: 5.4, height: 0.72, maxCrumbsWidth: 3.4 };
-  var CARD = { width: 2.2, height: 1.02, lift: 0.55 };
+  // `row`: height added per metric or note line.
+  var CARD = { width: 2.2, height: 0.85, row: 0.17, lift: 0.55 };
   // Glyph advance of a button label (metres).
   var LABEL_GLYPH = 0.068;
   // The loading card floats over the middle of the table.
@@ -66,9 +69,10 @@
     stateRequested: false,
     collaborationRegistered: false,
     unregisterLifecycle: null,
-    unregisterPanel: null,
     disposables: [],
-    sceneClickBound: false
+    sceneClickBound: false,
+    mappingBound: false,
+    controllerLocked: false
   };
   var refs = {};
 

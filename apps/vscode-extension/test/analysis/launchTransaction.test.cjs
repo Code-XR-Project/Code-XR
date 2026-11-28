@@ -408,7 +408,7 @@ test('the host tables derived from the analysis types are unchanged', async () =
             'historical-compare': 'historical.selection',
             'project-evolution': 'project-evolution',
             'agent-flow': 'agent-flow',
-            'drill-down': 'drill-down',
+            'drill-down': 'single.mapping',
         });
         assert.equal(defaultControllerView('constructor'), 'single.mapping');
 
