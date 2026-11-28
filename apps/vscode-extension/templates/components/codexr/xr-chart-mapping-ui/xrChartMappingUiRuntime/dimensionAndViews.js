@@ -288,6 +288,9 @@
     if (refs.panelTitle) {
       refs.panelTitle.setAttribute('position', '0 ' + (height * 0.5 + 0.23) + ' 0.03');
     }
+    if (refs.scopeBadge) {
+      refs.scopeBadge.setAttribute('position', '0 ' + (height * 0.5 + 0.74) + ' 0.03');
+    }
     if (refs.rowsRoot) {
       refs.rowsRoot.setAttribute('position', (-0.05 - centreShift) + ' ' + (height * 0.45 - PANEL_LAYOUT.rowsRootHeightOffset) + ' 0.02');
     }
@@ -411,6 +414,7 @@
     syncPanelInteractions();
     setVisible(getConfig() || {}, true);
     syncPanelViewButtons();
+    syncScopeBadge();
     return nextViewId;
   }
 
@@ -462,5 +466,93 @@
       controllerView: nextViewId,
       panelView: resolvedPanel
     };
+  }
+
+  // ── What the controller drives ──────────────────────────────────────
+  // A plate above the title naming what is on the table: a file in green, a
+  // folder in purple. Feature runtimes set it (the drill-down sets the
+  // analysed folder at home and the drilled target while drilled).
+  var SCOPE_COLORS = { file: '#15803d', directory: '#7c3aed' };
+
+  function buildScopeBadge() {
+    refs.scopeBadge = createEntity('a-entity', { position: '0 1.72 0.03', visible: false });
+    refs.scopeBadgePlate = createEntity('a-plane', {
+      color: SCOPE_COLORS.directory, opacity: 0.96, width: 2.7, height: 0.32, position: '0 0 0'
+    });
+    refs.scopeBadgeText = createEntity('a-text', {
+      value: '', align: 'center', color: '#ffffff', width: 5.2, position: '0 0 0.01', 'wrap-count': 34
+    });
+    refs.scopeBadge.setAttribute('data-codexr-role', 'mapping-ui scope');
+    refs.scopeBadge.appendChild(refs.scopeBadgePlate);
+    refs.scopeBadge.appendChild(refs.scopeBadgeText);
+    return refs.scopeBadge;
+  }
+
+  function syncScopeBadge() {
+    if (!refs.scopeBadge) { return; }
+    var scope = state.scope;
+    var shown = !!scope && state.activePanelView === 'mapping';
+    refs.scopeBadge.setAttribute('visible', shown);
+    if (refs.scopeBadge.object3D) { refs.scopeBadge.object3D.visible = shown; }
+    if (!scope) { return; }
+    refs.scopeBadgeText.setAttribute('value', scope.label);
+    refs.scopeBadgePlate.setAttribute('color', SCOPE_COLORS[scope.kind] || SCOPE_COLORS.directory);
+    refs.scopeBadgePlate.setAttribute('width', Math.min(5.8, Math.max(1.2, scope.label.length * 0.16 + 0.5)));
+  }
+
+  /** `{ label, kind: 'file' | 'directory' }`, or null to hide the plate. */
+  function setScope(scope) {
+    var label = scope && String(scope.label || '').trim();
+    state.scope = label ? { label: label.length > 34 ? label.slice(0, 33) + '~' : label, kind: scope.kind === 'file' ? 'file' : 'directory' } : null;
+    syncScopeBadge();
+    return state.scope ? { label: state.scope.label, kind: state.scope.kind } : null;
+  }
+
+  // ── Another schema on the table ─────────────────────────────────────
+  // A feature that draws rows of another analysis kind (the functions of one
+  // file drilled from a project) hands the controller that kind's charts and
+  // fields. The scene's own schema is kept aside and comes back with null.
+  // Each schema has its own mapping context, so neither overwrites the other.
+  var SCHEMA_KEYS = ['chartId', 'dimensions', 'availableCharts', 'dimensionsByChart', 'defaultMappingsByChart', 'targetType'];
+
+  function pickSchema(source) {
+    var copy = {};
+    SCHEMA_KEYS.forEach(function (key) {
+      if (source && source[key] !== undefined) { copy[key] = JSON.parse(JSON.stringify(source[key])); }
+    });
+    return copy;
+  }
+
+  function setSchemaOverride(schema, options) {
+    var config = getConfig();
+    if (!config) { return false; }
+    var contextId = schema ? String(options?.contextId || 'schema-override') : null;
+    if (schema && state.schemaOverride && state.schemaOverride.contextId === contextId) { return true; }
+    if (!schema && !state.schemaOverride) { return true; }
+    saveActiveMappingProfile();
+    if (schema) {
+      if (!state.schemaOverride) {
+        state.schemaBase = { schema: pickSchema(config), contextId: state.activeMappingContextId };
+      }
+      Object.assign(config, pickSchema(schema));
+      state.schemaOverride = { contextId: contextId };
+    } else {
+      Object.assign(config, state.schemaBase.schema);
+      contextId = state.schemaBase.contextId;
+      state.schemaOverride = null;
+      state.schemaBase = null;
+    }
+    // Straight to the target profile: switchMappingContext would first save
+    // the outgoing mapping under the incoming schema's chart key.
+    state.activeChartId = config.chartId || null;
+    state.activeMappingContextId = contextId;
+    var profile = state.mappingProfiles[getMappingProfileKey(contextId, getActiveChartId(config))]
+      || buildDefaultMappingSnapshot(config);
+    // The panel stays as shown or hidden as it was: only the schema changes.
+    profile = Object.assign({}, profile, { visible: state.visible });
+    renderChartSelector(config);
+    applyMappingRuntimeState(config, profile, 'mapping-ui-schema-' + (schema ? 'override' : 'restore'), { applyToEntities: false });
+    syncMappingCompanion();
+    return true;
   }
 

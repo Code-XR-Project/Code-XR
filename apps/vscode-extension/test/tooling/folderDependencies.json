@@ -95,6 +95,7 @@
     "core/server": [
       "core/agent-flow",
       "core/analysis",
+      "core/charts",
       "core/collaboration",
       "core/dependencies",
       "core/drilldown",

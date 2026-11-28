@@ -50,7 +50,9 @@ test('XR boats tree builder follows the shared tree contract (normal-analysis co
 });
 
 test('XR mapping UI config includes live chart selector metadata', () => {
-    const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
+    // The generator embeds the model built in mappingUiSchema.ts (#333).
+    const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts')
+        + readProjectFile('src', 'core', 'charts', 'processing', 'mappingUiSchema.ts');
 
     assert.match(processor, /availableCharts/);
     assert.match(processor, /dimensionsByChart/);
@@ -177,7 +179,9 @@ test('XR template keeps babia-queryjson bound to the injected DATA_SOURCE placeh
 
 test('XR template owns the initial chart through a Code-XR analysis surface', () => {
     const template = readProjectFile('templates', 'xr', 'file', 'xr-visualization.html');
-    const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts');
+    // The generator embeds the model built in mappingUiSchema.ts (#333).
+    const processor = readProjectFile('src', 'core', 'charts', 'processing', 'templateProcessor.ts')
+        + readProjectFile('src', 'core', 'charts', 'processing', 'mappingUiSchema.ts');
     const modeRuntime = readAssembledRuntime('analysis-mode', 'analysisModeRuntime.js');
 
     assert.match(template, /id="codexrAnalysisSurface"[\s\S]*data-codexr-analysis-surface="true"/);

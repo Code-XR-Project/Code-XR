@@ -173,3 +173,26 @@ test('a numeric axis never lists a text field, even when the schema has no numer
     const { model } = mappingModel('bars', false, { functionName: 'text', fileName: 'text' });
     assert.equal(model, null);
 });
+
+// #333: the drill-down hands a scene the schema of the other analysis kind
+// (the functions of one file drilled from a project). It is the same schema
+// the scene generator embeds, so the controller behaves the same either way.
+test('the drill-down controller schema is the schema the scene embeds, for both kinds', () => {
+    const fake = createFakeVscode();
+    withFakeVscode(fake, ({ requireOut }) => {
+        const { TemplateProcessor } = requireOut('core/charts/processing/templateProcessor.js');
+        const { buildMappingUiSchema } = requireOut('core/charts/processing/mappingUiSchema.js');
+        for (const [fields, isDirectory] of [[FILE_FIELDS, false], [DIRECTORY_FIELDS, true]]) {
+            const mappings = [{ dimension: 'height', dataField: isDirectory ? 'totalLines' : 'lineCount' }];
+            const result = TemplateProcessor.buildBabiaUiPlaceholders('boats', 'chartEntity', mappings, 'Title', isDirectory, { fieldTypeMap: fields });
+            const model = JSON.parse(result.scriptHtml.replace(/^<script[^>]*>/, '').replace(/<\/script>$/, ''));
+            // Through JSON, as the entity reaches the room.
+            const schema = JSON.parse(JSON.stringify(buildMappingUiSchema('boats', { height: mappings[0].dataField }, isDirectory, fields)));
+            for (const key of ['chartId', 'targetType', 'dimensions', 'availableCharts', 'dimensionsByChart', 'defaultMappingsByChart']) {
+                assert.deepEqual(schema[key], model[key], `${isDirectory ? 'directory' : 'file'}.${key}`);
+            }
+        }
+        assert.equal(buildMappingUiSchema('no-such-chart', {}, false, FILE_FIELDS), null);
+        assert.equal(buildMappingUiSchema('boats', {}, false, { functionName: 'text' }), null);
+    });
+});

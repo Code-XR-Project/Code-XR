@@ -13,6 +13,12 @@
       return false;
     }
     var nextContextId = String(contextId || 'default');
+    // While another schema is swapped in (setSchemaOverride) its context
+    // stays: a context asked for meanwhile is the one to restore afterwards.
+    if (state.schemaOverride && nextContextId !== state.schemaOverride.contextId) {
+      state.schemaBase.contextId = nextContextId;
+      nextContextId = state.schemaOverride.contextId;
+    }
     var applyToEntities = !options || options.applyToEntities !== false;
     // Idempotent: re-applying the profile already in force would run
     // applyMappingRuntimeState → renderRows, which clears and rebuilds every
@@ -116,6 +122,8 @@
     },
     restoreState: restoreState,
     selectChart: selectChart,
+    setScope: setScope,
+    setSchemaOverride: setSchemaOverride,
     // The chart the XR scene was generated with, immune to later selector
     // switches — the mode machinery restores it when leaving project
     // evolution (the only mode that selects its own chart).

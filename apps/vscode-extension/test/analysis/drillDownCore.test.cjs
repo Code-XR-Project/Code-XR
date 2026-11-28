@@ -92,7 +92,7 @@ function makeService(project, overrides = {}) {
         workspaceFolders: [project.root],
         analyzer,
         readSessionSeed: overrides.readSessionSeed,
-        resolveChart: async (kind) => ({ chartId: 'boats', mapping: { kind } }),
+        resolveChart: async (kind) => ({ chartId: 'boats', mapping: { kind }, controllerSchema: { chartId: 'boats', targetType: kind, dimensions: [] } }),
         publish: (entity) => published.push(entity),
         activate: (mode) => { modes.push(mode); },
         loadingDelayMs: overrides.loadingDelayMs ?? 10000,
@@ -251,8 +251,10 @@ test('a file jump uses the function cache by hash, and back, forward and home wa
         const { service, analyzer, last, modes } = makeService(project);
         const file = path.join(project.root, 'src', 'a.ts');
         await service.open(path.join(project.root, 'src'), 'directory');
+        assert.equal(last().controllerSchema, null, 'a folder of a folder analysis: the scene\'s own controller fits');
         await service.open(file, 'file');
         assert.equal(last().treeField, 'treePath');
+        assert.equal(last().controllerSchema?.targetType, 'file', 'a file: the controller gets the file schema');
         assert.deepEqual(analyzer.calls.functions, [file]);
 
         await service.back();
