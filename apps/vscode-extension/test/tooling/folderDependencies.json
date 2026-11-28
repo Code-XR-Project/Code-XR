@@ -45,6 +45,7 @@
       "features/visualize-data",
       "platform"
     ],
+    "core/agent-flow": [],
     "core/analysis": [
       "core/charts",
       "core/history",
@@ -80,7 +81,6 @@
     ],
     "core/host": [],
     "core/metrics": [],
-    "core/xr": [],
     "core/python-env": [
       "core/host",
       "platform"
@@ -92,6 +92,7 @@
       "platform"
     ],
     "core/server": [
+      "core/agent-flow",
       "core/analysis",
       "core/collaboration",
       "core/dependencies",
@@ -101,6 +102,7 @@
       "platform",
       "shared"
     ],
+    "core/xr": [],
     "features/active-servers": [
       "core/collaboration",
       "core/remote-access",
@@ -110,6 +112,7 @@
       "platform"
     ],
     "features/ai-agents": [
+      "core/agent-flow",
       "platform"
     ],
     "features/analysis": [

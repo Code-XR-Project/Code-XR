@@ -365,6 +365,12 @@
         "enablement": "!codeXR.pythonEnv.uiLocked"
       },
       {
+        "command": "codeXR.agentFlow.watch",
+        "title": "Code-XR: Watch an Agent in XR (Agent Flow)",
+        "icon": "$(pulse)",
+        "enablement": "!codeXR.pythonEnv.uiLocked"
+      },
+      {
         "command": "codeXR.analysis.analyzeProjectXRDeep",
         "title": "Code-XR: Analyze Project (XR Deep)",
         "icon": "$(layers-dot)",

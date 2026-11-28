@@ -70,6 +70,7 @@ const ROUTING_TABLE = Object.freeze({
     'project-evolution.selection': 'project-evolution',
     'project-evolution.playback': 'project-evolution',
     'project-evolution.mapping': 'mapping',
+    'agent-flow': 'agent-flow',
 });
 
 // 'mapping' is the controller's built-in view; every other panel exists only
@@ -94,6 +95,7 @@ const DEFAULT_VIEW_BY_MODE = Object.freeze({
     'historical-compare': 'historical.selection',
     'dependency-graph': 'dependency.settings',
     'project-evolution': 'project-evolution',
+    'agent-flow': 'agent-flow',
 });
 const ANALYSIS_MODES = Object.freeze(Object.keys(DEFAULT_VIEW_BY_MODE));
 
@@ -268,7 +270,7 @@ function createFakeElement(tagName) {
 /**
  * The real controller, booted against just enough DOM to build its panel, with
  * the panels the feature runtimes register in a scene. Without them every
- * showPanelView falls back to 'mapping' and all nine rows would look alike.
+ * showPanelView falls back to 'mapping' and all ten rows would look alike.
  */
 function loadController(uiSource = mappingUiSource) {
     const scene = createFakeElement('a-scene');
@@ -456,7 +458,7 @@ test('the analysis-mode and chart-mapping-ui runtimes declare the same controlle
     );
 });
 
-test('the routing table is exactly the nine rows that 1.2.1 ships', () => {
+test('the routing table is exactly the ten rows that ship: the nine of 1.2.1 plus agent flow', () => {
     const { announced, routed } = readTables();
 
     assert.deepEqual(routed, { ...ROUTING_TABLE });

@@ -146,7 +146,7 @@ export function createSectionDefinitions(
             createProvider: () => new AnalysisSectionProvider(context),
         },
         {
-            // Epic #189: a placeholder until the agent hub reaches the extension (1.3.0).
+            // Agent Flow (epic #319) and, later, the agent hub (epic #189, 1.3.0).
             sectionName: 'aiAgents',
             createHeader: () => createStaticSectionHeader({
                 label: 'AI AGENTS',
@@ -154,7 +154,7 @@ export function createSectionDefinitions(
                 collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
                 iconPath: new vscode.ThemeIcon('sparkle'),
                 tooltip: AI_AGENTS_TOOLTIP,
-                description: 'Coming soon',
+                description: 'Agent Flow',
                 contextValue: 'aiAgentsSection',
             }),
             createProvider: () => new AiAgentsSectionProvider(context),

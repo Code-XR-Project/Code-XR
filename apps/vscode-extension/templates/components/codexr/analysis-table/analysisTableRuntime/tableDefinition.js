@@ -1,7 +1,7 @@
 // == analysisTableRuntime.js | tableDefinition (assembled per manifest.json; see COMPONENTS.md) ==
   var analysisTableDefinition = {
     schema: {
-      mode: { default: 'single', oneOf: ['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph'] },
+      mode: { default: 'single', oneOf: ['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow'] },
       width: { type: 'number', default: 6.514 },
       depth: { type: 'number', default: 4.118 },
       anchorX: { type: 'number', default: DEFAULTS.anchorX },

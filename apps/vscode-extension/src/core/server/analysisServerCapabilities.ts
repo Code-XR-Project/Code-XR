@@ -30,6 +30,8 @@ export interface AnalysisServerCapabilities {
     historicalComparison: boolean;
     /** Project-evolution endpoints (XR only). */
     projectEvolution: boolean;
+    /** Agent Flow: agent session sources and the live trace dataset (XR only). */
+    agentFlow: boolean;
 }
 
 /**
@@ -49,5 +51,6 @@ export function resolveAnalysisServerCapabilities(
         dependencyGraph: features.has('dependencyGraph'),
         historicalComparison: features.has('historicalComparison'),
         projectEvolution: features.has('projectEvolution'),
+        agentFlow: features.has('agentFlow'),
     };
 }

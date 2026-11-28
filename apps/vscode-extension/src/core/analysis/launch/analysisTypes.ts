@@ -2,7 +2,7 @@
  * The in-scene analyses, one descriptor each.
  *
  * An analysis type is WHAT the table shows (classic, dependency graph,
- * historical comparison, project evolution); a launch kind (launchKinds.ts)
+ * historical comparison, project evolution, agent flow); a launch kind (launchKinds.ts)
  * is HOW a page is produced and served (XR, LivePanel, VisualizeDOM). Several
  * host tables used to restate these facts independently: which server
  * features each surface attaches (analysisServerCapabilities.ts), the view
@@ -20,7 +20,7 @@
 export type LaunchKindId = 'XR' | 'LivePanel' | 'VisualizeDOM';
 
 /** The server feature an analysis type needs attached (null: none). */
-export type AnalysisServerFeature = 'dependencyGraph' | 'historicalComparison' | 'projectEvolution';
+export type AnalysisServerFeature = 'dependencyGraph' | 'historicalComparison' | 'projectEvolution' | 'agentFlow';
 
 export interface AnalysisSnapshotProbe {
     /** The room entity kind that carries this analysis's result. */
@@ -82,6 +82,18 @@ export const ANALYSIS_TYPES: ReadonlyArray<AnalysisTypeDescriptor> = Object.free
         snapshotProbe: {
             entityKind: 'project-evolution',
             isAvailable: (snapshot) => !!snapshot?.result,
+        },
+    },
+    {
+        // An AI coding agent at work, replayed or live on the table (docs/agent-flow/).
+        id: 'agent-flow',
+        label: 'Agent flow',
+        controllerView: 'agent-flow',
+        serverFeature: 'agentFlow',
+        surfaces: ['XR'],
+        snapshotProbe: {
+            entityKind: 'agent-flow',
+            isAvailable: (snapshot) => typeof snapshot?.datasetUrl === 'string',
         },
     },
 ]);

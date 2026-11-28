@@ -9,6 +9,7 @@ import { AnalysisFeatureHost } from './analysisFeatureHost';
 import { DependencyGraphBridge } from './dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './projectEvolutionBridge';
+import { AgentFlowBridge } from './agentFlowBridge';
 import { ANALYSIS_TYPES, AnalysisSnapshotProbe } from '../../analysis/launch/analysisTypes';
 import { getLogger } from '../../../platform/logging/sink';
 
@@ -47,6 +48,7 @@ export class AnalysisMessageRouter {
         private readonly historicalComparison: HistoricalComparisonBridge,
         private readonly projectEvolution: ProjectEvolutionBridge,
         private readonly room: AnalysisRouterRoomHooks,
+        private readonly agentFlow: AgentFlowBridge = new AgentFlowBridge(host),
     ) {}
 
     private get historicalComparisonService() {
@@ -77,6 +79,9 @@ export class AnalysisMessageRouter {
         if (message.type === 'dependency-graph-start') {
             logger.debug(() => `[Code-XR Fix][Server] dependency-graph-start received (room: ${messageContext.roomId})`);
             return this.dependencyGraph.handleDependencyGraphStartMessage(messageContext, message);
+        }
+        if (message.type.startsWith('agent-flow-')) {
+            return this.agentFlow.handleMessage(messageContext, message);
         }
         if (!this.historicalComparisonService) {
             return false;
@@ -118,7 +123,8 @@ export class AnalysisMessageRouter {
             const available = probe.isAvailable(snapshot);
             analysisRefreshCoordinator.setSnapshotAvailable(this.host.sessionId, mode as SnapshotMode, available);
             const allowsEmptyShell = mode === 'historical-compare'
-                || mode === 'project-evolution';
+                || mode === 'project-evolution'
+                || mode === 'agent-flow';
             if (!available && !allowsEmptyShell) {
                 this.host.changeAnalysisViewMode('selection', 'visualization-menu');
                 return true;
