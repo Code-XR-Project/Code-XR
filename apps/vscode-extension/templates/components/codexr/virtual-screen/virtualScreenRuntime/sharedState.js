@@ -94,11 +94,34 @@
       };
     }
 
+    /**
+     * The broadcast fields of a screen belong to its broadcaster. Anyone else
+     * leaves them out, so a resize or a minimize by a viewer cannot announce
+     * "not live" for the whole room (COLLAB-SCREEN-5). The broadcaster keeps
+     * them for one more publish after it stops, which is how the room learns
+     * the share ended.
+     */
+    function stripForeignBroadcastFields(sharedState) {
+      if (state.streamSourceType === 'local') {
+        refs.publishedAsBroadcaster = true;
+        return sharedState;
+      }
+      if (refs.publishedAsBroadcaster) {
+        refs.publishedAsBroadcaster = false;
+        return sharedState;
+      }
+      const stripped = { ...sharedState };
+      delete stripped.broadcast;
+      delete stripped.broadcastStatus;
+      delete stripped.hasAudio;
+      return stripped;
+    }
+
     function publishSharedScreenState(eventType) {
       if (state.suppressSharedPublish || refs.config.collaborationEnabled === false) {
         return false;
       }
-      const sharedState = buildSharedScreenState();
+      const sharedState = stripForeignBroadcastFields(buildSharedScreenState());
       const managerCallbacks = getManagerCallbacks();
       if (managerCallbacks?.onStateChange) {
         return managerCallbacks.onStateChange(sharedState, {

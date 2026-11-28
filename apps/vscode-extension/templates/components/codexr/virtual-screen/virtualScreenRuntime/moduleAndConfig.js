@@ -113,6 +113,7 @@
       broadcastError: 'Unable to connect the live broadcast.',
       iceFailed: 'The shared screen could not cross this network (restrictive NAT). Collaboration remains active.',
       relayFallback: 'Direct connection unavailable, switching to the server relay...',
+      relayUnsupported: 'This browser cannot play the relayed screen. Open the scene in Chrome or Edge.',
       broadcastStopped: 'Live sharing stopped.',
       collaborationLocked: 'This screen is currently being edited by another user.',
       join: 'Join',
@@ -357,6 +358,9 @@
       peerConnections: new Map(),
       remoteStream: null,
       activeBroadcasterId: '',
+      joinedBroadcastKey: '',
+      relayFallbackRequested: false,
+      publishedAsBroadcaster: false,
       broadcastState: {
         active: false,
         broadcasterPeerId: '',

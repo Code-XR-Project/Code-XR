@@ -113,6 +113,7 @@ export class ScreenBroadcastSignalingServer {
                 this.stopBroadcast(client, message.reason || 'sender-stopped');
                 return;
             case 'viewer-join':
+                this.adoptRoomFromMessage(client, message);
                 this.registerViewer(client);
                 return;
             case 'relay-request':
@@ -136,7 +137,28 @@ export class ScreenBroadcastSignalingServer {
         }
     }
 
+    /**
+     * A client that registered before it knew its room was filed under the
+     * default room, where no broadcast ever exists (COLLAB-SCREEN-0, the
+     * tunnel race). A later message that names the room moves it there, as
+     * long as it holds no role yet.
+     */
+    private adoptRoomFromMessage(client: BroadcastClient, message: BroadcastMessage): void {
+        const named = this.normalizeId(message.roomId);
+        if (!named || named === client.roomId || client.role !== 'none') {
+            return;
+        }
+        client.roomId = named;
+    }
+
     private registerClient(client: BroadcastClient, message: BroadcastMessage): void {
+        // A second register on the same socket must not leave the previous
+        // role behind in a screen's bookkeeping (COLLAB-SCREEN-12).
+        if (client.role === 'sender') {
+            this.stopBroadcast(client, 'sender-reregistered');
+        } else if (client.role === 'viewer') {
+            this.removeViewer(client);
+        }
         const requestedId = this.normalizeId(message.clientId);
         if (requestedId && requestedId !== client.id && !this.clients.has(requestedId)) {
             this.clients.delete(client.id);

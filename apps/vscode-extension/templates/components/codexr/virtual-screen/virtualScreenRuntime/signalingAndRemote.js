@@ -6,6 +6,16 @@
           state.clientId = message.clientId || state.clientId;
           if (state.streamSourceType === 'local') {
             announceBroadcastStart();
+          } else if (
+            (state.streamSourceType === 'remote' || state.broadcastRole === 'viewer')
+            && refs.broadcastState.active
+            && !state.viewerOptOut
+          ) {
+            // A fresh registration means the server forgot this viewer (the
+            // socket reconnected): join again, even while the old receiver
+            // still shows the last frame (COLLAB-SCREEN-7).
+            refs.joinAttemptSocket = null;
+            void startViewerConnection(refs.broadcastState.broadcasterPeerId || '', { force: true });
           } else if (refs.broadcastState.active) {
             ensureRemoteBroadcastSubscription(refs.broadcastState);
           }
@@ -39,7 +49,10 @@
           // Ownership invariant: the room's screen entity belongs to the
           // sender. A viewer updates only itself — publishing active:false
           // from here once poisoned the whole room out of a live broadcast.
-          if (state.streamSourceType === 'remote') {
+          if (state.streamSourceType !== 'local') {
+            // Every viewer state, "connecting" included: a viewer still
+            // waiting kept its stale receiver and, deduped, never re-joined
+            // the next broadcast (COLLAB-SCREEN-10).
             detachRemoteBroadcast(refs.config.labels.broadcastStopped, {
               notifyServer: false,
               skipSharedPublish: true,
@@ -117,6 +130,31 @@
       }
     }
 
+    // The broadcast server files a client under the room it names in
+    // `register`, for good. Through the tunnel the room id (from the session
+    // info) routinely arrives after this socket opens; registering without it
+    // filed guests under the default room, where no broadcast ever exists, so
+    // they never saw the host's screen. Wait for the room before registering.
+    async function registerWhenRoomKnown(socket) {
+      let roomId = getResolvedRoomId();
+      if (!roomId) {
+        try {
+          const info = await getCollaborationClient()?.getSessionInfoAsync?.();
+          roomId = getResolvedRoomId() || String(info?.roomId || '').trim();
+        } catch (_error) {
+          roomId = getResolvedRoomId();
+        }
+      }
+      if (refs.signalingSocket !== socket || socket.readyState !== win.WebSocket.OPEN) {
+        return;
+      }
+      sendSignaling({
+        type: 'register',
+        clientId: getOrCreateClientId(),
+        ...(roomId ? { roomId } : {}),
+      });
+    }
+
     function connectSignaling() {
       if (refs.destroyed || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
         return;
@@ -139,10 +177,7 @@
       socket.onopen = function () {
         refs.broadcastRegistered = false;
         setBroadcastState(state.broadcastRole, state.streamSourceType === 'local' ? 'connecting' : state.broadcastStatus);
-        sendSignaling({
-          type: 'register',
-          clientId: getOrCreateClientId(),
-        });
+        void registerWhenRoomKnown(socket);
       };
 
       socket.onmessage = function (event) {
@@ -187,6 +222,8 @@
       }
 
       refs.activeBroadcasterId = '';
+      refs.joinedBroadcastKey = '';
+      refs.relayFallbackRequested = false;
       closeAllPeerConnections();
       stopRelayReceiver();
       refs.remoteStream = null;
@@ -305,6 +342,13 @@
 
       try {
         const stream = await requestCapture(intent);
+        // The relay encoder reads the previous tracks: switching source left
+        // it pumping an ended track and relay viewers frozen on the last
+        // frame (COLLAB-SCREEN-3). Restart it on the new stream below.
+        const relayAudience = refs.relaySender ? refs.relaySender.audience : 0;
+        if (relayAudience) {
+          stopRelaySender();
+        }
         if (previousStream && previousStream !== stream) {
           releaseStream(true);
         }
@@ -326,6 +370,9 @@
           setBroadcastState('sender', 'connecting');
           connectSignaling();
           announceBroadcastStart();
+          if (relayAudience) {
+            startRelaySender({ relayViewerCount: relayAudience });
+          }
         } else if (refs.config.broadcastEnabled) {
           setBroadcastState('none', 'error');
           updateStatus(refs.config.labels.broadcastUnavailable);

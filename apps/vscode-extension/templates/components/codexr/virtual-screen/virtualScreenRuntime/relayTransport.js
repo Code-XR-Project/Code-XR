@@ -24,6 +24,8 @@
       audioConfig: 5,
     };
     const RELAY_AUDIO_BITRATE = 64000;
+    /** How far ahead of real time relayed audio may be scheduled (seconds). */
+    const RELAY_AUDIO_MAX_AHEAD_S = 0.3;
     const RELAY_KEYFRAME_INTERVAL_MS = 2000;
     const RELAY_IMAGE_FPS = 8;
     const RELAY_IMAGE_QUALITY = 0.6;
@@ -102,12 +104,24 @@
     function startRelaySender(message) {
       // One encoder serves the whole audience: a second viewer never starts a
       // second encoding, it only asks for a keyframe.
-      if (refs.relaySender || state.streamSourceType !== 'local' || !state.stream) {
+      if (state.streamSourceType !== 'local' || !state.stream) {
         return;
       }
       const videoTrack = state.stream.getVideoTracks?.()[0] || null;
       if (!videoTrack) {
         return;
+      }
+      if (refs.relaySender) {
+        const running = refs.relaySender;
+        if (!running.stopped && running.videoTrack === videoTrack && videoTrack.readyState === 'live') {
+          // Already encoding this source: the newcomer only needs a keyframe
+          // and the audio decoder config.
+          running.audience = Math.max(running.audience, message?.relayViewerCount || 1);
+          requestRelayKeyframe();
+          return;
+        }
+        // An encoder left over from a previous source or a dead track.
+        stopRelaySender();
       }
 
       const sender = {
@@ -122,6 +136,8 @@
         audience: Math.max(1, message?.relayViewerCount || 1),
         quality: null,
         temporalLayers: false,
+        videoTrack,
+        audioConfigPayload: null,
       };
       refs.relaySender = sender;
       sender.quality = relayQualityForAudience(sender.audience);
@@ -172,6 +188,20 @@
     function requestRelayKeyframe() {
       if (refs.relaySender) {
         refs.relaySender.keyframeRequested = true;
+        resendRelayAudioConfig(refs.relaySender);
+      }
+    }
+
+    /**
+     * A relay viewer can only decode audio once it has the decoder config.
+     * It used to be sent once, when the encoder started, so every viewer who
+     * joined later (or whose socket reconnected) watched a silent picture
+     * (COLLAB-SCREEN-1). It goes out again with every keyframe request, which
+     * the server sends for each new relay viewer.
+     */
+    function resendRelayAudioConfig(sender) {
+      if (sender?.audioEncoder && sender.audioConfigPayload) {
+        sendRelayFrame(RELAY_KIND.audioConfig, 0, sender.audioConfigPayload);
       }
     }
 
@@ -354,11 +384,8 @@
       });
 
       // The decoder needs the same parameters before the first packet.
-      sendRelayFrame(
-        RELAY_KIND.audioConfig,
-        0,
-        new win.TextEncoder().encode(JSON.stringify({ sampleRate, channels })),
-      );
+      sender.audioConfigPayload = new win.TextEncoder().encode(JSON.stringify({ sampleRate, channels }));
+      resendRelayAudioConfig(sender);
 
       const processor = new win.MediaStreamTrackProcessor({ track: audioTrack });
       const reader = processor.readable.getReader();
@@ -478,6 +505,15 @@
         if (audioTrack) {
           stream.addTrack(audioTrack);
         }
+        if (receiver.audioContext.state === 'suspended') {
+          // Resumed by the unlock button or by the first gesture anywhere.
+          state.audioUnlockRequired = true;
+          const resumeOnGesture = function () {
+            resumeRelayAudioContext();
+          };
+          document.addEventListener('pointerdown', resumeOnGesture, { once: true, capture: true });
+          document.addEventListener('keydown', resumeOnGesture, { once: true, capture: true });
+        }
       }
 
       setBroadcastState('viewer', 'connecting');
@@ -540,6 +576,9 @@
         return receiver.videoDecoder;
       }
       if (typeof win.VideoDecoder !== 'function') {
+        // No WebCodecs here (older Safari, some headsets): say so instead of
+        // leaving a black screen on "Connecting" (COLLAB-SCREEN-9).
+        updateStatus(refs.config.labels.relayUnsupported);
         return null;
       }
       const decoder = new win.VideoDecoder({
@@ -707,7 +746,14 @@
       source.connect(destination);
       // A small jitter cushion: scheduling exactly at currentTime would click
       // on every late packet.
-      const startAt = Math.max(context.currentTime + 0.06, receiver.audioPlayhead);
+      const earliest = context.currentTime + 0.06;
+      // Bounded latency: a burst, or a context that was suspended, used to
+      // push the playhead ever further ahead and the delay never recovered
+      // (COLLAB-SCREEN-2). Past the cushion, this slice is dropped.
+      if (receiver.audioPlayhead > earliest + RELAY_AUDIO_MAX_AHEAD_S) {
+        return;
+      }
+      const startAt = Math.max(earliest, receiver.audioPlayhead);
       source.start(startAt);
       receiver.audioPlayhead = startAt + buffer.duration;
     }
