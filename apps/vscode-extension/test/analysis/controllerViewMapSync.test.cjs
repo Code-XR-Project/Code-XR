@@ -71,7 +71,6 @@ const ROUTING_TABLE = Object.freeze({
     'project-evolution.playback': 'project-evolution',
     'project-evolution.mapping': 'mapping',
     'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down',
 });
 
 // 'mapping' is the controller's built-in view; every other panel exists only
@@ -97,9 +96,14 @@ const DEFAULT_VIEW_BY_MODE = Object.freeze({
     'dependency-graph': 'dependency.settings',
     'project-evolution': 'project-evolution',
     'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down',
+    // Drilled, the table keeps the analysis controller (metrics + chart).
+    'drill-down': 'single.mapping',
 });
 const ANALYSIS_MODES = Object.freeze(Object.keys(DEFAULT_VIEW_BY_MODE));
+// A mode that enters on another mode's view, on purpose: drilled, the table
+// keeps the classic analysis controller, so its view infers `single`. The
+// switcher always names the mode, so the inference is never what routes it.
+const MODE_INFERRED_FROM_SHARED_VIEW = Object.freeze({ 'drill-down': 'single' });
 
 // ---------------------------------------------------------------------------
 // Reading the literals
@@ -540,7 +544,7 @@ test('entering a mode without naming a view hands the controller the default vie
         // only a fallback. It is also a fourth spelling of the same ids (one
         // literal and three namespace prefixes), and whatever becomes of it, a
         // mode's own default view must not infer another mode.
-        assert.equal(inferredMode, mode, `the controller infers ${inferredMode} from ${route.view}, the default view of ${mode}`);
+        assert.equal(inferredMode, MODE_INFERRED_FROM_SHARED_VIEW[mode] || mode, `the controller infers ${inferredMode} from ${route.view}, the default view of ${mode}`);
         // And the way back: the panel a mode lands on, opened directly, reports
         // the view that mode entered with.
         assert.equal(reportedView, route.view, `the ${route.shownPanel} panel reports ${reportedView}, not the view ${mode} lands on it with`);

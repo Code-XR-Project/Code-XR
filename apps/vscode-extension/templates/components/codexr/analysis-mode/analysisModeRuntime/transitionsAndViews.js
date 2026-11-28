@@ -332,7 +332,9 @@
     var mappingRuntime = root.CodeXRMappingUiRuntime;
     mappingRuntime?.setMappingControlsEnabled?.(true, '');
     mappingRuntime?.setChartEntityIds?.([], { renormalize: false });
-    if (nextMode !== 'project-evolution') {
+    // The drill-down keeps the chart the classic analysis was showing: the
+    // controller drives the drilled chart with it.
+    if (nextMode !== 'project-evolution' && nextMode !== 'drill-down') {
       var sceneChartId = mappingRuntime?.getSceneChartId?.();
       var restoredChartId = nextMode === 'single'
         ? state.modeSnapshots.single?.chartId

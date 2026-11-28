@@ -11,18 +11,19 @@ Each step says what to do and what you should see. About 10 minutes.
 
 ## 1. Jump into a folder
 
-1. Click a district (a green plate) of the city.
-2. A card appears above the city: *Folder: <name>*, its path, and **Analyze folder**.
-3. Press **Analyze folder**.
-4. Expected:
+1. Click a building first: the card shows *File: <name>*, its path and its three metrics (height, area, colour) above the buttons. BabiaXR's own white legend no longer appears. Close it with X.
+2. Click a district (a green plate) of the city.
+3. A card appears above the city: *Folder: <name>*, its path, and **Analyze folder**.
+4. Press **Analyze folder**. Expected:
    - The table switches in place to the city of that folder only (no page reload; in VR the session stays open). The table changes to a deeper blue.
    - The bar shows `project > ... > folder` and a line such as *53 files: all up to date, nothing analysed.* Every file of a project analysis is reused, so this jump is instant.
-   - The controller panel shows the Drill-down view (Back, Up one level, Classic analysis).
+   - The controller at the table's corner is still the analysis controller (chart type and metrics).
+5. In the controller, pick another chart (Bar Chart) or another metric: the drilled city redraws with it, still showing only that folder. Pick Babia Boats again to go on.
 
 ## 2. Jump into a sub-folder, then a file
 
 1. Click a district of the drilled city, **Analyze folder**: the table shows that sub-folder.
-2. Click a building, then **Analyze file**: the table shows the functions of that file (file analysis). The line says *N functions: freshly analysed.*
+2. Click a building, then **Analyze file**: the table shows the functions of that file (file analysis). The line says *N functions: freshly analysed.* The controller is locked with a note: a file's functions have their own metrics, so go up a level to change them.
 3. **Open in editor** on the card opens the file in VS Code (local scene only).
 
 ## 3. Go back up
@@ -58,7 +59,6 @@ Each step says what to do and what you should see. About 10 minutes.
 
 - The card needs a chart that marks its elements (boats, the default). With a flat chart the drilled data still draws, but clicks open no card.
 - Open in editor only reaches files inside the analysed folder.
-- BabiaXR's own legend (a dark strip) can overlap the card's title when you click a district.
 
 ## Screenshots
 
