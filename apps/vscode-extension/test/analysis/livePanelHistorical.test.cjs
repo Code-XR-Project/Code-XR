@@ -29,6 +29,7 @@ test('the capability table grants LivePanel historical comparison while project 
         dependencyGraph: true,
         historicalComparison: true,
         projectEvolution: false,
+        agentFlow: false,
     });
 });
 
