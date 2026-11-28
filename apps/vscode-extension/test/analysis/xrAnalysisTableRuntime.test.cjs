@@ -289,6 +289,37 @@ test('active containment diagnostics report missing charts and clear warnings in
     assert.equal(warnings.at(-1).level, 'ok');
 });
 
+test('agent flow owns the table: no "No chart detected" warning over its city', () => {
+    const { runtime, sandbox } = loadRuntimeSandbox();
+    const warnings = [];
+    const tableComponent = {
+        data: { mode: 'agent-flow' },
+        setContainmentWarning(diagnostic) {
+            warnings.push(diagnostic);
+            return true;
+        },
+    };
+    const tableEl = { components: { 'codexr-analysis-table': tableComponent } };
+    sandbox.document = {
+        getElementById(id) {
+            return id === 'codexrAnalysisTable' ? tableEl : null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+    };
+    const base = Date.now();
+    sandbox.Date = { now: () => base + 5000 };
+    try {
+        const diagnostic = runtime.getActiveContainmentDiagnostics();
+        assert.equal(diagnostic.level, 'ok');
+        assert.equal(diagnostic.reason, 'agent-flow-owns-table');
+        assert.ok(warnings.every((warning) => warning.message !== 'No chart detected'));
+    } finally {
+        delete sandbox.Date;
+    }
+});
+
 test('a rebuilding chart is graced as pending and only surfaces as a warning when it persists', () => {
     const { runtime, sandbox } = loadRuntimeSandbox();
     const warnings = [];

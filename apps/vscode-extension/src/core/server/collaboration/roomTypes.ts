@@ -65,6 +65,11 @@ export interface CollaborationPeer {
     remoteAddress: string;
     /** On this machine, not through a tunnel or the LAN: the only peers that may act on the host's editor. */
     local: boolean;
+    /**
+     * The IDE's own scene pane: it follows the room but is not a person in it
+     * (no participant, no avatar, never the host). Only a local peer may be one.
+     */
+    viewer?: boolean;
 }
 
 export interface CollaborationRoomState {

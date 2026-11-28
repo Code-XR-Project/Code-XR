@@ -103,6 +103,14 @@
     return Array.prototype.slice.call(roots || []).filter(isEntityVisible);
   }
 
+  function getVisibleModeRoots(doc, mode) {
+    if (!doc || !doc.querySelectorAll) {
+      return [];
+    }
+    var roots = doc.querySelectorAll('[data-codexr-analysis-mode="' + mode + '"]');
+    return Array.prototype.slice.call(roots || []).filter(isEntityVisible);
+  }
+
   function resolveWaitTarget(target, doc) {
     if (typeof target === 'function') {
       try {
@@ -277,6 +285,18 @@
         chartCount: 0,
         statuses: [],
         reason: 'selection-mode'
+      };
+    }
+    if (mode === 'agent-flow') {
+      // Agent Flow draws its own city and its own empty-state hint; it has no
+      // containment chart, so "No chart detected" would always be wrong here.
+      return {
+        level: 'ok',
+        mode: mode,
+        chartCount: 0,
+        visualCount: getVisibleModeRoots(doc, 'agent-flow').length,
+        statuses: [],
+        reason: 'agent-flow-owns-table'
       };
     }
     var charts = resolveDiagnosticTargets(targets, doc);

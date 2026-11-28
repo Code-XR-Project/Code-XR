@@ -610,3 +610,53 @@ test('a dropped room connection reconnects with a growing back-off, reset once i
     sockets.at(-1).onclose({ code: 1006 });
     assert.ok(timeouts.at(-1).ms < 1200);
 });
+
+async function joinMessageFrom(extraWindow) {
+    const sockets = [];
+    function FakeWebSocket(url) {
+        this.url = url;
+        this.readyState = 0;
+        this.sent = [];
+        sockets.push(this);
+    }
+    FakeWebSocket.prototype.send = function (data) {
+        this.sent.push(JSON.parse(data));
+    };
+    FakeWebSocket.prototype.close = function () {};
+    FakeWebSocket.OPEN = 1;
+    FakeWebSocket.CONNECTING = 0;
+    const element = () => ({ style: {}, children: [], appendChild(child) { return child; }, setAttribute() {} });
+    const fakeWindow = {
+        document: {
+            body: element(),
+            readyState: 'complete',
+            createElement: element,
+            getElementById() { return null; },
+            querySelector() { return null; },
+            addEventListener() {},
+            dispatchEvent() { return true; },
+        },
+        location: { protocol: 'http:', host: '127.0.0.1:7777' },
+        WebSocket: FakeWebSocket,
+        CustomEvent: class {},
+        addEventListener() {},
+        setTimeout() { return 0; },
+        clearTimeout() {},
+        console: { log() {}, warn() {}, error() {} },
+        ...extraWindow,
+    };
+    const client = collaborationRuntime.createClient(fakeWindow);
+    client.connect({ presenceEnabled: false, cursorPresenceEnabled: false });
+    await new Promise((resolve) => setImmediate(resolve));
+    const socket = sockets[0];
+    socket.readyState = 1;
+    socket.onopen();
+    return socket.sent.find((message) => message.type === 'room-join');
+}
+
+test('the Code-XR IDE scene pane joins the room as a viewer, a browser as a person', async () => {
+    const pane = await joinMessageFrom({ CodeXRHostBridge: { openInEditor() {} } });
+    assert.deepEqual(pane.payload, { viewer: true });
+    const browser = await joinMessageFrom({});
+    assert.equal(browser.payload, undefined);
+});
