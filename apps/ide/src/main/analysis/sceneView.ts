@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, net, session, type Session, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, desktopCapturer, dialog, net, session, type Session, type WebContents } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { SceneBounds } from '../../shared/api.ts';
@@ -6,6 +6,7 @@ import { allowSceneOrigin } from '../hardening.ts';
 import { log } from '../log.ts';
 import { localSceneOrigin } from './sceneUrl.ts';
 import { allowXrPermission, XR_ARM_MS, type XrArm } from './sceneXrPolicy.ts';
+import { allowScreenShareRequest, shareAudioFor, shareChoices } from './sceneScreenShare.ts';
 import { contentTypeOf, isLoopbackUrl, vendoredLibraryFor } from './sceneLibraries.ts';
 
 /**
@@ -75,11 +76,70 @@ function lockedSession(): Session {
             callback(false);
         });
         sceneSession.setPermissionCheckHandler(() => false);
+        sceneSession.setDisplayMediaRequestHandler((request, callback) => {
+            void answerScreenShare(request.frame?.url ?? '', callback);
+        });
     }
     return sceneSession;
 }
 
 const views = new Map<number, WebContentsView>();
+
+type DisplayMediaCallback = (streams: Electron.Streams | null) => void;
+
+/**
+ * COLLAB-IDE-1: the virtual screen's Share button. Asks the person which
+ * screen or window to share; refusing (or Cancel) answers with nothing, which
+ * the scene reports as a cancelled share.
+ */
+async function answerScreenShare(requestingUrl: string, callback: DisplayMediaCallback): Promise<void> {
+    const scene = sceneOfUrl(requestingUrl);
+    if (!scene || !allowScreenShareRequest(localSceneOrigin(scene.view.webContents.getURL()), requestingUrl)) {
+        log.warn(`Scene view: refused a screen capture request from ${requestingUrl}`);
+        callback({});
+        return;
+    }
+    try {
+        const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
+        const choices = shareChoices(sources.map((source) => ({ id: source.id, name: source.name })));
+        const options = {
+            type: 'question' as const,
+            message: 'Share which screen or window in the scene?',
+            detail: 'Everybody in the room sees it on the virtual screen.',
+            buttons: choices.buttons,
+            cancelId: choices.cancelId,
+            defaultId: 0,
+        };
+        const { response } = scene.win ? await dialog.showMessageBox(scene.win, options) : await dialog.showMessageBox(options);
+        const picked = choices.sources[response];
+        const source = picked ? sources.find((candidate) => candidate.id === picked.id) : undefined;
+        if (!source) {
+            callback({});
+            return;
+        }
+        const audio = shareAudioFor(process.platform);
+        callback(audio ? { video: source, audio } : { video: source });
+    } catch (error) {
+        log.error('Scene view: screen capture failed', error);
+        callback({});
+    }
+}
+
+/** The scene view (and its window) showing a page of this URL's origin. */
+function sceneOfUrl(url: string): { view: WebContentsView; win: BrowserWindow | null } | null {
+    let origin: string;
+    try {
+        origin = new URL(url).origin;
+    } catch {
+        return null;
+    }
+    for (const [windowId, view] of views) {
+        if (localSceneOrigin(view.webContents.getURL()) === origin) {
+            return { view, win: BrowserWindow.fromId(windowId) };
+        }
+    }
+    return null;
+}
 /** #19: per window, the scene the person just asked to enter in XR. */
 const xrArms = new Map<number, XrArm>();
 

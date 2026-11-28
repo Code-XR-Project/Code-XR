@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { getHost, initializeHost } from '@codexr/core/host/hostRegistry';
+import { setServerBindHost } from '@codexr/core/server/serverBindHost';
 import { IPC_EVENTS, type HostNotification, type ProgressEvent } from '../../shared/api.ts';
 import { createElectronHost } from './electronHost.ts';
 import { PythonEnvironmentService } from '../python/pythonEnvironment.ts';
@@ -42,6 +43,10 @@ export function startCore(options: { readonly isSmoke: boolean }): CoreServices 
     const installRoot = extensionInstallRoot();
 
     let python: PythonEnvironmentService | null = null;
+    // The IDE serves its scenes over plain HTTP: keep them off the LAN, where
+    // they would be reachable without pairing and never a secure context.
+    // Guests and headsets come in through the tunnel (COLLAB-IDE-2, #366).
+    setServerBindHost('127.0.0.1');
     initializeHost(createElectronHost({
         storageDir,
         installRoot,
