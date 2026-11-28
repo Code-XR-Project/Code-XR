@@ -611,7 +611,7 @@ test('a dropped room connection reconnects with a growing back-off, reset once i
     assert.ok(timeouts.at(-1).ms < 1200);
 });
 
-async function joinMessageFrom(extraWindow) {
+function createSelfViewHarness() {
     const sockets = [];
     function FakeWebSocket(url) {
         this.url = url;
@@ -625,6 +625,13 @@ async function joinMessageFrom(extraWindow) {
     FakeWebSocket.prototype.close = function () {};
     FakeWebSocket.OPEN = 1;
     FakeWebSocket.CONNECTING = 0;
+    const vector = () => ({ x: 0, y: 0, z: 0, set(x, y, z) { Object.assign(this, { x, y, z }); } });
+    const rig = { object3D: { position: vector(), quaternion: { x: 0, y: 0, z: 0, w: 1, set(x, y, z, w) { Object.assign(this, { x, y, z, w }); } } } };
+    const look = { pitchObject: { rotation: { x: 0 } }, yawObject: { rotation: { y: 0 } } };
+    const head = { object3D: {}, components: { 'look-controls': look } };
+    let immersive = false;
+    const scene = { is: (state) => immersive && state === 'vr-mode' };
+    const frames = [];
     const element = () => ({ style: {}, children: [], appendChild(child) { return child; }, setAttribute() {} });
     const fakeWindow = {
         document: {
@@ -632,7 +639,12 @@ async function joinMessageFrom(extraWindow) {
             readyState: 'complete',
             createElement: element,
             getElementById() { return null; },
-            querySelector() { return null; },
+            querySelector(selector) {
+                if (selector === '#head') { return head; }
+                if (selector === '#rig') { return rig; }
+                if (selector === 'a-scene') { return scene; }
+                return null;
+            },
             addEventListener() {},
             dispatchEvent() { return true; },
         },
@@ -640,23 +652,81 @@ async function joinMessageFrom(extraWindow) {
         WebSocket: FakeWebSocket,
         CustomEvent: class {},
         addEventListener() {},
+        requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
         setTimeout() { return 0; },
         clearTimeout() {},
         console: { log() {}, warn() {}, error() {} },
-        ...extraWindow,
     };
     const client = collaborationRuntime.createClient(fakeWindow);
-    client.connect({ presenceEnabled: false, cursorPresenceEnabled: false });
-    await new Promise((resolve) => setImmediate(resolve));
-    const socket = sockets[0];
-    socket.readyState = 1;
-    socket.onopen();
-    return socket.sent.find((message) => message.type === 'room-join');
+    return {
+        rig, look,
+        setImmersive(value) { immersive = value; },
+        async connect() {
+            client.connect({ presenceEnabled: true, cursorPresenceEnabled: false });
+            await new Promise((resolve) => setImmediate(resolve));
+            const socket = sockets[0];
+            socket.readyState = 1;
+            socket.onopen();
+            return socket;
+        },
+        receive(socket, message) { socket.onmessage({ data: JSON.stringify(message) }); },
+        async frame() {
+            await new Promise((resolve) => setTimeout(resolve, 60));
+            const pending = frames.splice(0);
+            pending.forEach((callback) => callback());
+        },
+        selfViews(socket) { return socket.sent.filter((message) => message.type === 'self-view'); },
+    };
 }
 
-test('the Code-XR IDE scene pane joins the room as a viewer, a browser as a person', async () => {
-    const pane = await joinMessageFrom({ CodeXRHostBridge: { openInEditor() {} } });
-    assert.deepEqual(pane.payload, { viewer: true });
-    const browser = await joinMessageFrom({});
-    assert.equal(browser.payload, undefined);
+test('a local view sends the camera only when the person moves it, never its starting pose', async () => {
+    const view = createSelfViewHarness();
+    const socket = await view.connect();
+    view.receive(socket, { type: 'room-joined', peerId: 'person', roomId: 'r', payload: { localView: true } });
+    await view.frame();
+    await view.frame();
+    assert.equal(view.selfViews(socket).length, 0, 'where a view starts is not a move');
+
+    view.look.yawObject.rotation.y = 0.75;
+    await view.frame();
+    const sent = view.selfViews(socket);
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].payload.look.yaw, 0.75);
+    await view.frame();
+    assert.equal(view.selfViews(socket).length, 1, 'an unchanged camera is not sent again');
+});
+
+test('a view follows the camera it is given and never sends it back (no ping-pong)', async () => {
+    const view = createSelfViewHarness();
+    const socket = await view.connect();
+    view.receive(socket, { type: 'room-joined', peerId: 'person', roomId: 'r', payload: { localView: true } });
+    await view.frame();
+    const camera = { rig: { position: { x: 2, y: 1.6, z: -4 }, quaternion: { x: 0, y: 0.383, z: 0, w: 0.924 } }, look: { pitch: -0.2, yaw: 1.1 } };
+    view.receive(socket, { type: 'self-view', peerId: 'person', payload: camera });
+    assert.deepEqual({ x: view.rig.object3D.position.x, y: view.rig.object3D.position.y, z: view.rig.object3D.position.z }, camera.rig.position);
+    assert.equal(view.look.pitchObject.rotation.x, -0.2);
+    assert.equal(view.look.yawObject.rotation.y, 1.1);
+    await view.frame();
+    await view.frame();
+    assert.equal(view.selfViews(socket).length, 0);
+});
+
+test('remote guests and views in a headset neither lead nor follow the shared camera', async () => {
+    const guest = createSelfViewHarness();
+    const guestSocket = await guest.connect();
+    guest.receive(guestSocket, { type: 'room-joined', peerId: 'guest', roomId: 'r', payload: { localView: false } });
+    await guest.frame();
+    guest.look.yawObject.rotation.y = 2;
+    await guest.frame();
+    assert.equal(guest.selfViews(guestSocket).length, 0);
+
+    const headset = createSelfViewHarness();
+    const headsetSocket = await headset.connect();
+    headset.receive(headsetSocket, { type: 'room-joined', peerId: 'person', roomId: 'r', payload: { localView: true } });
+    headset.setImmersive(true);
+    headset.receive(headsetSocket, { type: 'self-view', peerId: 'person', payload: { rig: { position: { x: 9, y: 9, z: 9 }, quaternion: { x: 0, y: 0, z: 0, w: 1 } }, look: { pitch: 0, yaw: 0 } } });
+    assert.equal(headset.rig.object3D.position.x, 0);
+    headset.look.yawObject.rotation.y = 1;
+    await headset.frame();
+    assert.equal(headset.selfViews(headsetSocket).length, 0);
 });

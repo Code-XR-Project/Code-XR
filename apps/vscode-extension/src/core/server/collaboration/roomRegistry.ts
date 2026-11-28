@@ -66,7 +66,9 @@ export class CollaborationRoomRegistry {
     }
 
     private toConnectedParticipantSummary(participant: ParticipantState): ConnectedParticipantSummary {
-        const peer = this.peers.get(participant.peerId);
+        // A local person whose first view closed is still here through another one (#352).
+        const peer = this.peers.get(participant.peerId)
+            ?? Array.from(this.peers.values()).find((candidate) => candidate.participantId === participant.peerId);
         return {
             peerId: participant.peerId,
             displayName: participant.displayName,

@@ -8,6 +8,15 @@ import {
 } from '../../remote-access/remoteAccessModel';
 import { attachWebSocketEndpoint, WebSocketEndpoint } from '../ws/webSocketEndpoint';
 import {
+    attachLocalView,
+    claimLocalParticipant,
+    localParticipantOf,
+    otherViewsOf,
+    participantIdOf,
+    relaySelfView,
+    releaseLocalParticipant,
+} from './localDevice';
+import {
     CollaborationMessage,
     CollaborationPeer,
     CollaborationRole,
@@ -70,6 +79,16 @@ export interface CollaborationApplicationMessageContext {
     upsertSharedEntity: (entity: SharedEntityState) => void;
     removeSharedEntity: (entityKind: string, entityId: string) => void;
 }
+
+type PeerHandler = (registry: CollaborationRoomRegistry, peer: CollaborationPeer, payload: Record<string, unknown>) => void;
+
+/** The messages a peer sends about itself: presence, presenting, and its camera for its other local views. */
+const PEER_HANDLERS = new Map<string, PeerHandler>([
+    ['presence-update', sharedState.updatePresence],
+    ['self-view', relaySelfView],
+    ['presenter-started', (registry, peer) => sharedState.startPresenter(registry, peer)],
+    ['presenter-stopped', sharedState.stopPresenter],
+]);
 
 export class CollaborationRoomServer {
     private readonly endpoint: WebSocketEndpoint;
@@ -181,7 +200,7 @@ export class CollaborationRoomServer {
             }
             peer.session.profile = { ...profile };
             const room = this.registry.getRoomForPeer(peer);
-            const participant = room?.participants.get(peer.id);
+            const participant = room?.participants.get(participantIdOf(peer));
             if (!room || !participant) {
                 continue;
             }
@@ -224,6 +243,11 @@ export class CollaborationRoomServer {
             return;
         }
 
+        const peerHandler = PEER_HANDLERS.get(message.type);
+        if (peerHandler) {
+            peerHandler(this.registry, peer, message.payload || {});
+            return;
+        }
         switch (message.type) {
             case 'register':
             case 'room-join':
@@ -234,15 +258,6 @@ export class CollaborationRoomServer {
                 return;
             case 'participant-kick':
                 this.kickParticipant(peer, message.payload || {});
-                return;
-            case 'presenter-started':
-                sharedState.startPresenter(this.registry, peer);
-                return;
-            case 'presenter-stopped':
-                sharedState.stopPresenter(this.registry, peer, message.payload || {});
-                return;
-            case 'presence-update':
-                sharedState.updatePresence(this.registry, peer, message.payload || {});
                 return;
             case 'entity-added':
                 sharedState.upsertEntity(this.registry, peer, message, 'entity-added');
@@ -322,16 +337,17 @@ export class CollaborationRoomServer {
         sharedState.upsertAuthoritativeEntity(this.registry, room, entity, peerId);
     }
 
-    /** A local peer that asks to be a viewer (the IDE's scene pane) joins as one. */
+    /** A further view of the person on this machine joins as that person (#352). */
     private enterRoom(peer: CollaborationPeer, message: CollaborationMessage): void {
-        const asViewer = message.payload?.viewer === true && peer.local;
-        if (!asViewer) {
+        const roomId = resolveRoomId(message.roomId, peer.roomId);
+        const room = this.registry.rooms.get(roomId);
+        const localParticipant = peer.local && room ? localParticipantOf(room) : null;
+        if (!room || !localParticipant || participantIdOf(peer) === localParticipant) {
             this.joinRoom(peer, message);
             return;
         }
-        const roomId = resolveRoomId(message.roomId, peer.roomId);
         this.leaveRoom(peer);
-        this.joinAsViewer(peer, this.registry.ensureRoom(roomId));
+        attachLocalView(peer, room, localParticipant, () => this.sendSnapshot(peer, room));
     }
 
     private joinRoom(peer: CollaborationPeer, message: CollaborationMessage): void {
@@ -341,7 +357,6 @@ export class CollaborationRoomServer {
         }
 
         const room = this.registry.ensureRoom(nextRoomId);
-        peer.viewer = false;
         const existingParticipant = room.participants.get(peer.id);
         if (!existingParticipant) {
             peer.anonymousDisplayName = peer.anonymousDisplayName || createAnonymousName(room);
@@ -374,6 +389,7 @@ export class CollaborationRoomServer {
         peer.joinedRoom = true;
         peer.roomId = nextRoomId;
         room.participants.set(peer.id, participant);
+        claimLocalParticipant(peer, room);
         this.emitParticipantsChanged(room);
 
         send(peer, {
@@ -382,7 +398,7 @@ export class CollaborationRoomServer {
             displayName: participant.displayName,
             roomId: room.id,
             revision: room.revision,
-            payload: { participant },
+            payload: { participant, localView: peer.local },
         });
         this.sendSnapshot(peer, room);
 
@@ -398,7 +414,7 @@ export class CollaborationRoomServer {
 
     private transferHost(peer: CollaborationPeer, payload: Record<string, unknown>): void {
         const room = this.registry.getRoomForPeer(peer);
-        const actor = room?.participants.get(peer.id);
+        const actor = room?.participants.get(participantIdOf(peer));
         if (!room || !actor || actor.role !== 'host') {
             sendError(peer, 'forbidden', 'Only the host can transfer the host role.');
             return;
@@ -420,7 +436,7 @@ export class CollaborationRoomServer {
 
     private kickParticipant(peer: CollaborationPeer, payload: Record<string, unknown>): void {
         const room = this.registry.getRoomForPeer(peer);
-        const actor = room?.participants.get(peer.id);
+        const actor = room?.participants.get(participantIdOf(peer));
         if (!room || !actor || actor.role !== 'host') {
             sendError(peer, 'forbidden', 'Only the host can remove a participant.');
             return;
@@ -429,7 +445,7 @@ export class CollaborationRoomServer {
         const targetPeerId = normalizeId(payload.peerId || payload.targetPeerId);
         const targetPeer = this.registry.peers.get(targetPeerId);
         const targetParticipant = room.participants.get(targetPeerId);
-        if (!targetPeer || !targetParticipant || targetPeerId === peer.id) {
+        if (!targetPeer || !targetParticipant || targetPeerId === actor.peerId) {
             sendError(peer, 'invalid-participant', 'The selected participant cannot be removed.');
             return;
         }
@@ -473,20 +489,6 @@ export class CollaborationRoomServer {
         this.registry.peers.delete(peer.id);
     }
 
-    /**
-     * The IDE's scene pane beside the code is the same person as the browser
-     * or headset on this machine: it gets the room's state and its updates,
-     * but takes no participant slot, so it neither shows up as a second
-     * avatar nor takes the host role from the person's real view.
-     */
-    private joinAsViewer(peer: CollaborationPeer, room: CollaborationRoomState): void {
-        peer.viewer = true;
-        peer.joinedRoom = true;
-        peer.roomId = room.id;
-        send(peer, { type: 'room-joined', peerId: peer.id, roomId: room.id, revision: room.revision, payload: { viewer: true } });
-        this.sendSnapshot(peer, room);
-    }
-
     private sendSnapshot(peer: CollaborationPeer, room: CollaborationRoomState): void {
         send(peer, {
             type: 'room-snapshot',
@@ -504,15 +506,20 @@ export class CollaborationRoomServer {
 
     private leaveRoom(peer: CollaborationPeer): void {
         const room = this.registry.getRoomForPeer(peer);
-        if (!room || peer.viewer) {
-            peer.viewer = false;
+        if (!room || otherViewsOf(this.registry, peer, room).length > 0) {
+            // Another view of the same person is still here: only this socket goes.
+            if (room) {
+                sharedState.releaseEntityLocks(this.registry, room, peer.id);
+            }
             peer.joinedRoom = false;
             peer.roomId = null;
             return;
         }
 
-        const participant = room.participants.get(peer.id);
-        if (room.presenterPeerId === peer.id) {
+        const participantId = participantIdOf(peer);
+        releaseLocalParticipant(room, participantId);
+        const participant = room.participants.get(participantId);
+        if (room.presenterPeerId === participantId) {
             room.presenterPeerId = null;
             if (participant) {
                 participant.isPresenter = false;
@@ -521,8 +528,8 @@ export class CollaborationRoomServer {
             }
         }
 
-        room.presence.delete(peer.id);
-        room.participants.delete(peer.id);
+        room.presence.delete(participantId);
+        room.participants.delete(participantId);
         this.emitParticipantsChanged(room);
 
         sharedState.releaseEntityLocks(this.registry, room, peer.id);
@@ -530,10 +537,10 @@ export class CollaborationRoomServer {
         room.revision += 1;
         this.registry.broadcast(room, {
             type: 'presence-left',
-            peerId: peer.id,
+            peerId: participantId,
             roomId: room.id,
             revision: room.revision,
-            payload: { peerId: peer.id },
+            payload: { peerId: participantId },
         }, peer.id);
 
         if (participant?.role === 'host') {
