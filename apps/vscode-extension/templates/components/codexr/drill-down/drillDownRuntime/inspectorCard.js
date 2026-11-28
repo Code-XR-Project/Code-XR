@@ -2,9 +2,9 @@
   // Click a building or a district of the chart on the table and a card
   // opens over it: what it is, where it is, and Analyze / Open in editor.
   // Clicks reach us through the scene (A-Frame's cursor events bubble), so
-  // Babia's click highlight keeps working untouched. Babia's own legend is
-  // hidden while the card can open: the card shows the same three metrics and
-  // the legend would sit on top of it.
+  // Babia's click highlight keeps working untouched. Babia's hover legend
+  // still shows; the one a click pins in place is hidden, because the card
+  // shows the same metrics right where that legend would stay.
 
   function viewContext() {
     var entityState = state.entity || {};
@@ -239,44 +239,25 @@
     state.cardTarget = target;
   }
 
-  /** Babia-boats appends its hover/click legend (an a-plane with babia-lookat) next to the chart. */
-  function isBoatsLegend(node) {
-    if (!node || node.nodeType !== 1 || String(node.tagName).toUpperCase() !== 'A-PLANE' || !node.hasAttribute?.('babia-lookat')) { return false; }
-    var siblings = node.parentNode?.children || [];
-    for (var i = 0; i < siblings.length; i += 1) {
-      var sibling = siblings[i];
-      if (PICKABLE_CHART_IDS.indexOf(sibling.id) !== -1 && sibling.hasAttribute?.('babia-boats')) { return true; }
-    }
-    return false;
+  /**
+   * Babia-boats pins the hover legend of a clicked building (`element.legend`,
+   * an a-plane with babia-lookat appended next to the chart) until the next
+   * click. The card replaces it, so that one legend is hidden; hovering any
+   * other building still shows Babia's legend.
+   */
+  function isPinnedLegend(node) {
+    return !!node && node.nodeType === 1 && String(node.tagName).toUpperCase() === 'A-PLANE' && !!node.hasAttribute?.('babia-lookat');
   }
 
-  function hideLegend(node) {
-    if (!isBoatsLegend(node)) { return; }
-    // Shrunk as well as hidden: showing the classic analysis again re-shows
-    // everything under its root, sticky legends included.
-    node.setAttribute('visible', false);
-    node.setAttribute('scale', '0.0001 0.0001 0.0001');
-    node.setAttribute('data-codexr-hidden-by', 'drill-down card');
-  }
-
-  function hideBoatsLegends(records) {
-    if (!isNavigableMode()) { return; }
-    records.forEach(function (record) {
-      Array.prototype.forEach.call(record.addedNodes || [], hideLegend);
-    });
-  }
-
-  /** Showing the parked classic analysis again shows its sticky legends too: hide them again. */
-  function sweepBoatsLegends() {
-    if (!isNavigableMode()) { return; }
-    Array.prototype.forEach.call(doc()?.querySelectorAll?.('a-plane[babia-lookat]') || [], hideLegend);
-  }
-
-  function bindLegendSuppression(scene) {
-    if (typeof root.MutationObserver !== 'function') { return; }
-    var observer = new root.MutationObserver(hideBoatsLegends);
-    observer.observe(scene, { childList: true, subtree: true });
-    state.disposables.push(function () { observer.disconnect(); });
+  function hidePinnedLegend(element) {
+    var legend = element?.legend;
+    if (!isPinnedLegend(legend)) { return false; }
+    // Shrunk as well as hidden: showing the parked classic analysis again
+    // re-shows everything under its root, this legend included.
+    legend.setAttribute('visible', false);
+    legend.setAttribute('scale', '0.0001 0.0001 0.0001');
+    legend.setAttribute('data-codexr-hidden-by', 'drill-down card');
+    return true;
   }
 
   function handleSceneClick(event) {
@@ -291,6 +272,9 @@
     var target = targetFromRaw(picked.raw, viewContext());
     if (!target) { return; }
     if (!state.entity && !state.stateRequested) { requestState(); }
+    // Babia's own click handler ran first (on the building): its legend is pinned now.
+    hidePinnedLegend(picked.element);
+    if (picked.element !== element) { hidePinnedLegend(element); }
     openCard(target, picked.element, chart, picked.raw);
   }
 
@@ -298,7 +282,6 @@
     var scene = sceneEl();
     if (state.sceneClickBound || !scene) { return !!state.sceneClickBound; }
     scene.addEventListener('click', handleSceneClick);
-    bindLegendSuppression(scene);
     state.sceneClickBound = true;
     state.disposables.push(function () {
       scene.removeEventListener('click', handleSceneClick);

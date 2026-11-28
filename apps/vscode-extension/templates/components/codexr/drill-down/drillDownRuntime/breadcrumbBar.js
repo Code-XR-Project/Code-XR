@@ -92,9 +92,32 @@
     return { text: describeReady(entityState), color: COLORS.muted };
   }
 
+  /**
+   * What the table shows, for the plate on top of the controller: the drilled
+   * target while drilled, the session's own target on the classic analysis.
+   */
+  function tableScope(entityState, inDrill) {
+    if (!entityState) { return null; }
+    var crumbs = inDrill ? entityState.crumbs : entityState.homeCrumbs;
+    var last = Array.isArray(crumbs) && crumbs.length ? crumbs[crumbs.length - 1] : null;
+    var kind = inDrill ? entityState.target?.kind : entityState.homeKind;
+    var label = String(last?.label || entityState.rootLabel || '');
+    return label ? { label: label, kind: kind === 'file' ? 'file' : 'directory' } : null;
+  }
+
+  function syncControllerScope(scope) {
+    var key = scope ? scope.kind + ':' + scope.label : '';
+    if (state.scopeKey === key) { return; }
+    var setter = mappingRuntime()?.setScope;
+    if (typeof setter !== 'function') { return; }
+    state.scopeKey = key;
+    setter(scope);
+  }
+
   function renderBar() {
     var entityState = state.entity;
     var visible = state.initialized && isNavigableMode() && !!entityState;
+    syncControllerScope(visible ? tableScope(entityState, currentMode() === MODE) : null);
     if (!visible) {
       setNodeVisible(refs.bar?.el, false);
       renderLoading();

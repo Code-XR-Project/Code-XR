@@ -4,24 +4,25 @@
   // builders and fitted by the table containment like every other analysis.
   // The classic analysis is parked (hidden), never touched, so Home is
   // instant and its mapping state is exactly what it was.
-  // The table's controller drives the drilled chart: when the drilled rows
+  // The table's controller drives the drilled chart. When the drilled rows
   // have the session's own schema (a folder of a project, a file of a file
-  // analysis) the chart and the metrics are the controller's, and changing
-  // them rebuilds the drilled chart. Otherwise (the functions of one file in
-  // a project) the controller's metrics do not exist in the rows, so the
-  // chart keeps the server's mapping and the controller is locked with why.
-
-  var MISMATCH_REASON = {
-    file: 'Showing the functions of a file: its metrics follow the file analysis. Go up a level to change them.',
-    directory: 'Showing a folder in a file analysis: its metrics follow the folder analysis. Go back to change them.'
-  };
+  // analysis) it keeps its charts and metrics. When they are of the other
+  // kind (the functions of one file in a project) the server sends that
+  // kind's schema and the controller switches to it, in a mapping context of
+  // its own, until the table shows the session's kind again.
 
   function mappingRuntime() { return root.CodeXRMappingUiRuntime || null; }
 
+  /** The schema the controller needs for this entity: null when its own fits. */
+  function controllerSchemaFor(entityState) {
+    if (!entityState || entityState.target?.kind === entityState.homeKind) { return null; }
+    return entityState.controllerSchema || null;
+  }
+
   /** Chart and mapping the drilled view is drawn with, and whether the controller drives it. */
   function drillChartSpec(entityState) {
-    var controllerDriven = !!entityState && entityState.target?.kind === entityState.homeKind;
-    var controller = controllerDriven ? mappingRuntime()?.getState?.() : null;
+    var fits = !!entityState && (entityState.target?.kind === entityState.homeKind || !!entityState.controllerSchema);
+    var controller = fits ? mappingRuntime()?.getState?.() : null;
     var mapping = controller?.lastKnownGoodMapping || controller?.selectedByDimension;
     if (controller?.chartId && mapping && Object.keys(mapping).length) {
       return { chartId: String(controller.chartId), mapping: Object.assign({}, mapping), controllerDriven: true };
@@ -33,19 +34,19 @@
     };
   }
 
-  /** Points the controller at the drilled chart, unlocked or locked with the reason. */
-  function claimController(spec, entityState) {
+  /** Points the controller at the drilled chart, with the schema of the rows on the table. */
+  function claimController(entityState) {
     var runtime = mappingRuntime();
     runtime?.setChartEntityIds?.([CHART_ID], { renormalize: false });
-    var locked = !spec.controllerDriven;
-    if (locked === !!state.controllerLocked) { return; }
-    state.controllerLocked = locked;
-    runtime?.setMappingControlsEnabled?.(!locked, locked ? MISMATCH_REASON[entityState?.target?.kind] || '' : '');
+    var schema = controllerSchemaFor(entityState);
+    var key = schema ? 'drill-down:' + entityState.target.kind : '';
+    if (key === state.schemaKey || typeof runtime?.setSchemaOverride !== 'function') { return; }
+    if (runtime.setSchemaOverride(schema, { contextId: key }) !== false) { state.schemaKey = key; }
   }
 
   function releaseController() {
-    if (state.controllerLocked) { mappingRuntime()?.setMappingControlsEnabled?.(true, ''); }
-    state.controllerLocked = false;
+    if (state.schemaKey) { mappingRuntime()?.setSchemaOverride?.(null); }
+    state.schemaKey = '';
   }
 
   /** A metric or chart change in the controller redraws the drilled chart. */
@@ -93,8 +94,6 @@
     var surface = root.CodeXRAnalysisSurfaceRuntime;
     if (surface?.setNormalVisible) { surface.setNormalVisible(true); }
     else { setNodeVisible(doc()?.getElementById?.('codexrNormalAnalysisRoot'), true); }
-    sweepBoatsLegends();
-    root.setTimeout?.(sweepBoatsLegends, 400);
   }
 
   function ensureViewRoot() {
@@ -167,8 +166,8 @@
    */
   function renderView(entityState) {
     if (!entityState?.datasetUrl) { return false; }
+    claimController(entityState);
     var spec = drillChartSpec(entityState);
-    claimController(spec, entityState);
     var key = [entityState.target?.kind, entityState.target?.relativePath, spec.chartId, entityState.treeField,
       JSON.stringify(spec.mapping)].join('|');
     if (refs.viewRoot && refs.viewRoot.isConnected !== false && state.viewKey === key && refs.data) {

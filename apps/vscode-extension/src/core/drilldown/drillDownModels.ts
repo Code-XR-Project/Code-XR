@@ -28,6 +28,20 @@ export interface DrillCrumb {
 
 export type DrillStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+/**
+ * The corner controller's schema for a target of the other kind than the
+ * session's (a file drilled from a folder analysis): the same keys the mapping
+ * UI reads from its embedded config (templateProcessor's MappingUiSchema).
+ */
+export interface DrillControllerSchema {
+    readonly chartId: string;
+    readonly targetType: DrillTargetKind;
+    readonly dimensions: readonly unknown[];
+    readonly availableCharts: readonly unknown[];
+    readonly dimensionsByChart: Readonly<Record<string, unknown>>;
+    readonly defaultMappingsByChart: Readonly<Record<string, unknown>>;
+}
+
 /** The `drill-down` server entity: everything the scene needs to draw the bar and the chart. */
 export interface DrillDownEntity {
     readonly entityKind: 'drill-down';
@@ -62,6 +76,11 @@ export interface DrillDownEntity {
     readonly chartId: string;
     /** Dimension → field mapping for that chart and target kind. */
     readonly mapping: Readonly<Record<string, string>>;
+    /**
+     * The controller's charts and fields when the target's kind differs from
+     * the session's; null when the session's own controller fits (home, same kind).
+     */
+    readonly controllerSchema: DrillControllerSchema | null;
     /** Path field the boats tree splits ('filePath' for folders, 'treePath' for files). */
     readonly treeField: string;
     /** Rows in the current dataset. */

@@ -455,6 +455,7 @@
     refs.panelContent.appendChild(refs.chartRoot);
     refs.panelContent.appendChild(refs.rowsRoot);
     refs.panelContent.appendChild(refs.statusText);
+    refs.panelContent.appendChild(buildScopeBadge());
     refs.panel.appendChild(refs.panelContent);
 
     refs.toggle = createEntity('a-plane', {
