@@ -21,6 +21,107 @@ export type RoomContext = Pick<CollaborationRoomRegistry, 'getRoomForPeer' | 'br
  * room revision and broadcasts the change through the context.
  */
 
+/**
+ * Entity kinds only the server writes, through its feature bridges. A peer
+ * that tried to write one used to be obeyed (COLLAB-SYNC-1): one guest could
+ * switch everyone's analysis mode while the server believed another, or point
+ * everyone's Agent Flow at a foreign dataset URL.
+ */
+export const SERVER_OWNED_ENTITY_KINDS: ReadonlySet<string> = new Set([
+    'analysis-view',
+    'dependency-graph',
+    'historical-comparison',
+    'project-evolution',
+    'agent-flow',
+    'drill-down',
+]);
+
+/** Shared entities a room may hold; a peer cannot add more (COLLAB-ROOM-5). */
+export const MAX_ENTITIES_PER_ROOM = 256;
+
+function refuseServerOwned(peer: CollaborationPeer, entityKind: string): boolean {
+    if (!SERVER_OWNED_ENTITY_KINDS.has(entityKind)) {
+        return false;
+    }
+    sendError(peer, 'forbidden-entity', `Entities of kind "${entityKind}" are owned by the server.`);
+    return true;
+}
+
+/** Whether another participant holds the gesture lock on this entity. */
+function lockedByOther(entity: SharedEntityState | null | undefined, peer: CollaborationPeer): boolean {
+    const owner = normalizeId(entity?.gestureOwnerPeerId);
+    return !!owner && owner !== peer.id;
+}
+
+/** The ids a peer may appear under: its own socket id and its participant id (#352). */
+function idsOf(peer: CollaborationPeer): Set<string> {
+    return new Set([peer.id, participantIdOf(peer)]);
+}
+
+type ScreenBroadcast = { active?: unknown; broadcasterPeerId?: unknown } | null | undefined;
+
+/**
+ * A screen's broadcast fields belong to its broadcaster. Every screen update
+ * carries them, and a participant who was not broadcasting used to publish
+ * `active: false` with a mere resize, stopping the share for the whole room
+ * (COLLAB-SCREEN-5). While a broadcast is live, only its broadcaster changes them.
+ */
+function keepForeignBroadcast(
+    previous: SharedEntityState | null,
+    next: SharedEntityState,
+    peer: CollaborationPeer,
+): SharedEntityState {
+    if (!previous || next.entityKind !== 'screen') {
+        return next;
+    }
+    const live = previous.broadcast as ScreenBroadcast;
+    const owner = normalizeId(live?.broadcasterPeerId);
+    if (live?.active !== true || !owner || idsOf(peer).has(owner)) {
+        return next;
+    }
+    return {
+        ...next,
+        broadcast: previous.broadcast,
+        broadcastStatus: previous.broadcastStatus,
+        hasAudio: previous.hasAudio,
+    };
+}
+
+/**
+ * Mark every screen broadcast by one of these ids as ended. The broadcast
+ * server stops a share when its sender's socket closes, but the room entity
+ * outlived it and kept saying "live": every later joiner, and the next
+ * person to share, waited on that screen forever (COLLAB-SCREEN-8).
+ */
+export function endBroadcastsOf(context: RoomContext, room: CollaborationRoomState, broadcasterIds: Iterable<string>): void {
+    const ids = new Set(Array.from(broadcasterIds).filter(Boolean));
+    if (ids.size === 0) {
+        return;
+    }
+    for (const [key, entity] of room.entities) {
+        const broadcast = entity.broadcast as ScreenBroadcast;
+        if (entity.entityKind !== 'screen' || broadcast?.active !== true || !ids.has(normalizeId(broadcast.broadcasterPeerId))) {
+            continue;
+        }
+        const nextEntity: SharedEntityState = {
+            ...entity,
+            broadcast: { ...(entity.broadcast as Record<string, unknown>), active: false, broadcasterPeerId: '', hasAudio: false },
+            broadcastStatus: 'idle',
+            hasAudio: false,
+            updatedAt: new Date().toISOString(),
+        };
+        room.entities.set(key, nextEntity);
+        room.revision += 1;
+        context.broadcast(room, {
+            type: 'entity-updated',
+            peerId: normalizeId(broadcast.broadcasterPeerId),
+            roomId: room.id,
+            revision: room.revision,
+            payload: nextEntity,
+        });
+    }
+}
+
 export function upsertAuthoritativeEntity(
     context: RoomContext,
     room: CollaborationRoomState,
@@ -88,15 +189,23 @@ export function upsertEntity(
         return;
     }
 
+    if (refuseServerOwned(peer, entity.entityKind)) {
+        return;
+    }
+
     const key = getEntityKey(entity.entityKind, entity.entityId);
     const previous = room.entities.get(key) ?? null;
-    const nextEntity: SharedEntityState = {
+    if (!previous && room.entities.size >= MAX_ENTITIES_PER_ROOM) {
+        sendError(peer, 'too-many-entities', 'This room cannot hold more shared objects.');
+        return;
+    }
+    const nextEntity: SharedEntityState = keepForeignBroadcast(previous, {
         ...(previous ?? {}),
         ...entity,
         entityKind: entity.entityKind,
         entityId: entity.entityId,
         updatedAt: new Date().toISOString(),
-    };
+    }, peer);
 
     room.entities.set(key, nextEntity);
     room.revision += 1;
@@ -121,8 +230,16 @@ export function updateEntityTransform(context: RoomContext, peer: CollaborationP
         return;
     }
 
+    if (refuseServerOwned(peer, entityKind)) {
+        return;
+    }
+
     const key = getEntityKey(entityKind, entityId);
     const previous = room.entities.get(key);
+    if (previous && lockedByOther(previous, peer)) {
+        // Someone else is dragging it: their gesture wins until they let go.
+        return;
+    }
     if (!previous) {
         // Never resurrect an entity from a bare transform: the rebuilt
         // record would lack its typed fields (contentKind, screen config…)
@@ -155,12 +272,16 @@ export function removeEntity(context: RoomContext, peer: CollaborationPeer, mess
         return;
     }
 
-    removeAuthoritativeEntity(context, 
-        room,
-        String(message.entityKind || message.payload?.entityKind || ''),
-        String(message.entityId || message.payload?.entityId || ''),
-        peer.id,
-    );
+    const entityKind = normalizeId(message.entityKind || message.payload?.entityKind);
+    const entityId = normalizeId(message.entityId || message.payload?.entityId);
+    if (refuseServerOwned(peer, entityKind)) {
+        return;
+    }
+    if (lockedByOther(room.entities.get(getEntityKey(entityKind, entityId)), peer)) {
+        sendError(peer, 'entity-locked', 'Another participant is moving this object.');
+        return;
+    }
+    removeAuthoritativeEntity(context, room, entityKind, entityId, peer.id);
 }
 
 export function updateEntityLock(context: RoomContext, peer: CollaborationPeer, message: CollaborationMessage, isLock: boolean): void {
@@ -175,26 +296,27 @@ export function updateEntityLock(context: RoomContext, peer: CollaborationPeer, 
         return;
     }
 
+    if (refuseServerOwned(peer, entityKind)) {
+        return;
+    }
     const entity = room.entities.get(getEntityKey(entityKind, entityId));
     if (!entity) {
         return;
     }
 
-    const currentOwner = normalizeId(entity.gestureOwnerPeerId);
-    if (isLock) {
-        if (currentOwner && currentOwner !== peer.id) {
-            send(peer, {
-                type: 'entity-lock-denied',
-                peerId: peer.id,
-                roomId: room.id,
-                revision: room.revision,
-                payload: { entityKind, entityId, gestureOwnerPeerId: currentOwner },
-            });
-            return;
-        }
-        entity.gestureOwnerPeerId = peer.id;
-    } else if (!currentOwner || currentOwner === peer.id) {
-        entity.gestureOwnerPeerId = null;
+    const heldByOther = lockedByOther(entity, peer);
+    if (isLock && heldByOther) {
+        send(peer, {
+            type: 'entity-lock-denied',
+            peerId: peer.id,
+            roomId: room.id,
+            revision: room.revision,
+            payload: { entityKind, entityId, gestureOwnerPeerId: normalizeId(entity.gestureOwnerPeerId) },
+        });
+        return;
+    }
+    if (!heldByOther) {
+        entity.gestureOwnerPeerId = isLock ? peer.id : null;
     }
 
     entity.updatedAt = new Date().toISOString();

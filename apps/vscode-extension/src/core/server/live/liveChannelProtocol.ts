@@ -42,6 +42,8 @@ export const LIVE_RECONNECT_MAX_DELAY_MS = 30_000;
 export const LIVE_CLOSE_NORMAL = 1000;
 export const LIVE_CLOSE_GOING_AWAY = 1001;
 export const LIVE_CLOSE_NO_ANALYSIS = 4404;
+/** The host removed this participant; the browser stops reconnecting (#361). */
+export const LIVE_CLOSE_REMOVED = 4001;
 
 /** Every message type the server sends on the live channel. */
 export const LIVE_MESSAGE_TYPES = [

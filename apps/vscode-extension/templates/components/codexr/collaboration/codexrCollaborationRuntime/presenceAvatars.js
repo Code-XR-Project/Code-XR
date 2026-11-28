@@ -97,6 +97,9 @@
       };
     }
 
+    const PRESENCE_LOOP_MS = 50;
+    const PRESENCE_KEEPALIVE_MS = 5000;
+
     function sendPresenceUpdate(force) {
       if (!shared.joinedRoom || !shared.config.presenceEnabled) {
         return;
@@ -105,9 +108,19 @@
       if (!force && now - shared.lastPresenceSentAt < shared.config.presenceIntervalMs) {
         return;
       }
+      // Of several views of the person on this machine (#352), only the one
+      // they are using speaks for the avatar; two views sending their own
+      // cameras made it jump between them (COLLAB-ROOM-7).
+      if (!force && shared.localView && !isImmersiveView() && win.document?.hasFocus?.() === false) {
+        return;
+      }
       const presenceState = buildPresenceState();
-      const signature = JSON.stringify(presenceState);
-      if (!force && signature === shared.lastPresenceSignature) {
+      // lastSeenAt changes every call: left in, nothing was ever a duplicate
+      // and every frame was sent (COLLAB-ROOM-8). An unchanged pose is still
+      // repeated now and then so the others know this person is here.
+      const { lastSeenAt: _lastSeenAt, ...pose } = presenceState;
+      const signature = JSON.stringify(pose);
+      if (!force && signature === shared.lastPresenceSignature && now - shared.lastPresenceSentAt < PRESENCE_KEEPALIVE_MS) {
         return;
       }
       shared.lastPresenceSentAt = now;
@@ -122,7 +135,10 @@
       }
       syncSelfView();
       sendPresenceUpdate(false);
-      (win.requestAnimationFrame || function (callback) { return win.setTimeout(callback, 80); })(updatePresenceLoop);
+      // A timer, not requestAnimationFrame: the page's animation frames stop
+      // in a background tab and, on some headsets, during an immersive
+      // session, which froze the avatar of the very person in VR.
+      win.setTimeout(updatePresenceLoop, PRESENCE_LOOP_MS);
     }
 
     function ensurePresenceLoop() {

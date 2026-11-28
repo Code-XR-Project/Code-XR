@@ -36,6 +36,9 @@
     playbackGeneration: 0,
     viewGeneration: 0,
     frameApplyRequestId: 0,
+    // Prefix of this page's own frame requests: a frame someone else asked
+    // for is never mistaken for a stale one of ours (COLLAB-SYNC-2).
+    frameApplyTag: 'frame-' + Math.random().toString(36).slice(2, 10),
     supersededFrameApplyIds: {},
     timelineMode: 'auto',
     // True while the server is building the movie: shows the progress bar and

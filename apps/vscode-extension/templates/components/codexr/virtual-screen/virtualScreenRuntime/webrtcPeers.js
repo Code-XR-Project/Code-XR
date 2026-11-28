@@ -165,6 +165,9 @@
             return;
           }
           if (peerId === refs.activeBroadcasterId) {
+            if (connection.connectionState !== 'closed' && fallBackToRelay()) {
+              return;
+            }
             const message = connection.connectionState === 'failed'
               ? refs.config.labels.iceFailed
               : refs.config.labels.noSignal;
@@ -179,6 +182,9 @@
             return;
           }
           if (peerId === refs.activeBroadcasterId) {
+            if (connection.iceConnectionState !== 'closed' && fallBackToRelay()) {
+              return;
+            }
             const message = connection.iceConnectionState === 'failed'
               ? refs.config.labels.iceFailed
               : refs.config.labels.noSignal;
@@ -218,7 +224,7 @@
           && state.broadcastStatus !== 'live'
           && !refs.relayReceiver
         ) {
-          requestRelayFallback();
+          fallBackToRelay();
         }
       };
 
@@ -248,6 +254,25 @@
       showChrome();
     }
 
+    /**
+     * The direct path died (ICE failed or dropped). Ask for the relay, once
+     * per join, instead of detaching: detaching also cancelled the first-frame
+     * timer that would have asked, and the viewer sat on "Connecting" forever
+     * (COLLAB-SCREEN-6). Returns false when the relay was already requested.
+     */
+    function fallBackToRelay() {
+      if (refs.relayFallbackRequested || state.streamSourceType === 'local') {
+        return false;
+      }
+      refs.relayFallbackRequested = true;
+      if (refs.remoteFrameWatchTimer) {
+        win.clearTimeout(refs.remoteFrameWatchTimer);
+        refs.remoteFrameWatchTimer = null;
+      }
+      requestRelayFallback();
+      return true;
+    }
+
     function requestRelayFallback() {
       updateStatus(refs.config.labels.relayFallback);
       sendSignaling({
@@ -274,40 +299,54 @@
       if (
         state.broadcastRole === 'viewer'
         && state.broadcastStatus === 'connecting'
-        && (!sharedBroadcast?.broadcasterPeerId || refs.activeBroadcasterId === sharedBroadcast.broadcasterPeerId)
+        && (!sharedBroadcast?.broadcasterPeerId || isCurrentBroadcaster(sharedBroadcast.broadcasterPeerId))
       ) {
         return;
       }
       void startViewerConnection(sharedBroadcast?.broadcasterPeerId || '');
     }
 
-    async function startViewerConnection(broadcasterId) {
+    /**
+     * Whether an id names the broadcast this viewer already follows. Callers
+     * pass either the broadcaster's room peer id (from the screen entity) or
+     * its broadcast client id (from the signaling server); comparing one with
+     * the other never matched, so every entity refresh tore a waiting relay
+     * receiver down and joined again (COLLAB-SCREEN-4).
+     */
+    function isCurrentBroadcaster(broadcasterId) {
+      return !!broadcasterId
+        && (broadcasterId === refs.activeBroadcasterId || broadcasterId === refs.joinedBroadcastKey);
+    }
+
+    async function startViewerConnection(broadcasterId, options) {
       if (!canUseBroadcastTransport() || state.streamSourceType === 'local') {
         return;
       }
-      if (state.broadcastRole === 'viewer' && state.broadcastStatus === 'connecting') {
+      const force = options?.force === true;
+      if (!force && state.broadcastRole === 'viewer' && state.broadcastStatus === 'connecting') {
         // Only suppress a duplicate join sent over THIS socket. After a
         // reconnect the server forgot us, so the rejoin must go out — the old
         // blanket guard left viewers stuck on "connecting" forever.
         if (
           refs.joinAttemptSocket === refs.signalingSocket
-          && (!broadcasterId || refs.activeBroadcasterId === broadcasterId)
+          && (!broadcasterId || isCurrentBroadcaster(broadcasterId))
         ) {
           return;
         }
       }
-      if (broadcasterId && refs.activeBroadcasterId === broadcasterId && state.broadcastStatus === 'live') {
+      if (!force && isCurrentBroadcaster(broadcasterId) && state.broadcastStatus === 'live') {
         return;
       }
 
+      const previousJoinKey = refs.joinedBroadcastKey;
       detachRemoteBroadcast('', {
         notifyServer: false,
         preserveStatus: true,
         skipSharedPublish: true,
       });
-      if (broadcasterId) {
-        refs.activeBroadcasterId = broadcasterId;
-      }
+      // The signaling id arrives with the offer or relay-ready; here we only
+      // remember which broadcast we asked for, under whatever id we got.
+      refs.joinedBroadcastKey = broadcasterId || previousJoinKey || '';
       setBroadcastState('viewer', 'connecting');
       updateStatus(refs.config.labels.connecting);
       if (sendSignaling({ type: 'viewer-join', clientId: getOrCreateClientId() })) {
@@ -335,6 +374,16 @@
           || state.broadcastStatus !== 'connecting'
         ) {
           return;
+        }
+        if (refs.peerConnections.size > 0) {
+          // An offer did arrive, yet no frame after a whole retry interval:
+          // the direct path is not going to work. Re-joining here restarted
+          // the negotiation (and the first-frame timer, which is longer) every
+          // 5 s, so the viewer looped on "Connecting" and never reached the
+          // relay (COLLAB-SCREEN-6). Ask for the relay instead.
+          if (fallBackToRelay()) {
+            return;
+          }
         }
         refs.joinAttemptSocket = null;
         void startViewerConnection(refs.activeBroadcasterId || '');
@@ -427,7 +476,7 @@
     }
 
     function scheduleSignalingReconnect() {
-      if (refs.signalingReconnectTimer || refs.destroyed || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
+      if (refs.signalingReconnectTimer || refs.destroyed || refs.removedFromSession || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
         return;
       }
       refs.signalingReconnectTimer = setTimeout(function () {

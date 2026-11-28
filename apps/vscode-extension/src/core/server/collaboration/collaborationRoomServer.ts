@@ -37,6 +37,14 @@ import {
 } from './roomMessageCodec';
 import { CollaborationRoomRegistry } from './roomRegistry';
 import * as sharedState from './roomSharedState';
+import { resolveRejoin, socketsOf } from './roomRejoin';
+import {
+    bindResumeToken,
+    forgetResumeToken,
+    hasResumable,
+    markInterimHost,
+    noteParticipantLeft,
+} from './roomResume';
 import {
     applyProfileToParticipant,
     createAnonymousName,
@@ -74,6 +82,8 @@ export interface CollaborationApplicationMessageContext {
     roomId: string;
     /** The sender is on this machine (see `CollaborationPeer.local`). */
     local: boolean;
+    /** The sender's role in the room when the message arrived. */
+    role: CollaborationRole;
     send: (payload: Record<string, unknown>) => void;
     broadcast: (payload: Record<string, unknown>) => void;
     upsertSharedEntity: (entity: SharedEntityState) => void;
@@ -90,6 +100,14 @@ const PEER_HANDLERS = new Map<string, PeerHandler>([
     ['presenter-stopped', sharedState.stopPresenter],
 ]);
 
+/** Room messages are small JSON; anything bigger is a bug or an attack (COLLAB-ROOM-5). */
+export const ROOM_MAX_MESSAGE_BYTES = 256 * 1024;
+
+/** The random name a returning anonymous participant was known by. */
+function resumedAnonymousName(previous: ParticipantState | undefined): string {
+    return previous?.identityMode === 'anonymous' ? previous.displayName : '';
+}
+
 export class CollaborationRoomServer {
     private readonly endpoint: WebSocketEndpoint;
     private readonly registry = new CollaborationRoomRegistry();
@@ -104,6 +122,7 @@ export class CollaborationRoomServer {
         this.endpoint = attachWebSocketEndpoint(server, path, {
             authorize: (req) => !this.options.authorizeUpgrade || this.options.authorizeUpgrade(req),
             onConnection: (socket, request) => this.handleConnection(socket, request),
+            maxPayloadBytes: ROOM_MAX_MESSAGE_BYTES,
         });
     }
 
@@ -156,17 +175,18 @@ export class CollaborationRoomServer {
     public removeParticipant(roomId: string, peerId: string): ParticipantRemovalResult {
         const room = this.registry.rooms.get(resolveRoomId(roomId, null));
         const normalizedPeerId = normalizeId(peerId);
-        const targetPeer = this.registry.peers.get(normalizedPeerId);
-        if (!room || !targetPeer || !room.participants.has(normalizedPeerId)) {
+        if (!room?.participants.has(normalizedPeerId)) {
             return { removed: false, sessionId: null, remote: false };
         }
+        return this.removeParticipantEverywhere(room, normalizedPeerId);
+    }
 
-        this.disconnectRemovedPeer(room, targetPeer);
-        return {
-            removed: true,
-            sessionId: targetPeer.session?.sessionId || null,
-            remote: targetPeer.session?.remote === true,
-        };
+    /** Fires after any removal (host UI or in-room kick) with what to revoke. */
+    public onParticipantRemoved(
+        listener: (roomId: string, result: ParticipantRemovalResult) => void,
+    ): () => void {
+        this.events.on('participant-removed', listener);
+        return () => this.events.off('participant-removed', listener);
     }
 
     public upsertServerEntity(roomId: string, entity: SharedEntityState): void {
@@ -302,6 +322,7 @@ export class CollaborationRoomServer {
                 peerId: peer.id,
                 roomId: room.id,
                 local: peer.local,
+                role: room.participants.get(participantIdOf(peer))?.role ?? 'guest',
                 send: (payload) => send(peer, {
                     ...payload,
                     roomId: room.id,
@@ -356,13 +377,20 @@ export class CollaborationRoomServer {
             this.leaveRoom(peer);
         }
 
-        const room = this.registry.ensureRoom(nextRoomId);
-        const existingParticipant = room.participants.get(peer.id);
+        const existingParticipant = this.registry.rooms.get(nextRoomId)?.participants.get(peer.id);
+        const { room, resumeToken, resumed, role } = resolveRejoin(
+            this.registry,
+            peer,
+            nextRoomId,
+            message.payload?.resumeToken,
+            {
+                evict: (target, participantId) => this.evictParticipant(target, participantId),
+                announceRole: (target, participant) => this.broadcastRoleUpdate(target, participant),
+            },
+        );
         if (!existingParticipant) {
-            peer.anonymousDisplayName = peer.anonymousDisplayName || createAnonymousName(room);
+            peer.anonymousDisplayName = peer.anonymousDisplayName || resumedAnonymousName(resumed?.participant) || createAnonymousName(room);
         }
-
-        const role: CollaborationRole = room.participants.size === 0 ? 'host' : 'guest';
         const participant = existingParticipant ?? {
             peerId: peer.id,
             displayName: peer.anonymousDisplayName,
@@ -371,20 +399,11 @@ export class CollaborationRoomServer {
             avatarId: AUTO_AVATAR_ID,
             role,
             isPresenter: false,
-            connectedAt: new Date().toISOString(),
+            connectedAt: resumed?.participant.connectedAt ?? new Date().toISOString(),
         };
 
-        applyProfileToParticipant(
-            room,
-            peer,
-            participant,
-            peer.session?.profile ?? {
-                identityMode: 'anonymous',
-                customName: '',
-                // A peer with no session (local browser) never chose a colour.
-                avatarId: AUTO_AVATAR_ID,
-            },
-        );
+        applyProfileToParticipant(room, peer, participant, this.joiningProfile(peer, resumed?.participant ?? null));
+        bindResumeToken(room, peer.id, resumeToken);
 
         peer.joinedRoom = true;
         peer.roomId = nextRoomId;
@@ -443,14 +462,46 @@ export class CollaborationRoomServer {
         }
 
         const targetPeerId = normalizeId(payload.peerId || payload.targetPeerId);
-        const targetPeer = this.registry.peers.get(targetPeerId);
         const targetParticipant = room.participants.get(targetPeerId);
-        if (!targetPeer || !targetParticipant || targetPeerId === actor.peerId) {
+        if (!targetParticipant || targetPeerId === actor.peerId) {
             sendError(peer, 'invalid-participant', 'The selected participant cannot be removed.');
             return;
         }
 
-        this.disconnectRemovedPeer(room, targetPeer, peer.id);
+        // Same path as a removal from the host's UI: every view goes, and the
+        // server revokes the guest's session and its other sockets (#361).
+        this.removeParticipantEverywhere(room, targetPeerId, peer.id);
+    }
+
+    /**
+     * Removes a participant with every view (#352) and reports who it was, so
+     * the server can revoke their session and close their other sockets
+     * (COLLAB-ROOM-3, COLLAB-ROOM-4).
+     */
+    private removeParticipantEverywhere(
+        room: CollaborationRoomState,
+        participantId: string,
+        actorPeerId?: string,
+    ): ParticipantRemovalResult {
+        const sockets = socketsOf(this.registry, room, participantId);
+        if (sockets.length === 0) {
+            return { removed: false, sessionId: null, remote: false };
+        }
+        const withSession = sockets.find((candidate) => candidate.session) ?? sockets[0];
+        const result: ParticipantRemovalResult = {
+            removed: true,
+            sessionId: withSession.session?.sessionId || null,
+            remote: withSession.session?.remote === true,
+            remoteAddress: withSession.remoteAddress,
+            local: sockets.some((candidate) => candidate.local),
+        };
+        // A removed person must not slip back in under their resume token.
+        forgetResumeToken(room, participantId);
+        for (const target of sockets) {
+            this.disconnectRemovedPeer(room, target, actorPeerId);
+        }
+        this.events.emit('participant-removed', room.id, result);
+        return result;
     }
 
     /**
@@ -510,6 +561,7 @@ export class CollaborationRoomServer {
             // Another view of the same person is still here: only this socket goes.
             if (room) {
                 sharedState.releaseEntityLocks(this.registry, room, peer.id);
+                sharedState.endBroadcastsOf(this.registry, room, [peer.id]);
             }
             peer.joinedRoom = false;
             peer.roomId = null;
@@ -530,9 +582,11 @@ export class CollaborationRoomServer {
 
         room.presence.delete(participantId);
         room.participants.delete(participantId);
+        noteParticipantLeft(room, participant);
         this.emitParticipantsChanged(room);
 
         sharedState.releaseEntityLocks(this.registry, room, peer.id);
+        sharedState.endBroadcastsOf(this.registry, room, [peer.id, participantId]);
 
         room.revision += 1;
         this.registry.broadcast(room, {
@@ -549,7 +603,7 @@ export class CollaborationRoomServer {
 
         peer.joinedRoom = false;
         peer.roomId = null;
-        if (room.participants.size === 0 && room.entities.size === 0) {
+        if (room.participants.size === 0 && room.entities.size === 0 && !hasResumable(room)) {
             this.registry.rooms.delete(room.id);
         }
     }
@@ -561,8 +615,33 @@ export class CollaborationRoomServer {
             return;
         }
         nextHost.role = 'host';
+        // Interim: the host who dropped takes the role back on return (#360).
+        markInterimHost(room, nextHost.peerId);
         room.revision += 1;
         this.broadcastRoleUpdate(room, nextHost);
+    }
+
+    /** The profile a joining socket starts with; a returning person keeps the colour the others knew. */
+    private joiningProfile(peer: CollaborationPeer, previous: ParticipantState | null): CollaborationProfile {
+        const profile = peer.session?.profile ?? {
+            identityMode: 'anonymous' as IdentityMode,
+            customName: '',
+            // A peer with no session (local browser) never chose a colour.
+            avatarId: AUTO_AVATAR_ID,
+        };
+        return previous && profile.avatarId === AUTO_AVATAR_ID ? { ...profile, avatarId: previous.avatarId } : profile;
+    }
+
+    /** Drops a participant's sockets at once (a ghost replaced by its own reconnect). */
+    private evictParticipant(room: CollaborationRoomState, participantId: string): void {
+        for (const ghost of socketsOf(this.registry, room, participantId)) {
+            try {
+                ghost.socket.terminate();
+            } catch {
+                // Already gone.
+            }
+            this.handleDisconnect(ghost);
+        }
     }
 
     private broadcastRoleUpdate(room: CollaborationRoomState, participant: ParticipantState): void {

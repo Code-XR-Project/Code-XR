@@ -136,3 +136,58 @@ test('an unauthorized upgrade has its socket destroyed; an authorized one on the
         await close(server);
     }
 });
+
+test('the heartbeat terminates a socket that stops answering pings and keeps one that answers (COLLAB-ROOM-1)', async () => {
+    const { attachWebSocketEndpoint } = out('core', 'server', 'ws', 'webSocketEndpoint.js');
+    const server = http.createServer();
+    const endpoint = attachWebSocketEndpoint(server, '/beat', {
+        authorize: () => true,
+        onConnection: () => undefined,
+    }, 60);
+    const port = await listen(server);
+    const healthy = new WebSocket(`ws://127.0.0.1:${port}/beat`);
+    const silent = new WebSocket(`ws://127.0.0.1:${port}/beat`, { autoPong: false });
+    try {
+        await Promise.all([healthy, silent].map((socket) => new Promise((resolve) => socket.once('open', resolve))));
+        const silentClosed = new Promise((resolve) => silent.once('close', (code) => resolve(code)));
+        assert.equal(await silentClosed, 1006);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.equal(healthy.readyState, WebSocket.OPEN);
+    } finally {
+        healthy.terminate();
+        silent.terminate();
+        endpoint.detach();
+        endpoint.socketServer.close();
+        await close(server);
+    }
+});
+
+test('closeWhere closes only the sockets whose upgrade request matches, and caps message size', async () => {
+    const { attachWebSocketEndpoint } = out('core', 'server', 'ws', 'webSocketEndpoint.js');
+    const server = http.createServer();
+    const endpoint = attachWebSocketEndpoint(server, '/tagged', {
+        authorize: () => true,
+        onConnection: () => undefined,
+        maxPayloadBytes: 1024,
+    });
+    const port = await listen(server);
+    const removed = new WebSocket(`ws://127.0.0.1:${port}/tagged?who=removed`);
+    const kept = new WebSocket(`ws://127.0.0.1:${port}/tagged?who=kept`);
+    try {
+        await Promise.all([removed, kept].map((socket) => new Promise((resolve) => socket.once('open', resolve))));
+        const removedClosed = new Promise((resolve) => removed.once('close', (code) => resolve(code)));
+        assert.equal(endpoint.closeWhere((request) => request.url.includes('who=removed')), 1);
+        assert.equal(await removedClosed, 4001);
+        assert.equal(kept.readyState, WebSocket.OPEN);
+
+        const keptClosed = new Promise((resolve) => kept.once('close', (code) => resolve(code)));
+        kept.send('x'.repeat(4096));
+        assert.equal(await keptClosed, 1009);
+    } finally {
+        removed.terminate();
+        kept.terminate();
+        endpoint.detach();
+        endpoint.socketServer.close();
+        await close(server);
+    }
+});

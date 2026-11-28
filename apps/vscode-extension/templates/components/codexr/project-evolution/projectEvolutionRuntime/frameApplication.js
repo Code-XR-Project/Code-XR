@@ -15,9 +15,13 @@
       delete state.supersededFrameApplyIds[payload.requestId];
       return;
     }
+    // Only an older request of OUR OWN is stale. A frame another participant
+    // asked for while ours was in flight used to be dropped, so people who
+    // seeked at the same time ended up on different frames (COLLAB-SYNC-2).
+    var ownRequest = typeof payload.requestId === 'string' && payload.requestId.indexOf(state.frameApplyTag + '-') === 0;
     if (
       pending
-      && payload.requestId
+      && ownRequest
       && pending.requestId
       && payload.requestId !== pending.requestId
     ) {
