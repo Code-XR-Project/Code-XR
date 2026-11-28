@@ -93,7 +93,8 @@ test('Claude Code tool names map onto the visual verbs, and project folders are 
     assert.equal(claudeToolKind('Glob'), 'search');
     assert.equal(claudeToolKind('WebFetch'), 'fetch');
     assert.equal(claudeToolKind('mcp__code-xr__get_metrics'), 'fetch');
-    assert.equal(claudeToolKind('Task'), 'think');
+    assert.equal(claudeToolKind('Task'), 'delegate');
+    assert.equal(claudeToolKind('Agent'), 'delegate');
     assert.equal(encodeClaudeProjectDir('/home/a/Code-XR'), '-home-a-Code-XR');
     assert.equal(encodeClaudeProjectDir('C:\\Users\\A\\x.y'), 'C--Users-A-x-y');
 });
@@ -213,8 +214,16 @@ test('the sample session builds the dataset the scene draws: turns, touches, pat
     assert.equal(dataset.revision, 7);
     assert.equal(dataset.rootName, 'vscode-extension');
     assert.equal(dataset.turns.length, 3);
-    assert.equal(dataset.steps.length, 20);
-    assert.deepEqual(dataset.turns.map((t) => [t.stepStart, t.stepEnd]), [[0, 5], [6, 14], [15, 19]]);
+    assert.equal(dataset.steps.length, 29);
+    assert.deepEqual(dataset.turns.map((t) => [t.stepStart, t.stepEnd]), [[0, 13], [14, 23], [24, 28]]);
+    assert.deepEqual(dataset.actors.map((a) => [a.id, a.kind, a.parent, a.steps]), [
+        ['main', 'main', null, 23], ['tool-sub-a', 'subagent', 0, 3], ['tool-sub-b', 'subagent', 0, 3],
+    ]);
+    assert.equal(dataset.actors[1].label, 'Map the tooltip code');
+    assert.equal(dataset.steps[dataset.actors[1].spawnStep].kind, 'delegate');
+    assert.equal(dataset.steps[dataset.actors[1].spawnStep].spawns, 1);
+    assert.ok(dataset.steps.some((s, i) => i > 0 && s.actor !== dataset.steps[i - 1].actor), 'sub-agent steps interleave with the main agent\'s in time');
+    assert.equal(dataset.steps.find((s) => s.kind === 'wait').status, 'done');
     const file = dataset.files.find((f) => f.path === tooltips);
     assert.equal(file.touches.reads, 3);
     assert.equal(file.touches.writes, 2);
@@ -239,6 +248,77 @@ test('the sample session builds the dataset the scene draws: turns, touches, pat
     for (const step of dataset.steps) {
         assert.ok(!('paths' in step), 'builder internals do not leak into the dataset');
     }
+    for (const step of dataset.steps) {
+        assert.ok(step.at >= dataset.steps[Math.max(0, step.seq - 1)].at, 'steps are in time order');
+    }
+});
+
+test('the city is a boats plan: nested quarters rise one plate per level and hold their buildings', () => {
+    const base = sampleBaseMetrics(EXT_ROOT).map((file) => ({ path: file.path, weight: Math.max(1, file.loc) }));
+    const layout = layoutCity(base, [], undefined, true);
+    const depths = new Set(layout.districts.map((d) => d.depth));
+    for (const depth of depths) {
+        if (depth > 1) { assert.ok(depths.has(depth - 1), `level ${depth} sits on a level ${depth - 1}`); }
+    }
+    const inside = (outer, inner) => inner.x - inner.w / 2 >= outer.x - outer.w / 2 - 1e-6 && inner.x + inner.w / 2 <= outer.x + outer.w / 2 + 1e-6
+        && inner.z - inner.d / 2 >= outer.z - outer.d / 2 - 1e-6 && inner.z + inner.d / 2 <= outer.z + outer.d / 2 + 1e-6;
+    for (const file of base) {
+        const rect = layout.files.get(file.path);
+        const home = layout.districts.filter((d) => file.path.startsWith(`${d.path}/`)).sort((a, b) => b.depth - a.depth)[0];
+        if (!home) { continue; }
+        assert.ok(inside(home, rect), `${file.path} stands on its quarter`);
+        assert.ok(Math.abs(rect.y - (home.y + 0.014)) < 1e-9, `${file.path} stands on top of its quarter's plate`);
+    }
+    for (const district of layout.districts) {
+        const parent = layout.districts.filter((d) => district.path.startsWith(`${d.path}/`)).sort((a, b) => b.depth - a.depth)[0];
+        if (parent) { assert.ok(inside(parent, district), `${district.path} lies inside ${parent.path}`); }
+    }
+    const again = layoutCity(base, [], undefined, true);
+    assert.deepEqual([...again.files.entries()], [...layout.files.entries()], 'the plan is deterministic');
+});
+
+test('sub-agents: Agent calls spawn workers, side-chain lines and sub-agent transcripts are theirs', () => {
+    const root = '/work/demo';
+    const lines = [
+        { type: 'user', timestamp: '2026-11-28T10:00:00Z', message: { role: 'user', content: 'Explore' } },
+        { type: 'assistant', timestamp: '2026-11-28T10:00:01Z', message: { role: 'assistant', content: [{ type: 'tool_use', id: 'call-1', name: 'Agent', input: { description: 'Map the parser', prompt: '...' } }] } },
+        { type: 'user', timestamp: '2026-11-28T10:00:02Z', toolUseResult: { status: 'async_launched', agentId: 'abc' }, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'call-1', content: 'launched' }] } },
+        { type: 'assistant', timestamp: '2026-11-28T10:00:03Z', isSidechain: true, agentId: 'abc', message: { role: 'assistant', content: [{ type: 'tool_use', id: 'side-1', name: 'Read', input: { file_path: `${root}/src/parser.ts` } }] } },
+    ].map((line) => JSON.stringify(line)).join('\n');
+    const { events } = parseClaudeCodeTranscript(lines);
+    const delegate = events.find((e) => e.type === 'step' && e.kind === 'delegate');
+    assert.deepEqual(delegate.spawns, { id: 'call-1', label: 'Map the parser' });
+    const side = events.find((e) => e.type === 'step' && e.id === 'side-1');
+    assert.equal(side.actor, 'call-1', 'a side-chain line belongs to the call that launched its agent');
+
+    // The current layout: the sub-agent writes its own transcript, its meta names the call.
+    const home = tmpDir('codexr-af-sub-');
+    const project = path.join(home, 'work', 'proj');
+    fs.mkdirSync(path.join(project, 'src'), { recursive: true });
+    const dir = path.join(home, '.claude', 'projects', encodeClaudeProjectDir(project));
+    fs.mkdirSync(path.join(dir, 's1', 'subagents'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 's1.jsonl'), lines.split('\n').slice(0, 3).map((line) => line.replace(/\/work\/demo/g, project)).join('\n').replace('"Explore"', '"Explore"') + '\n');
+    fs.writeFileSync(path.join(dir, 's1', 'subagents', 'agent-abc.meta.json'), JSON.stringify({ toolUseId: 'call-1', description: 'Map the parser' }));
+    fs.writeFileSync(path.join(dir, 's1', 'subagents', 'agent-abc.jsonl'), `${JSON.stringify({ type: 'assistant', timestamp: '2026-11-28T10:00:04Z', isSidechain: true, agentId: 'abc', cwd: project, message: { role: 'assistant', content: [{ type: 'tool_use', id: 'sub-read', name: 'Read', input: { file_path: path.join(project, 'src', 'parser.ts') } }] } })}\n`);
+    const [source] = discoverClaudeCodeSessions(project, { home });
+    const followed = [];
+    source.follow((batch) => followed.push(...batch))();
+    const subRead = followed.find((e) => e.type === 'step' && e.id === 'sub-read');
+    assert.equal(subRead.actor, 'call-1');
+    assert.equal(subRead.actorLabel, 'Map the parser');
+    const { dataset } = buildAgentFlowDataset({ root: project, session: session(), events: followed, baseMetrics: [{ path: 'src/parser.ts', loc: 40 }], revision: 1 });
+    assert.deepEqual(dataset.actors.map((a) => [a.id, a.label, a.spawnStep]), [['main', 'Test', null], ['call-1', 'Map the parser', 0]]);
+    assert.equal(dataset.steps.find((s) => s.kind === 'read').actor, 1);
+});
+
+test('an ACP permission request is a wait at the building of the tool it asks for', () => {
+    const mapper = new AcpSessionEventMapper();
+    mapper.map({ type: 'tool', id: 't1', toolKind: 'edit', status: 'pending', locations: [{ path: '/p/a.ts' }] }, 1);
+    const [ask] = mapper.map({ type: 'permission', id: 'q1', toolCallId: 't1', title: 'Edit a.ts?' }, 2);
+    assert.deepEqual(ask, { type: 'step', at: 2, id: 'permission:q1', kind: 'wait', tool: 'permission', title: 'Edit a.ts?', status: 'running', locations: [{ path: '/p/a.ts' }] });
+    assert.equal(mapper.map({ type: 'permission-resolved', id: 'q1', outcome: 'allow_once' }, 3)[0].status, 'done');
+    mapper.map({ type: 'permission', id: 'q2', title: 'Run rm?' }, 4);
+    assert.equal(mapper.map({ type: 'permission-resolved', id: 'q2', outcome: 'reject_once' }, 5)[0].status, 'failed');
 });
 
 test('a rebuild with the previous layout never moves a building, and new outside files take new slots', () => {

@@ -32,6 +32,22 @@ function sampleEvents(root) {
         'templates/components/common/codexrCommonRuntime.js',
         'src/core/dependencies/dependencyGraphModels.ts',
     ].map((p) => ({ path: abs(p) })) } });
+    // Two sub-agents explore in parallel while the main agent reads on.
+    step('delegate', 'Agent', [], { title: 'Agent: Map the tooltip code', fields: { spawns: { id: 'tool-sub-a', label: 'Map the tooltip code' } }, wait: 3 });
+    const spawnA = t;
+    step('delegate', 'Agent', [], { title: 'Agent: Find the dependency tests', fields: { spawns: { id: 'tool-sub-b', label: 'Find the dependency tests' } }, wait: 1 });
+    const spawnB = t;
+    const sub = (actor, start, kind, tool, files, extra = {}) => {
+        const id = `${actor}-${++n}`;
+        events.push({ type: 'step', at: start, id, kind, tool, title: extra.title ?? `${tool} ${files.map((f) => path.basename(f)).join(', ')}`.trim(), status: 'running', actor, subagent: true, locations: files.map((f) => ({ path: abs(f) })) });
+        events.push({ type: 'step', at: start + 2500, id, kind, status: 'done', actor, ...(extra.update ?? {}) });
+    };
+    sub('tool-sub-a', spawnA + 2000, 'read', 'Read', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/edgesAndHighlights.js']);
+    sub('tool-sub-a', spawnA + 6000, 'read', 'Read', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/componentCore.js']);
+    sub('tool-sub-a', spawnA + 10000, 'read', 'Read', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/scalesAndControls.js']);
+    sub('tool-sub-b', spawnB + 1500, 'search', 'Glob', [], { title: 'Glob test/analysis/dependency*', update: { locations: ['test/analysis/dependencyGraph.test.cjs'].map((p) => ({ path: abs(p) })) } });
+    sub('tool-sub-b', spawnB + 5500, 'read', 'Read', ['test/analysis/dependencyGraph.test.cjs']);
+    sub('tool-sub-b', spawnB + 9500, 'read', 'Read', ['src/core/server/analysis/dependencyGraphBridge.ts']);
     step('read', 'Read', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/tooltipsAndSelection.js']);
     step('read', 'Read', ['src/core/dependencies/dependencyGraphModels.ts']);
     step('read', 'Read', ['src/core/dependencies/dependencyGraphService.ts']);
@@ -45,6 +61,10 @@ function sampleEvents(root) {
     step('write', 'Edit', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/datasetProjection.js'], { fields: { added: 6, removed: 1 } });
     step('read', 'Read', ['test/analysis/dependencyGraph.test.cjs']);
     step('write', 'Write', ['test/analysis/dependencyGraphTooltip.test.cjs'], { fields: { added: 58, created: [abs('test/analysis/dependencyGraphTooltip.test.cjs')] } });
+    // The agent stops for the person's permission before running the tests.
+    step('wait', 'permission', [], { title: 'Allow: npm run test:unit', wait: 3, update: {} });
+    events[events.length - 1].at += 5000;
+    t += 5000;
     step('execute', 'Bash', [], { title: 'npm run test:unit -- dependencyGraphTooltip', fields: { command: 'npm run test:unit -- dependencyGraphTooltip' }, failed: true, update: { exitCode: 1 }, wait: 8 });
     step('read', 'Read', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/tooltipsAndSelection.js']);
     step('write', 'Edit', ['templates/components/codexr/dependency-graph/dependencyGraphRuntime/tooltipsAndSelection.js'], { fields: { added: 2, removed: 2 } });

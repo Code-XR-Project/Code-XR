@@ -32,6 +32,9 @@ export type AcpSessionEventLike =
         readonly rawInput?: string;
     }
     | { readonly type: 'terminal-output'; readonly terminalId: string; readonly exitCode?: number | null }
+    /** The agent asks the person before a tool runs; resolved by `permission-resolved`. */
+    | { readonly type: 'permission'; readonly id: string; readonly toolCallId?: string; readonly title: string }
+    | { readonly type: 'permission-resolved'; readonly id: string; readonly outcome: string }
     | { readonly type: 'turn-end'; readonly stopReason?: string; readonly at?: string }
     | {
         readonly type: 'metric-delta';
@@ -98,6 +101,8 @@ function change(changes: readonly { metric: string; before: number | null; after
 export class AcpSessionEventMapper {
     private readonly kinds = new Map<string, AgentStepKind>();
     private readonly terminals = new Map<string, string>();
+    /** Where each tool works, so a permission asked for it waits at the same building. */
+    private readonly locations = new Map<string, AgentTraceLocation[]>();
     private turnOpen = false;
 
     public map(event: AcpSessionEventLike, at: number): AgentTraceEvent[] {
@@ -120,6 +125,20 @@ export class AcpSessionEventMapper {
                     type: 'step', at, id: toolId, kind: 'execute', exitCode: output.exitCode,
                     status: output.exitCode === 0 ? 'done' : 'failed',
                 }];
+            }
+            case 'permission': {
+                const ask = event as Extract<AcpSessionEventLike, { type: 'permission' }>;
+                const step: Extract<AgentTraceEvent, { type: 'step' }> = {
+                    type: 'step', at, id: `permission:${ask.id}`, kind: 'wait', tool: 'permission', title: ask.title, status: 'running',
+                };
+                const locations = ask.toolCallId ? this.locations.get(ask.toolCallId) : undefined;
+                if (locations && locations.length > 0) { step.locations = locations; }
+                return [step];
+            }
+            case 'permission-resolved': {
+                const done = event as Extract<AcpSessionEventLike, { type: 'permission-resolved' }>;
+                const rejected = /reject|deny|cancel/i.test(done.outcome);
+                return [{ type: 'step', at, id: `permission:${done.id}`, kind: 'wait', status: rejected ? 'failed' : 'done' }];
             }
             case 'turn-end': {
                 const end = event as Extract<AcpSessionEventLike, { type: 'turn-end' }>;
@@ -173,6 +192,7 @@ export class AcpSessionEventMapper {
             }
         }
         this.kinds.set(event.id, kind);
+        if (locations.length > 0) { this.locations.set(event.id, locations); }
         const step: Extract<AgentTraceEvent, { type: 'step' }> = { type: 'step', at, id: event.id, kind };
         const status = acpStatus(event.status);
         if (status) { step.status = status; }

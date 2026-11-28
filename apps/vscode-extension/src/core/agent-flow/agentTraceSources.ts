@@ -128,6 +128,41 @@ interface LineParser {
     pushLine(line: string): AgentTraceEvent[];
 }
 
+/** Another transcript of the same session (a sub-agent's), followed with its own parser. */
+interface Companion {
+    file: string;
+    createParser: () => LineParser;
+}
+
+/**
+ * Claude Code writes each sub-agent's transcript to
+ * `<session>/subagents/agent-<id>.jsonl`, with `agent-<id>.meta.json` naming
+ * the Agent/Task call that spawned it (`toolUseId`) and its `description`.
+ */
+export function claudeSubagentTranscripts(sessionFile: string): Companion[] {
+    const dir = path.join(sessionFile.replace(/\.jsonl$/, ''), 'subagents');
+    let names: string[];
+    try {
+        names = fs.readdirSync(dir).filter((name) => /^agent-[\w-]+\.jsonl$/.test(name)).sort();
+    } catch {
+        return [];
+    }
+    return names.map((name) => {
+        const file = path.join(dir, name);
+        const agentId = name.slice('agent-'.length, -'.jsonl'.length);
+        let actor = `agent:${agentId}`;
+        let label: string | undefined;
+        try {
+            const meta = JSON.parse(fs.readFileSync(path.join(dir, `agent-${agentId}.meta.json`), 'utf8')) as Record<string, unknown>;
+            if (typeof meta.toolUseId === 'string' && meta.toolUseId) { actor = meta.toolUseId; }
+            if (typeof meta.description === 'string' && meta.description) { label = meta.description; }
+        } catch {
+            // No meta yet: the side-chain lines still name the agent.
+        }
+        return { file, createParser: () => new ClaudeCodeTranscriptParser(label ? { actor, actorLabel: label } : { actor }) };
+    });
+}
+
 /** Follows a JSONL file: reads it whole, then only what is appended. */
 export class JsonlFileAgentTraceSource implements AgentTraceSource {
     public readonly id: string;
@@ -137,8 +172,10 @@ export class JsonlFileAgentTraceSource implements AgentTraceSource {
     private readonly title: string;
     private readonly createParser: () => LineParser;
     private readonly pollMs: number;
+    private readonly companions: (() => Companion[]) | undefined;
 
-    constructor(id: string, kind: AgentTraceSourceKind, agent: string, file: string, title: string, createParser: () => LineParser, pollMs = POLL_MS) {
+    constructor(id: string, kind: AgentTraceSourceKind, agent: string, file: string, title: string, createParser: () => LineParser, pollMs = POLL_MS, companions?: () => Companion[]) {
+        this.companions = companions;
         this.id = id;
         this.kind = kind;
         this.agent = agent;
@@ -159,34 +196,20 @@ export class JsonlFileAgentTraceSource implements AgentTraceSource {
     }
 
     public follow(onEvents: (events: AgentTraceEvent[]) => void): () => void {
-        const parser = this.createParser();
-        let offset = 0;
-        let remainder = '';
+        const tails = new Map<string, JsonlTail>([[this.file, new JsonlTail(this.file, this.createParser())]]);
         let stopped = false;
         let reading = false;
         const readMore = () => {
             if (stopped || reading) { return; }
             reading = true;
             try {
-                const size = fs.statSync(this.file).size;
-                if (size < offset) { offset = 0; remainder = ''; } // truncated / rewritten
-                if (size === offset) { return; }
-                const fd = fs.openSync(this.file, 'r');
-                try {
-                    const buffer = Buffer.alloc(size - offset);
-                    fs.readSync(fd, buffer, 0, buffer.length, offset);
-                    offset = size;
-                    const text = remainder + buffer.toString('utf8');
-                    const lines = text.split('\n');
-                    remainder = lines.pop() ?? '';
-                    const events: AgentTraceEvent[] = [];
-                    for (const line of lines) { events.push(...parser.pushLine(line)); }
-                    if (events.length > 0) { onEvents(events); }
-                } finally {
-                    fs.closeSync(fd);
+                // Sub-agents write transcripts of their own next to the session's: follow each as it appears.
+                for (const companion of this.companions?.() ?? []) {
+                    if (!tails.has(companion.file)) { tails.set(companion.file, new JsonlTail(companion.file, companion.createParser())); }
                 }
-            } catch {
-                // The file vanished or is locked for a moment: try again on the next tick.
+                const events: AgentTraceEvent[] = [];
+                for (const tail of tails.values()) { events.push(...tail.read()); }
+                if (events.length > 0) { onEvents(events); }
             } finally {
                 reading = false;
             }
@@ -197,6 +220,43 @@ export class JsonlFileAgentTraceSource implements AgentTraceSource {
         return () => { stopped = true; clearInterval(timer); };
     }
 }
+
+/** Reads a JSONL file whole, then only what is appended. */
+class JsonlTail {
+    private offset = 0;
+    private remainder = '';
+    private readonly file: string;
+    private readonly parser: LineParser;
+
+    constructor(file: string, parser: LineParser) {
+        this.file = file;
+        this.parser = parser;
+    }
+
+    public read(): AgentTraceEvent[] {
+        const events: AgentTraceEvent[] = [];
+        try {
+            const size = fs.statSync(this.file).size;
+            if (size < this.offset) { this.offset = 0; this.remainder = ''; } // truncated / rewritten
+            if (size === this.offset) { return events; }
+            const fd = fs.openSync(this.file, 'r');
+            try {
+                const buffer = Buffer.alloc(size - this.offset);
+                fs.readSync(fd, buffer, 0, buffer.length, this.offset);
+                this.offset = size;
+                const lines = (this.remainder + buffer.toString('utf8')).split('\n');
+                this.remainder = lines.pop() ?? '';
+                for (const line of lines) { events.push(...this.parser.pushLine(line)); }
+            } finally {
+                fs.closeSync(fd);
+            }
+        } catch {
+            // The file vanished or is locked for a moment: try again on the next tick.
+        }
+        return events;
+    }
+}
+
 
 function readHead(file: string): string {
     try {
@@ -280,7 +340,10 @@ export function discoverClaudeCodeSessions(root: string, options: DiscoveryOptio
         // The encoded name is lossy (`a-b` and `a/b` collide): confirm with the recorded cwd.
         if (cwd && !isWithinRoot(root, cwd)) { continue; }
         const id = `claude-code:${path.basename(file, '.jsonl')}`;
-        sources.push(new JsonlFileAgentTraceSource(id, 'claude-code', 'Claude Code', file, titleFrom(prompt, 'Claude Code session'), () => new ClaudeCodeTranscriptParser()));
+        sources.push(new JsonlFileAgentTraceSource(
+            id, 'claude-code', 'Claude Code', file, titleFrom(prompt, 'Claude Code session'),
+            () => new ClaudeCodeTranscriptParser(), POLL_MS, () => claudeSubagentTranscripts(file),
+        ));
     }
     return sources;
 }

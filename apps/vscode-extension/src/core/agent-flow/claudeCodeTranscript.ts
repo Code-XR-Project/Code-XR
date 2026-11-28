@@ -7,7 +7,7 @@
  * Only the structure is read: tool names, file paths, commands, exit status
  * and the first characters of each prompt (the turn label). Pure: no fs.
  */
-import type { AgentStepKind, AgentTraceEvent, AgentTraceLocation } from './agentFlowModels';
+import { MAIN_ACTOR_ID, type AgentStepKind, type AgentTraceEvent, type AgentTraceLocation } from './agentFlowModels';
 import { classifyShellCommand } from './shellCommandClassifier';
 
 const PROMPT_LABEL_MAX = 160;
@@ -41,7 +41,8 @@ export function claudeToolKind(name: string): AgentStepKind {
         case 'grep': case 'glob': case 'ls': case 'toolsearch': return 'search';
         case 'bash': case 'bashoutput': case 'killshell': case 'powershell': return 'execute';
         case 'webfetch': case 'websearch': return 'fetch';
-        case 'task': case 'agent': case 'todowrite': case 'exitplanmode': return 'think';
+        case 'task': case 'agent': return 'delegate';
+        case 'todowrite': case 'exitplanmode': return 'think';
         default: return 'other';
     }
 }
@@ -77,12 +78,39 @@ function linesOf(value: unknown): number {
  * Incremental parser: feed it raw lines, get events back. Keeps the open tool
  * calls so a later tool_result completes the step it belongs to.
  */
+export interface ClaudeCodeParserOptions {
+    /**
+     * Set for a sub-agent's own transcript (`<session>/subagents/agent-<id>.jsonl`):
+     * every step is that actor's (the id of the Agent/Task call that spawned it),
+     * and its prompts and turn ends are not the person's.
+     */
+    actor?: string;
+    actorLabel?: string;
+}
+
 export class ClaudeCodeTranscriptParser {
     private readonly tools = new Map<string, ToolUse>();
     private turnOpen = false;
     private lastAt = 0;
+    private readonly actor: string | undefined;
+    private readonly actorLabel: string | undefined;
+    /** Sub-agent ids (`agentId`) -> the Agent/Task call that spawned them, from the call's result. */
+    private readonly agentCalls = new Map<string, string>();
     public sessionId: string | null = null;
     public cwd: string | null = null;
+
+    constructor(options: ClaudeCodeParserOptions = {}) {
+        this.actor = options.actor;
+        this.actorLabel = options.actorLabel;
+    }
+
+    /** Who ran an entry's steps: this transcript's actor, the sub-agent a side-chain line names, or the main agent. */
+    private actorOf(entry: Json): string | undefined {
+        if (this.actor) { return this.actor; }
+        if (entry.isSidechain !== true) { return undefined; }
+        const agentId = str(entry.agentId);
+        return agentId ? (this.agentCalls.get(agentId) ?? `agent:${agentId}`) : 'subagent';
+    }
 
     public pushLine(line: string): AgentTraceEvent[] {
         const trimmed = line.trim();
@@ -107,14 +135,20 @@ export class ClaudeCodeTranscriptParser {
         if (!message) {
             return [];
         }
-        const subagent = entry.isSidechain === true;
-        if (entry.type === 'user') {
-            return this.userEntry(entry, message, at, subagent);
+        const subagent = entry.isSidechain === true || this.actor !== undefined;
+        const events = entry.type === 'user'
+            ? this.userEntry(entry, message, at, subagent)
+            : entry.type === 'assistant' ? this.assistantEntry(message, at, subagent) : [];
+        const actor = this.actorOf(entry);
+        if (actor && actor !== MAIN_ACTOR_ID) {
+            for (const event of events) {
+                if (event.type === 'step') {
+                    event.actor = actor;
+                    if (this.actorLabel) { event.actorLabel = this.actorLabel; }
+                }
+            }
         }
-        if (entry.type === 'assistant') {
-            return this.assistantEntry(message, at, subagent);
-        }
-        return [];
+        return events;
     }
 
     private userEntry(entry: Json, message: Json, at: number, subagent: boolean): AgentTraceEvent[] {
@@ -151,6 +185,9 @@ export class ClaudeCodeTranscriptParser {
                 if (hits.length > 0) {
                     update.locations = hits.slice(0, 200).map((path) => ({ path }));
                 }
+            }
+            if (result && tool.kind === 'delegate' && str(result.agentId)) {
+                this.agentCalls.set(String(result.agentId), id);
             }
             if (result && tool.name === 'Write' && result.type === 'create' && str(result.filePath)) {
                 update.created = [String(result.filePath)];
@@ -239,13 +276,17 @@ export class ClaudeCodeTranscriptParser {
                 title = command.length > 80 ? `${command.slice(0, 77)}...` : command;
             }
         }
-        if (kind === 'think' && str(input.description)) {
+        if ((kind === 'think' || kind === 'delegate') && str(input.description)) {
             title = `${name}: ${String(input.description)}`;
         }
         this.tools.set(id, { name, kind });
         const step: Extract<AgentTraceEvent, { type: 'step' }> = {
             type: 'step', at, id, kind, tool: name, title, status: 'running', subagent,
         };
+        if (kind === 'delegate') {
+            const label = str(input.description) ?? str(input.subagent_type);
+            step.spawns = label ? { id, label } : { id };
+        }
         if (locations.length > 0) { step.locations = locations; }
         if (command) { step.command = command; }
         if (added !== undefined) { step.added = added; }

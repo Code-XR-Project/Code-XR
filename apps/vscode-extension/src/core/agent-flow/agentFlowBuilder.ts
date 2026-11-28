@@ -8,6 +8,8 @@
 import {
     AGENT_FLOW_SCHEMA_VERSION,
     AGENT_FLOW_TABLE,
+    MAIN_ACTOR_ID,
+    type AgentFlowActor,
     type AgentFlowDataset,
     type AgentFlowFile,
     type AgentFlowFileMetrics,
@@ -18,7 +20,7 @@ import {
     type AgentStepKind,
     type AgentTraceEvent,
 } from './agentFlowModels';
-import { type CityLayout, layoutCity } from './agentFlowLayout';
+import { type CityLayout, layoutCity, PLATE_HEIGHT } from './agentFlowLayout';
 
 /** Most buildings a city carries; touched files always make it. */
 export const AGENT_FLOW_FILE_BUDGET = 900;
@@ -127,7 +129,36 @@ export function buildAgentFlowDataset(input: AgentFlowBuildInput): AgentFlowBuil
         return out;
     };
 
-    for (const event of input.events) {
+    // ---- Actors: the main agent, then each sub-agent as it first appears --
+    const actors: AgentFlowActor[] = [{
+        index: 0, id: MAIN_ACTOR_ID, label: input.session.agent || 'Agent', kind: 'main',
+        parent: null, spawnStep: null, firstSeq: -1, lastSeq: -1, steps: 0,
+    }];
+    const actorById = new Map<string, AgentFlowActor>([[MAIN_ACTOR_ID, actors[0]]]);
+    const actorFor = (id: string | undefined, label?: string): AgentFlowActor => {
+        const key = id || MAIN_ACTOR_ID;
+        let actor = actorById.get(key);
+        if (!actor) {
+            actor = {
+                index: actors.length, id: key, label: label || `Sub-agent ${actors.length}`, kind: 'subagent',
+                parent: 0, spawnStep: null, firstSeq: -1, lastSeq: -1, steps: 0,
+            };
+            actors.push(actor);
+            actorById.set(key, actor);
+        } else if (label && actor.kind === 'subagent' && /^Sub-agent \d+$/.test(actor.label)) {
+            actor.label = label;
+        }
+        return actor;
+    };
+
+    // Sub-agents are read from files of their own and land out of order: fold
+    // in time order (stable, so events of one moment keep their source order).
+    const ordered = input.events
+        .map((event, order) => ({ event, order }))
+        .sort((a, b) => a.event.at - b.event.at || a.order - b.order)
+        .map((entry) => entry.event);
+
+    for (const event of ordered) {
         if (event.type === 'turn-start') {
             const last = turns[turns.length - 1];
             if (last && last.endedAt === null) { last.endedAt = event.at; }
@@ -169,10 +200,18 @@ export function buildAgentFlowDataset(input: AgentFlowBuildInput): AgentFlowBuil
             for (const rel of resolvePaths(event.created?.map((path) => ({ path })))) {
                 if (!existing.createdPaths.includes(rel)) { existing.createdPaths.push(rel); }
             }
+            if (event.spawns && existing.spawns === undefined) {
+                const spawned = actorFor(event.spawns.id, event.spawns.label);
+                spawned.parent = existing.actor;
+                spawned.spawnStep = existing.seq;
+                existing.spawns = spawned.index;
+            }
             continue;
         }
         const turn = currentTurn(event.at);
+        const actor = actorFor(event.actor, event.actorLabel);
         const step: MutableStep = {
+            actor: actor.index,
             seq: steps.length,
             turn: turn.index,
             at: event.at,
@@ -189,7 +228,16 @@ export function buildAgentFlowDataset(input: AgentFlowBuildInput): AgentFlowBuil
         if (line !== undefined) { step.line = line; }
         if (event.command) { step.command = event.command; }
         if (event.exitCode !== undefined) { step.exitCode = event.exitCode; }
-        if (event.subagent) { step.subagent = true; }
+        if (event.subagent || actor.index > 0) { step.subagent = true; }
+        if (event.spawns) {
+            const spawned = actorFor(event.spawns.id, event.spawns.label);
+            spawned.parent = actor.index;
+            spawned.spawnStep = step.seq;
+            step.spawns = spawned.index;
+        }
+        if (actor.firstSeq < 0) { actor.firstSeq = step.seq; }
+        actor.lastSeq = step.seq;
+        actor.steps += 1;
         if (event.added !== undefined) { step.added = event.added; }
         if (event.removed !== undefined) { step.removed = event.removed; }
         steps.push(step);
@@ -270,7 +318,7 @@ export function buildAgentFlowDataset(input: AgentFlowBuildInput): AgentFlowBuil
             name: slash >= 0 ? path.slice(slash + 1) : path,
             dir: slash >= 0 ? path.slice(0, slash) : '',
             loc: metrics?.loc ?? 0,
-            x: round(rect.x), z: round(rect.z), w: round(rect.w), d: round(rect.d),
+            x: round(rect.x), z: round(rect.z), w: round(rect.w), d: round(rect.d), baseY: round(rect.y ?? 0),
             h: round(heightOf(metrics?.loc ?? 0, maxLoc)),
             touches: { reads: 0, writes: 0, searches: 0, executes: 0 },
             firstStep: -1,
@@ -462,10 +510,12 @@ export function buildAgentFlowDataset(input: AgentFlowBuildInput): AgentFlowBuil
         generatedAt: new Date(now).toISOString(),
         rootName,
         session: input.session,
+        actors,
         files,
         districts: layout.districts.map((district) => ({
             path: district.path, depth: district.depth,
             x: round(district.x), z: round(district.z), w: round(district.w), d: round(district.d),
+            y: round(district.y ?? (district.depth - 1) * PLATE_HEIGHT),
         })),
         turns,
         steps: steps.map(({ paths: _paths, createdPaths: _created, deletedPaths: _deleted, ...step }) => step),

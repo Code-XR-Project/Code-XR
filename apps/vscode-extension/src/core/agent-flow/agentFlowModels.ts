@@ -12,12 +12,20 @@
  * `@codexr/core/agent-flow/agentFlowModels` and the tests from `out/`.
  */
 
-/** What an agent step did to the code, the visual verb of the scene. */
-export type AgentStepKind = 'read' | 'write' | 'search' | 'execute' | 'think' | 'fetch' | 'other';
+/**
+ * What an agent step did to the code, the visual verb of the scene.
+ * `delegate`: the agent handed a task to a sub-agent (Claude Code's Agent/Task
+ * tool), which then works as a worker of its own. `wait`: the agent stopped
+ * for the person's permission (the IDE's ACP permission requests).
+ */
+export type AgentStepKind = 'read' | 'write' | 'search' | 'execute' | 'think' | 'fetch' | 'delegate' | 'wait' | 'other';
 
 export const AGENT_STEP_KINDS: ReadonlyArray<AgentStepKind> = Object.freeze([
-    'read', 'write', 'search', 'execute', 'think', 'fetch', 'other',
+    'read', 'write', 'search', 'execute', 'think', 'fetch', 'delegate', 'wait', 'other',
 ]);
+
+/** The id of the main agent of every session; sub-agents get the id of the step that spawned them. */
+export const MAIN_ACTOR_ID = 'main';
 
 /** Where a trace comes from. */
 export type AgentTraceSourceKind = 'ide-acp' | 'claude-code' | 'codex' | 'fixture';
@@ -61,6 +69,12 @@ export type AgentTraceEvent =
         exitCode?: number | null;
         /** True for a step a sub-agent ran. */
         subagent?: boolean;
+        /** Who ran the step: `main` (default) or a sub-agent's id (the id of its delegate step when known). */
+        actor?: string;
+        /** A display name for `actor` when no delegate step names it (a sub-agent transcript's description). */
+        actorLabel?: string;
+        /** A delegate step: the sub-agent it spawns. */
+        spawns?: { id: string; label?: string };
     }
     | {
         type: 'metric-delta';
@@ -108,6 +122,8 @@ export interface AgentFlowFile {
     w: number;
     d: number;
     h: number;
+    /** Elevation of the building's base: the top of its folder's plate (metres). */
+    baseY: number;
     touches: AgentFlowTouches;
     /** First and last step seq that touched it, -1 when never. */
     firstStep: number;
@@ -122,7 +138,7 @@ export interface AgentFlowFile {
     dependents: number;
 }
 
-/** A folder plate of the city. */
+/** A folder plate of the city ("quarter" in babia-boats); nested plates rise one level each. */
 export interface AgentFlowDistrict {
     path: string;
     depth: number;
@@ -130,6 +146,8 @@ export interface AgentFlowDistrict {
     z: number;
     w: number;
     d: number;
+    /** Bottom of the plate (metres); its top is the next level's `y`. */
+    y: number;
 }
 
 export interface AgentFlowStep {
@@ -148,6 +166,29 @@ export interface AgentFlowStep {
     subagent?: boolean;
     added?: number;
     removed?: number;
+    /** Index into `actors` of the agent that ran it (0: the main agent). */
+    actor: number;
+    /** A delegate step: index into `actors` of the sub-agent it spawned. */
+    spawns?: number;
+}
+
+/**
+ * A worker of the scene: the main agent (always `actors[0]`) or a sub-agent.
+ * Steps of different actors may overlap in time: sub-agents work in parallel.
+ */
+export interface AgentFlowActor {
+    index: number;
+    id: string;
+    label: string;
+    kind: 'main' | 'subagent';
+    /** The actor that spawned it, null for the main agent. */
+    parent: number | null;
+    /** The seq of the delegate step that spawned it, null when unknown. */
+    spawnStep: number | null;
+    /** First and last step seq it ran, -1 when none yet. */
+    firstSeq: number;
+    lastSeq: number;
+    steps: number;
 }
 
 export interface AgentFlowTurn {
@@ -222,6 +263,8 @@ export interface AgentFlowDataset {
     /** Display name of the analysed root (its folder name, never an absolute path). */
     rootName: string;
     session: AgentFlowSessionInfo;
+    /** The workers: `actors[0]` is the main agent. */
+    actors: AgentFlowActor[];
     files: AgentFlowFile[];
     districts: AgentFlowDistrict[];
     turns: AgentFlowTurn[];
