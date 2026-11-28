@@ -113,7 +113,7 @@ test('Server launch fails explicitly when an analysis session has no generated m
 
 test('VisualizeDOM runtime mounts babia-html from a JSON payload so full documents survive semicolons in style and script tags', () => {
     const template = readProjectFile('templates', 'xr', 'html', 'dom-visualization-template.html');
-    const sseClient = readProjectFile('templates', 'xr', 'sse', 'live_sse_fileDOM.js');
+    const liveReloadClient = readProjectFile('templates', 'xr', 'live', 'liveReloadDOM.js');
     const reanalysisManager = readProjectFile('src', 'core', 'analysis', 'watchers', 'reAnalysisManager.ts');
     const templateProcessor = readProjectFile('src', 'core', 'charts', 'processing', 'templateHTMLProcessor.ts');
 
@@ -126,9 +126,9 @@ test('VisualizeDOM runtime mounts babia-html from a JSON payload so full documen
     assert.doesNotMatch(template, /babia-html="renderHTML: true; renderHTMLOnlyLeafs: true; distanceLevels: 0\.7; html: \$\{HTML_CONTENT\}"/);
     assert.doesNotMatch(template, /data\.json/);
 
-    assert.match(sseClient, /window\.__CODEXR_DOM_HTML_PAYLOAD__ = htmlContent;/);
-    assert.match(sseClient, /entity\.setAttribute\('babia-html', \{[\s\S]*renderHTML: true,[\s\S]*renderHTMLOnlyLeafs: true,[\s\S]*html: htmlContent,[\s\S]*distanceLevels,[\s\S]*\}\);/);
-    assert.doesNotMatch(sseClient, /data\.json/);
+    assert.match(liveReloadClient, /window\.__CODEXR_DOM_HTML_PAYLOAD__ = htmlContent;/);
+    assert.match(liveReloadClient, /entity\.setAttribute\('babia-html', \{[\s\S]*renderHTML: true,[\s\S]*renderHTMLOnlyLeafs: true,[\s\S]*html: htmlContent,[\s\S]*distanceLevels,[\s\S]*\}\);/);
+    assert.doesNotMatch(liveReloadClient, /data\.json/);
 
     assert.match(reanalysisManager, /window\\\.__CODEXR_DOM_HTML_PAYLOAD__\\s\*=\\s\*\(\"\(\?:\\\\\.\|\[\^\"\\\\\]\)\*\"\);/);
     assert.match(reanalysisManager, /return JSON\.parse\(payloadMatch\[1\]\);/);

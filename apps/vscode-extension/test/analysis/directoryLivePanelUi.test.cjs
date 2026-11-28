@@ -147,7 +147,7 @@ function loadDirectoryBundle() {
         console: { log: () => {}, warn: () => {}, error: () => {} },
         localStorage: { getItem: () => null, setItem: () => {} },
         acquireVsCodeApi: () => ({ postMessage: () => {} }),
-        EventSource: function EventSource() { return {}; },
+        WebSocket: function WebSocket() { return {}; },
         fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }),
         setTimeout: () => 0,
         clearTimeout: () => {},
@@ -650,7 +650,7 @@ test('The shared DataTable component and its styles exist and are self-contained
     assert.match(css, /\.data-table-badge/);
 });
 
-test('The dependency summary loads a static artifact, has no manual refresh, and reacts to SSE updates', () => {
+test('The dependency summary loads a static artifact, has no manual refresh, and reacts to live updates', () => {
     const js = readTemplate('directoryAnalysismain.js');
     const panel = readSharedComponent('dependencySummaryPanel.js');
 
@@ -661,9 +661,9 @@ test('The dependency summary loads a static artifact, has no manual refresh, and
     assert.doesNotMatch(panel, /\/api\/dependency-graph\/summary/);
     assert.doesNotMatch(js, /function refreshDependencyGraphSummary/);
     assert.doesNotMatch(js, /dependency-refresh-btn/);
-    // The SSE switch lives in the shared page shell since 1.2.1 (R04); the
+    // The live message switch lives in the shared page shell since 1.2.1 (R04); the
     // template must still hand its reloads to it.
-    assert.match(js, /createLivePanelSse\(\{/);
+    assert.match(js, /createLivePanelLiveChannel\(\{/);
     assert.match(js + '\n' + readSharedComponent('panelShell.js'), /case 'dependency-updated':/);
 });
 
@@ -728,7 +728,7 @@ test('The bundle is fully self-contained: no Chart.js, no CDN, charts styled via
 
 // ── Historical comparison panel wiring ──────────────────────────────────────
 
-test('Both LivePanel templates mount the shared historical panel and wire it to REST + SSE', () => {
+test('Both LivePanel templates mount the shared historical panel and wire it to REST + the live channel', () => {
     const fileTemplateDir = path.join(projectRoot, 'templates', 'analysis_livePanel', 'file');
     const directoryHtml = readTemplate('directoryAnalysis.html');
     const fileHtml = fs.readFileSync(path.join(fileTemplateDir, 'fileAnalysis.html'), 'utf8');
@@ -756,9 +756,9 @@ test('Both LivePanel templates mount the shared historical panel and wire it to 
     for (const js of [directoryJs, fileJs]) {
         assert.match(js, /new CodexrHistoricalPanel\(\)/);
         assert.match(js, /historicalPanel\.initialize\(\)/);
-        // The SSE switch lives in the shared page shell (R04); each template
+        // The live message switch lives in the shared page shell (R04); each template
         // hands it its historical panel.
-        assert.match(js, /createLivePanelSse\(\{[\s\S]*historicalPanel: historicalPanel/);
+        assert.match(js, /createLivePanelLiveChannel\(\{[\s\S]*historicalPanel: historicalPanel/);
         assert.match(js + '\n' + shell, /case 'historical-progress':/);
         assert.match(js + '\n' + shell, /case 'historical-updated':/);
         assert.match(js, /new CodexrDependencySummaryPanel\(\)/);
@@ -808,14 +808,14 @@ test('The Live Updates indicator flashes "New data received" then reverts to the
     const shell = readSharedComponent('panelShell.js');
 
     // The indicator implementation lives in the shared page shell; the
-    // template drives it on every SSE data refresh.
-    assert.match(shell, /function flashSSEStatus/);
-    // Driven from the shared SSE client the template wires up (R04).
-    assert.match(js, /createLivePanelSse\(\{/);
-    assert.match(js + '\n' + shell, /flashSSEStatus\('New data received'\)/);
+    // template drives it on every live data refresh.
+    assert.match(shell, /function flashLiveStatus/);
+    // Driven from the shared live client the template wires up (R04).
+    assert.match(js, /createLivePanelLiveChannel\(\{/);
+    assert.match(js + '\n' + shell, /flashLiveStatus\('New data received'\)/);
     // The flash schedules a revert back to the "connected" (Live Updates) state.
-    assert.match(js + '\n' + shell, /showSSEStatus\('connected'\)/);
-    assert.match(shell, /setTimeout\(\(\) => \{[\s\S]*showSSEStatus\('connected'\);/);
+    assert.match(js + '\n' + shell, /showLiveStatus\('connected'\)/);
+    assert.match(shell, /setTimeout\(\(\) => \{[\s\S]*showLiveStatus\('connected'\);/);
 });
 
 test('The header renders the file-count and timestamp as icon chips, not solid blocks', () => {

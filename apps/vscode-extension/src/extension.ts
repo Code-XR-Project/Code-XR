@@ -9,7 +9,7 @@ import { ServerSettingsManager } from './core/server/serverSettingsManager';
 import { GeneratedHttpsCertificateManager } from './core/server/generatedHttpsCertificateManager';
 import { getActiveServerRegistry } from './core/server/registry/activeServerRegistry';
 import { ServerControl } from './core/server/serverControl';
-import { sseManager } from './core/server/sse/SSEManager';
+import { liveChannelHub } from './core/server/live/liveChannelHub';
 import { fileToServerMap } from './core/server/fileToServerMap';
 import { ServerWatcherIntegration } from './features/analysis/services/serverWatcherIntegration';
 import { CleanAnalysisCommands } from './features/analysis/commands/cleanAnalysisCommands';
@@ -136,10 +136,10 @@ export async function deactivate() {
     }
 
     try {
-        sseManager.dispose();
+        liveChannelHub.dispose();
         fileToServerMap.clearAll();
     } catch (error) {
-        handleError(ErrorDomain.SSE, 'SSE and file mapping cleanup', error, ErrorSeverity.Warn);
+        handleError(ErrorDomain.LiveChannel, 'Live channel and file mapping cleanup', error, ErrorSeverity.Warn);
     }
 
     try {

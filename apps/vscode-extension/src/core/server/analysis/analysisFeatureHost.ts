@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { sseManager } from '../sse/SSEManager';
+import { liveChannelHub } from '../live/liveChannelHub';
 import { fileToServerMap } from '../fileToServerMap';
 import { CollaborationRoomServer } from '../collaboration/collaborationRoomServer';
 import { HistoricalComparisonProgress } from '../../history/historicalComparisonModels';
@@ -47,7 +47,7 @@ export interface AnalysisRoomHooks {
 /**
  * Owns the per-session analysis feature services (dependency graph, historical
  * comparison, project evolution), their refresh-coordinator wiring, and the
- * LivePanel SSE delivery. Message and REST handling live in the sibling
+ * LivePanel live-channel delivery. Message and REST handling live in the sibling
  * bridge modules; this host is their shared context.
  */
 export class AnalysisFeatureHost {
@@ -119,7 +119,7 @@ export class AnalysisFeatureHost {
                     // every metric at once, so it must stay in lockstep with the
                     // classic re-analysis: recompute on every source change (incrementally,
                     // changed files only) and seed the initial dataset now. The result is
-                    // pushed to the panel over SSE by refreshDependencyGraph().
+                    // pushed to the panel over the live channel by refreshDependencyGraph().
                     const livePanelSessionId = this.config.analysisSessionId;
                     analysisRefreshCoordinator.setBackgroundRefresh(livePanelSessionId, 'dependency-graph', true);
                     this.refreshCoordinatorDisposables.push(
@@ -432,12 +432,11 @@ export class AnalysisFeatureHost {
     }
 
     public notifyLivePanelHistoricalProgress(progress: HistoricalComparisonProgress): void {
-        const fileUri = this.getLivePanelSseTarget();
-        if (!fileUri) {
+        const channel = this.getLivePanelChannel();
+        if (!channel) {
             return;
         }
-        sseManager.sendCustomMessage(fileUri, {
-            type: 'historical-progress',
+        liveChannelHub.publish(channel, 'historical-progress', {
             sessionId: this.config.analysisSessionId,
             state: progress.state,
             message: progress.message,
@@ -447,12 +446,11 @@ export class AnalysisFeatureHost {
     }
 
     public notifyLivePanelHistoricalUpdated(revision?: number): void {
-        const fileUri = this.getLivePanelSseTarget();
-        if (!fileUri) {
+        const channel = this.getLivePanelChannel();
+        if (!channel) {
             return;
         }
-        sseManager.sendCustomMessage(fileUri, {
-            type: 'historical-updated',
+        liveChannelHub.publish(channel, 'historical-updated', {
             sessionId: this.config.analysisSessionId,
             revision,
         });
@@ -460,11 +458,11 @@ export class AnalysisFeatureHost {
 
     /**
      * LivePanel pages have no collaboration room; feature updates reach them
-     * over SSE, on the channel of the session this server serves (channels
-     * are keyed by session id). Returns null for every other mode so the
+     * over the live channel (/codexr-live), on the channel of the session this
+     * server serves (channels are keyed by session id). Returns null for every other mode so the
      * notify helpers are safe to call anywhere.
      */
-    private getLivePanelSseTarget(): string | null {
+    private getLivePanelChannel(): string | null {
         if (this.analysisMode !== 'LivePanel') {
             return null;
         }
@@ -472,14 +470,13 @@ export class AnalysisFeatureHost {
     }
 
     public notifyLivePanelDependencyUpdated(revision: number): void {
-        // Delivered over SSE so the page reloads the freshly written
-        // dependency-graph.json (see getLivePanelSseTarget).
-        const fileUri = this.getLivePanelSseTarget();
-        if (!fileUri) {
+        // Delivered over the live channel so the page reloads the freshly
+        // written dependency-graph.json (see getLivePanelChannel).
+        const channel = this.getLivePanelChannel();
+        if (!channel) {
             return;
         }
-        sseManager.sendCustomMessage(fileUri, {
-            type: 'dependency-updated',
+        liveChannelHub.publish(channel, 'dependency-updated', {
             sessionId: this.config.analysisSessionId,
             revision,
         });

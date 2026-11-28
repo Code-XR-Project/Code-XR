@@ -10,6 +10,7 @@ import { generateNonce } from '../../../shared/nonceGenerator';
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 import type { CoreContext } from '../../host/hostPaths';
+import { liveReloadPageScriptPath, readLiveReloadScript } from '../../../platform/liveReloadScripts';
 
 const logger = getLogger('TEMPLATE_HTML_PROCESSOR');
 
@@ -147,28 +148,19 @@ export class TemplateHTMLProcessor {
     }
 
     /**
-     * Load HTML live reload JavaScript from templates/xr/sse/live_sse_fileDOM.js
+     * Load the HTML live reload JavaScript: the live channel runtime plus
+     * templates/xr/live/liveReloadDOM.js (liveReloadScripts.ts).
      * @private
      */
     private static async loadHTMLLiveReloadJS(context: CoreContext): Promise<string | null> {
         try {
-            const jsPath = resolveTemplatePath(
-                context.extensionPath,
-                'xr',
-                'sse',
-                'live_sse_fileDOM.js'
-            );
-
-            logger.debug('Loading JS from:', jsPath);
-
-            if (!fs.existsSync(jsPath)) {
-                logger.error('JS file not found:', jsPath);
+            const jsContent = readLiveReloadScript(context.extensionPath, 'dom');
+            if (jsContent === null) {
+                logger.error('DOM live reload script not found:', liveReloadPageScriptPath(context.extensionPath, 'dom'));
                 return null;
             }
-
-            const jsContent = fs.readFileSync(jsPath, 'utf-8');
             logger.debug('JS loaded successfully, length:', jsContent.length);
-            
+
             return jsContent;
 
         } catch (error) {

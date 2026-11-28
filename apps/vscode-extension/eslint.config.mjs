@@ -189,7 +189,6 @@ export default [{
         "src/core/server/multiServerLauncher.ts",
         "src/core/server/serverFactory.ts",
         "src/core/server/serverSettingsManager.ts",
-        "src/core/server/sse/SSEManager.ts",
         "src/core/analysis/python/executePython.ts",
         "src/features/active-servers/views/activeServerItems.ts",
     ],
@@ -282,7 +281,7 @@ export default [{
     languageOptions: {
         globals: Object.fromEntries([
             "acquireVsCodeApi", "vscode",
-            "applyTheme", "getStoredTheme", "toggleTheme", "createLivePanelSse",
+            "applyTheme", "getStoredTheme", "toggleTheme", "createLivePanelLiveChannel",
             "showUpdateNotification", "showReloadNotification", "upsertDataTable",
             "escapeHtml", "formatMetricValue", "formatRatio", "codexrSeriesClass",
             "numericColumn", "DataTable",

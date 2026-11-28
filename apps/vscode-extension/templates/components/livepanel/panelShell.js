@@ -4,7 +4,7 @@
  * One implementation for every LivePanel template (file and directory):
  *  - theme persistence and toggling (both panels share one stored preference,
  *    'codexrLivePanelTheme'; charts restyle via CSS variables, no re-render);
- *  - the SSE connection status indicator (styles in panelShell.css);
+ *  - the live-channel connection status indicator (styles in panelShell.css);
  *  - transient notification toasts;
  *  - the DataTable registry (create once, update rows in place so live updates
  *    keep the user's search/sort state);
@@ -56,12 +56,12 @@ function toggleTheme() {
   setStoredTheme(newTheme);
 }
 
-function showSSEStatus(status) {
-  let statusElement = document.getElementById('sse-status');
+function showLiveStatus(status) {
+  let statusElement = document.getElementById('live-status');
   if (!statusElement) {
     statusElement = document.createElement('div');
-    statusElement.id = 'sse-status';
-    statusElement.className = 'sse-status';
+    statusElement.id = 'live-status';
+    statusElement.className = 'live-status';
     document.body.appendChild(statusElement);
   }
 
@@ -79,125 +79,119 @@ function showSSEStatus(status) {
   }
 }
 
-let sseStatusFlashTimer = null;
+let liveStatusFlashTimer = null;
 
 /**
  * Momentarily surface that fresh data arrived, then fall back to the steady
  * "Live Updates" indicator.
  */
-function flashSSEStatus(message) {
-  const statusElement = document.getElementById('sse-status');
+function flashLiveStatus(message) {
+  const statusElement = document.getElementById('live-status');
   if (!statusElement) {
     return;
   }
   statusElement.textContent = message;
   statusElement.style.backgroundColor = '#3b82f6';
   statusElement.style.color = 'white';
-  if (sseStatusFlashTimer) {
-    clearTimeout(sseStatusFlashTimer);
+  if (liveStatusFlashTimer) {
+    clearTimeout(liveStatusFlashTimer);
   }
-  sseStatusFlashTimer = setTimeout(() => {
-    sseStatusFlashTimer = null;
-    showSSEStatus('connected');
+  liveStatusFlashTimer = setTimeout(() => {
+    liveStatusFlashTimer = null;
+    showLiveStatus('connected');
   }, 2500);
 }
 
 /**
- * Connect a panel to its server's `/events` stream (SSE) and dispatch every
- * message type. Both LivePanel templates use this; what differs per panel is
- * passed in. EventSource reconnects on its own, so an error only updates the
- * status indicator; on the reconnect the historical panel re-reads the
- * comparison status, because events sent while the stream was down are lost
- * (HIST-13). Messages arrive flat (`{ type }`) or nested in the
- * EnhancedSSEManager envelope (`{ data: { type } }`).
+ * Connect a panel to its server's live channel (`/codexr-live`, shared runtime
+ * `CodeXRLiveChannel` in templates/components/live/liveChannel.js, bundled
+ * first) and dispatch every message type. Both LivePanel templates use this;
+ * what differs per panel is passed in. The runtime reconnects with back-off
+ * on its own; when a reconnect shows that messages were missed while the
+ * panel was offline (or the server restarted), the panel reloads its data and
+ * dependency summary and re-reads the comparison status (resync, which
+ * generalises the HIST-13 fix).
  *
  * @param {Object} options
  * @param {string} options.label                Log prefix, e.g. 'FILE_ANALYSIS'.
  * @param {() => void} options.onAnalysisUpdated   The panel's data was re-analyzed.
  * @param {() => void} options.onDependencyUpdated The dependency dataset was rewritten.
- * @param {{handleSseMessage: (message: Object) => void, syncStatus: () => void}} options.historicalPanel
+ * @param {{handleLiveMessage: (message: Object) => void, syncStatus: () => void}} options.historicalPanel
  * @param {(...args: unknown[]) => void} [options.trace]  Verbose diagnostics (default: none).
- * @returns {EventSource|null} also kept on `window.analysisSSE`.
+ * @returns {{close: () => void}|null} also kept on `window.analysisLiveChannel`.
  */
-function createLivePanelSse(options) {
+function createLivePanelLiveChannel(options) {
   const label = options.label;
   const trace = typeof options.trace === 'function' ? options.trace : function () {};
 
   function handleMessage(data) {
-    const messageType = data.type || (data.data && data.data.type);
-    trace(`${label}: Handling SSE message:`, messageType, data);
+    const messageType = data.type;
+    trace(`${label}: Handling live message:`, messageType, data);
 
     switch (messageType) {
       case 'connected':
-        showSSEStatus('connected');
+        showLiveStatus('connected');
         break;
 
       case 'analysis-updated':
-        flashSSEStatus('New data received');
+        flashLiveStatus('New data received');
         options.onAnalysisUpdated();
         break;
 
       case 'dependency-updated':
         // The server recomputed the dependency dataset as part of re-analysis.
-        flashSSEStatus('New data received');
+        flashLiveStatus('New data received');
         options.onDependencyUpdated();
         break;
 
       case 'historical-progress':
         // Comparison progress from the server (analyzing left/right versions).
-        options.historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
+        options.historicalPanel.handleLiveMessage(data);
         break;
 
       case 'historical-updated':
         // A comparison finished (or its working-copy side was re-analyzed).
-        flashSSEStatus('New data received');
-        options.historicalPanel.handleSseMessage(data.data && data.data.type ? data.data : data);
-        break;
-
-      case 'heartbeat':
-        // Keep-alive message, no action needed.
+        flashLiveStatus('New data received');
+        options.historicalPanel.handleLiveMessage(data);
         break;
 
       default:
-        console.log(`${label}: Unknown SSE message type:`, messageType);
+        console.log(`${label}: Unknown live message type:`, messageType);
     }
   }
 
-  trace(`${label}: Initializing SSE for live updates...`);
+  function handleStatus(status) {
+    trace(`${label}: Live channel status:`, status);
+    if (status === 'open') {
+      showLiveStatus('connected');
+    } else if (status === 'reconnecting' || status === 'disabled') {
+      showLiveStatus('error');
+    }
+  }
+
+  function handleResync() {
+    trace(`${label}: Live channel resync: re-reading data, dependencies and comparison status`);
+    flashLiveStatus('New data received');
+    options.onAnalysisUpdated();
+    options.onDependencyUpdated();
+    options.historicalPanel.syncStatus();
+  }
+
+  trace(`${label}: Initializing the live channel...`);
   try {
-    const eventSource = new EventSource('/events');
-    let openedBefore = false;
-
-    eventSource.onopen = function () {
-      trace(`${label}: SSE connection opened`);
-      showSSEStatus('connected');
-      if (openedBefore) {
-        options.historicalPanel.syncStatus();
-      }
-      openedBefore = true;
-    };
-
-    eventSource.onmessage = function (event) {
-      trace(`${label}: Raw SSE message received:`, event.data);
-      try {
-        handleMessage(JSON.parse(event.data));
-      } catch (error) {
-        console.error(`${label}: Error parsing SSE message:`, error);
-        trace(`${label}: Unparseable data:`, event.data);
-      }
-    };
-
-    eventSource.onerror = function (event) {
-      // EventSource retries automatically; just reflect the state.
-      trace(`${label}: SSE connection error:`, event);
-      showSSEStatus('error');
-    };
-
-    window.analysisSSE = eventSource;
-    return eventSource;
+    if (!window.CodeXRLiveChannel) {
+      throw new Error('live channel runtime missing');
+    }
+    const channel = window.CodeXRLiveChannel.connect({
+      onMessage: handleMessage,
+      onStatus: handleStatus,
+      onResync: handleResync,
+    });
+    window.analysisLiveChannel = channel;
+    return channel;
   } catch (error) {
-    console.error(`${label}: Failed to initialize SSE:`, error);
-    showSSEStatus('error');
+    console.error(`${label}: Failed to initialize the live channel:`, error);
+    showLiveStatus('error');
     return null;
   }
 }
@@ -247,7 +241,7 @@ function showNotification(message, backgroundColor = '#3b82f6', duration = 3000)
 
 // ── Table registry ───────────────────────────────────────────────────────────
 // Every list in this view is a shared DataTable. Instances are cached by mount
-// id so live updates (SSE reloads, dependency refresh) re-render existing tables
+// id so live updates (data reloads, dependency refresh) re-render existing tables
 // instead of rebuilding them and losing the user's current search/sort.
 const dataTables = {};
 

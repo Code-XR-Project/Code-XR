@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { readLiveReloadScript } from '../../../platform/liveReloadScripts';
 import { UnifiedAnalysisSession } from '../session/analysisSession';
 import { AnalysisConfigurationStorage } from '../configuration/analysisConfigurationStorage';
 import { DimensionValidator } from '../../charts/processing/dimensionValidator';
@@ -30,7 +31,6 @@ import { copyDependencyGraphRuntimeToOutput, DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAM
 import { copyGuideScreenRuntimeToOutput, copyGuidePageToOutput, GUIDE_SCREEN_RUNTIME_OUTPUT_NAME, GUIDE_PAGE_OUTPUT_NAME } from '../scene-assets/guideScreenComponentAsset';
 import { copyLogoRuntimeToOutput, LOGO_RUNTIME_OUTPUT_NAME } from '../scene-assets/logoComponentAsset';
 import { getLogger } from '../../../platform/logging/sink';
-import { resolveTemplatePath } from '../../../platform/templatePaths';
 import { getHost } from '../../host/hostRegistry';
 import type { CoreContext } from '../../host/hostPaths';
 
@@ -163,10 +163,9 @@ export class FileXRParser {
             const dataJsonPath = path.join(session.outputPath, 'data.json');
             await fs.promises.writeFile(dataJsonPath, JSON.stringify(analysisData, null, 2), 'utf8');
 
-            const liveSSEPath = resolveTemplatePath(this.context.extensionPath, 'xr', 'sse', 'live_sse_fileXR.js');
-            const mainJSPath = path.join(session.outputPath, 'main.js');
-            if (fs.existsSync(liveSSEPath)) {
-                await fs.promises.copyFile(liveSSEPath, mainJSPath);
+            const liveReloadScript = readLiveReloadScript(this.context.extensionPath, 'xr');
+            if (liveReloadScript !== null) {
+                await fs.promises.writeFile(path.join(session.outputPath, 'main.js'), liveReloadScript, 'utf8');
             }
 
             for (const copyToOutput of FILE_XR_COPY_STEPS) {

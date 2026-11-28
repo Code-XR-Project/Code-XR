@@ -1,6 +1,5 @@
 import * as http from 'http';
 import type { HostDisposable } from '../host/codeXRHost';
-import { sseManager } from './sse/SSEManager';
 import { fileToServerMap } from './fileToServerMap';
 import { NetworkUtils } from './networkUtils';
 import { ScreenBroadcastSignalingServer } from './broadcast/screenBroadcastSignalingServer';
@@ -20,6 +19,7 @@ import { AnalysisMessageRouter } from './analysis/analysisMessageRouter';
 import { DependencyGraphBridge } from './analysis/dependencyGraphBridge';
 import { HistoricalComparisonBridge } from './analysis/historicalComparisonBridge';
 import { ProjectEvolutionBridge } from './analysis/projectEvolutionBridge';
+import { attachLiveChannelEndpoint, type LiveChannelEndpoint } from './live/liveChannelEndpoint';
 import { getLogger } from '../../platform/logging/sink';
 import { resolveTemplatePath } from '../../platform/templatePaths';
 import type { CoreContext } from '../host/hostPaths';
@@ -62,6 +62,7 @@ export class HttpServer {
     private upgradeAttached = false;
     private broadcastSignalingServer: ScreenBroadcastSignalingServer | null = null;
     private collaborationRoomServer: CollaborationRoomServer | null = null;
+    private liveChannelEndpoint: LiveChannelEndpoint | null = null;
     private collaborationProfileSubscription: HostDisposable | null = null;
     private readonly remoteSessionAuthority = new RemoteSessionAuthority();
     private remotePublicUrl: string | null = null;
@@ -360,6 +361,8 @@ export class HttpServer {
         this.collaborationProfileSubscription = null;
         this.collaborationRoomServer?.dispose();
         this.collaborationRoomServer = null;
+        this.liveChannelEndpoint?.dispose();
+        this.liveChannelEndpoint = null;
         this.broadcastSignalingServer?.dispose();
         this.broadcastSignalingServer = null;
         this.remoteSessionAuthority.revokeAll();
@@ -437,12 +440,6 @@ export class HttpServer {
                 timestamp: new Date().toISOString(),
                 server: 'Code-XR HTTP Server'
             });
-            return;
-        }
-
-        // Server-Sent Events endpoint for analysis updates
-        if (url === '/events') {
-            await this.handleSSERequest(req, res);
             return;
         }
 
@@ -551,38 +548,6 @@ export class HttpServer {
         return `${protocol}://${req.headers.host || `localhost:${this.config.port}`}`;
     }
 
-    /**
-     * Handle Server-Sent Events request for analysis updates
-     * @param _req - HTTP request (unused)
-     * @param res - HTTP response
-     */
-    private async handleSSERequest(_req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-        logger.debug('REQUEST_UPDATE: SSE connection request received on server');
-        logger.debug(() => `REQUEST_UPDATE: Server port: ${this.config.port}`);
-        
-        // Find which analysis file this server is serving
-        const serverPort = this.config.port;
-        const fileUri = fileToServerMap.findFileByPort(serverPort);
-        
-        logger.debug(() => `REQUEST_UPDATE: Looking up file for port ${serverPort}`);
-        logger.debug(() => `REQUEST_UPDATE: Found file mapping: ${fileUri || 'NOT FOUND'}`);
-        
-        if (!fileUri) {
-            logger.warn(`REQUEST_UPDATE: No file mapping found for server on port ${serverPort}`);
-            logger.warn(`REQUEST_UPDATE: Available mappings: ${fileToServerMap.getAllFileUris().join(', ')}`);
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('No analysis file associated with this server');
-            return;
-        }
-        
-        logger.debug(() => `REQUEST_UPDATE: Setting up SSE for analysis file: ${fileUri}`);
-        
-        // Register the SSE client with the manager
-        sseManager.registerClient(fileUri, res);
-        
-        logger.debug(() => `REQUEST_UPDATE: SSE client registration completed for ${fileUri}`);
-    }
-
     /** Room messages for the analysis; #16 "Open in editor" is answered for every analysis and every host. */
     private handleRoomMessage(
         messageContext: CollaborationApplicationMessageContext,
@@ -600,6 +565,12 @@ export class HttpServer {
             return;
         }
         this.upgradeAttached = true;
+        // Live updates (live reload, LivePanel) share the upgrade event and the
+        // room's authorisation policy; channels are keyed like the watchers publish.
+        this.liveChannelEndpoint = attachLiveChannelEndpoint(server, {
+            authorize: (request) => this.policy.isWebSocketAuthorized(request),
+            resolveChannel: () => fileToServerMap.findFileByPort(this.config.port) ?? null,
+        });
         this.collaborationRoomServer = new CollaborationRoomServer(server, '/codexr-room', {
             authorizeUpgrade: (request) => this.policy.isWebSocketAuthorized(request),
             resolveSession: (request) => this.remoteSessionAuthority.resolveCookie(request.headers.cookie),

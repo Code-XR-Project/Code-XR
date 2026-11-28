@@ -5,7 +5,7 @@
  *  1. the capability table grants LivePanel `historicalComparison`;
  *  2. HistoricalComparisonService's session gate admits LivePanel sessions;
  *  3. HttpServer exposes REST endpoints (references + compare) and pushes
- *     progress/results over SSE, since LivePanel has no collaboration room.
+ *     progress/results over the live channel, since LivePanel has no collaboration room.
  * A comparison with a working-copy side stays live: the analysisUpdateEvents
  * wiring refreshes it after every incremental re-analysis.
  */
@@ -54,18 +54,18 @@ test('HttpServer exposes LivePanel REST endpoints for references and async compa
     assert.match(server, /A historical comparison is already running\./);
 });
 
-test('the analysis host pushes historical progress and results to LivePanel over SSE', () => {
+test('the analysis host pushes historical progress and results to LivePanel over the live channel', () => {
     const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     assert.match(server, /public notifyLivePanelHistoricalProgress\(/);
     assert.match(server, /public notifyLivePanelHistoricalUpdated\(/);
-    assert.match(server, /type: 'historical-progress'/);
-    assert.match(server, /type: 'historical-updated'/);
-    // The SSE target helper keeps every notify call a no-op outside LivePanel.
-    assert.match(server, /private getLivePanelSseTarget\(\): string \| null/);
+    assert.match(server, /liveChannelHub\.publish\(channel, 'historical-progress'/);
+    assert.match(server, /liveChannelHub\.publish\(channel, 'historical-updated'/);
+    // The channel helper keeps every notify call a no-op outside LivePanel.
+    assert.match(server, /private getLivePanelChannel\(\): string \| null/);
     assert.match(server, /if \(this\.analysisMode !== 'LivePanel'\) \{\s*return null;/);
 });
 
-test('a live comparison refreshes after every incremental re-analysis and republishes over SSE', () => {
+test('a live comparison refreshes after every incremental re-analysis and republishes over the live channel', () => {
     const server = readProjectFile('src', 'core', 'server', 'analysis', 'analysisFeatureHost.ts');
     // LivePanel sessions schedule the refresh straight from analysisUpdateEvents
     // (no XR view-mode gate); the schedule itself no-ops without a live source.

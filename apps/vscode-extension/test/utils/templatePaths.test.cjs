@@ -43,7 +43,7 @@ test('resolveTemplatePath joins the segments under <extension>/templates', () =>
     const root = path.resolve(path.sep, 'ext');
     assert.equal(TEMPLATES_FOLDER, 'templates');
     assert.equal(resolveTemplatePath(root), path.join(root, 'templates'));
-    assert.equal(resolveTemplatePath(root, 'xr', 'sse', 'live_sse_fileXR.js'), path.join(root, 'templates', 'xr', 'sse', 'live_sse_fileXR.js'));
+    assert.equal(resolveTemplatePath(root, 'xr', 'live', 'liveReloadXR.js'), path.join(root, 'templates', 'xr', 'live', 'liveReloadXR.js'));
     assert.equal(resolveTemplatePath(projectRoot, 'guide'), templatesRoot('guide'));
 });
 

@@ -1,7 +1,7 @@
 /**
  * #108 (HIST-7, HIST-13): a historical comparison can be cancelled from the
  * LivePanel, leaving History cancels a comparison with no result yet, and the
- * panel reads the job status on load and after an SSE reconnect.
+ * panel reads the job status on load and after a live-channel resync.
  *
  * Executed, not grepped: the compiled service methods over a real JobRunner,
  * the compiled bridge behind a real HTTP server, the compiled feature host,
@@ -150,12 +150,12 @@ test('#108 leaving History cancels a new pick but lets the live refresh of the r
 /** A real HTTP server routing the LivePanel endpoints to the compiled bridge, as HttpServer does. */
 async function withLivePanelServer(service, body) {
     await withModules(async (modules) => {
-        const sse = [];
+        const live = [];
         const host = {
             sessionId: 'sess-108',
             historicalComparisonService: service || modules.newService(),
-            notifyLivePanelHistoricalProgress: (progress) => sse.push(['progress', progress]),
-            notifyLivePanelHistoricalUpdated: (revision) => sse.push(['updated', revision]),
+            notifyLivePanelHistoricalProgress: (progress) => live.push(['progress', progress]),
+            notifyLivePanelHistoricalUpdated: (revision) => live.push(['updated', revision]),
         };
         const bridge = new modules.HistoricalComparisonBridge(host);
         const routes = {
@@ -177,15 +177,15 @@ async function withLivePanelServer(service, body) {
             return { status: response.status, body: await response.json() };
         };
         try {
-            await body({ call, sse, service: host.historicalComparisonService });
+            await body({ call, live, service: host.historicalComparisonService });
         } finally {
             await new Promise((resolve) => server.close(resolve));
         }
     });
 }
 
-test('#108 LivePanel Cancel uses the same service cancel as XR, frees the slot and tells the panel over SSE', async () => {
-    await withLivePanelServer(null, async ({ call, sse, service }) => {
+test('#108 LivePanel Cancel uses the same service cancel as XR, frees the slot and tells the panel over the live channel', async () => {
+    await withLivePanelServer(null, async ({ call, live, service }) => {
         const started = await call('/api/historical/compare', 'POST', { leftSourceId: 'working-copy', rightSourceId: 'main' });
         assert.equal(started.status, 202);
         const jobId = started.body.jobId;
@@ -199,7 +199,7 @@ test('#108 LivePanel Cancel uses the same service cancel as XR, frees the slot a
 
         assert.deepEqual((await call('/api/historical/cancel', 'POST', { jobId })).body, { cancelled: true, jobId });
         await wait(10);
-        assert.deepEqual(sse.at(-1), ['progress', { state: 'cancelled', message: 'Historical comparison cancelled.', jobId }]);
+        assert.deepEqual(live.at(-1), ['progress', { state: 'cancelled', message: 'Historical comparison cancelled.', jobId }]);
         assert.equal((await call('/api/historical/status', 'GET')).body.state, 'idle');
 
         // The slot is free again (after the 50 ms grace of a work that ignores the signal).
@@ -209,7 +209,7 @@ test('#108 LivePanel Cancel uses the same service cancel as XR, frees the slot a
         await wait(10);
         service.pending.at(-1).finish();
         await wait(10);
-        assert.deepEqual(sse.at(-1), ['updated', 1]);
+        assert.deepEqual(live.at(-1), ['updated', 1]);
         assert.deepEqual((await call('/api/historical/status', 'GET')).body, { state: 'done', jobId: next.body.jobId, revision: 1, message: null });
         assert.deepEqual((await call('/api/historical/cancel', 'POST', {})).body, { cancelled: false, jobId: next.body.jobId });
         assert.equal((await call('/api/historical/status', 'GET')).status, 200);
@@ -276,8 +276,8 @@ test('#108 a cancelled live refresh is not retried as a failure', async () => {
         const sessionId = `s108-refresh-${Math.random()}`;
         config.analysisSessionId = sessionId;
         coordinator.changeActiveMode(sessionId, 'historical-compare');
-        const sse = [];
-        host.notifyLivePanelHistoricalProgress = (progress) => sse.push(progress);
+        const live = [];
+        host.notifyLivePanelHistoricalProgress = (progress) => live.push(progress);
         let calls = 0;
         host.historicalComparisonService = {
             hasLiveSource: () => true,
@@ -291,7 +291,7 @@ test('#108 a cancelled live refresh is not retried as a failure', async () => {
             host.scheduleHistoricalComparisonRefresh(0);
             await wait(1200);
             assert.equal(calls, 1);
-            assert.deepEqual(sse, [{ state: 'cancelled', message: 'Historical comparison cancelled.' }]);
+            assert.deepEqual(live, [{ state: 'cancelled', message: 'Historical comparison cancelled.' }]);
         } finally {
             clearTimeout(host.historicalRefreshTimer);
             host.historicalComparisonService = null;
@@ -374,7 +374,7 @@ const REFERENCES = {
     body: { enabled: true, references: { sources: [{ id: 'working-copy', label: 'Working copy' }, { id: 'main', label: 'main' }] } },
 };
 
-test('#108 panel: Cancel shows only while comparing, posts the job id, and the SSE cancel releases the buttons', async () => {
+test('#108 panel: Cancel shows only while comparing, posts the job id, and the live cancel releases the buttons', async () => {
     const env = loadPanel({
         '/api/historical/references': () => REFERENCES,
         '/api/historical/status': () => ({ status: 200, body: { state: 'idle', jobId: null, revision: null, message: null } }),
@@ -395,7 +395,7 @@ test('#108 panel: Cancel shows only while comparing, posts the job id, and the S
     assert.deepEqual(env.requests.at(-1), ['/api/historical/cancel', 'POST', { jobId: 'job-1' }]);
     assert.equal(env.el('historical-status').textContent, 'Cancelling comparison...');
 
-    assert.equal(env.panel.handleSseMessage({ type: 'historical-progress', state: 'cancelled', message: 'Historical comparison cancelled.' }), true);
+    assert.equal(env.panel.handleLiveMessage({ type: 'historical-progress', state: 'cancelled', message: 'Historical comparison cancelled.' }), true);
     assert.equal(env.el('historical-compare-btn').disabled, false);
     assert.equal(env.el('historical-cancel-btn').classList.contains('hidden'), true);
     assert.equal(env.el('historical-status').textContent, 'Historical comparison cancelled.');

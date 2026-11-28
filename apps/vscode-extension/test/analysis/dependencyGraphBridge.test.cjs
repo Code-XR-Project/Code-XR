@@ -74,7 +74,7 @@ function createHost(service) {
             host.calls.push(['activate', mode, controllerView]);
         },
         notifyLivePanelDependencyUpdated(revision) {
-            host.calls.push(['sse', revision]);
+            host.calls.push(['live', revision]);
         },
     };
     return host;

@@ -87,7 +87,7 @@ async function generateScene(outDir, chartId, rowCount) {
             { babiaUiVisibleByDefault: true, xrTargetType: 'directory', fieldTypeMap: FIELD_TYPES },
         );
         assert.ok(result.success, `scene generation failed for ${chartId}: ${result.error}`);
-        fs.copyFileSync(path.join(projectRoot, 'templates', 'xr', 'sse', 'live_sse_fileXR.js'), path.join(outDir, 'main.js'));
+        fs.writeFileSync(path.join(outDir, 'main.js'), requireOut('platform/liveReloadScripts.js').readLiveReloadScript(projectRoot, 'xr'));
         for (const [outputName, readContent] of DIRECTORY_XR_RUNTIME_ASSETS) {
             fs.writeFileSync(path.join(outDir, outputName), await readContent(projectRoot));
         }

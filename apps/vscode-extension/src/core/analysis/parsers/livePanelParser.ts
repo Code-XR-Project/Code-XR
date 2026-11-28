@@ -17,6 +17,7 @@ import { ThemeUtils } from '../utils/themeUtils';
 import { getLogger } from '../../../platform/logging/sink';
 import { resolveTemplatePath } from '../../../platform/templatePaths';
 import type { CoreContext } from '../../host/hostPaths';
+import { liveChannelRuntimePath } from '../../../platform/liveReloadScripts';
 
 const logger = getLogger('LIVE_PANEL_PARSER');
 
@@ -67,11 +68,17 @@ export class LivePanelParser {
     /**
      * Load the shared LivePanel component files (JS/CSS) if the directory exists.
      * These are bundled ahead of each template's own script/stylesheet so all
-     * panels share one implementation. Missing directory → empty map (no-op).
+     * panels share one implementation, preceded by the live channel runtime
+     * (templates/components/live/liveChannel.js). Missing directory → only the runtime.
      */
     private loadSharedComponentFiles(): Map<string, string> {
         const sharedDir = this.getSharedComponentsPath();
         const sharedFiles = new Map<string, string>();
+        // The live channel runtime goes first: panelShell.js connects through it.
+        const liveChannelRuntime = liveChannelRuntimePath(this.context.extensionPath);
+        if (fs.existsSync(liveChannelRuntime)) {
+            sharedFiles.set('liveChannel.js', fs.readFileSync(liveChannelRuntime, 'utf8'));
+        }
         if (!fs.existsSync(sharedDir)) {
             return sharedFiles;
         }
