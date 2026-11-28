@@ -101,6 +101,20 @@ describe('Agent Flow feed of the IDE chats', () => {
         feed.dispose();
     });
 
+    it('turns a permission request into a wait, allowed or rejected by the kind of the option picked', () => {
+        const root = project('permission');
+        const feed = new AgentFlowFeed(() => 1_000);
+        const options = [{ id: 'yes', name: 'Allow', kind: 'allow_once' as const }, { id: 'no', name: 'Reject', kind: 'reject_once' as const }];
+        let chat = state('s5', root);
+        feed.onEvent({ state: chat, root, workRoot: root }, { type: 'status', status: 'running' });
+        feed.onEvent({ state: chat, root, workRoot: root }, { type: 'permission', id: 'q1', title: 'Run npm test?', options });
+        chat = state('s5', root, [{ kind: 'permission', id: 'q1', title: 'Run npm test?', options, outcome: 'no' }]);
+        feed.onEvent({ state: chat, root, workRoot: root }, { type: 'permission-resolved', id: 'q1', outcome: 'no' });
+        const waits = follow(agentFlowSourceId('s5'), root).filter((event) => event.type === 'step') as Extract<AgentTraceEvent, { type: 'step' }>[];
+        assert.deepEqual(waits.map((step) => [step.kind, step.status]), [['wait', 'running'], ['wait', 'failed']]);
+        feed.dispose();
+    });
+
     it('replays a stored turn with its metric delta', () => {
         const events = transcriptAsEvents([
             { kind: 'user', id: 'u1', text: 'Go', at: '2026-11-28T09:00:00.000Z' },

@@ -14,7 +14,7 @@ import { AcpSessionEventMapper, type AcpSessionEventLike } from '@codexr/core/ag
 import type { AgentTraceEvent } from '@codexr/core/agent-flow/agentFlowModels';
 import { PushAgentTraceSource, registerLiveAgentTraceSource } from '@codexr/core/agent-flow/agentTraceSources';
 import { openAgentFlowInScenes } from '@codexr/core/agent-flow/agentFlowService';
-import type { AgentSessionState, SessionEvent, TranscriptItem } from '../../shared/agentSession.ts';
+import type { AgentSessionState, PermissionOptionView, SessionEvent, TranscriptItem } from '../../shared/agentSession.ts';
 
 /** What the session service tells the feed about the chat an event belongs to. */
 export interface AgentFlowChatInfo {
@@ -39,7 +39,7 @@ interface ChatFeed {
 
 /** Events that carry nothing Agent Flow draws: they never reach the mapper. */
 const IGNORED = new Set<SessionEvent['type']>([
-    'assistant-chunk', 'thought-chunk', 'permission', 'permission-resolved', 'plan', 'commands', 'modes', 'config',
+    'assistant-chunk', 'thought-chunk', 'plan', 'commands', 'modes', 'config',
     'usage', 'notice', 'agent-session', 'history', 'pending-changes', 'worktree', 'read',
 ]);
 
@@ -81,6 +81,17 @@ function rebaseEvents(events: AgentTraceEvent[], workRoot: string, root: string)
     });
 }
 
+/** The options a permission request offered, from the transcript. */
+function permissionOptions(items: readonly TranscriptItem[], id: string): readonly PermissionOptionView[] {
+    const item = items.find((candidate) => candidate.kind === 'permission' && candidate.id === id);
+    return item && item.kind === 'permission' ? item.options : [];
+}
+
+/** The kind of the option picked (`allow_once`, `reject_always`...), or the outcome itself ('cancelled'). */
+export function permissionOutcome(options: readonly PermissionOptionView[], outcome: string): string {
+    return options.find((option) => option.id === outcome)?.kind ?? outcome;
+}
+
 /** The stored transcript as the session events that built it, for a chat seen for the first time. */
 export function transcriptAsEvents(items: readonly TranscriptItem[]): { readonly event: AcpSessionEventLike; readonly at?: string }[] {
     const out: { event: AcpSessionEventLike; at?: string }[] = [];
@@ -94,6 +105,11 @@ export function transcriptAsEvents(items: readonly TranscriptItem[]): { readonly
                     locations: item.locations, content: item.content, ...(item.rawInput !== undefined ? { rawInput: item.rawInput } : {}),
                 },
             });
+        } else if (item.kind === 'permission') {
+            out.push({ event: { type: 'permission', id: item.id, title: item.title, ...(item.toolCallId ? { toolCallId: item.toolCallId } : {}) } });
+            if (item.outcome !== undefined) {
+                out.push({ event: { type: 'permission-resolved', id: item.id, outcome: permissionOutcome(item.options, item.outcome) } });
+            }
         } else if (item.kind === 'turn-end') {
             if (item.metricDelta) {
                 out.push({ event: { type: 'metric-delta', delta: item.metricDelta }, at: item.at });
@@ -139,7 +155,11 @@ export class AgentFlowFeed {
             return;
         }
         const at = event.type === 'user' || event.type === 'turn-end' ? parseTime(event.at, this.now()) : this.now();
-        chat.source.push(rebaseEvents(chat.mapper.map(event, at), info.workRoot, info.root));
+        // A permission answer names the option the person picked: the scene needs to know whether it allowed.
+        const mapped: AcpSessionEventLike = event.type === 'permission-resolved'
+            ? { type: 'permission-resolved', id: event.id, outcome: permissionOutcome(permissionOptions(info.state.items, event.id), event.outcome) }
+            : event;
+        chat.source.push(rebaseEvents(chat.mapper.map(mapped, at), info.workRoot, info.root));
     }
 
     /** Opens the chat on the table of every XR scene of its project; how many scenes it reached. */
