@@ -116,6 +116,10 @@ its parts directory. Manual harnesses load assembled copies from
   - Owns screen creation, placement and multi-screen controls.
 - `codexr/collaboration/codexrCollaborationRuntime.js`
   - Owns shared presence, identity, avatars, pointers and collaboration entities.
+  - One person, many views (#352, `selfView.js` part): every local view (IDE pane, `localhost` tabs) is the same
+    participant; the view the person moves in sends `self-view`, the server relays it to their other local views and
+    keeps it for a late one. A view never re-sends a camera it was given, its starting pose is not a move, and a view in
+    a headset neither leads nor follows. See `docs/collaboration/same-device-views.md`.
   - Terminal disconnects show a full-page screen (`disconnectScreen.js` part) and stop
     the reconnect loop: `session-ended` (host stopped the server) and `participant-kick`.
   - Reconnects back off exponentially (0.9 s doubling, 15 s cap, jitter), reset on open. A

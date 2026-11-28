@@ -551,65 +551,114 @@ test('the extension can remove a participant: kick message, 4001 close, list upd
     }
 });
 
-test('the IDE scene pane joins as a viewer: no participant, no avatar, never the host', async () => {
+async function startRoomServer(isLocal) {
     const { CollaborationRoomServer } = loadCollaborationRoomServer();
     const server = http.createServer((_req, res) => {
         res.writeHead(200);
         res.end('ok');
     });
-    const collaboration = new CollaborationRoomServer(server, '/codexr-room', { isLocalRequest: () => true });
+    const collaboration = new CollaborationRoomServer(server, '/codexr-room', { isLocalRequest: isLocal });
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     const url = `ws://127.0.0.1:${server.address().port}/codexr-room`;
-    const pane = new WebSocket(url);
-    const browser = new WebSocket(url);
+    const sockets = [];
+    return {
+        collaboration,
+        async open() {
+            const socket = new WebSocket(url);
+            sockets.push(socket);
+            await waitForOpen(socket);
+            return socket;
+        },
+        async close() {
+            sockets.forEach((socket) => socket.close());
+            collaboration.dispose();
+            await new Promise((resolve) => server.close(resolve));
+        },
+    };
+}
+
+const ROOM = 'codexr-session:alpha';
+
+test('every local view is the same person: one participant, one host, left only with the last view', async () => {
+    const room = await startRoomServer(() => true);
     try {
-        await Promise.all([waitForOpen(pane), waitForOpen(browser)]);
-        const paneJoined = waitForMessage(pane, (payload) => payload.type === 'room-joined');
-        const paneSnapshot = waitForMessage(pane, (payload) => payload.type === 'room-snapshot');
-        pane.send(JSON.stringify({ type: 'room-join', roomId: 'codexr-session:alpha', payload: { viewer: true } }));
-        assert.equal((await paneJoined).payload.viewer, true);
-        assert.deepEqual((await paneSnapshot).payload.participants, []);
+        const pane = await room.open();
+        const paneJoin = await joinRoom(pane, ROOM);
+        assert.equal(paneJoin.joined.payload.participant.role, 'host');
+        assert.equal(paneJoin.joined.payload.localView, true);
+        const person = paneJoin.joined.peerId;
 
-        // The person's real view joins after the pane and is still the host,
-        // and the pane hears about it like any member of the room.
-        const paneSeesBrowser = waitForMessage(pane, (payload) => payload.type === 'participant-updated');
-        const { joined, snapshot } = await joinRoom(browser, 'codexr-session:alpha');
-        assert.equal(joined.payload.participant.role, 'host');
-        assert.equal(snapshot.payload.participants.length, 1);
-        assert.equal((await paneSeesBrowser).payload.peerId, joined.peerId);
+        // The browser opened later on the same machine is that same person.
+        const browser = await room.open();
+        const browserJoin = await joinRoom(browser, ROOM);
+        assert.equal(browserJoin.joined.peerId, person);
+        assert.equal(browserJoin.joined.payload.linkedView, true);
+        assert.deepEqual(browserJoin.snapshot.payload.participants.map((p) => p.peerId), [person]);
+        assert.equal(room.collaboration.getConnectedParticipants(ROOM).length, 1);
 
-        // A pane's presence never reaches the room.
-        pane.send(JSON.stringify({ type: 'presence-update', roomId: 'codexr-session:alpha', payload: { head: null } }));
-        browser.send(JSON.stringify({ type: 'presence-update', roomId: 'codexr-session:alpha', payload: { head: null } }));
-        const presence = await waitForMessage(pane, (payload) => payload.type === 'presence-joined');
-        assert.equal(presence.peerId, joined.peerId);
-    } finally {
+        // Its presence is the person's presence, heard by the other view.
+        const paneHears = waitForMessage(pane, (m) => m.type === 'presence-joined');
+        browser.send(JSON.stringify({ type: 'presence-update', roomId: ROOM, payload: { head: null } }));
+        assert.equal((await paneHears).peerId, person);
+
+        // Closing the first view keeps the person in the room through the second.
         pane.close();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        assert.equal(room.collaboration.getConnectedParticipants(ROOM).length, 1);
         browser.close();
-        collaboration.dispose();
-        await new Promise((resolve) => server.close(resolve));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        assert.equal(room.collaboration.getConnectedParticipants(ROOM).length, 0);
+    } finally {
+        await room.close();
     }
 });
 
-test('only a peer on this machine may join as a viewer', async () => {
-    const { CollaborationRoomServer } = loadCollaborationRoomServer();
-    const server = http.createServer((_req, res) => {
-        res.writeHead(200);
-        res.end('ok');
-    });
-    const collaboration = new CollaborationRoomServer(server, '/codexr-room', { isLocalRequest: () => false });
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    const remote = new WebSocket(`ws://127.0.0.1:${server.address().port}/codexr-room`);
+test('the camera moves between the local views, and a view opened later starts where the person is', async () => {
+    const room = await startRoomServer(() => true);
+    const view = { rig: { position: { x: 1, y: 1.6, z: -3 }, quaternion: { x: 0, y: 0, z: 0, w: 1 } }, look: { pitch: 0.1, yaw: 0.5 } };
     try {
-        await waitForOpen(remote);
-        const joined = waitForMessage(remote, (payload) => payload.type === 'room-joined');
-        remote.send(JSON.stringify({ type: 'room-join', roomId: 'codexr-session:alpha', payload: { viewer: true } }));
-        const message = await joined;
-        assert.equal(message.payload.viewer, undefined);
-        assert.equal(message.payload.participant.role, 'host');
+        const pane = await room.open();
+        await joinRoom(pane, ROOM);
+        const browser = await room.open();
+        await joinRoom(browser, ROOM);
+
+        const browserFollows = waitForMessage(browser, (m) => m.type === 'self-view');
+        pane.send(JSON.stringify({ type: 'self-view', roomId: ROOM, payload: view }));
+        assert.deepEqual((await browserFollows).payload, view);
+
+        const late = await room.open();
+        const lateFollows = waitForMessage(late, (m) => m.type === 'self-view');
+        await joinRoom(late, ROOM);
+        assert.deepEqual((await lateFollows).payload, view);
     } finally {
-        remote.close();
-        collaboration.dispose();
-        await new Promise((resolve) => server.close(resolve));
+        await room.close();
+    }
+});
+
+test('a remote guest is never linked to the local person and never gets their camera', async () => {
+    let local = true;
+    const room = await startRoomServer(() => local);
+    try {
+        const host = await room.open();
+        const hostJoin = await joinRoom(host, ROOM);
+        local = false;
+        const guest = await room.open();
+        const guestJoin = await joinRoom(guest, ROOM);
+        assert.notEqual(guestJoin.joined.peerId, hostJoin.joined.peerId);
+        assert.equal(guestJoin.joined.payload.participant.role, 'guest');
+        assert.equal(guestJoin.joined.payload.localView, false);
+
+        let guestGotCamera = false;
+        guest.on('message', (raw) => {
+            guestGotCamera ||= JSON.parse(raw.toString('utf8')).type === 'self-view';
+        });
+        host.send(JSON.stringify({ type: 'self-view', roomId: ROOM, payload: { look: { pitch: 0, yaw: 0 } } }));
+        // A guest's own self-view is dropped too: it is not the local person.
+        guest.send(JSON.stringify({ type: 'self-view', roomId: ROOM, payload: { look: { pitch: 1, yaw: 1 } } }));
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        assert.equal(guestGotCamera, false);
+        assert.equal(room.collaboration.getConnectedParticipants(ROOM).length, 2);
+    } finally {
+        await room.close();
     }
 });

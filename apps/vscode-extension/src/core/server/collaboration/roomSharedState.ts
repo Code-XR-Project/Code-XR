@@ -1,3 +1,4 @@
+import { participantIdOf } from './localDevice';
 import { getParticipantPresence } from './participantIdentity';
 import { getEntityKey, normalizeEntityState, normalizeId, normalizeTransform, send, sendError } from './roomMessageCodec';
 import { CollaborationRoomRegistry } from './roomRegistry';
@@ -209,25 +210,25 @@ export function updateEntityLock(context: RoomContext, peer: CollaborationPeer, 
 
 export function updatePresence(context: RoomContext, peer: CollaborationPeer, payload: Record<string, unknown>): void {
     const room = context.getRoomForPeer(peer);
-    const participant = room?.participants.get(peer.id);
+    const participant = room?.participants.get(participantIdOf(peer));
     if (!room || !participant) {
         return;
     }
 
-    const previous = room.presence.get(peer.id) ?? null;
+    const previous = room.presence.get(participant.peerId) ?? null;
     const nextPresence: SharedPresenceState = {
         ...(previous ?? {}),
         ...payload,
         ...getParticipantPresence(participant),
-        peerId: peer.id,
+        peerId: participant.peerId,
         lastSeenAt: new Date().toISOString(),
     };
 
-    room.presence.set(peer.id, nextPresence);
+    room.presence.set(participant.peerId, nextPresence);
     room.revision += 1;
     context.broadcast(room, {
         type: previous ? 'presence-updated' : 'presence-joined',
-        peerId: peer.id,
+        peerId: participant.peerId,
         roomId: room.id,
         revision: room.revision,
         payload: nextPresence,
@@ -236,11 +237,11 @@ export function updatePresence(context: RoomContext, peer: CollaborationPeer, pa
 
 export function startPresenter(context: RoomContext, peer: CollaborationPeer): void {
     const room = context.getRoomForPeer(peer);
-    const participant = room?.participants.get(peer.id);
+    const participant = room?.participants.get(participantIdOf(peer));
     if (!room || !participant) {
         return;
     }
-    if (room.presenterPeerId === peer.id) {
+    if (room.presenterPeerId === participant.peerId) {
         return;
     }
 
@@ -254,24 +255,24 @@ export function startPresenter(context: RoomContext, peer: CollaborationPeer): v
     }
 
     participant.isPresenter = true;
-    room.presenterPeerId = peer.id;
+    room.presenterPeerId = participant.peerId;
     room.revision += 1;
     broadcastPresenterEvent(context, room, 'presenter-started', participant);
 }
 
 export function stopPresenter(context: RoomContext, peer: CollaborationPeer, payload: Record<string, unknown>): void {
     const room = context.getRoomForPeer(peer);
-    const actor = room?.participants.get(peer.id);
+    const actor = room?.participants.get(participantIdOf(peer));
     if (!room || !actor || !room.presenterPeerId) {
         return;
     }
 
     const requestedPeerId = normalizeId(payload.peerId || payload.targetPeerId);
-    const targetPeerId = requestedPeerId || peer.id;
+    const targetPeerId = requestedPeerId || actor.peerId;
     if (targetPeerId !== room.presenterPeerId) {
         return;
     }
-    if (targetPeerId !== peer.id && actor.role !== 'host') {
+    if (targetPeerId !== actor.peerId && actor.role !== 'host') {
         sendError(peer, 'forbidden', 'Only the host can stop another participant presentation.');
         return;
     }

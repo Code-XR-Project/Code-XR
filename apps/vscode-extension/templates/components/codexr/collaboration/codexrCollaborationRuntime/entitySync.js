@@ -13,7 +13,7 @@
           shared.peerId = String(message.peerId || '').trim();
           shared.roomId = String(message.roomId || shared.roomId).trim();
           shared.joinedRoom = true;
-          shared.viewer = message.payload?.viewer === true;
+          resetSelfView(message.payload?.localView === true);
           if (message.payload?.participant) {
             upsertParticipant(message.payload.participant);
           }
@@ -71,6 +71,9 @@
           return;
         case 'entity-lock-denied':
           handleEntityLockDenied(message);
+          return;
+        case 'self-view':
+          applySelfView(message.payload);
           return;
         case 'presence-joined':
         case 'presence-updated':

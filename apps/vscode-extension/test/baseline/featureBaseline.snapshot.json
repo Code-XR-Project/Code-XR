@@ -471,6 +471,7 @@
     "components/codexr/collaboration/codexrCollaborationRuntime/moduleAndConfig.js",
     "components/codexr/collaboration/codexrCollaborationRuntime/presenceAvatars.js",
     "components/codexr/collaboration/codexrCollaborationRuntime/publicApi.js",
+    "components/codexr/collaboration/codexrCollaborationRuntime/selfView.js",
     "components/codexr/debug/codexrDebugRuntime.js",
     "components/codexr/dependency-graph/dependencyGraphRuntime/componentCore.js",
     "components/codexr/dependency-graph/dependencyGraphRuntime/configAndStatus.js",

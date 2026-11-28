@@ -66,10 +66,10 @@ export interface CollaborationPeer {
     /** On this machine, not through a tunnel or the LAN: the only peers that may act on the host's editor. */
     local: boolean;
     /**
-     * The IDE's own scene pane: it follows the room but is not a person in it
-     * (no participant, no avatar, never the host). Only a local peer may be one.
+     * The participant this socket speaks for. Its own id, except for a further
+     * local view of the person on this machine, which shares theirs (#352).
      */
-    viewer?: boolean;
+    participantId?: string;
 }
 
 export interface CollaborationRoomState {
@@ -80,6 +80,10 @@ export interface CollaborationRoomState {
     participants: Map<string, ParticipantState>;
     presenterPeerId: string | null;
     nextDisplayNameIndex: number;
+    /** The participant of the person on this machine, shared by all their local views (#352). */
+    localParticipantId?: string | null;
+    /** That person's camera as their last active view left it, for a view opened later. */
+    selfView?: Record<string, unknown> | null;
 }
 
 /** Outcome of an extension-initiated participant removal. */
