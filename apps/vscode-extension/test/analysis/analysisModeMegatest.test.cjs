@@ -83,7 +83,7 @@ test('XR mode panel exposes one labelled Analyses button and no dependency heade
   assert.doesNotMatch(modeRuntime, /invokeSafely\(lifecycles\[mode\], 'disposeView'/);
   assert.match(historyRuntime, /whenPanelReady\?\.\(function \(\) \{/);
   assert.match(dependencyRuntime, /whenPanelReady\?\.\(function \(\) \{/);
-  assert.match(tableRuntime, /oneOf: \['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow'\]/);
+  assert.match(tableRuntime, /oneOf: \['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow', 'drill-down'\]/);
   assert.match(tableRuntime, /selection[\s\S]*#f8fafc/);
   assert.match(tableRuntime, /MODE_THEME_BY_ID = \{/);
   assert.match(tableRuntime, /single: \{[\s\S]*top: 'color: #0e7490/);

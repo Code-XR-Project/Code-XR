@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { CodeAnalysisCommands } from './analysisCommands';
 import { ExtensionCommandRegistration } from '../../../platform/commands/commandRegistry';
 import { getRevealInSceneRegistrations } from './revealInSceneCommand';
+import { getAnalyzeInSceneRegistrations } from './analyzeInSceneCommand';
 
 const LAST_ANALYSIS_STORAGE_KEY = 'codeXR.analysis.lastKind';
 const LAST_ANALYSIS_CONTEXT_KEY = 'codeXR.analysis.lastKind';
@@ -80,6 +81,7 @@ export function getAnalysisCommandRegistrations(
         ...registrations,
         ...createRunLastRegistrations(context),
         ...getRevealInSceneRegistrations(context),
+        ...getAnalyzeInSceneRegistrations(),
     ];
 }
 

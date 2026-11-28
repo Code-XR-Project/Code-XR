@@ -2,14 +2,15 @@
 (function registerCodeXRAnalysisModeRuntime(root) {
   'use strict';
 
-  var VALID_MODES = new Set(['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow']);
+  var VALID_MODES = new Set(['selection', 'single', 'historical-compare', 'project-evolution', 'dependency-graph', 'agent-flow', 'drill-down']);
   var MODE_PANEL_VIEW_BY_ID = {
     selection: 'visualization-mode',
     single: 'mapping',
     'historical-compare': 'mapping',
     'dependency-graph': 'dependency-graph',
     'project-evolution': 'project-evolution',
-    'agent-flow': 'agent-flow'
+    'agent-flow': 'agent-flow',
+    'drill-down': 'drill-down'
   };
   // The header button that opens this selector is painted with the colour of
   // the analysis you are in — the same hexes that already tint the table
@@ -22,7 +23,8 @@
     'historical-compare': '#be123c',
     'dependency-graph': '#7c3aed',
     'project-evolution': '#f59e0b',
-    'agent-flow': '#10b981'
+    'agent-flow': '#10b981',
+    'drill-down': '#0ea5e9'
   };
   var MODE_CONTROLLER_VIEW_BY_ID = {
     selection: 'visualization-menu',
@@ -30,7 +32,8 @@
     'historical-compare': 'historical.selection',
     'dependency-graph': 'dependency.settings',
     'project-evolution': 'project-evolution',
-    'agent-flow': 'agent-flow'
+    'agent-flow': 'agent-flow',
+    'drill-down': 'drill-down'
   };
   var PANEL_VIEW_BY_CONTROLLER_VIEW = {
     'visualization-menu': 'visualization-mode',
@@ -42,7 +45,8 @@
     'project-evolution.selection': 'project-evolution',
     'project-evolution.playback': 'project-evolution',
     'project-evolution.mapping': 'mapping',
-    'agent-flow': 'agent-flow'
+    'agent-flow': 'agent-flow',
+    'drill-down': 'drill-down'
   };
   var RAYCAST_CLASS = 'babiaxraycasterclass';
   var SUSPENDED_INTERACTIVE_ATTR = 'data-codexr-suspended-interactive';

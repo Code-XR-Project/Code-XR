@@ -14,6 +14,7 @@ import { ANALYSIS_MODE_RUNTIME_OUTPUT_NAME, copyAnalysisModeRuntimeToOutput } fr
 import { HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME, copyHistoricalComparisonRuntimeToOutput } from '../scene-assets/historicalComparisonComponentAsset';
 import { PROJECT_EVOLUTION_RUNTIME_OUTPUT_NAME, copyProjectEvolutionRuntimeToOutput } from '../scene-assets/projectEvolutionComponentAsset';
 import { AGENT_FLOW_RUNTIME_OUTPUT_NAME, copyAgentFlowRuntimeToOutput } from '../scene-assets/agentFlowComponentAsset';
+import { DRILL_DOWN_RUNTIME_OUTPUT_NAME, copyDrillDownRuntimeToOutput } from '../scene-assets/drillDownComponentAsset';
 import { CODEXR_COMMON_RUNTIME_OUTPUT_NAME, copyCodeXrCommonRuntimeToOutput } from '../scene-assets/commonComponentAsset';
 import { CODEXR_AVATAR_RUNTIME_OUTPUT_NAME, copyCodeXrAvatarRuntimeToOutput } from '../scene-assets/avatarComponentAsset';
 import { copyCodeXrGitRefPickerToOutput } from '../scene-assets/commonGitRefPickerComponentAsset';
@@ -57,6 +58,7 @@ const FILE_XR_COPY_STEPS: ReadonlyArray<(extensionPath: string, outputDirectory:
     copyDependencyVisualBudgetRuntimeToOutput,
     copyDependencyGraphRuntimeToOutput,
     copyAgentFlowRuntimeToOutput,
+    copyDrillDownRuntimeToOutput,
     copyCodeXrDebugRuntimeToOutput,
     copyAnalysisTableRuntimeToOutput,
     copyAnalysisModeRuntimeToOutput,
@@ -91,6 +93,7 @@ const FILE_XR_REQUIRED_OUTPUTS: readonly string[] = [
     DEPENDENCY_VISUAL_BUDGET_RUNTIME_OUTPUT_NAME,
     DEPENDENCY_GRAPH_RUNTIME_OUTPUT_NAME,
     AGENT_FLOW_RUNTIME_OUTPUT_NAME,
+    DRILL_DOWN_RUNTIME_OUTPUT_NAME,
     ANALYSIS_TABLE_RUNTIME_OUTPUT_NAME,
     ANALYSIS_MODE_RUNTIME_OUTPUT_NAME,
     HISTORICAL_COMPARISON_RUNTIME_OUTPUT_NAME,
