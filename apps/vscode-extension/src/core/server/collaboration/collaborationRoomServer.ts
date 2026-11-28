@@ -19,6 +19,7 @@ import {
 import {
     CollaborationMessage,
     CollaborationPeer,
+    CollaborationRole,
     CollaborationRoomState,
     IdentityMode,
     ParticipantRemovalResult,
@@ -82,6 +83,8 @@ export interface CollaborationApplicationMessageContext {
     roomId: string;
     /** The sender is on this machine (see `CollaborationPeer.local`). */
     local: boolean;
+    /** The sender's role in the room when the message arrived. */
+    role: CollaborationRole;
     send: (payload: Record<string, unknown>) => void;
     broadcast: (payload: Record<string, unknown>) => void;
     upsertSharedEntity: (entity: SharedEntityState) => void;
@@ -320,6 +323,7 @@ export class CollaborationRoomServer {
                 peerId: peer.id,
                 roomId: room.id,
                 local: peer.local,
+                role: room.participants.get(participantIdOf(peer))?.role ?? 'guest',
                 send: (payload) => send(peer, {
                     ...payload,
                     roomId: room.id,

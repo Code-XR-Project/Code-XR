@@ -615,7 +615,7 @@ export class HttpServer {
         this.collaborationRoomServer = new CollaborationRoomServer(server, '/codexr-room', {
             authorizeUpgrade: (request) => this.policy.isWebSocketAuthorized(request),
             resolveSession: (request) => this.remoteSessionAuthority.resolveCookie(request.headers.cookie),
-            isLocalRequest: (request) => !this.policy.isRemoteRequest(request) && isLoopbackAddress(request.socket.remoteAddress),
+            isLocalRequest: (request) => this.policy.isLocalRequest(request, isLoopbackAddress),
             handleApplicationMessage: (messageContext, message) => this.handleRoomMessage(messageContext, message),
         });
         this.collaborationRoomServer.onParticipantRemoved((_roomId, result) => this.handleParticipantRemoved(result));

@@ -45,6 +45,18 @@ const SNAPSHOT_PROBE_BY_MODE: Readonly<Record<string, AnalysisSnapshotProbe>> = 
 /** Modes that open with no data yet: their own picker fills them (a comparison, a movie, an agent session). */
 const EMPTY_SHELL_MODES: ReadonlySet<string> = new Set(['historical-compare', 'project-evolution', 'agent-flow']);
 
+/**
+ * Messages that destroy or stop something everyone shares: deleting the
+ * project evolution movie on disk, cancelling a running comparison or
+ * movie. Only the host (or the person on this machine) may send them
+ * (COLLAB-SYNC-6).
+ */
+export const HOST_ONLY_MESSAGES: ReadonlySet<string> = new Set([
+    'project-evolution-clear',
+    'project-evolution-cancel',
+    'historical-comparison-cancel',
+]);
+
 export class AnalysisMessageRouter {
     constructor(
         private readonly host: AnalysisFeatureHost,
@@ -72,6 +84,13 @@ export class AnalysisMessageRouter {
         messageContext: CollaborationApplicationMessageContext,
         message: CollaborationMessage,
     ): Promise<boolean> {
+        if (HOST_ONLY_MESSAGES.has(message.type) && messageContext.role !== 'host' && !messageContext.local) {
+            messageContext.send({
+                type: 'error',
+                payload: { code: 'forbidden', message: 'Only the host can do this.', messageType: message.type },
+            });
+            return true;
+        }
         // Agent Flow and the drill-down own their whole message namespaces.
         if (message.type.startsWith('agent-flow-')) {
             return this.agentFlow.handleMessage(messageContext, message);
