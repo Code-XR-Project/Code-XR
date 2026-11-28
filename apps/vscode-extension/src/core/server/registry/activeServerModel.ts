@@ -70,6 +70,8 @@ export interface ActiveServerRuntime {
     createAuthenticatedBrowserUrl(baseUrl: string): string;
     /** #178: asks the scene to reveal a file of its analysed folder; false when the file is not in it. */
     revealInScene?(absolutePath: string): boolean;
+    /** #339: drills the scene's table into a file or folder; false when this server cannot reach it. */
+    drillDownInScene?(absolutePath: string, kind: 'file' | 'directory'): boolean;
 }
 
 /**

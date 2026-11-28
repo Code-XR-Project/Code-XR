@@ -144,6 +144,11 @@ export abstract class HttpsServerBase<TConfig extends HttpsServerBaseConfig> {
         return this.httpHandler.revealInScene(absolutePath);
     }
 
+    /** #339: the drill-down lives on the embedded HttpServer's analysis host. */
+    public drillDownInScene(absolutePath: string, kind: 'file' | 'directory'): boolean {
+        return this.httpHandler.drillDownInScene(absolutePath, kind);
+    }
+
     public createInvitation(): string {
         return this.httpHandler.createInvitation();
     }

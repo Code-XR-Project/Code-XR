@@ -67,6 +67,7 @@ export interface WorkbenchCommandTargets {
     copyActivePath(kind: 'absolute' | 'relative'): void;
     revealActiveFile(): void;
     revealActiveFileInScene(): void;
+    analyzeActiveFileInScene(): void;
     hasEditors(): boolean;
     /** #168: opens the active file in the other editor group, creating it on first use. */
     splitEditor(): void;
@@ -157,6 +158,7 @@ export function workbenchCommands(targets: WorkbenchCommandTargets): CommandDefi
         { id: 'codexr.analyseFileLivePanel', category: 'Code-XR', title: 'Analyse Active File as LivePanel', enabled: targets.canAnalyseActiveFile, run: () => targets.analyseActiveFile('livepanel-file') },
         { id: 'codexr.setUpPython', category: 'Code-XR', title: 'Set Up or Repair the Python Environment', run: targets.setUpPython },
         { id: 'codexr.revealInScene', category: 'Code-XR', title: 'Reveal Active File in XR Scene', enabled: () => targets.hasScene() && targets.hasActiveEditor(), run: targets.revealActiveFileInScene },
+        { id: 'codexr.analyzeInScene', category: 'Code-XR', title: 'Analyze Active File in XR Scene', enabled: () => targets.hasScene() && targets.hasActiveEditor(), run: targets.analyzeActiveFileInScene },
         { id: 'codexr.closeScene', category: 'Code-XR', title: 'Close the XR Scene', enabled: targets.hasScene, run: targets.closeScene },
     ];
 }

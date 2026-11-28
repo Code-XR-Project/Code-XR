@@ -78,6 +78,12 @@
       trim: 'color: #c4b5fd; metalness: 0.3; roughness: 0.38',
       base: 'color: #4c1d95; metalness: 0.3; roughness: 0.62'
     },
+    // Drill-down: the classic analysis' family (it IS a classic analysis, of a sub-target) in a deeper sky.
+    'drill-down': {
+      top: 'color: #075985; metalness: 0.12; roughness: 0.72',
+      trim: 'color: #7dd3fc; metalness: 0.28; roughness: 0.42',
+      base: 'color: #0c4a6e; metalness: 0.24; roughness: 0.66'
+    },
     // Agent flow: a dark slate top so the city's emissive verbs carry the colour; emerald trim is the mode's identity.
     'agent-flow': {
       top: 'color: #1e293b; metalness: 0.14; roughness: 0.74',
@@ -222,7 +228,7 @@
     }
 
     var profileId = String(profileOrMode || 'default');
-    if (profileId === 'single' || profileId === 'dependency-graph' || profileId === 'project-evolution' || profileId === 'agent-flow') {
+    if (profileId === 'single' || profileId === 'dependency-graph' || profileId === 'project-evolution' || profileId === 'agent-flow' || profileId === 'drill-down') {
       return createContainmentProfile(profileId, FULL_TABLE_ZONE);
     }
 

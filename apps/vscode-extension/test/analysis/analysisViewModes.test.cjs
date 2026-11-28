@@ -23,6 +23,7 @@ test('every analysis mode has the default controller view 1.2.0 shipped', () => 
         'historical-compare': 'historical.selection',
         'project-evolution': 'project-evolution',
         'agent-flow': 'agent-flow',
+        'drill-down': 'drill-down',
     });
     for (const [mode, view] of Object.entries(ANALYSIS_CONTROLLER_VIEW_BY_MODE)) {
         assert.equal(defaultControllerView(mode), view);

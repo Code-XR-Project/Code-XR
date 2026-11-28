@@ -21,6 +21,7 @@ const HARNESS_RUNTIMES = [
     ['virtual-screen', 'virtualScreenRuntime.js'],
     ['guide-screen', 'guideScreenRuntime.js'],
     ['agent-flow', 'agentFlowRuntime.js'],
+    ['drill-down', 'drillDownRuntime.js'],
 ];
 
 // Single-file shared runtimes the Git analyses (picker) and Agent Flow (tooltips) depend on (not manifest-assembled).

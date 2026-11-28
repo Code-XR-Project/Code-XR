@@ -68,6 +68,7 @@
       "core/analysis",
       "core/host"
     ],
+    "core/drilldown": [],
     "core/export": [
       "core/analysis",
       "core/history",
@@ -96,6 +97,7 @@
       "core/analysis",
       "core/collaboration",
       "core/dependencies",
+      "core/drilldown",
       "core/history",
       "core/host",
       "core/remote-access",
