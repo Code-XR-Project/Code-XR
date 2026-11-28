@@ -141,7 +141,7 @@
     try {
       clearPendingValidationTimers();
       state.pendingMapping = null;
-      var delegatedEntityApply = state.activeMappingContextId === 'project-evolution';
+      var delegatedEntityApply = isDelegatedEntityApply();
       if (snapshot.chartId && snapshot.chartId !== getActiveChartId(config)) {
         selectChart(
           snapshot.chartId,

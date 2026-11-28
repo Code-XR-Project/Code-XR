@@ -1,6 +1,7 @@
 // == drillDownRuntime.js | modeLifecycle (assembled per manifest.json; see COMPONENTS.md) ==
-  // Registration with the analysis-mode switcher, the controller panel and
-  // the room; the public API. Passive mode-entity contract (COMPONENTS.md):
+  // Registration with the analysis-mode switcher and the room; the public
+  // API. The table's controller stays the analysis controller while drilled
+  // (metrics and chart type drive the drilled chart); the bar navigates. Passive mode-entity contract (COMPONENTS.md):
   // the `drill-down` entity carries data, never intent. The server switches
   // the room's mode (analysis-view) and this runtime only draws what the
   // entity says while its mode is active.
@@ -52,14 +53,14 @@
     if (targetChanged) { closeCard(); }
     if (state.active && next.datasetUrl && next.status !== 'loading') { showDrilledView(); }
     renderBar();
-    renderPanel();
   }
 
   function activate(activation) {
     if (activation?.token?.isCurrent && !activation.token.isCurrent()) { return false; }
     state.active = true;
+    // The switcher has just re-enabled the controller for this mode.
+    state.controllerLocked = false;
     closeCard();
-    buildPanel();
     if (state.entity?.datasetUrl) {
       showDrilledView();
     } else {
@@ -67,7 +68,6 @@
       requestState();
     }
     renderBar();
-    renderPanel();
     return true;
   }
 
@@ -75,81 +75,22 @@
     state.active = false;
     closeCard();
     removeView();
+    releaseController();
     restoreClassic();
     renderBar();
-    renderPanel();
   }
 
   function registerLifecycle() {
     if (state.unregisterLifecycle || !root.CodeXRAnalysisModeRuntime?.register) { return !!state.unregisterLifecycle; }
     state.unregisterLifecycle = root.CodeXRAnalysisModeRuntime.register(MODE, {
-      mappingContextId: null,
+      // The classic analysis' profile: the controller opens on the metrics
+      // and chart the user had, and keeps them from one drill to the next.
+      mappingContextId: 'normal-analysis',
       activate: activate,
       deactivate: deactivate,
-      resolveControllerView: function () { return MODE; }
+      resolveControllerView: function () { return CONTROLLER_VIEW; }
     }) || null;
     return !!state.unregisterLifecycle;
-  }
-
-  // The controller's view while a drilled target is on the table: where you
-  // are, how it was computed, and the same moves as the bar.
-  function buildPanel() {
-    var mapping = root.CodeXRMappingUiRuntime;
-    if (refs.panel || !mapping?.registerPanelView) { return !!refs.panel; }
-    if (mapping.isPanelReady && !mapping.isPanelReady()) {
-      if (!refs.panelMountQueued) {
-        refs.panelMountQueued = true;
-        mapping.whenPanelReady?.(function () { refs.panelMountQueued = false; buildPanel(); });
-      }
-      return false;
-    }
-    var panel = entity('a-entity', { position: '0 0 0.04' });
-    refs.panelTitle = text('', '-2.85 1.2 0.02', 5.7, COLORS.current, 'left', 46);
-    refs.panelInfo = text('', '-2.85 0.75 0.02', 5.7, COLORS.muted, 'left', 60);
-    panel.appendChild(refs.panelTitle);
-    panel.appendChild(refs.panelInfo);
-    refs.panelBack = button('Back', '-1.9 0.15 0.02', 1.1, function () { send('drilldown-back'); }, COLORS.button, { height: 0.36 });
-    refs.panelUp = button('Up one level', '-0.35 0.15 0.02', 1.7, goUp, COLORS.button, { height: 0.36 });
-    refs.panelHome = button('Classic analysis', '1.65 0.15 0.02', 2, function () { send('drilldown-home'); }, COLORS.home, { height: 0.36 });
-    panel.appendChild(refs.panelBack.el);
-    panel.appendChild(refs.panelUp.el);
-    panel.appendChild(refs.panelHome.el);
-    panel.appendChild(text('Select a building or a district on the table to analyse it.', '-2.85 -0.4 0.02', 5.7, COLORS.muted, 'left', 60));
-    refs.panel = panel;
-    state.unregisterPanel = mapping.registerPanelView({
-      id: MODE,
-      title: 'Drill-down',
-      headerButton: false,
-      panelHeight: 3.4,
-      content: panel,
-      onShow: renderPanel
-    }) || null;
-    renderPanel();
-    return !!refs.panel;
-  }
-
-  function parentCrumb() {
-    var crumbs = state.entity?.crumbs || [];
-    return crumbs.length > 1 ? crumbs[crumbs.length - 2] : null;
-  }
-
-  function goUp() {
-    var parent = parentCrumb();
-    if (parent) { send('drilldown-goto', { relativePath: parent.relativePath, kind: parent.kind }); }
-  }
-
-  function renderPanel() {
-    if (!refs.panel) { return; }
-    var entityState = state.entity;
-    var target = entityState?.target;
-    setText(refs.panelTitle, target
-      ? (target.kind === 'file' ? 'File: ' : 'Folder: ') + compact(target.relativePath || entityState.rootLabel, 44)
-      : 'Drill-down');
-    var line = statusLine(entityState);
-    setText(refs.panelInfo, compact(line.text, 120), line.color);
-    setButtonEnabled(refs.panelBack, !!entityState?.canBack);
-    setButtonEnabled(refs.panelUp, !!parentCrumb());
-    setButtonEnabled(refs.panelHome, !!entityState);
   }
 
   function requestState(attempt) {
@@ -164,7 +105,6 @@
   function handleError(message) {
     var payload = message?.payload && typeof message.payload === 'object' ? message.payload : (message || {});
     showError(payload.message || 'The drill-down request failed.');
-    renderPanel();
   }
 
   function registerCollaboration() {
@@ -197,7 +137,6 @@
       if (event?.detail?.name && event.detail.name !== 'codexr-analysis-table') { return; }
       if (!isNavigableMode()) { closeCard(); }
       renderBar();
-      renderPanel();
     };
     table.addEventListener('componentchanged', onChange);
     state.tableBound = true;
@@ -206,8 +145,7 @@
   }
 
   function mount(attempt) {
-    var ready = [registerLifecycle(), registerCollaboration(), bindSceneClicks(), bindTableMode()].every(Boolean);
-    buildPanel();
+    var ready = [registerLifecycle(), registerCollaboration(), bindSceneClicks(), bindTableMode(), bindMappingChanges()].every(Boolean);
     if (ready) { renderBar(); return; }
     if (attempt < 40) {
       root.setTimeout?.(function () { mount(attempt + 1); }, 100);
@@ -274,15 +212,16 @@
       renderBar: renderBar,
       activate: activate,
       deactivate: deactivate,
-      namespaceNodes: namespaceNodes
+      namespaceNodes: namespaceNodes,
+      chartMetrics: chartMetrics,
+      isBoatsLegend: isBoatsLegend,
+      drillChartSpec: drillChartSpec
     },
     destroy: function () {
       stopLoadingTicker();
       state.disposables.forEach(function (dispose) { if (typeof dispose === 'function') { dispose(); } });
       state.disposables = [];
-      state.unregisterPanel?.();
       state.unregisterLifecycle?.();
-      state.unregisterPanel = null;
       state.unregisterLifecycle = null;
       state.collaborationRegistered = false;
       closeCard();
@@ -291,7 +230,6 @@
       refs.loading?.el?.parentNode?.removeChild?.(refs.loading.el);
       refs.bar = null;
       refs.loading = null;
-      refs.panel = null;
       state.initialized = false;
     }
   };

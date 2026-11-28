@@ -4,6 +4,64 @@
   // builders and fitted by the table containment like every other analysis.
   // The classic analysis is parked (hidden), never touched, so Home is
   // instant and its mapping state is exactly what it was.
+  // The table's controller drives the drilled chart: when the drilled rows
+  // have the session's own schema (a folder of a project, a file of a file
+  // analysis) the chart and the metrics are the controller's, and changing
+  // them rebuilds the drilled chart. Otherwise (the functions of one file in
+  // a project) the controller's metrics do not exist in the rows, so the
+  // chart keeps the server's mapping and the controller is locked with why.
+
+  var MISMATCH_REASON = {
+    file: 'Showing the functions of a file: its metrics follow the file analysis. Go up a level to change them.',
+    directory: 'Showing a folder in a file analysis: its metrics follow the folder analysis. Go back to change them.'
+  };
+
+  function mappingRuntime() { return root.CodeXRMappingUiRuntime || null; }
+
+  /** Chart and mapping the drilled view is drawn with, and whether the controller drives it. */
+  function drillChartSpec(entityState) {
+    var controllerDriven = !!entityState && entityState.target?.kind === entityState.homeKind;
+    var controller = controllerDriven ? mappingRuntime()?.getState?.() : null;
+    var mapping = controller?.lastKnownGoodMapping || controller?.selectedByDimension;
+    if (controller?.chartId && mapping && Object.keys(mapping).length) {
+      return { chartId: String(controller.chartId), mapping: Object.assign({}, mapping), controllerDriven: true };
+    }
+    return {
+      chartId: String(entityState?.chartId || 'boats'),
+      mapping: Object.assign({}, entityState?.mapping || {}),
+      controllerDriven: false
+    };
+  }
+
+  /** Points the controller at the drilled chart, unlocked or locked with the reason. */
+  function claimController(spec, entityState) {
+    var runtime = mappingRuntime();
+    runtime?.setChartEntityIds?.([CHART_ID], { renormalize: false });
+    var locked = !spec.controllerDriven;
+    if (locked === !!state.controllerLocked) { return; }
+    state.controllerLocked = locked;
+    runtime?.setMappingControlsEnabled?.(!locked, locked ? MISMATCH_REASON[entityState?.target?.kind] || '' : '');
+  }
+
+  function releaseController() {
+    if (state.controllerLocked) { mappingRuntime()?.setMappingControlsEnabled?.(true, ''); }
+    state.controllerLocked = false;
+  }
+
+  /** A metric or chart change in the controller redraws the drilled chart. */
+  function bindMappingChanges() {
+    var document = doc();
+    if (state.mappingBound || !document?.addEventListener) { return !!state.mappingBound || !document; }
+    var onConfirmed = function () {
+      if (state.active && currentMode() === MODE && state.entity?.datasetUrl && state.entity.status !== 'loading') {
+        renderView(state.entity);
+      }
+    };
+    document.addEventListener('codexr-mapping-confirmed', onConfirmed);
+    state.mappingBound = true;
+    state.disposables.push(function () { document.removeEventListener('codexr-mapping-confirmed', onConfirmed); state.mappingBound = false; });
+    return true;
+  }
 
   function containmentProfile() {
     return root.CodeXRAnalysisTableRuntime?.getContainmentProfile?.(MODE)
@@ -33,8 +91,10 @@
   function restoreClassic() {
     if (currentMode() !== 'single') { return; }
     var surface = root.CodeXRAnalysisSurfaceRuntime;
-    if (surface?.setNormalVisible) { surface.setNormalVisible(true); return; }
-    setNodeVisible(doc()?.getElementById?.('codexrNormalAnalysisRoot'), true);
+    if (surface?.setNormalVisible) { surface.setNormalVisible(true); }
+    else { setNodeVisible(doc()?.getElementById?.('codexrNormalAnalysisRoot'), true); }
+    sweepBoatsLegends();
+    root.setTimeout?.(sweepBoatsLegends, 400);
   }
 
   function ensureViewRoot() {
@@ -107,8 +167,10 @@
    */
   function renderView(entityState) {
     if (!entityState?.datasetUrl) { return false; }
-    var key = [entityState.target?.kind, entityState.target?.relativePath, entityState.chartId, entityState.treeField,
-      JSON.stringify(entityState.mapping || {})].join('|');
+    var spec = drillChartSpec(entityState);
+    claimController(spec, entityState);
+    var key = [entityState.target?.kind, entityState.target?.relativePath, spec.chartId, entityState.treeField,
+      JSON.stringify(spec.mapping)].join('|');
     if (refs.viewRoot && refs.viewRoot.isConnected !== false && state.viewKey === key && refs.data) {
       if (state.viewRevision !== entityState.revision) {
         state.viewRevision = entityState.revision;
@@ -118,8 +180,8 @@
     }
     removeView();
     var viewRoot = ensureViewRoot();
-    var mappingRuntime = root.CodeXRMappingUiRuntime;
-    var chartId = String(entityState.chartId || 'boats');
+    var builders = mappingRuntime();
+    var chartId = spec.chartId;
     var generation = state.buildGeneration;
     state.viewKey = key;
     state.viewRevision = entityState.revision;
@@ -130,7 +192,7 @@
 
     var sourceId = DATA_ID;
     if (isHierarchical(chartId)) {
-      refs.tree = mappingRuntime?.buildDeclarativeTreeEntity?.({
+      refs.tree = builders?.buildDeclarativeTreeEntity?.({
         entityId: TREE_ID, sourceId: DATA_ID, field: entityState.treeField || 'filePath', splitBy: '/'
       }) || null;
       if (refs.tree) {
@@ -141,15 +203,15 @@
       }
     } else {
       // Flat charts read the row-budgeted slice, like the classic analysis.
-      var slice = mappingRuntime?.prepareChartDataSlice?.(DATA_ID, chartId, entityState.mapping || {});
+      var slice = builders?.prepareChartDataSlice?.(DATA_ID, chartId, spec.mapping);
       if (slice?.id) { sourceId = slice.id; }
     }
 
-    refs.chart = mappingRuntime?.buildDeclarativeChartEntity?.({
+    refs.chart = builders?.buildDeclarativeChartEntity?.({
       entityId: CHART_ID,
       chartId: chartId,
       sourceId: sourceId,
-      mapping: Object.assign({}, entityState.mapping || {}),
+      mapping: Object.assign({}, spec.mapping),
       title: chartTitle(entityState),
       containmentProfile: containmentProfile(),
       role: 'drill-down chart',

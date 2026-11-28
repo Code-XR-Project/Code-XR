@@ -356,7 +356,7 @@ export class AnalysisRefreshCoordinator {
                     'project-evolution': 'project-evolution',
                     'dependency-graph': 'dependency.settings',
                     'agent-flow': 'agent-flow',
-                    'drill-down': 'drill-down',
+                    'drill-down': 'single.mapping',
                 },
                 viewRevision: 0,
                 sourceRevision: 0,

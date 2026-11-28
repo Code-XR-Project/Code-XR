@@ -2,7 +2,9 @@
   // Click a building or a district of the chart on the table and a card
   // opens over it: what it is, where it is, and Analyze / Open in editor.
   // Clicks reach us through the scene (A-Frame's cursor events bubble), so
-  // Babia's own hover legend and click highlight keep working untouched.
+  // Babia's click highlight keeps working untouched. Babia's own legend is
+  // hidden while the card can open: the card shows the same three metrics and
+  // the legend would sit on top of it.
 
   function viewContext() {
     var entityState = state.entity || {};
@@ -133,49 +135,101 @@
     return box.isEmpty() ? null : box.max.y;
   }
 
-  function openCard(target, element, chart) {
-    var key = target.type + ':' + target.path + ':' + (target.line || '');
-    if (refs.card && state.cardKey === key) { closeCard(); return; }
-    closeCard();
-    var scene = sceneEl();
-    if (!scene) { return; }
-    var spec = cardActions(target);
-    var position = worldPositionOf(element);
-    var top = chartTopOf(chart);
-    if (position) {
-      position.y = Math.max(position.y + CARD.lift, top == null ? -Infinity : top + CARD.height / 2 + 0.12);
-    }
+  function formatMetric(value) {
+    return typeof value === 'number' ? String(Math.round(value * 100) / 100) : String(value);
+  }
+
+  /** "field (height): value" lines of a building, from the chart's own mapping. */
+  function chartMetrics(chart, raw) {
+    if (!raw || Array.isArray(raw.children)) { return []; }
+    var mapping = chart?.getAttribute?.('babia-boats');
+    if (!mapping || typeof mapping !== 'object') { return []; }
+    return [['height', mapping.height], ['area', mapping.area], ['color', mapping.color]]
+      .filter(function (pair) { return pair[1] && raw[pair[1]] !== undefined && raw[pair[1]] !== null; })
+      .map(function (pair) { return compact(pair[1], 28) + ' (' + pair[0] + '): ' + formatMetric(raw[pair[1]]); });
+  }
+
+  /** Vertical layout of the card: rows from the top, buttons at the bottom. */
+  function cardLayout(metricCount, hasNote) {
+    var rows = metricCount + (hasNote ? 1 : 0);
+    var height = CARD.height + rows * CARD.row;
+    var top = height / 2;
+    var title = top - 0.18;
+    var subtitle = title - 0.18;
+    var firstRow = subtitle - 0.17;
+    return {
+      height: height,
+      title: title,
+      subtitle: subtitle,
+      row: function (index) { return firstRow - index * CARD.row; },
+      buttons: -top + 0.21
+    };
+  }
+
+  function cardFrame(layout, position) {
     var card = entity('a-entity', {
       id: 'codexrDrillDownCard',
       'data-codexr-role': 'drill-down inspector',
       position: position ? position.x.toFixed(3) + ' ' + position.y.toFixed(3) + ' ' + position.z.toFixed(3) : '0 2.2 -17'
     });
     card.appendChild(entity('a-plane', {
-      width: CARD.width, height: CARD.height,
+      width: CARD.width, height: layout.height,
       material: 'color: ' + COLORS.panel + '; opacity: 0.94; transparent: true; shader: flat'
     }));
     card.appendChild(entity('a-plane', {
-      position: '0 ' + (CARD.height / 2 - 0.012) + ' 0.004', width: CARD.width, height: 0.024,
+      position: '0 ' + (layout.height / 2 - 0.012) + ' 0.004', width: CARD.width, height: 0.024,
       material: 'color: ' + ACCENT + '; shader: flat'
     }));
-    card.appendChild(text(cardTitle(target), (-CARD.width / 2 + 0.1) + ' 0.33 0.01', 2.2, COLORS.current, 'left', 34));
-    card.appendChild(text(cardSubtitle(target), (-CARD.width / 2 + 0.1) + ' 0.15 0.01', 1.9, COLORS.muted, 'left', 44));
+    var close = button('X', (CARD.width / 2 - 0.13) + ' ' + (layout.height / 2 - 0.13) + ' 0.012', 0.18, closeCard, COLORS.close, { height: 0.18 });
+    close.el.setAttribute('data-codexr-role', 'drill-down close');
+    card.appendChild(close.el);
+    return card;
+  }
+
+  function appendCardText(card, target, spec, metrics, layout) {
+    var left = -CARD.width / 2 + 0.1;
+    card.appendChild(text(cardTitle(target), left + ' ' + layout.title + ' 0.01', 2.2, COLORS.current, 'left', 34));
+    card.appendChild(text(cardSubtitle(target), left + ' ' + layout.subtitle + ' 0.01', 1.9, COLORS.muted, 'left', 44));
+    metrics.forEach(function (line, index) {
+      var row = text(line, left + ' ' + layout.row(index) + ' 0.01', 1.9, COLORS.text, 'left', 44);
+      row.setAttribute('data-codexr-role', 'drill-down metric');
+      card.appendChild(row);
+    });
     if (spec.note) {
-      card.appendChild(text(spec.note, (-CARD.width / 2 + 0.1) + ' -0.02 0.01', 1.9, COLORS.error, 'left', 44));
+      card.appendChild(text(spec.note, left + ' ' + layout.row(metrics.length) + ' 0.01', 1.9, COLORS.error, 'left', 44));
     }
-    var count = spec.actions.length;
+  }
+
+  function appendCardActions(card, actions, y) {
+    var count = actions.length;
     var gap = 0.06;
     var widthEach = count ? Math.min(0.98, (CARD.width - 0.16 - gap * (count - 1)) / count) : 0;
     var startX = -((widthEach * count) + gap * (count - 1)) / 2 + widthEach / 2;
-    spec.actions.forEach(function (action, index) {
-      var handle = button(action.label, (startX + index * (widthEach + gap)).toFixed(3) + ' -0.3 0.012', widthEach, action.run, action.color, { height: 0.26 });
+    actions.forEach(function (action, index) {
+      var handle = button(action.label, (startX + index * (widthEach + gap)).toFixed(3) + ' ' + y.toFixed(3) + ' 0.012', widthEach, action.run, action.color, { height: 0.26 });
       setButtonEnabled(handle, action.enabled);
       handle.el.setAttribute('data-codexr-role', 'drill-down action ' + action.label.toLowerCase().replace(/\s+/g, '-'));
       card.appendChild(handle.el);
     });
-    var close = button('X', (CARD.width / 2 - 0.13) + ' ' + (CARD.height / 2 - 0.13) + ' 0.012', 0.18, closeCard, COLORS.close, { height: 0.18 });
-    close.el.setAttribute('data-codexr-role', 'drill-down close');
-    card.appendChild(close.el);
+  }
+
+  function openCard(target, element, chart, raw) {
+    var key = target.type + ':' + target.path + ':' + (target.line || '');
+    if (refs.card && state.cardKey === key) { closeCard(); return; }
+    closeCard();
+    var scene = sceneEl();
+    if (!scene) { return; }
+    var spec = cardActions(target);
+    var metrics = chartMetrics(chart, raw);
+    var layout = cardLayout(metrics.length, !!spec.note);
+    var position = worldPositionOf(element);
+    var top = chartTopOf(chart);
+    if (position) {
+      position.y = Math.max(position.y + CARD.lift, top == null ? -Infinity : top + layout.height / 2 + 0.12);
+    }
+    var card = cardFrame(layout, position);
+    appendCardText(card, target, spec, metrics, layout);
+    appendCardActions(card, spec.actions, layout.buttons);
     // Turned toward the viewer from the position it is given: the entity's
     // own object3D is not placed until A-Frame loads it, a frame later.
     card.setAttribute('rotation', '0 ' + yawToward(scene, position).toFixed(1) + ' 0');
@@ -183,6 +237,46 @@
     refs.card = card;
     state.cardKey = key;
     state.cardTarget = target;
+  }
+
+  /** Babia-boats appends its hover/click legend (an a-plane with babia-lookat) next to the chart. */
+  function isBoatsLegend(node) {
+    if (!node || node.nodeType !== 1 || String(node.tagName).toUpperCase() !== 'A-PLANE' || !node.hasAttribute?.('babia-lookat')) { return false; }
+    var siblings = node.parentNode?.children || [];
+    for (var i = 0; i < siblings.length; i += 1) {
+      var sibling = siblings[i];
+      if (PICKABLE_CHART_IDS.indexOf(sibling.id) !== -1 && sibling.hasAttribute?.('babia-boats')) { return true; }
+    }
+    return false;
+  }
+
+  function hideLegend(node) {
+    if (!isBoatsLegend(node)) { return; }
+    // Shrunk as well as hidden: showing the classic analysis again re-shows
+    // everything under its root, sticky legends included.
+    node.setAttribute('visible', false);
+    node.setAttribute('scale', '0.0001 0.0001 0.0001');
+    node.setAttribute('data-codexr-hidden-by', 'drill-down card');
+  }
+
+  function hideBoatsLegends(records) {
+    if (!isNavigableMode()) { return; }
+    records.forEach(function (record) {
+      Array.prototype.forEach.call(record.addedNodes || [], hideLegend);
+    });
+  }
+
+  /** Showing the parked classic analysis again shows its sticky legends too: hide them again. */
+  function sweepBoatsLegends() {
+    if (!isNavigableMode()) { return; }
+    Array.prototype.forEach.call(doc()?.querySelectorAll?.('a-plane[babia-lookat]') || [], hideLegend);
+  }
+
+  function bindLegendSuppression(scene) {
+    if (typeof root.MutationObserver !== 'function') { return; }
+    var observer = new root.MutationObserver(hideBoatsLegends);
+    observer.observe(scene, { childList: true, subtree: true });
+    state.disposables.push(function () { observer.disconnect(); });
   }
 
   function handleSceneClick(event) {
@@ -197,13 +291,14 @@
     var target = targetFromRaw(picked.raw, viewContext());
     if (!target) { return; }
     if (!state.entity && !state.stateRequested) { requestState(); }
-    openCard(target, picked.element, chart);
+    openCard(target, picked.element, chart, picked.raw);
   }
 
   function bindSceneClicks() {
     var scene = sceneEl();
     if (state.sceneClickBound || !scene) { return !!state.sceneClickBound; }
     scene.addEventListener('click', handleSceneClick);
+    bindLegendSuppression(scene);
     state.sceneClickBound = true;
     state.disposables.push(function () {
       scene.removeEventListener('click', handleSceneClick);
