@@ -148,7 +148,7 @@ Plugin and core, on `v1.3.0`. Each fix has an automated test; the multi-client r
 | COLLAB-SYNC-6 | fixed: clear and cancel are host (or local) only | `analysisMessageRouter.ts` |
 | COLLAB-SYNC-4, -5, -7, -8 | open (minor) | |
 | COLLAB-IDE-1 to -5 | in the IDE change | `ide` branch |
-| Voice chat | not built: a new feature, waiting for a decision | |
+| Voice chat | deferred: kept as a possible future feature (story in the backlog) | |
 
 ### The multi-client run after the fixes
 
