@@ -14,13 +14,14 @@ const { readAssembledRuntime } = require(path.join(projectRoot, 'test', 'helpers
 const source = readAssembledRuntime('drill-down', 'drillDownRuntime.js');
 
 /** The runtime without a document: nothing mounts, the pure parts and the API are there. */
-function loadRuntime({ mode = 'single', client } = {}) {
+function loadRuntime({ mode = 'single', client, mappingUi } = {}) {
     const sandbox = {
         console: { log() {}, warn() {}, error() {} },
         setTimeout() { return 0; },
         clearTimeout() {},
         CodeXRAnalysisModeRuntime: { getState: () => ({ mode }) },
         CodeXRCollaborationRuntime: client ? { getClient: () => client } : undefined,
+        CodeXRMappingUiRuntime: mappingUi,
     };
     sandbox.window = sandbox;
     vm.runInNewContext(source, sandbox, { filename: 'drillDownRuntime.js' });
@@ -156,4 +157,43 @@ test('the public API sends the navigation messages, and an exported copy explain
     const offline = loadRuntime({ client: { sendMessage: () => true, isOfflineExport: () => true } });
     assert.equal(offline.back(), false);
     assert.match(offline.getState().lastError, /exported copy/);
+});
+
+test('the card lists a building\'s three metrics from the chart\'s own mapping, and none for a district', () => {
+    const { __testing: t } = loadRuntime();
+    const chart = { getAttribute: (name) => (name === 'babia-boats' ? { height: 'totalLines', area: 'functionCount', color: 'cyclomaticComplexityNumber' } : null) };
+    const lines = t.chartMetrics(chart, { totalLines: 500, functionCount: 23, cyclomaticComplexityNumber: 5.0833 });
+    assert.deepEqual([...lines], ['totalLines (height): 500', 'functionCount (area): 23', 'cyclomaticComplexityNumber (color): 5.08']);
+    assert.deepEqual([...t.chartMetrics(chart, { uid: 'src', children: [] })], []);
+    assert.deepEqual([...t.chartMetrics(chart, { totalLines: 3 })], ['totalLines (height): 3'], 'a metric the row lacks is left out');
+    assert.deepEqual([...t.chartMetrics({ getAttribute: () => null }, { totalLines: 3 })], [], 'not a boats chart');
+});
+
+test('only the legend boats hangs beside a pickable chart is recognised as Babia\'s legend', () => {
+    const { __testing: t } = loadRuntime();
+    const node = (tagName, attributes, parentNode) => ({
+        nodeType: 1, tagName, parentNode, id: attributes.id || '',
+        hasAttribute: (name) => Object.prototype.hasOwnProperty.call(attributes, name),
+    });
+    const parent = { children: [] };
+    parent.children.push(node('A-ENTITY', { id: 'chart', 'babia-boats': '' }, parent));
+    assert.equal(t.isBoatsLegend(node('A-PLANE', { 'babia-lookat': '[camera]' }, parent)), true);
+    assert.equal(t.isBoatsLegend(node('A-PLANE', {}, parent)), false, 'a plain plane');
+    assert.equal(t.isBoatsLegend(node('A-TEXT', { 'babia-lookat': '' }, parent)), false);
+    const barsParent = { children: [] };
+    barsParent.children.push(node('A-ENTITY', { id: 'chart', 'babia-bars': '' }, barsParent));
+    assert.equal(t.isBoatsLegend(node('A-PLANE', { 'babia-lookat': '' }, barsParent)), false, 'another chart keeps its legend');
+});
+
+test('a drill with the session\'s own schema follows the controller; the functions of a file keep the server\'s mapping', () => {
+    const entity = (kind) => ({ target: { kind, relativePath: 'src' }, homeKind: 'directory', chartId: 'boats', mapping: { height: 'nloc' } });
+    const plain = (value) => JSON.parse(JSON.stringify(value));
+
+    const alone = loadRuntime().__testing;
+    assert.deepEqual(plain(alone.drillChartSpec(entity('directory'))), { chartId: 'boats', mapping: { height: 'nloc' }, controllerDriven: false }, 'no controller in the page');
+
+    const controller = { chartId: 'bars', lastKnownGoodMapping: { height: 'totalLines', x_axis: 'fileName' } };
+    const t = loadRuntime({ mappingUi: { getState: () => controller } }).__testing;
+    assert.deepEqual(plain(t.drillChartSpec(entity('directory'))), { chartId: 'bars', mapping: { height: 'totalLines', x_axis: 'fileName' }, controllerDriven: true }, 'a folder of a project');
+    assert.deepEqual(plain(t.drillChartSpec(entity('file'))), { chartId: 'boats', mapping: { height: 'nloc' }, controllerDriven: false }, 'the functions of one file');
 });

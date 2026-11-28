@@ -1,4 +1,11 @@
 // == xrChartMappingUiRuntime.js | dimensionAndViews (assembled per manifest.json; see COMPONENTS.md) ==
+  // Modes whose runtime owns the identity of its chart rebuild it themselves
+  // from the confirmation event: project evolution (its movie chart) and the
+  // drill-down (its drilled chart, built from its own producer).
+  function isDelegatedEntityApply() {
+    return state.activeMappingContextId === 'project-evolution' || state.mode === 'drill-down';
+  }
+
   function applyDimensionSelection(config, dimensionId, fieldName, options) {
     if (state.mappingControlsLocked && !(options && options.forceWhenLocked === true)) {
       setStatusMessage('Playback running - pause to change chart or axes.', 'info', 0);
@@ -33,7 +40,7 @@
     var previousMapping = cloneMapping(state.selectedByDimension);
     var nextMapping = cloneMapping(previousMapping);
     nextMapping[dimensionId] = fieldName;
-    var delegatedEntityApply = state.activeMappingContextId === 'project-evolution';
+    var delegatedEntityApply = isDelegatedEntityApply();
 
     if (!delegatedEntityApply) {
       applyMappingToCharts(chartEntities, componentName, nextMapping);
@@ -427,9 +434,6 @@
     }
     if (viewId.indexOf('agent-flow') === 0) {
       return 'agent-flow';
-    }
-    if (viewId.indexOf('drill-down') === 0) {
-      return 'drill-down';
     }
     return 'single';
   }

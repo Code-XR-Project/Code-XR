@@ -101,7 +101,7 @@ export const ANALYSIS_TYPES: ReadonlyArray<AnalysisTypeDescriptor> = Object.free
         // Not in the Analyses menu: it is reached from a building or a breadcrumb.
         id: 'drill-down',
         label: 'Drill-down',
-        controllerView: 'drill-down',
+        controllerView: 'single.mapping',
         serverFeature: 'drillDown',
         surfaces: ['XR'],
         snapshotProbe: {

@@ -10,7 +10,7 @@
     'dependency-graph': 'dependency-graph',
     'project-evolution': 'project-evolution',
     'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down'
+    'drill-down': 'mapping'
   };
   // The header button that opens this selector is painted with the colour of
   // the analysis you are in — the same hexes that already tint the table
@@ -33,7 +33,8 @@
     'dependency-graph': 'dependency.settings',
     'project-evolution': 'project-evolution',
     'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down'
+    // Drilled, the table keeps the analysis controller (metrics + chart).
+    'drill-down': 'single.mapping'
   };
   var PANEL_VIEW_BY_CONTROLLER_VIEW = {
     'visualization-menu': 'visualization-mode',
@@ -45,8 +46,7 @@
     'project-evolution.selection': 'project-evolution',
     'project-evolution.playback': 'project-evolution',
     'project-evolution.mapping': 'mapping',
-    'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down'
+    'agent-flow': 'agent-flow'
   };
   var RAYCAST_CLASS = 'babiaxraycasterclass';
   var SUSPENDED_INTERACTIVE_ATTR = 'data-codexr-suspended-interactive';

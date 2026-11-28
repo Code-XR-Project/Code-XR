@@ -52,8 +52,7 @@
     'project-evolution.selection': 'project-evolution',
     'project-evolution.playback': 'project-evolution',
     'project-evolution.mapping': 'mapping',
-    'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down'
+    'agent-flow': 'agent-flow'
   };
 
   var CONTROLLER_VIEW_BY_PANEL = {
@@ -62,8 +61,7 @@
     'dependency-graph': 'dependency.settings',
     'historical-selection': 'historical.selection',
     'project-evolution': 'project-evolution',
-    'agent-flow': 'agent-flow',
-    'drill-down': 'drill-down'
+    'agent-flow': 'agent-flow'
   };
 
   var refs = {

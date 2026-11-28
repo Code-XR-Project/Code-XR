@@ -1,7 +1,7 @@
 # Drill-down (XR)
 
 Analyse any file or folder of the analysis from inside the XR scene, in place
-(mode id `drill-down`, controller view `drill-down`, accent `#0ea5e9`; epic
+(mode id `drill-down`, controller view `single.mapping`, accent `#0ea5e9`; epic
 #333, stories #334-#340). The person picks a building (a file) or a district
 (a folder) of the chart on the table, presses **Analyze file** or **Analyze
 folder**, and the table switches to the analysis of that target on the same
@@ -60,7 +60,19 @@ the IDE imports it as `@codexr/core/drilldown/*`.
   `53 files: all up to date, nothing analysed.`, `57 functions: freshly analysed.`
 - **Loading card.** Over the table while the server analyses, with the elapsed
   time (text, not motion: it ticks under reduced motion too).
-- **Controller panel.** View `drill-down`: Back, Up one level, Classic analysis.
+- **Controller.** The table keeps the analysis controller (`single.mapping`,
+  mapping context `normal-analysis`): the drilled chart is drawn with the
+  controller's chart type and metrics, and a change there rebuilds it (the
+  mapping UI delegates the entity apply in mode `drill-down`, as it does for
+  project evolution, and the runtime redraws on `codexr-mapping-confirmed`).
+  When the drilled rows do not have the session's schema (the functions of
+  one file in a project analysis) the chart keeps the server's mapping and the
+  controller is locked with the reason. Home restores the classic analysis as
+  it was. Navigation lives on the bar only.
+- **Card metrics, no Babia legend.** A building's card lists its height, area
+  and colour metrics with their values, read from the chart's own mapping.
+  Babia's hover/click legend is hidden (and shrunk) while the card can open,
+  because it covered the card.
 
 The `drill-down` entity is passive (COMPONENTS.md): it carries data, never
 intent. The server switches the room's mode through `analysis-view`, and the
