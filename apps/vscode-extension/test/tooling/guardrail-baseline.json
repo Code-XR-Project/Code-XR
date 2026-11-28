@@ -49,6 +49,7 @@
       "src/core/python-env/venvManager.ts",
       "src/core/remote-access/remoteAccessManager.ts",
       "src/core/remote-access/remoteSessionAuthority.ts",
+      "src/core/server/analysis/analysisFeatureHost.ts",
       "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
       "src/core/server/collaboration/collaborationRoomServer.ts",
       "src/core/server/httpServer.ts",
@@ -61,7 +62,9 @@
     "complexity.over15": 8,
     "complexity.over20": 0,
     "complexity.over30": 0,
-    "reachability.unreachable": [],
+    "reachability.unreachable": [
+      "src/core/agent-flow/acpSessionEvents.ts"
+    ],
     "templates.consoleLog": 31,
     "eslint.maxWarnings": 151,
     "commands.internalByKind": {
@@ -71,10 +74,10 @@
     }
   },
   "informational": {
-    "src.files": 309,
-    "src.lines": 51857,
-    "src.functions": 3557,
-    "src.unreachableLines": 0,
+    "src.files": 339,
+    "src.lines": 56837,
+    "src.functions": 4020,
+    "src.unreachableLines": 253,
     "console.byFile": {
       "src/platform/logging/sink.ts": 2
     },
@@ -199,7 +202,7 @@
       {
         "ccn": 20,
         "lines": 50,
-        "function": "handleCollaborationMessage",
+        "function": "handleModeMessage",
         "file": "src/core/server/analysis/analysisMessageRouter.ts"
       },
       {
@@ -254,7 +257,7 @@
     "size.largest10": [
       {
         "file": "src/core/python-env/venvManager.ts",
-        "lines": 849
+        "lines": 887
       },
       {
         "file": "src/features/analysis/sections/active-analyses/activeAnalysesCommands.ts",
@@ -269,20 +272,20 @@
         "lines": 679
       },
       {
+        "file": "src/features/active-servers/views/handleServerActions.ts",
+        "lines": 634
+      },
+      {
+        "file": "src/core/server/httpServer.ts",
+        "lines": 633
+      },
+      {
         "file": "src/core/remote-access/remoteSessionAuthority.ts",
         "lines": 632
       },
       {
-        "file": "src/features/active-servers/views/handleServerActions.ts",
-        "lines": 628
-      },
-      {
-        "file": "src/core/server/httpServer.ts",
-        "lines": 605
-      },
-      {
         "file": "src/core/analysis/python/executePython.ts",
-        "lines": 588
+        "lines": 605
       },
       {
         "file": "src/core/server/broadcast/screenBroadcastSignalingServer.ts",
@@ -290,7 +293,7 @@
       },
       {
         "file": "src/core/remote-access/remoteAccessManager.ts",
-        "lines": 569
+        "lines": 573
       }
     ]
   },
@@ -336,6 +339,20 @@
       "to": 7,
       "reason": "#42: views/common/baseInterfaces.ts moved to platform/tree/ (its src-layout.md destination); its any moves with it (views and platform shift by the same count, total unchanged)",
       "date": "2026-11-25"
+    },
+    {
+      "metric": "reachability.unreachable",
+      "from": 0,
+      "to": 1,
+      "reason": "Agent Flow (#319): acpSessionEvents.ts is shared core imported only by the Code-XR IDE (apps/ide agentFlowFeed.ts), so it is unreachable from extension.ts by design; analysisFeatureHost.ts grows by 15 lines for the fifth mode's slot (the wiring itself lives in agentFlowHostWiring.ts)",
+      "date": "2026-11-28"
+    },
+    {
+      "metric": "size.filesOver500",
+      "from": 13,
+      "to": 14,
+      "reason": "Agent Flow (#319): acpSessionEvents.ts is shared core imported only by the Code-XR IDE (apps/ide agentFlowFeed.ts), so it is unreachable from extension.ts by design; analysisFeatureHost.ts grows by 15 lines for the fifth mode's slot (the wiring itself lives in agentFlowHostWiring.ts)",
+      "date": "2026-11-28"
     }
   ]
 }

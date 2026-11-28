@@ -78,6 +78,12 @@
       trim: 'color: #c4b5fd; metalness: 0.3; roughness: 0.38',
       base: 'color: #4c1d95; metalness: 0.3; roughness: 0.62'
     },
+    // Agent flow: a dark slate top so the city's emissive verbs carry the colour; emerald trim is the mode's identity.
+    'agent-flow': {
+      top: 'color: #1e293b; metalness: 0.14; roughness: 0.74',
+      trim: 'color: #34d399; metalness: 0.3; roughness: 0.4',
+      base: 'color: #064e3b; metalness: 0.26; roughness: 0.64'
+    },
     'project-evolution': {
       top: 'color: #f59e0b; metalness: 0.14; roughness: 0.72',
       trim: 'color: #fde68a; metalness: 0.28; roughness: 0.42',
@@ -216,7 +222,7 @@
     }
 
     var profileId = String(profileOrMode || 'default');
-    if (profileId === 'single' || profileId === 'dependency-graph' || profileId === 'project-evolution') {
+    if (profileId === 'single' || profileId === 'dependency-graph' || profileId === 'project-evolution' || profileId === 'agent-flow') {
       return createContainmentProfile(profileId, FULL_TABLE_ZONE);
     }
 

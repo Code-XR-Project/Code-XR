@@ -1,0 +1,18 @@
+{
+  "output": "agentFlowRuntime.js",
+  "parts": [
+    "configAndState.js",
+    "colorEncoding.js",
+    "timelineModel.js",
+    "playbackMachine.js",
+    "cityScene.js",
+    "agentEffects.js",
+    "constructionSite.js",
+    "sceneOverlays.js",
+    "tableTimeline.js",
+    "viewController.js",
+    "controllerPanel.js",
+    "datasetAndProtocol.js",
+    "modeLifecycle.js"
+  ]
+}

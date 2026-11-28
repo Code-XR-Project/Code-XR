@@ -10,6 +10,7 @@ import { GitAnalysisSourceCatalog } from '../../history/gitAnalysisEligibility';
 import { ProjectEvolutionService } from '../../history/projectEvolutionService';
 import { analysisUpdateEvents } from '../../history/analysisUpdateEvents';
 import { DependencyGraphService } from '../../dependencies/dependencyGraphService';
+import { AGENT_FLOW_NOT_ATTACHED, agentFlowAvailability, releaseAgentFlow, wireAgentFlow, type AgentFlowWiringInput } from './agentFlowHostWiring';
 import { AnalysisSourceChangeBatch, AnalysisViewState, AnalysisViewMode, analysisRefreshCoordinator } from '../../analysis/refresh/analysisRefreshCoordinator';
 import { SessionWatcherManager } from '../../analysis/watchers/sessionWatcherManager';
 import { UnifiedSessionRegistry } from '../../analysis/session/sessionRegistry';
@@ -55,6 +56,7 @@ export class AnalysisFeatureHost {
     public historicalComparisonService: HistoricalComparisonService | null = null;
     public projectEvolutionService: ProjectEvolutionService | null = null;
     public gitAnalysisSourceCatalog: GitAnalysisSourceCatalog | null = null;
+    public agentFlow = AGENT_FLOW_NOT_ATTACHED;
 
     private analysisUpdateSubscription: (() => void) | null = null;
     private historicalRefreshTimer: NodeJS.Timeout | null = null;
@@ -139,6 +141,7 @@ export class AnalysisFeatureHost {
                     this.gitAnalysisSourceCatalog ?? undefined,
                 );
             }
+            this.agentFlow = wireAgentFlow(this.agentFlowWiring(capabilities.agentFlow, session, this.config.analysisSessionId, this.config.staticRoot));
 
             // Shared by every session-bound mode: publish analysis view-state
             // changes over the collaboration channel (no-op without a room).
@@ -149,6 +152,16 @@ export class AnalysisFeatureHost {
                 ),
             );
         }
+    }
+
+    /** Agent Flow's slot on this server (agentFlowHostWiring.ts); a file analysis gets the reason instead. */
+    private agentFlowWiring(enabled: boolean, target: AgentFlowWiringInput['target'], sessionId: string, staticRoot: string): AgentFlowWiringInput {
+        return {
+            enabled, target, sessionId, staticRoot,
+            disposables: this.refreshCoordinatorDisposables,
+            publish: (entity) => this.hooks.getRoom()?.upsertServerEntity(this.hooks.getRoomId(), { ...entity }),
+            activate: () => { void this.activateAnalysisViewMode('agent-flow', 'agent-flow'); },
+        };
     }
 
     /**
@@ -249,6 +262,7 @@ export class AnalysisFeatureHost {
                 enabled: false,
                 reason: 'Dependency analysis is not available for this server.',
             },
+            agentFlow: agentFlowAvailability(this.agentFlow),
         };
     }
 
@@ -493,5 +507,6 @@ export class AnalysisFeatureHost {
         this.gitAnalysisSourceCatalog = null;
         void this.dependencyGraphService?.dispose();
         this.dependencyGraphService = null;
+        this.agentFlow = releaseAgentFlow(this.agentFlow);
     }
 }

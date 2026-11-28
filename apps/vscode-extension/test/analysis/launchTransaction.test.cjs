@@ -407,11 +407,12 @@ test('the host tables derived from the analysis types are unchanged', async () =
             'dependency-graph': 'dependency.settings',
             'historical-compare': 'historical.selection',
             'project-evolution': 'project-evolution',
+            'agent-flow': 'agent-flow',
         });
         assert.equal(defaultControllerView('constructor'), 'single.mapping');
 
         const { getServerFeaturesForSurface, ANALYSIS_TYPES } = requireOut('core/analysis/launch/analysisTypes.js');
-        assert.deepEqual([...getServerFeaturesForSurface('XR')].sort(), ['dependencyGraph', 'historicalComparison', 'projectEvolution']);
+        assert.deepEqual([...getServerFeaturesForSurface('XR')].sort(), ['agentFlow', 'dependencyGraph', 'historicalComparison', 'projectEvolution']);
         assert.deepEqual([...getServerFeaturesForSurface('LivePanel')].sort(), ['dependencyGraph', 'historicalComparison']);
         assert.deepEqual([...getServerFeaturesForSurface('VisualizeDOM')], []);
         assert.deepEqual([...getServerFeaturesForSurface(undefined)], []);
@@ -421,7 +422,11 @@ test('the host tables derived from the analysis types are unchanged', async () =
             'dependency-graph': 'dependency-graph',
             'historical-compare': 'historical-comparison',
             'project-evolution': 'project-evolution',
+            'agent-flow': 'agent-flow',
         });
+        const flow = ANALYSIS_TYPES.find((t) => t.id === 'agent-flow').snapshotProbe;
+        assert.equal(flow.isAvailable({ datasetUrl: '/agent-flow/agent-flow-1.json' }), true);
+        assert.equal(flow.isAvailable({ datasetUrl: null }), false);
         const dep = ANALYSIS_TYPES.find((t) => t.id === 'dependency-graph').snapshotProbe;
         assert.equal(dep.isAvailable({ datasetUrl: '/d.json' }), true);
         assert.equal(dep.isAvailable({}), false);

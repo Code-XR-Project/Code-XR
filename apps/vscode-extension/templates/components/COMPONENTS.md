@@ -73,6 +73,11 @@ its parts directory. Manual harnesses load assembled copies from
 - `codexr/dependency-graph/dependencyGraphRuntime.js`
   - Owns the dependency graph visualization, layouts, filters, navigation and dependency-specific interaction.
   - Uses `CodeXRCommonRuntime` for tooltip presentation and billboard behavior.
+- `codexr/agent-flow/agentFlowRuntime.js` (loads right after the dependency graph runtime)
+  - Owns the Agent Flow mode (#319): an AI coding agent's session replayed or followed live on the table. See `docs/features/AGENT_FLOW_XR.md`.
+  - Registers `codexr-city`, Code-XR's own city chart (layout and look modeled on babia-boats from BabiaXR, GPL-3.0): nested folder plates and instanced buildings, with an API (`getBuildingTop`, `setBuildingHeight`, `addScaffold`, `setRoofTint`, `demolish`, `raise`, `setFoundation`, `setHazard`, ...) that the worker and effect layer goes through instead of reaching into entities.
+  - Draws one worker per actor (the main agent and each sub-agent), their actions (scan, radar, scaffold and crane, test tower, permission sign), the timeline and the controller view `agent-flow`. Persistent marks are recomputed from the playhead, so seeking is exact; live effects are capped at 40 and workers at 12; reduced motion draws everything static.
+  - Room messages: `agent-flow-sources-request`, `agent-flow-open`, `agent-flow-close` -> `agent-flow-sources`, `agent-flow-error`; shared entity `agent-flow`. Pinned by `test/analysis/agentFlowRuntime.test.cjs` and the harness `test/runners/run-agent-flow-harness.cjs`.
 - `codexr/historical-comparison/historicalComparisonRuntime.js`
   - Owns historical Git source selection and two-zone comparison rendering.
 - `codexr/project-evolution/projectEvolutionRuntime.js`
