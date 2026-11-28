@@ -156,7 +156,7 @@
     }
 
     function connectSignaling() {
-      if (refs.destroyed || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
+      if (refs.destroyed || refs.removedFromSession || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
         return;
       }
       if (refs.signalingSocket && [win.WebSocket.OPEN, win.WebSocket.CONNECTING].includes(refs.signalingSocket.readyState)) {
@@ -199,10 +199,17 @@
         }
       };
 
-      socket.onclose = function () {
+      socket.onclose = function (event) {
         refs.broadcastRegistered = false;
         refs.signalingSocket = null;
         if (refs.destroyed) {
+          return;
+        }
+        // 4001: the host removed this person and revoked their session; a
+        // retry every 1.4 s would only be refused forever (COLLAB-SYNC-10).
+        if (event?.code === 4001) {
+          refs.removedFromSession = true;
+          detachRemoteBroadcast(null, { notifyServer: false });
           return;
         }
         if (state.streamSourceType === 'local') {

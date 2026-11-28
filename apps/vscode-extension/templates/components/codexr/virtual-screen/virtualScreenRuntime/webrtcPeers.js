@@ -476,7 +476,7 @@
     }
 
     function scheduleSignalingReconnect() {
-      if (refs.signalingReconnectTimer || refs.destroyed || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
+      if (refs.signalingReconnectTimer || refs.destroyed || refs.removedFromSession || !refs.config.broadcastEnabled || !canUseBroadcastTransport()) {
         return;
       }
       refs.signalingReconnectTimer = setTimeout(function () {

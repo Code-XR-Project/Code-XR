@@ -128,3 +128,15 @@ test('runtime: a WebSocket constructor that throws is retried with back-off', ()
     assert.equal(timers.live(2000).length, 1);
     assert.deepEqual(statuses, ['connecting', 'reconnecting']);
 });
+
+test('runtime: a socket closed with 4001 (removed by the host) never reconnects', () => {
+    const { runtime, sockets, timers } = loadRuntime();
+    const { channel, log } = connect(runtime);
+    sockets[0].greet(0);
+    sockets[0].readyState = 3;
+    sockets[0].onclose({ code: 4001 });
+    assert.equal(timers.live().length, 0, 'no reconnect and no watchdog');
+    assert.equal(channel.getStatus(), 'disabled');
+    assert.deepEqual(log.statuses.slice(-1), ['disabled']);
+    assert.equal(sockets.length, 1);
+});

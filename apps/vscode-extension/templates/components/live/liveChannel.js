@@ -28,6 +28,7 @@
   let LIVE_CLIENT_SILENCE_TIMEOUT_MS = LIVE_HEARTBEAT_INTERVAL_MS * 3;
   let LIVE_RECONNECT_MIN_DELAY_MS = 1000;
   let LIVE_RECONNECT_MAX_DELAY_MS = 30000;
+  let LIVE_CLOSE_REMOVED = 4001;
 
   function nextReconnectDelay(previousDelayMs, random) {
     let base = previousDelayMs > 0
@@ -209,7 +210,15 @@
       socket = current;
       armWatchdog(current);
       current.onmessage = function (event) { handleMessage(current, event); };
-      current.onclose = function () { handleClosed(current); };
+      current.onclose = function (event) {
+        // 4001: the host removed this person. Their session is revoked, so
+        // every retry would be refused; stop instead (COLLAB-SYNC-10).
+        if (event && event.code === LIVE_CLOSE_REMOVED) {
+          closed = true;
+          setStatus('disabled');
+        }
+        handleClosed(current);
+      };
       current.onerror = function () {
         // onclose follows every error; the reconnect is scheduled there.
       };
@@ -258,6 +267,7 @@
       LIVE_CLIENT_SILENCE_TIMEOUT_MS: LIVE_CLIENT_SILENCE_TIMEOUT_MS,
       LIVE_RECONNECT_MIN_DELAY_MS: LIVE_RECONNECT_MIN_DELAY_MS,
       LIVE_RECONNECT_MAX_DELAY_MS: LIVE_RECONNECT_MAX_DELAY_MS,
+      LIVE_CLOSE_REMOVED: LIVE_CLOSE_REMOVED,
     },
   };
 })(typeof window !== 'undefined' ? window : globalThis);
